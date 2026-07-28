@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import re
@@ -13,23 +12,15 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.public import (
     get_agent_backend,
-    get_agent_thread_replies,
     get_agent_thread_runtime,
-    get_chat_run_locks,
-    get_deterministic_project_replies,
-    get_hermes_project_replies,
     get_hermes_runtime,
-    reingest_confirmation_reply,
-    script_creation_guidance_prompt,
+    get_project_assistant_replies,
 )
 
 agent_backend = get_agent_backend()
-agent_thread_replies = get_agent_thread_replies()
 agent_thread_runtime = get_agent_thread_runtime()
-chat_run_locks = get_chat_run_locks()
-deterministic_project_replies = get_deterministic_project_replies()
-hermes_project_replies = get_hermes_project_replies()
 hermes_runtime = get_hermes_runtime()
+project_assistant_replies = get_project_assistant_replies()
 
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
     r"\[AI_ANIME_REINGEST_CANCELLED\](.*?)\[/AI_ANIME_REINGEST_CANCELLED\]",
@@ -135,71 +126,6 @@ async def interrupt_chat_turn(
     )
 
 
-async def stream_assistant_reply(
-    username: str,
-    project: str,
-    prompt: str,
-    on_event,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    run_lock_id = chat_run_locks.acquire(username, project)
-    heartbeat_task = asyncio.create_task(
-        chat_run_locks.maintain(username, project, run_lock_id)
-    )
-    try:
-        deterministic = reingest_confirmation_reply(prompt)
-        if deterministic is not None:
-            return await deterministic_project_replies.stream(
-                username,
-                project,
-                deterministic,
-                on_event,
-                project_dir=project_dir,
-                project_state_dir=project_state_dir,
-            )
-        model_prompt = script_creation_guidance_prompt(prompt) or prompt
-        backend = agent_backend.name()
-        if backend == "codex":
-            return await agent_thread_replies.stream(
-                "codex",
-                username,
-                project,
-                model_prompt,
-                on_event,
-                project_dir=project_dir,
-                project_state_dir=project_state_dir,
-            )
-        if backend == "hermes":
-            return await hermes_project_replies.stream(
-                username,
-                project,
-                model_prompt,
-                on_event,
-                project_dir=project_dir,
-                project_state_dir=project_state_dir,
-            )
-        if backend != "claude":
-            raise RuntimeError(f"Unsupported chat backend: {backend}")
-        return await agent_thread_replies.stream(
-            "claude",
-            username,
-            project,
-            model_prompt,
-            on_event,
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
-    finally:
-        heartbeat_task.cancel()
-        try:
-            await heartbeat_task
-        except asyncio.CancelledError:
-            pass
-        chat_run_locks.release(username, project, run_lock_id)
-
-
 async def prewarm_chat_backend(username: str, *, project: str | None = None) -> None:
     """Best-effort pre-warm of the per-user agent worker.
 
@@ -226,4 +152,9 @@ async def generate_assistant_reply(
     async def _ignore(_event: dict[str, Any]) -> None:
         return None
 
-    return await stream_assistant_reply(username, project, prompt, _ignore)
+    return await project_assistant_replies.stream(
+        username,
+        project,
+        prompt,
+        _ignore,
+    )

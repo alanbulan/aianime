@@ -5,15 +5,12 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
-    AgentThreadReplies,
     AgentThreadRuntime,
     ChatHistory,
     ChatRunLocks,
-    DeterministicProjectReplies,
-    emit_chat_event_best_effort,
     HermesHomeReplies,
-    HermesProjectReplies,
     HermesRuntime,
+    ProjectAssistantReplies,
     ProjectChatMessages,
 )
 from ai_anime.modules.ai_assistant.domain import (
@@ -28,9 +25,7 @@ from ai_anime.modules.ai_assistant.domain import (
     is_hidden_chat_tool_event,
     merge_stream_text,
     message_content,
-    reingest_confirmation_reply,
     redact_local_filesystem_paths,
-    script_creation_guidance_prompt,
     should_emit_final_text,
     should_prewarm_scope,
     split_trace_contents,
@@ -130,14 +125,6 @@ def get_agent_thread_runtime() -> AgentThreadRuntime:
     return resolve()
 
 
-def get_agent_thread_replies() -> AgentThreadReplies:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_agent_thread_replies as resolve,
-    )
-
-    return resolve()
-
-
 def get_chat_history() -> ChatHistory:
     from ai_anime.modules.ai_assistant.composition import get_chat_history as resolve
 
@@ -146,14 +133,6 @@ def get_chat_history() -> ChatHistory:
 
 def get_chat_run_locks() -> ChatRunLocks:
     from ai_anime.modules.ai_assistant.composition import get_chat_run_locks as resolve
-
-    return resolve()
-
-
-def get_deterministic_project_replies() -> DeterministicProjectReplies:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_deterministic_project_replies as resolve,
-    )
 
     return resolve()
 
@@ -172,14 +151,6 @@ def get_hermes_home_replies() -> HermesHomeReplies:
     return resolve()
 
 
-def get_hermes_project_replies() -> HermesProjectReplies:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_hermes_project_replies as resolve,
-    )
-
-    return resolve()
-
-
 def get_project_chat_messages() -> ProjectChatMessages:
     from ai_anime.modules.ai_assistant.composition import (
         get_project_chat_messages as resolve,
@@ -188,17 +159,22 @@ def get_project_chat_messages() -> ProjectChatMessages:
     return resolve()
 
 
+def get_project_assistant_replies() -> ProjectAssistantReplies:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_project_assistant_replies as resolve,
+    )
+
+    return resolve()
+
+
 __all__ = [
     "AgentBackend",
-    "AgentThreadReplies",
     "AgentThreadRuntime",
     "ChatHistory",
     "ChatRunLocks",
-    "DeterministicProjectReplies",
-    "emit_chat_event_best_effort",
     "HermesHomeReplies",
-    "HermesProjectReplies",
     "HermesRuntime",
+    "ProjectAssistantReplies",
     "ProjectChatMessages",
     "ChatScope",
     "append_tool_ui_specs",
@@ -213,14 +189,12 @@ __all__ = [
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
-    "get_agent_thread_replies",
     "get_agent_thread_runtime",
     "get_chat_history",
     "get_chat_run_locks",
-    "get_deterministic_project_replies",
     "get_hermes_home_replies",
-    "get_hermes_project_replies",
     "get_hermes_runtime",
+    "get_project_assistant_replies",
     "get_project_chat_messages",
     "is_hidden_chat_tool_event",
     "infer_display_tool_call_from_text",
@@ -228,9 +202,7 @@ __all__ = [
     "merge_stream_text",
     "message_content",
     "normalize_json_render_reply",
-    "reingest_confirmation_reply",
     "redact_local_filesystem_paths",
-    "script_creation_guidance_prompt",
     "should_emit_final_text",
     "should_prewarm_scope",
     "split_trace_contents",

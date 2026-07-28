@@ -28,6 +28,7 @@ from ai_anime.modules.ai_assistant.public import (
     get_chat_run_locks,
     get_hermes_home_replies,
     get_hermes_runtime,
+    get_project_assistant_replies,
     get_project_chat_messages,
     message_content,
     should_emit_final_text,
@@ -59,6 +60,7 @@ chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
 hermes_home_replies = get_hermes_home_replies()
 hermes_runtime = get_hermes_runtime()
+project_assistant_replies = get_project_assistant_replies()
 project_chat_messages = get_project_chat_messages()
 
 
@@ -443,7 +445,7 @@ async def _stream_project_turn(
             )
 
     try:
-        await chat_service.stream_assistant_reply(
+        await project_assistant_replies.stream(
             username,
             project,
             agent_text,

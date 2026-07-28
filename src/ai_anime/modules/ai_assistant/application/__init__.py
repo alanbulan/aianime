@@ -44,6 +44,9 @@ from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 from ai_anime.modules.ai_assistant.application.project_messages import (
     ProjectChatMessages,
 )
+from ai_anime.modules.ai_assistant.application.project_assistant_replies import (
+    ProjectAssistantReplies,
+)
 from ai_anime.modules.ai_assistant.application.thread_replies import (
     AgentThreadReplies,
 )
@@ -74,6 +77,7 @@ __all__ = [
     "PageAgentSessions",
     "ProjectMedia",
     "ProjectMediaFiles",
+    "ProjectAssistantReplies",
     "ProjectChatMessages",
     "UserPreferences",
 ]

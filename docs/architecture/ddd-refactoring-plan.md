@@ -1779,6 +1779,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百五十九批已将 Hermes home chat 流式回复编排收口至 AI Assistant：application 新增唯一 `HermesHomeReplies`，组合 Hermes runtime 与通用 Chat history，统一负责首页历史回放抑制、附件上下文、用户/助手消息持久化、thread/正文/工具事件投影、异常时部分回复落盘、新建项目差异检测及 `chat.done` best-effort 发送重试；跨上下文项目查询只经 `project_workspace.public`。composition/public 提供唯一进程级 capability，Chat route 删除 `get_for_user` 直调和原 193 行首页业务实现及其四项专用依赖，只保留附件 DTO 转换、WebSocket 发送锁与 heartbeat 生命周期，事件 sink 让发送异常回到 application 以准确判断投递结果，不保留 facade、旧别名或第二套编排，文件由 809 行降至 643 行。Hermes home replies 4 项、AI Assistant 模块 191 项、剩余 Chat/route 回归 3 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 125 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百六十批已将项目助手回复分派收口至 AI Assistant：application 新增唯一 `ProjectAssistantReplies`，组合 Agent backend、Claude/Codex thread replies、Hermes replies、确定性 replies 与 Chat run locks，统一负责运行锁获取/维持/释放、重摄入确定性短路、剧本创建引导和三种后端选择，并保持未知后端错误与异常释放锁语义。composition/public 只暴露这一顶层进程级 capability，Chat route 改为直接调用；`chat/service.py` 删除 `stream_assistant_reply` 全部实现，原无事件 convenience 入口也直接复用同一 capability，文件由 229 行降至 160 行。迁移后仅供测试使用的 Agent thread、Hermes project、deterministic reply 三个低层 getter，以及 turn guidance 和 chat event helper 的 public 暴露同时收回，模块测试改为直接验证 application/domain，不保留 facade、旧别名、测试专用 public API 或第二套分派；原本无调用的输入历史/settings helper 未纳入本批。Project assistant replies 7 项、AI Assistant 模块 195 项、剩余 Chat/route 回归 1 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 126 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

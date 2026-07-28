@@ -6,7 +6,6 @@ from ai_anime.modules.ai_assistant.application import HermesProjectReplies
 from ai_anime.modules.ai_assistant.application import (
     hermes_project_replies as replies_module,
 )
-from ai_anime.modules.ai_assistant.public import get_hermes_project_replies
 
 
 def _event(event_type, **values):
@@ -167,10 +166,6 @@ def _build_replies(events, *, error=None, assistants=None, traces=None):
         fallbacks,
     )
     return replies, thread, runtime, messages, media, sessions, fallbacks
-
-
-def test_hermes_project_replies_composition_returns_one_process_instance():
-    assert get_hermes_project_replies() is get_hermes_project_replies()
 
 
 @pytest.mark.anyio

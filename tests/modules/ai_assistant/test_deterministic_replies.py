@@ -1,10 +1,7 @@
 import pytest
 
-from ai_anime.modules.ai_assistant.public import get_deterministic_project_replies
-
-
-def test_deterministic_project_replies_composition_returns_one_process_instance():
-    assert get_deterministic_project_replies() is get_deterministic_project_replies()
+from ai_anime.modules.ai_assistant.application import DeterministicProjectReplies
+from ai_anime.modules.ai_assistant.public import get_project_chat_messages
 
 
 @pytest.mark.anyio
@@ -16,7 +13,8 @@ async def test_deterministic_project_reply_redacts_local_paths(monkeypatch, tmp_
     async def on_event(event):
         events.append(event)
 
-    message = await get_deterministic_project_replies().stream(
+    replies = DeterministicProjectReplies(get_project_chat_messages())
+    message = await replies.stream(
         "admin",
         "project-a",
         "临时路径：~/Works/ai-anime-fe/src",

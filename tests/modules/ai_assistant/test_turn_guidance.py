@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.modules.ai_assistant.public import (
+from ai_anime.modules.ai_assistant.domain import (
     reingest_confirmation_reply,
     script_creation_guidance_prompt,
 )

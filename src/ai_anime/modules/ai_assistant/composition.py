@@ -15,6 +15,7 @@ from ai_anime.modules.ai_assistant.application import (
     HermesProjectReplies,
     HermesRuntime,
     PageAgentSessions,
+    ProjectAssistantReplies,
     ProjectChatMessages,
     ProjectMedia,
 )
@@ -71,6 +72,13 @@ _hermes_project_replies = HermesProjectReplies(
     _page_agent_sessions,
     _display_fallbacks,
 )
+_project_assistant_replies = ProjectAssistantReplies(
+    _agent_backend,
+    _agent_thread_replies,
+    _chat_run_locks,
+    _deterministic_project_replies,
+    _hermes_project_replies,
+)
 
 
 def get_agent_backend() -> AgentBackend:
@@ -83,10 +91,6 @@ def get_agent_prompt_context() -> AgentPromptContext:
 
 def get_agent_thread_runtime() -> AgentThreadRuntime:
     return _agent_thread_runtime
-
-
-def get_agent_thread_replies() -> AgentThreadReplies:
-    return _agent_thread_replies
 
 
 def get_chat_history() -> ChatHistory:
@@ -109,16 +113,8 @@ def get_hermes_home_replies() -> HermesHomeReplies:
     return _hermes_home_replies
 
 
-def get_hermes_project_replies() -> HermesProjectReplies:
-    return _hermes_project_replies
-
-
 def get_display_fallbacks() -> DisplayFallbacks:
     return _display_fallbacks
-
-
-def get_deterministic_project_replies() -> DeterministicProjectReplies:
-    return _deterministic_project_replies
 
 
 def get_page_agent_sessions() -> PageAgentSessions:
@@ -131,3 +127,7 @@ def get_project_media() -> ProjectMedia:
 
 def get_project_chat_messages() -> ProjectChatMessages:
     return _project_chat_messages
+
+
+def get_project_assistant_replies() -> ProjectAssistantReplies:
+    return _project_assistant_replies

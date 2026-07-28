@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.modules.ai_assistant.application import AgentThreadReplies
-from ai_anime.modules.ai_assistant.public import get_agent_thread_replies
 
 
 def _event(event_type, **values):
@@ -141,10 +140,6 @@ def _build_replies(events):
         project_media,
         project_messages,
     )
-
-
-def test_agent_thread_replies_composition_returns_one_process_instance():
-    assert get_agent_thread_replies() is get_agent_thread_replies()
 
 
 @pytest.mark.anyio

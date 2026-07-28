@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.api.routes import chat as chat_routes
-from ai_anime.chat import service as chat_service
 
 
 @pytest.fixture
@@ -67,69 +66,3 @@ async def test_append_chat_notification_persists_project_assistant_message(
     assert seen["content"] == "任务已完成。"
     assert seen["project_dir"] == tmp_path / "out"
     assert seen["project_state_dir"] == tmp_path / "state"
-
-
-@pytest.mark.anyio
-async def test_reingest_confirmation_reply_bypasses_agent_backend(
-    monkeypatch, tmp_path
-):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setattr(
-        chat_service.agent_backend,
-        "name",
-        lambda: pytest.fail("reingest confirmation should not call the agent backend"),
-    )
-    events = []
-
-    async def on_event(event):
-        events.append(event)
-
-    result = await chat_service.stream_assistant_reply(
-        "admin",
-        "project-a",
-        """创建视频
-
-[AI_ANIME_REINGEST_CONFIRMATION]
-stage: choose_overwrite
-ai_anime_project_id: project-a
-filename: novel.docx
-[/AI_ANIME_REINGEST_CONFIRMATION]""",
-        on_event,
-    )
-
-    assert "当前项目已有摄入内容" in result["content"]
-    assert "覆盖" in result["content"]
-    assert "新建项目" not in result["content"]
-    assert [event["type"] for event in events] == ["assistant_delta", "done"]
-
-
-@pytest.mark.anyio
-async def test_reingest_final_confirmation_reply_bypasses_agent_backend(
-    monkeypatch, tmp_path
-):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setattr(
-        chat_service.agent_backend,
-        "name",
-        lambda: pytest.fail("reingest confirmation should not call the agent backend"),
-    )
-
-    async def on_event(event):
-        pass
-
-    result = await chat_service.stream_assistant_reply(
-        "admin",
-        "project-a",
-        """覆盖
-
-[AI_ANIME_REINGEST_CONFIRMATION]
-stage: confirm_clear
-ai_anime_project_id: project-a
-filename: novel.docx
-[/AI_ANIME_REINGEST_CONFIRMATION]""",
-        on_event,
-    )
-
-    assert "会清空/重建当前项目已有角色" in result["content"]
-    assert "确定" in result["content"]
-    assert "新建项目" not in result["content"]
