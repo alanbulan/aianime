@@ -76,6 +76,23 @@ async def create_page_agent_session_token(
     )
 
 
+async def fallback_display_tool_ui_specs(
+    project: str,
+    tool_name: str,
+    args: dict[str, Any],
+    *,
+    token: str,
+) -> list[dict[str, Any]]:
+    from ai_anime.modules.ai_assistant.composition import get_display_fallbacks
+
+    return await get_display_fallbacks().build(
+        project,
+        tool_name,
+        args,
+        token=token,
+    )
+
+
 def get_agent_backend() -> AgentBackend:
     from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
 
@@ -132,6 +149,7 @@ __all__ = [
     "display_tool_call_key",
     "extract_tool_ui_specs",
     "extract_display_tool_call",
+    "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
     "get_agent_tool_configuration",

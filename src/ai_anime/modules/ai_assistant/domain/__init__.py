@@ -25,6 +25,16 @@ from ai_anime.modules.ai_assistant.domain.display_tools import (
     infer_display_tool_call_from_text,
     is_display_tool_name,
 )
+from ai_anime.modules.ai_assistant.domain.display_fallback import (
+    character_identity_requests,
+    display_candidate_beat,
+    display_episode,
+    project_beat_image_specs,
+    project_character_media_specs,
+    project_episode_media_specs,
+    project_scene_image_specs,
+    project_sketch_candidate_specs,
+)
 from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
     codex_mcp_config_overrides,
 )
@@ -41,8 +51,11 @@ __all__ = [
     "codex_mcp_config_overrides",
     "completion_text_or_existing",
     "compose_agent_prompt",
+    "character_identity_requests",
     "dedupe_tool_ui_specs",
     "display_tool_call_key",
+    "display_candidate_beat",
+    "display_episode",
     "extract_display_tool_call",
     "filter_tool_ui_specs_for_prompt",
     "infer_display_tool_call_from_text",
@@ -50,6 +63,11 @@ __all__ = [
     "is_display_tool_name",
     "merge_stream_text",
     "message_content",
+    "project_beat_image_specs",
+    "project_character_media_specs",
+    "project_episode_media_specs",
+    "project_scene_image_specs",
+    "project_sketch_candidate_specs",
     "reingest_confirmation_reply",
     "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",

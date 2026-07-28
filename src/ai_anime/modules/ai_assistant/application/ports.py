@@ -99,6 +99,10 @@ class JsonRenderErrors(Protocol):
     def record(self, error: ValueError, body: str) -> None: ...
 
 
+class DisplayFallbackGateway(Protocol):
+    def get(self, path: str, token: str) -> dict[str, Any]: ...
+
+
 class ChatRunLocks(Protocol):
     def acquire(self, username: str, project: str) -> str: ...
 

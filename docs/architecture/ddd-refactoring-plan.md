@@ -1759,6 +1759,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十九批已将展示工具调用规则收口至 AI Assistant domain：新增唯一纯 `display_tools.py`，以 `frozenset` 持有展示工具名集合，统一负责工具名识别、dict/JSON 字符串参数解码、多种事件字段提取、稳定调用键生成，以及模型声称展示草图却漏调工具时的纯文本恢复规则。`service.py` 删除原工具名白名单和四个私有规则入口，Hermes 事件处理、重复回退过滤和文本漏调恢复全部改经 public API，不保留 facade、旧别名或第二套实现；HTTP 回退取数、分页筛选与媒体 UI spec 构建未纳入本批，继续由 Chat 编排层持有。6 项原 service 特征测试迁入模块测试，并新增稳定调用键和工具名白名单 2 项合同，`service.py` 由 2,096 行降至 1,956 行。Display tools 8 项、AI Assistant 模块 145 项、剩余 Chat service 12 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 115 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百五十批已将展示工具 HTTP 回退收口至 AI Assistant：domain 新增唯一纯 `display_fallback.py`，统一持有草图/首帧、草图候选、场景图、角色肖像/身份图与剧集音视频的响应取值、参数筛选、分页限制和媒体 UI spec 投影；application 新增唯一 `DisplayFallbacks`，负责项目 ID 优先级、端点选择、角色身份补充查询、线程切换和异常隔离；application port 与唯一 `HttpDisplayFallbackGateway` infrastructure adapter 则持有 API URL、Bearer 头、30 秒超时及 JSON 容错。composition/public 提供唯一异步入口，`service.py` 删除 14 个回退筛选/投影/HTTP 私有入口及 `load_api_url`/`Request`/`urlopen`/URL quote 依赖，Hermes 的显式工具调用与文本漏调恢复均直接调用 public 用例，不保留 facade、旧别名或第二套实现；原回退入参中从未使用的 `username`/`project_dir` 同时移除。4 项原 service 特征测试迁入模块测试，并新增 10 项筛选、投影、身份查询失败回退及 HTTP 响应合同，`service.py` 由 1,956 行降至 1,349 行。Display fallback 14 项、AI Assistant 模块 159 项、剩余 Chat service 8 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 116 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

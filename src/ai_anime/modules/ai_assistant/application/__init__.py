@@ -6,6 +6,7 @@ from ai_anime.modules.ai_assistant.application.agent_backend import (
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
+from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFallbacks
 from ai_anime.modules.ai_assistant.application.ports import (
     AgentBackend,
     AgentBackendRuntime,
@@ -14,6 +15,7 @@ from ai_anime.modules.ai_assistant.application.ports import (
     AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
+    DisplayFallbackGateway,
     JsonRenderErrors,
     UserPreferences,
 )
@@ -33,6 +35,8 @@ __all__ = [
     "ChatHistory",
     "ChatPresentation",
     "ChatRunLocks",
+    "DisplayFallbackGateway",
+    "DisplayFallbacks",
     "JsonRenderErrors",
     "PageAgentSessions",
     "UserPreferences",

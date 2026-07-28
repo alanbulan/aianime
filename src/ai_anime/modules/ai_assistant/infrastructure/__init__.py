@@ -15,6 +15,9 @@ from ai_anime.modules.ai_assistant.infrastructure.agent_workspace import (
 from ai_anime.modules.ai_assistant.infrastructure.chat_run_locks import (
     FileChatRunLocks,
 )
+from ai_anime.modules.ai_assistant.infrastructure.display_fallback_gateway import (
+    HttpDisplayFallbackGateway,
+)
 from ai_anime.modules.ai_assistant.infrastructure.json_render_errors import (
     FileJsonRenderErrors,
 )
@@ -30,6 +33,7 @@ __all__ = [
     "FileChatRunLocks",
     "FileJsonRenderErrors",
     "FileUserPreferences",
+    "HttpDisplayFallbackGateway",
     "LocalAgentBackendRuntime",
     "LocalAgentToolConfiguration",
     "LocalAgentWorkspace",

@@ -520,10 +520,12 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
 def test_ai_assistant_owns_display_tool_call_rules() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "display_tools.py"
+    fallback_application = module / "application" / "display_fallback.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     domain_source = domain.read_text(encoding="utf-8")
+    fallback_application_source = fallback_application.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
     service_test_source = service_tests.read_text(encoding="utf-8")
@@ -540,11 +542,13 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
         "display_tool_call_key",
         "extract_display_tool_call",
         "infer_display_tool_call_from_text",
-        "is_display_tool_name",
     ):
         assert f"def {operation}(" in domain_source
         assert operation in public_source
         assert operation in service_source
+    assert "def is_display_tool_name(" in domain_source
+    assert "is_display_tool_name" in public_source
+    assert "is_display_tool_name" in fallback_application_source
     for legacy_implementation in (
         "_DISPLAY_TOOL_NAMES =",
         "def _decode_tool_args(",
@@ -555,6 +559,75 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
         assert legacy_implementation not in service_source
     assert "chat_service._extract_display_tool_call" not in service_test_source
     assert "chat_service._infer_display_tool_call_from_text" not in service_test_source
+
+
+def test_ai_assistant_owns_display_tool_fallbacks() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "display_fallback.py"
+    application = module / "application" / "display_fallback.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "display_fallback_gateway.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported == "os"
+        or imported == "sqlite3"
+        or imported == "fastapi"
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "class DisplayFallbackGateway(Protocol)" in ports_source
+    assert "class DisplayFallbacks" in application_source
+    assert "class HttpDisplayFallbackGateway" in adapter_source
+    assert "Request" in adapter_source
+    assert "urlopen" in adapter_source
+    assert "_display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())" in (
+        composition_source
+    )
+    for operation in (
+        "project_beat_image_specs",
+        "project_sketch_candidate_specs",
+        "project_scene_image_specs",
+        "project_character_media_specs",
+        "project_episode_media_specs",
+    ):
+        assert f"def {operation}(" in domain_source
+        assert operation in application_source
+    assert "def fallback_display_tool_ui_specs(" in public_source
+    assert "await fallback_display_tool_ui_specs(" in service_source
+    for legacy_implementation in (
+        "def _limit_display_items(",
+        "def _requested_display_beats(",
+        "def _requested_display_names(",
+        "def _requested_display_queries(",
+        "def _requested_display_scene_names(",
+        "def _requested_display_scene_indices(",
+        "def _matches_any_display_scene_name(",
+        "def _flatten_display_text_fields(",
+        "def _matches_any_display_text(",
+        "def _media_ui_spec(",
+        "def _project_static_url_from_path(",
+        "def _api_response_items(",
+        "def _backend_api_get(",
+        "def _fallback_display_tool_ui_specs(",
+        "load_api_url",
+        "urlopen",
+    ):
+        assert legacy_implementation not in service_source
+    assert "chat_service._backend_api_get" not in service_test_source
+    assert "chat_service._fallback_display_tool_ui_specs" not in service_test_source
 
 
 def test_ai_assistant_owns_scoped_chat_history() -> None:
