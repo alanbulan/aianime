@@ -7,7 +7,7 @@ import { formatRelativeTime } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import type { VideoPoolResponse } from "@/modules/production/application/ports";
 import { videoBackendDisplayLabel } from "@/modules/production/domain/video-config";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 export interface VideoPaneMediaQueries {
   useVideoPool(project: string, episode: number): {

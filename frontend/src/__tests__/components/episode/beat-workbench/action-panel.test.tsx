@@ -6,7 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ActionPanel } from "@/modules/narrative_planning/action-panel-composition";
 import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
-import type { BeatStates } from "@/types/beat-state";
+import type { BeatStates } from "@/modules/production/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();

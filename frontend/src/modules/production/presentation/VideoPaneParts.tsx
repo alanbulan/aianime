@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 export function BeatVideoPlayer({
   src,

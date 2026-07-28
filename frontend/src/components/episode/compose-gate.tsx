@@ -3,9 +3,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
-import { useBeatStates } from "@/hooks/use-beat-states";
 import { STAGES_BY_ID, type StageId } from "@/lib/episode-stage-registry";
-import type { EpisodeCounts } from "@/types/beat-state";
+import {
+  useBeatStates,
+  type EpisodeCounts,
+} from "@/modules/production/public";
 
 interface ComposeGateProps {
   project: string;

@@ -3,7 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EpisodeHealthSummary } from "@/components/episode/health-bar";
-import { useBeatStates } from "@/hooks/use-beat-states";
+import { useBeatStates } from "@/modules/production/public";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -22,7 +22,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-beat-states", () => ({
+vi.mock("@/modules/production/public", () => ({
   useBeatStates: vi.fn(),
 }));
 

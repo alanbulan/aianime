@@ -6,7 +6,7 @@ import type {
   VideoBackendOption,
   VoiceConfigurationTarget,
 } from "@/modules/production/public";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/public";
 
 export type SectionId = "text" | "sketch" | "render" | "audio" | "video";
 

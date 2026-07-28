@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useBeatStates } from "@/hooks/use-beat-states";
 import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
 import { useTaskController } from "@/hooks/use-task-controller";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
+import type { BeatStates } from "@/modules/production/public";
 import type {
   UseBeatSelection,
   UseBeatsViewToggles,
@@ -73,6 +73,10 @@ export interface BeatsPageControllerDependencies {
     value?: string | null,
   ): CreditCostQuery;
   useBeatSelection: UseBeatSelection;
+  useBeatStates(
+    project: string,
+    episode: number,
+  ): { states: BeatStates };
   useViewToggles: UseBeatsViewToggles;
   useProject(project: string): ProjectConfigQuery;
   useRebuildPoolIndex(
@@ -148,7 +152,7 @@ export function createUseBeatsPageController(
       project,
       episodeNumber,
     );
-    const { states } = useBeatStates(project, episodeNumber);
+    const { states } = dependencies.useBeatStates(project, episodeNumber);
     const beats = beatsResponse?.data ?? [];
     const sketchStudio = useSketchStudioController({
       beats,

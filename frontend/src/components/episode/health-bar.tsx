@@ -3,11 +3,13 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { SlidingTabs } from "@/components/nav/sliding-tabs";
-import { useBeatStates } from "@/hooks/use-beat-states";
 import { TOP_TABS } from "@/lib/episode-nav";
 import type { TopTabDef } from "@/lib/episode-nav";
 import { cn } from "@/lib/utils";
-import type { EpisodeCounts } from "@/types/beat-state";
+import {
+  useBeatStates,
+  type EpisodeCounts,
+} from "@/modules/production/public";
 
 interface EpisodeNavProps {
   project: string;

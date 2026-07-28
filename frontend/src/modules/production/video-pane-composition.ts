@@ -7,7 +7,7 @@ import {
 } from "@/modules/narrative_planning/public";
 import { useVideoPaneController } from "@/modules/production/composition";
 import { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 export interface VideoPaneProps {
   beat: Beat;

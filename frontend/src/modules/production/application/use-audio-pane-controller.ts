@@ -16,7 +16,7 @@ import {
   resolveAudioRegenerationError,
   type VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 interface CreditCostQuery {
   data?: { data: { display?: string | null } };

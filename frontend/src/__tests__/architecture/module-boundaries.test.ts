@@ -132,6 +132,33 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useMutation(");
   });
 
+  it("keeps the Beat state read model in Production", () => {
+    const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
+    const legacyPaths = [
+      resolve(SRC_ROOT, "hooks/use-beat-states.ts"),
+      resolve(SRC_ROOT, "lib/derive-beat-states.ts"),
+      resolve(SRC_ROOT, "types/beat-state.ts"),
+    ];
+    const bypasses = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .filter(
+        (path) =>
+          !relativeSource(path).startsWith("modules/production/") &&
+          importSpecifiers(path).some(
+            (specifier) =>
+              specifier.startsWith("@/modules/production/") &&
+              specifier !== "@/modules/production/public",
+          ),
+      )
+      .map(relativeSource);
+
+    for (const path of legacyPaths) expect(existsSync(path)).toBe(false);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/production/domain/beat-state",
+    );
+    expect(bypasses).toEqual([]);
+  });
+
   it("keeps task capabilities behind the Task Center public API", () => {
     const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/tasks.ts");
     const legacyMonitorPath = resolve(SRC_ROOT, "api/tasks.ts");

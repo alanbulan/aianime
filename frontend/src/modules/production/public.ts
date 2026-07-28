@@ -7,6 +7,7 @@ export {
   useAssignColors,
   useBatchBarController,
   useBatchPanelController,
+  useBeatStates,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
@@ -68,6 +69,12 @@ export type {
 export type {
   VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
+export type {
+  BeatStageState,
+  BeatStates,
+  EpisodeCounts,
+  StageCount,
+} from "@/modules/production/domain/beat-state";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export { Seedance2ConfigView } from "@/modules/production/presentation/Seedance2ConfigView";

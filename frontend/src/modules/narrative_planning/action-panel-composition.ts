@@ -17,7 +17,7 @@ import {
   SketchSection,
   VideoPane,
 } from "@/modules/production/public";
-import type { BeatStageState, BeatStates } from "@/types/beat-state";
+import type { BeatStageState, BeatStates } from "@/modules/production/public";
 
 export interface SingleBeatPanelProps {
   beat: Beat;

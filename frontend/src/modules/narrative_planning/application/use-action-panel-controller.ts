@@ -4,7 +4,7 @@ import { useCallback, useEffect } from "react";
 import type { SelectionState } from "@/modules/narrative_planning/application/episode-workbench-state";
 import type { Beat } from "@/modules/narrative_planning/domain/types";
 import type { SectionId } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
-import type { BeatStageState, BeatStates } from "@/types/beat-state";
+import type { BeatStageState, BeatStates } from "@/modules/production/public";
 
 export type ActionPanelSelection = SelectionState;
 

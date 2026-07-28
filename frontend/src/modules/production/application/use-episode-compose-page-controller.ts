@@ -12,6 +12,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { Beat, DataResponse, Episode } from "@/modules/narrative_planning/public";
 import type { ProjectConfig } from "@/modules/project_workspace/public";
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
+import type { EpisodeCounts } from "@/modules/production/domain/beat-state";
 import {
   episodeResolutionFor,
   episodeResolutionTier,
@@ -20,7 +21,6 @@ import {
   type EpisodeExportKind,
   type EpisodeResolution,
 } from "@/modules/production/domain/episode-compose";
-import type { EpisodeCounts } from "@/types/beat-state";
 
 interface ComposeMutation {
   isPending: boolean;

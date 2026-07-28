@@ -1,6 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { describe, it, expect } from "vitest";
-import { deriveBeatStates } from "@/lib/derive-beat-states";
+import { describe, expect, it } from "vitest";
+import {
+  deriveBeatStates,
+  deriveEpisodeCounts,
+} from "@/modules/production/domain/beat-state";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { Task } from "@/types/task";
 
@@ -174,5 +177,40 @@ describe("deriveBeatStates", () => {
     expect(result[1].sketch).toBe("generating");
     expect(result[50].sketch).toBe("generating");
     expect(result[1].script).toBe("ready");
+  });
+});
+
+describe("deriveEpisodeCounts", () => {
+  const states = deriveBeatStates(
+    [
+      makeBeat({ beat_number: 1, audio_url: "/1.mp3", video_url: "/1.mp4" }),
+      makeBeat({ beat_number: 2, audio_url: null, video_url: "/2.mp4" }),
+      makeBeat({ beat_number: 3, audio_url: "/3.mp3", video_url: null }),
+    ],
+    [],
+  );
+
+  it("requires both audio and video for narrated composition", () => {
+    const counts = deriveEpisodeCounts(states, 3, true);
+
+    expect(counts.audio.ready).toBe(2);
+    expect(counts.video.ready).toBe(2);
+    expect(counts.compose.ready).toBe(false);
+    expect(counts.compose.missing).toEqual([
+      { beatNum: 2, stages: ["audio"] },
+      { beatNum: 3, stages: ["video"] },
+    ]);
+  });
+
+  it("does not require separate audio for drama composition", () => {
+    const counts = deriveEpisodeCounts(states, 3, false);
+
+    expect(counts.compose.missing).toEqual([
+      { beatNum: 3, stages: ["video"] },
+    ]);
+  });
+
+  it("does not mark an empty episode ready", () => {
+    expect(deriveEpisodeCounts({}, 0, false).compose.ready).toBe(false);
   });
 });

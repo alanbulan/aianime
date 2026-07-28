@@ -3,7 +3,6 @@ import { createElement } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { useBeatStates } from "@/hooks/use-beat-states";
 import { useNow } from "@/hooks/use-now";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -41,6 +40,7 @@ import { createSketchGenerationQueryHooks } from "@/modules/production/applicati
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { createUseBatchBarController } from "@/modules/production/application/use-batch-bar-controller";
 import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
+import { createUseBeatStates } from "@/modules/production/application/use-beat-states";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
@@ -71,7 +71,7 @@ import { BatchBarView } from "@/modules/production/presentation/BatchBarView";
 import { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 import { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 const audioGenerationQueries = createAudioGenerationQueryHooks(
   httpProductionVideoGateway,
@@ -124,6 +124,11 @@ const narratorVoiceQueries = createNarratorVoiceQueryHooks(
 const episodeComposeQueries = createEpisodeComposeQueryHooks(
   httpProductionVideoGateway,
 );
+export const useBeatStates = createUseBeatStates({
+  useEpisodeBeats,
+  useProject,
+  useTasks,
+});
 const downloadBlob = (blob: Blob, filename: string) => {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

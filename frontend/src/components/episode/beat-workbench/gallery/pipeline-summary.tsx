@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { cn } from "@/lib/utils";
-import type { StageCount } from "@/types/beat-state";
+import type { StageCount } from "@/modules/production/public";
 
 interface PipelineSummaryProps {
   count: StageCount;

@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
 const mutateRegenerate = vi.hoisted(() => vi.fn());

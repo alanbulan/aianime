@@ -39,7 +39,7 @@ import type {
   Seedance2BeatStatus,
 } from "@/modules/production/domain/seedance2-panel";
 import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
-import type { BeatStageState } from "@/types/beat-state";
+import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 interface Seedance2StatusQuery {
   data?: Seedance2BeatStatusResponse;
