@@ -5260,7 +5260,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
 
 
-def test_narrative_planning_persisted_beat_model_has_one_owner() -> None:
+def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     beat_models = (
         PACKAGE_ROOT
@@ -5269,34 +5269,63 @@ def test_narrative_planning_persisted_beat_model_has_one_owner() -> None:
         / "application"
         / "beat_models.py"
     )
-    manual_beats = (
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    internal_callers = tuple(
         PACKAGE_ROOT
         / "modules"
         / "narrative_planning"
         / "application"
-        / "manual_beats.py"
+        / name
+        for name in (
+            "beat_video_prompts.py",
+            "literal_script_writing.py",
+            "manual_beats.py",
+            "script_documents.py",
+            "script_models.py",
+            "seedance_prompts.py",
+        )
     )
-    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
-    callers = (
+    external_callers = (
+        PACKAGE_ROOT / "api" / "episodes_schemas.py",
+        PACKAGE_ROOT / "api" / "scripts_schemas.py",
+        PACKAGE_ROOT / "api" / "routes" / "assets.py",
         PACKAGE_ROOT / "cognee" / "pipeline.py",
         PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
+        PACKAGE_ROOT / "generators" / "prompt_builder.py",
+        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT / "seedance2_i2v" / "prompt.py",
         PACKAGE_ROOT / "sqlite_store.py",
     )
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    owner_source = beat_models.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
 
-    assert "class NovelVisualBeat(" not in legacy_models.read_text(encoding="utf-8")
-    assert "class NovelVisualBeat(BaseModel):" in beat_models.read_text(
-        encoding="utf-8"
-    )
-    assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
-        manual_beats
-    )
+    for model_name in ("NovelVisualBeat", "SceneRef"):
+        assert f"class {model_name}(" not in legacy_source
+        assert f"class {model_name}(BaseModel):" in owner_source
+        assert f'"{model_name}"' in public_source
+    for function_name in (
+        "beat_scene_id",
+        "beat_scene_ref",
+        "beat_scene_variant_id",
+        "build_scene_ref",
+        "sync_beat_asset_refs",
+    ):
+        assert f"def {function_name}(" not in legacy_source
+        assert f"def {function_name}(" in owner_source
+        assert f'"{function_name}"' in public_source
+    assert "ai_anime.models" not in _imports(beat_models)
+    for caller in internal_callers:
+        assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
+            caller
+        )
     assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
         public
     )
-    assert '"NovelVisualBeat"' in public.read_text(encoding="utf-8")
     assert "NovelVisualBeat" not in cognee_package.read_text(encoding="utf-8")
-    for caller in callers:
+    for caller in external_callers:
         assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
 
 

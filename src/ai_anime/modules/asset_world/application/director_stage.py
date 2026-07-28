@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.asset_world.application.dto import (
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,

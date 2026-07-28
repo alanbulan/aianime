@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
-from ai_anime.models import SceneRef
+from ai_anime.modules.narrative_planning.public import SceneRef
 
 
 class EpisodePlanRequest(BaseModel):

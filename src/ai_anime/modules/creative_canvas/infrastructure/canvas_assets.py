@@ -15,7 +15,7 @@ from ai_anime.freezone import canvas_store
 from ai_anime.freezone.canvas_static_urls import migrate_canvas_static_urls_in_memory
 from ai_anime.freezone.paths import freezone_root
 from ai_anime.freezone.presets import build_beat_preset_context
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_assets import (
     CreativeCanvasBeatNotFound,
 )

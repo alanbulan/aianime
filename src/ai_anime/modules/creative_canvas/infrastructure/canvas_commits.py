@@ -21,7 +21,7 @@ from ai_anime.freezone.slots import (
     sync_slot_after_write,
     validate_source_for_slot,
 )
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_commits import (
     CopyCreativeCanvasSlotCommand,
     CreativeCanvasSlotBeatNotFound,

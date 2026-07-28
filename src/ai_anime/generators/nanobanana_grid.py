@@ -54,11 +54,12 @@ from ai_anime.generators.prompt_builder import (
     create_prompt_context,
 )
 from ai_anime.generators.render_identity_guard import render_ai_detection_error
-from ai_anime.models import (
+from ai_anime.models import real_detected_identities
+from ai_anime.modules.narrative_planning.public import (
+    beat_order_value,
     beat_scene_id,
-    real_detected_identities,
+    build_prop_menu,
 )
-from ai_anime.modules.narrative_planning.public import beat_order_value, build_prop_menu
 from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.modules.production.public import global_prop_marker_colors
 from ai_anime.utils.asset_resolver import AssetResolver

@@ -18,7 +18,7 @@ from ai_anime.utils.state_index_files import (
     resolve_state_index_path,
     write_json_atomic,
 )
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.production.public import (
     GridEntry,
     PoolImage,

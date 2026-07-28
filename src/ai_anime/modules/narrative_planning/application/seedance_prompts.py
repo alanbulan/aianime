@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import sync_beat_asset_refs
+from ai_anime.modules.narrative_planning.application.beat_models import (
+    sync_beat_asset_refs,
+)
 from ai_anime.modules.narrative_planning.application.ports import (
     FeatureUsageMeter,
     SeedancePromptGateway,

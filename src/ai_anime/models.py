@@ -124,90 +124,6 @@ def extract_prop_ids_from_markers(visual_desc: str, *, strict: bool = False) -> 
     return result
 
 
-class SceneRef(BaseModel):
-    """Beat 内引用的场景资产。"""
-
-    scene_id: str = Field(default="", description="场景 ID")
-    variant_id: str = Field(default="", description="场景外观/状态选择器；为空表示基础场景")
-    render_anchor_id: str = Field(
-        default="",
-        description="Beat 实际 render 背景槽位；为空表示默认场景图，selected_background 表示使用 beat 冻结背景",
-    )
-    render_anchor_source_id: str = Field(
-        default="",
-        description="当 render_anchor_id=selected_background 时记录截图来源，如 master/reverse/director_env_only",
-    )
-
-
-def _coerce_scene_ref(value: Any) -> SceneRef | None:
-    if isinstance(value, SceneRef):
-        return value if value.scene_id else None
-    if isinstance(value, dict):
-        scene_id = str(value.get("scene_id", "") or value.get("base_id", "")).strip()
-        variant_id = str(value.get("variant_id", "") or "").strip()
-        render_anchor_id = str(
-            value.get("render_anchor_id", "")
-            or value.get("anchor_id", "")
-            or value.get("background_ref_id", "")
-            or value.get("shot_id", "")
-            or ""
-        ).strip()
-        render_anchor_source_id = str(
-            value.get("render_anchor_source_id", "")
-            or value.get("anchor_source_id", "")
-            or value.get("background_ref_source_id", "")
-            or ""
-        ).strip()
-        return (
-            SceneRef(
-                scene_id=scene_id,
-                variant_id=variant_id,
-                render_anchor_id=render_anchor_id,
-                render_anchor_source_id=render_anchor_source_id,
-            )
-            if scene_id
-            else None
-        )
-    return None
-
-
-def build_scene_ref(
-    scene_id: str = "",
-    variant_id: str = "",
-) -> SceneRef | None:
-    scene_id = (scene_id or "").strip()
-    variant_id = (variant_id or "").strip()
-    return SceneRef(scene_id=scene_id, variant_id=variant_id) if scene_id else None
-
-
-def beat_scene_ref(value: Any) -> SceneRef | None:
-    if isinstance(value, dict):
-        scene_ref = _coerce_scene_ref(value.get("scene_ref"))
-        if scene_ref:
-            return scene_ref
-        return build_scene_ref(
-            str(value.get("scene_id", "") or ""),
-            str(value.get("scene_variant_id", "") or ""),
-        )
-    scene_ref = _coerce_scene_ref(getattr(value, "scene_ref", None))
-    if scene_ref:
-        return scene_ref
-    return build_scene_ref(
-        str(getattr(value, "scene_id", "") or ""),
-        str(getattr(value, "scene_variant_id", "") or ""),
-    )
-
-
-def beat_scene_id(value: Any) -> str:
-    scene_ref = beat_scene_ref(value)
-    return scene_ref.scene_id if scene_ref else ""
-
-
-def beat_scene_variant_id(value: Any) -> str:
-    scene_ref = beat_scene_ref(value)
-    return scene_ref.variant_id if scene_ref else ""
-
-
 def resolve_scene_record_name(
     scene_id: str,
     variant_id: str | None = "",
@@ -380,24 +296,6 @@ def collect_prop_marker_ids_from_beat(value: Any) -> list[str]:
     else:
         visual_desc = str(getattr(value, "visual_description", "") or "")
     return extract_prop_ids_from_markers(visual_desc, strict=False)
-
-
-def sync_beat_asset_refs(beat: dict[str, Any]) -> dict[str, Any]:
-    """规范化 beat 中的场景引用字段。
-
-    规范结构：
-    - scene_ref.scene_id: 场景 ID
-    - scene_ref.render_anchor_id: Beat 实际 render 背景槽位；空或 selected_background
-    - scene_ref.render_anchor_source_id: selected_background 的来源，仅用于 UI 显示/追踪
-    """
-
-    scene_ref = _coerce_scene_ref(beat.get("scene_ref"))
-    if not scene_ref:
-        scene_ref = build_scene_ref(str(beat.get("scene_id", "") or ""))
-    beat["scene_ref"] = scene_ref.model_dump() if scene_ref else None
-    beat.pop("scene_id", None)
-
-    return beat
 
 
 # =============================================================================

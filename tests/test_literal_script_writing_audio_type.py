@@ -2,7 +2,10 @@ import pytest
 from pydantic import ValidationError
 from types import SimpleNamespace
 
-from ai_anime.models import build_scene_ref, sync_beat_asset_refs
+from ai_anime.modules.narrative_planning.public import (
+    build_scene_ref,
+    sync_beat_asset_refs,
+)
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     _content_filter_hint_matches,
 )

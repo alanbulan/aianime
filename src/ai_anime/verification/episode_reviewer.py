@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image as PILImage, ImageDraw, ImageFont
 from pydantic_ai import Agent, BinaryContent
 
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from .models import EpisodeOverviewResult
 from .prompts import EPISODE_OVERVIEW_PROMPT
 from .sanitize import sanitize_prompt_input

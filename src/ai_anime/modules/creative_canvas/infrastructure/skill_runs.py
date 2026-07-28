@@ -21,7 +21,7 @@ from ai_anime.freezone.paths import (
     resolve_static_url_to_path,
 )
 from ai_anime.freezone.slots import SlotTarget, slot_target_path
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     ResolvedSkillInput,
     SkillRunResponse,

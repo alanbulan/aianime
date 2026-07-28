@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic_ai import Agent, BinaryContent
 
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.utils.asset_resolver import AssetResolver
 
 from .models import VerificationResult

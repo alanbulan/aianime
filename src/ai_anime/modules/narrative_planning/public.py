@@ -7,7 +7,15 @@ from typing import Any
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     GeneratedBeatVideoPrompt,
 )
-from ai_anime.modules.narrative_planning.application.beat_models import NovelVisualBeat
+from ai_anime.modules.narrative_planning.application.beat_models import (
+    NovelVisualBeat,
+    SceneRef,
+    beat_scene_id,
+    beat_scene_ref,
+    beat_scene_variant_id,
+    build_scene_ref,
+    sync_beat_asset_refs,
+)
 from ai_anime.modules.narrative_planning.application.episode_content import (
     ClearedEpisodeContent,
     EpisodeContentDocument,
@@ -393,6 +401,7 @@ __all__ = [
     "PropMenuItem",
     "SceneBlock",
     "SceneMenuItem",
+    "SceneRef",
     "SavedEpisodeContent",
     "SavedEpisodeScript",
     "RawEpisodeContentMissing",
@@ -403,8 +412,12 @@ __all__ = [
     "ScriptStoreSyncFailed",
     "VisualBeat",
     "beat_order_value",
+    "beat_scene_id",
+    "beat_scene_ref",
+    "beat_scene_variant_id",
     "build_prop_menu",
     "build_scene_menu",
+    "build_scene_ref",
     "choose_manual_sketch_mode_key",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
@@ -434,6 +447,7 @@ __all__ = [
     "start_episode_planning",
     "split_literal_source_text",
     "storyboard_beats_for_manual_sketches",
+    "sync_beat_asset_refs",
     "update_episode_script_beat",
     "update_episode_metadata",
 ]

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image as PILImage
 
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from .models import SimilarityPair, SimilarityResult
 from .utils import find_sketch_for_beat, load_all_beats
 

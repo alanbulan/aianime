@@ -122,7 +122,7 @@ async def _ensure_scene_refs_for_beats(
     when explicit per-beat DirectorWorld renders already exist.
     """
     from ai_anime.cognee import CogneeStore
-    from ai_anime.models import beat_scene_id
+    from ai_anime.modules.narrative_planning.public import beat_scene_id
     from ai_anime.utils.path_resolver import PathResolver, compute_scene_master_path
 
     requested_scene_ids: list[str] = []

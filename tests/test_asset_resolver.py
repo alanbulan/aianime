@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from ai_anime.models import sync_beat_asset_refs
+from ai_anime.modules.narrative_planning.public import sync_beat_asset_refs
 from ai_anime.utils.asset_resolver import AssetResolver
 from ai_anime.utils.background_anchor import (
     background_crop_ratio_choices,

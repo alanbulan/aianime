@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic_ai import Agent, BinaryContent
 
-from ai_anime.models import beat_scene_id
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 from .models import ContinuityResult
 from .prompts import SKETCH_CONTINUITY_PROMPT
 from .sanitize import sanitize_prompt_input

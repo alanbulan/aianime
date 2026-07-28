@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from ai_anime.models import SceneRef
+from ai_anime.modules.narrative_planning.public import SceneRef
 
 
 class ScriptGenerateRequest(BaseModel):

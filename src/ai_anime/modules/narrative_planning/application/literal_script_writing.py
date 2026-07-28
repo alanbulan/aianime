@@ -13,10 +13,12 @@ from ai_anime.config import (
     get_newapi_text_pydantic_model_settings,
 )
 from ai_anime.models import (
-    SceneRef,
-    build_scene_ref,
     extract_char_identities_from_markers,
     extract_prop_ids_from_markers,
+)
+from ai_anime.modules.narrative_planning.application.beat_models import (
+    SceneRef,
+    build_scene_ref,
 )
 from ai_anime.modules.narrative_planning.application.script_models import (
     NarrationScript,

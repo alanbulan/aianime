@@ -5,7 +5,11 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from ai_anime.models import SceneRef, beat_scene_ref, build_scene_ref
+from ai_anime.modules.narrative_planning.application.beat_models import (
+    SceneRef,
+    beat_scene_ref,
+    build_scene_ref,
+)
 
 
 class NarrationScript(BaseModel):

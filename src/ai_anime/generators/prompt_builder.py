@@ -26,8 +26,9 @@ from typing import Any, Dict, List, Optional, TypeAlias
 from pypinyin import pinyin, Style
 
 from ai_anime.config import get_style_preset, IMAGE_DEFAULT_STYLE
-from ai_anime.models import beat_scene_id, real_detected_identities, real_detected_props
+from ai_anime.models import real_detected_identities, real_detected_props
 from ai_anime.modules.asset_world.public import StyleService
+from ai_anime.modules.narrative_planning.public import beat_scene_id
 
 
 StyleRef: TypeAlias = "StyleConfig | str | None"

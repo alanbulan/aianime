@@ -36,7 +36,6 @@ from ai_anime.models import (
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,
-    sync_beat_asset_refs,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import (
@@ -47,6 +46,7 @@ from ai_anime.modules.narrative_planning.public import (
     SceneMenuItem,
     build_prop_menu,
     build_scene_menu,
+    sync_beat_asset_refs,
 )
 from .config import init_cognee
 

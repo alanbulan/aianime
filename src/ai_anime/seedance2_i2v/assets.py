@@ -13,7 +13,6 @@ from typing import Any
 
 from ai_anime.models import (
     NovelCharacter,
-    beat_scene_ref,
     collect_prop_marker_ids_from_beat,
     real_detected_identities,
     real_detected_props,
@@ -24,6 +23,7 @@ from ai_anime.project_config import (
     load_narrator_reference_audio,
 )
 from ai_anime.modules.asset_world.public import NovelProp, probe_voice_sample_duration_seconds
+from ai_anime.modules.narrative_planning.public import beat_scene_ref
 from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 from ai_anime.seedance2_i2v.spoken_dialogue import (
     speaker_display_name,

@@ -429,7 +429,7 @@ async def _run_selected_regen_async(
 ) -> dict[str, Any]:
     from ai_anime.generators.nanobanana_grid import regenerate_selected_beats
     from ai_anime.generators.pool_indexer import save_grid_and_split
-    from ai_anime.models import beat_scene_id
+    from ai_anime.modules.narrative_planning.public import beat_scene_id
     from ai_anime.task_identity import selection_scope
     from ai_anime.utils.path_resolver import PathResolver
 
