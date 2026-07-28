@@ -5260,6 +5260,46 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
 
 
+def test_narrative_planning_persisted_beat_model_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    beat_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "beat_models.py"
+    )
+    manual_beats = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "manual_beats.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    callers = (
+        PACKAGE_ROOT / "cognee" / "pipeline.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+    )
+
+    assert "class NovelVisualBeat(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelVisualBeat(BaseModel):" in beat_models.read_text(
+        encoding="utf-8"
+    )
+    assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
+        manual_beats
+    )
+    assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
+        public
+    )
+    assert '"NovelVisualBeat"' in public.read_text(encoding="utf-8")
+    assert "NovelVisualBeat" not in cognee_package.read_text(encoding="utf-8")
+    for caller in callers:
+        assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+
+
 def test_asset_world_style_config_has_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     style_models = (

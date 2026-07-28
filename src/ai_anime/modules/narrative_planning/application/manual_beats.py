@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from ai_anime.models import (
-    NovelVisualBeat,
     extract_char_identities_from_markers,
     extract_prop_ids_from_markers,
 )
+from ai_anime.modules.narrative_planning.application.beat_models import NovelVisualBeat
 from ai_anime.modules.narrative_planning.application.ports import (
     ManualBeatAssetWorkspace,
     ManualBeatStore,

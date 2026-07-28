@@ -125,7 +125,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     async def write_beats() -> int:
         from ai_anime.api.deps import make_sqlite_store_for_context
-        from ai_anime.models import NovelVisualBeat
+        from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
         store = await make_sqlite_store_for_context(ctx)
         try:

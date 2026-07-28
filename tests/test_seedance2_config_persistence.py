@@ -5,7 +5,7 @@ pytestmark = pytest.mark.m09
 
 
 async def test_update_beat_asset_persists_seedance2_config_json(tmp_path):
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
     from ai_anime.modules.narrative_planning.public import NovelEpisode
     from ai_anime.sqlite_store import SQLiteStore
 

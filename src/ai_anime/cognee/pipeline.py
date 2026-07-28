@@ -17,7 +17,6 @@ from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelVisualBeat,
 )
 from ai_anime.config import ensure_project_dirs, get_newapi_reasoning_kwargs
 from ai_anime.cognee.screenplay_normalizer import (
@@ -40,10 +39,12 @@ from .config import apply_cognee_project_storage_context
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelVisualBeat,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
-from ai_anime.modules.narrative_planning.public import NovelEpisode as _NovelEpisode
+from ai_anime.modules.narrative_planning.public import (
+    NovelEpisode as _NovelEpisode,
+    NovelVisualBeat,
+)
 
 
 # ============================================================

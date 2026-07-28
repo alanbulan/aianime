@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_asset_references_resolves_project_id_before_opening_store(monkeypatch, tmp_path):
     from ai_anime.api.routes import assets
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     class Store:
         async def list_visual_beats(self):

@@ -7,6 +7,7 @@ from typing import Any
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     GeneratedBeatVideoPrompt,
 )
+from ai_anime.modules.narrative_planning.application.beat_models import NovelVisualBeat
 from ai_anime.modules.narrative_planning.application.episode_content import (
     ClearedEpisodeContent,
     EpisodeContentDocument,
@@ -388,6 +389,7 @@ __all__ = [
     "NarrationScript",
     "NovelEpisode",
     "NovelEvent",
+    "NovelVisualBeat",
     "PropMenuItem",
     "SceneBlock",
     "SceneMenuItem",

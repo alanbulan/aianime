@@ -1984,6 +1984,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十六批已将 `NovelScene` 与唯一有效场景提示词组合函数 `build_scene_effective_prompt` 从后端公共 `models.py` 一并迁入唯一 Asset & World application `scene_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复逻辑。Asset & World 内部 Scene Catalog infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、Freezone、场景参考图生成器、SQLiteStore 与 AssetResolver 等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `41287f2ff117c3217eebdb1d408f35eca55739620e5d5c41b2fc47f20efb5777` 与迁移前一致，新增默认序列化、结构化场景轴组合、历史融合 prompt 保留和唯一所有权门禁。本批模型、场景提示词、场景板解析、Asset Compiler、M05/M06 与架构回归 211 项，场景 API、SQLite、Cognee 场景提取、NewAPI、AssetResolver 与 Freezone 回归 156 项通过；最终完整架构门禁 150 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十七批已将 SQLite/Cognee 持久化与手工分镜编排共用的 `NovelVisualBeat` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `beat_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复模型。Narrative Planning 内部手工分镜用例直连 application 模型，Cognee pipeline/store、SQLiteStore 与模块外测试统一经 Narrative Planning `public.py` 使用稳定入口；当前模型暂时复用旧巨石中唯一的 `SceneRef` 与 `_coerce_scene_ref`，不复制场景引用规范化逻辑，下一批由同一 `beat_models.py` 吸收该引用组并消除此依赖。Pydantic JSON Schema 哈希 `95ea11fa128f1170596ca118966594bf8bd75f7055e47ea0e718c8c68ddee5ac` 与迁移前一致，新增空文本补全、历史 SceneRef key 规范化、手工空镜头保留和唯一所有权门禁。持久化 beat、手工分镜、M03、Seedance 配置、项目路由与架构回归 187 项通过、3 项按既有条件跳过，SQLite/Cognee 与资产 API 回归 74 项，最终完整架构门禁 151 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

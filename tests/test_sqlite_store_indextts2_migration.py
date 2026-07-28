@@ -188,7 +188,7 @@ def test_character_voice_field_defaults_match_pydantic():
 
 
 def test_novel_visual_beat_seedance2_config_default():
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     beat = NovelVisualBeat(beat_number=1, episode_number=1, narration="x", visual_description="y")
     assert beat.seedance2_config_json == "{}"

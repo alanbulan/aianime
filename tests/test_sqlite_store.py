@@ -436,7 +436,7 @@ async def test_character_crud(tmp_project):
 # ── 5. episodes + beats 写入 ───────────────────────────────
 @pytest.mark.asyncio
 async def test_episode_and_beats(tmp_project):
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -558,7 +558,7 @@ async def test_episode_schema_migration_adds_planning_columns(tmp_path):
 async def test_beats_schema_migration_adds_current_columns(tmp_path):
     import aiosqlite
 
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
     output_dir = tmp_path / "output" / "testuser" / "legacy_beats_schema"
@@ -640,7 +640,7 @@ async def test_beats_schema_migration_adds_current_columns(tmp_path):
 # ── 6. beat 更新 ───────────────────────────────────────────
 @pytest.mark.asyncio
 async def test_beat_update(tmp_project):
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -798,7 +798,7 @@ async def test_sketch_colors(tmp_project):
 # ── 11. v2.0 beat 字段 (time/video_prompt) ─
 @pytest.mark.asyncio
 async def test_new_beat_columns(tmp_project):
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -828,7 +828,7 @@ async def test_new_beat_columns(tmp_project):
 # ── 12. beat_number 命名统一 ──────────────────────────────
 @pytest.mark.asyncio
 async def test_beat_number_naming(tmp_project):
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -848,7 +848,7 @@ async def test_beat_number_naming(tmp_project):
 # ── 13. get_script_as_dict ────────────────────────────────
 @pytest.mark.asyncio
 async def test_get_script_as_dict(tmp_project):
-    from ai_anime.cognee.pipeline import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()

@@ -23,13 +23,12 @@ from ai_anime.sqlite_pragmas import configure_sqlite_connection_async
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelVisualBeat,
     normalize_detected_identities,
     normalize_detected_props,
     sync_beat_asset_refs,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
-from ai_anime.modules.narrative_planning.public import NovelEpisode
+from ai_anime.modules.narrative_planning.public import NovelEpisode, NovelVisualBeat
 
 console = Console()
 logger = logging.getLogger(__name__)

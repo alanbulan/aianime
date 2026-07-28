@@ -108,7 +108,7 @@ def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
 
 @pytest.mark.asyncio
 async def test_sqlite_manual_shot_fields_roundtrip_and_sort(tmp_path):
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -156,8 +156,11 @@ async def test_sqlite_manual_shot_fields_roundtrip_and_sort(tmp_path):
 @pytest.mark.skip(reason="v2.0: location/set_description/dump_set_description不存在；scene_ref 替代")
 @pytest.mark.asyncio
 async def test_insert_manual_shot_inherits_previous_scene_and_uses_new_asset_id(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat, dump_set_description
+    from ai_anime.models import dump_set_description
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -212,8 +215,11 @@ async def test_insert_manual_shot_inherits_previous_scene_and_uses_new_asset_id(
 @pytest.mark.skip(reason="v2.0: location/set_description/dump_set_description不存在；scene_ref 替代")
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_dialog_defaults_and_overrides(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat, dump_set_description
+    from ai_anime.models import dump_set_description
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -267,8 +273,10 @@ async def test_insert_manual_shot_accepts_dialog_defaults_and_overrides(tmp_path
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_derives_identities_from_own_visual_description(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -309,8 +317,10 @@ async def test_insert_manual_shot_derives_identities_from_own_visual_description
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_persists_explicit_detected_props(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -348,8 +358,10 @@ async def test_insert_manual_shot_persists_explicit_detected_props(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_derives_props_from_visual_description_markers(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -386,8 +398,10 @@ async def test_insert_manual_shot_derives_props_from_visual_description_markers(
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_scene_ref_and_optional_narration(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -431,8 +445,10 @@ async def test_insert_manual_shot_accepts_scene_ref_and_optional_narration(tmp_p
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_persists_audio_type_and_speaker(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -478,8 +494,10 @@ async def test_insert_manual_shot_persists_audio_type_and_speaker(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_dialogue_without_speaker(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -525,8 +543,10 @@ async def test_insert_manual_shot_accepts_dialogue_without_speaker(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_at_front_allocates_order_before_first_beat(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -568,8 +588,10 @@ async def test_insert_manual_shot_at_front_allocates_order_before_first_beat(tmp
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_does_not_reuse_existing_asset_number(tmp_path):
-    from ai_anime.modules.narrative_planning.public import insert_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        insert_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -609,8 +631,10 @@ async def test_insert_manual_shot_does_not_reuse_existing_asset_number(tmp_path)
 
 @pytest.mark.asyncio
 async def test_delete_manual_shot_removes_only_manual_beat(tmp_path):
-    from ai_anime.modules.narrative_planning.public import delete_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        delete_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
@@ -670,8 +694,10 @@ async def test_delete_manual_shot_removes_only_manual_beat(tmp_path):
 
 @pytest.mark.asyncio
 async def test_delete_manual_shot_rejects_normal_beat(tmp_path):
-    from ai_anime.modules.narrative_planning.public import delete_manual_shot
-    from ai_anime.models import NovelVisualBeat
+    from ai_anime.modules.narrative_planning.public import (
+        NovelVisualBeat,
+        delete_manual_shot,
+    )
     from ai_anime.sqlite_store import SQLiteStore
 
     project_dir = tmp_path / "user" / "project"
