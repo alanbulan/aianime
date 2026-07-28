@@ -9,7 +9,7 @@ const deleteFreezoneCanvas = vi.fn();
 
 vi.mock("@/features/canvas/composition", async () => {
   const { createFreezoneCanvasQueryHooks } = await import(
-    "@/features/canvas/application/freezoneCanvasQueryHooks"
+    "@/features/canvas/hooks/freezoneCanvasQueryHooks"
   );
   return {
     createBlankFreezoneCanvas: vi.fn(),

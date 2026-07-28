@@ -9,7 +9,7 @@ const listFreezoneProjectAssets = vi.fn();
 
 vi.mock("@/features/freezone/public", async (importOriginal) => {
   const { createFreezoneContextQueryHooks } = await import(
-    "@/features/freezone/application/contextQueryHooks"
+    "@/features/freezone/hooks/contextQueryHooks"
   );
   const queryHooks = createFreezoneContextQueryHooks({
     listBeatContext: (projectId, options) =>

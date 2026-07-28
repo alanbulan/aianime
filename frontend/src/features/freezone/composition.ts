@@ -12,7 +12,7 @@ import {
   type FreezoneBeatContextQueryOptions,
   type FreezoneQueryOptions,
 } from "./application/contextQueries";
-import { createFreezoneContextQueryHooks } from "./application/contextQueryHooks";
+import { createFreezoneContextQueryHooks } from "./hooks/contextQueryHooks";
 import {
   buildProjectionFromPreset as buildProjectionFromPresetUseCase,
   getProjectionStatuses as getProjectionStatusesUseCase,

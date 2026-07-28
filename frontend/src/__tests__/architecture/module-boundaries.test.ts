@@ -895,15 +895,23 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
-  it("keeps Freezone React Query adapters inside their owning features", () => {
+  it("keeps Freezone React Query adapters in presentation hooks", () => {
     const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
-    const canvasQueryHooksPath = resolve(
+    const legacyCanvasQueryHooksPath = resolve(
       SRC_ROOT,
       "features/canvas/application/freezoneCanvasQueryHooks.ts",
     );
-    const contextQueryHooksPath = resolve(
+    const legacyContextQueryHooksPath = resolve(
       SRC_ROOT,
       "features/freezone/application/contextQueryHooks.ts",
+    );
+    const canvasQueryHooksPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/freezoneCanvasQueryHooks.ts",
+    );
+    const contextQueryHooksPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/contextQueryHooks.ts",
     );
     const canvasCompositionPath = resolve(
       SRC_ROOT,
@@ -940,30 +948,43 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const applicationReactQueryUsers = [
+      ...sourceFiles(resolve(SRC_ROOT, "features/canvas/application")),
+      ...sourceFiles(resolve(SRC_ROOT, "features/freezone/application")),
+    ]
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => specifier.startsWith("@tanstack/react-query"))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
     const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
     const freezonePublicSource = readFileSync(freezonePublicPath, "utf8");
 
     expect(existsSync(legacyQueryPath)).toBe(false);
+    expect(existsSync(legacyCanvasQueryHooksPath)).toBe(false);
+    expect(existsSync(legacyContextQueryHooksPath)).toBe(false);
     expect(new Set(importSpecifiers(canvasQueryHooksPath))).toEqual(
       new Set([
         "@tanstack/react-query",
         "@/lib/query-keys",
-        "./freezoneCanvasStorage",
+        "../application/freezoneCanvasStorage",
       ]),
     );
     expect(new Set(importSpecifiers(contextQueryHooksPath))).toEqual(
       new Set([
         "@tanstack/react-query",
         "@/lib/query-keys",
-        "./contextQueries",
+        "../application/contextQueries",
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/freezoneCanvasQueryHooks.ts"],
-      ["features/freezone/application/contextQueryHooks.ts"],
+      ["features/canvas/hooks/freezoneCanvasQueryHooks.ts"],
+      ["features/freezone/hooks/contextQueryHooks.ts"],
     ]);
     expect(legacyConsumers).toEqual([]);
+    expect(applicationReactQueryUsers).toEqual([]);
     expect(importSpecifiers(canvasesTabPath)).toContain(
       "@/features/canvas/composition",
     );

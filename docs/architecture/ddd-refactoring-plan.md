@@ -2000,6 +2000,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十四批已将 `BeatStageState`、`BeatStates`、`StageCount`、`EpisodeCounts`、逐 Beat 阶段推导与 compose 前置计数统一迁入唯一 Production domain `beat-state.ts`，订阅 Narrative Beat、Project 模板与 Task Center 任务的 React hook 改为 Production application 工厂并仅在 composition 装配。Narrative Planning controller 通过依赖注入消费该读模型，Production 内部直连 domain，其他剧集组件统一经 Production `public.ts`；原根级 `types/beat-state.ts`、`lib/derive-beat-states.ts` 与 `hooks/use-beat-states.ts` 整体删除，不保留 re-export、别名或第二套规则。领域、application query、合成 controller、Health Bar、Action Panel 与 Audio Pane 回归 35 项及三项架构边界门禁通过，前端 TypeScript 全量检查与 `git diff --check` 通过；阶段 7 至此关闭。
 
+第四百六十五批已将误放在 Canvas/Freezone application 层的两个 React Query hook factory 分别迁入唯一 presentation hooks 所有者 `features/canvas/hooks/freezoneCanvasQueryHooks.ts` 与 `features/freezone/hooks/contextQueryHooks.ts`，composition 直接装配新入口，原 application 文件整体删除，不保留转发、别名或第二套查询实现。查询用例与 gateway 仍由 application/infrastructure 唯一持有；新增门禁锁定旧路径不存在，并禁止两个 application 目录重新依赖 `@tanstack/react-query`。Freezone 查询、画布列表与 Beat Context 回归 9 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

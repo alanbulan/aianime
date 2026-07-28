@@ -5,7 +5,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   listFreezoneCanvases,
   type FreezoneCanvasStorageGateway,
-} from "./freezoneCanvasStorage";
+} from "../application/freezoneCanvasStorage";
 
 export function createFreezoneCanvasQueryHooks(
   gateway: Pick<FreezoneCanvasStorageGateway, "listCanvases">,

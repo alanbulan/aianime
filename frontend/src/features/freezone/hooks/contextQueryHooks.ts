@@ -6,7 +6,7 @@ import {
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
   type FreezoneContextQueryGateway,
-} from "./contextQueries";
+} from "../application/contextQueries";
 
 export function createFreezoneContextQueryHooks(
   gateway: FreezoneContextQueryGateway,

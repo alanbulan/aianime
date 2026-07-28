@@ -37,7 +37,7 @@ import {
   putFreezoneCanvas as putFreezoneCanvasUseCase,
   restoreFreezoneCanvasVersion as restoreFreezoneCanvasVersionUseCase,
 } from './application/freezoneCanvasStorage';
-import { createFreezoneCanvasQueryHooks } from './application/freezoneCanvasQueryHooks';
+import { createFreezoneCanvasQueryHooks } from './hooks/freezoneCanvasQueryHooks';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
