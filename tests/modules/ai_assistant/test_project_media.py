@@ -1,10 +1,10 @@
 from ai_anime.modules.ai_assistant.application import ProjectMedia
 from ai_anime.modules.ai_assistant.domain.project_media import merge_project_media_items
-from ai_anime.modules.ai_assistant.infrastructure import LocalProjectMediaFiles
-from ai_anime.modules.ai_assistant.public import (
-    extract_project_media,
+from ai_anime.modules.ai_assistant.domain.project_media import (
     filter_markdown_duplicate_media,
 )
+from ai_anime.modules.ai_assistant.infrastructure import LocalProjectMediaFiles
+from ai_anime.modules.ai_assistant.public import extract_project_media
 
 project_media = ProjectMedia(LocalProjectMediaFiles())
 

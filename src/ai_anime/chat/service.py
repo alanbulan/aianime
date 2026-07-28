@@ -15,9 +15,6 @@ from typing import Any
 from ai_anime.chat.backend_sdk import (
     ClaudeSdkClient,
     CodexClient,
-    _codex_item_completed_trace,
-    _codex_item_started_trace,
-    _codex_unwrap_item,
     interrupt_live_claude_client,
     interrupt_live_codex_turn,
 )
@@ -32,7 +29,6 @@ from ai_anime.modules.ai_assistant.public import (
     extract_project_media,
     extract_tool_ui_specs,
     fallback_display_tool_ui_specs,
-    filter_markdown_duplicate_media,
     filter_tool_ui_specs_for_prompt,
     get_agent_backend,
     get_agent_thread_sessions,
@@ -162,158 +158,6 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
-
-
-def _extract_codex_user_message_text(item: Any) -> str:
-    thread_item = _codex_unwrap_item(item)
-    parts: list[str] = []
-    for content in getattr(thread_item, "content", []) or []:
-        item_type = str(getattr(content, "type", "") or "")
-        if item_type == "text":
-            text = str(getattr(content, "text", "") or "").strip()
-            if text:
-                parts.append(text)
-        elif item_type == "skill":
-            name = str(getattr(content, "name", "") or "").strip()
-            if name:
-                parts.append(f"[skill] {name}")
-        elif item_type == "mention":
-            name = str(getattr(content, "name", "") or "").strip()
-            path = str(getattr(content, "path", "") or "").strip()
-            parts.append(f"[mention] {name or path}".strip())
-        elif item_type == "image":
-            url = str(getattr(content, "url", "") or "").strip()
-            if url:
-                parts.append(f"[image] {url}")
-        elif item_type == "localImage":
-            path = str(getattr(content, "path", "") or "").strip()
-            if path:
-                parts.append(f"[image] {path}")
-    return "\n".join(part for part in parts if part).strip()
-
-
-def _extract_codex_history_trace(item: Any) -> str:
-    from openai_codex.generated.v2_all import CommandExecutionThreadItem
-
-    thread_item = _codex_unwrap_item(item)
-    started = _codex_item_started_trace(thread_item) or ""
-    completed = _codex_item_completed_trace(thread_item) or ""
-    body = ""
-    if isinstance(thread_item, CommandExecutionThreadItem):
-        aggregated = str(thread_item.aggregated_output or "")
-        if aggregated:
-            body = aggregated
-            if not body.endswith("\n"):
-                body += "\n"
-    return (started + body + completed).strip()
-
-
-def _load_codex_thread_history(username: str, project: str) -> list[dict[str, Any]]:
-    from openai_codex import Codex, CodexConfig
-    from openai_codex.generated.v2_all import (
-        AgentMessageThreadItem,
-        UserMessageThreadItem,
-    )
-
-    thread_id = agent_thread_sessions.get_active(username, "codex")
-    if not thread_id:
-        return []
-
-    workspace = agent_workspace.ensure_codex(username)
-    codex_bin = agent_backend.codex_bin_path()
-    config = CodexConfig(
-        codex_bin=str(codex_bin) if codex_bin is not None else None,
-        cwd=str(workspace),
-        env=agent_workspace.build_environment(username, project),
-        config_overrides=agent_tool_configuration.codex_config_overrides(),
-    )
-
-    with Codex(config=config) as codex:
-        read_response = codex._client.thread_read(thread_id, include_turns=True)
-        thread = read_response.thread
-        turns = list(getattr(thread, "turns", []) or [])
-        if not turns or not any(getattr(turn, "items", None) for turn in turns):
-            resumed = codex._client.thread_resume(
-                thread_id,
-                {
-                    "cwd": str(workspace),
-                    "model": agent_backend.codex_model(),
-                },
-            )
-            turns = list(getattr(resumed.thread, "turns", []) or [])
-
-    history: list[dict[str, Any]] = []
-    for turn_index, turn in enumerate(turns):
-        for item_index, item in enumerate(getattr(turn, "items", []) or []):
-            thread_item = _codex_unwrap_item(item)
-            created_at = _now_iso()
-            if isinstance(thread_item, UserMessageThreadItem):
-                content = _extract_codex_user_message_text(thread_item)
-                if content:
-                    history.append(
-                        {
-                            "id": turn_index * 1000 + item_index,
-                            "role": "user",
-                            "content": content,
-                            "media": filter_markdown_duplicate_media(
-                                content,
-                                extract_project_media(content, username, project),
-                            ),
-                            "created_at": created_at,
-                        }
-                    )
-                continue
-            if isinstance(thread_item, AgentMessageThreadItem):
-                content = str(thread_item.text or "").strip()
-                if content:
-                    media = extract_project_media(content, username, project)
-                    history.append(
-                        {
-                            "id": turn_index * 1000 + item_index,
-                            "role": "assistant",
-                            "content": content,
-                            "media": filter_markdown_duplicate_media(content, media),
-                            "created_at": created_at,
-                        }
-                    )
-                continue
-
-            trace = _extract_codex_history_trace(thread_item)
-            if trace:
-                for block_index, block in enumerate(split_trace_contents(trace)):
-                    history.append(
-                        {
-                            "id": turn_index * 10000 + item_index * 10 + block_index,
-                            "role": "trace",
-                            "content": block,
-                            "media": [],
-                            "created_at": created_at,
-                        }
-                    )
-
-    return history
-
-
-def _sync_codex_history_cache(
-    username: str,
-    project: str,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> None:
-    history = [
-        message
-        for message in _load_codex_thread_history(username, project)
-        if message.get("role") == "trace"
-    ]
-    if not history:
-        return
-    project_chat_messages.replace_traces(
-        username,
-        project,
-        history,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
 
 
 def _build_claude_thread(username: str, project: str, agent_token: str):

@@ -675,9 +675,9 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     assert "merge_project_media_items" in message_application_source
     assert "merge_project_media_items" not in public_source
     assert "def filter_markdown_duplicate_media(" in domain_source
-    assert "filter_markdown_duplicate_media" in public_source
-    assert "filter_markdown_duplicate_media" in service_source
     assert "filter_markdown_duplicate_media" in message_application_source
+    assert "filter_markdown_duplicate_media" not in public_source
+    assert "filter_markdown_duplicate_media" not in service_source
     assert "def normalize_project_media(" not in public_source
     for legacy_implementation in (
         "_MEDIA_EXTENSIONS =",
@@ -821,6 +821,31 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     assert "chat_service.list_messages" not in service_test_source
 
 
+def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
+    service_source = (PACKAGE_ROOT / "chat" / "service.py").read_text(
+        encoding="utf-8"
+    )
+
+    for dead_implementation in (
+        "def _extract_codex_user_message_text(",
+        "def _extract_codex_history_trace(",
+        "def _load_codex_thread_history(",
+        "def _sync_codex_history_cache(",
+        "_codex_unwrap_item",
+        "_codex_item_started_trace",
+        "_codex_item_completed_trace",
+        "from openai_codex import Codex, CodexConfig",
+    ):
+        assert dead_implementation not in service_source
+    for active_implementation in (
+        "def _build_codex_thread(",
+        "CodexClient(",
+        "def _stream_assistant_reply_codex(",
+        "interrupt_live_codex_turn",
+    ):
+        assert active_implementation in service_source
+
+
 def test_ai_assistant_owns_chat_run_locks() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
@@ -954,8 +979,8 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
         assert legacy_name not in service_source
     assert "agent_backend = get_agent_backend()" in service_source
     assert service_source.count("agent_backend.name()") == 3
-    assert service_source.count("agent_backend.codex_bin_path()") == 2
-    assert service_source.count("agent_backend.codex_model()") == 2
+    assert service_source.count("agent_backend.codex_bin_path()") == 1
+    assert service_source.count("agent_backend.codex_model()") == 1
     assert service_source.count("agent_backend.claude_cli_path()") == 1
     assert service_source.count("agent_backend.claude_model()") == 1
 
@@ -1001,8 +1026,8 @@ def test_ai_assistant_owns_agent_workspace() -> None:
         assert legacy_name not in service_source
     assert "agent_workspace = get_agent_workspace()" in service_source
     assert service_source.count("agent_workspace.ensure_claude(") == 1
-    assert service_source.count("agent_workspace.ensure_codex(") == 2
-    assert service_source.count("agent_workspace.build_environment(") == 3
+    assert service_source.count("agent_workspace.ensure_codex(") == 1
+    assert service_source.count("agent_workspace.build_environment(") == 2
 
 
 def test_ai_assistant_owns_agent_tool_configuration() -> None:
@@ -1045,7 +1070,7 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
     assert "agent_tool_configuration = get_agent_tool_configuration()" in service_source
     assert (
         service_source.count("agent_tool_configuration.codex_config_overrides()")
-        == 2
+        == 1
     )
 
 
