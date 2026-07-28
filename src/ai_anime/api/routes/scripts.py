@@ -18,7 +18,7 @@ from ai_anime.api.deps import (
     make_sqlite_store,
     resolve_project_scope,
 )
-from ai_anime.api.schemas import (
+from ai_anime.api.scripts_schemas import (
     BeatUpdate,
     BeatVideoPromptGenerateRequest,
     Seedance2PromptGenerateRequest,

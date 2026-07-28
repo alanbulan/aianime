@@ -223,6 +223,17 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "VideoComposeRequest",
             ),
         ),
+        (
+            "scripts_schemas.py",
+            "routes/scripts.py",
+            (
+                "BeatUpdate",
+                "BeatVideoPromptGenerateRequest",
+                "ScriptGenerateRequest",
+                "ScriptSaveRequest",
+                "Seedance2PromptGenerateRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

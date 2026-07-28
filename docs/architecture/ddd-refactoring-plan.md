@@ -1944,6 +1944,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十六批已将 Production Video route 独占的 `Seedance2AssetDeleteRequest`、`Seedance2AssetCropRequest`、`Seedance2AssetAudioTrimRequest`、`GlobalOptimizeRequest`、`VideoComposeRequest` 与 `SingleVideoRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/production_video_schemas.py` 入站适配器 schema，Production Video route 及 `test_api_episode_video.py`、`test_api_single_video.py` 的直接模型调用同步切换新入口，旧巨石定义和失去用途的 `Any`、`DEFAULT_VIDEO_BACKEND` 导入直接删除，不保留 re-export facade、旧别名或重复模型。Seedance2 素材枚举/裁剪/音频时段字段、全局优化语言、合成默认值、单镜头 backend 与全部可选生成参数保持不变；视频 backend 单一所有者门禁同步改为要求常量只出现在新 schema、旧巨石零引用。Episode/Single Video 回归 5 项、M09 全部 22 个 Production HTTP 端点合同 1 项及完整后端分层门禁 141 项通过，合计 147 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百三十七批已将 Scripts route 独占的 `ScriptGenerateRequest`、`BeatUpdate`、`Seedance2PromptGenerateRequest`、`BeatVideoPromptGenerateRequest` 与 `ScriptSaveRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/scripts_schemas.py` 入站适配器 schema，Scripts route 及 `test_api_seedance2_config.py` 的直接模型调用同步切换新入口，旧巨石定义和失去用途的 `SceneRef` 导入直接删除，不保留 re-export facade、旧别名或重复模型。空脚本生成体、Beat 的 SceneRef/媒体/音频/识别字段、两类 prompt 默认值及脚本 beats 列表保持不变；统一 schema 所有权门禁加入 Scripts 案例。Scripts/Beat/Seedance2 prompt 与 M03 HTTP 合同回归 16 项及完整后端分层门禁 141 项通过，合计 157 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
