@@ -17,6 +17,7 @@ from ai_anime.modules.ai_assistant.application import (
     HermesRuntime,
     PageAgentSessions,
     ProjectAssistantReplies,
+    ProjectChatTurns,
     ProjectChatMessages,
     ProjectMedia,
 )
@@ -81,6 +82,10 @@ _project_assistant_replies = ProjectAssistantReplies(
     _deterministic_project_replies,
     _hermes_project_replies,
 )
+_project_chat_turns = ProjectChatTurns(
+    _project_assistant_replies,
+    _project_chat_messages,
+)
 
 
 def get_agent_backend() -> AgentBackend:
@@ -137,3 +142,7 @@ def get_project_chat_messages() -> ProjectChatMessages:
 
 def get_project_assistant_replies() -> ProjectAssistantReplies:
     return _project_assistant_replies
+
+
+def get_project_chat_turns() -> ProjectChatTurns:
+    return _project_chat_turns

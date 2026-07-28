@@ -12,30 +12,20 @@ from ai_anime.modules.ai_assistant.application import (
     HermesHomeReplies,
     HermesRuntime,
     ProjectAssistantReplies,
+    ProjectChatTurns,
     ProjectChatMessages,
 )
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
-    completion_text_or_existing,
     dedupe_tool_ui_specs,
     display_tool_call_key,
     extract_display_tool_call,
     filter_tool_ui_specs_for_prompt,
     infer_display_tool_call_from_text,
     is_display_tool_name,
-    is_hidden_chat_tool_event,
-    merge_stream_text,
-    message_content,
     redact_local_filesystem_paths,
-    should_emit_final_text,
     should_prewarm_scope,
-    split_trace_contents,
-    strip_replayed_chat_response,
-    strip_stored_assistant_replay,
-    strip_streamed_assistant_replay,
-    text_with_attachment_context,
     tool_chat_error,
-    tool_display_payload,
 )
 
 
@@ -176,6 +166,14 @@ def get_project_assistant_replies() -> ProjectAssistantReplies:
     return resolve()
 
 
+def get_project_chat_turns() -> ProjectChatTurns:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_project_chat_turns as resolve,
+    )
+
+    return resolve()
+
+
 __all__ = [
     "AgentBackend",
     "AgentBackendPrewarmer",
@@ -185,11 +183,11 @@ __all__ = [
     "HermesHomeReplies",
     "HermesRuntime",
     "ProjectAssistantReplies",
+    "ProjectChatTurns",
     "ProjectChatMessages",
     "ChatScope",
     "append_tool_ui_specs",
     "build_agent_prompt_context",
-    "completion_text_or_existing",
     "create_page_agent_session_token",
     "dedupe_tool_ui_specs",
     "display_tool_call_key",
@@ -206,21 +204,12 @@ __all__ = [
     "get_hermes_home_replies",
     "get_hermes_runtime",
     "get_project_assistant_replies",
+    "get_project_chat_turns",
     "get_project_chat_messages",
-    "is_hidden_chat_tool_event",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
-    "merge_stream_text",
-    "message_content",
     "normalize_json_render_reply",
     "redact_local_filesystem_paths",
-    "should_emit_final_text",
     "should_prewarm_scope",
-    "split_trace_contents",
-    "strip_replayed_chat_response",
-    "strip_stored_assistant_replay",
-    "strip_streamed_assistant_replay",
-    "text_with_attachment_context",
     "tool_chat_error",
-    "tool_display_payload",
 ]

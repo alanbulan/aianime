@@ -28,13 +28,9 @@ from ai_anime.modules.ai_assistant.public import (
     get_chat_run_locks,
     get_hermes_home_replies,
     get_hermes_runtime,
-    get_project_assistant_replies,
+    get_project_chat_turns,
     get_project_chat_messages,
-    message_content,
-    should_emit_final_text,
     should_prewarm_scope,
-    text_with_attachment_context,
-    tool_display_payload,
 )
 from ai_anime.modules.project_workspace.public import (
     ProjectNotFound,
@@ -61,7 +57,7 @@ chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
 hermes_home_replies = get_hermes_home_replies()
 hermes_runtime = get_hermes_runtime()
-project_assistant_replies = get_project_assistant_replies()
+project_chat_turns = get_project_chat_turns()
 project_chat_messages = get_project_chat_messages()
 
 
@@ -350,106 +346,26 @@ async def _stream_project_turn(
     attachments: list[ChatAttachmentIn],
     turn_id: str,
 ) -> None:
-    project = str(scope.id)
     project_ctx = await _project_context_for_scope(user, scope)
     project_dir = project_ctx.output_dir if project_ctx is not None else None
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
     attachment_payloads = _attachment_payloads(attachments)
-    agent_text = text_with_attachment_context(text, attachment_payloads)
-    project_chat_messages.append_user(
-        username,
-        project,
-        text,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
     send_lock = asyncio.Lock()
     heartbeat_task = asyncio.create_task(
         _chat_heartbeat(websocket, scope=scope, turn_id=turn_id, send_lock=send_lock)
     )
-    done_sent = False
-    assistant_sent_text = ""
 
     async def on_event(event: dict[str, Any]) -> None:
-        nonlocal assistant_sent_text, done_sent
-        event_type = event.get("type")
-        if event_type == "thread_started":
-            await _send_json_best_effort(
-                websocket,
-                {
-                    "type": "thread.started",
-                    "scope": scope.to_dict(),
-                    "thread_id": event.get("thread_id"),
-                    "turn_id": event.get("turn_id") or turn_id,
-                },
-                send_lock,
-            )
-        elif event_type == "assistant_delta":
-            assistant_sent_text = str(event.get("text") or "")
-            await _send_json_best_effort(
-                websocket,
-                {
-                    "type": "assistant.delta",
-                    "text": assistant_sent_text,
-                    "turn_id": turn_id,
-                    "accumulated": True,
-                },
-                send_lock,
-            )
-        elif event_type == "tool_update":
-            tool_name, tool_body = tool_display_payload(
-                event.get("text"), event.get("name")
-            )
-            await _send_json_best_effort(
-                websocket,
-                {
-                    "type": "tool.result",
-                    "turn_id": turn_id,
-                    "name": tool_name,
-                    "success": True,
-                    "result": {"text": tool_body},
-                    "error": None,
-                },
-                send_lock,
-            )
-        elif event_type == "assistant_message":
-            message = event.get("message")
-            if isinstance(message, dict):
-                assistant_sent_text = message_content(message)
-                await _send_json_best_effort(
-                    websocket,
-                    {
-                        "type": "assistant.message",
-                        "turn_id": turn_id,
-                        "message": message,
-                    },
-                    send_lock,
-                )
-        elif event_type == "done":
-            final_text = message_content(event.get("message"))
-            if should_emit_final_text(final_text, assistant_sent_text):
-                assistant_sent_text = final_text
-                await _send_json_best_effort(
-                    websocket,
-                    {
-                        "type": "assistant.delta",
-                        "text": final_text,
-                        "turn_id": turn_id,
-                        "accumulated": True,
-                    },
-                    send_lock,
-                )
-            done_sent = await _send_json_best_effort(
-                websocket,
-                {"type": "chat.done", "turn_id": turn_id, "scope": scope.to_dict()},
-                send_lock,
-            )
+        async with send_lock:
+            await websocket.send_json(event)
 
     try:
-        await project_assistant_replies.stream(
+        await project_chat_turns.stream(
             username,
-            project,
-            agent_text,
+            scope,
+            text,
+            attachment_payloads,
+            turn_id,
             on_event,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
@@ -458,12 +374,6 @@ async def _stream_project_turn(
         heartbeat_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await heartbeat_task
-        if not done_sent:
-            await _send_json_best_effort(
-                websocket,
-                {"type": "chat.done", "turn_id": turn_id, "scope": scope.to_dict()},
-                send_lock,
-            )
 
 
 async def _stream_home_turn(

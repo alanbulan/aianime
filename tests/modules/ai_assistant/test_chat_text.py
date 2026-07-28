@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_anime.modules.ai_assistant.public import (
+from ai_anime.modules.ai_assistant.domain import (
     completion_text_or_existing,
     is_hidden_chat_tool_event,
     merge_stream_text,

@@ -1783,6 +1783,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百六十一批已将 Agent backend 预热收口至 AI Assistant：application 新增唯一 `AgentBackendPrewarmer`，组合 Agent backend 与 Hermes runtime，统一负责 Hermes-only 门禁、home/project scope 和 project ID 投影，并保持 backend 探测或 runtime 预热失败全部静默的 best-effort 语义。composition/public 提供唯一进程级 capability，Chat route 的连接后项目预热和 scope 切换预热两个调用点直接使用该能力，M08 测试也在 route capability 边界注入替身；`chat/service.py` 删除 `prewarm_chat_backend` 和 Hermes runtime 依赖，文件由 160 行降至 138 行，Chat route 不再导入任何 `ai_anime.chat` 模块，不保留 facade、旧别名或第二套预热。Agent backend prewarm 6 项、AI Assistant 模块 201 项、剩余 Chat/route 回归 1 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 127 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百六十二批已将项目 Chat 回合编排收口至 AI Assistant：application 新增唯一 `ProjectChatTurns`，组合顶层项目回复 capability 与项目消息 capability，统一负责附件 Prompt、原始用户消息写入、thread/assistant/tool/done 事件到稳定 UI 事件投影、最终正文补发及 `chat.done` best-effort 重试；composition/public 提供唯一进程级 capability。Chat route 的 `_stream_project_turn` 只保留项目授权上下文和目录解析、附件 DTO 转换、WebSocket 发送锁与 heartbeat 生命周期，发送异常由 sink 回到 application 判断，文件由 646 行降至 556 行，不保留旧事件分支或第二套编排。迁移后失去外部生产消费者的 11 个 Chat text helper 同时从 public API 收回，模块测试直接验证 domain，route 不再持有相关规则。Project chat turns 5 项、AI Assistant 模块 206 项、剩余 Chat/route 回归 1 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 128 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

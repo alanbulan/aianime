@@ -382,6 +382,13 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         / "application"
         / "hermes_project_replies.py"
     )
+    project_turns = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "application"
+        / "project_chat_turns.py"
+    )
     history = (
         PACKAGE_ROOT
         / "modules"
@@ -393,6 +400,7 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     route_source = route.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
+    project_turns_source = project_turns.read_text(encoding="utf-8")
     history_source = history.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -422,8 +430,28 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     assert "strip_stored_assistant_replay" in history_source
     assert "strip_streamed_assistant_replay" not in service_source
     assert "strip_streamed_assistant_replay" in hermes_replies_source
-    assert "completion_text_or_existing" in public_source
-    assert "strip_replayed_chat_response" in public_source
+    for internal_rule in (
+        "completion_text_or_existing",
+        "is_hidden_chat_tool_event",
+        "merge_stream_text",
+        "message_content",
+        "should_emit_final_text",
+        "split_trace_contents",
+        "strip_replayed_chat_response",
+        "strip_stored_assistant_replay",
+        "strip_streamed_assistant_replay",
+        "text_with_attachment_context",
+        "tool_display_payload",
+    ):
+        assert internal_rule not in public_source
+    for projected_rule in (
+        "message_content(",
+        "should_emit_final_text(",
+        "text_with_attachment_context(",
+        "tool_display_payload(",
+    ):
+        assert projected_rule not in route_source
+        assert projected_rule in project_turns_source
 
 
 def test_ai_assistant_owns_chat_presentation_rules() -> None:
@@ -812,6 +840,7 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "project_messages.py"
     deterministic_replies = module / "application" / "deterministic_replies.py"
+    project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
@@ -819,6 +848,7 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     application_source = application.read_text(encoding="utf-8")
     deterministic_replies_source = deterministic_replies.read_text(encoding="utf-8")
+    project_turns_source = project_turns.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -844,7 +874,9 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     assert "def get_project_chat_messages(" in public_source
     assert "project_chat_messages" not in service_source
     assert "self._project_messages.append_assistant(" in deterministic_replies_source
+    assert "self._messages.append_user(" in project_turns_source
     assert "project_chat_messages = get_project_chat_messages()" in route_source
+    assert "project_chat_messages.append_user(" not in route_source
     for legacy_implementation in (
         "def _assistant_history_contents(",
         "def _trace_history_contents(",
@@ -1261,11 +1293,13 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
 def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "project_assistant_replies.py"
+    project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
+    project_turns_source = project_turns.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -1285,10 +1319,8 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     )
     assert "def get_project_assistant_replies(" in composition_source
     assert "def get_project_assistant_replies(" in public_source
-    assert (
-        "project_assistant_replies = get_project_assistant_replies()" in route_source
-    )
-    assert route_source.count("project_assistant_replies.stream(") == 1
+    assert "project_assistant_replies" not in route_source
+    assert project_turns_source.count("self._replies.stream(") == 1
     assert "def stream_assistant_reply(" not in service_source
     assert service_source.count("project_assistant_replies.stream(") == 1
     for owned_operation in (
@@ -1301,6 +1333,46 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
         "self._deterministic_replies.stream(",
         "self._thread_replies.stream(",
         "self._hermes_replies.stream(",
+    ):
+        assert owned_operation in application_source
+
+
+def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "project_chat_turns.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class ProjectChatTurns:" in application_source
+    assert "_project_chat_turns = ProjectChatTurns(" in composition_source
+    assert "def get_project_chat_turns(" in composition_source
+    assert "def get_project_chat_turns(" in public_source
+    assert "project_chat_turns = get_project_chat_turns()" in route_source
+    assert route_source.count("project_chat_turns.stream(") == 1
+    assert "async def _stream_project_turn(" in route_source
+    assert "await websocket.send_json(event)" in route_source
+    assert "websocket" not in application_source
+    for owned_operation in (
+        "self._messages.append_user(",
+        "self._replies.stream(",
+        "text_with_attachment_context(",
+        "tool_display_payload(",
+        "message_content(",
+        "should_emit_final_text(",
+        "emit_chat_event_best_effort(",
     ):
         assert owned_operation in application_source
 

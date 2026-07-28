@@ -50,6 +50,9 @@ from ai_anime.modules.ai_assistant.application.project_messages import (
 from ai_anime.modules.ai_assistant.application.project_assistant_replies import (
     ProjectAssistantReplies,
 )
+from ai_anime.modules.ai_assistant.application.project_chat_turns import (
+    ProjectChatTurns,
+)
 from ai_anime.modules.ai_assistant.application.thread_replies import (
     AgentThreadReplies,
 )
@@ -82,6 +85,7 @@ __all__ = [
     "ProjectMedia",
     "ProjectMediaFiles",
     "ProjectAssistantReplies",
+    "ProjectChatTurns",
     "ProjectChatMessages",
     "UserPreferences",
 ]
