@@ -851,6 +851,47 @@ describe("SuperChat boundaries", () => {
     expect(controller).not.toContain("useSuperChat");
   });
 
+  it("keeps queued-message state transitions outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-chat-queue-controller.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-chat-queue-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-chat-queue-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-chat-queue-controller";',
+    );
+    expect(controller).toContain("export function useChatQueueController(");
+    for (const ownedOperation of [
+      "type QueuedSendItem =",
+      "const [queuedMessages, setQueuedMessages] = useState<QueuedSendItem[]>([]);",
+      "const [selectedQueuedMessageId, setSelectedQueuedMessageId] = useState<string | null>(null);",
+      "const remainingMessages = queuedMessages.filter(",
+      "void sendMessage(nextMessage.text, nextMessage.attachments)",
+      "const enqueueMessage = useCallback(",
+      "const removeQueuedMessage = useCallback(",
+      "const selectQueuedMessageByOffset = useCallback(",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).not.toContain("useSuperChat");
+    expect(controller).not.toContain("sendWithIngestAutomation");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

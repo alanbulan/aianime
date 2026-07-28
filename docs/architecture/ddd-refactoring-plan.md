@@ -1863,6 +1863,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零一批已拆分 SuperChat 消息区滚动控制器：新增唯一 `features/superchat/use-chat-scroll-controller.ts`，集中持有滚动容器与消息列表 ref、96/180 像素贴底/回到底部阈值、消息/流式/等待状态驱动的帧级自动滚动、ResizeObserver 内容尺寸跟随，以及按项目与消息边界去重的 120/360/800 毫秒历史恢复和完整定时器/动画帧清理。`superchat-panel.tsx` 删除 4 个滚动 ref、显示状态、滚动命令和 4 段 DOM effect，只消费控制器返回的两个 ref、显示状态与命令，文件由 900 行降至 846 行，不保留旧滚动实现。新增 3 项 hook 特征测试覆盖手动滚动阈值与显式回底、非 busy 手动位置保持、busy/尺寸变化贴底、历史恢复键去重和卸载清理，并扩展架构门禁禁止 DOM 滚动编排回流面板；SuperChat 特征测试 31 个文件 170 项、SuperChat 门禁 27 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零二批已拆分 SuperChat 待发送消息队列控制器：新增唯一 `features/superchat/use-chat-queue-controller.ts`，集中持有队列项与选择状态、项目切换清理、busy/连接/准备状态三重发送门禁、选中项优先发送、成功移除与失败保留、选择有效性修正、显式删除和上下循环选择；队列 ID、附件与创建时间语义保持不变。`superchat-panel.tsx` 删除队列类型、两个 state、两段 effect、直接数组修改和选择偏移算法，只在 busy 提交时调用入队命令并把队列模型装配到既有视图，文件由 846 行降至 797 行，不保留第二套状态转移。新增 4 项 hook 特征测试覆盖连续入队与双向循环、完整发送门禁、选中成功项移除、失败保留、显式删除和项目切换清空，并扩展架构门禁禁止队列状态机回流面板；SuperChat 特征测试 32 个文件 174 项、SuperChat 门禁 28 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

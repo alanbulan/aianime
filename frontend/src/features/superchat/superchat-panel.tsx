@@ -43,6 +43,7 @@ import { useIngestAutomationController } from "@/features/superchat/use-ingest-a
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
 import { useChatScrollController } from "@/features/superchat/use-chat-scroll-controller";
+import { useChatQueueController } from "@/features/superchat/use-chat-queue-controller";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -51,13 +52,6 @@ import { projectPanelMessages } from "@/features/superchat/panel-message-project
 import type { ChatMessage } from "@/features/superchat/types";
 import type { ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
-
-type QueuedSendItem = {
-  id: string;
-  text: string;
-  attachments: ChatAttachment[];
-  createdAt: number;
-};
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
 
@@ -81,8 +75,6 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [queuedMessages, setQueuedMessages] = useState<QueuedSendItem[]>([]);
-  const [selectedQueuedMessageId, setSelectedQueuedMessageId] = useState<string | null>(null);
   const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
   const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
@@ -113,6 +105,20 @@ export function SuperChatPanel({
     project: params.project,
     sendChatMessage: chat.send,
     t,
+  });
+  const {
+    enqueueMessage,
+    queuedMessages,
+    removeQueuedMessage,
+    selectQueuedMessage,
+    selectQueuedMessageByOffset,
+    selectedQueuedMessageId,
+  } = useChatQueueController({
+    busy: chat.busy,
+    connected: chat.connected,
+    preparingSend,
+    project: params.project,
+    sendMessage: sendWithIngestAutomation,
   });
   const isChatInitializing = !chat.historyReady && chat.messages.length === 0 && (chat.connecting || chat.connected);
 
@@ -180,8 +186,6 @@ export function SuperChatPanel({
   });
 
   useEffect(() => {
-    setQueuedMessages([]);
-    setSelectedQueuedMessageId(null);
     setSelectedHistoryMessageIndex(null);
   }, [params.project]);
 
@@ -208,37 +212,6 @@ export function SuperChatPanel({
     composerBeamRef.current?.setActive(composerBeamActive);
   }, [composerBeamActive]);
 
-  useEffect(() => {
-    if (chat.busy || !chat.connected || preparingSend || queuedMessages.length === 0) return;
-    const selectedIndex = selectedQueuedMessageId
-      ? queuedMessages.findIndex((message) => message.id === selectedQueuedMessageId)
-      : -1;
-    const nextIndex = selectedIndex >= 0 ? selectedIndex : 0;
-    const nextMessage = queuedMessages[nextIndex];
-    const remainingMessages = queuedMessages.filter((_, index) => index !== nextIndex);
-    void sendWithIngestAutomation(nextMessage.text, nextMessage.attachments).then((sent) => {
-      if (!sent) return;
-      setQueuedMessages(remainingMessages);
-      setSelectedQueuedMessageId(remainingMessages[0]?.id ?? null);
-    });
-  }, [
-    chat.busy,
-    chat.connected,
-    preparingSend,
-    queuedMessages,
-    selectedQueuedMessageId,
-    sendWithIngestAutomation,
-  ]);
-
-  useEffect(() => {
-    if (queuedMessages.length === 0) {
-      if (selectedQueuedMessageId) setSelectedQueuedMessageId(null);
-      return;
-    }
-    if (selectedQueuedMessageId && queuedMessages.some((message) => message.id === selectedQueuedMessageId)) return;
-    setSelectedQueuedMessageId(queuedMessages[0].id);
-  }, [queuedMessages, selectedQueuedMessageId]);
-
   useLayoutEffect(() => {
     if (!restoreDraftFocusRef.current) return;
     restoreDraftFocusRef.current = false;
@@ -261,15 +234,7 @@ export function SuperChatPanel({
     const text = draft.trim() || t("aiAssistant.attachmentOnlyPrompt");
     const queuedAttachments = attachments.map((attachment) => ({ ...attachment }));
     if (chat.busy) {
-      setQueuedMessages((current) => [
-        ...current,
-        {
-          id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          text,
-          attachments: queuedAttachments,
-          createdAt: Date.now(),
-        },
-      ]);
+      enqueueMessage(text, queuedAttachments);
       setDraft("");
       setAttachments([]);
       return;
@@ -294,18 +259,6 @@ export function SuperChatPanel({
     }
     event.preventDefault();
     submit();
-  };
-
-  const selectQueuedMessageByOffset = (offset: number) => {
-    if (queuedMessages.length === 0) return;
-    setSelectedQueuedMessageId((current) => {
-      const currentIndex = current
-        ? queuedMessages.findIndex((message) => message.id === current)
-        : -1;
-      const baseIndex = currentIndex >= 0 ? currentIndex : 0;
-      const nextIndex = (baseIndex + offset + queuedMessages.length) % queuedMessages.length;
-      return queuedMessages[nextIndex].id;
-    });
   };
 
   const selectHistoryMessage = (direction: "older" | "newer") => {
@@ -675,7 +628,7 @@ export function SuperChatPanel({
                       >
                         <button
                           type="button"
-                          onClick={() => setSelectedQueuedMessageId(message.id)}
+                          onClick={() => selectQueuedMessage(message.id)}
                           className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                           aria-label={t("aiAssistant.selectQueuedMessage")}
                           aria-pressed={showSelectedState}
@@ -689,9 +642,7 @@ export function SuperChatPanel({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            setQueuedMessages((current) => current.filter((item) => item.id !== message.id));
-                          }}
+                          onClick={() => removeQueuedMessage(message.id)}
                           className="mr-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           aria-label={t("aiAssistant.removeQueuedMessage")}
                         >
