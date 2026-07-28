@@ -24,11 +24,6 @@ CANVAS_MAX_EDGES = 200_000
 # ── 通用响应 ──────────────────────────────────────────────────────────────────
 
 
-class OkResponse(BaseModel):
-    ok: bool = True
-    data: Any = None
-
-
 class TaskResponse(BaseModel):
     ok: bool = True
     task_id: str = ""

@@ -7,7 +7,7 @@ from dataclasses import asdict
 from fastapi import APIRouter, Depends, Query, Request
 
 from ai_anime.api.auth import get_api_user
-from ai_anime.api.schemas import OkResponse
+from ai_anime.api.release_notifications_schemas import OkResponse
 from ai_anime.modules.platform_release.public import release_notification_queries
 
 router = APIRouter()

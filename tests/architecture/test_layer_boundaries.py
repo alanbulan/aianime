@@ -140,6 +140,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/production_audio.py",
             ("TTSGenerateRequest", "TTSPreviewRequest"),
         ),
+        (
+            "release_notifications_schemas.py",
+            "routes/release_notifications.py",
+            ("OkResponse",),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

@@ -1920,6 +1920,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百二十四批已将 Production Audio route 独占的 `TTSGenerateRequest` 与 `TTSPreviewRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/production_audio_schemas.py` 入站适配器 schema，Audio route 及 4 处直接测试导入同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。IndexTTS2 生成的可选 provider/voice/model/rate/mode/beat numbers、预览必填文本及可选模型字段保持不变，已移除的旧 TTS 端点仍经过相同请求校验后返回 410；统一 schema 所有权门禁加入 Production Audio 案例。Production Audio/声线前置条件与 M04 旧路由合同 8 项、完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百二十五批已确认原名通用的 `OkResponse` 实际仅由 Release Notifications route 使用，并将其从后端公共 `api/schemas.py` 迁入唯一 `api/release_notifications_schemas.py` 出站 schema；release route 切换新入口并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型。`ok: true` 默认值、任意 `data` 包络及 OpenAPI 组件类名保持不变；统一 schema 所有权门禁加入 Release Notifications 案例，锁定新所有者、route 导入和旧巨石零定义。完整 release feed 12 项与完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
