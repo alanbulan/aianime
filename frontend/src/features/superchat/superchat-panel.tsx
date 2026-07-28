@@ -21,7 +21,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
-import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";
 import { ComposerWaitingStatus } from "@/features/superchat/composer-waiting-status";
 import { ChatTimeline } from "@/features/superchat/chat-timeline";
 import {
@@ -42,7 +41,7 @@ import {
 } from "@/features/superchat/ingest-automation-domain";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
-import { useEventBus } from "@/task-center/event-bus-context";
+import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -97,11 +96,14 @@ export function SuperChatPanel({
   const historyScrollKeyRef = useRef<string | null>(null);
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const composerBeamRef = useRef<BorderBeamController | null>(null);
-  const notifiedTaskKeysRef = useRef<Set<string>>(new Set());
-  const taskEventBus = useEventBus();
   const chat = useSuperChat({
     project: params.project,
     displayName: username || "AI anime",
+  });
+  useTaskCompletionNotifications({
+    project: params.project,
+    appendNotification: chat.appendNotification,
+    t,
   });
   const { recording, toggleSpeech } = useSpeechInputController({
     onTranscript: setDraft,
@@ -165,27 +167,6 @@ export function SuperChatPanel({
       search,
     ],
   );
-
-  useEffect(() => {
-    const project = params.project?.trim();
-    if (!project) return;
-    return taskEventBus.on("*", (event) => {
-      if (event.type !== "task_complete" && event.type !== "task_failed") return;
-      const taskProject = (event.task.project_id ?? event.task.project).trim();
-      if (taskProject !== project) return;
-
-      const dedupeKey = `${event.type}:${event.task.task_key || event.task.task_id}`;
-      if (notifiedTaskKeysRef.current.has(dedupeKey)) return;
-      notifiedTaskKeysRef.current.add(dedupeKey);
-
-      const label = buildChatTaskLabel(event.task, t);
-      const text =
-        event.type === "task_complete"
-          ? `✅ ${label}已完成。你可以让我查看结果，或继续下一步。`
-          : `${label}失败：${event.task.error || event.task.current_task || "未提供具体错误原因"}\n请根据错误处理前置条件后再继续。`;
-      void chat.appendNotification(text);
-    });
-  }, [chat.appendNotification, params.project, t, taskEventBus]);
 
   const scrollToChatBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;

@@ -1859,6 +1859,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百九十九批已拆分 SuperChat 面板消息投影：新增唯一无 React/DOM 的 `features/superchat/panel-message-projection.ts`，集中持有已删除消息与 tool envelope 过滤、用户输入历史、置顶消息、大小写无关搜索、结构化流式延迟、重复 streamText 抑制、当前流式 assistant ID，以及 active turn/最近用户回合的等待指示规则；`superchat-panel.tsx` 将三段 memo/派生逻辑收口为一次纯投影调用，只在 JSX 做角色与 ID 匹配，文件由 965 行降至 919 行，不保留旧规则或 presentation-rules 直接依赖。新增 5 项纯函数测试覆盖过滤/搜索/置顶/历史、工具事件开关、流式状态和两条等待路径，并扩展架构门禁确保投影保持纯净；SuperChat 特征测试 29 个文件 162 项、SuperChat 门禁 25 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百批已拆分 SuperChat 任务终态通知控制器：新增唯一 `features/superchat/use-task-completion-notifications.ts`，集中持有 TaskEventBus 通配订阅、项目归一与过滤、完成/失败事件门禁、事件类型与 task key/id 组合去重、任务标签及成功/失败通知文案，并在卸载或依赖变化时解绑；去重集合继续贯穿项目切换，不改变原生命周期语义。`superchat-panel.tsx` 删除事件总线、去重 ref、通知标签依赖和完整 effect，只装配项目、翻译函数与 `appendNotification`，文件由 919 行降至 900 行，不保留旧监听或第二套文案实现。新增 5 项 hook 特征测试覆盖空项目不订阅、非终态/跨项目过滤、成功文案与 task id 回退去重、三层失败原因回退、卸载解绑和跨项目去重保持，并扩展架构门禁禁止通知编排回流面板；SuperChat 特征测试 30 个文件 167 项、SuperChat 门禁 26 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

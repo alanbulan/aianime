@@ -755,6 +755,61 @@ describe("SuperChat boundaries", () => {
     expect(projection).not.toContain("window.");
   });
 
+  it("keeps task completion notification orchestration outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-task-completion-notifications.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-task-completion-notifications.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-task-completion-notifications";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-task-completion-notifications";',
+    );
+    expect(controller).toContain(
+      "export function useTaskCompletionNotifications(",
+    );
+    for (const ownedOperation of [
+      "const notifiedTaskKeysRef = useRef<Set<string>>(new Set());",
+      'return taskEventBus.on("*", (event) => {',
+      'event.type !== "task_complete" && event.type !== "task_failed"',
+      "const taskProject =",
+      "const dedupeKey =",
+      "buildChatTaskLabel(event.task, t)",
+      "void appendNotification(text)",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).toContain(
+      'from "@/task-center/event-bus-context";',
+    );
+    expect(controller).toContain(
+      'from "@/features/superchat/task-notification-label";',
+    );
+    expect(panel).not.toContain(
+      'from "@/task-center/event-bus-context";',
+    );
+    expect(panel).not.toContain(
+      'from "@/features/superchat/task-notification-label";',
+    );
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
