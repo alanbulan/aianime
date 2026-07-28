@@ -3,7 +3,6 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/modules/identity_access/public";
@@ -25,6 +24,7 @@ import { useChatQueueController } from "@/features/superchat/use-chat-queue-cont
 import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
 import { useComposerAttachmentsController } from "@/features/superchat/use-composer-attachments-controller";
+import { useComposerSubmitController } from "@/features/superchat/use-composer-submit-controller";
 import { ChatComposer } from "@/features/superchat/chat-composer";
 import { ChatMessageArea } from "@/features/superchat/chat-message-area";
 import {
@@ -180,29 +180,19 @@ export function SuperChatPanel({
     onDraftChange: setDraft,
     project: params.project,
   });
-
-  const submit = () => {
-    const hasCurrentContent = draft.trim().length > 0 || attachments.length > 0;
-    if (!hasCurrentContent || preparingSend) return;
-    if (!chat.connected) {
-      toast.error(t("aiAssistant.waiting"));
-      return;
-    }
-    resetHistorySelection();
-    const text = draft.trim() || t("aiAssistant.attachmentOnlyPrompt");
-    const queuedAttachments = attachments.map((attachment) => ({ ...attachment }));
-    if (chat.busy) {
-      enqueueMessage(text, queuedAttachments);
-      setDraft("");
-      clearAttachments();
-      return;
-    }
-    void sendWithIngestAutomation(text, queuedAttachments).then((sent) => {
-      if (!sent) return;
-      setDraft("");
-      clearAttachments();
-    });
-  };
+  const submit = useComposerSubmitController({
+    attachments,
+    busy: chat.busy,
+    clearAttachments,
+    connected: chat.connected,
+    draft,
+    enqueueMessage,
+    onDraftChange: setDraft,
+    preparingSend,
+    resetHistorySelection,
+    sendMessage: sendWithIngestAutomation,
+    t,
+  });
 
   const isFreezoneLayout = variant === "freezone";
 

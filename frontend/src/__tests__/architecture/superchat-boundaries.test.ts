@@ -1095,6 +1095,52 @@ describe("SuperChat boundaries", () => {
     expect(controller).not.toContain("useSuperChat");
   });
 
+  it("keeps Composer submission orchestration outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-composer-submit-controller.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-composer-submit-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-composer-submit-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-composer-submit-controller";',
+    );
+    expect(controller).toContain(
+      "export function useComposerSubmitController(",
+    );
+    for (const ownedOperation of [
+      "const hasCurrentContent =",
+      'toast.error(t("aiAssistant.waiting"))',
+      "resetHistorySelection();",
+      't("aiAssistant.attachmentOnlyPrompt")',
+      "const queuedAttachments = attachments.map(",
+      "enqueueMessage(text, queuedAttachments);",
+      "void sendMessage(text, queuedAttachments).then(",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).not.toContain("useSuperChat");
+    expect(controller).not.toContain("useChatQueueController");
+    expect(controller).not.toContain("useIngestAutomationController");
+  });
+
   it("keeps complete Composer presentation outside the SuperChat panel", () => {
     const view = readFileSync(
       resolve(SRC_ROOT, "features/superchat/chat-composer.tsx"),
