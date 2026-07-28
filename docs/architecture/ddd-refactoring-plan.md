@@ -1839,6 +1839,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百八十九批已拆分 SuperChat UiSpec 媒体投影：新增唯一无 React/DOM 的 `features/superchat/spec-media-projection.ts`，集中持有元素 props 归一、root children 优先顺序、文本字段回退、进度数值解析与 0-100 钳制、统一 image/video/audio item、可播放关键帧和 pending 状态投影；`superchat-panel.tsx` 删除两类 item、四个私有归一函数及三个投影函数，只消费稳定视图模型，文件由 2,697 行降至 2,534 行，不保留旧实现、re-export 或测试专用 API。新增 5 项纯函数测试覆盖非媒体 spec 拒绝、顺序与字段映射、无效媒体过滤、关键帧提取、pending 状态和进度钳制，并扩展架构门禁禁止投影规则回流及 DOM 依赖进入纯模块；SuperChat 特征测试 19 个文件 119 项、SuperChat 门禁 15 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百九十批已拆分 SuperChat 结构化 JSON 视图：新增唯一 `features/superchat/structured-json-view.tsx`，集中持有 null/string/number/boolean 标量格式化、数组一基编号、对象 title 标题优先、递归字段展开及深度样式；UiSpec fallback 与普通 structured block 均改为消费同一 `JsonNode`，`superchat-panel.tsx` 删除标量 helper 和递归组件，文件由 2,534 行降至 2,482 行，不保留旧实现或 re-export。新增 3 项视图特征测试覆盖四类标量、数组稳定编号、对象标题和嵌套字段，并扩展架构门禁确保通用 JSON 视图不反向依赖 UiSpec、StructuredBlock 或 SuperChat controller；SuperChat 特征测试 20 个文件 122 项、SuperChat 门禁 16 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

@@ -397,6 +397,41 @@ describe("SuperChat boundaries", () => {
     expect(projection).not.toContain("window.");
   });
 
+  it("keeps recursive structured JSON rendering in a dedicated view", () => {
+    const jsonView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/structured-json-view.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/structured-json-view.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/structured-json-view";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/structured-json-view";',
+    );
+    for (const ownedOperation of [
+      "function renderJsonScalar(",
+      "export function JsonNode(",
+    ]) {
+      expect(jsonView).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(jsonView).not.toContain("UiSpec");
+    expect(jsonView).not.toContain("StructuredBlock");
+    expect(jsonView).not.toContain("useSuperChat");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),
