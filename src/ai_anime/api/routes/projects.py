@@ -12,13 +12,15 @@ from ai_anime.api.deps import (
     make_sqlite_store_for_context,
     make_static_url_for_context,
 )
-from ai_anime.api.schemas import (
-    CharacterVoiceRecordRequest,
-    NarratorVoiceCopyRequest,
-    NarratorVoiceTrimRequest,
+from ai_anime.api.projects_schemas import (
     ProjectCreate,
     ProjectStatusFilter,
     ProjectUpdate,
+)
+from ai_anime.api.voice_schemas import (
+    CharacterVoiceRecordRequest,
+    NarratorVoiceCopyRequest,
+    NarratorVoiceTrimRequest,
 )
 from ai_anime.project_config import (
     default_aspect_ratio_for_spine_template,

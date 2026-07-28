@@ -1950,6 +1950,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十九批已将 Creative Canvas Documents route 独占的 `CanvasPayload`、节点/边硬上限及其校验逻辑从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_documents_schemas.py` 入站适配器 schema，Documents route 与 `test_freezone_image_backend.py` 的直接模型调用同步切换新入口，旧巨石定义和失去用途的 `HTTPException`、`model_validator` 导入直接删除，不保留 re-export facade、旧别名或重复模型。Canvas v2 元数据、scope/owner/access/revision/save source 字段、节点/边默认工厂，以及超限时紧凑的 422 `canvas_payload_too_large` 错误合同保持不变；统一 schema 所有权门禁加入 Canvas Documents 案例，并新增 nodes/edges 两个参数化硬上限测试。Canvas 保存/冲突定向回归、完整 Document Queries、M06 CRUD 合同及完整后端分层门禁 157 项通过，硬上限分支 2 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十批已将 Projects/Characters 两个 route 的剩余入站模型从后端公共 `api/schemas.py` 收口：4 个 narrator/character record/copy/trim 请求进入唯一共享 `api/voice_schemas.py`，9 个 Character/Identity 请求与 `CharacterAssetKind` 进入唯一 `api/characters_schemas.py`，`ProjectCreate`、`ProjectUpdate` 与 `ProjectStatusFilter` 进入唯一 `api/projects_schemas.py`；两个 route 一次性移除旧巨石导入，三处直接模型测试同步切换新入口，不保留 re-export facade、旧别名或重复模型。声线 data URL/source/时段默认值、Character/Identity CRUD 与素材选择字段、Project spine/aspect/生成设置字段和枚举保持不变；统一 schema 所有权门禁分别锁定共享声线的两个消费者、两个 route 专属模型及两个类型别名的唯一位置，未为部分迁移放宽旧入口禁令。Project/Character/Identity/Voice 回归 30 项、M04 全端点合同 1 项及完整后端分层门禁 141 项通过，合计 172 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

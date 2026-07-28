@@ -10,7 +10,6 @@ from ai_anime.modules.creative_canvas.public import (
 from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
 ProjectStatus = Literal["active", "archived", "deleted"]
-ProjectStatusFilter = Literal["all", "active", "archived", "deleted", "visible"]
 FREEZONE_DEFAULT_IMAGE_SELECTION = DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
 FREEZONE_DEFAULT_IMAGE_MODEL = FREEZONE_DEFAULT_IMAGE_SELECTION
 
@@ -31,10 +30,6 @@ class ErrorResponse(BaseModel):
 
 
 # ── 项目 ──────────────────────────────────────────────────────────────────────
-
-
-class ProjectCreate(BaseModel):
-    name: str
 
 
 class ProjectGrantCreate(BaseModel):
@@ -58,36 +53,6 @@ class ProjectGrantSummary(BaseModel):
     created_at: Optional[str] = None
 
 
-class ProjectUpdate(BaseModel):
-    spine_template: Optional[Literal["drama", "narrated"]] = None
-    aspect_ratio: Optional[Literal["2:3", "9:16", "16:9"]] = None
-    visual_style: Optional[str] = None
-    narration_style: Optional[str] = None
-    ethnicity: Optional[str] = None
-    rhythm: Optional[str] = None
-    tts_provider: Optional[str] = None
-    tts_model: Optional[str] = None
-    tts_voice: Optional[str] = None
-    grid_mode: Optional[str] = None
-    grid_model: Optional[str] = None
-    video_backend: Optional[str] = None
-    use_director_render: Optional[bool] = None
-    video_resolution: Optional[str] = None
-    add_subtitles: Optional[bool] = None
-    sketch_image_selection: Optional[str] = None
-    render_image_selection: Optional[str] = None
-    sketch_aspect_padding: Optional[bool] = None
-
-
-# ── 角色 ──────────────────────────────────────────────────────────────────────
-
-
-class PortraitGenRequest(BaseModel):
-    style: Optional[str] = None
-    ethnicity: str = "Chinese"
-    model: Optional[str] = None
-
-
 # ── 风格 ──────────────────────────────────────────────────────────────────────
 
 
@@ -96,19 +61,6 @@ class StyleCreateRequest(BaseModel):
     name: str
     label: str
     config: dict
-
-
-# ── 角色编辑 ─────────────────────────────────────────────────────────────────
-
-
-class CharacterCreate(BaseModel):
-    name: str
-    role: str = ""
-    is_main: bool = False
-    gender: str = ""
-    age_group: str = "youth"
-    description: str = ""
-    face_prompt: str = ""
 
 
 # ── Freezone ─────────────────────────────────────────────────────────────────
@@ -1321,77 +1273,3 @@ class FreezoneStageAssetAcceptedData(BaseModel):
 class FreezoneStageAssetAcceptedResponse(BaseModel):
     ok: Literal[True] = True
     data: FreezoneStageAssetAcceptedData
-
-
-class CharacterUpdate(BaseModel):
-    name: Optional[str] = None
-    face_prompt: Optional[str] = None
-    description: Optional[str] = None
-    gender: Optional[str] = None
-    age_group: Optional[str] = None
-    is_main: Optional[bool] = None
-    role: Optional[str] = None  # "主角" / "配角" / "反派"
-    body_type: Optional[str] = None  # "纤细高挑" / "健壮魁梧" 等
-    fish_voice_id: Optional[str] = None  # Fish Audio S2 声线 ID
-    aliases: Optional[list[str]] = None
-
-
-# ── 身份 CRUD ────────────────────────────────────────────────────────────────
-
-
-class IdentityCreate(BaseModel):
-    identity_name: str
-    age_group: str = ""
-    appearance_details: str = ""
-
-
-class IdentityImageGenRequest(BaseModel):
-    style: Optional[str] = None
-    model: Optional[str] = None
-
-
-CharacterAssetKind = Literal[
-    "portrait", "identity", "identity_costume", "identity_portrait"
-]
-
-
-class CharacterAssetRestoreRequest(BaseModel):
-    kind: CharacterAssetKind
-    history_id: str
-    identity_id: Optional[str] = None
-
-
-class CharacterImageSelectionRequest(BaseModel):
-    character_image_selection: str
-
-
-class AssetImageSourceSelectionRequest(BaseModel):
-    image_source_selection: str
-
-
-class CharacterVoiceRecordRequest(BaseModel):
-    data_url: str
-
-
-class NarratorVoiceCopyRequest(BaseModel):
-    source_path: str
-
-
-class NarratorVoiceTrimRequest(BaseModel):
-    start_seconds: float = 0.0
-    duration_seconds: float = 4.0
-
-
-class CharacterVoiceTrimRequest(BaseModel):
-    source_path: str
-    start_seconds: float = 0.0
-    duration_seconds: float = 4.0
-
-
-class IdentityUpdate(BaseModel):
-    identity_name: Optional[str] = None
-    appearance_details: Optional[str] = None
-    face_prompt: Optional[str] = None
-    age_group: Optional[str] = None
-    body_type: Optional[str] = None
-    fish_voice_id: Optional[str] = None

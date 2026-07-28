@@ -17,7 +17,7 @@ from ai_anime.api.deps import (
     resolve_project_scope,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.api.schemas import (
+from ai_anime.api.characters_schemas import (
     AssetImageSourceSelectionRequest,
     PortraitGenRequest,
     CharacterCreate,
@@ -27,6 +27,8 @@ from ai_anime.api.schemas import (
     IdentityCreate,
     IdentityUpdate,
     IdentityImageGenRequest,
+)
+from ai_anime.api.voice_schemas import (
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
 )

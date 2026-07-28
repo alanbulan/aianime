@@ -251,6 +251,40 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/canvas/documents.py",
             ("CanvasPayload",),
         ),
+        (
+            "voice_schemas.py",
+            "routes/characters.py",
+            ("CharacterVoiceRecordRequest", "CharacterVoiceTrimRequest"),
+        ),
+        (
+            "voice_schemas.py",
+            "routes/projects.py",
+            (
+                "CharacterVoiceRecordRequest",
+                "NarratorVoiceCopyRequest",
+                "NarratorVoiceTrimRequest",
+            ),
+        ),
+        (
+            "characters_schemas.py",
+            "routes/characters.py",
+            (
+                "AssetImageSourceSelectionRequest",
+                "CharacterAssetRestoreRequest",
+                "CharacterCreate",
+                "CharacterImageSelectionRequest",
+                "CharacterUpdate",
+                "IdentityCreate",
+                "IdentityImageGenRequest",
+                "IdentityUpdate",
+                "PortraitGenRequest",
+            ),
+        ),
+        (
+            "projects_schemas.py",
+            "routes/projects.py",
+            ("ProjectCreate", "ProjectUpdate"),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
@@ -263,6 +297,17 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         module_name = schema_path.removesuffix(".py")
         assert f"ai_anime.api.{module_name}" in _imports(route)
         assert "ai_anime.api.schemas" not in _imports(route)
+
+    characters_source = (PACKAGE_ROOT / "api" / "characters_schemas.py").read_text(
+        encoding="utf-8"
+    )
+    projects_source = (PACKAGE_ROOT / "api" / "projects_schemas.py").read_text(
+        encoding="utf-8"
+    )
+    assert "CharacterAssetKind = Literal[" not in root_source
+    assert "CharacterAssetKind = Literal[" in characters_source
+    assert "ProjectStatusFilter = Literal[" not in root_source
+    assert "ProjectStatusFilter = Literal[" in projects_source
 
 
 def test_legacy_generation_route_is_removed() -> None:

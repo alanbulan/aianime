@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.schemas import IdentityCreate
+from ai_anime.api.characters_schemas import IdentityCreate
 from ai_anime.models import CharacterIdentity, NovelCharacter
 
 

@@ -4,7 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.schemas import IngestStart, ProjectUpdate
+from ai_anime.api.projects_schemas import ProjectUpdate
+from ai_anime.api.schemas import IngestStart
 from ai_anime.models import NovelEpisode
 
 pytestmark = pytest.mark.m03
