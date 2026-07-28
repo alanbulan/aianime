@@ -519,6 +519,59 @@ def test_ai_assistant_owns_agent_thread_sessions() -> None:
     assert "agent_thread_sessions.set_active(" in service_source
 
 
+def test_ai_assistant_owns_agent_prompt_context() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "prompt_context.py"
+    application = module / "application" / "prompt_context.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "user_preferences.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported in {"os", "pathlib", "fastapi"}
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "class UserPreferences(Protocol):" in ports_source
+    assert "class AgentPromptContext:" in application_source
+    assert "compose_agent_prompt" in application_source
+    assert "JSON_RENDER_CHAT_INSTRUCTIONS" in domain_source
+    assert "class FileUserPreferences:" in adapter_source
+    assert "local_state_root" in adapter_source
+    assert "def get_agent_prompt_context(" in composition_source
+    assert "def build_agent_prompt_context(" in public_source
+    assert "AgentPromptContext" not in public_source
+    assert "UserPreferences" not in public_source
+    for legacy_name in (
+        "_JSON_RENDER_CHAT_INSTRUCTIONS",
+        "def _user_preferences_path(",
+        "def load_user_preferences(",
+        "def _prompt_with_user_context(",
+        "[AI_ANIME_USER_CONTEXT]",
+        "[USER_PREFERENCES]",
+        "[RENDERING_CONTRACT]",
+    ):
+        assert legacy_name not in service_source
+    preference_file_owners = [
+        path
+        for path in _python_files(PACKAGE_ROOT)
+        if '"preferences.md"' in path.read_text(encoding="utf-8")
+    ]
+    assert preference_file_owners == [adapter]
+    assert service_source.count("build_agent_prompt_context(") == 3
+
+
 def test_platform_release_callers_use_the_public_api() -> None:
     platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
     failures: list[str] = []

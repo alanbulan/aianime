@@ -1739,6 +1739,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十九批已将 Claude/Codex 活跃 thread 状态收口至 AI Assistant：application 新增 `AgentThreadSessions` 协议，唯一 `FileAgentThreadSessions` infrastructure adapter 复用本地 state 根目录并持有 `agent_sessions.json` 读取、容错与原子写入，composition/public 提供同一进程实例。`service.py` 的历史同步、thread 构建和流式事件处理直接按用户与 `claude`/`codex` 后端调用端口，原路径/load/save、通用 getter/setter 及四个带未使用 project 参数的包装函数全部删除，不保留 facade 或第二套读写；状态实际为用户级而非项目级这一既有语义被显式化。`state/{username}/agent_sessions.json` 路径、单一活跃后端、切换后端即失效旧 thread、`backend/thread_id/updated_at` 字段、UTC ISO 时间、thread ID 去空白、空 ID 不覆盖、临时文件替换及缺失/损坏/非对象状态回退均保持不变。Agent thread adapter 8 项、完整 Chat service 52 项、M08 合同 5 项及完整后端分层门禁 105 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百四十批已将用户偏好文件与 Agent Prompt 上下文收口至 AI Assistant：domain 新增唯一纯函数 Prompt 组装规则并持有完整渲染合同，application 新增 `UserPreferences` 端口和 `AgentPromptContext` 应用服务，infrastructure 新增唯一 `FileUserPreferences` adapter 并复用本地 state 根目录，composition/public 提供同一进程实例和稳定 `build_agent_prompt_context` 入口；内部应用服务和端口不从 public API 导出。Hermes、Claude、Codex 三个调用点全部改经 public API，`service.py` 中偏好路径、文件加载、Prompt 拼装和渲染合同直接删除，不保留 facade、旧别名或第二套实现；原 `state/{username}/preferences.md` 路径、默认内容、UTF-8 读写、首尾空白处理、project/home scope、上下文段落顺序及渲染合同保持不变，迁移前后完整 Prompt 合同 AST 比较结果一致。Prompt/偏好模块 7 项、完整 Chat service 51 项、M08 相关合同 10 项及完整后端分层门禁 106 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

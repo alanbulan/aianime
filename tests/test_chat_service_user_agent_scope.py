@@ -451,47 +451,6 @@ filename: novel.docx
     assert "新建项目" not in result["content"]
 
 
-def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-
-    prompt = chat_service._prompt_with_user_context(
-        "admin",
-        "project-a",
-        "查看肖像图片，用 json-render 显示",
-    )
-
-    assert "[RENDERING_CONTRACT]" in prompt
-    assert "才需要调用对应的 AI anime 展示工具" in prompt
-    assert "不要向用户解释内部渲染格式、渲染机制、工具调用过程或工具名" in prompt
-    assert "不要用文字列表、文件名列表、Beat 名称列表或 URL 列表替代媒体展示" in prompt
-    assert "必须调用对应展示工具" in prompt
-    assert "若没有工具返回的可展示媒体，只说明当前暂无可展示媒体" in prompt
-    assert "后端会自动把工具结果渲染为 json-render" not in prompt
-    assert "不要手写、复制或粘贴 <ui-spec> JSON" not in prompt
-    assert "ai_anime_get_character_media" in prompt
-    assert "ai_anime_get_sketches" in prompt
-    assert "ai_anime_get_scene_images" in prompt
-    assert "ai_anime_get_episode_media" in prompt
-    assert (
-        "只有在回复需要展示图片、肖像、身份图、草图、首帧、视频、音频等可视/可播放媒体时"
-        in prompt
-    )
-    assert "media_json" in prompt
-    assert "不要猜测、拼接或改写静态资源路径" in prompt
-    assert "禁止自行编造 /static/projects/{project_id}/..." in prompt
-    assert "portrait_url" in prompt
-    assert "image_url" in prompt
-    assert "video_url" in prompt
-    assert "不要使用 *_path" in prompt
-    assert "发送前自检" in prompt
-    assert (
-        "角色列表、剧集规划、项目进度、任务状态、脚本/beat 摘要、表格、长篇正文、普通结构化说明默认使用 markdown"
-        in prompt
-    )
-    assert "不要为纯文本、进度、脚本、表格、角色/剧集清单调用媒体展示工具" in prompt
-    assert prompt.rstrip().endswith("查看肖像图片，用 json-render 显示")
-
-
 def test_project_media_uses_project_id_url_and_explicit_project_dir(tmp_path):
     project_dir = tmp_path / "output" / "admin" / "demo"
     image = project_dir / "frames" / "ep001" / "beat_01.png"

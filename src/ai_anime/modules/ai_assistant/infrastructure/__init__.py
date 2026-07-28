@@ -9,5 +9,13 @@ from ai_anime.modules.ai_assistant.infrastructure.chat_run_locks import (
 from ai_anime.modules.ai_assistant.infrastructure.sqlite_chat_history import (
     SQLiteChatHistory,
 )
+from ai_anime.modules.ai_assistant.infrastructure.user_preferences import (
+    FileUserPreferences,
+)
 
-__all__ = ["FileAgentThreadSessions", "FileChatRunLocks", "SQLiteChatHistory"]
+__all__ = [
+    "FileAgentThreadSessions",
+    "FileChatRunLocks",
+    "FileUserPreferences",
+    "SQLiteChatHistory",
+]

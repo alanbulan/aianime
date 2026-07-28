@@ -22,6 +22,12 @@ from ai_anime.modules.ai_assistant.domain import (
 )
 
 
+def build_agent_prompt_context(username: str, project: str, prompt: str) -> str:
+    from ai_anime.modules.ai_assistant.composition import get_agent_prompt_context
+
+    return get_agent_prompt_context().build(username, project, prompt)
+
+
 def get_agent_thread_sessions() -> AgentThreadSessions:
     from ai_anime.modules.ai_assistant.composition import (
         get_agent_thread_sessions as resolve,
@@ -47,6 +53,7 @@ __all__ = [
     "ChatHistory",
     "ChatRunLocks",
     "ChatScope",
+    "build_agent_prompt_context",
     "completion_text_or_existing",
     "get_agent_thread_sessions",
     "get_chat_history",
