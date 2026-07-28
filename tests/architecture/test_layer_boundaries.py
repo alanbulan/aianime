@@ -5221,6 +5221,45 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
     )
 
 
+def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    episode_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "episode_planning_models.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    owner_source = episode_models.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    callers = (
+        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "director_world" / "sync_global_props.py",
+        PACKAGE_ROOT / "freezone" / "presets.py",
+        PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "prop_catalog.py",
+        PACKAGE_ROOT / "utils" / "asset_resolver.py",
+    )
+
+    for model_name in ("SceneMenuItem", "PropMenuItem"):
+        assert f"class {model_name}(" not in legacy_source
+        assert f"class {model_name}(BaseModel):" in owner_source
+        assert f'"{model_name}"' in public_source
+    for function_name in ("build_scene_menu", "build_prop_menu"):
+        assert f"def {function_name}(" not in legacy_source
+        assert f"def {function_name}(" in owner_source
+        assert f'"{function_name}"' in public_source
+    for caller in callers:
+        assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+
+
 def test_asset_world_style_config_has_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     style_models = (

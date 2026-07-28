@@ -1,4 +1,4 @@
-from ai_anime.models import build_prop_menu
+from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.production.public import global_prop_marker_colors
 
 

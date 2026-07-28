@@ -56,10 +56,9 @@ from ai_anime.generators.prompt_builder import (
 from ai_anime.generators.render_identity_guard import render_ai_detection_error
 from ai_anime.models import (
     beat_scene_id,
-    build_prop_menu,
     real_detected_identities,
 )
-from ai_anime.modules.narrative_planning.public import beat_order_value
+from ai_anime.modules.narrative_planning.public import beat_order_value, build_prop_menu
 from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.modules.production.public import global_prop_marker_colors
 from ai_anime.utils.asset_resolver import AssetResolver

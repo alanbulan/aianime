@@ -491,7 +491,7 @@ class AssetResolver:
 
     def _prop_menu_metadata(self, prop_name: str) -> dict[str, Any]:
         norm_name = _normalize_name(prop_name)
-        from ai_anime.models import build_prop_menu
+        from ai_anime.modules.narrative_planning.public import build_prop_menu
 
         for item in build_prop_menu(prop_menu=list(self.prop_menu or [])):
             prop_id = str(_get_attr_or_key(item, "prop_id", "") or "").strip()

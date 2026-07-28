@@ -8,9 +8,9 @@ from typing import Any
 
 from ai_anime.models import (
     NovelProp,
-    build_prop_menu,
     collect_prop_marker_ids_from_beat,
 )
+from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.asset_world.application.dto import CreatePropCommand
 from ai_anime.modules.asset_world.application.ports import PropCatalogRepository
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (

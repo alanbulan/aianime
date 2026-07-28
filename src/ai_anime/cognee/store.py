@@ -35,17 +35,20 @@ from ai_anime.models import (
     NovelCharacter,
     NovelVisualBeat,
     NovelScene,
-    SceneMenuItem,
     NovelProp,
-    PropMenuItem,
-    build_scene_menu,
-    build_prop_menu,
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,
     sync_beat_asset_refs,
 )
-from ai_anime.modules.narrative_planning.public import NovelEpisode, NovelEvent
+from ai_anime.modules.narrative_planning.public import (
+    NovelEpisode,
+    NovelEvent,
+    PropMenuItem,
+    SceneMenuItem,
+    build_prop_menu,
+    build_scene_menu,
+)
 from .config import init_cognee
 
 console = Console()

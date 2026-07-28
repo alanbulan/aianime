@@ -8,6 +8,8 @@ from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
     NovelEpisode,
     NovelEvent,
+    build_prop_menu,
+    build_scene_menu,
     get_episode_details,
     list_episode_summaries,
     update_episode_metadata,
@@ -97,6 +99,40 @@ def test_novel_episode_preserves_asset_menu_migration() -> None:
         "marker_color": "",
     }
     assert episode.identity_default_map == {"秦": "秦_青年"}
+
+
+def test_episode_asset_menus_normalize_aliases_and_deduplicate() -> None:
+    scenes = build_scene_menu(
+        scene_menu=[
+            {"base_id": "宫门", "variant_id": "夜"},
+            {"scene_id": "宫门"},
+        ]
+    )
+    props = build_prop_menu(
+        prop_menu=[
+            {"base_id": "玉佩", "description": "白玉"},
+            {"prop_id": "玉佩", "description": "重复"},
+        ]
+    )
+
+    assert [item.model_dump() for item in scenes] == [
+        {
+            "scene_id": "宫门",
+            "base_scene_id": "",
+            "variant_id": "夜",
+            "time_of_day": "",
+        }
+    ]
+    assert [item.model_dump() for item in props] == [
+        {
+            "prop_id": "玉佩",
+            "prop_type": "object",
+            "visual_prompt": "白玉",
+            "description": "白玉",
+            "owner_identity_id": "",
+            "marker_color": "",
+        }
+    ]
 
 
 def test_projects_episode_list_and_details() -> None:

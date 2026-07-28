@@ -23,6 +23,10 @@ from ai_anime.modules.narrative_planning.application.episodes import (
 from ai_anime.modules.narrative_planning.application.episode_planning_models import (
     NovelEpisode,
     NovelEvent,
+    PropMenuItem,
+    SceneMenuItem,
+    build_prop_menu,
+    build_scene_menu,
 )
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralBeatMetaOutput,
@@ -384,7 +388,9 @@ __all__ = [
     "NarrationScript",
     "NovelEpisode",
     "NovelEvent",
+    "PropMenuItem",
     "SceneBlock",
+    "SceneMenuItem",
     "SavedEpisodeContent",
     "SavedEpisodeScript",
     "RawEpisodeContentMissing",
@@ -395,6 +401,8 @@ __all__ = [
     "ScriptStoreSyncFailed",
     "VisualBeat",
     "beat_order_value",
+    "build_prop_menu",
+    "build_scene_menu",
     "choose_manual_sketch_mode_key",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",

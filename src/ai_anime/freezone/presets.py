@@ -25,9 +25,9 @@ from ai_anime.models import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
     NovelScene,
-    build_prop_menu,
     build_scene_effective_prompt,
 )
+from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SKILL_SCHEMA_VERSION,
