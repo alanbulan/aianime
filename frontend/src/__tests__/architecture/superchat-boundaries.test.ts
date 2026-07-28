@@ -316,6 +316,47 @@ describe("SuperChat boundaries", () => {
     expect(panel).not.toContain("uploadedIngestFiles");
   });
 
+  it("keeps timeline projection and interaction in a dedicated view", () => {
+    const timeline = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-timeline.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-timeline.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-timeline";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-timeline";',
+    );
+    for (const ownedOperation of [
+      "type TimelineTurn =",
+      "function buildTimelineTurns(",
+      "export function ChatTimeline(",
+      "const updateScrollEdges = useCallback(",
+      "const scrollToTurn = useCallback(",
+      "const revealTimelineContext = useCallback(",
+    ]) {
+      expect(timeline).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(timeline).toContain(
+      'from "@/features/superchat/timeline-scroll";',
+    );
+    expect(timeline).toContain('import { createPortal } from "react-dom";');
+    expect(panel).not.toContain("calculateTimelineContextDelta");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),
