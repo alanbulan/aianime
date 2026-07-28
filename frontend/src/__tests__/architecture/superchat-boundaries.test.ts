@@ -586,6 +586,37 @@ describe("SuperChat boundaries", () => {
     expect(controls).not.toContain("ReturnType<");
   });
 
+  it("keeps approval presentation outside the SuperChat panel", () => {
+    const approvalCard = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/approval-card.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/approval-card.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/approval-card";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/approval-card";',
+    );
+    expect(approvalCard).toContain("export function ApprovalCard(");
+    expect(panel).not.toContain("function ApprovalCard(");
+    expect(approvalCard).toContain(
+      'import type { ApprovalRequest } from "@/features/superchat/types";',
+    );
+    expect(approvalCard).not.toContain("useSuperChat");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

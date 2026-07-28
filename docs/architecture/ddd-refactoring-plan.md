@@ -1851,6 +1851,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百九十五批已拆分 SuperChat 顶部控制视图：新增唯一 `features/superchat/chat-control-bar.tsx`，通过显式 `ChatControlBarModel` 窄合同集中持有连接状态投影、relay 实例与模型选择、搜索/工具事件/结构化源切换，以及 desktop header portal 装配；合同仅声明实际读取的共享 DTO、状态和动作，继续允许面板直接传入现有 `chat` 对象，但不导入 `useSuperChat` 或使用其 `ReturnType`。`superchat-panel.tsx` 删除两个控件组件及 portal、Braces/ListTree 直接依赖，文件由 1,336 行降至 1,194 行，不保留旧实现或 controller 反向依赖。新增 4 项视图特征测试覆盖状态/选项、选择动作、设置切换、compact 模式和 portal，并扩展架构门禁锁定窄合同；SuperChat 特征测试 25 个文件 146 项、SuperChat 门禁 21 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百九十六批已拆分 SuperChat 审批卡视图：新增唯一 `features/superchat/approval-card.tsx`，通过 `ApprovalRequest` 与三态决策回调集中呈现审批类型、到期秒数、说明、命令、工作目录、主机、安全级别和 allow-once/allow-always/deny 操作；`superchat-panel.tsx` 删除完整审批卡及 ShieldAlert/ApprovalRequest 直接依赖，仅负责把 controller approval 与 resolve 动作装配给视图，文件由 1,194 行降至 1,138 行，不保留旧组件或第二套决策映射。新增 3 项视图特征测试覆盖完整上下文与向上取整倒计时、三类决策和可选字段隐藏，并扩展架构门禁禁止审批呈现回流面板；SuperChat 特征测试 26 个文件 149 项、SuperChat 门禁 22 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
