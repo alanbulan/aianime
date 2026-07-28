@@ -39,7 +39,6 @@ from ai_anime.modules.ai_assistant.public import (
     get_chat_history,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
-    json_loads_with_trailing_repair,
     merge_stream_text,
     normalize_json_render_reply,
     reingest_confirmation_reply,
@@ -48,8 +47,8 @@ from ai_anime.modules.ai_assistant.public import (
     split_trace_contents,
     strip_replayed_chat_response,
     strip_streamed_assistant_replay,
+    tool_chat_error,
 )
-from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
 
 logger = logging.getLogger("ai_anime.chat.service")
@@ -241,109 +240,6 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
-
-
-def _extract_tool_chat_error(value: Any) -> str | None:
-    def normalize_error_text(text: object) -> str:
-        raw = redact_secrets(str(text or "")).strip()
-        raw = re.sub(r"\s+", " ", raw)
-        raw = re.sub(
-            r"provider_response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+",
-            "provider_response_id=[redacted]",
-            raw,
-            flags=re.IGNORECASE,
-        )
-        raw = re.sub(
-            r"response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+",
-            "response_id=[redacted]",
-            raw,
-            flags=re.IGNORECASE,
-        )
-        if len(raw) > 1200:
-            raw = raw[:1200].rstrip() + "..."
-        return raw
-
-    def business_chat_error_from_text(text: object) -> str | None:
-        raw = normalize_error_text(text)
-        if not raw:
-            return None
-        if "Render 模式需要草图" in raw or "未生成可用图片" in raw:
-            return (
-                "Render 任务没有生成可用图片：当前缺少必要草图前置。"
-                "请先在「资产库」生成或确认对应 Beat 的草图后，再重新生成 Render。"
-                f"\n\n错误原因：{raw[:1200]}"
-            )
-        return None
-
-    def generic_chat_error_from_text(text: object) -> str | None:
-        raw = normalize_error_text(text)
-        if not raw:
-            return None
-        lowered = raw.casefold()
-        if "provider_response_id" in lowered and "content_filter" in lowered:
-            return None
-        return f"任务执行失败：{raw}"
-
-    def parse_jsonish(text: str) -> Any | None:
-        raw = str(text or "").strip()
-        if not raw:
-            return None
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            pass
-        try:
-            return json_loads_with_trailing_repair(raw)
-        except ValueError:
-            return None
-
-    def visit(node: Any) -> str | None:
-        if isinstance(node, str):
-            decoded = parse_jsonish(node)
-            if decoded is not None:
-                return visit(decoded)
-            return None
-        if isinstance(node, list):
-            for child in node:
-                found = visit(child)
-                if found:
-                    return found
-            return None
-        if not isinstance(node, dict):
-            return None
-
-        chat_error = node.get("chat_error")
-        if isinstance(chat_error, str) and chat_error.strip():
-            return chat_error.strip()
-
-        for key in ("error", "detail", "message"):
-            mapped = business_chat_error_from_text(node.get(key))
-            if mapped:
-                return mapped
-
-        status = str(node.get("status") or "").strip().lower()
-        failed_status = status in {"failed", "error", "cancelled", "canceled"}
-        ok_false = node.get("ok") is False
-        if failed_status or ok_false:
-            for key in ("error", "detail", "message"):
-                generic = generic_chat_error_from_text(node.get(key))
-                if generic:
-                    return generic
-            if failed_status:
-                return f"任务执行失败：当前状态为 {status}。"
-            return "任务执行失败：接口返回 ok=false，但没有提供具体错误原因。"
-
-        for key in ("result", "message", "content", "data", "output"):
-            found = visit(node.get(key))
-            if found:
-                return found
-        for child in node.values():
-            found = visit(child)
-            if found:
-                return found
-        return None
-
-    return visit(value)
 
 
 _DISPLAY_TOOL_NAMES = {
@@ -1895,19 +1791,24 @@ async def _stream_assistant_reply_hermes(
                 continue
             if event.type == "tool_update":
                 if event.raw is not None:
-                    tool_chat_error = _extract_tool_chat_error(event.raw)
-                    if tool_chat_error and tool_chat_error not in seen_tool_chat_errors:
-                        seen_tool_chat_errors.add(tool_chat_error)
+                    mapped_chat_error = tool_chat_error(event.raw)
+                    if (
+                        mapped_chat_error
+                        and mapped_chat_error not in seen_tool_chat_errors
+                    ):
+                        seen_tool_chat_errors.add(mapped_chat_error)
                         assistant_text = merge_stream_text(
                             assistant_text,
                             ("\n\n" if assistant_text.strip() else "")
-                            + tool_chat_error,
+                            + mapped_chat_error,
                         )
                         await _emit_chat_event_best_effort(
                             on_event,
                             {
                                 "type": "assistant_delta",
-                                "text": redact_local_filesystem_paths(tool_chat_error),
+                                "text": redact_local_filesystem_paths(
+                                    mapped_chat_error
+                                ),
                             },
                         )
                     tool_ui_specs.extend(extract_tool_ui_specs(event.raw))

@@ -484,6 +484,39 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     assert "chat_service._append_tool_ui_specs" not in service_test_source
 
 
+def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "tool_errors.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported == "os"
+        or imported == "sqlite3"
+        or imported == "fastapi"
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "def tool_chat_error(" in domain_source
+    assert "redact_secrets" in domain_source
+    assert "tool_chat_error" in public_source
+    assert "tool_chat_error(event.raw)" in service_source
+    for legacy_implementation in (
+        "def _extract_tool_chat_error(",
+        "redact_secrets",
+        "json_loads_with_trailing_repair",
+    ):
+        assert legacy_implementation not in service_source
+    assert '"json_loads_with_trailing_repair"' not in public_source
+    assert "chat_service._extract_tool_chat_error" not in service_test_source
+
+
 def test_ai_assistant_owns_scoped_chat_history() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     scope = module / "domain" / "scope.py"

@@ -1755,6 +1755,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十七批已将 Chat JSON Render/UI spec 展示规则收口至 AI Assistant：domain 新增唯一 `chat_presentation.py`，持有尾部 JSON 修复、canonical spec 校验、旧组件 props 归一、内嵌/围栏 spec 解析、工具结果递归提取、同类媒体合并、重复消除、草图意图首帧过滤、内部渲染话术清理和本地路径脱敏；application 新增 `ChatPresentation`，经 `JsonRenderErrors` port 把校验错误交给唯一 `FileJsonRenderErrors` infrastructure adapter，composition/public 提供稳定生产入口。`service.py` 的 24 个旧函数/常量和 `JR_ERROR_LOG` 文件写入直接删除，不保留 facade、私有别名或第二套规则，仅调用 public API，文件由 2,831 行降至 2,195 行；19 项展示特征测试迁入模块测试，工具错误、后端回退、项目媒体和流式编排测试仍留在原职责文件。`JR_ERROR_LOG` 覆盖、默认仓库 `jr_error.log`、UTC ISO 时间、12,000 字符截断、I/O 失败静默、校验失败文案、canonical JSON 缩进、spec 合并顺序、重复策略、草图过滤不修改输入及所有流式调用时序均保持不变。Chat presentation 21 项、AI Assistant 模块 132 项、剩余 Chat service 23 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 113 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百四十八批已将工具失败到聊天可读错误的映射收口至 AI Assistant domain：新增唯一纯 `tool_errors.py`，递归遍历 dict/list/JSONish 字符串，优先返回显式 `chat_error`，识别 Render 缺少草图前置、failed/error/cancelled/canceled 与 `ok=false`，并复用现有纯 secret redaction 对 token、secret、provider response ID 和 response ID 脱敏；通用错误保持 1,200 字符限制和原中文文案。`service.py` 原嵌套实现及 `redact_secrets`/JSON 修复依赖直接删除，仅在 Hermes tool update 调用 public `tool_chat_error`，局部结果显式命名为 `mapped_chat_error`；上一批为该旧实现临时暴露的 `json_loads_with_trailing_repair` 同时从 domain package/public API 收回，领域模块之间直接复用，不留兼容入口或第二套映射。5 项特征测试迁入模块测试，`service.py` 由 2,195 行降至 2,096 行。Tool error 5 项、AI Assistant 模块 137 项、剩余 Chat service 18 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 114 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

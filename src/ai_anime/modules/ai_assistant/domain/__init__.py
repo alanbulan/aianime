@@ -17,7 +17,6 @@ from ai_anime.modules.ai_assistant.domain.chat_text import (
 from ai_anime.modules.ai_assistant.domain.chat_presentation import (
     dedupe_tool_ui_specs,
     filter_tool_ui_specs_for_prompt,
-    json_loads_with_trailing_repair,
     redact_local_filesystem_paths,
 )
 from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
@@ -29,6 +28,7 @@ from ai_anime.modules.ai_assistant.domain.turn_guidance import (
     reingest_confirmation_reply,
     script_creation_guidance_prompt,
 )
+from ai_anime.modules.ai_assistant.domain.tool_errors import tool_chat_error
 
 __all__ = [
     "ChatScope",
@@ -38,7 +38,6 @@ __all__ = [
     "dedupe_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "is_hidden_chat_tool_event",
-    "json_loads_with_trailing_repair",
     "merge_stream_text",
     "message_content",
     "reingest_confirmation_reply",
@@ -52,4 +51,5 @@ __all__ = [
     "strip_streamed_assistant_replay",
     "text_with_attachment_context",
     "tool_display_payload",
+    "tool_chat_error",
 ]

@@ -16,7 +16,6 @@ from ai_anime.modules.ai_assistant.domain import (
     dedupe_tool_ui_specs,
     filter_tool_ui_specs_for_prompt,
     is_hidden_chat_tool_event,
-    json_loads_with_trailing_repair,
     merge_stream_text,
     message_content,
     reingest_confirmation_reply,
@@ -29,6 +28,7 @@ from ai_anime.modules.ai_assistant.domain import (
     strip_stored_assistant_replay,
     strip_streamed_assistant_replay,
     text_with_attachment_context,
+    tool_chat_error,
     tool_display_payload,
 )
 
@@ -134,7 +134,6 @@ __all__ = [
     "get_chat_history",
     "get_chat_run_locks",
     "is_hidden_chat_tool_event",
-    "json_loads_with_trailing_repair",
     "merge_stream_text",
     "message_content",
     "normalize_json_render_reply",
@@ -148,5 +147,6 @@ __all__ = [
     "strip_stored_assistant_replay",
     "strip_streamed_assistant_replay",
     "text_with_attachment_context",
+    "tool_chat_error",
     "tool_display_payload",
 ]
