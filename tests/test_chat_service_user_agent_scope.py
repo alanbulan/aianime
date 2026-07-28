@@ -418,6 +418,10 @@ def test_codex_backend_validates_explicit_binary(monkeypatch, tmp_path):
     assert chat_service.is_codex_backend_available() is False
 
 
+def test_pid_liveness_probe_keeps_current_process_alive():
+    assert chat_service._pid_is_alive(os.getpid()) is True
+
+
 def test_chat_run_lock_is_user_scoped(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
