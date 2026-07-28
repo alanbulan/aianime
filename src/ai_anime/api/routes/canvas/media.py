@@ -5,8 +5,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_media_schemas import (
+    FreezoneThreeDViewerScreenshotRequest,
+)
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import FreezoneThreeDViewerScreenshotRequest
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasScreenshotTooLarge,
     InvalidCreativeCanvasPngScreenshot,

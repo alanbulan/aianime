@@ -160,6 +160,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/canvas/assets.py",
             ("CreateIdentityAssetRequest",),
         ),
+        (
+            "canvas_media_schemas.py",
+            "routes/canvas/media.py",
+            ("FreezoneThreeDViewerScreenshotRequest",),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

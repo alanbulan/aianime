@@ -455,14 +455,6 @@ class FreezoneImageTo3GSRequest(BaseModel):
     )
 
 
-class FreezoneThreeDViewerScreenshotRequest(BaseModel):
-    """保存 Freezone 内置 3D viewer 的普通截图。"""
-
-    data_url: str = Field(description="canvas.toDataURL('image/png') 得到的 data URL")
-    node_id: Optional[str] = Field(default=None, description="来源 3D 世界节点 id")
-    label: Optional[str] = Field(default=None, description="可选显示名")
-
-
 class PanoSphereCorrection(BaseModel):
     roll: float = 0.0
     pitch: float = 0.0
