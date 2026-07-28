@@ -1,26 +1,17 @@
 // Copyright (c) 2026 AI anime
 import {
   ArrowDown,
-  ArrowUp,
-  File as FileIcon,
-  Image,
-  Mic,
-  MicOff,
-  Plus,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
-import { ComposerWaitingStatus } from "@/features/superchat/composer-waiting-status";
 import { ChatTimeline } from "@/features/superchat/chat-timeline";
 import {
   DotsIndicator,
@@ -42,7 +33,7 @@ import { useChatQueueController } from "@/features/superchat/use-chat-queue-cont
 import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
 import { useComposerAttachmentsController } from "@/features/superchat/use-composer-attachments-controller";
-import { QueuedMessagesPanel } from "@/features/superchat/queued-messages-panel";
+import { ChatComposer } from "@/features/superchat/chat-composer";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -219,27 +210,6 @@ export function SuperChatPanel({
       if (!sent) return;
       setDraft("");
       clearAttachments();
-    });
-  };
-
-  const handleComposerKeyDown = (event: ReactKeyboardEvent) => {
-    if (event.key !== "Enter" || event.shiftKey) return;
-    if (event.defaultPrevented) return;
-    const target = event.target as HTMLElement | null;
-    if (
-      target &&
-      target !== draftInputRef.current &&
-      (target.tagName === "BUTTON" || target.tagName === "INPUT" || target.getAttribute("role") === "button")
-    ) {
-      return;
-    }
-    event.preventDefault();
-    submit();
-  };
-
-  const restoreDraftFocus = () => {
-    window.requestAnimationFrame(() => {
-      draftInputRef.current?.focus({ preventScroll: true });
     });
   };
 
@@ -424,194 +394,41 @@ export function SuperChatPanel({
           )}
         </div>
 
-        <div className={cn("sticky bottom-0 z-40 shrink-0 bg-transparent p-3", isFreezoneLayout && "px-4 pb-4 pt-1")}>
-          <div className={cn("relative mx-auto mb-2.5 h-7 w-full max-w-[760px]", isFreezoneLayout && "max-w-none")}>
-            <ComposerWaitingStatus
-              label={t("aiAssistant.waitingResponse")}
-              visible={showWaitingIndicator}
-            />
-          </div>
-          <div
-            ref={composerShellRef}
-            className={cn(
-              "relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
-              dragFileState === "valid" && "border-primary/70 bg-primary/5",
-              dragFileState === "invalid" && "border-destructive/80 bg-destructive/10",
-              isFreezoneLayout && "max-w-none rounded-xl bg-card",
-            )}
-            onDragEnter={handleComposerDragEnter}
-            onDragOver={handleComposerDragOver}
-            onDragLeave={handleComposerDragLeave}
-            onDrop={(event) => {
-              if (handleComposerDrop(event)) restoreDraftFocus();
-            }}
-            onKeyDown={handleComposerKeyDown}
-          >
-            {ENABLE_SUPERCHAT_FILE_UPLOAD && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                accept=".txt,.md,.doc,.docx"
-                onChange={(event) => {
-                  const files = event.target.files;
-                  if (!files) return;
-                  addFiles(files);
-                  restoreDraftFocus();
-                }}
-              />
-            )}
-            {ENABLE_SUPERCHAT_FILE_UPLOAD && dragFileState && (
-              <div
-                className={cn(
-                  "pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/72 text-sm font-medium backdrop-blur-sm",
-                  dragFileState === "invalid" ? "text-destructive" : "text-foreground",
-                )}
-              >
-                {dragFileState === "invalid" ? t("aiAssistant.unsupportedDropFiles") : t("aiAssistant.dropFiles")}
-              </div>
-            )}
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 px-4 pt-3">
-                {attachments.map((attachment) => (
-                  <span
-                    key={attachment.id}
-                    className="inline-flex max-w-48 items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-xs"
-                  >
-                    {attachment.mimeType?.startsWith("image/") ? <Image className="size-3.5" /> : <FileIcon className="size-3.5" />}
-                    <span className="truncate">{attachment.fileName}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(attachment.id)}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label={t("aiAssistant.removeAttachment")}
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <QueuedMessagesPanel
-              messages={queuedMessages}
-              selectedMessageId={selectedQueuedMessageId}
-              onRemove={removeQueuedMessage}
-              onSelect={selectQueuedMessage}
-            />
-            <Textarea
-              ref={draftInputRef}
-              value={draft}
-              onChange={(event) => {
-                resetHistorySelection();
-                setDraft(event.target.value);
-              }}
-              onFocus={() => setComposerInputFocused(true)}
-              onBlur={() => setComposerInputFocused(false)}
-              onKeyDown={(event) => {
-                if (
-                  queuedMessages.length > 0
-                  && draft.trim().length === 0
-                  && (event.key === "ArrowUp" || event.key === "ArrowDown")
-                ) {
-                  event.preventDefault();
-                  selectQueuedMessageByOffset(event.key === "ArrowUp" ? -1 : 1);
-                  return;
-                }
-                if (
-                  event.key === "ArrowUp"
-                  && queuedMessages.length === 0
-                  && (draft.trim().length === 0 || selectedHistoryMessageIndex !== null)
-                ) {
-                  event.preventDefault();
-                  selectHistoryMessage("older");
-                  return;
-                }
-                if (
-                  event.key === "ArrowDown"
-                  && queuedMessages.length === 0
-                  && selectedHistoryMessageIndex !== null
-                ) {
-                  event.preventDefault();
-                  selectHistoryMessage("newer");
-                  return;
-                }
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-              dir="auto"
-              placeholder={t("aiAssistant.placeholder")}
-              className={cn(
-                "max-h-[220px] min-h-14 resize-none border-0 bg-transparent px-5 py-4 text-base shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0 dark:bg-transparent",
-                isFreezoneLayout && "min-h-11 px-3.5 py-3 text-sm",
-              )}
-              rows={1}
-            />
-            <div className="flex items-center justify-between px-3 py-2">
-              <div className="flex items-center gap-1">
-                {ENABLE_SUPERCHAT_FILE_UPLOAD && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    disabled={!chat.connected}
-                    onClick={openFilePicker}
-                    aria-label={t("aiAssistant.attach")}
-                    title={t("aiAssistant.attach")}
-                  >
-                    <Plus className="size-4" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex shrink-0 items-end gap-1.5">
-                {recording && (
-                  <div className="mr-1 flex items-center gap-1.5 text-sm text-primary">
-                    <span className="size-2 animate-pulse rounded-full bg-primary" />
-                    <span>{t("aiAssistant.listening")}</span>
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground", recording && "text-primary")}
-                  disabled={!chat.connected}
-                  onClick={toggleSpeech}
-                  aria-label={recording ? t("aiAssistant.stopVoice") : t("aiAssistant.voiceInput")}
-                  title={recording ? t("aiAssistant.stopVoice") : t("aiAssistant.voiceInput")}
-                >
-                  {recording ? <MicOff className="size-4.5" /> : <Mic className="size-4.5" />}
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  className={cn(
-                    "size-8 rounded-full shadow-none disabled:bg-muted disabled:text-muted-foreground/45",
-                    chat.busy
-                      ? "bg-muted text-foreground hover:bg-accent"
-                      : "bg-foreground text-background hover:bg-foreground/90",
-                  )}
-                  disabled={chat.busy ? false : !canSend}
-                  onClick={chat.busy ? chat.abort : submit}
-                  aria-label={chat.busy ? t("aiAssistant.stop") : t("aiAssistant.send")}
-                  title={chat.busy ? t("aiAssistant.stop") : t("aiAssistant.send")}
-                >
-                  {chat.busy ? (
-                    <span className="size-2.5 rounded-[2.5px] bg-current" aria-hidden />
-                  ) : (
-                    <ArrowUp className="size-[18px]" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-          {!isFreezoneLayout && (
-            <p className="mx-auto mt-[13px] w-full max-w-[680px] text-center text-[11px] leading-4 text-muted-foreground/80">
-              {t("aiAssistant.disclaimer")}
-            </p>
-          )}
-        </div>
+        <ChatComposer
+          attachments={attachments}
+          busy={chat.busy}
+          canSend={canSend}
+          connected={chat.connected}
+          draft={draft}
+          draftInputRef={draftInputRef}
+          dragFileState={dragFileState}
+          fileInputRef={fileInputRef}
+          fileUploadEnabled={ENABLE_SUPERCHAT_FILE_UPLOAD}
+          isFreezoneLayout={isFreezoneLayout}
+          queuedMessages={queuedMessages}
+          recording={recording}
+          selectedHistoryMessageIndex={selectedHistoryMessageIndex}
+          selectedQueuedMessageId={selectedQueuedMessageId}
+          shellRef={composerShellRef}
+          showWaitingIndicator={showWaitingIndicator}
+          onAbort={chat.abort}
+          onAddFiles={addFiles}
+          onAttachmentRemove={removeAttachment}
+          onDragEnter={handleComposerDragEnter}
+          onDragLeave={handleComposerDragLeave}
+          onDragOver={handleComposerDragOver}
+          onDraftChange={setDraft}
+          onDraftFocusChange={setComposerInputFocused}
+          onDropFiles={handleComposerDrop}
+          onHistorySelect={selectHistoryMessage}
+          onOpenFilePicker={openFilePicker}
+          onQueueOffset={selectQueuedMessageByOffset}
+          onQueueRemove={removeQueuedMessage}
+          onQueueSelect={selectQueuedMessage}
+          onResetHistorySelection={resetHistorySelection}
+          onSubmit={submit}
+          onToggleSpeech={toggleSpeech}
+        />
       </section>
       <MessageDetailPanel
         message={detailMessage}

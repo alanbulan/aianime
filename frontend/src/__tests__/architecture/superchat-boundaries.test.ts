@@ -989,6 +989,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const composer = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-composer.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -997,7 +1001,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(composer).toContain(
+      'from "@/features/superchat/queued-messages-panel";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/queued-messages-panel";',
     );
     expect(tests).toContain(
@@ -1069,6 +1076,54 @@ describe("SuperChat boundaries", () => {
       'from "@/features/superchat/ingest-automation-domain";',
     );
     expect(controller).not.toContain("useSuperChat");
+  });
+
+  it("keeps complete Composer presentation outside the SuperChat panel", () => {
+    const view = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-composer.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/chat-composer.test.tsx"),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-composer";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-composer";',
+    );
+    expect(view).toContain("type ChatComposerProps =");
+    expect(view).toContain("export function ChatComposer(");
+    for (const ownedPresentation of [
+      "<ComposerWaitingStatus",
+      "<QueuedMessagesPanel",
+      "<Textarea",
+      "const handleComposerKeyDown =",
+      't("aiAssistant.removeAttachment")',
+      't("aiAssistant.listening")',
+      't("aiAssistant.disclaimer")',
+      'aria-label={busy ? t("aiAssistant.stop") : t("aiAssistant.send")}',
+    ]) {
+      expect(view).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(panel).not.toContain('from "@/components/ui/textarea";');
+    expect(panel).not.toContain(
+      'from "@/features/superchat/composer-waiting-status";',
+    );
+    expect(panel).not.toContain(
+      'from "@/features/superchat/queued-messages-panel";',
+    );
+    expect(view).not.toContain("useSuperChat");
+    expect(view).not.toContain("useChatQueueController");
+    expect(view).not.toContain("useComposerAttachmentsController");
+    expect(view).not.toContain("ReturnType<");
   });
 
   it("keeps spec media modal presentation outside the SuperChat panel", () => {

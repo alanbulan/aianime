@@ -1873,6 +1873,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零六批已拆分 SuperChat Composer 附件与拖拽控制器：新增唯一 `features/superchat/use-composer-attachments-controller.ts`，复用既有 ingest domain 文件规则，集中持有附件数组、文件 input ref、FileReader data URL 投影、附件 ID/类型/元数据、清空与删除命令、拖拽深度、合法性状态、dropEffect 和四类拖拽事件；禁用上传时继续不消费拖拽事件。`superchat-panel.tsx` 删除附件/拖拽 state 与 ref、FileReader、规则依赖和全部拖拽算法，只装配控制器模型、提交后清空命令及文件处理后的输入框聚焦，文件由 704 行降至 642 行，不保留第二套附件状态。新增 3 项 hook 特征测试覆盖允许文件读取与拒绝过滤、附件投影/删除/清空、禁用门禁、嵌套拖拽深度、合法/非法 dropEffect 和接受 drop，并同步更新原 ingest domain 门禁指向新的直接消费者；SuperChat 特征测试 36 个文件 184 项、SuperChat 门禁 32 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零七批已拆分完整 SuperChat Composer 视图：新增唯一 `features/superchat/chat-composer.tsx`，通过显式窄合同组合现有 waiting、queue、history、attachments 与 speech 能力，集中呈现拖拽状态、隐藏文件 input、附件 chip、队列面板、textarea、焦点状态、队列/历史/Enter 键盘优先级、语音和发送/中止按钮及免责声明；视图不导入 `useSuperChat` 或任一 controller，也不使用 `ReturnType` 合同。`superchat-panel.tsx` 删除完整 Composer JSX、键盘包装逻辑与文件后聚焦逻辑，只把各 controller 的模型和命令装配给视图，文件由 642 行降至 459 行，不再直接依赖 Textarea、waiting 或 queue 子视图。新增 4 项视图特征测试覆盖附件呈现与删除、队列/历史/Enter 键盘分派、文件与拖拽动作及焦点恢复、语音/发送/中止和焦点状态转发，并同步更新队列视图门禁指向新的直接消费者；SuperChat 特征测试 37 个文件 188 项、SuperChat 门禁 33 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
