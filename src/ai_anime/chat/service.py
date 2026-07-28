@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,6 +33,7 @@ from ai_anime.modules.ai_assistant.public import (
     get_agent_thread_sessions,
     get_agent_tool_configuration,
     get_agent_workspace,
+    get_chat_history,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
     merge_stream_text,
@@ -43,7 +43,6 @@ from ai_anime.modules.ai_assistant.public import (
     strip_replayed_chat_response,
     strip_streamed_assistant_replay,
 )
-from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
 
@@ -52,6 +51,7 @@ agent_backend = get_agent_backend()
 agent_thread_sessions = get_agent_thread_sessions()
 agent_tool_configuration = get_agent_tool_configuration()
 agent_workspace = get_agent_workspace()
+chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
 
 _MEDIA_EXTENSIONS = {
@@ -178,104 +178,8 @@ def _project_state_dir(username: str, project: str) -> Path:
     return base_dir
 
 
-def _legacy_chat_db_path(
-    username: str,
-    project: str,
-    project_dir: str | Path | None = None,
-) -> Path:
-    base_dir = (
-        Path(project_dir)
-        if project_dir is not None
-        else _project_dir(username, project)
-    )
-    return base_dir / ".chat" / "chat.db"
-
-
-def _migrate_legacy_chat_db(
-    username: str,
-    project: str,
-    new_db_path: Path,
-    project_dir: str | Path | None = None,
-    *,
-    create_parent: bool = True,
-) -> None:
-    legacy_db_path = _legacy_chat_db_path(username, project, project_dir)
-    if new_db_path.exists() or not legacy_db_path.exists():
-        return
-    if not create_parent and not new_db_path.parent.exists():
-        return
-
-    if create_parent:
-        new_db_path.parent.mkdir(parents=True, exist_ok=True)
-    for suffix in ("", "-wal", "-shm"):
-        src = Path(f"{legacy_db_path}{suffix}")
-        if not src.exists():
-            continue
-        dst = Path(f"{new_db_path}{suffix}")
-        if dst.exists():
-            continue
-        shutil.move(str(src), str(dst))
-
-    legacy_dir = legacy_db_path.parent
-    try:
-        if legacy_dir.exists() and not any(legacy_dir.iterdir()):
-            legacy_dir.rmdir()
-    except OSError:
-        pass
-
-
-def _chat_db_path(
-    username: str,
-    project: str,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> Path:
-    if project_state_dir is not None:
-        db_path = Path(project_state_dir) / "chat.db"
-        _migrate_legacy_chat_db(
-            username,
-            project,
-            db_path,
-            project_dir,
-            create_parent=True,
-        )
-        return db_path
-    db_path = _project_state_dir(username, project) / "chat.db"
-    _migrate_legacy_chat_db(username, project, db_path, project_dir, create_parent=True)
-    return db_path
-
-
 def _chat_input_history_path(username: str, project: str) -> Path:
     return _project_state_dir(username, project) / "chat_input_history.json"
-
-
-def _connect(db_path: Path) -> sqlite3.Connection:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    configure_sqlite_connection(conn)
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chat_settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chat_messages (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          role TEXT NOT NULL,
-          content TEXT NOT NULL,
-          media_json TEXT NOT NULL DEFAULT '[]',
-          created_at TEXT NOT NULL
-        )
-        """
-    )
-    conn.commit()
-    return conn
 
 
 def load_chat_input_history(username: str, project: str) -> list[str]:
@@ -339,31 +243,6 @@ def _set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
         (key, value, _now_iso()),
     )
     conn.commit()
-
-
-def _append_message(
-    conn: sqlite3.Connection,
-    role: str,
-    content: str,
-    media: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    media = media or []
-    created_at_iso = _now_iso()
-    cursor = conn.execute(
-        """
-        INSERT INTO chat_messages(role, content, media_json, created_at)
-        VALUES (?, ?, ?, ?)
-        """,
-        (role, content, json.dumps(media, ensure_ascii=False), created_at_iso),
-    )
-    conn.commit()
-    return {
-        "id": int(cursor.lastrowid),
-        "role": role,
-        "content": content,
-        "media": media,
-        "created_at": created_at_iso,
-    }
 
 
 async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
@@ -1874,39 +1753,12 @@ def _trace_history_contents(
     project_dir: str | Path | None = None,
     project_state_dir: str | Path | None = None,
 ) -> list[str]:
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        rows = conn.execute(
-            """
-            SELECT content
-              FROM chat_messages
-             WHERE role = 'trace'
-             ORDER BY id ASC
-            """
-        ).fetchall()
-    finally:
-        conn.close()
-    return [str(row["content"] or "") for row in rows]
-
-
-def _replace_trace_messages(
-    conn: sqlite3.Connection, messages: list[dict[str, Any]]
-) -> None:
-    conn.execute("DELETE FROM chat_messages WHERE role = 'trace'")
-    for message in messages:
-        conn.execute(
-            """
-            INSERT INTO chat_messages(role, content, media_json, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                str(message.get("role") or "assistant"),
-                str(message.get("content") or ""),
-                json.dumps(message.get("media") or [], ensure_ascii=False),
-                str(message.get("created_at") or _now_iso()),
-            ),
-        )
-    conn.commit()
+    return chat_history.list_project_trace_contents(
+        username,
+        project,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def _extract_codex_user_message_text(item: Any) -> str:
@@ -2052,11 +1904,13 @@ def _sync_codex_history_cache(
     ]
     if not history:
         return
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        _replace_trace_messages(conn, history)
-    finally:
-        conn.close()
+    chat_history.replace_project_trace_messages(
+        username,
+        project,
+        history,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def list_messages(
@@ -2067,55 +1921,42 @@ def list_messages(
     project_state_dir: str | Path | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        rows = conn.execute(
-            """
-            SELECT id, role, content, media_json, created_at
-              FROM (
-                    SELECT id, role, content, media_json, created_at
-                      FROM chat_messages
-                     WHERE role <> 'trace'
-                     ORDER BY id DESC
-                     LIMIT ?
-                   )
-             ORDER BY id ASC
-            """,
-            (max(1, int(limit)),),
-        ).fetchall()
-        messages: list[dict[str, Any]] = []
-        previous_assistants: list[str] = []
-        for row in rows:
-            content = str(row["content"])
-            role = str(row["role"])
-            if role == "assistant":
-                raw_content = content
-                content = strip_streamed_assistant_replay(
-                    content, previous_assistants
-                )
-                previous_assistants.append(raw_content)
-            stored_media = _normalize_media_items(
-                json.loads(row["media_json"] or "[]"),
-                username,
-                project,
-                project_dir=project_dir,
-            )
-            extracted_media = _extract_media(
-                content, username, project, project_dir=project_dir
-            )
-            merged_media = _merge_media_items(stored_media, extracted_media)
-            messages.append(
-                {
-                    "id": int(row["id"]),
-                    "role": role,
-                    "content": content,
-                    "media": _filter_markdown_duplicate_images(content, merged_media),
-                    "created_at": str(row["created_at"]),
-                }
-            )
-        return messages
-    finally:
-        conn.close()
+    stored_messages = chat_history.list_project_messages(
+        username,
+        project,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+        limit=limit,
+    )
+    messages: list[dict[str, Any]] = []
+    previous_assistants: list[str] = []
+    for message in stored_messages:
+        content = str(message["content"])
+        role = str(message["role"])
+        if role == "assistant":
+            raw_content = content
+            content = strip_streamed_assistant_replay(content, previous_assistants)
+            previous_assistants.append(raw_content)
+        stored_media = _normalize_media_items(
+            message.get("media") or [],
+            username,
+            project,
+            project_dir=project_dir,
+        )
+        extracted_media = _extract_media(
+            content, username, project, project_dir=project_dir
+        )
+        merged_media = _merge_media_items(stored_media, extracted_media)
+        messages.append(
+            {
+                "id": int(message["id"]),
+                "role": role,
+                "content": content,
+                "media": _filter_markdown_duplicate_images(content, merged_media),
+                "created_at": str(message["created_at"]),
+            }
+        )
+    return messages
 
 
 def add_user_message(
@@ -2126,11 +1967,14 @@ def add_user_message(
     project_dir: str | Path | None = None,
     project_state_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        return _append_message(conn, "user", content)
-    finally:
-        conn.close()
+    return chat_history.append_project_message(
+        username,
+        project,
+        "user",
+        content,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def add_assistant_message(
@@ -2143,11 +1987,15 @@ def add_assistant_message(
     project_state_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     content = _redact_local_filesystem_paths(content)
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        return _append_message(conn, "assistant", content, media)
-    finally:
-        conn.close()
+    return chat_history.append_project_message(
+        username,
+        project,
+        "assistant",
+        content,
+        media,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def add_trace_message(
@@ -2158,11 +2006,14 @@ def add_trace_message(
     project_dir: str | Path | None = None,
     project_state_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        return _append_message(conn, "trace", content)
-    finally:
-        conn.close()
+    return chat_history.append_project_message(
+        username,
+        project,
+        "trace",
+        content,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def add_trace_messages(
@@ -2173,17 +2024,13 @@ def add_trace_messages(
     project_dir: str | Path | None = None,
     project_state_dir: str | Path | None = None,
 ) -> list[dict[str, Any]]:
-    conn = _connect(_chat_db_path(username, project, project_dir, project_state_dir))
-    try:
-        messages: list[dict[str, Any]] = []
-        for content in contents:
-            normalized = str(content or "").strip()
-            if not normalized:
-                continue
-            messages.append(_append_message(conn, "trace", normalized))
-        return messages
-    finally:
-        conn.close()
+    return chat_history.append_project_trace_messages(
+        username,
+        project,
+        contents,
+        project_dir=project_dir,
+        project_state_dir=project_state_dir,
+    )
 
 
 def _extract_media(

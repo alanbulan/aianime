@@ -43,6 +43,57 @@ class ChatHistory(Protocol):
         limit: int = 50,
     ) -> list[dict[str, Any]]: ...
 
+    def append_project_message(
+        self,
+        username: str,
+        project: str,
+        role: str,
+        content: str,
+        media: list[dict[str, Any]] | None = None,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any]: ...
+
+    def append_project_trace_messages(
+        self,
+        username: str,
+        project: str,
+        contents: list[str],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]: ...
+
+    def list_project_messages(
+        self,
+        username: str,
+        project: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]: ...
+
+    def list_project_trace_contents(
+        self,
+        username: str,
+        project: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> list[str]: ...
+
+    def replace_project_trace_messages(
+        self,
+        username: str,
+        project: str,
+        messages: list[dict[str, Any]],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> None: ...
+
 
 class ChatRunLocks(Protocol):
     def acquire(self, username: str, project: str) -> str: ...

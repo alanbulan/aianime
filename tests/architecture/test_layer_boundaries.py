@@ -440,6 +440,41 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     assert "get_chat_history" in public.read_text(encoding="utf-8")
 
 
+def test_ai_assistant_owns_project_chat_persistence() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports_source = (module / "application" / "ports.py").read_text(encoding="utf-8")
+    history_source = (
+        module / "infrastructure" / "sqlite_chat_history.py"
+    ).read_text(encoding="utf-8")
+    service_source = (PACKAGE_ROOT / "chat" / "service.py").read_text(
+        encoding="utf-8"
+    )
+
+    for operation in (
+        "append_project_message",
+        "append_project_trace_messages",
+        "list_project_messages",
+        "list_project_trace_contents",
+        "replace_project_trace_messages",
+    ):
+        assert f"def {operation}(" in ports_source
+        assert f"def {operation}(" in history_source
+        assert f"chat_history.{operation}(" in service_source
+    for legacy_implementation in (
+        "def _legacy_chat_db_path(",
+        "def _migrate_legacy_chat_db(",
+        "def _chat_db_path(",
+        "def _connect(",
+        "def _append_message(",
+        "def _replace_trace_messages(",
+        "CREATE TABLE IF NOT EXISTS chat_messages",
+        "INSERT INTO chat_messages",
+        "DELETE FROM chat_messages",
+        "FROM chat_messages",
+    ):
+        assert legacy_implementation not in service_source
+
+
 def test_ai_assistant_owns_chat_run_locks() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"

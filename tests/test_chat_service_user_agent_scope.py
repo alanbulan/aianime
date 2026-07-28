@@ -428,72 +428,37 @@ def test_markdown_project_image_filters_normalized_media_item(tmp_path):
     assert media == []
 
 
-def test_project_chat_storage_uses_resolved_project_state_dir(monkeypatch, tmp_path):
+def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-    project_dir = tmp_path / "output" / "admin" / "demo"
-    project_state_dir = tmp_path / "managed-state" / "projects" / "01KS_PROJECT_ID"
-    project_dir.mkdir(parents=True)
-    project_state_dir.mkdir(parents=True)
+    project_dir = tmp_path / "output" / "admin" / "show-1"
+    image = project_dir / "images" / "frame.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"image")
 
-    chat_service.add_user_message(
+    chat_service.add_assistant_message(
         "admin",
-        "01KS_PROJECT_ID",
-        "hello",
+        "show-1",
+        "第一段",
         project_dir=project_dir,
-        project_state_dir=project_state_dir,
     )
-
-    assert (project_state_dir / "chat.db").exists()
-    assert not (tmp_path / "state" / "admin" / "01KS_PROJECT_ID").exists()
-    assert not (tmp_path / "output" / "admin" / "01KS_PROJECT_ID").exists()
-
-
-def test_project_chat_storage_creates_missing_resolved_state_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    project_state_dir = tmp_path / "managed-state" / "missing-project"
-
-    chat_service.add_user_message(
+    chat_service.add_assistant_message(
         "admin",
-        "01KS_PROJECT_ID",
-        "hello",
-        project_state_dir=project_state_dir,
+        "show-1",
+        "第一段第二段\nimages/frame.png",
+        project_dir=project_dir,
     )
 
-    assert (project_state_dir / "chat.db").exists()
-    assert not (tmp_path / "state" / "admin" / "01KS_PROJECT_ID").exists()
-
-
-def test_project_history_hides_trace_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-
-    chat_service.add_user_message("admin", "project-a", "你好")
-    chat_service.add_trace_message(
-        "admin", "project-a", "→ ai_anime_pipeline_status\ncompleted"
-    )
-    chat_service.add_assistant_message("admin", "project-a", "你好！")
-
-    messages = chat_service.list_messages("admin", "project-a")
-
-    assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all(
-        "ai_anime_pipeline_status" not in message["content"] for message in messages
+    messages = chat_service.list_messages(
+        "admin",
+        "show-1",
+        project_dir=project_dir,
     )
 
-
-def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-
-    for index in range(60):
-        chat_service.add_assistant_message("admin", "project-a", f"message-{index:02d}")
-
-    messages = chat_service.list_messages("admin", "project-a")
-
-    assert len(messages) == 50
-    assert messages[0]["content"] == "message-10"
-    assert messages[-1]["content"] == "message-59"
+    assert [message["content"] for message in messages] == [
+        "第一段",
+        "第二段\nimages/frame.png",
+    ]
+    assert [item["path"] for item in messages[-1]["media"]] == ["images/frame.png"]
 
 
 def test_json_render_reply_normalizer_unwraps_fenced_ui_spec():

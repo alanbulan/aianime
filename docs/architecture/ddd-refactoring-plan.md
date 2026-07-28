@@ -1751,6 +1751,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十五批已将页面 Agent session 签发收口至 AI Assistant application：新增唯一 `PageAgentSessions` 应用服务，经 Identity Access public API 签发 token，composition 持有同一进程实例，AI Assistant public 提供稳定异步入口。Hermes 展示回退、Claude stream、Codex stream 共四个调用点全部改经 public API；`service.py` 中六项 scope、24 小时 TTL、Identity Access import 和私有签发函数直接删除，不保留 facade、旧别名或第二套实现。用户名、agent kind、`page-agent:{agent_kind}:{username}` worker ID、project/home scope、可空 project ID、`metadata.source=chat_service`、token value 返回值及 CE 本地认证的签发/更新 scope/撤销/失效语义保持不变。Page agent sessions 3 项、完整 Chat service 45 项、M08 相关合同 10 项及完整后端分层门禁 111 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百四十六批已将项目 Chat 消息持久化收口至 AI Assistant：`ChatHistory` application port 新增明确的项目消息、trace 批量追加/读取/全量替换能力，唯一 `SQLiteChatHistory` infrastructure adapter 统一持有默认与显式项目 state 数据库解析、旧 `output/{username}/{project}/.chat/chat.db` 及 `-wal`/`-shm` 迁移、建表增量迁移和原始记录读写；通用 project scope 连接也复用同一项目路径入口。`service.py` 只保留项目消息的流式 assistant 回放清理、stored/extracted media 合并、静态 URL 归一与 Markdown 重复图片过滤，原项目数据库路径、迁移、连接、消息 SQL、trace SQL 和 append helper 全部删除，不保留 facade、旧别名或第二套持久化。显式 `project_dir`/`project_state_dir`、默认 `state/{username}/{project}/chat.db`、旧库 sidecar、默认最近 50 条与 `max(1, int(limit))`、trace 隐藏、Codex trace 全量替换、项目响应不携带 scoped `attachments`/`metadata` 字段及 `strip_streamed_assistant_replay` 语义均保持不变；原本无生产调用的输入历史和 settings helper 未纳入本批。SQLite adapter 16 项、AI Assistant 模块 111 项、完整 Chat service 42 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 112 项均通过，修改文件 Ruff、Python 编译、适配器格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
