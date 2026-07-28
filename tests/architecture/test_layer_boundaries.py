@@ -5164,6 +5164,35 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
     )
 
 
+def test_asset_world_style_config_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    style_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "style_models.py"
+    )
+    style_catalog = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "style_catalog.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+
+    assert "class StyleConfig(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class StyleConfig(BaseModel):" in style_models.read_text(encoding="utf-8")
+    assert "ai_anime.modules.asset_world.application.style_models" in _imports(
+        style_catalog
+    )
+    assert "ai_anime.modules.asset_world.application.style_models" in _imports(
+        public
+    )
+    assert '"StyleConfig"' in public.read_text(encoding="utf-8")
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

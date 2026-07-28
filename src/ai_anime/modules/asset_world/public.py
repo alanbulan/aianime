@@ -107,6 +107,7 @@ from ai_anime.modules.asset_world.application.styles import (
     StyleCatalogUseCases,
     StylePreviewUseCases,
 )
+from ai_anime.modules.asset_world.application.style_models import StyleConfig
 from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
     ALL_SLOTS,
@@ -394,6 +395,7 @@ __all__ = [
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
+    "StyleConfig",
     "StyleFile",
     "StylePreviewUseCases",
     "StyleRejected",

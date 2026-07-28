@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ai_anime.config import OUTPUT_DIR
-from ai_anime.models import StyleConfig
+from ai_anime.modules.asset_world.application.style_models import StyleConfig
 from ai_anime.project_config import load_project_config_file, update_project_config_file
 
 

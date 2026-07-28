@@ -20,6 +20,7 @@ from ai_anime.modules.asset_world.application.styles import (
     StyleCatalogUseCases,
     StylePreviewUseCases,
 )
+from ai_anime.modules.asset_world.application.style_models import StyleConfig
 
 
 class _Catalog:
@@ -86,6 +87,29 @@ class _UsageMeter:
 
     def clear_llm_usage_context(self):
         self.clear_count += 1
+
+
+def test_style_config_preserves_legacy_runtime_shape() -> None:
+    config = StyleConfig.from_legacy_dict(
+        "film",
+        {
+            "style_instructions": "cinematic",
+            "avoid_instructions": "flat",
+            "style_tag": "FILM",
+            "style_family": "live_action",
+        },
+        "Film",
+    )
+
+    assert config.is_preset is True
+    assert config.to_legacy_dict() == {
+        "style_instructions": "cinematic",
+        "avoid_instructions": "flat",
+        "style_family": "live_action",
+        "animation_subtype": "",
+        "label": "Film",
+        "style_tag": "FILM",
+    }
 
 
 def test_style_catalog_projects_custom_preview_urls() -> None:

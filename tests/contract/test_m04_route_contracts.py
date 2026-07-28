@@ -9,7 +9,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.models import CharacterIdentity, NovelCharacter, NovelProp, StyleConfig
+from ai_anime.models import CharacterIdentity, NovelCharacter, NovelProp
+from ai_anime.modules.asset_world.public import StyleConfig
 
 pytestmark = pytest.mark.m04
 

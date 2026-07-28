@@ -1972,6 +1972,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十批已将脚本生成运行时使用的 `NarrationScript`、`VisualBeat` 与 `format_beat_narration` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `script_models.py`，旧定义直接删除，不保留 re-export、别名或重复格式化实现。Narrative Planning 内部脚本写作与提示词 infrastructure 直连唯一 application 模型模块，外部全局视频优化器只经 Narrative Planning `public.py` 使用稳定入口；`VisualBeat` 复用现有公开 `SceneRef`、`beat_scene_ref` 与 `build_scene_ref`，未复制旧私有场景引用转换逻辑。两个 Pydantic JSON Schema 逐类比较保持等价，新增行为测试覆盖场景引用、时长汇总和旁白格式化，所有权门禁锁定旧巨石零定义、新 application 所有者及外部 public API 边界。脚本写作、Narrative Planning 用例、视频提示词与全局优化器定向回归 102 项、M03 合同 7 项、完整后端分层门禁 144 项通过，合计 253 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十一批已将 Pydantic `StyleConfig` 从后端公共 `models.py` 迁入唯一 Asset & World application `style_models.py`，旧定义和随之失效的 `datetime` 导入直接删除，不保留 re-export 或别名；提示词构建器内部同名 dataclass 属于不同职责，保持不动。风格目录 infrastructure 向内依赖 application 模型，模块外测试经 Asset & World `public.py` 构造稳定类型；该模型不放入 domain，确保领域层继续禁止 Pydantic 等基础设施包且不新增门禁豁免。Pydantic JSON Schema 比较保持等价，新增旧格式运行时字典转换行为测试和唯一所有权门禁。风格接口与 Asset & World 用例回归 23 项、M04 合同 6 项、完整后端分层门禁 145 项通过，合计 174 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

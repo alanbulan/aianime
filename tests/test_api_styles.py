@@ -204,8 +204,7 @@ def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_p
 def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import styles
-    from ai_anime.models import StyleConfig
-    from ai_anime.modules.asset_world.public import StyleService
+    from ai_anime.modules.asset_world.public import StyleConfig, StyleService
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
