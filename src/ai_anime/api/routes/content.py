@@ -7,8 +7,11 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user, require_project_scope
+from ai_anime.api.content_schemas import (
+    ContentUpdateRequest,
+    RewriteGenerateRequest,
+)
 from ai_anime.api.deps import get_sqlite_store
-from ai_anime.api.schemas import ContentUpdateRequest, RewriteGenerateRequest
 from ai_anime.modules.narrative_planning.public import (
     EpisodeContentWriteFailed,
     GenerateEpisodeRewriteCommand,

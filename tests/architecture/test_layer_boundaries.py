@@ -105,6 +105,21 @@ def test_route_modules_do_not_add_cross_route_dependencies() -> None:
     _assert_ratchet(actual, LEGACY_ROUTE_IMPORT_MAX)
 
 
+def test_content_request_schemas_are_owned_by_the_content_adapter() -> None:
+    root_schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    content_schemas = PACKAGE_ROOT / "api" / "content_schemas.py"
+    content_route = PACKAGE_ROOT / "api" / "routes" / "content.py"
+    root_source = root_schemas.read_text(encoding="utf-8")
+    content_source = content_schemas.read_text(encoding="utf-8")
+
+    assert "class ContentUpdateRequest(" not in root_source
+    assert "class RewriteGenerateRequest(" not in root_source
+    assert "class ContentUpdateRequest(BaseModel):" in content_source
+    assert "class RewriteGenerateRequest(BaseModel):" in content_source
+    assert "ai_anime.api.content_schemas" in _imports(content_route)
+    assert "ai_anime.api.schemas" not in _imports(content_route)
+
+
 def test_legacy_generation_route_is_removed() -> None:
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"

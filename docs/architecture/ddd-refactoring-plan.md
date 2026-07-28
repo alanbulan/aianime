@@ -1910,6 +1910,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百一十九批已将前端模型网关配置与 10 类写操作从最后一个旧查询文件 `lib/queries/model-gateway.ts` 迁入 Model Usage：domain 统一拥有配置、渠道、媒体模型、Embedding、Relay 与响应 DTO，application 定义唯一 gateway port 和 React Query 编排，infrastructure 集中持有 11 条 HTTP 路径及原有 60/120 秒超时和 FastAPI 错误包络，composition/public 成为唯一装配与外部入口。Header、SettingsDialog 及 Header 测试全部切换公共 API，旧查询文件直接删除，不保留 re-export facade、旧别名或第二套请求实现；初始化与单渠道同步仍仅在 `ok: true` 时失效配置缓存，其余写操作的既有失效语义保持不变。新增 3 项公共 hook 特征测试覆盖配置查询路径与包络、初始化失败/成功缓存语义和官方配置写入，完整前端模块边界 211 项、Header 4 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
 
+第四百二十批已将仅由 Content route 使用的 `ContentUpdateRequest` 与 `RewriteGenerateRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/content_schemas.py` 入站适配器 schema，Content route 与唯一直接测试调用方同步切换新入口，旧巨石中的两个定义直接删除，不保留 re-export facade、旧别名或重复模型。请求字段、必填约束及改写参数默认值保持不变；架构门禁新增 Content schema 所有权合同，禁止两个定义回流公共巨石或 route 重新依赖旧入口。Content 回归 4 项与完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
