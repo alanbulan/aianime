@@ -234,6 +234,18 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "Seedance2PromptGenerateRequest",
             ),
         ),
+        (
+            "scenes_schemas.py",
+            "routes/scenes.py",
+            (
+                "PanoSphereCorrection",
+                "PanoViewerCorrection",
+                "SceneCreate",
+                "ScenePanoGenerateRequest",
+                "SceneReferenceGenerateRequest",
+                "SceneUpdate",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

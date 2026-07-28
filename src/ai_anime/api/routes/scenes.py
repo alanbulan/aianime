@@ -12,7 +12,7 @@ from ai_anime.api.deps import (
     make_sqlite_store_for_context,
     make_static_url_for_context,
 )
-from ai_anime.api.schemas import (
+from ai_anime.api.scenes_schemas import (
     PanoViewerCorrection,
     SceneCreate,
     ScenePanoGenerateRequest,

@@ -1946,6 +1946,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十七批已将 Scripts route 独占的 `ScriptGenerateRequest`、`BeatUpdate`、`Seedance2PromptGenerateRequest`、`BeatVideoPromptGenerateRequest` 与 `ScriptSaveRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/scripts_schemas.py` 入站适配器 schema，Scripts route 及 `test_api_seedance2_config.py` 的直接模型调用同步切换新入口，旧巨石定义和失去用途的 `SceneRef` 导入直接删除，不保留 re-export facade、旧别名或重复模型。空脚本生成体、Beat 的 SceneRef/媒体/音频/识别字段、两类 prompt 默认值及脚本 beats 列表保持不变；统一 schema 所有权门禁加入 Scripts 案例。Scripts/Beat/Seedance2 prompt 与 M03 HTTP 合同回归 16 项及完整后端分层门禁 141 项通过，合计 157 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百三十八批已将 Scenes route 独占的 `PanoSphereCorrection`、`PanoViewerCorrection`、`SceneCreate`、`SceneUpdate`、`ScenePanoGenerateRequest` 与 `SceneReferenceGenerateRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/scenes_schemas.py` 入站适配器 schema，Scenes route 及 `test_api_assets.py` 的顶层/函数内直接模型调用同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。Pano 欧拉角与外层默认工厂、Scene CRUD 字段、Pano source 枚举/生成选项/1800 秒默认超时及参考图可选模型保持不变；统一 schema 所有权门禁加入 Scenes 案例。Scene/Pano 定向回归 6 项、M05 参考图 HTTP 合同 1 项及完整后端分层门禁 141 项通过，合计 148 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

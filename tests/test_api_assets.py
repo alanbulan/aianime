@@ -9,7 +9,7 @@ import pytest
 from fastapi import UploadFile
 
 from ai_anime.api.props_schemas import PropUpdate
-from ai_anime.api.schemas import (
+from ai_anime.api.scenes_schemas import (
     PanoSphereCorrection,
     PanoViewerCorrection,
     ScenePanoGenerateRequest,
@@ -403,7 +403,7 @@ async def test_create_scene_composes_structured_variant_and_time_name(
     tmp_path, monkeypatch
 ):
     from ai_anime.api.routes import scenes
-    from ai_anime.api.schemas import SceneCreate
+    from ai_anime.api.scenes_schemas import SceneCreate
 
     store = _SceneStore([NovelScene(name="卫生间")])
     _patch_project(monkeypatch, scenes, tmp_path, store)
