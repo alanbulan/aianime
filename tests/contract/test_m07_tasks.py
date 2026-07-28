@@ -105,7 +105,7 @@ def _task_ports(monkeypatch):
 async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path):
     from ai_anime import ports
     from ai_anime.api.routes import episodes
-    from ai_anime.api.schemas import EpisodePlanRequest
+    from ai_anime.api.episodes_schemas import EpisodePlanRequest
 
     ctx = _ctx(tmp_path)
 

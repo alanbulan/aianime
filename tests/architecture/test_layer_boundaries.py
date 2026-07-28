@@ -184,6 +184,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "ProjectionStatusRequest",
             ),
         ),
+        (
+            "episodes_schemas.py",
+            "routes/episodes.py",
+            ("EpisodePlanRequest", "EpisodeUpdate", "InsertManualShotRequest"),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

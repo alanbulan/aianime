@@ -11,7 +11,11 @@ from ai_anime.api.deps import (
     make_sqlite_store_for_context,
     resolve_project_scope,
 )
-from ai_anime.api.schemas import EpisodePlanRequest, EpisodeUpdate, InsertManualShotRequest
+from ai_anime.api.episodes_schemas import (
+    EpisodePlanRequest,
+    EpisodeUpdate,
+    InsertManualShotRequest,
+)
 from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.ports import get_task_backend
 from ai_anime.modules.narrative_planning.public import (

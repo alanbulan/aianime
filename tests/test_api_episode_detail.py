@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.schemas import EpisodeUpdate
+from ai_anime.api.episodes_schemas import EpisodeUpdate
 from ai_anime.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp
 
 pytestmark = pytest.mark.m03

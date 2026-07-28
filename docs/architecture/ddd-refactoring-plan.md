@@ -1936,6 +1936,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十二批已将 Creative Canvas Projections route 独占的 `ProjectionPresetCanvasRequest`、`ProjectionStatusRequest` 与 `ProjectionRemoveRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_projections_schemas.py` 入站适配器 schema，Projections route 一次性切换全部模型并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型。投影 scope、projection key 长度约束、episode/beat/asset 定位、base revision、force refresh 默认值及状态查询字段保持不变；统一 schema 所有权门禁加入 Canvas Projections 案例，锁定新所有者、route 导入和旧巨石零定义。完整 Canvas Projection HTTP 回归 13 项、M06 preset projection 合同 2 项及完整后端分层门禁 141 项通过，合计 156 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百三十三批已将 Episodes route 独占的 `EpisodePlanRequest`、`EpisodeUpdate` 与 `InsertManualShotRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/episodes_schemas.py` 入站适配器 schema，Episodes route 及 `test_m07_tasks.py`、`test_api_episode_detail.py` 的直接模型调用同步切换新入口，旧巨石定义和失去用途的 `AliasChoices`、`ConfigDict` 导入直接删除，不保留 re-export facade、旧别名或重复模型。分集规划默认值、手动镜头的 `SceneRef`/音频类型字段、更新模型的 `summary` 双输入别名与输出序列化别名保持不变；统一 schema 所有权门禁加入 Episodes 案例。Episodes API 回归与 M03 合同 12 项、M07 直接任务回归 1 项及完整后端分层门禁 141 项通过，合计 154 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
