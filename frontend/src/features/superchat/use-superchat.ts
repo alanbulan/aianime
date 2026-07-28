@@ -53,20 +53,15 @@ import {
   scopeMatches,
   scopeSessionKey,
 } from "@/features/superchat/scope";
+import {
+  createSuperChatSocketSession,
+  type SuperChatSocketSession,
+} from "@/features/superchat/socket-session";
 
 type ChatNotificationResponse = {
   ok: boolean;
   data?: unknown;
 };
-
-function resolveChatWsUrl(): string {
-  const explicit = import.meta.env.VITE_SUPERCHAT_WS_URL;
-  if (explicit) return explicit;
-
-  const url = new URL("/api/v1/chat/ws", window.location.origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return url.toString();
-}
 
 export function useSuperChat({
   project,
@@ -108,17 +103,10 @@ export function useSuperChat({
   const pendingClientTurnIdRef = useRef<string | null>(null);
   const recentlyCompletedTurnIdRef = useRef<string | null>(null);
   const cancelledTurnIdsRef = useRef<Set<string>>(new Set());
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectRef = useRef<number | null>(null);
-  const closedRef = useRef(false);
-  const authRejectedRef = useRef(false);
-  const connectionIdRef = useRef(0);
+  const socketSessionRef = useRef<SuperChatSocketSession | null>(null);
 
   const sendFrame = useCallback((frame: ClientFrame) => {
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(frame));
-    }
+    socketSessionRef.current?.send(frame);
   }, []);
 
   const requestHistory = useCallback(() => {
@@ -333,11 +321,6 @@ export function useSuperChat({
           setBusy(true);
           break;
         }
-        if (frame.message === "unauthorized") {
-          authRejectedRef.current = true;
-          closedRef.current = true;
-          wsRef.current?.close();
-        }
         markTurnInactive(activeTurnIdRef.current ?? pendingClientTurnIdRef.current);
         setConnecting(false);
         break;
@@ -345,79 +328,6 @@ export function useSuperChat({
         break;
     }
   }, [desiredScope, finalizeStream, markTurnActive, markTurnInactive, settings.showToolEvents]);
-
-  const connect = useCallback(() => {
-    closedRef.current = false;
-    authRejectedRef.current = false;
-    const connectionId = connectionIdRef.current + 1;
-    connectionIdRef.current = connectionId;
-    setConnecting(true);
-    setError(null);
-    if (reconnectRef.current) window.clearTimeout(reconnectRef.current);
-    const previous = wsRef.current;
-    if (previous) {
-      previous.onopen = null;
-      previous.onmessage = null;
-      previous.onerror = null;
-      previous.onclose = null;
-      previous.close();
-    }
-
-    const ws = new WebSocket(resolveChatWsUrl());
-    wsRef.current = ws;
-    ws.onopen = () => {
-      if (connectionIdRef.current !== connectionId || wsRef.current !== ws) return;
-      sendFrame({ type: "scope.set", scope: desiredScope });
-    };
-    ws.onmessage = (event) => {
-      if (connectionIdRef.current !== connectionId || wsRef.current !== ws) return;
-      try {
-        handleFrame(JSON.parse(String(event.data)) as ServerFrame);
-      } catch {
-        // Ignore malformed frames from development proxies.
-      }
-    };
-    ws.onerror = () => {
-      if (connectionIdRef.current !== connectionId || wsRef.current !== ws) return;
-      setError("WebSocket connection failed");
-      setConnecting(false);
-    };
-    ws.onclose = (event) => {
-      if (connectionIdRef.current !== connectionId || wsRef.current !== ws) return;
-      wsRef.current = null;
-      setConnected(false);
-      const hasActiveTurn = Boolean(activeTurnIdRef.current ?? pendingClientTurnIdRef.current);
-      setConnecting(hasActiveTurn);
-      if (hasActiveTurn) {
-        setBusy(true);
-      }
-      if (
-        !closedRef.current
-        && !authRejectedRef.current
-        && event.code !== 1008
-      ) {
-        setConnecting(true);
-        reconnectRef.current = window.setTimeout(connect, 1200);
-      }
-    };
-  }, [desiredScope, handleFrame, sendFrame]);
-
-  const disconnect = useCallback(() => {
-    closedRef.current = true;
-    connectionIdRef.current += 1;
-    if (reconnectRef.current) window.clearTimeout(reconnectRef.current);
-    const ws = wsRef.current;
-    if (ws) {
-      ws.onopen = null;
-      ws.onmessage = null;
-      ws.onerror = null;
-      ws.onclose = null;
-      ws.close();
-      wsRef.current = null;
-    }
-    setConnected(false);
-    setConnecting(false);
-  }, []);
 
   useEffect(() => {
     setRelayInstances([]);
@@ -467,12 +377,27 @@ export function useSuperChat({
   }, [scopeKey]);
 
   useEffect(() => {
-    const connectTimer = window.setTimeout(connect, 50);
+    const session = createSuperChatSocketSession({
+      scope: desiredScope,
+      onFrame: handleFrame,
+      hasActiveTurn: () => Boolean(
+        activeTurnIdRef.current ?? pendingClientTurnIdRef.current,
+      ),
+      onConnectedChange: setConnected,
+      onConnectingChange: setConnecting,
+      onErrorChange: setError,
+      onActiveTurnDisconnect: () => setBusy(true),
+    });
+    socketSessionRef.current = session;
+    const connectTimer = window.setTimeout(session.connect, 50);
     return () => {
       window.clearTimeout(connectTimer);
-      disconnect();
+      session.disconnect();
+      if (socketSessionRef.current === session) {
+        socketSessionRef.current = null;
+      }
     };
-  }, [connect, disconnect]);
+  }, [desiredScope, handleFrame]);
 
   const send = useCallback((text: string, attachments: ChatAttachment[] = [], transportText?: string) => {
     const trimmed = text.trim();
@@ -536,10 +461,7 @@ export function useSuperChat({
     }
     markTurnInactive(turnId);
     void api.post("api/v1/chat/cancel").catch(() => undefined);
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.close(4000, "client abort");
-    }
+    socketSessionRef.current?.close(4000, "client abort");
   }, [markTurnInactive]);
 
   const resolveApproval = useCallback((_approval: ApprovalRequest, _decision: "allow-once" | "allow-always" | "deny") => {

@@ -215,4 +215,45 @@ describe("SuperChat boundaries", () => {
     );
     expect(hook).not.toContain("EXECUTABLE_HIDDEN_TOOL_NAMES");
   });
+
+  it("keeps WebSocket lifecycle infrastructure outside the controller hook", () => {
+    const socketSession = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/socket-session.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/socket-session.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/socket-session";');
+    expect(tests).toContain('from "@/features/superchat/socket-session";');
+    expect(socketSession).toContain("export function createSuperChatSocketSession(");
+    expect(hook).not.toContain("function createSuperChatSocketSession(");
+    for (const transportDetail of [
+      "function resolveChatWsUrl(",
+      "new WebSocket(",
+      ".onopen =",
+      ".onmessage =",
+      ".onerror =",
+      ".onclose =",
+      "RECONNECT_DELAY_MS",
+    ]) {
+      expect(socketSession).toContain(transportDetail);
+      expect(hook).not.toContain(transportDetail);
+    }
+    for (const removedRef of [
+      "wsRef",
+      "reconnectRef",
+      "closedRef",
+      "authRejectedRef",
+      "connectionIdRef",
+    ]) {
+      expect(hook).not.toContain(removedRef);
+    }
+  });
 });
