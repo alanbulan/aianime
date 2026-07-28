@@ -1827,6 +1827,14 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百八十三批已拆分 SuperChat HTTP 命令：新增唯一 `features/superchat/chat-commands.ts`，集中持有通知 POST/响应 DTO、服务端消息归一、失败日志与本地 assistant fallback，以及取消 POST 的 best-effort 异常隔离；空通知继续不请求后端，通知投递成功与否继续通过 boolean 返回，主 hook 只把 capability 返回的消息并入时间线。`use-superchat.ts` 删除共享 API transport、通知响应类型、HTTP try/catch、fallback 构造和直接取消请求，文件由 396 行降至 367 行，不保留旧 gateway helper、re-export 或第二套实现。新增 5 项独立特征测试覆盖空通知、裁剪后的请求合同、成功归一、失败 fallback、取消成功/失败，并扩展架构门禁确保 HTTP 路径与 DTO 不回流 controller；SuperChat 全部特征测试 94 项、SuperChat 门禁 9 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百八十四批已拆分 SuperChat ingest 上传记录存储：新增唯一 `features/superchat/ingest-upload-storage.ts`，集中持有项目级 localStorage key、畸形数据过滤、最近 20 条限制、同名文件覆盖、上传时间排序和 canonical upload 结果投影；`superchat-panel.tsx` 删除类型、key、读写、合并和 prepared 转换实现，文件由 3,561 行降至 3,500 行，只保留 React 状态消费，不保留旧 helper、re-export 或第二套存储。新增 6 项独立特征测试覆盖缺失/畸形数据、项目 ID 裁剪、容量上限、存储异常隔离、同名覆盖、时间排序和结果投影，并扩展架构门禁禁止持久化逻辑回流；SuperChat 特征测试 14 个文件 91 项、SuperChat 门禁 10 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
+第三百八十五批已拆分 SuperChat ingest 领域规则：新增唯一无网络副作用的 `features/superchat/ingest-automation-domain.ts`，集中持有中英文视频创建意图、上传文件查询、小说附件/拖拽类型判定、两段覆盖确认、data URL 解码、上传文件/附件分析/重摄入/自动化完成上下文及相关状态类型；`superchat-panel.tsx` 删除全部同类常量、纯函数和从未读取的 `originalText` 状态字段，文件由 3,500 行降至 3,254 行，不保留旧实现或测试专用导出。新增 11 项独立特征测试覆盖附件规则、意图识别、严格确认、Blob/文本解码和四类上下文，并扩展架构门禁确保 domain 不依赖 toast、上传、pipeline 查询或 ingest 启动；SuperChat 特征测试 15 个文件 102 项、SuperChat 门禁 11 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
+第三百八十六批已拆分 SuperChat ingest 基础设施调用：新增唯一 `features/superchat/ingest-automation-gateway.ts`，通过 Story Intake 与 Narrative Planning public API 集中负责 Blob 到 File 的上传适配、显式 rebuild 参数、ingest 启动和 pipeline 已摄入状态投影，异常原样上抛给应用层；`superchat-panel.tsx` 删除三个 HTTP 包装函数及对两个业务模块执行函数的直接依赖，文件由 3,254 行降至 3,225 行，gateway 不反向依赖 toast、翻译或错误文案。新增 4 项独立特征测试覆盖上传文件合同、普通/重建启动、状态投影和异常传播，并扩展架构门禁禁止基础设施调用回流；SuperChat 特征测试 16 个文件 106 项、SuperChat 门禁 12 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
+第三百八十七批已拆分 SuperChat ingest 应用控制器：新增唯一 `features/superchat/use-ingest-automation-controller.ts`，以 `project`、`chat.send` 和翻译函数为窄输入，组合 domain、gateway 与 upload storage，集中持有上传准备、格式警告、上传记录、项目切换恢复、两段重摄入确认、loading/error toast 及发送前自动化状态机；`superchat-panel.tsx` 删除全部 ingest 状态和编排，只消费 `preparingSend`、格式详情、关闭动作及发送函数，文件由 3,225 行降至 2,922 行，不直接依赖 storage/gateway 或持有第二套状态。新增 5 项 hook 特征测试覆盖正常启动与格式详情、已有内容的两段确认、无项目拦截、持久化文件查询和基础设施失败复位，并扩展架构门禁确保应用编排不回流视图；SuperChat 特征测试 17 个文件 111 项、SuperChat 门禁 13 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
