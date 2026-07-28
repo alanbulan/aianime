@@ -50,6 +50,9 @@ from ai_anime.modules.asset_world.application.scene_catalog import (
 from ai_anime.modules.asset_world.application.scene_models import (
     NovelScene,
     build_scene_effective_prompt,
+    resolve_scene_plate,
+    resolve_scene_plate_from_records,
+    resolve_scene_record_name,
 )
 from ai_anime.modules.asset_world.application.scene_media import SceneMediaUseCases
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
@@ -454,6 +457,9 @@ __all__ = [
     "path_updated_at",
     "persist_character_voice_file",
     "probe_voice_sample_duration_seconds",
+    "resolve_scene_plate",
+    "resolve_scene_plate_from_records",
+    "resolve_scene_record_name",
     "safe_character_asset_name",
     "style_catalog_use_cases",
     "style_preview_use_cases",

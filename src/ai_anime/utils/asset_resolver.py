@@ -22,11 +22,13 @@ from ai_anime.director_world.paths import safe_name
 from ai_anime.models import (
     extract_prop_ids_from_markers,
     real_detected_props,
-    resolve_scene_record_name,
+)
+from ai_anime.modules.asset_world.public import (
+    build_scene_effective_prompt,
     resolve_scene_plate,
     resolve_scene_plate_from_records,
+    resolve_scene_record_name,
 )
-from ai_anime.modules.asset_world.public import build_scene_effective_prompt
 from ai_anime.utils.background_anchor import background_anchor_label, background_anchor_path
 from ai_anime.utils.path_resolver import (
     PathResolver,

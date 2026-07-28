@@ -5412,6 +5412,13 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         / "infrastructure"
         / "scene_catalog.py"
     )
+    scene_viewer = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "scene_viewer.py"
+    )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
     callers = (
@@ -5431,8 +5438,19 @@ def test_asset_world_scene_model_has_one_owner() -> None:
     assert "def build_scene_effective_prompt(" not in legacy_source
     assert "class NovelScene(BaseModel):" in owner_source
     assert "def build_scene_effective_prompt(" in owner_source
+    for function_name in (
+        "resolve_scene_plate",
+        "resolve_scene_plate_from_records",
+        "resolve_scene_record_name",
+    ):
+        assert f"def {function_name}(" not in legacy_source
+        assert f"def {function_name}(" in owner_source
+        assert f'"{function_name}"' in public_source
     assert "ai_anime.modules.asset_world.application.scene_models" in _imports(
         scene_catalog
+    )
+    assert "ai_anime.modules.asset_world.application.scene_models" in _imports(
+        scene_viewer
     )
     assert "ai_anime.modules.asset_world.application.scene_models" in _imports(public)
     for symbol in ("NovelScene", "build_scene_effective_prompt"):

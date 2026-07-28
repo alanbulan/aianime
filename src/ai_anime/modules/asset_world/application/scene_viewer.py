@@ -9,7 +9,6 @@ from typing import Any, Literal
 from ai_anime.models import (
     real_detected_identities,
     real_detected_props,
-    resolve_scene_plate_from_records,
 )
 from ai_anime.modules.asset_world.application.dto import (
     SaveSceneDirectorWorldCommand,
@@ -22,6 +21,9 @@ from ai_anime.modules.asset_world.application.ports import (
     SceneViewerRepository,
 )
 from ai_anime.modules.asset_world.application.scene_lookup import require_scene
+from ai_anime.modules.asset_world.application.scene_models import (
+    resolve_scene_plate_from_records,
+)
 from ai_anime.modules.asset_world.domain.scene_viewer import (
     director_palette,
     scene_plate_preview_payload,

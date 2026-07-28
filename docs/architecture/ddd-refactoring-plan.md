@@ -1988,6 +1988,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十八批已将 `SceneRef`、`_coerce_scene_ref`、`build_scene_ref`、`beat_scene_ref`、`beat_scene_id`、`beat_scene_variant_id` 与 `sync_beat_asset_refs` 从后端公共 `models.py` 迁入现有唯一 Narrative Planning application `beat_models.py`，直接消除上一批记录的临时巨石依赖，不新建第二个 beat/场景引用模块，不保留 facade、别名或重复实现。Narrative Planning 内部脚本模型、字面脚本写作、脚本文档、视频提示词与 Seedance 提示词用例直连 application 模型；API schema、Cognee/SQLite、Asset & World、Creative Canvas、网格与 prompt 生成、Seedance、验证器和任务 runner 等外部调用方统一经 Narrative Planning `public.py` 使用稳定入口。`SceneRef` JSON Schema 哈希 `7c4391b83eca683fc630cba24b4ee5bc689634c2cac603b63eec9c227f0fb86d`、`NovelVisualBeat` JSON Schema 哈希 `95ea11fa128f1170596ca118966594bf8bd75f7055e47ea0e718c8c68ddee5ac` 均与迁移前一致；新增构造去空白、历史字段兼容、规范写回和唯一所有权门禁，场景记录名与时间板解析明确不在本批。SceneRef、脚本写作、AssetResolver、手工分镜与架构回归 213 项通过、3 项按既有条件跳过，API/SQLite、Seedance、网格、Creative Canvas、验证器与任务 runner 回归 179 项，最终完整架构门禁 151 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十九批已将 `resolve_scene_record_name`、`resolve_scene_plate`、`resolve_scene_plate_from_records` 及其私有时间后缀解析辅助函数从后端公共 `models.py` 迁入现有唯一 Asset & World application `scene_models.py`，场景模型、有效 prompt 与场景记录/时间板解析由同一模块持有，不新建重复解析器，不保留 facade 或旧别名。Asset & World 内部 Scene Viewer 直连 application 模型，AssetResolver、Seedance 与模块外测试统一经 Asset & World `public.py` 使用稳定入口；原有派生名称、时间候选、历史后缀剥离、结构化记录优先级和 fallback 分支逐行保留，旧巨石中的 `compose_derived_scene_name` 与时间工具依赖同步删除。场景板解析、AssetResolver、Seedance、场景 API 与完整架构回归 251 项通过；最终完整架构门禁 151 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
