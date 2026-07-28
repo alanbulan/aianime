@@ -929,6 +929,47 @@ describe("SuperChat boundaries", () => {
     }
   });
 
+  it("keeps Composer history navigation outside the SuperChat panel", () => {
+    const hook = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-composer-history-navigation.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-composer-history-navigation.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-composer-history-navigation";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-composer-history-navigation";',
+    );
+    expect(hook).toContain("export function useComposerHistoryNavigation(");
+    for (const ownedOperation of [
+      "const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);",
+      "const restoreDraftFocusRef = useRef(false);",
+      "useLayoutEffect(() => {",
+      "textarea.setSelectionRange(end, end)",
+      "const resetHistorySelection = useCallback(",
+      "const selectHistoryMessage = useCallback(",
+    ]) {
+      expect(hook).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(hook).not.toContain("useSuperChat");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

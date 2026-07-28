@@ -1867,6 +1867,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零三批已拆分 SuperChat Composer 边框动画生命周期：新增唯一 `features/superchat/use-composer-border-beam.ts`，集中持有 composer DOM ref、`border-beam-vanilla` 实例、既有尺寸/配色/深色主题/圆角/强度/时长配置、active 同步与卸载销毁；本批不改变任何视觉参数。`superchat-panel.tsx` 删除第三方动画库与控制器类型直接依赖、两个 ref 和两段 effect，只消费 hook 返回的 shell ref，文件由 797 行降至 773 行，不保留第二套动画实例。新增 2 项 hook 特征测试覆盖初始装配配置、active 更新不重复挂载和卸载销毁，并扩展架构门禁禁止动画基础设施回流面板；SuperChat 特征测试 33 个文件 176 项、SuperChat 门禁 29 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零四批已拆分 SuperChat Composer 输入历史导航：新增唯一 `features/superchat/use-composer-history-navigation.ts`，集中持有历史索引、项目切换复位、首次向上选择最新消息、上下边界导航、越过最新项清空草稿，以及导航后的 textarea 聚焦与光标末尾恢复；项目切换继续只清除历史索引，不清空当前草稿。`superchat-panel.tsx` 删除历史 state、两个 ref、project effect、layout effect 和导航函数，只把 draft、历史投影与 setter 装配给 hook，文件由 773 行降至 741 行，并不再直接使用 `useEffect`/`useLayoutEffect`。新增 3 项 hook 特征测试覆盖双向边界导航、显式编辑与项目切换复位、草稿保持和焦点/光标恢复，并扩展架构门禁禁止历史状态机回流面板；SuperChat 特征测试 34 个文件 179 项、SuperChat 门禁 30 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

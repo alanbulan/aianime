@@ -9,7 +9,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
@@ -44,6 +44,7 @@ import { useTaskCompletionNotifications } from "@/features/superchat/use-task-co
 import { useChatScrollController } from "@/features/superchat/use-chat-scroll-controller";
 import { useChatQueueController } from "@/features/superchat/use-chat-queue-controller";
 import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
+import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -75,12 +76,9 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
   const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const restoreDraftFocusRef = useRef(false);
   const dragDepthRef = useRef(0);
   const chat = useSuperChat({
     project: params.project,
@@ -183,21 +181,17 @@ export function SuperChatPanel({
     showWaitingIndicator,
     streamText: chat.streamText,
   });
-
-  useEffect(() => {
-    setSelectedHistoryMessageIndex(null);
-  }, [params.project]);
-
-  useLayoutEffect(() => {
-    if (!restoreDraftFocusRef.current) return;
-    restoreDraftFocusRef.current = false;
-    const textarea = draftInputRef.current;
-    if (!textarea || textarea.disabled) return;
-    if (document.activeElement === textarea) return;
-    textarea.focus({ preventScroll: true });
-    const end = textarea.value.length;
-    textarea.setSelectionRange(end, end);
-  }, [draft]);
+  const {
+    draftInputRef,
+    resetHistorySelection,
+    selectHistoryMessage,
+    selectedHistoryMessageIndex,
+  } = useComposerHistoryNavigation({
+    draft,
+    history: userMessageHistory,
+    onDraftChange: setDraft,
+    project: params.project,
+  });
 
   const submit = () => {
     const hasCurrentContent = draft.trim().length > 0 || attachments.length > 0;
@@ -206,7 +200,7 @@ export function SuperChatPanel({
       toast.error(t("aiAssistant.waiting"));
       return;
     }
-    setSelectedHistoryMessageIndex(null);
+    resetHistorySelection();
     const text = draft.trim() || t("aiAssistant.attachmentOnlyPrompt");
     const queuedAttachments = attachments.map((attachment) => ({ ...attachment }));
     if (chat.busy) {
@@ -235,32 +229,6 @@ export function SuperChatPanel({
     }
     event.preventDefault();
     submit();
-  };
-
-  const selectHistoryMessage = (direction: "older" | "newer") => {
-    if (userMessageHistory.length === 0) return false;
-    if (direction === "older") {
-      const nextIndex =
-        selectedHistoryMessageIndex === null
-          ? userMessageHistory.length - 1
-          : Math.max(0, selectedHistoryMessageIndex - 1);
-      setSelectedHistoryMessageIndex(nextIndex);
-      setDraft(userMessageHistory[nextIndex]);
-      restoreDraftFocusRef.current = true;
-      return true;
-    }
-    if (selectedHistoryMessageIndex === null) return false;
-    if (selectedHistoryMessageIndex >= userMessageHistory.length - 1) {
-      setSelectedHistoryMessageIndex(null);
-      setDraft("");
-      restoreDraftFocusRef.current = true;
-      return true;
-    }
-    const nextIndex = selectedHistoryMessageIndex + 1;
-    setSelectedHistoryMessageIndex(nextIndex);
-    setDraft(userMessageHistory[nextIndex]);
-    restoreDraftFocusRef.current = true;
-    return true;
   };
 
   const addFiles = (files: FileList | null) => {
@@ -634,7 +602,7 @@ export function SuperChatPanel({
               ref={draftInputRef}
               value={draft}
               onChange={(event) => {
-                setSelectedHistoryMessageIndex(null);
+                resetHistorySelection();
                 setDraft(event.target.value);
               }}
               onFocus={() => setComposerInputFocused(true)}
