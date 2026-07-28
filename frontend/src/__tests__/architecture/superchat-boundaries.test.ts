@@ -550,6 +550,42 @@ describe("SuperChat boundaries", () => {
     expect(messageView).not.toContain("useSuperChat");
   });
 
+  it("keeps chat header controls in a controller-independent view", () => {
+    const controls = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-control-bar.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-control-bar.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-control-bar";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-control-bar";',
+    );
+    for (const ownedOperation of [
+      "type ChatControlBarModel =",
+      "export function ControlBar(",
+      "export function HeaderControlPortal(",
+    ]) {
+      expect(controls).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controls).toContain('import { createPortal } from "react-dom";');
+    expect(controls).not.toContain("useSuperChat");
+    expect(controls).not.toContain("ReturnType<");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
