@@ -2,17 +2,12 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { quotaSafeStateStorage } from '@/lib/localStorageQuota';
-// Side-effect import: registers the freezone canvas prune as a quota reclaimer
-// so that when this small `settings-storage` blob fails to persist because the
-// origin's localStorage is full of stale canvas keys, the write prunes them and
-// retries instead of throwing (the original QuotaExceededError crash).
-import '@/features/freezone/canvasDraftStorage';
 import {
   DEFAULT_GRSAI_CREDIT_TIER_ID,
   PRICE_DISPLAY_CURRENCY_MODES,
   type GrsaiCreditTierId,
   type PriceDisplayCurrencyMode,
-} from '@/features/canvas/pricing/types';
+} from '@/features/canvas/public';
 
 export type UiRadiusPreset = 'compact' | 'default' | 'large';
 export type ThemeTonePreset = 'neutral' | 'warm' | 'cool';

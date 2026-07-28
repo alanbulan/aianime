@@ -11,6 +11,7 @@ import { initDevBackendWatch } from "@/lib/dev-backend-watch";
 import { installDomReconciliationGuard } from "@/lib/dom-reconciliation-guard";
 import { getOrCreateReactRoot } from "@/lib/react-root";
 import { loadRuntimeConfig } from "@/lib/runtime-config";
+import { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/public";
 import {
   installChunkLoadRecovery,
   installVersionUpdateWatch,
@@ -21,6 +22,7 @@ function installApplicationRuntime() {
   configureZod({ jitless: true });
   setAppRouter(router);
   installApiRuntime(queryClient);
+  installFreezoneCanvasStorageReclaimer();
   installChunkLoadRecovery();
   // Translation/browser extensions may move DOM nodes before React reconciles.
   installDomReconciliationGuard();

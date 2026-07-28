@@ -273,10 +273,6 @@ export function pruneOldCanvasDrafts(now = Date.now()): void {
   pruneFreezoneCanvasStorage(now);
 }
 
-// Register the prune as a quota reclaimer at import time so that a write under
-// quota pressure anywhere (including the small `settings-storage` blob) frees
-// stale canvas keys and retries. Importing this module for its side effect is
-// enough to wire it up.
-registerStorageReclaimer(() => {
-  pruneFreezoneCanvasStorage();
-});
+export function installFreezoneCanvasStorageReclaimer(): () => void {
+  return registerStorageReclaimer(pruneFreezoneCanvasStorage);
+}

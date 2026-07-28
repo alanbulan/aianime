@@ -2014,6 +2014,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十一批已将根级 175 行 `assetDropStore.ts` 的两类职责拆到 Creative Canvas 唯一所有者：节点媒体类型、3D 来源解析与可拖拽素材推导进入纯 domain `assetDropInfo.ts`，Zustand 拖拽会话、悬停与替换请求状态进入 `features/canvas/assetDropStore.ts`；6 个生产调用方与原行为测试分别依赖规则或状态，不再通过混合 Store 获取无关能力。旧根文件直接删除，不保留 re-export 或重复函数；新增 Store 行为测试和门禁锁定三项声明唯一、domain 仅依赖 Canvas 节点契约、Store 仅依赖 Zustand 与 domain。素材识别、拖拽状态、提交对话框和素材库回归 19 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十二批已删除全局 `settingsStore` 对 Freezone `canvasDraftStorage` 的副作用 import，将配额回收注册改为 `installFreezoneCanvasStorageReclaimer` 显式能力并由应用 bootstrap 在运行时初始化阶段经 Freezone public 装配；回收函数直接以稳定引用注册且返回注销函数，原 import-time 匿名注册整体删除。设置持久化使用的 GRSAI 档位与显示币种常量/类型同步经 Canvas public 暴露，`settingsStore` 不再穿透 Canvas pricing 内部路径。新增真实 QuotaExceeded 回收测试及门禁锁定 bootstrap 调用、settings public 依赖和无旧副作用注册。Canvas 草稿与通用 storage 回归 29 项、相关架构门禁 3 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -815,6 +815,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
+        "@/features/freezone/canvasDraftStorage",
         "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
@@ -855,9 +856,12 @@ describe("frontend architecture boundaries", () => {
 
     expect(importSpecifiers(publicPath)).toEqual([
       "@/features/canvas/application/imageData",
+      "@/features/canvas/pricing/types",
     ]);
     expect(publicSource).toContain("dataUrlToBlob,");
     expect(publicSource).toContain("withImageCacheBust,");
+    expect(publicSource).toContain("DEFAULT_GRSAI_CREDIT_TIER_ID,");
+    expect(publicSource).toContain("PRICE_DISPLAY_CURRENCY_MODES,");
     expect(readFileSync(imageDataPath, "utf8")).toContain(
       "export function dataUrlToBlob(",
     );
@@ -865,6 +869,33 @@ describe("frontend architecture boundaries", () => {
       "export function withImageCacheBust(",
     );
     expect(bypasses).toEqual([]);
+  });
+
+  it("installs Freezone storage recovery from the application bootstrap", () => {
+    const bootstrapPath = resolve(SRC_ROOT, "app/bootstrap.tsx");
+    const settingsPath = resolve(SRC_ROOT, "stores/settingsStore.ts");
+    const draftStoragePath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasDraftStorage.ts",
+    );
+    const bootstrap = readFileSync(bootstrapPath, "utf8");
+    const settings = readFileSync(settingsPath, "utf8");
+    const draftStorage = readFileSync(draftStoragePath, "utf8");
+
+    expect(importSpecifiers(bootstrapPath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(bootstrap).toContain("installFreezoneCanvasStorageReclaimer();");
+    expect(importSpecifiers(settingsPath)).toContain("@/features/canvas/public");
+    expect(settings).not.toContain("@/features/freezone/canvasDraftStorage");
+    expect(settings).not.toContain("@/features/canvas/pricing/types");
+    expect(draftStorage).toContain(
+      "export function installFreezoneCanvasStorageReclaimer()",
+    );
+    expect(draftStorage).toContain(
+      "return registerStorageReclaimer(pruneFreezoneCanvasStorage);",
+    );
+    expect(draftStorage).not.toContain("registerStorageReclaimer(() =>");
   });
 
   it("owns the Canvas Store inside Creative Canvas", () => {

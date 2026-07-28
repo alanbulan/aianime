@@ -1,16 +1,22 @@
 // Copyright (c) 2026 AI anime
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CANVAS_DRAFT_MAX_BYTES,
   FREEZONE_CANVAS_TTL_MS,
   canvasDraftSignature,
+  installFreezoneCanvasStorageReclaimer,
   pruneFreezoneCanvasStorage,
   pruneOldCanvasDrafts,
   readCanvasDraft,
   writeCanvasDraft,
 } from "@/features/freezone/canvasDraftStorage";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+import { safeLocalStorageSet } from "@/lib/localStorageQuota";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("canvas draft storage", () => {
   beforeEach(() => {
@@ -278,5 +284,25 @@ describe("pruneFreezoneCanvasStorage", () => {
     window.localStorage.setItem("settings-storage", "keep-me");
     pruneFreezoneCanvasStorage(10 * FREEZONE_CANVAS_TTL_MS);
     expect(window.localStorage.getItem("settings-storage")).toBe("keep-me");
+  });
+
+  it("reclaims stale canvas data after explicit installation", () => {
+    const staleKey = "freezone:canvas-history:project-a:stale";
+    window.localStorage.setItem(
+      staleKey,
+      JSON.stringify({ signature: "sig", past: [], future: [], updatedAt: 1 }),
+    );
+    const unregister = installFreezoneCanvasStorageReclaimer();
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+      throw new DOMException("quota", "QuotaExceededError");
+    });
+
+    try {
+      expect(safeLocalStorageSet("settings-storage", "payload")).toBe(true);
+      expect(window.localStorage.getItem(staleKey)).toBeNull();
+      expect(window.localStorage.getItem("settings-storage")).toBe("payload");
+    } finally {
+      unregister();
+    }
   });
 });
