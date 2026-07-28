@@ -715,6 +715,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
       "utf8",
     );
+    const detailOverlays = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -744,7 +748,10 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation.replace("export ", ""));
       expect(moduleSource).not.toContain("useSuperChat");
     }
-    expect(panel).toContain(
+    expect(detailOverlays).toContain(
+      'from "@/features/superchat/message-detail-panel";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/message-detail-panel";',
     );
     expect(tests).toContain(
@@ -1347,6 +1354,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
       "utf8",
     );
+    const detailOverlays = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -1359,9 +1370,13 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(detailOverlays).toContain(
       'from "@/features/superchat/spec-media-modals";',
     );
+    expect(panel).toContain(
+      'import type { SpecMediaDetail } from "@/features/superchat/spec-media-modals";',
+    );
+    expect(panel).not.toContain("SpecMediaDetailModal");
     expect(tests).toContain(
       'from "@/features/superchat/spec-media-modals";',
     );
@@ -1379,6 +1394,45 @@ describe("SuperChat boundaries", () => {
     expect(modals).not.toContain("extractUnifiedMediaItems");
     expect(modals).not.toContain("useSuperChat");
     expect(panel).not.toContain('from "@/components/ui/dialog";');
+  });
+
+  it("keeps panel detail overlays outside the SuperChat panel", () => {
+    const detailOverlays = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-panel-detail-overlays.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-panel-detail-overlays";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-panel-detail-overlays";',
+    );
+    expect(detailOverlays).toContain(
+      "export function ChatPanelDetailOverlays(",
+    );
+    for (const ownedPresentation of [
+      "<MessageDetailPanel",
+      "<SpecMediaDetailModal",
+      "<FormatCheckDetailsDialog",
+      "if (!next) onClearFormatCheckDetails();",
+    ]) {
+      expect(detailOverlays).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(detailOverlays).not.toContain("useSuperChat");
+    expect(detailOverlays).not.toContain("ReturnType<");
   });
 
   it("keeps scope mapping and matching outside the controller hook", () => {

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { ChatPanelHeader } from "@/features/superchat/chat-panel-header";
 import { ChatPanelContextViews } from "@/features/superchat/chat-panel-context-views";
-import { MessageDetailPanel } from "@/features/superchat/message-detail-panel";
+import { ChatPanelDetailOverlays } from "@/features/superchat/chat-panel-detail-overlays";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
@@ -20,13 +20,9 @@ import { useComposerAttachmentsController } from "@/features/superchat/use-compo
 import { useComposerSubmitController } from "@/features/superchat/use-composer-submit-controller";
 import { ChatComposer } from "@/features/superchat/chat-composer";
 import { ChatMessageArea } from "@/features/superchat/chat-message-area";
-import {
-  SpecMediaDetailModal,
-  type SpecMediaDetail,
-} from "@/features/superchat/spec-media-modals";
+import type { SpecMediaDetail } from "@/features/superchat/spec-media-modals";
 import { projectPanelMessages } from "@/features/superchat/panel-message-projection";
 import type { ChatMessage } from "@/features/superchat/types";
-import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
 
@@ -274,23 +270,16 @@ export function SuperChatPanel({
           onToggleSpeech={toggleSpeech}
         />
       </section>
-      <MessageDetailPanel
-        message={detailMessage}
-        onClose={() => setDetailMessage(null)}
-        onOpenMedia={setMediaDetail}
-      />
-      <SpecMediaDetailModal
-        detail={mediaDetail}
-        onClose={() => setMediaDetail(null)}
-        onOpenMedia={setMediaDetail}
-      />
-      <FormatCheckDetailsDialog
+      <ChatPanelDetailOverlays
+        detailMessage={detailMessage}
         formatCheck={formatCheckDetails?.formatCheck ?? null}
-        filename={formatCheckDetails?.filename}
-        open={Boolean(formatCheckDetails)}
-        onOpenChange={(next) => {
-          if (!next) clearFormatCheckDetails();
-        }}
+        formatCheckFilename={formatCheckDetails?.filename}
+        formatCheckOpen={Boolean(formatCheckDetails)}
+        mediaDetail={mediaDetail}
+        onClearFormatCheckDetails={clearFormatCheckDetails}
+        onCloseDetail={() => setDetailMessage(null)}
+        onCloseMedia={() => setMediaDetail(null)}
+        onOpenMedia={setMediaDetail}
       />
       <img
         src="/images/bg-chat-buttom.png"
