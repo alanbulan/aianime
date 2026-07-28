@@ -13,7 +13,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
-import { attachBorderBeam, type BorderBeamController } from "border-beam-vanilla";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +43,7 @@ import { useSpeechInputController } from "@/features/superchat/use-speech-input-
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
 import { useChatScrollController } from "@/features/superchat/use-chat-scroll-controller";
 import { useChatQueueController } from "@/features/superchat/use-chat-queue-controller";
+import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -82,8 +82,6 @@ export function SuperChatPanel({
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
   const restoreDraftFocusRef = useRef(false);
   const dragDepthRef = useRef(0);
-  const composerShellRef = useRef<HTMLDivElement | null>(null);
-  const composerBeamRef = useRef<BorderBeamController | null>(null);
   const chat = useSuperChat({
     project: params.project,
     displayName: username || "AI anime",
@@ -131,6 +129,7 @@ export function SuperChatPanel({
     && !chat.busy
     && !preparingSend
     && queuedMessages.length === 0;
+  const composerShellRef = useComposerBorderBeam(composerBeamActive);
   const {
     activeMessageCount,
     currentStreamingAssistantId,
@@ -188,29 +187,6 @@ export function SuperChatPanel({
   useEffect(() => {
     setSelectedHistoryMessageIndex(null);
   }, [params.project]);
-
-  useEffect(() => {
-    const shell = composerShellRef.current;
-    if (!shell) return;
-    const beam = attachBorderBeam(shell, {
-      size: "md",
-      colorVariant: "colorful",
-      theme: "dark",
-      active: false,
-      borderRadius: 16,
-      strength: 0.9,
-      duration: 1.96,
-    });
-    composerBeamRef.current = beam;
-    return () => {
-      composerBeamRef.current = null;
-      beam.destroy();
-    };
-  }, []);
-
-  useEffect(() => {
-    composerBeamRef.current?.setActive(composerBeamActive);
-  }, [composerBeamActive]);
 
   useLayoutEffect(() => {
     if (!restoreDraftFocusRef.current) return;

@@ -892,6 +892,43 @@ describe("SuperChat boundaries", () => {
     expect(controller).not.toContain("sendWithIngestAutomation");
   });
 
+  it("keeps Composer border-beam lifecycle outside the SuperChat panel", () => {
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-composer-border-beam.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-composer-border-beam.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-composer-border-beam";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-composer-border-beam";',
+    );
+    expect(hook).toContain("export function useComposerBorderBeam(");
+    for (const ownedOperation of [
+      'from "border-beam-vanilla";',
+      "const composerBeamRef = useRef<BorderBeamController | null>(null);",
+      "const beam = attachBorderBeam(shell, {",
+      'theme: "dark"',
+      "composerBeamRef.current?.setActive(active)",
+      "beam.destroy()",
+    ]) {
+      expect(hook).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
