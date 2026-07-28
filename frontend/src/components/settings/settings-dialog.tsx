@@ -59,7 +59,7 @@ import {
   type NewApiDatabaseConfigInput,
   type SavedEmbeddingModelConfig,
   type SavedProviderChannelConfig,
-} from "@/lib/queries/model-gateway";
+} from "@/modules/model_usage/public";
 import {
   useSettingsStore,
   FEATURE_MODEL_PROVIDERS,

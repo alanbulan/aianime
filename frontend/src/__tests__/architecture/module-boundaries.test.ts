@@ -7177,6 +7177,23 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Model Usage callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/model_usage");
+    const modelGatewayAdapterPath = resolve(
+      moduleRoot,
+      "infrastructure/http-model-gateway-gateway.ts",
+    );
+    const modelGatewayEndpoints = [
+      "api/v1/model-gateway/config",
+      "api/v1/model-gateway/official/config",
+      "api/v1/model-gateway/official/enable",
+      "api/v1/model-gateway/custom/newapi/init",
+      "api/v1/model-gateway/custom/newapi/provider-channels",
+      "api/v1/model-gateway/custom/newapi/provider-channel/sync",
+      "api/v1/model-gateway/custom/newapi/channels",
+      "api/v1/model-gateway/custom/newapi/media-models",
+      "api/v1/model-gateway/custom/newapi/embedding-model",
+      "api/v1/model-gateway/media-relay/config",
+      "api/v1/model-gateway/custom/newapi/channels/batch",
+    ];
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -7194,12 +7211,46 @@ describe("frontend architecture boundaries", () => {
         readFileSync(path, "utf8").includes("api/v1/generation-credit-cost"),
       )
       .map(relativeSource);
+    const modelGatewayEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("api/v1/model-gateway/"),
+      )
+      .map(relativeSource);
+    const legacyModelGatewayImports = sourceFiles(SRC_ROOT)
+      .flatMap((path) => importSpecifiers(path))
+      .filter((specifier) => specifier === "@/lib/queries/model-gateway");
+    const modelGatewayAdapterSource = readFileSync(
+      modelGatewayAdapterPath,
+      "utf8",
+    );
 
     expect(
       existsSync(resolve(SRC_ROOT, "lib/queries/generation-credit-cost.ts")),
     ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "lib/queries/model-gateway.ts")),
+    ).toBe(false);
     expect(internalImportFailures).toEqual([]);
     expect(endpointOwners).toEqual([]);
+    expect(legacyModelGatewayImports).toEqual([]);
+    expect(modelGatewayEndpointOwners).toEqual([
+      "modules/model_usage/infrastructure/http-model-gateway-gateway.ts",
+    ]);
+    expect(
+      modelGatewayAdapterSource.match(/api\/v1\/model-gateway\//g),
+    ).toHaveLength(modelGatewayEndpoints.length);
+    for (const endpoint of modelGatewayEndpoints) {
+      expect(modelGatewayAdapterSource).toContain(`"${endpoint}"`);
+    }
+    for (const caller of [
+      "components/layout/header.tsx",
+      "components/settings/settings-dialog.tsx",
+    ]) {
+      expect(importSpecifiers(resolve(SRC_ROOT, caller))).toContain(
+        "@/modules/model_usage/public",
+      );
+    }
     expect(
       readFileSync(
         resolve(

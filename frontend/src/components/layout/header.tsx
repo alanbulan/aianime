@@ -32,7 +32,7 @@ import { useAuthStore } from "@/modules/identity_access/public";
 import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
-import { useModelGatewayConfig } from "@/lib/queries/model-gateway";
+import { useModelGatewayConfig } from "@/modules/model_usage/public";
 import {
   markUpgradeSeen,
   shouldShowUpgradeNudge,

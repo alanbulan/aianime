@@ -1908,6 +1908,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百一十八批已将前端项目级任务读取、共享 SSE 与轮询兜底、等待终态及 HMR 清理的唯一实现从最后一个旧 API 文件 `api/tasks.ts` 迁入 `task-center/task-monitor.ts`，并由既有 `task-center/public.ts` 对外暴露 `listTasks`、`awaitTaskCompletion`、`TaskCompletionError` 及显式 `TaskMonitorState/TaskMonitorStatus` 契约；Canvas 与 Pipeline Import 两个基础设施调用方和对应测试/错误仲裁全部切换公共入口，旧 API 文件直接删除，`frontend/src/api` 不再包含源码文件。架构门禁禁止恢复旧 API 或绕过 public 直连 task-monitor，并同步更新两个基础设施的依赖合同；SSE 重连、共享轮询、超时、终态错误和请求路径均保持不变。受影响 4 个测试文件 20 项、任务/Canvas/Pipeline 定向边界门禁 3 项、全量 TypeScript typecheck 与 `git diff --check` 均通过，定向边界运行中其余 208 项明确跳过。
 
+第四百一十九批已将前端模型网关配置与 10 类写操作从最后一个旧查询文件 `lib/queries/model-gateway.ts` 迁入 Model Usage：domain 统一拥有配置、渠道、媒体模型、Embedding、Relay 与响应 DTO，application 定义唯一 gateway port 和 React Query 编排，infrastructure 集中持有 11 条 HTTP 路径及原有 60/120 秒超时和 FastAPI 错误包络，composition/public 成为唯一装配与外部入口。Header、SettingsDialog 及 Header 测试全部切换公共 API，旧查询文件直接删除，不保留 re-export facade、旧别名或第二套请求实现；初始化与单渠道同步仍仅在 `ok: true` 时失效配置缓存，其余写操作的既有失效语义保持不变。新增 3 项公共 hook 特征测试覆盖配置查询路径与包络、初始化失败/成功缓存语义和官方配置写入，完整前端模块边界 211 项、Header 4 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

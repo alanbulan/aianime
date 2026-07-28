@@ -18,7 +18,8 @@ vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => runtimeState.isCe,
 }));
 
-vi.mock("@/lib/queries/model-gateway", () => ({
+vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/model_usage/public")>()),
   useModelGatewayConfig: () => ({ data: undefined }),
 }));
 
