@@ -18,6 +18,7 @@ from ai_anime.api.auth import (
     _verify_agent_bearer,
     _verify_browser_session,
 )
+from ai_anime.api.chat_errors import chat_exception_event
 from ai_anime.api.chat_schemas import (
     ChatAttachmentIn,
     ChatMessageIn,
@@ -41,21 +42,11 @@ from ai_anime.modules.ai_assistant.public import (
     get_scoped_chat_messages,
     should_prewarm_scope,
 )
-from ai_anime.modules.project_workspace.public import (
-    ProjectNotFound,
-)
 from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
+    ProjectNotFound,
     resolve_project_context,
-)
-from ai_anime.modules.model_usage.public import (
-    BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-    INSUFFICIENT_CREDITS_MESSAGE,
-    billing_rule_not_configured_payload,
-    find_billing_rule_not_configured_error,
-    find_insufficient_credits_error,
-    insufficient_credits_payload,
 )
 
 router = APIRouter()
@@ -395,46 +386,9 @@ async def chat_ws(websocket: WebSocket) -> None:
                         },
                     )
             except Exception as exc:  # noqa: BLE001
-                message = str(exc)
-                if "当前用户已有 AI 对话正在处理中" in message:
-                    await send_json_best_effort(
-                        websocket,
-                        {
-                            "type": "chat.busy",
-                            "turn_id": turn_id,
-                            "scope": scope.to_dict(),
-                            "message": message,
-                        },
-                    )
-                    continue
-                billing_rule_error = find_billing_rule_not_configured_error(exc)
-                if billing_rule_error is not None:
-                    await send_json_best_effort(
-                        websocket,
-                        {
-                            "type": "error",
-                            "turn_id": turn_id,
-                            "message": BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-                            "data": billing_rule_not_configured_payload(
-                                billing_rule_error
-                            ),
-                        },
-                    )
-                    continue
-                insufficient_error = find_insufficient_credits_error(exc)
-                if insufficient_error is not None:
-                    await send_json_best_effort(
-                        websocket,
-                        {
-                            "type": "error",
-                            "turn_id": turn_id,
-                            "message": INSUFFICIENT_CREDITS_MESSAGE,
-                            "data": insufficient_credits_payload(insufficient_error),
-                        },
-                    )
-                    continue
                 await send_json_best_effort(
-                    websocket, {"type": "error", "turn_id": turn_id, "message": message}
+                    websocket,
+                    chat_exception_event(exc, turn_id=turn_id, scope=scope),
                 )
     except WebSocketDisconnect:
         return

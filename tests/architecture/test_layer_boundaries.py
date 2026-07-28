@@ -430,6 +430,38 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     assert route_source.count("attachment_payloads(") == 2
 
 
+def test_chat_error_events_stay_in_api_adapter() -> None:
+    errors = PACKAGE_ROOT / "api" / "chat_errors.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    errors_source = errors.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert "fastapi" not in _imports(errors)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(errors)
+    assert "ai_anime.modules.model_usage.public" in _imports(errors)
+    assert "ai_anime.api.chat_errors" in _imports(route)
+    for owned_rule in (
+        "def chat_exception_event(",
+        "当前用户已有 AI 对话正在处理中",
+        "find_billing_rule_not_configured_error(error)",
+        "billing_rule_not_configured_payload(billing_rule_error)",
+        "find_insufficient_credits_error(error)",
+        "insufficient_credits_payload(insufficient_error)",
+    ):
+        assert owned_rule in errors_source
+        assert owned_rule not in route_source
+    for removed_route_dependency in (
+        "BILLING_RULE_NOT_CONFIGURED_MESSAGE",
+        "INSUFFICIENT_CREDITS_MESSAGE",
+        "find_billing_rule_not_configured_error",
+        "find_insufficient_credits_error",
+        "billing_rule_not_configured_payload",
+        "insufficient_credits_payload",
+    ):
+        assert removed_route_dependency not in route_source
+    assert route_source.count("chat_exception_event(") == 1
+
+
 def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = (
         PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
