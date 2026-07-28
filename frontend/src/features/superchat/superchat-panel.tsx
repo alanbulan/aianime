@@ -7,9 +7,7 @@ import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { ChatPanelHeader } from "@/features/superchat/chat-panel-header";
-import { ApprovalCard } from "@/features/superchat/approval-card";
-import { SearchBar } from "@/features/superchat/chat-search-bar";
-import { PinnedPanel } from "@/features/superchat/pinned-messages-panel";
+import { ChatPanelContextViews } from "@/features/superchat/chat-panel-context-views";
 import { MessageDetailPanel } from "@/features/superchat/message-detail-panel";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
@@ -201,33 +199,18 @@ export function SuperChatPanel({
           searchOpen={searchOpen}
           onToggleSearch={() => setSearchOpen((value) => !value)}
         />
-        {chat.error && (
-          <div className="border-b border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
-            {chat.error}
-          </div>
-        )}
-
-        {chat.approvals.map((approval) => (
-          <ApprovalCard
-            key={approval.id}
-            approval={approval}
-            onResolve={(decision) => chat.resolveApproval(approval, decision)}
-          />
-        ))}
-
-        <PinnedPanel
-          messages={pinnedMessages}
-          onClear={chat.clearPinned}
+        <ChatPanelContextViews
+          approvals={chat.approvals}
+          error={chat.error}
+          pinnedMessages={pinnedMessages}
+          searchOpen={searchOpen}
+          searchQuery={search}
+          onClearPinned={chat.clearPinned}
+          onResolveApproval={chat.resolveApproval}
+          onSearchChange={setSearch}
+          onSearchClose={() => setSearchOpen(false)}
           onTogglePin={chat.togglePin}
         />
-
-        {searchOpen && (
-          <SearchBar
-            query={search}
-            onChange={setSearch}
-            onClose={() => setSearchOpen(false)}
-          />
-        )}
 
         <ChatMessageArea
           busy={chat.busy}

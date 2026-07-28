@@ -665,6 +665,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/approval-card.tsx"),
       "utf8",
     );
+    const contextViews = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -677,7 +681,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(contextViews).toContain(
+      'from "@/features/superchat/approval-card";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/approval-card";',
     );
     expect(tests).toContain(
@@ -704,6 +711,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/message-detail-panel.tsx"),
       "utf8",
     );
+    const contextViews = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -719,9 +730,11 @@ describe("SuperChat boundaries", () => {
     for (const [moduleSource, importPath, ownedOperation] of [
       [searchBar, "chat-search-bar", "export function SearchBar("],
       [pinnedPanel, "pinned-messages-panel", "export function PinnedPanel("],
-      [detailPanel, "message-detail-panel", "export function MessageDetailPanel("],
     ]) {
-      expect(panel).toContain(
+      expect(contextViews).toContain(
+        `from "@/features/superchat/${importPath}";`,
+      );
+      expect(panel).not.toContain(
         `from "@/features/superchat/${importPath}";`,
       );
       expect(tests).toContain(
@@ -731,12 +744,60 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation.replace("export ", ""));
       expect(moduleSource).not.toContain("useSuperChat");
     }
+    expect(panel).toContain(
+      'from "@/features/superchat/message-detail-panel";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/message-detail-panel";',
+    );
+    expect(detailPanel).toContain("export function MessageDetailPanel(");
+    expect(panel).not.toContain("function MessageDetailPanel(");
+    expect(detailPanel).not.toContain("useSuperChat");
     expect(detailPanel).toContain(
       'from "@/features/superchat/chat-message-view";',
     );
     expect(detailPanel).toContain(
       'from "@/features/superchat/spec-extract";',
     );
+  });
+
+  it("keeps panel context presentation outside the SuperChat panel", () => {
+    const contextViews = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-panel-context-views.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-panel-context-views";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-panel-context-views";',
+    );
+    expect(contextViews).toContain("export function ChatPanelContextViews(");
+    for (const ownedPresentation of [
+      "border-destructive/20 bg-destructive/8",
+      "approvals.map((approval)",
+      "<ApprovalCard",
+      "<PinnedPanel",
+      "searchOpen &&",
+      "<SearchBar",
+    ]) {
+      expect(contextViews).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(contextViews).not.toContain("useSuperChat");
+    expect(contextViews).not.toContain("ReturnType<");
   });
 
   it("keeps browser speech recognition in a dedicated controller", () => {
