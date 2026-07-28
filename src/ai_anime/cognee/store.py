@@ -33,7 +33,6 @@ from ai_anime.utils.document_parsers import load_novel_text
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelEpisode,
     NovelVisualBeat,
     NovelScene,
     SceneMenuItem,
@@ -46,7 +45,7 @@ from ai_anime.models import (
     normalize_detected_props,
     sync_beat_asset_refs,
 )
-from ai_anime.modules.narrative_planning.public import NovelEvent
+from ai_anime.modules.narrative_planning.public import NovelEpisode, NovelEvent
 from .config import init_cognee
 
 console = Console()

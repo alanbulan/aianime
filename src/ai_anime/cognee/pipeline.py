@@ -17,7 +17,6 @@ from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelEpisode,
     NovelVisualBeat,
 )
 from ai_anime.config import ensure_project_dirs, get_newapi_reasoning_kwargs
@@ -41,11 +40,11 @@ from .config import apply_cognee_project_storage_context
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelEpisode,
     NovelVisualBeat,
     NovelScene,
     NovelProp,
 )
+from ai_anime.modules.narrative_planning.public import NovelEpisode as _NovelEpisode
 
 
 # ============================================================
@@ -62,7 +61,7 @@ class CharacterList(BaseModel):
 class EpisodeList(BaseModel):
     """剧集列表容器。"""
 
-    episodes: List[NovelEpisode]
+    episodes: List[_NovelEpisode]
 
 
 def _set_cognee_project_context(
@@ -184,7 +183,7 @@ def _select_scene_primary_name(original_name: str, normalized_name: str) -> str:
 async def extract_episodes_from_text(
     text: str,
     target_episodes: int = 10,
-) -> List[NovelEpisode]:
+) -> List[_NovelEpisode]:
     """从小说文本中规划剧集。"""
     with preserve_st_env():
         from cognee.infrastructure.llm.LLMGateway import LLMGateway
@@ -246,9 +245,9 @@ async def _attach_character_metadata(
 
 
 async def _attach_episode_metadata(
-    episodes: List[NovelEpisode],
+    episodes: List[_NovelEpisode],
     project_name: str = "",  # 保留参数用于向后兼容，但不再使用
-) -> List[NovelEpisode]:
+) -> List[_NovelEpisode]:
     """为剧集附加元数据。
 
     注意：由于使用数据库级别隔离，不再需要 project_name。
@@ -276,7 +275,7 @@ async def run_episode_planning_pipeline(
     target_episodes: int = 10,
     dataset_name: str = "novel",
     project_name: str = "",
-) -> List[NovelEpisode]:
+) -> List[_NovelEpisode]:
     """运行剧集规划 Pipeline。"""
     with preserve_st_env():
         from cognee.modules.pipelines import Task, run_pipeline
@@ -285,16 +284,16 @@ async def run_episode_planning_pipeline(
 
     await setup()
 
-    async def extract_with_count(t: str) -> List[NovelEpisode]:
+    async def extract_with_count(t: str) -> List[_NovelEpisode]:
         return await extract_episodes_from_text(t, target_episodes)
 
-    async def attach_metadata(episodes: List[NovelEpisode]) -> List[NovelEpisode]:
+    async def attach_metadata(episodes: List[_NovelEpisode]) -> List[_NovelEpisode]:
         return await _attach_episode_metadata(episodes, project_name)
 
     # 用于捕获中间结果的包装函数
-    captured_episodes: List[NovelEpisode] = []
+    captured_episodes: List[_NovelEpisode] = []
 
-    async def capture_and_store(episodes: List[NovelEpisode]) -> List[NovelEpisode]:
+    async def capture_and_store(episodes: List[_NovelEpisode]) -> List[_NovelEpisode]:
         """捕获剧集列表并存入图谱。"""
         nonlocal captured_episodes
         captured_episodes = episodes
@@ -309,7 +308,7 @@ async def run_episode_planning_pipeline(
 
     async for result in run_pipeline(tasks=tasks, data=text, datasets=[dataset_name]):
         # 尝试从结果中获取剧集
-        if isinstance(result, list) and result and isinstance(result[0], NovelEpisode):
+        if isinstance(result, list) and result and isinstance(result[0], _NovelEpisode):
             captured_episodes = result
 
     return captured_episodes
@@ -534,7 +533,7 @@ async def extract_episodes_with_characters(
     dataset_name: str = "novel",
     project_name: str = "",
     on_log: Optional[Any] = None,
-) -> List[NovelEpisode]:
+) -> List[_NovelEpisode]:
     """规划剧集（支持已知角色列表）。
 
     与 extract_episodes_from_text 的区别：

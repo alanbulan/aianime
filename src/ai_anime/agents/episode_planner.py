@@ -32,7 +32,7 @@ from ai_anime.utils.logging import log_agent_start, log_agent_end
 
 if TYPE_CHECKING:
     from ai_anime.cognee import CogneeStore
-    from ai_anime.models import NovelEpisode
+    from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 
 # =============================================================================
@@ -221,7 +221,7 @@ class EpisodePlannerAgent:
         Returns:
             规划的剧集列表
         """
-        from ai_anime.models import NovelEpisode
+        from ai_anime.modules.narrative_planning.public import NovelEpisode
 
         with preserve_st_env():
             from cognee.tasks.storage import add_data_points

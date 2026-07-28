@@ -43,7 +43,7 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 class _M03Store:
     def __init__(self, project_dir: Path):
-        from ai_anime.models import NovelEpisode
+        from ai_anime.modules.narrative_planning.public import NovelEpisode
 
         self.project_dir = str(project_dir)
         self.episode = NovelEpisode(

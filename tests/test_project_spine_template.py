@@ -6,7 +6,7 @@ import pytest
 
 from ai_anime.api.projects_schemas import ProjectUpdate
 from ai_anime.api.story_intake_schemas import IngestStart
-from ai_anime.models import NovelEpisode
+from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 pytestmark = pytest.mark.m03
 

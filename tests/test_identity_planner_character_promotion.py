@@ -6,7 +6,8 @@ from ai_anime.agents.identity_planner import (
     EpisodeIdentityRequirements,
     IdentityPlanner,
 )
-from ai_anime.models import NovelCharacter, NovelEpisode
+from ai_anime.models import NovelCharacter
+from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 
 class FakeIdentityStore:

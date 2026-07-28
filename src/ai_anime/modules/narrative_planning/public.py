@@ -21,6 +21,7 @@ from ai_anime.modules.narrative_planning.application.episodes import (
     serialize_episode_items,
 )
 from ai_anime.modules.narrative_planning.application.episode_planning_models import (
+    NovelEpisode,
     NovelEvent,
 )
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
@@ -381,6 +382,7 @@ __all__ = [
     "LiteralBeatMetaOutput",
     "LiteralScriptWritingWorkflow",
     "NarrationScript",
+    "NovelEpisode",
     "NovelEvent",
     "SceneBlock",
     "SavedEpisodeContent",

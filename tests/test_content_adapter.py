@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.models import NovelEpisode
+from ai_anime.modules.narrative_planning.public import NovelEpisode
 from ai_anime.sqlite_store import SQLiteStore
 
 pytestmark = pytest.mark.m03

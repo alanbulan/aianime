@@ -1976,6 +1976,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十二批已将章节事件提取与剧集分配仍在使用的 `NovelEvent` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `episode_planning_models.py`，旧定义直接删除；Cognee store 与事件提取器作为外部调用方只经 Narrative Planning `public.py` 使用稳定类型，`cognee/pipeline.py` 和 `cognee/__init__.py` 中无真实调用的两级模型转发同步删除，不保留旧别名。Pydantic JSON Schema 比较保持等价，新增默认字段行为测试和所有权门禁，并验证 CogneeStore 真实导入链无循环依赖。SQLiteStore 与 Narrative Planning 剧集用例回归 33 项、M03 合同 7 项、完整后端分层门禁 146 项通过，合计 186 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十三批已将剧集规划与 SQLite 持久化仍在使用的 `NovelEpisode` 从后端公共 `models.py` 迁入现有唯一 Narrative Planning application `episode_planning_models.py`，旧定义直接删除，不新建第二个剧集模型模块。Agent、CogneeStore、SQLiteStore 与测试调用方统一改经 Narrative Planning `public.py`；`cognee/__init__.py` 的显式旧导出删除，`cognee/pipeline.py` 仅以私有 `_NovelEpisode` 别名满足内部管线类型和运行判断，不再提供公开兼容名。该模型当前复用旧巨石中唯一的 Scene/Prop 菜单规范化实现，避免在菜单聚合迁移前复制逻辑；Pydantic JSON Schema、序列化、菜单迁移与身份默认映射行为逐项保持等价。存储与规划回归 60 项通过、3 项按既有条件跳过，API 与 M03/M06 合同相关回归 89 项、完整后端分层门禁 147 项通过，合计 296 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

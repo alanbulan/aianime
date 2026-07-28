@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from ai_anime.modules.narrative_planning.public import NovelEpisode
+
 
 # ── 1. 导入不报错 ──────────────────────────────────────────
 def test_import():
@@ -113,7 +115,7 @@ async def test_build_characters_from_graph_only_adds_missing_characters(tmp_proj
 
 @pytest.mark.asyncio
 async def test_ingest_novel_reuses_graph_based_build_steps(tmp_project, tmp_path, monkeypatch):
-    from ai_anime.models import NovelCharacter, NovelEpisode
+    from ai_anime.models import NovelCharacter
 
     novel_path = tmp_path / "novel.txt"
     novel_path.write_text("林昭走进钟楼。", encoding="utf-8")
@@ -434,7 +436,7 @@ async def test_character_crud(tmp_project):
 # ── 5. episodes + beats 写入 ───────────────────────────────
 @pytest.mark.asyncio
 async def test_episode_and_beats(tmp_project):
-    from ai_anime.cognee.pipeline import NovelEpisode, NovelVisualBeat
+    from ai_anime.cognee.pipeline import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -488,7 +490,6 @@ async def test_episode_and_beats(tmp_project):
 async def test_episode_schema_migration_adds_planning_columns(tmp_path):
     import aiosqlite
 
-    from ai_anime.cognee.pipeline import NovelEpisode
     from ai_anime.sqlite_store import SQLiteStore
 
     output_dir = tmp_path / "output" / "testuser" / "legacy_episode_schema"
@@ -694,7 +695,7 @@ def test_stringify_search_fragment_handles_nested_lists():
 # ── 7. load_graph_state 恢复缓存 ──────────────────────────
 @pytest.mark.asyncio
 async def test_load_graph_state(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter, NovelEpisode
+    from ai_anime.cognee.pipeline import NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -759,7 +760,7 @@ async def test_identity_crud(tmp_project):
 # ── 9. 删除全部数据 ──────────────────────────────────────
 @pytest.mark.asyncio
 async def test_delete_project_data(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter, NovelEpisode
+    from ai_anime.cognee.pipeline import NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -778,8 +779,6 @@ async def test_delete_project_data(tmp_project):
 # ── 10. sketch_colors 读写 ────────────────────────────────
 @pytest.mark.asyncio
 async def test_sketch_colors(tmp_project):
-    from ai_anime.cognee.pipeline import NovelEpisode
-
     store = tmp_project
     await store._ensure_db()
 
@@ -849,7 +848,7 @@ async def test_beat_number_naming(tmp_project):
 # ── 13. get_script_as_dict ────────────────────────────────
 @pytest.mark.asyncio
 async def test_get_script_as_dict(tmp_project):
-    from ai_anime.cognee.pipeline import NovelEpisode, NovelVisualBeat
+    from ai_anime.cognee.pipeline import NovelVisualBeat
 
     store = tmp_project
     await store._ensure_db()
@@ -886,8 +885,6 @@ async def test_get_script_as_dict(tmp_project):
 # ── 14. persist_narration_script ──────────────────────────
 @pytest.mark.asyncio
 async def test_persist_narration_script(tmp_project):
-    from ai_anime.cognee.pipeline import NovelEpisode
-
     store = tmp_project
     await store._ensure_db()
 
@@ -927,7 +924,6 @@ async def test_persist_narration_script_completes_detected_refs_from_markers(tmp
     from ai_anime.cognee.pipeline import (
         CharacterIdentity,
         NovelCharacter,
-        NovelEpisode,
         NovelProp,
     )
 
@@ -977,8 +973,6 @@ async def test_persist_narration_script_completes_detected_refs_from_markers(tmp
 
 @pytest.mark.asyncio
 async def test_persist_beats_from_script_completes_empty_detected_markers(tmp_project):
-    from ai_anime.cognee.pipeline import NovelEpisode
-
     store = tmp_project
     await store._ensure_db()
 

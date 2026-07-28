@@ -5188,6 +5188,39 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
         assert "NovelEvent" not in facade.read_text(encoding="utf-8")
 
 
+def test_narrative_planning_episode_model_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    episode_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "episode_planning_models.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    callers = (
+        PACKAGE_ROOT / "agents" / "episode_planner.py",
+        PACKAGE_ROOT / "agents" / "identity_planner.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+        cognee_pipeline,
+    )
+
+    assert "class NovelEpisode(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelEpisode(BaseModel):" in episode_models.read_text(
+        encoding="utf-8"
+    )
+    assert '"NovelEpisode"' in public.read_text(encoding="utf-8")
+    for caller in callers:
+        assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+    assert "NovelEpisode" not in cognee_package.read_text(encoding="utf-8")
+    assert "NovelEpisode as _NovelEpisode" in cognee_pipeline.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_asset_world_style_config_has_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     style_models = (

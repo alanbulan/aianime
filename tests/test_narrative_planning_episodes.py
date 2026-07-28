@@ -6,6 +6,7 @@ import pytest
 
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
+    NovelEpisode,
     NovelEvent,
     get_episode_details,
     list_episode_summaries,
@@ -68,6 +69,34 @@ def test_novel_event_keeps_episode_planning_defaults() -> None:
         "content": "",
         "causes": [],
     }
+
+
+def test_novel_episode_preserves_asset_menu_migration() -> None:
+    episode = NovelEpisode(
+        number=1,
+        title="第一集",
+        scene_menu=[{"base_id": "宫门"}],
+        prop_menu=[{"base_id": "玉佩", "description": "白玉"}],
+        identity_default_map={"秦": "秦_青年"},
+    )
+
+    assert [item.model_dump() for item in episode.scene_menu] == [
+        {
+            "scene_id": "宫门",
+            "base_scene_id": "",
+            "variant_id": "",
+            "time_of_day": "",
+        }
+    ]
+    assert episode.prop_menu[0].model_dump() == {
+        "prop_id": "玉佩",
+        "prop_type": "object",
+        "visual_prompt": "白玉",
+        "description": "白玉",
+        "owner_identity_id": "",
+        "marker_color": "",
+    }
+    assert episode.identity_default_map == {"秦": "秦_青年"}
 
 
 def test_projects_episode_list_and_details() -> None:
