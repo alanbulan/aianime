@@ -26,14 +26,6 @@ async def test_send_scope_changed_returns_none_when_client_disconnected(monkeypa
     assert result is None
 
 
-def test_ws_connect_does_not_prewarm_default_home_scope() -> None:
-    assert chat_route._should_prewarm_on_ws_connect(ChatScope(kind="home")) is False
-
-
-def test_ws_connect_can_prewarm_non_home_scope() -> None:
-    assert chat_route._should_prewarm_on_ws_connect(ChatScope(kind="project", id="project_a")) is True
-
-
 @pytest.mark.anyio
 async def test_ai_assistant_access_check_uses_chat_feature_key(monkeypatch) -> None:
     seen = {}

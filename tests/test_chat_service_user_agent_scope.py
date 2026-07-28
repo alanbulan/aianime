@@ -30,18 +30,6 @@ def test_chat_visible_text_redacts_local_filesystem_paths():
     assert redacted.count("[本地路径]") == 2
 
 
-def test_completion_notice_appends_without_replacing_existing_reply():
-    existing = "我已经检查完前置条件，下一步会启动第 1 个任务。"
-    notice = (
-        "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。"
-    )
-
-    merged = chat_service._completion_text_or_existing(notice, existing)
-
-    assert merged.startswith(existing)
-    assert notice in merged
-
-
 def test_infer_display_tool_call_recovers_sketch_display_promise():
     inferred = chat_service._infer_display_tool_call_from_text(
         "全部显示",

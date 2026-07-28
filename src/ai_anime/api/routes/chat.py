@@ -23,6 +23,16 @@ from ai_anime.api.auth import (
 )
 from ai_anime.chat import service as chat_service
 from ai_anime.chat.store import ChatScope, chat_store
+from ai_anime.modules.ai_assistant.public import (
+    completion_text_or_existing,
+    merge_stream_text,
+    message_content,
+    should_emit_final_text,
+    should_prewarm_scope,
+    strip_replayed_chat_response,
+    text_with_attachment_context,
+    tool_display_payload,
+)
 from ai_anime.modules.project_workspace.public import (
     ProjectNotFound,
     list_project_workspaces,
@@ -180,71 +190,6 @@ def _scope_from_model(model: ChatScopePayload | None) -> ChatScope:
     return ChatScope.from_payload(model.model_dump() if model else None)
 
 
-def _should_prewarm_on_ws_connect(scope: ChatScope) -> bool:
-    return scope.kind != "home"
-
-
-def _completion_text_or_existing(event_text: object, existing: str) -> str:
-    final_text = str(event_text or "").strip()
-    if not final_text or final_text.startswith("stop="):
-        return existing
-    if existing.strip() and _is_completion_notice(final_text):
-        if final_text in existing:
-            return existing
-        return f"{existing.rstrip()}\n\n{final_text}"
-    return final_text
-
-
-def _is_completion_notice(text: str) -> bool:
-    return text in {
-        "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。",
-        "刚才这一步没有成功启动任务。请先根据返回的错误补齐前置条件；如果是配音缺少声线，可以到「资产库」上传或录制缺失声线后再继续。",
-    }
-
-
-def _message_content(message: object) -> str:
-    if not isinstance(message, dict):
-        return ""
-    content = message.get("content")
-    if isinstance(content, str):
-        return content.strip()
-    text = message.get("text")
-    if isinstance(text, str):
-        return text.strip()
-    return ""
-
-
-def _attachment_context_block(attachments: list[ChatAttachmentIn]) -> str:
-    if not attachments:
-        return ""
-    lines = [
-        "[CHAT_ATTACHMENTS]",
-        "The browser sent these attachment records with the user message.",
-    ]
-    for index, attachment in enumerate(attachments, 1):
-        lines.append("")
-        lines.append(f"{index}. fileName={attachment.fileName or ''}")
-        lines.append(f"   type={attachment.type or ''}")
-        lines.append(f"   mimeType={attachment.mimeType or ''}")
-        if attachment.fileSize is not None:
-            lines.append(f"   fileSize={attachment.fileSize}")
-        if attachment.url:
-            lines.append(f"   url={attachment.url}")
-        if attachment.path:
-            lines.append(f"   path={attachment.path}")
-        if attachment.content:
-            lines.append("   content=present")
-    lines.append("[/CHAT_ATTACHMENTS]")
-    return "\n".join(lines)
-
-
-def _text_with_attachment_context(
-    text: str, attachments: list[ChatAttachmentIn]
-) -> str:
-    block = _attachment_context_block(attachments)
-    return f"{text}\n\n{block}" if block else text
-
-
 def _attachment_payloads(attachments: list[ChatAttachmentIn]) -> list[dict[str, Any]]:
     payloads: list[dict[str, Any]] = []
     for attachment in attachments:
@@ -252,29 +197,6 @@ def _attachment_payloads(attachments: list[ChatAttachmentIn]) -> list[dict[str, 
         if payload:
             payloads.append(payload)
     return payloads
-
-
-def _should_emit_final_text(final_text: str, last_sent_text: str) -> bool:
-    final = " ".join(str(final_text or "").split())
-    last = " ".join(str(last_sent_text or "").split())
-    return bool(final) and final != last
-
-
-def _tool_display_payload(text: object, name: object = None) -> tuple[str, str]:
-    raw = str(text or "").strip()
-    tool_name = str(name or "").strip()
-    lines = raw.splitlines()
-    if lines and lines[0].lstrip().startswith("→ "):
-        first = lines[0].lstrip()[2:].strip()
-        head, sep, tail = first.partition(":")
-        if sep and head.strip():
-            tool_name = tool_name or head.strip()
-            lines[0] = tail.strip()
-        else:
-            tool_name = tool_name or (first.split()[0].strip() if first else "")
-            lines = lines[1:]
-    body = "\n".join(line for line in lines if line.strip()).strip()
-    return tool_name or "agent.tool", body
 
 
 async def _project_context_for_scope(
@@ -427,7 +349,8 @@ async def _stream_project_turn(
     project_ctx = await _project_context_for_scope(user, scope)
     project_dir = project_ctx.output_dir if project_ctx is not None else None
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
-    agent_text = _text_with_attachment_context(text, attachments)
+    attachment_payloads = _attachment_payloads(attachments)
+    agent_text = text_with_attachment_context(text, attachment_payloads)
     chat_service.add_user_message(
         username,
         project,
@@ -469,7 +392,7 @@ async def _stream_project_turn(
                 send_lock,
             )
         elif event_type == "tool_update":
-            tool_name, tool_body = _tool_display_payload(
+            tool_name, tool_body = tool_display_payload(
                 event.get("text"), event.get("name")
             )
             await _send_json_best_effort(
@@ -487,7 +410,7 @@ async def _stream_project_turn(
         elif event_type == "assistant_message":
             message = event.get("message")
             if isinstance(message, dict):
-                assistant_sent_text = _message_content(message)
+                assistant_sent_text = message_content(message)
                 await _send_json_best_effort(
                     websocket,
                     {
@@ -498,8 +421,8 @@ async def _stream_project_turn(
                     send_lock,
                 )
         elif event_type == "done":
-            final_text = _message_content(event.get("message"))
-            if _should_emit_final_text(final_text, assistant_sent_text):
+            final_text = message_content(event.get("message"))
+            if should_emit_final_text(final_text, assistant_sent_text):
                 assistant_sent_text = final_text
                 await _send_json_best_effort(
                     websocket,
@@ -561,13 +484,14 @@ async def _stream_home_turn(
         ),
         "",
     )
-    agent_text = _text_with_attachment_context(text, attachments)
+    attachment_payloads = _attachment_payloads(attachments)
+    agent_text = text_with_attachment_context(text, attachment_payloads)
     chat_store.append_message(
         username,
         scope,
         "user",
         text,
-        media=_attachment_payloads(attachments),
+        media=attachment_payloads,
         turn_id=turn_id,
     )
     thread = await hermes_pool.get_for_user(
@@ -591,7 +515,7 @@ async def _stream_home_turn(
         nonlocal persisted, assistant_text
         if persisted:
             return None
-        final_text = chat_service._strip_replayed_chat_response(
+        final_text = strip_replayed_chat_response(
             assistant_text,
             previous_assistant,
             text,
@@ -626,10 +550,10 @@ async def _stream_home_turn(
                     send_lock,
                 )
             elif event.type == "assistant_delta":
-                assistant_text = chat_service._merge_stream_text(
+                assistant_text = merge_stream_text(
                     assistant_text, event.text
                 )
-                display_text = chat_service._strip_replayed_chat_response(
+                display_text = strip_replayed_chat_response(
                     assistant_text,
                     previous_assistant,
                     text,
@@ -650,7 +574,7 @@ async def _stream_home_turn(
                 if event.name:
                     tool_name = event.name
                 tool_text += str(event.text or "") + "\n"
-                display_name, display_body = _tool_display_payload(tool_text, tool_name)
+                display_name, display_body = tool_display_payload(tool_text, tool_name)
                 await _send_json_best_effort(
                     websocket,
                     {
@@ -664,11 +588,11 @@ async def _stream_home_turn(
                     send_lock,
                 )
             elif event.type == "complete":
-                assistant_text = _completion_text_or_existing(
+                assistant_text = completion_text_or_existing(
                     event.text, assistant_text
                 )
 
-        assistant_text = chat_service._strip_replayed_chat_response(
+        assistant_text = strip_replayed_chat_response(
             assistant_text,
             previous_assistant,
             text,
@@ -687,8 +611,8 @@ async def _stream_home_turn(
             },
             send_lock,
         )
-        assistant_sent_text = _message_content(message)
-        if _should_emit_final_text(assistant_text, assistant_sent_text):
+        assistant_sent_text = message_content(message)
+        if should_emit_final_text(assistant_text, assistant_sent_text):
             assistant_sent_text = assistant_text
             await _send_json_best_effort(
                 websocket,
@@ -755,7 +679,7 @@ async def chat_ws(websocket: WebSocket) -> None:
     # Do not pre-warm the default home scope on connect. The React client often
     # immediately sends scope.set for the active project; warming home first
     # creates a worker that is then rotated and logs a noisy initialize timeout.
-    if _should_prewarm_on_ws_connect(current_scope):
+    if should_prewarm_scope(current_scope.kind):
         await chat_service.prewarm_chat_backend(
             username,
             project=current_scope.id if current_scope.kind == "project" else None,

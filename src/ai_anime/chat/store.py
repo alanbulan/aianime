@@ -18,39 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
+from ai_anime.modules.ai_assistant.public import strip_stored_assistant_replay
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
-
-
-def _assistant_prefix_candidates(previous_assistant: object) -> list[str]:
-    if isinstance(previous_assistant, (list, tuple)):
-        items = [str(item or "").strip() for item in previous_assistant if str(item or "").strip()]
-        candidates = ["".join(items[index:]) for index in range(len(items))]
-        candidates.extend(items)
-        return sorted(set(candidates), key=len, reverse=True)
-    prefix = str(previous_assistant or "").strip()
-    return [prefix] if prefix else []
-
-
-def _strip_replayed_assistant_prefix(content: str, previous_assistant: object) -> str:
-    text = str(content or "")
-    for prefix in _assistant_prefix_candidates(previous_assistant):
-        if text.startswith(prefix):
-            return text[len(prefix):].lstrip()
-        compact_prefix = "".join(prefix.split())
-        if not compact_prefix:
-            continue
-        matched = 0
-        end_index = 0
-        for index, char in enumerate(text):
-            if char.isspace():
-                continue
-            if matched >= len(compact_prefix) or char != compact_prefix[matched]:
-                break
-            matched += 1
-            end_index = index + 1
-            if matched == len(compact_prefix):
-                return text[end_index:].lstrip()
-    return text
 
 
 def _repo_root() -> Path:
@@ -325,7 +294,9 @@ class ChatStore:
             content = str(row["content"])
             if role == "assistant":
                 raw_content = content
-                content = _strip_replayed_assistant_prefix(content, previous_assistants)
+                content = strip_stored_assistant_replay(
+                    content, previous_assistants
+                )
                 previous_assistants.append(raw_content)
             try:
                 metadata = json.loads(row["metadata_json"] or "{}")

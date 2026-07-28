@@ -350,6 +350,67 @@ def test_creative_canvas_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_ai_assistant_callers_use_the_public_api() -> None:
+    ai_assistant_module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(ai_assistant_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.ai_assistant."):
+                continue
+            if imported == "ai_anime.modules.ai_assistant.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_ai_assistant_owns_chat_text_projection_rules() -> None:
+    domain = (
+        PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    store = PACKAGE_ROOT / "chat" / "store.py"
+    domain_imports = _imports(domain)
+    route_source = route.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    store_source = store.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in domain_imports
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported == "sqlite3"
+        or imported.startswith("ai_anime.chat")
+    }
+    for caller in (route, service, store):
+        assert "ai_anime.modules.ai_assistant.public" in _imports(caller)
+    for legacy_definition in (
+        "def _completion_text_or_existing(",
+        "def _merge_stream_text(",
+        "def _strip_replayed_assistant_prefix(",
+        "def _strip_replayed_chat_response(",
+        "def _message_content(",
+        "def _tool_display_payload(",
+    ):
+        assert legacy_definition not in route_source
+        assert legacy_definition not in service_source
+        assert legacy_definition not in store_source
+    assert "chat_service._strip_replayed_chat_response" not in route_source
+    assert "chat_service._merge_stream_text" not in route_source
+    assert "strip_stored_assistant_replay" in store_source
+    assert "strip_streamed_assistant_replay" in service_source
+    assert "completion_text_or_existing" in public_source
+    assert "strip_replayed_chat_response" in public_source
+
+
 def test_platform_release_callers_use_the_public_api() -> None:
     platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
     failures: list[str] = []

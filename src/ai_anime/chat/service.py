@@ -30,6 +30,14 @@ from ai_anime.chat.backend_sdk import (
     interrupt_live_codex_turn,
 )
 from ai_anime.chat.runtime_config import load_api_url
+from ai_anime.modules.ai_assistant.public import (
+    completion_text_or_existing,
+    is_hidden_chat_tool_event,
+    merge_stream_text,
+    split_trace_contents,
+    strip_replayed_chat_response,
+    strip_streamed_assistant_replay,
+)
 from ai_anime.modules.identity_access.public import create_agent_session
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.utils.error_redaction import redact_secrets
@@ -55,10 +63,6 @@ _REL_PATH_RE = re.compile(
     r"(?P<path>(?:assets|videos|audio|images|frames|sketches|grids|uploads|scripts)/[^\s)>\"]+\.(?:png|jpg|jpeg|webp|gif|mp4|mov|webm|wav|mp3|m4a))"
 )
 _MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
-_USER_TURN_LABEL_RE = re.compile(r"(?im)^\s*(?:user|human|用户|我)\s*[:：]\s*")
-_ASSISTANT_TURN_LABEL_RE = re.compile(
-    r"(?i)^\s*(?:assistant|ai|助手|助理|模型)\s*[:：]\s*"
-)
 _UI_SPEC_BLOCK_RE = re.compile(
     r"<ui-spec\b[^>]*>(.*?)</ui-spec>", re.IGNORECASE | re.DOTALL
 )
@@ -115,15 +119,6 @@ _AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS = """[AI_ANIME_SCRIPT_UPLOAD_GU
 - 只回复 1-2 句，不要列步骤，不要输出 markdown 标题。
 [/AI_ANIME_SCRIPT_UPLOAD_GUIDANCE]
 """
-_HIDDEN_TOOL_MARKERS = (
-    "skill_view",
-    "skills_list",
-    "skill view",
-    "skills list",
-    "loading skill",
-    "→ skill view",
-    "→ skills list",
-)
 _JSON_RENDER_CHAT_INSTRUCTIONS = """[RENDERING_CONTRACT]
 这是硬性输出合同，优先级高于普通叙述习惯。违反时必须自我修正后再回复。
 
@@ -887,59 +882,6 @@ def _append_message(
     }
 
 
-def _split_trace_contents(content: str) -> list[str]:
-    raw_lines = str(content or "").rstrip().splitlines()
-    blocks: list[list[str]] = []
-    current: list[str] = []
-    for line in raw_lines:
-        if not line.strip():
-            if current:
-                blocks.append(current)
-                current = []
-            continue
-        current.append(line)
-    if current:
-        blocks.append(current)
-    return ["\n".join(block) for block in blocks if block]
-
-
-def _is_hidden_chat_tool_event(name: object, text: object) -> bool:
-    """Internal Hermes bookkeeping tools should not become user-visible cards."""
-    haystack = f"{name or ''}\n{text or ''}".lower()
-    return any(marker in haystack for marker in _HIDDEN_TOOL_MARKERS)
-
-
-def _completion_text_or_existing(event_text: object, existing: str) -> str:
-    """ACP may finish with metadata like ``stop=end_turn`` after text deltas."""
-    final_text = str(event_text or "").strip()
-    if not final_text or final_text.startswith("stop="):
-        return existing
-    if existing.strip() and _is_completion_notice(final_text):
-        if final_text in existing:
-            return existing
-        return f"{existing.rstrip()}\n\n{final_text}"
-    return final_text
-
-
-def _is_completion_notice(text: str) -> bool:
-    return text in {
-        "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。",
-        "刚才这一步没有成功启动任务。请先根据返回的错误补齐前置条件；如果是配音缺少声线，可以到「资产库」上传或录制缺失声线后再继续。",
-    }
-
-
-def _merge_stream_text(existing: str, incoming: object) -> str:
-    """Support providers that emit either cumulative text or delta chunks."""
-    chunk = str(incoming or "")
-    if not chunk:
-        return existing
-    if chunk.startswith(existing):
-        return chunk
-    if existing.endswith(chunk):
-        return existing
-    return existing + chunk
-
-
 async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
     """Emit to the connected client without making persistence depend on it."""
     try:
@@ -947,144 +889,6 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
-
-
-def _assistant_prefix_candidates(previous_assistant: object) -> list[str]:
-    if isinstance(previous_assistant, (list, tuple)):
-        items = [
-            str(item or "").strip()
-            for item in previous_assistant
-            if str(item or "").strip()
-        ]
-        candidates = []
-        for index in range(len(items)):
-            suffix = items[index:]
-            candidates.append("".join(suffix))
-            candidates.append("\n".join(suffix))
-            candidates.append("\n\n".join(suffix))
-        candidates.extend(items)
-        return sorted(set(candidates), key=len, reverse=True)
-    prefix = str(previous_assistant or "").strip()
-    return [prefix] if prefix else []
-
-
-def _strip_replayed_assistant_prefix(
-    content: str,
-    previous_assistant: object,
-    *,
-    suppress_partial_replay: bool = False,
-) -> str:
-    """Hermes ACP can replay prior assistant text at the start of a new turn."""
-    text = str(content or "")
-    original_text = text
-    candidates = _assistant_prefix_candidates(previous_assistant)
-    while text and candidates:
-        original = text
-        for prefix in candidates:
-            if text.startswith(prefix):
-                text = text[len(prefix) :].lstrip()
-                break
-            compact_prefix = "".join(prefix.split())
-            if not compact_prefix:
-                continue
-            matched = 0
-            end_index = 0
-            for index, char in enumerate(text):
-                if char.isspace():
-                    continue
-                if matched >= len(compact_prefix) or char != compact_prefix[matched]:
-                    break
-                matched += 1
-                end_index = index + 1
-                if matched == len(compact_prefix):
-                    text = text[end_index:].lstrip()
-                    break
-            if text != original:
-                break
-        if text == original:
-            break
-    if suppress_partial_replay and not text.strip() and str(content or "").strip():
-        return ""
-    if not suppress_partial_replay and not text.strip() and original_text.strip():
-        return original_text
-    return text
-
-
-def _compact_chat_text(content: object) -> str:
-    return "".join(str(content or "").split())
-
-
-def _strip_leading_assistant_label(content: str) -> str:
-    return _ASSISTANT_TURN_LABEL_RE.sub("", str(content or ""), count=1).lstrip()
-
-
-def _looks_like_labeled_transcript_replay(content: str) -> bool:
-    text = str(content or "").lstrip()
-    if not text:
-        return False
-    if _USER_TURN_LABEL_RE.match(text):
-        return True
-    return bool(
-        _USER_TURN_LABEL_RE.search(text) and _ASSISTANT_TURN_LABEL_RE.search(text)
-    )
-
-
-def _strip_replayed_turn_transcript(
-    content: str,
-    current_prompt: object,
-    *,
-    suppress_partial_replay: bool = False,
-) -> str:
-    """Remove a replayed labeled transcript while keeping normal short replies intact."""
-    text = str(content or "")
-    prompt = str(current_prompt or "").strip()
-    if not text or not prompt:
-        return text
-
-    compact_prompt = _compact_chat_text(prompt)
-    best_end = -1
-    for match in _USER_TURN_LABEL_RE.finditer(text):
-        start = match.end()
-        line_end = text.find("\n", start)
-        if line_end < 0:
-            line_end = len(text)
-        line = text[start:line_end]
-
-        prompt_index = line.rfind(prompt)
-        if prompt_index >= 0:
-            best_end = max(best_end, start + prompt_index + len(prompt))
-            continue
-
-        if len(compact_prompt) >= 4 and compact_prompt in _compact_chat_text(line):
-            best_end = max(best_end, line_end)
-
-    if best_end < 0:
-        if suppress_partial_replay and _looks_like_labeled_transcript_replay(text):
-            return ""
-        return text
-    remainder = _strip_leading_assistant_label(text[best_end:])
-    if suppress_partial_replay and not remainder.strip():
-        return ""
-    return remainder
-
-
-def _strip_replayed_chat_response(
-    content: str,
-    previous_assistant: object,
-    current_prompt: object,
-    *,
-    suppress_partial_replay: bool = False,
-) -> str:
-    text = _strip_replayed_turn_transcript(
-        content,
-        current_prompt,
-        suppress_partial_replay=suppress_partial_replay,
-    )
-    return _strip_replayed_assistant_prefix(
-        text,
-        previous_assistant,
-        suppress_partial_replay=suppress_partial_replay,
-    )
 
 
 def _json_loads_with_trailing_repair(raw: str) -> Any:
@@ -2738,7 +2542,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
 
             trace = _extract_codex_history_trace(thread_item)
             if trace:
-                for block_index, block in enumerate(_split_trace_contents(trace)):
+                for block_index, block in enumerate(split_trace_contents(trace)):
                     history.append(
                         {
                             "id": turn_index * 10000 + item_index * 10 + block_index,
@@ -2803,7 +2607,9 @@ def list_messages(
             role = str(row["role"])
             if role == "assistant":
                 raw_content = content
-                content = _strip_replayed_assistant_prefix(content, previous_assistants)
+                content = strip_streamed_assistant_replay(
+                    content, previous_assistants
+                )
                 previous_assistants.append(raw_content)
             stored_media = _normalize_media_items(
                 json.loads(row["media_json"] or "[]"),
@@ -3569,7 +3375,7 @@ async def _stream_assistant_reply_hermes(
         nonlocal persisted_message, assistant_text, tool_text
         if persisted_message is not None:
             return persisted_message
-        final_text = _strip_replayed_chat_response(
+        final_text = strip_replayed_chat_response(
             assistant_text, previous_assistant, prompt
         ).strip()
         all_tool_ui_specs = _dedupe_tool_ui_specs(
@@ -3580,12 +3386,12 @@ async def _stream_assistant_reply_hermes(
         if not final_text:
             return None
         final_text = _normalize_json_render_reply(final_text)
-        final_tool_text = _strip_replayed_assistant_prefix(tool_text, previous_trace)
+        final_tool_text = strip_streamed_assistant_replay(tool_text, previous_trace)
         if final_tool_text.strip():
             add_trace_messages(
                 username,
                 project,
-                _split_trace_contents(final_tool_text),
+                split_trace_contents(final_tool_text),
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
@@ -3613,8 +3419,8 @@ async def _stream_assistant_reply_hermes(
                 )
                 continue
             if event.type == "assistant_delta":
-                assistant_text = _merge_stream_text(assistant_text, event.text)
-                streamed_text = _strip_replayed_chat_response(
+                assistant_text = merge_stream_text(assistant_text, event.text)
+                streamed_text = strip_replayed_chat_response(
                     assistant_text,
                     previous_assistant,
                     prompt,
@@ -3634,7 +3440,7 @@ async def _stream_assistant_reply_hermes(
                     tool_chat_error = _extract_tool_chat_error(event.raw)
                     if tool_chat_error and tool_chat_error not in seen_tool_chat_errors:
                         seen_tool_chat_errors.add(tool_chat_error)
-                        assistant_text = _merge_stream_text(
+                        assistant_text = merge_stream_text(
                             assistant_text,
                             ("\n\n" if assistant_text.strip() else "")
                             + tool_chat_error,
@@ -3688,15 +3494,15 @@ async def _stream_assistant_reply_hermes(
                             )
                 if event.name:
                     current_tool_name = event.name
-                    current_tool_hidden = _is_hidden_chat_tool_event(
+                    current_tool_hidden = is_hidden_chat_tool_event(
                         event.name, event.text
                     )
-                if current_tool_hidden or _is_hidden_chat_tool_event(
+                if current_tool_hidden or is_hidden_chat_tool_event(
                     current_tool_name, event.text
                 ):
                     continue
                 tool_text += str(event.text or "") + "\n"
-                display_tool_text = _strip_replayed_assistant_prefix(
+                display_tool_text = strip_streamed_assistant_replay(
                     tool_text, previous_trace
                 )
                 if display_tool_text.strip():
@@ -3712,7 +3518,7 @@ async def _stream_assistant_reply_hermes(
             if event.type == "complete":
                 if seen_tool_chat_errors and assistant_text.strip():
                     continue
-                assistant_text = _completion_text_or_existing(
+                assistant_text = completion_text_or_existing(
                     event.text, assistant_text
                 )
 
@@ -3800,7 +3606,7 @@ async def _stream_assistant_reply_claude(
                 )
                 continue
             if event.type == "assistant_delta":
-                assistant_text = _merge_stream_text(assistant_text, event.text)
+                assistant_text = merge_stream_text(assistant_text, event.text)
                 streamed_text = _redact_local_filesystem_paths(assistant_text)
                 await on_event(
                     {
@@ -3817,7 +3623,7 @@ async def _stream_assistant_reply_claude(
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
                     _set_claude_session_id(username, project, thread_id)
-                assistant_text = _completion_text_or_existing(
+                assistant_text = completion_text_or_existing(
                     event.text, assistant_text
                 )
 
@@ -3827,7 +3633,7 @@ async def _stream_assistant_reply_claude(
             add_trace_messages(
                 username,
                 project,
-                _split_trace_contents(tool_text),
+                split_trace_contents(tool_text),
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
@@ -3880,7 +3686,7 @@ async def _stream_assistant_reply_codex(
             )
             continue
         if event.type == "assistant_delta":
-            assistant_text = _merge_stream_text(assistant_text, event.text)
+            assistant_text = merge_stream_text(assistant_text, event.text)
             streamed_text = _redact_local_filesystem_paths(assistant_text)
             await on_event(
                 {
@@ -3897,7 +3703,7 @@ async def _stream_assistant_reply_codex(
             thread_id = str(event.thread_id or "").strip() or None
             if thread_id:
                 _set_codex_thread_id(username, project, thread_id)
-            assistant_text = _completion_text_or_existing(event.text, assistant_text)
+            assistant_text = completion_text_or_existing(event.text, assistant_text)
 
     assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
     assistant_text = _normalize_json_render_reply(assistant_text)
@@ -3905,7 +3711,7 @@ async def _stream_assistant_reply_codex(
         add_trace_messages(
             username,
             project,
-            _split_trace_contents(tool_text),
+            split_trace_contents(tool_text),
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )

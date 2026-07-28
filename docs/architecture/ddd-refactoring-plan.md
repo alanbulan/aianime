@@ -1731,6 +1731,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十五批已将根包 `llm_instrumentation.py` 拆入 Model Usage infrastructure：`runtime_context.py` 唯一管理用户/项目/资源/计费元数据 ContextVar、模型调用预留状态和预留栈，`registered_usage.py` 唯一持有进程注册表解析与 no-op 回退，`provider_instrumentation.py` 唯一负责 PydanticAI/OpenAI/LiteLLM trace、预留、退款和用量转发 hook；provider 不再反向导入本模块 public API，composition 与 provider 共同复用同一 registered resolver。Cognee 改经 public API 设置和恢复模型调用预留状态，public 同时提供 provider instrumentation 安装入口；ContextVar 键、资源类型白名单、metadata 复制、栈顺序、hook 幂等标记、模型归一、请求标识提取及计量时序均保持不变。旧根文件直接删除，不保留转发模块或第二套上下文；instrumentation/runtime/Usage、Cognee、CE 注册、容器与应用工厂定向回归 31 项及完整后端分层门禁 100 项均通过，修改文件 Ruff、Python 编译、迁移文件格式检查与 `git diff --check` 通过；Cognee 8 条告警均为既有依赖弃用告警。
 
+第三百三十六批已建立后端 AI Assistant domain/public 边界，将完成事件合并、累计/增量流文本合并、trace 分块、内部工具隐藏、带标签会话与历史 assistant 回放清理、附件上下文、消息正文、最终文本去重、工具展示和 scope 预热规则迁入唯一纯 domain 实现；持久化消息与流式响应对“完全重复历史回复”的原有不同语义被显式拆成 stored/streamed 两个策略并共享同一前缀匹配算法。Chat route、3,500 行 service 和 SQLite store 全部改经 public API，route 不再调用 service 私有文本函数；route 的附件仍先按原 Pydantic `exclude_none` 规则序列化，同一 payload 用于 agent 上下文与首页消息持久化，项目消息持久化、WebSocket 事件、完成通知、trace 与工具展示字段均保持不变。route/service/store 中旧重复 helper 和原散落测试直接删除，不保留 facade、私有别名或第二套规则；AI Assistant domain 14 项、Chat route 2 项、完整 Chat service 63 项、M08 合同 5 项及完整后端分层门禁 102 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
