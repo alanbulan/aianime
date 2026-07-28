@@ -33,7 +33,7 @@ import { AudioWaveformPlayer } from '@/features/canvas/ui/AudioWaveformPlayer';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { AudioOperationsPanel } from '@/features/canvas/nodes/AudioOperationsPanel';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';

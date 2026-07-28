@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   pollExportImageGeneration,
   resumeNodeGeneration,

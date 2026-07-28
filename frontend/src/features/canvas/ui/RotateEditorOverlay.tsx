@@ -15,7 +15,7 @@ import {
   DEFAULT_NODE_WIDTH,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { loadImageElement } from '@/features/canvas/infrastructure/browserImageRuntime';
 import { readUrl } from '@/lib/url-params';

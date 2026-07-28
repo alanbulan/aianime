@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 /**
  * 返回一个用于「取消引用上游素材」的函数。

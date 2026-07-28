@@ -37,7 +37,7 @@ import {
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from "@/features/canvas/ui/NodeHeader";
 import { NodeResizeHandle } from "@/features/canvas/ui/NodeResizeHandle";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { NodeContextBadges } from "@/features/freezone/context/NodeContextBadges";
 import { getFreezoneCanvasMetadata } from "@/features/freezone/canvasMetadataContext";
 import {

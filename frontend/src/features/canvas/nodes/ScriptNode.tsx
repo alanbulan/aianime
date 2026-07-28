@@ -48,7 +48,7 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   buildCanvasStoryScriptCommand,
   classifyCanvasStoryScriptReference,

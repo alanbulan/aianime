@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 import {
   CANVAS_NODE_TYPES,

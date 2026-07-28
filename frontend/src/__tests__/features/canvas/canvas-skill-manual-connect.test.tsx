@@ -5,7 +5,7 @@ import type { Connection, FinalConnectionState, OnConnectStartParams } from "@xy
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { Canvas } from "@/features/canvas/Canvas";
 
 // Canvas 用 useQueryClient()(beats/episodeDetail 预取),渲染需包 QueryClientProvider。

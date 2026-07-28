@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 /** Hide per-node operations while a box selection spans multiple nodes. */
 export function useIsBoxSelecting(): boolean {

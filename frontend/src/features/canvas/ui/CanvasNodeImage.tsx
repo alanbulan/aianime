@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { memo, useCallback, type ImgHTMLAttributes, type MouseEvent } from 'react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 export interface CanvasNodeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   viewerSourceUrl?: string | null;

@@ -7,7 +7,7 @@ import {
   getTopLevelCanvasBounds,
   hasVisibleTopLevelCanvasNode,
 } from '@/features/canvas/domain/canvasGeometry';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 /** 「回到节点」时的固定缩放比例（10%）。 */
 const BACK_TO_NODES_ZOOM = 0.1;

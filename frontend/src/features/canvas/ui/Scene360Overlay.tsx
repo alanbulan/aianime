@@ -16,7 +16,7 @@ import {
   type CanvasScene360AspectRatio,
 } from '@/features/canvas/domain/scene360';
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { generateCanvasScene360 } from '@/features/canvas/composition';

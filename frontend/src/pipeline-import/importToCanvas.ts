@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { CANVAS_NODE_TYPES, DEFAULT_NODE_WIDTH } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import type { ImportableAsset } from "./ImportPanel";
 
 const COLUMNS = 4;

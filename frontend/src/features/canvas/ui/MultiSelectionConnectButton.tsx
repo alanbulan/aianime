@@ -3,7 +3,7 @@ import { memo, useCallback, useMemo, useRef } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveCanvasBatchConnectContext } from '@/features/canvas/domain/canvasBatchConnection';
 
 const DRAG_THRESHOLD_PX = 5;

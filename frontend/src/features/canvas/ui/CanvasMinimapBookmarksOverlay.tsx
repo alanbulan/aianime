@@ -10,7 +10,7 @@ import {
   bookmarkIndexToDigit,
   projectToMinimap,
 } from "@/features/canvas/domain/viewportBookmarks";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 interface MinimapMetrics {
   left: number;

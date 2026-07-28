@@ -6,7 +6,7 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useIsBoxSelecting } from './useIsBoxSelecting';
 
 function node(id: string, selected: boolean): CanvasNode {

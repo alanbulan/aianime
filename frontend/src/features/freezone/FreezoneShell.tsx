@@ -56,7 +56,7 @@ import {
   isPlyOrGlbPushTargetKind,
   isScenePushTargetKind,
 } from "@/features/freezone/commit/pushTarget";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   deriveNodeDropInfo,
   modelSourceUrlFromNodeData,
@@ -85,7 +85,7 @@ import {
   queueLocalFreezoneProjection,
   removeLocalFreezoneProjection,
 } from "@/features/freezone/canvasSyncRuntime";
-import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
+import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
 
 export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 

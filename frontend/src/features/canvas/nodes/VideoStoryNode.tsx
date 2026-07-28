@@ -24,7 +24,7 @@ import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 type VideoStoryNodeProps = NodeProps & {
   id: string;

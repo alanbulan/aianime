@@ -13,7 +13,7 @@ import {
   type CanvasUpscaleImageSize,
   type CanvasUpscaleScaleFactor,
 } from '@/features/canvas/domain/upscale';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';

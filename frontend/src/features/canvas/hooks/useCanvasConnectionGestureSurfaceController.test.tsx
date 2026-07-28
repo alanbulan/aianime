@@ -38,7 +38,7 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/stores/canvasStore', () => ({
+vi.mock('@/features/canvas/canvasStore', () => ({
   useCanvasStore: controllerMocks.useStore,
 }));
 vi.mock('./useCanvasNodeHover', () => ({

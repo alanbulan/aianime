@@ -4,7 +4,7 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position, useStore } from '@xyflow
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
   isScriptNode,

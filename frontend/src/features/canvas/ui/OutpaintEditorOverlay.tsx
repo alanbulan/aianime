@@ -33,7 +33,7 @@ import {
   type CanvasOutpaintImageSize,
   type CanvasOutpaintNumImages,
 } from '@/features/canvas/domain/outpaint';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasOutpaint } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';

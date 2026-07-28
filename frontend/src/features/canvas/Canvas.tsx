@@ -9,7 +9,7 @@ import {
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasStageView } from './ui/CanvasStageView';

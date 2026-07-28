@@ -341,7 +341,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const directCanvasStoreUsers = sourceFiles(applicationRoot)
       .filter((path) =>
-        importSpecifiers(path).includes("@/stores/canvasStore"),
+        importSpecifiers(path).includes("@/features/canvas/canvasStore"),
       )
       .map(relativeSource)
       .sort();
@@ -422,7 +422,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const assetGateway = readFileSync(
@@ -865,6 +865,28 @@ describe("frontend architecture boundaries", () => {
       "export function withImageCacheBust(",
     );
     expect(bypasses).toEqual([]);
+  });
+
+  it("owns the Canvas Store inside Creative Canvas", () => {
+    const storePath = resolve(SRC_ROOT, "features/canvas/canvasStore.ts");
+    const legacyStorePath = resolve(SRC_ROOT, "stores/canvasStore.ts");
+    const declaration = "export const useCanvasStore = create<CanvasState>";
+    const owners = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const legacyImports = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        importSpecifiers(path).includes("@/stores/canvasStore"),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(storePath)).toBe(true);
+    expect(existsSync(legacyStorePath)).toBe(false);
+    expect(owners).toEqual(["features/canvas/canvasStore.ts"]);
+    expect(legacyImports).toEqual([]);
   });
 
   it("keeps Freezone canvas and Beat Context transport behind application ports", () => {
@@ -1607,7 +1629,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/VideoNode.tsx",
     );
-    const canvasStorePath = resolve(SRC_ROOT, "stores/canvasStore.ts");
+    const canvasStorePath = resolve(SRC_ROOT, "features/canvas/canvasStore.ts");
     const registrySource = readFileSync(registryPath, "utf8");
     const defaultDataSource = readFileSync(defaultDataPath, "utf8");
     const nodeFactorySource = readFileSync(nodeFactoryPath, "utf8");
@@ -1693,7 +1715,7 @@ describe("frontend architecture boundaries", () => {
     const navigationModel = readFileSync(navigationPath, "utf8");
     const historySlice = readFileSync(historySlicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasSync = readFileSync(
@@ -1810,7 +1832,7 @@ describe("frontend architecture boundaries", () => {
     );
     const historyModel = readFileSync(historyPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -1930,7 +1952,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewerPath).filter(
@@ -1981,7 +2003,7 @@ describe("frontend architecture boundaries", () => {
     );
     const mutationModel = readFileSync(mutationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeDeletionSlice = readFileSync(
@@ -2048,7 +2070,7 @@ describe("frontend architecture boundaries", () => {
     );
     const geometryModel = readFileSync(geometryPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const viewportSlice = readFileSync(
@@ -2545,7 +2567,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@xyflow/react" ||
         specifier.startsWith("@xyflow/react/") ||
         (specifier.startsWith("@/stores/") &&
-          specifier !== "@/stores/canvasStore") ||
+          specifier !== "@/features/canvas/canvasStore") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -2574,7 +2596,7 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
-    expect(controllerSource).toContain("@/stores/canvasStore");
+    expect(controllerSource).toContain("@/features/canvas/canvasStore");
     expect(controllerSource).toContain(
       "clearHoveredNodeTimer: hover.clearHoveredNodeTimer",
     );
@@ -4721,7 +4743,7 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
     ]);
-    expect(controllerSource).toContain("@/stores/canvasStore");
+    expect(controllerSource).toContain("@/features/canvas/canvasStore");
     expect(controllerSource).toContain("./useCanvasExternalDialogs");
     expect(controllerSource).toContain("imageViewerProps:");
     expect(controllerSource).toContain("videoViewerProps:");
@@ -5062,7 +5084,7 @@ describe("frontend architecture boundaries", () => {
     );
     const positionsModel = readFileSync(positionsPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -5121,7 +5143,7 @@ describe("frontend architecture boundaries", () => {
     );
     const normalizationModel = readFileSync(normalizationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const graphMutationSlice = readFileSync(
@@ -5179,7 +5201,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const forbiddenImports = [hydrationPath, normalizationPath].flatMap((path) =>
@@ -5257,7 +5279,7 @@ describe("frontend architecture boundaries", () => {
     const storyboardModel = readFileSync(storyboardPath, "utf8");
     const removalModel = readFileSync(removalPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeDeletionSlice = readFileSync(
@@ -5367,7 +5389,7 @@ describe("frontend architecture boundaries", () => {
     const autoGroupingModel = readFileSync(autoGroupingPath, "utf8");
     const storyboardCreationModel = readFileSync(storyboardCreationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const groupLifecycleSlice = readFileSync(
@@ -5511,7 +5533,7 @@ describe("frontend architecture boundaries", () => {
     const membersModel = readFileSync(membersPath, "utf8");
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const storyboardGroupSlice = readFileSync(
@@ -5621,7 +5643,7 @@ describe("frontend architecture boundaries", () => {
     const membersModel = readFileSync(membersPath, "utf8");
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const storyboardGroupSlice = readFileSync(
@@ -5693,7 +5715,7 @@ describe("frontend architecture boundaries", () => {
     const fitModel = readFileSync(fitPath, "utf8");
     const arrangementModel = readFileSync(arrangementPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const groupLifecycleSlice = readFileSync(
@@ -5780,7 +5802,7 @@ describe("frontend architecture boundaries", () => {
     const layoutModel = readFileSync(layoutPath, "utf8");
     const derivedCreationModel = readFileSync(derivedCreationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(layoutPath).filter(
@@ -5818,7 +5840,7 @@ describe("frontend architecture boundaries", () => {
     );
     const framesModel = readFileSync(framesPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -5898,7 +5920,7 @@ describe("frontend architecture boundaries", () => {
     const nodeEffectsModel = readFileSync(nodeEffectsPath, "utf8");
     const historyNavigationModel = readFileSync(historyNavigationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -6003,7 +6025,7 @@ describe("frontend architecture boundaries", () => {
     const layoutModel = readFileSync(layoutPath, "utf8");
     const changeEffectsModel = readFileSync(changeEffectsPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const forbiddenLayoutImports = importSpecifiers(layoutPath).filter(
@@ -6040,7 +6062,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -6165,7 +6187,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const derivedNodeCreationSlice = readFileSync(
@@ -6231,7 +6253,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeDataModel = readFileSync(nodeDataPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -6306,7 +6328,7 @@ describe("frontend architecture boundaries", () => {
     );
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -6363,7 +6385,7 @@ describe("frontend architecture boundaries", () => {
     );
     const duplicationModel = readFileSync(duplicationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const derivedNodeCreationSlice = readFileSync(
@@ -6426,7 +6448,7 @@ describe("frontend architecture boundaries", () => {
     );
     const captureModel = readFileSync(capturePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const derivedNodeCreationSlice = readFileSync(
@@ -6495,7 +6517,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeSizeModel = readFileSync(nodeSizePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -6572,7 +6594,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -6834,7 +6856,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const graphMutationSlice = readFileSync(
@@ -7139,7 +7161,7 @@ describe("frontend architecture boundaries", () => {
     );
     const deletionModel = readFileSync(deletionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const graphMutationSlice = readFileSync(
@@ -13048,7 +13070,7 @@ describe("frontend architecture boundaries", () => {
     );
     const layeringSource = readFileSync(layeringPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const nodeMutationSlice = readFileSync(
@@ -13259,7 +13281,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const implementations = [
@@ -13298,7 +13320,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("currentViewport: { x: 0, y: 0, zoom: 1 }");
     expect(canvasStore).not.toContain("viewportBookmarks: createEmptyBookmarks()");
     expect(canvasStore).not.toContain("imageViewer: createClosedCanvasImageViewer()");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas transient interaction state in one Zustand slice", () => {
@@ -13308,7 +13330,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13339,7 +13361,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("activeOverlayNodeId: null");
     expect(canvasStore).not.toContain("hoveredNodeId: null");
     expect(canvasStore).not.toContain("pendingFocusNodeId: null");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas history state and commands in one Zustand slice", () => {
@@ -13349,7 +13371,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13381,7 +13403,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
     expect(canvasStore).not.toContain("history: { past: [], future: [] }");
     expect(canvasStore).not.toContain("navigateCanvasHistory(state");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas graph mutations in one Zustand slice", () => {
@@ -13391,7 +13413,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const graphGateway = readFileSync(
@@ -13453,7 +13475,7 @@ describe("frontend architecture boundaries", () => {
     expect(graphGateway).toContain(
       ".addEdgeWithData(source, target, data, options)",
     );
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas document lifecycle in one Zustand slice", () => {
@@ -13463,7 +13485,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13501,7 +13523,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("userEditsSinceHydrate: 0");
     expect(canvasStore).not.toContain("pendingClearIntent: false");
     expect(canvasStore).not.toContain("normalizeCanvasData(");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas node mutations in one Zustand slice", () => {
@@ -13511,7 +13533,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const graphGateway = readFileSync(
@@ -13576,7 +13598,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas derived node creation in one Zustand slice", () => {
@@ -13586,7 +13608,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13628,7 +13650,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas node deletion in one Zustand slice", () => {
@@ -13638,7 +13660,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13671,7 +13693,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("deleteCanvasNodes(");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas group lifecycle in one Zustand slice", () => {
@@ -13681,7 +13703,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13723,7 +13745,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas storyboard group mutations in one Zustand slice", () => {
@@ -13733,7 +13755,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13775,7 +13797,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps Canvas selection state in one Zustand slice", () => {
@@ -13785,7 +13807,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -13817,7 +13839,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("selectedNodeId: null");
     expect(canvasStore).not.toContain("activeToolDialog: null");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/stores/canvasStore");
+    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
   });
 
   it("keeps VideoNode subtitle-erase controls in one presentation view", () => {
@@ -15998,7 +16020,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookSource = readFileSync(hookPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
     const declaration = [
@@ -16020,7 +16042,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useIsBoxSelecting.ts",
     ]);
     expect(importSpecifiers(hookPath)).toEqual([
-      "@/stores/canvasStore",
+      "@/features/canvas/canvasStore",
     ]);
     expect(hookSource).toContain("return useCanvasStore((state) => {");
     expect(canvasStore).not.toContain("useIsBoxSelecting");

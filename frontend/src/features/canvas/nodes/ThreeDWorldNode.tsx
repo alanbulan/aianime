@@ -89,7 +89,7 @@ import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceD
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 type ThreeDWorldNodeProps = NodeProps & {
   id: string;

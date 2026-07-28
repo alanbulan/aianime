@@ -102,7 +102,7 @@ import {
   type CapabilityParamDefinition,
 } from '@/features/freezone/capabilities/capabilityRegistry';
 import { UiButton } from '@/components/ui';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 type ImageEditNodeProps = NodeProps & {

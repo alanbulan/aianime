@@ -99,7 +99,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "pipeline-import/CompareDialog.tsx": 1,
   "pipeline-import/MaskEditor.tsx": 4,
   "routes/_app/index.tsx": 0,
-  "stores/canvasStore.ts": 2,
+  "features/canvas/canvasStore.ts": 2,
   "stores/settingsStore.ts": 2,
 };
 

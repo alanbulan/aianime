@@ -8,7 +8,7 @@ import {
 import type {
   CanvasEdge,
   CanvasNode,
-} from "@/stores/canvasStore";
+} from "@/features/canvas/canvasStore";
 import type { CanvasHistoryState } from "@/features/canvas/domain/canvasHistory";
 import {
   isCanvasMutationState,

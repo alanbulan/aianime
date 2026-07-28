@@ -38,7 +38,7 @@ import {
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
 } from '@/features/canvas/domain/redraw';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   generateCanvasRedraw,
   uploadCanvasAsset,

@@ -75,7 +75,7 @@ import {
 } from '@/features/freezone/context/skillI18n';
 import type { MainlineContext } from '@/features/freezone/context/mainlineContext';
 import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { isActive as isActiveTask } from '@/task-center/derivations';
 import { useTaskCenterStore } from '@/task-center/store';

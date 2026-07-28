@@ -7,7 +7,7 @@ import {
   type CanvasNode,
   type CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 import { useCanvasGenerationRecoveryController } from './useCanvasGenerationRecoveryController';
 

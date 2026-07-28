@@ -5,7 +5,7 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 function node(
   id: string,

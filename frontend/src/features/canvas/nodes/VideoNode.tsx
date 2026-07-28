@@ -202,7 +202,7 @@ import { useFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideo
 import { useIsBoxSelecting } from "@/features/canvas/hooks/useIsBoxSelecting";
 import { AssetLibraryModal } from "@/features/canvas/ui/AssetLibraryModal";
 import type { CanvasAssetLibrarySelection } from "@/features/canvas/domain/assetLibrary";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
 import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";

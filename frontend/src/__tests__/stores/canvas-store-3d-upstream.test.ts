@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 
 function incomingTo(target: string) {

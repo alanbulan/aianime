@@ -43,7 +43,7 @@ import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   awaitCanvasGenerationTaskCompletion,
   generateCanvasReversePrompt,

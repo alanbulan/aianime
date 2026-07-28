@@ -26,7 +26,7 @@ import {
   type StoryboardGenNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   CURRENT_RUNTIME_SESSION_ID,

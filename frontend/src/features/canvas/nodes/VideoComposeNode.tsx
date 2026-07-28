@@ -9,7 +9,7 @@ import {
 import { Film } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { useUpstreamNodes } from "@/features/canvas/hooks/useUpstreamGraph";
 import {
   CANVAS_NODE_TYPES,

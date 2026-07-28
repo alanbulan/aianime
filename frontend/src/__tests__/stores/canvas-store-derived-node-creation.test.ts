@@ -7,7 +7,7 @@ import {
   type CanvasNode,
   type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 function sourceNode(): CanvasNode {
   return {

@@ -41,7 +41,7 @@ import {
   X,
 } from "lucide-react";
 
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
   isAudioNode,

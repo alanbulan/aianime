@@ -19,7 +19,7 @@ import {
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { getToolPlugin, type ToolOptions } from '@/features/canvas/tools';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 import { UiButton, UiModal } from '@/components/ui';

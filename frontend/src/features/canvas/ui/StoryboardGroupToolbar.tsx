@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/shadcn/dropdown-menu';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type { CanvasNode, GroupNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   DEFAULT_STORYBOARD_ASPECT,

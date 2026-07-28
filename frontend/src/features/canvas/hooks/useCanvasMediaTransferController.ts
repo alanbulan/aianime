@@ -3,7 +3,7 @@ import { useCallback, useMemo } from 'react';
 
 import { hydrateAssetDragPayload } from '@/features/canvas/composition';
 import type { CanvasEventBus } from '@/features/canvas/application/ports';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 import {
   spawnAssetNode,

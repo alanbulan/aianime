@@ -9,7 +9,7 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   MultiAngleEditorPanel,
   type MultiAngleSubmitPayload,

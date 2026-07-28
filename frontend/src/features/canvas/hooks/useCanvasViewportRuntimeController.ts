@@ -6,7 +6,7 @@ import {
   jumpToBookmark,
   type CanvasViewportPort,
 } from '@/features/canvas/application/bookmarkActions';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 import {
   useCanvasEdgePan,

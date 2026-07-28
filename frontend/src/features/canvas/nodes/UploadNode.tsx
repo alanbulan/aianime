@@ -80,7 +80,7 @@ import type {
   DirectorStageManifest,
 } from '@/features/viewer-kit/three-d/directorManifest';
 import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '@/stores/settingsStore';
 

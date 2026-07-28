@@ -25,7 +25,7 @@ import {
 } from "@/features/freezone/canvasSyncRuntime";
 import { useShotMetadataStore } from "@/features/freezone/shotMetadataStore";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 vi.mock("@/features/canvas/composition", () => ({
   createCanvasFromPreset: vi.fn(),

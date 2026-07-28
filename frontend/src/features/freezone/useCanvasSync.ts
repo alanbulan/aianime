@@ -5,7 +5,7 @@ import {
   useCanvasStore,
   type CanvasEdge,
   type CanvasNode,
-} from "@/stores/canvasStore";
+} from "@/features/canvas/canvasStore";
 import type {
   CanvasHistorySnapshot,
   CanvasHistoryState,

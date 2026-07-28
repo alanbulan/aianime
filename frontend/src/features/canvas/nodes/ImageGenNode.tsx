@@ -77,7 +77,7 @@ import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 import {

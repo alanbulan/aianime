@@ -13,7 +13,7 @@ import {
 import { useReactFlow } from '@xyflow/react';
 
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 interface CanvasToolbarProps {
   isLocked: boolean;

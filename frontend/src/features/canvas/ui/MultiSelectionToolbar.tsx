@@ -18,7 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,

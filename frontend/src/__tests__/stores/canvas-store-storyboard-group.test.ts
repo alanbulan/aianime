@@ -12,7 +12,7 @@ import {
   resolveStoryboardCols,
   restoreStoryboardEdges,
 } from "@/features/canvas/domain/storyboardGroup";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 function seedImageNodes(count: number) {
   const nodes = Array.from({ length: count }, (_, index) => ({

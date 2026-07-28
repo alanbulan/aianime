@@ -14,7 +14,7 @@ import {
   projectionMetadataWithRequest,
   projectionKeyForPresetRequest,
 } from "@/features/freezone/projections";
-import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
+import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
 
 export async function openPresetProjectionInMyCanvas(
   projectId: string,

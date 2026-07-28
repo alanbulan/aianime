@@ -407,7 +407,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | `features/superchat/*` | `modules/ai-assistant/*` |
 | `features/freezone/*` | `modules/creative-canvas/*` |
 | `features/canvas/*` | 保留其已有分层，修正依赖后迁入 `modules/creative-canvas` |
-| `stores/canvasStore.ts` | Creative Canvas domain reducers + application store slices + composition |
+| `features/canvas/canvasStore.ts` | Creative Canvas Zustand composition root，组合 domain/application 规则与 infrastructure slices |
 | `lib/queries/*` | 各上下文 application/infrastructure query modules |
 | `api/ops.ts` | Creative Canvas infrastructure clients，按能力拆文件 |
 | `index.css` | `app/styles/*` + 各模块 presentation 样式 |
@@ -2009,6 +2009,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 第四百六十八批已将 Freezone lazy route 中项目查询、Canvas 参数订阅、加载/缺失状态、全局错误订阅和 Shell 装配迁入唯一 `FreezoneProjectPage`，route 经永久 `routeComposition.ts` 只传递项目参数，源码由 97 行降至 13 行。`openPresetProjectionInMyCanvas` 进入根 `public.ts`，Production 草图/渲染、Narrative Planning 与 Asset & World 四个领域调用方统一从 public 使用，不再穿透内部导航文件；Freezone UI 未静态导入根 public，避免形成 `Freezone public -> Shell -> Canvas -> Freezone public` 初始化环。新增 route adapter 与 modules 零内部路径穿透门禁。路由/公共 API/投影架构门禁 3 项、Freezone public 初始化、个人画布投影及 Production 草图/渲染回归 27 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
 第四百六十九批已建立最小 Canvas `public.ts`，仅公开唯一 application 所有者 `imageData.ts` 中的 `withImageCacheBust` 与 `dataUrlToBlob` 两项跨领域纯能力；Production 两个 composition 与 Viewer Kit 统一改经 public 使用，不复制规则或解码实现。新增门禁禁止 `modules` 和 `features/viewer-kit` 穿透 Canvas 内部路径，并锁定 public 的单一实现来源。Canvas public 定向架构门禁 1 项、Production 草图/渲染与 Viewer Kit 回归 45 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
+第四百七十批已将 138 行的唯一 Zustand 组合根从全局 `stores/canvasStore.ts` 整体迁入 `features/canvas/canvasStore.ts`，64 个生产调用方、37 个测试调用方及架构路径夹具统一切换新所有者；旧文件直接删除，不保留 re-export、路径别名或第二个 Store。Store 仍只组合既有 11 个 infrastructure slice 与唯一 NodeFactory，状态字段、公开命令和运行时实例均未改变。新增门禁锁定旧路径不存在、`useCanvasStore` 声明唯一且旧 import 为零。Canvas Store 27 个测试文件、91 项用例与完整前端架构门禁 217 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
 任务：
 

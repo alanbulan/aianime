@@ -9,7 +9,7 @@ import { generateCanvasAudio } from '@/features/canvas/audioComposition';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 /**
  * 音频节点的生成逻辑——提交按钮（面板）和失败重试（节点本体）共用。

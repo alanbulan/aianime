@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
 import { AudioOperationsPanel } from "@/features/canvas/nodes/AudioOperationsPanel";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 function renderPanel(data: Partial<AudioNodeData>) {
   const queryClient = new QueryClient({

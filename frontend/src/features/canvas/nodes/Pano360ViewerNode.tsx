@@ -58,7 +58,7 @@ import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/feature
 import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import { uploadLocalImageToBackend } from '@/features/canvas/composition';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
 } from '@/features/canvas/composition';

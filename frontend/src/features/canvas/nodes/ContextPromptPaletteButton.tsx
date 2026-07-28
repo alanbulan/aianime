@@ -13,7 +13,7 @@ import {
   NODE_CONTEXT_CONTROL_TRIGGER_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 interface ContextPromptPaletteProps {
   palette: ContextPromptPalette;

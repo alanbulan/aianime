@@ -49,7 +49,7 @@ import {
 } from '@/features/canvas/application/regenerateExportNode';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 
 type ImageNodeProps = NodeProps & {

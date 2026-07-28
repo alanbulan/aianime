@@ -113,7 +113,7 @@ import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
 import { copyImageSourceToClipboard } from "@/commands/image";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   analyzeCanvasVideoStory,
   separateCanvasAudioVideo,

@@ -14,7 +14,7 @@ import {
   type CanvasVideoUpscaleDenoise,
   type CanvasVideoUpscaleResolution,
 } from '@/features/canvas/domain/videoUpscale';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasVideoUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';

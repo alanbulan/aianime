@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 import type { CanvasGraphGateway } from '../application/ports';
 

@@ -10,7 +10,7 @@ import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
 import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
 import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
 import { setFreezoneCanvasMetadata } from "@/features/freezone/canvasMetadataContext";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 const updateBeat = vi.fn().mockResolvedValue({ ok: true, data: null });
 const listFreezoneBeatContext = vi.fn();

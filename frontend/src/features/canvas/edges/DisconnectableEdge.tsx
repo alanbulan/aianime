@@ -15,7 +15,7 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { buildOrthogonalRoute } from './edgeRouting';

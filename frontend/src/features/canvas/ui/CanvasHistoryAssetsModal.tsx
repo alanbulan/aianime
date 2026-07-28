@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import {
   extractCanvasAssets,

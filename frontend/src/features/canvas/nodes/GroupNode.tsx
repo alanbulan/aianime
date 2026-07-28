@@ -48,7 +48,7 @@ import {
   type StoryboardCellKind,
 } from '@/features/canvas/domain/storyboardCellPreview';
 import { useCanvasProjectionStatus } from '@/features/freezone/projectionStatusStore';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 
 type GroupNodeProps = {

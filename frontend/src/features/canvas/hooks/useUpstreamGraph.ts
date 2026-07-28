@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { extractUpstreamContent } from '../application/graphContentResolver';
 import { extractUpstreamImages } from '../application/graphImageResolver';
 import type { UpstreamContent } from '../application/ports';

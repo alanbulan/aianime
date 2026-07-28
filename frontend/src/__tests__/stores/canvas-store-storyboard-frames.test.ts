@@ -5,7 +5,7 @@ import {
   CANVAS_NODE_TYPES,
   type StoryboardFrameItem,
 } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 const frames: StoryboardFrameItem[] = [
   { id: "first", imageUrl: "first.png", note: "first", order: 0 },

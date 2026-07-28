@@ -15,7 +15,7 @@ import type {
   GridActionKey,
   GridActionRequest,
 } from '@/features/canvas/domain/gridAction';
-import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { generateCanvasGridAction } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
