@@ -400,6 +400,36 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
     assert "send_json_best_effort(" in route_source
 
 
+def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
+    schemas = PACKAGE_ROOT / "api" / "chat_schemas.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    schemas_source = schemas.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert "pydantic" in _imports(schemas)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(schemas)
+    assert "ai_anime.api.chat_schemas" in _imports(route)
+    for schema in (
+        "ChatScopePayload",
+        "ChatAttachmentIn",
+        "ChatMessageIn",
+        "ScopeSetIn",
+        "ChatUiEventIn",
+        "ChatNotificationIn",
+    ):
+        assert f"class {schema}(BaseModel):" in schemas_source
+        assert f"class {schema}(BaseModel):" not in route_source
+    assert "def to_chat_scope(" in schemas_source
+    assert "def attachment_payloads(" in schemas_source
+    assert "model_dump(exclude_none=True)" in schemas_source
+    assert "BaseModel" not in route_source
+    assert "model_dump(" not in route_source
+    assert "def _scope_from_model(" not in route_source
+    assert "def _attachment_payloads(" not in route_source
+    assert route_source.count("to_chat_scope(") == 4
+    assert route_source.count("attachment_payloads(") == 2
+
+
 def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = (
         PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"

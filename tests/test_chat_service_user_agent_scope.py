@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from ai_anime.api.chat_schemas import ChatNotificationIn, ChatScopePayload
 from ai_anime.api.routes import chat as chat_routes
 
 
@@ -49,8 +50,8 @@ async def test_append_chat_notification_persists_project_assistant_message(
     )
 
     result = await chat_routes.append_chat_notification(
-        chat_routes.ChatNotificationIn(
-            scope=chat_routes.ChatScopePayload(kind="project", id="demo"),
+        ChatNotificationIn(
+            scope=ChatScopePayload(kind="project", id="demo"),
             text="  任务已完成。  ",
         ),
         user={"username": "alice"},

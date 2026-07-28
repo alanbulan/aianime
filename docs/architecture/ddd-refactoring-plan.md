@@ -1791,6 +1791,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百六十五批已将 Chat WebSocket 发送并发与 heartbeat 生命周期迁入独立 API adapter：新增唯一 `api/chat_websocket.py`，统一持有 best-effort JSON 发送、每回合发送锁、默认 10 秒 scoped ping、heartbeat 任务创建/取消和断连隔离；项目与首页回合经同一 `stream_chat_turn` transport helper 注入 application event sink，业务事件发送异常继续向 application 可见，heartbeat 发送异常继续静默结束。Chat route 删除两套重复的锁、任务和 heartbeat 编排，以及原私有 best-effort helper，只保留 FastAPI 鉴权、输入、ACL、用例调用和响应映射，文件由 529 行降至 487 行；WebSocket 类型和 `asyncio`/`contextlib` 不进入 AI Assistant application，不保留旧 helper、转发壳或第二套 transport。Chat WebSocket transport 5 项、AI Assistant 模块 216 项、剩余 Chat/route 回归 3 项、M08 Chat 合同 5 项及完整后端分层门禁 131 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
 
+第三百六十六批已将 Chat 入站 DTO 与 payload 映射迁入独立 API schema adapter：新增唯一 `api/chat_schemas.py`，集中持有 scope、附件、WebSocket 消息、scope 切换、UI event 和通知六类 Pydantic 请求模型，以及 domain scope 转换和附件序列化；类名、字段名、默认值、可空性、`exclude_none=True` 和全空附件跳过语义保持不变。Chat route 删除全部 `BaseModel` 定义、`model_dump` 和两个私有 mapper，只导入稳定 schema 并调用转换函数，文件由 487 行降至 440 行；相关测试改为直接依赖 schema 所有者，不通过 route 获取 DTO，不保留旧定义、re-export 或第二套映射。Chat schema 6 项、Chat route/transport 回归 8 项、M08 Chat 合同 5 项及完整后端分层门禁 132 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

@@ -11,13 +11,21 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
 
 from ai_anime.api.auth import (
     AUTH_COOKIE_NAME,
     get_api_user,
     _verify_agent_bearer,
     _verify_browser_session,
+)
+from ai_anime.api.chat_schemas import (
+    ChatAttachmentIn,
+    ChatMessageIn,
+    ChatNotificationIn,
+    ChatUiEventIn,
+    ScopeSetIn,
+    attachment_payloads,
+    to_chat_scope,
 )
 from ai_anime.api.chat_websocket import (
     ChatEventSink,
@@ -74,55 +82,13 @@ async def cancel_chat_turn(user: dict = Depends(get_api_user)) -> dict[str, Any]
     return {"ok": True, "data": {"cancelled": cancelled}}
 
 
-class ChatScopePayload(BaseModel):
-    kind: str = "home"
-    id: str | None = None
-
-
-class ChatAttachmentIn(BaseModel):
-    id: str | None = None
-    type: str | None = None
-    kind: str | None = None
-    mimeType: str | None = None
-    fileName: str | None = None
-    fileSize: int | None = None
-    content: str | None = None
-    url: str | None = None
-    path: str | None = None
-    label: str | None = None
-
-
-class ChatMessageIn(BaseModel):
-    type: str
-    scope: ChatScopePayload | None = None
-    text: str
-    turn_id: str | None = None
-    attachments: list[ChatAttachmentIn] = []
-
-
-class ScopeSetIn(BaseModel):
-    type: str
-    scope: ChatScopePayload
-
-
-class ChatUiEventIn(BaseModel):
-    scope: ChatScopePayload
-    turn_id: str
-    event: dict[str, Any]
-
-
-class ChatNotificationIn(BaseModel):
-    scope: ChatScopePayload | None = None
-    text: str
-
-
 @router.post("/chat/notifications")
 async def append_chat_notification(
     payload: ChatNotificationIn,
     user: dict = Depends(get_api_user),
 ) -> dict[str, Any]:
     username = str(user["username"])
-    scope = _scope_from_model(payload.scope)
+    scope = to_chat_scope(payload.scope)
     text = payload.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
@@ -148,7 +114,7 @@ async def append_chat_ui_event(
     user: dict = Depends(get_api_user),
 ) -> dict[str, Any]:
     username = str(user["username"])
-    scope = _scope_from_model(payload.scope)
+    scope = to_chat_scope(payload.scope)
     if scope.kind == "project":
         await _project_context_for_scope(user, scope)
     turn_id = payload.turn_id.strip()
@@ -179,19 +145,6 @@ async def _authenticate_ws(websocket: WebSocket) -> dict[str, Any]:
 
     cookie_value = websocket.cookies.get(AUTH_COOKIE_NAME)
     return await _verify_browser_session(cookie_value)
-
-
-def _scope_from_model(model: ChatScopePayload | None) -> ChatScope:
-    return ChatScope.from_payload(model.model_dump() if model else None)
-
-
-def _attachment_payloads(attachments: list[ChatAttachmentIn]) -> list[dict[str, Any]]:
-    payloads: list[dict[str, Any]] = []
-    for attachment in attachments:
-        payload = attachment.model_dump(exclude_none=True)
-        if payload:
-            payloads.append(payload)
-    return payloads
 
 
 async def _project_context_for_scope(
@@ -290,14 +243,14 @@ async def _stream_project_turn(
     project_ctx = await _project_context_for_scope(user, scope)
     project_dir = project_ctx.output_dir if project_ctx is not None else None
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
-    attachment_payloads = _attachment_payloads(attachments)
+    serialized_attachments = attachment_payloads(attachments)
 
     async def event_stream(on_event: ChatEventSink) -> None:
         await project_chat_turns.stream(
             username,
             scope,
             text,
-            attachment_payloads,
+            serialized_attachments,
             turn_id,
             on_event,
             project_dir=project_dir,
@@ -321,14 +274,14 @@ async def _stream_home_turn(
     attachments: list[ChatAttachmentIn],
     turn_id: str,
 ) -> None:
-    attachment_payloads = _attachment_payloads(attachments)
+    serialized_attachments = attachment_payloads(attachments)
 
     async def event_stream(on_event: ChatEventSink) -> None:
         await hermes_home_replies.stream(
             username,
             scope,
             text,
-            attachment_payloads,
+            serialized_attachments,
             turn_id,
             on_event,
         )
@@ -376,7 +329,7 @@ async def chat_ws(websocket: WebSocket) -> None:
             event_type = str(raw.get("type") or "")
             if event_type == "scope.set":
                 msg = ScopeSetIn.model_validate(raw)
-                requested_scope = _scope_from_model(msg.scope)
+                requested_scope = to_chat_scope(msg.scope)
                 current_scope = await _send_scope_changed(
                     websocket, user, username, requested_scope
                 )
@@ -401,7 +354,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                 continue
 
             msg = ChatMessageIn.model_validate(raw)
-            scope = _scope_from_model(msg.scope) if msg.scope else current_scope
+            scope = to_chat_scope(msg.scope) if msg.scope else current_scope
             turn_id = (msg.turn_id or "").strip() or uuid.uuid4().hex
             text = msg.text.strip()
             if not text:
