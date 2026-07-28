@@ -375,11 +375,17 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
-    store = PACKAGE_ROOT / "chat" / "store.py"
+    history = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "sqlite_chat_history.py"
+    )
     domain_imports = _imports(domain)
     route_source = route.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
-    store_source = store.read_text(encoding="utf-8")
+    history_source = history.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
     assert not {
@@ -390,7 +396,7 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         or imported == "sqlite3"
         or imported.startswith("ai_anime.chat")
     }
-    for caller in (route, service, store):
+    for caller in (route, service):
         assert "ai_anime.modules.ai_assistant.public" in _imports(caller)
     for legacy_definition in (
         "def _completion_text_or_existing(",
@@ -402,13 +408,36 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     ):
         assert legacy_definition not in route_source
         assert legacy_definition not in service_source
-        assert legacy_definition not in store_source
+        assert legacy_definition not in history_source
     assert "chat_service._strip_replayed_chat_response" not in route_source
     assert "chat_service._merge_stream_text" not in route_source
-    assert "strip_stored_assistant_replay" in store_source
+    assert "strip_stored_assistant_replay" in history_source
     assert "strip_streamed_assistant_replay" in service_source
     assert "completion_text_or_existing" in public_source
     assert "strip_replayed_chat_response" in public_source
+
+
+def test_ai_assistant_owns_scoped_chat_history() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    scope = module / "domain" / "scope.py"
+    ports = module / "application" / "ports.py"
+    history = module / "infrastructure" / "sqlite_chat_history.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    legacy_store = PACKAGE_ROOT / "chat" / "store.py"
+
+    assert not legacy_store.exists()
+    assert "ai_anime.chat.store" not in _imports(route)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(route)
+    assert not {
+        imported
+        for imported in {*_imports(scope), *_imports(ports)}
+        if imported == "sqlite3" or imported == "os"
+    }
+    assert "sqlite3" in _imports(history)
+    assert "ai_anime.modules.ai_assistant.infrastructure" in _imports(composition)
+    assert "get_chat_history" in public.read_text(encoding="utf-8")
 
 
 def test_platform_release_callers_use_the_public_api() -> None:

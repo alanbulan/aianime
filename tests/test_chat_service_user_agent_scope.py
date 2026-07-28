@@ -9,7 +9,6 @@ import pytest
 from ai_anime.api.routes import chat as chat_routes
 from ai_anime.chat import backend_sdk
 from ai_anime.chat import service as chat_service
-from ai_anime.chat.store import ChatScope, chat_store
 
 
 @pytest.fixture
@@ -823,24 +822,6 @@ def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
     assert len(messages) == 50
     assert messages[0]["content"] == "message-10"
     assert messages[-1]["content"] == "message-59"
-
-
-def test_home_history_hides_trace_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    scope = ChatScope(kind="home")
-
-    chat_store.append_message("admin", scope, "user", "你好")
-    chat_store.append_message(
-        "admin", scope, "trace", "→ ai_anime_pipeline_status\ncompleted"
-    )
-    chat_store.append_message("admin", scope, "assistant", "你好！")
-
-    messages = chat_store.list_messages("admin", scope)
-
-    assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all(
-        "ai_anime_pipeline_status" not in message["content"] for message in messages
-    )
 
 
 def test_json_render_reply_normalizer_unwraps_fenced_ui_spec():

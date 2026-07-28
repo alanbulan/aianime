@@ -22,9 +22,10 @@ from ai_anime.api.auth import (
     _verify_browser_session,
 )
 from ai_anime.chat import service as chat_service
-from ai_anime.chat.store import ChatScope, chat_store
 from ai_anime.modules.ai_assistant.public import (
+    ChatScope,
     completion_text_or_existing,
+    get_chat_history,
     merge_stream_text,
     message_content,
     should_emit_final_text,
@@ -54,6 +55,7 @@ from ai_anime.modules.model_usage.public import (
 router = APIRouter()
 
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
+chat_history = get_chat_history()
 
 
 @router.post("/chat/cancel")
@@ -148,7 +150,7 @@ async def append_chat_notification(
             else None,
         )
     else:
-        message = chat_store.append_message(username, scope, "assistant", text)
+        message = chat_history.append_message(username, scope, "assistant", text)
     return {"ok": True, "data": message}
 
 
@@ -165,7 +167,7 @@ async def append_chat_ui_event(
     if not turn_id:
         raise HTTPException(status_code=400, detail="turn_id is required")
     try:
-        event = chat_store.append_ui_event(username, scope, turn_id, payload.event)
+        event = chat_history.append_ui_event(username, scope, turn_id, payload.event)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "data": event}
@@ -252,7 +254,7 @@ async def _history(
             if project_ctx is not None
             else None,
         )
-    return chat_store.list_messages(username, scope)
+    return chat_history.list_messages(username, scope)
 
 
 async def _send_scope_changed(
@@ -479,14 +481,14 @@ async def _stream_home_turn(
     previous_assistant = next(
         (
             str(message.get("content") or "")
-            for message in reversed(chat_store.list_messages(username, scope))
+            for message in reversed(chat_history.list_messages(username, scope))
             if message.get("role") == "assistant"
         ),
         "",
     )
     attachment_payloads = _attachment_payloads(attachments)
     agent_text = text_with_attachment_context(text, attachment_payloads)
-    chat_store.append_message(
+    chat_history.append_message(
         username,
         scope,
         "user",
@@ -522,7 +524,7 @@ async def _stream_home_turn(
         ).strip()
         if not final_text:
             return None
-        message = chat_store.append_message(username, scope, "assistant", final_text)
+        message = chat_history.append_message(username, scope, "assistant", final_text)
         persisted = True
         return message
 
@@ -598,7 +600,7 @@ async def _stream_home_turn(
             text,
         )
         assistant_text = assistant_text.strip() or "(agent returned no content)"
-        message = chat_store.append_message(
+        message = chat_history.append_message(
             username, scope, "assistant", assistant_text
         )
         persisted = True
@@ -631,7 +633,7 @@ async def _stream_home_turn(
         }
         for project in sorted(after_projects - before_projects):
             project_scope = ChatScope(kind="project", id=project)
-            chat_store.append_message(
+            chat_history.append_message(
                 username,
                 project_scope,
                 "system",

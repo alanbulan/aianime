@@ -1,29 +1,23 @@
-"""Scoped chat persistence shared by NiceGUI and the React WebSocket API.
-
-Lovart-style split:
-    * home scope: user-level conversation before a project exists.
-    * project scope: project/canvas conversation and iteration history.
-
-The project chat DB path intentionally matches ``chat_service.py`` so existing
-NiceGUI history remains readable by the future React UI.
-"""
+"""SQLite-backed scoped chat history."""
 
 from __future__ import annotations
 
 import json
 import os
 import sqlite3
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
-from ai_anime.modules.ai_assistant.public import strip_stored_assistant_replay
+from ai_anime.modules.ai_assistant.domain import (
+    ChatScope,
+    strip_stored_assistant_replay,
+)
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[5]
 
 
 def _state_root() -> Path:
@@ -33,30 +27,7 @@ def _state_root() -> Path:
     return _repo_root() / "state"
 
 
-@dataclass(frozen=True)
-class ChatScope:
-    kind: Literal["home", "project", "asset", "task"]
-    id: str | None = None
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any] | None) -> "ChatScope":
-        payload = payload or {"kind": "home"}
-        kind = str(payload.get("kind") or "home")
-        if kind not in {"home", "project", "asset", "task"}:
-            raise ValueError(f"unsupported chat scope: {kind}")
-        raw_id = payload.get("id")
-        scope_id = str(raw_id).strip() if raw_id is not None else None
-        if kind == "home":
-            scope_id = None
-        if kind != "home" and not scope_id:
-            raise ValueError(f"scope id is required for {kind}")
-        return cls(kind=kind, id=scope_id)
-
-    def to_dict(self) -> dict[str, str | None]:
-        return {"kind": self.kind, "id": self.id}
-
-
-class ChatStore:
+class SQLiteChatHistory:
     def db_for(self, username: str, scope: ChatScope) -> Path:
         if scope.kind == "home":
             return _state_root() / username / "_home" / "chat.db"
@@ -90,7 +61,10 @@ class ChatStore:
         if "turn_id" not in columns:
             conn.execute("ALTER TABLE chat_messages ADD COLUMN turn_id TEXT")
         if "metadata_json" not in columns:
-            conn.execute("ALTER TABLE chat_messages ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'")
+            conn.execute(
+                "ALTER TABLE chat_messages "
+                "ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"
+            )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS chat_ui_events (
@@ -174,7 +148,9 @@ class ChatStore:
         turn_id = str(turn_id or "").strip()
         if not turn_id:
             raise ValueError("turn_id is required")
-        event_type = str(event.get("type") or event.get("event_type") or "ui_event").strip()
+        event_type = str(
+            event.get("type") or event.get("event_type") or "ui_event"
+        ).strip()
         created_at = datetime.now(timezone.utc).isoformat()
         conn = self.connect(username, scope)
         try:
@@ -183,7 +159,12 @@ class ChatStore:
                 INSERT INTO chat_ui_events(turn_id, event_type, payload_json, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (turn_id, event_type, json.dumps(event, ensure_ascii=False), created_at),
+                (
+                    turn_id,
+                    event_type,
+                    json.dumps(event, ensure_ascii=False),
+                    created_at,
+                ),
             )
             conn.commit()
             return {
@@ -196,7 +177,10 @@ class ChatStore:
         finally:
             conn.close()
 
-    def _load_ui_events(self, conn: sqlite3.Connection) -> dict[str, list[dict[str, Any]]]:
+    def _load_ui_events(
+        self,
+        conn: sqlite3.Connection,
+    ) -> dict[str, list[dict[str, Any]]]:
         rows = conn.execute(
             """
             SELECT id, turn_id, event_type, payload_json, created_at
@@ -237,7 +221,10 @@ class ChatStore:
                 continue
             target_index: int | None = None
             for index, message in enumerate(messages):
-                if message.get("role") == "assistant" and message.get("turn_id") == turn_id:
+                if (
+                    message.get("role") == "assistant"
+                    and message.get("turn_id") == turn_id
+                ):
                     target_index = index
                     break
             if target_index is None:
@@ -245,7 +232,8 @@ class ChatStore:
                     (
                         index
                         for index, message in enumerate(messages)
-                        if message.get("role") == "user" and message.get("turn_id") == turn_id
+                        if message.get("role") == "user"
+                        and message.get("turn_id") == turn_id
                     ),
                     None,
                 )
@@ -295,7 +283,8 @@ class ChatStore:
             if role == "assistant":
                 raw_content = content
                 content = strip_stored_assistant_replay(
-                    content, previous_assistants
+                    content,
+                    previous_assistants,
                 )
                 previous_assistants.append(raw_content)
             try:
@@ -318,6 +307,3 @@ class ChatStore:
             )
         self._attach_ui_events_to_messages(messages, events_by_turn)
         return messages
-
-
-chat_store = ChatStore()

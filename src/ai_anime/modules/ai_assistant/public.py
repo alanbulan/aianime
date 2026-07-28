@@ -1,6 +1,8 @@
 """Stable application API exposed by AI Assistant."""
 
+from ai_anime.modules.ai_assistant.application import ChatHistory
 from ai_anime.modules.ai_assistant.domain import (
+    ChatScope,
     completion_text_or_existing,
     is_hidden_chat_tool_event,
     merge_stream_text,
@@ -15,8 +17,18 @@ from ai_anime.modules.ai_assistant.domain import (
     tool_display_payload,
 )
 
+
+def get_chat_history() -> ChatHistory:
+    from ai_anime.modules.ai_assistant.composition import get_chat_history as resolve
+
+    return resolve()
+
+
 __all__ = [
+    "ChatHistory",
+    "ChatScope",
     "completion_text_or_existing",
+    "get_chat_history",
     "is_hidden_chat_tool_event",
     "merge_stream_text",
     "message_content",

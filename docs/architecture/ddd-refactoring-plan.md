@@ -1733,6 +1733,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十六批已建立后端 AI Assistant domain/public 边界，将完成事件合并、累计/增量流文本合并、trace 分块、内部工具隐藏、带标签会话与历史 assistant 回放清理、附件上下文、消息正文、最终文本去重、工具展示和 scope 预热规则迁入唯一纯 domain 实现；持久化消息与流式响应对“完全重复历史回复”的原有不同语义被显式拆成 stored/streamed 两个策略并共享同一前缀匹配算法。Chat route、3,500 行 service 和 SQLite store 全部改经 public API，route 不再调用 service 私有文本函数；route 的附件仍先按原 Pydantic `exclude_none` 规则序列化，同一 payload 用于 agent 上下文与首页消息持久化，项目消息持久化、WebSocket 事件、完成通知、trace 与工具展示字段均保持不变。route/service/store 中旧重复 helper 和原散落测试直接删除，不保留 facade、私有别名或第二套规则；AI Assistant domain 14 项、Chat route 2 项、完整 Chat service 63 项、M08 合同 5 项及完整后端分层门禁 102 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百三十七批已将 scoped Chat history 完整收口至 AI Assistant：`ChatScope` 及 payload 归一/校验迁入 domain，`ChatHistory` 协议归入 application ports，唯一 `SQLiteChatHistory` infrastructure adapter 持有状态目录解析、四类 scope 数据库布局、建表/增量迁移、消息与 UI event 持久化及可见历史投影，composition/public 提供唯一进程级实例访问。Chat route 与测试全部改经 public API，首页历史特征测试迁入模块级 adapter 测试，旧 `chat/store.py` 直接删除，不保留 facade、别名或第二套存储实现；`AI_ANIME_STATE_DIR` 与默认仓库 `state` 路径、首页/项目/asset/task 数据库位置、SQLite 表和增量列、默认最近 50 条、trace 隐藏、assistant replay 清理、UI event 归并、响应字段及 UTC ISO 时间格式均保持不变。Scope domain 11 项、SQLite adapter 10 项、Chat route 2 项、完整 Chat service 62 项、M08 合同 5 项及完整后端分层门禁 103 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

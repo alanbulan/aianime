@@ -2,7 +2,7 @@ import pytest
 from starlette.websockets import WebSocketDisconnect
 
 from ai_anime.api.routes import chat as chat_route
-from ai_anime.chat.store import ChatScope
+from ai_anime.modules.ai_assistant.public import ChatScope
 
 
 @pytest.mark.anyio
