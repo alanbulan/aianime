@@ -16,7 +16,7 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/use-superchat.test.ts"),
+      resolve(SRC_ROOT, "__tests__/features/superchat/message-cache.test.ts"),
       "utf8",
     );
 
@@ -138,5 +138,42 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("function scopeSessionKey(");
     expect(hook).not.toContain("function scopeMatches(");
     expect(hook).not.toContain("function isChatScope(");
+  });
+
+  it("keeps message timeline reconciliation outside the controller hook", () => {
+    const timeline = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/message-timeline.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/message-timeline.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/message-timeline";');
+    expect(tests).toContain('from "@/features/superchat/message-timeline";');
+    expect(tests).not.toContain('from "@/features/superchat/use-superchat";');
+    for (const ownedOperation of [
+      "export function normalizeHistory(",
+      "export function sortMessages(",
+      "export function turnCompletedInHistory(",
+      "export function mergeHistorySnapshot(",
+    ]) {
+      expect(timeline).toContain(ownedOperation);
+      expect(hook).not.toContain(ownedOperation);
+    }
+    for (const privateRule of [
+      "function normalizedText(",
+      "function assistantTextEquivalent(",
+      "function hasEquivalentHistoryMessage(",
+      "function hasCompletedTurnInHistory(",
+    ]) {
+      expect(timeline).toContain(privateRule);
+      expect(hook).not.toContain(privateRule);
+    }
   });
 });

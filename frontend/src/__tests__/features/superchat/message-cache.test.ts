@@ -7,7 +7,6 @@ import {
   sanitizeMessagesForCache,
   saveCachedMessages,
 } from "@/features/superchat/message-cache";
-import { mergeHistorySnapshot } from "@/features/superchat/use-superchat";
 import type { ChatMessage, ChatRole } from "@/features/superchat/types";
 
 const MESSAGE_CACHE_PREFIX = "superchat:messages:v2:";
@@ -22,131 +21,6 @@ function message(
 ): ChatMessage {
   return { id, role, text, timestamp, turnId };
 }
-
-describe("mergeHistorySnapshot", () => {
-  it("replaces local turn messages with matching backend history", () => {
-    const current = [
-      message("user-turn-1", "user", "你好", 10, "turn-1"),
-      message("assistant-turn-1", "assistant", "你好，有什么可以帮你？", 20, "turn-1"),
-    ];
-    const history = [
-      message("backend-user-1", "user", "你好", 30),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 40),
-    ];
-
-    const merged = mergeHistorySnapshot(current, history, "turn-1");
-
-    expect(merged.map((item) => item.id)).toEqual(["backend-user-1", "backend-assistant-1"]);
-  });
-
-  it("replaces a completed local turn when the final local delta is newer than backend history", () => {
-    const current = [
-      message("user-turn-1", "user", "你好", 100, "turn-1"),
-      message("assistant-turn-1", "assistant", "你好，有什么可以帮你？", 300, "turn-1"),
-    ];
-    const history = [
-      message("backend-user-1", "user", "你好", 150),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 250),
-    ];
-
-    const merged = mergeHistorySnapshot(current, history, "turn-1");
-
-    expect(merged.map((item) => item.id)).toEqual(["backend-user-1", "backend-assistant-1"]);
-  });
-
-  it("replaces a completed local turn even when local partial text differs", () => {
-    const current = [
-      message("user-turn-1", "user", "你好", 100, "turn-1"),
-      message("assistant-turn-1", "assistant", "正在生成", 120, "turn-1"),
-    ];
-    const history = [
-      message("backend-user-1", "user", "你好", 150),
-      message("backend-assistant-1", "assistant", "你好！有什么我可以帮你的吗？", 250),
-    ];
-
-    const merged = mergeHistorySnapshot(current, history, "turn-1");
-
-    expect(merged.map((item) => item.id)).toEqual(["backend-user-1", "backend-assistant-1"]);
-  });
-
-  it("keeps the protected in-flight turn when a stale snapshot has the same user text", () => {
-    const current = [
-      message("backend-user-1", "user", "你好", 10),
-      message("backend-assistant-1", "assistant", "第一轮回复", 20),
-      message("user-turn-2", "user", "你好", 30, "turn-2"),
-      message("assistant-turn-2", "assistant", "正在生成", 40, "turn-2"),
-    ];
-    const staleHistory = [
-      message("backend-user-1", "user", "你好", 10),
-      message("backend-assistant-1", "assistant", "第一轮回复", 20),
-    ];
-
-    const merged = mergeHistorySnapshot(current, staleHistory, "turn-2");
-
-    expect(merged.map((item) => item.id)).toEqual([
-      "backend-user-1",
-      "backend-assistant-1",
-      "user-turn-2",
-      "assistant-turn-2",
-    ]);
-  });
-
-  it("keeps a protected assistant reply even when it resembles an earlier turn", () => {
-    const current = [
-      message("backend-user-1", "user", "你好", 10, "turn-1"),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 20, "turn-1"),
-      message("user-turn-2", "user", "你好", 30, "turn-2"),
-      message("assistant-turn-2", "assistant", "你好，有什么可以帮你？", 40, "turn-2"),
-    ];
-    const staleHistory = [
-      message("backend-user-1", "user", "你好", 10, "turn-1"),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 20, "turn-1"),
-    ];
-
-    const merged = mergeHistorySnapshot(current, staleHistory, "turn-2");
-
-    expect(merged.map((item) => item.id)).toEqual([
-      "backend-user-1",
-      "backend-assistant-1",
-      "user-turn-2",
-      "assistant-turn-2",
-    ]);
-  });
-
-  it("does not collapse repeated completed turns from backend history", () => {
-    const history = [
-      message("backend-user-1", "user", "你好", 10),
-      message("backend-assistant-1", "assistant", "回复", 20),
-      message("backend-user-2", "user", "你好", 30),
-      message("backend-assistant-2", "assistant", "回复", 40),
-    ];
-
-    const merged = mergeHistorySnapshot([], history);
-
-    expect(merged.map((item) => item.id)).toEqual([
-      "backend-user-1",
-      "backend-assistant-1",
-      "backend-user-2",
-      "backend-assistant-2",
-    ]);
-  });
-
-  it("drops unprotected local assistant leftovers when backend history arrives", () => {
-    const current = [
-      message("backend-user-1", "user", "第一句", 10),
-      message("backend-assistant-1", "assistant", "第一轮回复", 20),
-      message("assistant-stale", "assistant", "上次残留的回复", 30, "turn-stale"),
-    ];
-    const history = [
-      message("backend-user-1", "user", "第一句", 10),
-      message("backend-assistant-1", "assistant", "第一轮回复", 20),
-    ];
-
-    const merged = mergeHistorySnapshot(current, history);
-
-    expect(merged.map((item) => item.id)).toEqual(["backend-user-1", "backend-assistant-1"]);
-  });
-});
 
 describe("normalizeMessage", () => {
   it("strips internal AI anime context blocks from displayed text", () => {
