@@ -1970,6 +1970,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十九批基于全仓 Python 符号调用审计，直接删除后端公共 `models.py` 中仅有定义、没有任何业务或测试调用方的 `NodeType`、`RelationType`、`EpisodeNode` 与 `GenreStyle` 四个遗留类型，以及随之失效的 `Enum` 导入和空分区注释；不将死代码迁移到新模块，也不保留 re-export、旧别名或兼容分支。新增架构门禁禁止四类重新进入旧模型巨石。完整后端分层门禁 143 项、修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十批已将脚本生成运行时使用的 `NarrationScript`、`VisualBeat` 与 `format_beat_narration` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `script_models.py`，旧定义直接删除，不保留 re-export、别名或重复格式化实现。Narrative Planning 内部脚本写作与提示词 infrastructure 直连唯一 application 模型模块，外部全局视频优化器只经 Narrative Planning `public.py` 使用稳定入口；`VisualBeat` 复用现有公开 `SceneRef`、`beat_scene_ref` 与 `build_scene_ref`，未复制旧私有场景引用转换逻辑。两个 Pydantic JSON Schema 逐类比较保持等价，新增行为测试覆盖场景引用、时长汇总和旁白格式化，所有权门禁锁定旧巨石零定义、新 application 所有者及外部 public API 边界。脚本写作、Narrative Planning 用例、视频提示词与全局优化器定向回归 102 项、M03 合同 7 项、完整后端分层门禁 144 项通过，合计 253 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

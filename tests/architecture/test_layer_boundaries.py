@@ -5115,6 +5115,55 @@ def test_legacy_models_do_not_keep_unused_graph_types() -> None:
         assert f"class {model_name}(" not in source
 
 
+def test_narrative_planning_script_models_have_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    script_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "script_models.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    literal_writer = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "literal_script_writing.py"
+    )
+    prompt_generators = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "beat_prompt_generators.py"
+    )
+    global_optimizer = PACKAGE_ROOT / "agents" / "global_video_optimizer.py"
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    model_source = script_models.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    for model_name in ("NarrationScript", "VisualBeat"):
+        assert f"class {model_name}(" not in legacy_source
+        assert f"class {model_name}(BaseModel):" in model_source
+        assert f'"{model_name}"' in public_source
+    assert "def format_beat_narration(" not in legacy_source
+    assert "def format_beat_narration(" in model_source
+    assert '"format_beat_narration"' in public_source
+    assert (
+        "ai_anime.modules.narrative_planning.application.script_models"
+        in _imports(literal_writer)
+    )
+    assert (
+        "ai_anime.modules.narrative_planning.application.script_models"
+        in _imports(prompt_generators)
+    )
+    assert "ai_anime.modules.narrative_planning.public" in _imports(
+        global_optimizer
+    )
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

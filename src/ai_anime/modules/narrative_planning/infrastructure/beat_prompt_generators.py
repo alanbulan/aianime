@@ -78,7 +78,9 @@ async def generate_single_beat_keyframe_prompt(
     language: str,
 ) -> str:
     from ai_anime.agents.keyframe_prompt_builder import get_keyframe_prompt_builder
-    from ai_anime.models import format_beat_narration
+    from ai_anime.modules.narrative_planning.application.script_models import (
+        format_beat_narration,
+    )
     from ai_anime.utils.path_resolver import PathResolver
 
     beat_num = int(beat.get("beat_number") or 0)

@@ -48,6 +48,11 @@ from ai_anime.modules.narrative_planning.application.script_documents import (
     SavedEpisodeScript,
     ScriptStoreSyncFailed,
 )
+from ai_anime.modules.narrative_planning.application.script_models import (
+    NarrationScript,
+    VisualBeat,
+    format_beat_narration,
+)
 from ai_anime.modules.narrative_planning.application.seedance_prompts import (
     GenerateSeedancePromptCommand,
     GeneratedSeedancePrompt,
@@ -372,6 +377,7 @@ __all__ = [
     "IdentityPlanRequired",
     "LiteralBeatMetaOutput",
     "LiteralScriptWritingWorkflow",
+    "NarrationScript",
     "SceneBlock",
     "SavedEpisodeContent",
     "SavedEpisodeScript",
@@ -381,12 +387,14 @@ __all__ = [
     "SeedancePromptRejected",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
+    "VisualBeat",
     "beat_order_value",
     "choose_manual_sketch_mode_key",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
     "enqueue_beat_video_prompt_generation",
     "episode_details_data",
+    "format_beat_narration",
     "delete_manual_shot",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",

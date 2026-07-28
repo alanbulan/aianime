@@ -527,7 +527,9 @@ Output JSON array with one element directly."""
             narration = beat.get("narration_segment", "")
             audio_type = beat.get("audio_type", "narration")
             speaker = beat.get("speaker", "")
-            from ai_anime.models import format_beat_narration
+            from ai_anime.modules.narrative_planning.public import (
+                format_beat_narration,
+            )
 
             if audio_type == "dialogue":
                 narration_label = format_beat_narration(audio_type, speaker, narration)
