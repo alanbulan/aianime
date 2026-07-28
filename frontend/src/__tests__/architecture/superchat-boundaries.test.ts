@@ -331,6 +331,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/chat-timeline.tsx"),
       "utf8",
     );
+    const messageArea = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -343,7 +347,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(messageArea).toContain(
+      'from "@/features/superchat/chat-timeline";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-timeline";',
     );
     expect(tests).toContain(
@@ -358,12 +365,14 @@ describe("SuperChat boundaries", () => {
       "const revealTimelineContext = useCallback(",
     ]) {
       expect(timeline).toContain(ownedOperation);
+      expect(messageArea).not.toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
     expect(timeline).toContain(
       'from "@/features/superchat/timeline-scroll";',
     );
     expect(timeline).toContain('import { createPortal } from "react-dom";');
+    expect(messageArea).not.toContain("calculateTimelineContextDelta");
     expect(panel).not.toContain("calculateTimelineContextDelta");
   });
 
@@ -514,6 +523,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
       "utf8",
     );
+    const messageArea = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -526,7 +539,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(messageArea).toContain(
+      'from "@/features/superchat/chat-message-view";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-message-view";',
     );
     expect(tests).toContain(
@@ -549,6 +565,7 @@ describe("SuperChat boundaries", () => {
       "function isVideoAttachment(",
     ]) {
       expect(messageView).toContain(ownedOperation);
+      expect(messageArea).not.toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
     expect(messageView).toContain(
@@ -1123,6 +1140,51 @@ describe("SuperChat boundaries", () => {
     expect(view).not.toContain("useSuperChat");
     expect(view).not.toContain("useChatQueueController");
     expect(view).not.toContain("useComposerAttachmentsController");
+    expect(view).not.toContain("ReturnType<");
+  });
+
+  it("keeps complete message-area presentation outside the SuperChat panel", () => {
+    const view = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/chat-message-area.test.tsx"),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-message-area";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-message-area";',
+    );
+    expect(view).toContain("type ChatMessageAreaProps =");
+    expect(view).toContain("export function ChatMessageArea(");
+    for (const ownedPresentation of [
+      "const isChatInitializing =",
+      "<DotsIndicator",
+      "<MessageBubble",
+      "<ChatTimeline",
+      't("aiAssistant.emptyTitle")',
+      'aria-label="回到底部"',
+      'id: "streaming"',
+    ]) {
+      expect(view).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(panel).not.toContain(
+      'from "@/features/superchat/chat-message-view";',
+    );
+    expect(panel).not.toContain(
+      'from "@/features/superchat/chat-timeline";',
+    );
+    expect(view).not.toContain("useSuperChat");
+    expect(view).not.toContain("useChatScrollController");
     expect(view).not.toContain("ReturnType<");
   });
 

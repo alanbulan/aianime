@@ -1,8 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  ArrowDown,
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
@@ -12,11 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
-import { ChatTimeline } from "@/features/superchat/chat-timeline";
-import {
-  DotsIndicator,
-  MessageBubble,
-} from "@/features/superchat/chat-message-view";
 import {
   ControlBar,
   HeaderControlPortal,
@@ -34,6 +26,7 @@ import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
 import { useComposerAttachmentsController } from "@/features/superchat/use-composer-attachments-controller";
 import { ChatComposer } from "@/features/superchat/chat-composer";
+import { ChatMessageArea } from "@/features/superchat/chat-message-area";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -113,8 +106,6 @@ export function SuperChatPanel({
     openFilePicker,
     removeAttachment,
   } = useComposerAttachmentsController(ENABLE_SUPERCHAT_FILE_UPLOAD);
-  const isChatInitializing = !chat.historyReady && chat.messages.length === 0 && (chat.connecting || chat.connected);
-
   const hasSendableContent = draft.trim().length > 0 || attachments.length > 0;
   const canSend = hasSendableContent && chat.connected && !preparingSend;
   const composerWaiting = chat.busy && (!hasSendableContent || !chat.connected || preparingSend);
@@ -297,102 +288,31 @@ export function SuperChatPanel({
           />
         )}
 
-        <div className="relative min-h-0 flex-1">
-          <div
-            ref={scrollRef}
-            className={cn(
-              "h-full overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-              isFreezoneLayout && "px-2.5 py-3",
-            )}
-          >
-            {isChatInitializing ? (
-              <div className={cn("mx-auto flex h-full w-full max-w-[760px] items-center justify-center text-center", isFreezoneLayout && "max-w-none")}>
-                <div className="max-w-72 text-sm text-muted-foreground">
-                  <div className="mb-3 flex justify-center text-primary" aria-hidden="true">
-                    <DotsIndicator />
-                  </div>
-                  <div className="mb-2 font-medium text-foreground">
-                    {chat.connected ? t("aiAssistant.syncingHistoryTitle") : t("aiAssistant.connecting")}
-                  </div>
-                  <div className="text-xs leading-5">{t("aiAssistant.syncingHistoryDescription")}</div>
-                </div>
-              </div>
-            ) : chat.messages.length === 0 && !chat.streamText && !showWaitingIndicator ? (
-              <div className={cn("mx-auto flex h-full w-full max-w-[760px] items-center justify-center text-center", isFreezoneLayout && "max-w-none")}>
-                <div className="max-w-64 text-sm text-muted-foreground">
-                  <div className="mb-2 font-medium text-foreground">{t("aiAssistant.emptyTitle")}</div>
-                  <div className="text-xs leading-5">{t("aiAssistant.emptyDescription")}</div>
-                </div>
-              </div>
-            ) : (
-              <div ref={messageListRef} className={cn("mx-auto w-full max-w-[760px] space-y-5", isFreezoneLayout && "max-w-none space-y-4")}>
-                {visibleMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    data-message-id={message.id}
-                    data-turn-id={message.role === "user" ? message.id : undefined}
-                  >
-                    <MessageBubble
-                      message={message}
-                      variant={variant}
-                      onOpenDetail={setDetailMessage}
-                      onOpenMedia={setMediaDetail}
-                      pinned={chat.pinnedIds.has(message.id)}
-                      onDelete={chat.deleteMessage}
-                      onTogglePin={chat.togglePin}
-                      deferStructuredRender={
-                        deferStructuredRender
-                        && message.role === "assistant"
-                        && message.id === currentStreamingAssistantId
-                      }
-                      streaming={
-                        message.role === "assistant"
-                        && message.id === streamingAssistantId
-                      }
-                    />
-                  </div>
-                ))}
-                {chat.streamText && !streamTextAlreadyRendered && (
-                  <MessageBubble
-                    message={{
-                      id: "streaming",
-                      role: "assistant",
-                      text: chat.streamText,
-                      timestamp: Date.now(),
-                    }}
-                    variant={variant}
-                    onOpenDetail={setDetailMessage}
-                    onOpenMedia={setMediaDetail}
-                    pinned={false}
-                    onDelete={() => undefined}
-                    onTogglePin={() => undefined}
-                    deferStructuredRender={deferStructuredRender}
-                    streaming={chat.busy}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-          {showScrollToBottom && (
-            <Button
-              type="button"
-              size="icon"
-              variant="secondary"
-              className={cn(
-                "absolute bottom-4 left-1/2 z-30 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-card text-foreground shadow-lg transition hover:bg-muted",
-                isFreezoneLayout && "bottom-3",
-              )}
-              title="回到底部"
-              aria-label="回到底部"
-              onClick={() => scrollToChatBottom("auto")}
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          )}
-          {!isFreezoneLayout && (
-            <ChatTimeline messages={visibleMessages} scrollRef={scrollRef} />
-          )}
-        </div>
+        <ChatMessageArea
+          busy={chat.busy}
+          connected={chat.connected}
+          connecting={chat.connecting}
+          currentStreamingAssistantId={currentStreamingAssistantId}
+          deferStructuredRender={deferStructuredRender}
+          historyReady={chat.historyReady}
+          isFreezoneLayout={isFreezoneLayout}
+          messageListRef={messageListRef}
+          pinnedIds={chat.pinnedIds}
+          scrollRef={scrollRef}
+          showScrollToBottom={showScrollToBottom}
+          showWaitingIndicator={showWaitingIndicator}
+          streamText={chat.streamText}
+          streamTextAlreadyRendered={streamTextAlreadyRendered}
+          streamingAssistantId={streamingAssistantId}
+          totalMessageCount={chat.messages.length}
+          variant={variant}
+          visibleMessages={visibleMessages}
+          onDeleteMessage={chat.deleteMessage}
+          onOpenDetail={setDetailMessage}
+          onOpenMedia={setMediaDetail}
+          onScrollToBottom={scrollToChatBottom}
+          onTogglePin={chat.togglePin}
+        />
 
         <ChatComposer
           attachments={attachments}

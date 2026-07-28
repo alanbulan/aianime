@@ -1875,6 +1875,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零七批已拆分完整 SuperChat Composer 视图：新增唯一 `features/superchat/chat-composer.tsx`，通过显式窄合同组合现有 waiting、queue、history、attachments 与 speech 能力，集中呈现拖拽状态、隐藏文件 input、附件 chip、队列面板、textarea、焦点状态、队列/历史/Enter 键盘优先级、语音和发送/中止按钮及免责声明；视图不导入 `useSuperChat` 或任一 controller，也不使用 `ReturnType` 合同。`superchat-panel.tsx` 删除完整 Composer JSX、键盘包装逻辑与文件后聚焦逻辑，只把各 controller 的模型和命令装配给视图，文件由 642 行降至 459 行，不再直接依赖 Textarea、waiting 或 queue 子视图。新增 4 项视图特征测试覆盖附件呈现与删除、队列/历史/Enter 键盘分派、文件与拖拽动作及焦点恢复、语音/发送/中止和焦点状态转发，并同步更新队列视图门禁指向新的直接消费者；SuperChat 特征测试 37 个文件 188 项、SuperChat 门禁 33 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零八批已拆分完整 SuperChat 消息区视图：新增唯一 `features/superchat/chat-message-area.tsx`，通过显式窄合同组合现有消息气泡与时间线视图，集中呈现历史初始化/同步、空消息、可见消息列表、临时流式消息、置顶与结构化延迟状态、回到底部按钮及非 freezone 时间线；视图不导入 `useSuperChat`、滚动 controller 或使用 `ReturnType` 合同。`superchat-panel.tsx` 删除完整消息区 JSX 与 ArrowDown、消息气泡、时间线直接依赖，只把消息投影、滚动 controller 模型和动作装配给视图，文件由 459 行降至 379 行，不保留第二套消息区展示。新增 3 项视图特征测试覆盖连接/历史同步/空态、消息标志与临时流式气泡、重复流抑制、回到底部动作和 freezone 时间线门禁，并同步更新消息气泡与时间线架构门禁指向新的直接消费者；SuperChat 特征测试 38 个文件 191 项、SuperChat 门禁 34 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
