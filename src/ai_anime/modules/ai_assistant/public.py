@@ -1,6 +1,7 @@
 """Stable application API exposed by AI Assistant."""
 
 from ai_anime.modules.ai_assistant.application import (
+    AgentBackend,
     AgentThreadSessions,
     ChatHistory,
     ChatRunLocks,
@@ -30,6 +31,12 @@ def build_agent_prompt_context(username: str, project: str, prompt: str) -> str:
     return get_agent_prompt_context().build(username, project, prompt)
 
 
+def get_agent_backend() -> AgentBackend:
+    from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
+
+    return resolve()
+
+
 def get_agent_thread_sessions() -> AgentThreadSessions:
     from ai_anime.modules.ai_assistant.composition import (
         get_agent_thread_sessions as resolve,
@@ -51,12 +58,14 @@ def get_chat_run_locks() -> ChatRunLocks:
 
 
 __all__ = [
+    "AgentBackend",
     "AgentThreadSessions",
     "ChatHistory",
     "ChatRunLocks",
     "ChatScope",
     "build_agent_prompt_context",
     "completion_text_or_existing",
+    "get_agent_backend",
     "get_agent_thread_sessions",
     "get_chat_history",
     "get_chat_run_locks",

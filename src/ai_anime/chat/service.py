@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import copy
-import importlib.util
 import json
 import logging
 import os
@@ -31,6 +30,7 @@ from ai_anime.chat.runtime_config import load_api_url
 from ai_anime.modules.ai_assistant.public import (
     build_agent_prompt_context,
     completion_text_or_existing,
+    get_agent_backend,
     get_agent_thread_sessions,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
@@ -47,6 +47,7 @@ from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
 
 logger = logging.getLogger("ai_anime.chat.service")
+agent_backend = get_agent_backend()
 agent_thread_sessions = get_agent_thread_sessions()
 chat_run_locks = get_chat_run_locks()
 
@@ -145,112 +146,6 @@ def _json_render_error_log_path() -> Path:
     if configured:
         return Path(configured).expanduser()
     return _repo_root() / "jr_error.log"
-
-
-def _chat_backend() -> str:
-    preferred = (
-        os.environ.get("AI_ANIME_CHAT_BACKEND") or "hermes"
-    ).strip().lower() or "hermes"
-    if preferred == "hermes":
-        # Explicit "hermes" must succeed — do NOT silently fall back to
-        # claude/codex. A missing hermes binary is a config error to surface.
-        if is_hermes_backend_available():
-            return "hermes"
-        raise RuntimeError(
-            "AI_ANIME_CHAT_BACKEND=hermes requested but hermes is unavailable. "
-            "Run `uv tool install 'hermes-agent[acp]'`, "
-            "then run `hermes doctor` to diagnose."
-        )
-    if preferred == "codex":
-        if is_codex_backend_available():
-            return "codex"
-        raise RuntimeError(
-            "AI_ANIME_CHAT_BACKEND=codex requested but Codex is unavailable. "
-            "Install `openai-codex`/Codex Python SDK support in the backend environment "
-            "and ensure CODEX_BIN points to a valid codex binary."
-        )
-    if preferred == "claude":
-        if is_claude_backend_available():
-            return "claude"
-        raise RuntimeError(
-            "AI_ANIME_CHAT_BACKEND=claude requested but Claude is unavailable. "
-            "Install claude-agent-sdk and ensure CLAUDE_CLI_PATH points to a valid claude binary."
-        )
-    if is_codex_backend_available():
-        return "codex"
-    if is_claude_backend_available():
-        return "claude"
-    return preferred
-
-
-def _claude_cli_path() -> Path:
-    configured = os.environ.get("CLAUDE_CLI_PATH", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    resolved = shutil.which("claude")
-    if resolved:
-        return Path(resolved)
-    return Path.home() / ".local" / "bin" / "claude"
-
-
-def _codex_bin_path() -> Path | None:
-    configured = os.environ.get("CODEX_BIN", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    return None
-
-
-def _codex_model() -> str:
-    return os.environ.get("CODEX_MODEL", "gpt-5.4").strip() or "gpt-5.4"
-
-
-def _claude_model() -> str | None:
-    model = os.environ.get("CLAUDE_MODEL", "").strip()
-    return model or None
-
-
-def _claude_sdk_available() -> bool:
-    return importlib.util.find_spec("claude_agent_sdk") is not None
-
-
-def is_claude_backend_available() -> bool:
-    return _claude_cli_path().exists() and _claude_sdk_available()
-
-
-def is_codex_backend_available() -> bool:
-    codex_bin = _codex_bin_path()
-    return (codex_bin is None or codex_bin.exists()) and importlib.util.find_spec(
-        "openai_codex"
-    ) is not None
-
-
-def is_hermes_backend_available() -> bool:
-    """Lazy import so chat_service can be loaded without hermes deps."""
-    try:
-        from ai_anime.chat.hermes_pool import is_hermes_backend_available as _check
-    except ImportError:
-        return False
-    return _check()
-
-
-def is_chat_backend_available() -> bool:
-    # NOTE: _chat_backend() raises when AI_ANIME_CHAT_BACKEND=hermes is
-    # requested but unavailable; catch so this probe stays non-throwing.
-    try:
-        backend = _chat_backend()
-    except RuntimeError:
-        return False
-    if backend == "claude":
-        return is_claude_backend_available()
-    if backend == "codex":
-        return is_codex_backend_available()
-    if backend == "hermes":
-        return is_hermes_backend_available()
-    return False
-
-
-def get_chat_backend_name() -> str:
-    return _chat_backend()
 
 
 def _repo_skill_roots() -> list[Path]:
@@ -2117,7 +2012,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
 
     ensure_user_codex_workspace(username, project)
     workspace = _user_agent_workspace(username)
-    codex_bin = _codex_bin_path()
+    codex_bin = agent_backend.codex_bin_path()
     config = CodexConfig(
         codex_bin=str(codex_bin) if codex_bin is not None else None,
         cwd=str(workspace),
@@ -2134,7 +2029,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
                 thread_id,
                 {
                     "cwd": str(workspace),
-                    "model": _codex_model(),
+                    "model": agent_backend.codex_model(),
                 },
             )
             turns = list(getattr(resumed.thread, "turns", []) or [])
@@ -2650,10 +2545,10 @@ def _build_claude_thread(username: str, project: str, agent_token: str):
     ensure_user_claude_workspace(username, project, agent_token)
     workspace = _user_agent_workspace(username)
     client = ClaudeSdkClient(
-        cli_path=_claude_cli_path(),
+        cli_path=agent_backend.claude_cli_path(),
         cwd=workspace,
         env=_build_agent_env(username, project, agent_token),
-        model=_claude_model(),
+        model=agent_backend.claude_model(),
     )
     session_id = agent_thread_sessions.get_active(username, "claude")
     return client.thread_resume(session_id) if session_id else client.thread_start()
@@ -2697,10 +2592,10 @@ def _build_codex_thread(username: str, project: str, agent_token: str):
     ensure_user_codex_workspace(username, project, agent_token)
     workspace = _user_agent_workspace(username)
     client = CodexClient(
-        codex_bin=_codex_bin_path(),
+        codex_bin=agent_backend.codex_bin_path(),
         cwd=workspace,
         env=_build_agent_env(username, project, agent_token),
-        model=_codex_model(),
+        model=agent_backend.codex_model(),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )
     thread_id = agent_thread_sessions.get_active(username, "codex")
@@ -2712,7 +2607,7 @@ async def interrupt_chat_turn(
 ) -> bool:
     thread_id = str(thread_id or "").strip()
     turn_id = str(turn_id or "").strip()
-    backend = _chat_backend()
+    backend = agent_backend.name()
     if backend == "claude":
         if not thread_id:
             return False
@@ -2761,7 +2656,7 @@ async def stream_assistant_reply(
                 project_state_dir=project_state_dir,
             )
         model_prompt = script_creation_guidance_prompt(prompt) or prompt
-        backend = _chat_backend()
+        backend = agent_backend.name()
         if backend == "codex":
             return await _stream_assistant_reply_codex(
                 username,
@@ -2833,7 +2728,7 @@ async def prewarm_chat_backend(username: str, *, project: str | None = None) -> 
     raises — pre-warming is purely an optimization.
     """
     try:
-        if _chat_backend() != "hermes":
+        if agent_backend.name() != "hermes":
             return
         from ai_anime.chat.hermes_pool import pool as _hermes_pool
 

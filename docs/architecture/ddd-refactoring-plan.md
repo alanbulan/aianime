@@ -1743,6 +1743,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十一批已将 Chat 回合引导规则收口至 AI Assistant domain：新增唯一纯 `turn_guidance.py`，持有重摄入覆盖确认、无附件剧本创建识别、已有附件/自动化/继续流程豁免及模型引导文案；public API 只暴露 `reingest_confirmation_reply` 与 `script_creation_guidance_prompt` 两个纯函数。`service.py` 仍唯一负责运行锁、确定性回复事件发送、消息持久化和 Agent 后端分派，但不再持有六个有效正则、引导常量或两个私有规则函数，不保留 facade、旧别名或第二套实现；两阶段覆盖确认文案、剧本/短剧匹配范围、附件与自动化短路、继续语义、用户原话去空白及引导块末尾换行均保持不变，迁移前后 10 类代表输入逐字比较一致。Turn guidance 领域测试 11 项、完整 Chat service 51 项、M08 相关合同 10 项及完整后端分层门禁 107 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百四十二批已将 Agent 后端选择与本地运行时配置收口至 AI Assistant：application 新增稳定 `AgentBackend` 能力协议、所需 `AgentBackendRuntime` 端口和唯一 `AgentBackendService`，保留显式 Hermes/Codex/Claude 不静默回退、未知值优先 Codex 再 Claude 的选择策略及原错误消息；infrastructure 新增唯一 `LocalAgentBackendRuntime` adapter，持有后端环境变量、Claude CLI 路径、Codex 可选二进制、模型名、Python SDK 与 Hermes 延迟可用性探测；composition/public 提供同一进程 `get_agent_backend` 实例，不导出内部 runtime 端口或应用服务。`service.py` 的 Codex 历史恢复、Claude/Codex thread 构建、打断、流式分派和 Hermes 预热全部改用该能力，原 11 个选择/配置/探测入口及 `importlib` 依赖直接删除，不保留 facade、旧别名或第二套实现；环境变量名、默认 Hermes、`gpt-5.4` 默认模型、路径展开、显式二进制校验、SDK 缺失语义及非抛出可用性探测保持不变，迁移前后 32 种后端状态组合的返回值与完整异常消息逐项一致。Agent backend 模块 16 项、完整 Chat service 48 项、M08 相关合同 10 项及完整后端分层门禁 108 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

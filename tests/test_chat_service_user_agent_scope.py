@@ -350,49 +350,14 @@ def test_codex_client_carries_ai_anime_mcp_servers(tmp_path):
     assert thread._config_overrides == overrides
 
 
-def test_explicit_codex_does_not_fallback_when_unavailable(monkeypatch):
-    monkeypatch.setenv("AI_ANIME_CHAT_BACKEND", "codex")
-    monkeypatch.setattr(chat_service, "is_codex_backend_available", lambda: False)
-    monkeypatch.setattr(chat_service, "is_hermes_backend_available", lambda: True)
-    monkeypatch.setattr(chat_service, "is_claude_backend_available", lambda: True)
-
-    with pytest.raises(RuntimeError, match="AI_ANIME_CHAT_BACKEND=codex requested"):
-        chat_service._chat_backend()
-
-
-def test_codex_backend_uses_sdk_runtime_by_default(monkeypatch):
-    monkeypatch.delenv("CODEX_BIN", raising=False)
-    monkeypatch.setattr(
-        chat_service.importlib.util,
-        "find_spec",
-        lambda name: object() if name == "openai_codex" else None,
-    )
-
-    assert chat_service._codex_bin_path() is None
-    assert chat_service.is_codex_backend_available() is True
-
-
-def test_codex_backend_validates_explicit_binary(monkeypatch, tmp_path):
-    missing_bin = tmp_path / "missing-codex"
-    monkeypatch.setenv("CODEX_BIN", str(missing_bin))
-    monkeypatch.setattr(
-        chat_service.importlib.util,
-        "find_spec",
-        lambda name: object() if name == "openai_codex" else None,
-    )
-
-    assert chat_service._codex_bin_path() == missing_bin
-    assert chat_service.is_codex_backend_available() is False
-
-
 @pytest.mark.anyio
 async def test_reingest_confirmation_reply_bypasses_agent_backend(
     monkeypatch, tmp_path
 ):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
-        chat_service,
-        "_chat_backend",
+        chat_service.agent_backend,
+        "name",
         lambda: pytest.fail("reingest confirmation should not call the agent backend"),
     )
     events = []
@@ -425,8 +390,8 @@ async def test_reingest_final_confirmation_reply_bypasses_agent_backend(
 ):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
-        chat_service,
-        "_chat_backend",
+        chat_service.agent_backend,
+        "name",
         lambda: pytest.fail("reingest confirmation should not call the agent backend"),
     )
 

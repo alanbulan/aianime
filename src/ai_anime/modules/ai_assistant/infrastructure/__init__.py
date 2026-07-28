@@ -1,5 +1,8 @@
 """AI Assistant infrastructure adapters."""
 
+from ai_anime.modules.ai_assistant.infrastructure.agent_backend_runtime import (
+    LocalAgentBackendRuntime,
+)
 from ai_anime.modules.ai_assistant.infrastructure.agent_thread_sessions import (
     FileAgentThreadSessions,
 )
@@ -17,5 +20,6 @@ __all__ = [
     "FileAgentThreadSessions",
     "FileChatRunLocks",
     "FileUserPreferences",
+    "LocalAgentBackendRuntime",
     "SQLiteChatHistory",
 ]

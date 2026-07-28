@@ -1,6 +1,8 @@
 """Runtime composition for AI Assistant."""
 
 from ai_anime.modules.ai_assistant.application import (
+    AgentBackend,
+    AgentBackendService,
     AgentPromptContext,
     AgentThreadSessions,
     ChatHistory,
@@ -10,13 +12,19 @@ from ai_anime.modules.ai_assistant.infrastructure import (
     FileAgentThreadSessions,
     FileChatRunLocks,
     FileUserPreferences,
+    LocalAgentBackendRuntime,
     SQLiteChatHistory,
 )
 
+_agent_backend = AgentBackendService(LocalAgentBackendRuntime())
 _agent_prompt_context = AgentPromptContext(FileUserPreferences())
 _agent_thread_sessions = FileAgentThreadSessions()
 _chat_history = SQLiteChatHistory()
 _chat_run_locks = FileChatRunLocks()
+
+
+def get_agent_backend() -> AgentBackend:
+    return _agent_backend
 
 
 def get_agent_prompt_context() -> AgentPromptContext:

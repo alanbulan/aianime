@@ -519,6 +519,66 @@ def test_ai_assistant_owns_agent_thread_sessions() -> None:
     assert "agent_thread_sessions.set_active(" in service_source
 
 
+def test_ai_assistant_owns_agent_backend_runtime() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "agent_backend.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "agent_backend_runtime.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    application_source = application.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported in {"os", "shutil", "importlib"}
+        or imported.startswith("importlib.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class AgentBackend(Protocol):" in ports_source
+    assert "class AgentBackendRuntime(Protocol):" in ports_source
+    assert "class AgentBackendService:" in application_source
+    assert "class LocalAgentBackendRuntime:" in adapter_source
+    assert "ai_anime.chat.hermes_pool" in adapter_source
+    assert "AgentBackendService(LocalAgentBackendRuntime())" in composition_source
+    assert "def get_agent_backend(" in composition_source
+    assert "def get_agent_backend(" in public_source
+    assert "AgentBackendRuntime" not in public_source
+    assert "AgentBackendService" not in public_source
+    for legacy_name in (
+        "def _chat_backend(",
+        "def _claude_cli_path(",
+        "def _codex_bin_path(",
+        "def _codex_model(",
+        "def _claude_model(",
+        "def _claude_sdk_available(",
+        "def is_claude_backend_available(",
+        "def is_codex_backend_available(",
+        "def is_hermes_backend_available(",
+        "def is_chat_backend_available(",
+        "def get_chat_backend_name(",
+        "AI_ANIME_CHAT_BACKEND",
+        "CLAUDE_CLI_PATH",
+        "CODEX_BIN",
+        "CODEX_MODEL",
+        "CLAUDE_MODEL",
+    ):
+        assert legacy_name not in service_source
+    assert "agent_backend = get_agent_backend()" in service_source
+    assert service_source.count("agent_backend.name()") == 3
+    assert service_source.count("agent_backend.codex_bin_path()") == 2
+    assert service_source.count("agent_backend.codex_model()") == 2
+    assert service_source.count("agent_backend.claude_cli_path()") == 1
+    assert service_source.count("agent_backend.claude_model()") == 1
+
+
 def test_ai_assistant_owns_agent_prompt_context() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "prompt_context.py"
