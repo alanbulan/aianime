@@ -27,7 +27,7 @@ def test_ce_agent_key_routes_are_not_mounted(monkeypatch) -> None:
 
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.api.routes import chat as chat_routes
+    from ai_anime.api.routes import chat_http as chat_http_routes
     from ai_anime.ports import registry
 
     class NoOpChatWorkerLifecycle:
@@ -40,7 +40,7 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     monkeypatch.setattr(
-        chat_routes,
+        chat_http_routes,
         "chat_worker_lifecycle",
         NoOpChatWorkerLifecycle(),
     )

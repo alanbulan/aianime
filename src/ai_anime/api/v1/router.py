@@ -13,6 +13,7 @@ from ai_anime.api.routes import (
     auth,
     characters,
     chat,
+    chat_http,
     config,
     content,
     episodes,
@@ -90,6 +91,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
         for entry_point in entry_points(group="ai_anime.api_routes"):
             entry_point.load()(router)
     router.include_router(config.router, tags=["config"])
+    router.include_router(chat_http.router, tags=["chat"])
     router.include_router(chat.router, tags=["chat"])
     router.include_router(projects.router, tags=["projects"])
     router.include_router(ingest.router, tags=["ingest"])

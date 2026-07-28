@@ -1803,6 +1803,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十一批已将 Chat 单回合分派与 WebSocket 投影迁入独立 API adapter：新增唯一 `api/chat_turns.py`，组合 Chat ACL、入站 DTO、错误映射、WebSocket transport 及 home/project 顶层用例，统一负责消息 scope 覆盖、回合 ID 清理或生成、空消息拒绝、额度门禁、项目授权目录解析、附件序列化、home/project 流式分派、未实现 scope 事件和异常事件发送。Chat route 删除 `_stream_project_turn`、`_stream_home_turn`、UUID、附件转换、两类用例实例及回合异常分支，消息循环只校验 DTO 后调用 adapter，文件由 291 行降至 178 行；空消息仍先于额度检查返回，非空未实现 scope 仍先执行额度门禁，项目回合仍在门禁后再次解析 viewer 上下文，发送锁、heartbeat、错误字段和异常隔离语义均保持不变，不保留旧 helper、转发壳或第二套分派。Chat turns 4 项、Chat access/error/schema/transport/scope/通知回归 26 项、M08 Chat 合同 5 项及完整后端分层门禁 137 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
 
+第三百七十二批已将 Chat HTTP 与 WebSocket 入站路由物理分离：新增唯一 `api/routes/chat_http.py`，完整持有取消、通知写入和 UI event 三个 POST 端点及其认证依赖、输入校验、项目 viewer 授权、application capability 调用和 HTTP 错误映射；`api/v1/router.py` 在同一 `chat` tag 下显式注册 HTTP 与 WebSocket 两个 router，method/path、依赖注入和 OpenAPI 暴露保持不变。`routes/chat.py` 删除全部 HTTP schema、ACL、消息持久化和取消实现，只保留 `/chat/ws`，文件由 178 行降至 107 行；旧 `test_chat_service_user_agent_scope.py` 直接删除并由职责准确的 `test_chat_http_routes.py` 替代，不保留旧导入或 re-export。Chat HTTP route 6 项、M08 Chat 合同 5 项及完整后端分层门禁 138 项均通过，修改文件 Ruff、Python 编译、新路由格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
