@@ -1809,6 +1809,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十四批已清理 Chat service 中不可达的回复 convenience API：仓库调用图确认 `interrupt_chat_turn` 与 `generate_assistant_reply` 从初始检查点起均只有定义、没有生产或测试调用方，现直接删除而不迁移；实际取消继续由 `ChatWorkerLifecycle` HTTP 端点负责，项目回复继续由 `ProjectChatTurns` 组合 `ProjectAssistantReplies`。随旧入口失去消费者的 `get_agent_backend`、`get_agent_thread_runtime`、`get_project_assistant_replies` 三个低层 composition/public getter、对应类型 re-export 和仅验证单例的测试同时收回，失效的 `_REINGEST_CANCELLED_BLOCK_RE` 一并删除，不保留测试专用 public API 或第二套入口。`chat/service.py` 由 138 行降至 97 行，按既定边界原样保留无调用的输入历史及 settings 存储 helper。AI Assistant 模块 213 项、M08 Chat 合同 5 项及完整后端分层门禁 140 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百七十五批已拆分 SuperChat 消息缓存基础设施：新增唯一 `features/superchat/message-cache.ts`，集中持有 v2 scope key、最近 50 条窗口、7 天 TTL、附件内联内容裁剪、`raw` 单层去嵌套、旧裸数组读取兼容、时间戳包装写入、配额回收注册和过期/畸形缓存清理；`use-superchat.ts` 删除全部缓存实现并直接调用该 adapter，文件由 1,127 行降至 1,031 行，测试直接依赖新所有者，不保留 hook re-export 或第二套缓存。新增独立 SuperChat 架构门禁禁止缓存逻辑回流，缓存/history 特征测试 15 项、SuperChat 门禁 1 项及前端全量 TypeScript typecheck 通过；完整前端架构套件实测 211/212 项通过，唯一失败为当前 HEAD 已存在且本批未改动的 6 个 Canvas 文件颜色字面量门禁，相关路径无工作区差异。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

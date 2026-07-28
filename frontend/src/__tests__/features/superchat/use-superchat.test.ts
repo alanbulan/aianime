@@ -2,10 +2,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { normalizeMessage } from "@/features/superchat/message";
 import {
-  mergeHistorySnapshot,
+  loadCachedMessages,
   pruneOldMessageCaches,
   sanitizeMessagesForCache,
-} from "@/features/superchat/use-superchat";
+  saveCachedMessages,
+} from "@/features/superchat/message-cache";
+import { mergeHistorySnapshot } from "@/features/superchat/use-superchat";
 import type { ChatMessage, ChatRole } from "@/features/superchat/types";
 
 const MESSAGE_CACHE_PREFIX = "superchat:messages:v2:";
@@ -222,6 +224,41 @@ describe("sanitizeMessagesForCache", () => {
       { ...sanitized, raw: { ...raw, raw: serverPayload } },
     ]);
     expect("raw" in (reSanitized[0].raw as Record<string, unknown>)).toBe(false);
+  });
+});
+
+describe("message cache persistence", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("loads the legacy bare message array", () => {
+    localStorage.setItem(
+      `${MESSAGE_CACHE_PREFIX}project-a`,
+      JSON.stringify([message("m1", "assistant", "ready", 1)]),
+    );
+
+    expect(loadCachedMessages("project-a")).toMatchObject([
+      { id: "m1", role: "assistant", text: "ready" },
+    ]);
+  });
+
+  it("stores a timestamped, sanitized window of the latest 50 messages", () => {
+    const messages = Array.from({ length: 52 }, (_, index) => ({
+      ...message(`m${index}`, "user", `message ${index}`, index),
+      attachments: [{ fileName: "context.txt", content: "inline" }],
+    }));
+
+    saveCachedMessages("project-a", messages, 1234);
+
+    const stored = JSON.parse(
+      localStorage.getItem(`${MESSAGE_CACHE_PREFIX}project-a`) || "null",
+    ) as { updatedAt: number; messages: ChatMessage[] };
+    expect(stored.updatedAt).toBe(1234);
+    expect(stored.messages).toHaveLength(50);
+    expect(stored.messages[0].id).toBe("m2");
+    expect(stored.messages[49].id).toBe("m51");
+    expect(stored.messages[0].attachments?.[0].content).toBeUndefined();
   });
 });
 

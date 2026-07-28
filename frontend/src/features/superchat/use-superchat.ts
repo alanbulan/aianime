@@ -19,19 +19,16 @@ import {
 import { hasStructuredContent } from "@/features/superchat/spec-extract";
 import { api } from "@/shared/api/transport";
 import {
-  isStaleByTtl,
-  pruneLocalStorageByPrefix,
-  registerStorageReclaimer,
   safeLocalStorageSet,
 } from "@/lib/localStorageQuota";
+import {
+  loadCachedMessages,
+  pruneOldMessageCaches,
+  saveCachedMessages,
+} from "@/features/superchat/message-cache";
 
 const SETTINGS_KEY = "superchat:settings";
 const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);
-const MESSAGE_CACHE_PREFIX = "superchat:messages:v2:";
-const MESSAGE_CACHE_LIMIT = 50;
-// Refresh-recovery caches are best-effort; expire abandoned scopes so their
-// blobs (one per conversation) can't accumulate forever and exhaust the quota.
-const MESSAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const ACTIVE_TURN_PREFIX = "superchat:active-turn:";
 const ACTIVE_TURN_TTL_MS = 60 * 60 * 1000;
 
@@ -79,99 +76,6 @@ function scopeSessionKey(scope: ChatScope): string {
   if (scope.kind === "project" && scope.id) return `ai_anime:project:${scope.id}:main`;
   return "ai_anime:home:main";
 }
-
-function messageCacheKey(scopeKey: string): string {
-  return `${MESSAGE_CACHE_PREFIX}${scopeKey}`;
-}
-
-// `normalizeMessage` stores the whole source message under `raw`. Across a
-// load→save round-trip the loaded (already-normalized) object becomes the new
-// `raw`, so an un-stripped `raw` nests one level deeper every refresh and the
-// cached blob grows without bound — defeating MESSAGE_CACHE_LIMIT (count-only).
-// No consumer reads `raw.raw` (hasStructuredContent / extractSpecsFromRaw /
-// the debug panel all read raw's top level), so drop the inner `raw` to cap
-// nesting at depth 1.
-function denestRaw(raw: unknown): unknown {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  if (!("raw" in raw)) return raw;
-  const { raw: _nested, ...rest } = raw as Record<string, unknown>;
-  return rest;
-}
-
-// Slim a message down for the refresh-recovery cache: drop the inline
-// attachment payload (base64 data URLs etc. — by far the largest field, and
-// redundant since url/path/metadata are kept) and the nested `raw` chain.
-export function sanitizeMessagesForCache(messages: ChatMessage[]): ChatMessage[] {
-  return messages.map((message) => {
-    const denestedRaw = denestRaw(message.raw);
-    const attachments = message.attachments?.length
-      ? message.attachments.map((attachment) => {
-          if (attachment.content === undefined) return attachment;
-          const { content: _content, ...rest } = attachment;
-          return rest;
-        })
-      : message.attachments;
-    if (denestedRaw === message.raw && attachments === message.attachments) {
-      return message;
-    }
-    return { ...message, raw: denestedRaw, attachments };
-  });
-}
-
-function loadCachedMessages(scopeKey: string): ChatMessage[] {
-  try {
-    const parsed = JSON.parse(
-      localStorage.getItem(messageCacheKey(scopeKey)) || "null",
-    ) as unknown;
-    // Accept both the legacy bare array and the timestamped wrapper.
-    const raw = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray((parsed as { messages?: unknown })?.messages)
-        ? (parsed as { messages: unknown[] }).messages
-        : [];
-    return raw
-      .map((message) => normalizeMessage(message))
-      .filter((message): message is ChatMessage => Boolean(message));
-  } catch {
-    return [];
-  }
-}
-
-function saveCachedMessages(
-  scopeKey: string,
-  messages: ChatMessage[],
-  now = Date.now(),
-) {
-  const payload = {
-    updatedAt: now,
-    messages: sanitizeMessagesForCache(messages.slice(-MESSAGE_CACHE_LIMIT)),
-  };
-  safeLocalStorageSet(messageCacheKey(scopeKey), JSON.stringify(payload));
-}
-
-// Reclaim message caches for conversations that haven't been touched within the
-// TTL (and any legacy/malformed entries). Runs on mount and as a quota
-// reclaimer so a backlog of old chats can't wedge other writes.
-export function pruneOldMessageCaches(now = Date.now()): void {
-  pruneLocalStorageByPrefix(MESSAGE_CACHE_PREFIX, (_key, raw) => {
-    let updatedAt: number | null = null;
-    try {
-      const parsed = JSON.parse(raw) as { updatedAt?: unknown } | null;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        updatedAt = typeof parsed.updatedAt === "number" ? parsed.updatedAt : null;
-      }
-    } catch {
-      updatedAt = null; // malformed
-    }
-    // Legacy arrays / malformed / no-timestamp → reclaim. Surviving scopes
-    // rewrite themselves in the timestamped format on their next save.
-    return updatedAt == null || isStaleByTtl(updatedAt, now, MESSAGE_CACHE_TTL_MS);
-  });
-}
-
-registerStorageReclaimer(() => {
-  pruneOldMessageCaches();
-});
 
 function activeTurnKey(scopeKey: string): string {
   return `${ACTIVE_TURN_PREFIX}${scopeKey}`;
