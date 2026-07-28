@@ -3,9 +3,9 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_documents_schemas import CanvasPayload
 from ai_anime.api.canvas_errors import raise_canvas_document_http_error
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import CanvasPayload
 from ai_anime.freezone.paths import CANVAS_ID_RE
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasDocumentBusy,

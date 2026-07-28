@@ -10,7 +10,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from ai_anime.api import canvas_documents_schemas
 from ai_anime.api.canvas_commits_schemas import PushRequest
+from ai_anime.api.canvas_documents_schemas import CanvasPayload
 from ai_anime.api.canvas_presets_schemas import PresetCanvasRequest
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
@@ -21,7 +23,6 @@ from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.schemas import (
-    CanvasPayload,
     FreezoneFrameFromContextRequest,
     FreezoneGenRequest,
     FreezoneImageReversePromptRequest,
@@ -1940,6 +1941,34 @@ async def test_put_canvas_rejects_dangerous_empty_autosave(
     saved = json.loads(canvas_file.read_text(encoding="utf-8"))
     assert saved["nodes"] == [{"id": "old_1"}, {"id": "old_2"}]
     assert not list((canvas_file.parent / "_history").glob("default.rev3.*.json"))
+
+
+@pytest.mark.parametrize(
+    ("field", "limit_name", "configured_limit"),
+    (
+        ("nodes", "CANVAS_MAX_NODES", 50_000),
+        ("edges", "CANVAS_MAX_EDGES", 200_000),
+    ),
+)
+def test_canvas_payload_rejects_graph_above_hard_limit(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    limit_name: str,
+    configured_limit: int,
+) -> None:
+    assert getattr(canvas_documents_schemas, limit_name) == configured_limit
+    monkeypatch.setattr(canvas_documents_schemas, limit_name, 2)
+
+    with pytest.raises(HTTPException) as exc:
+        CanvasPayload(**{field: [{}, {}, {}]})
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == {
+        "code": "canvas_payload_too_large",
+        "field": field,
+        "limit": 2,
+        "got": 3,
+    }
 
 
 @pytest.mark.asyncio

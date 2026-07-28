@@ -246,6 +246,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "SceneUpdate",
             ),
         ),
+        (
+            "canvas_documents_schemas.py",
+            "routes/canvas/documents.py",
+            ("CanvasPayload",),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
