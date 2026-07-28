@@ -20,10 +20,7 @@ import pytest
 # ── 1. 导入不报错 ──────────────────────────────────────────
 def test_import():
     from ai_anime.cognee.store import CogneeStore  # noqa: F401
-    from ai_anime.cognee.pipeline import (
-        NovelCharacter,
-        NovelEvent,  # noqa: F401
-    )
+    from ai_anime.modules.narrative_planning.public import NovelEvent  # noqa: F401
 
     # 确认不再依赖 DataPoint
     from ai_anime.cognee.pipeline import NovelCharacter

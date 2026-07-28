@@ -18,7 +18,6 @@ from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
     NovelEpisode,
-    NovelEvent,
     NovelVisualBeat,
 )
 from ai_anime.config import ensure_project_dirs, get_newapi_reasoning_kwargs
@@ -42,7 +41,6 @@ from .config import apply_cognee_project_storage_context
 from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
-    NovelEvent,
     NovelEpisode,
     NovelVisualBeat,
     NovelScene,

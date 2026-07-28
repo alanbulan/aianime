@@ -9,7 +9,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from rich.console import Console
 
-from .pipeline import NovelEvent
+from ai_anime.modules.narrative_planning.public import NovelEvent
 
 console = Console()
 

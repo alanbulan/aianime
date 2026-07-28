@@ -5164,6 +5164,30 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
     )
 
 
+def test_narrative_planning_event_model_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    event_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "episode_planning_models.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    cognee_store = PACKAGE_ROOT / "cognee" / "store.py"
+    event_extractor = PACKAGE_ROOT / "cognee" / "event_extractor.py"
+    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+
+    assert "class NovelEvent(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelEvent(BaseModel):" in event_models.read_text(encoding="utf-8")
+    assert '"NovelEvent"' in public.read_text(encoding="utf-8")
+    for caller in (cognee_store, event_extractor):
+        assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+    for facade in (cognee_pipeline, cognee_package):
+        assert "NovelEvent" not in facade.read_text(encoding="utf-8")
+
+
 def test_asset_world_style_config_has_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     style_models = (

@@ -22,7 +22,6 @@ from .store import CogneeStore, create_cognee_store
 from ai_anime.models import (
     NovelCharacter,
     NovelEpisode,
-    NovelEvent,
     NovelVisualBeat,
     NovelScene,
     NovelProp,
@@ -43,7 +42,6 @@ __all__ = [
     # 实体
     "NovelCharacter",
     "NovelEpisode",
-    "NovelEvent",
     "NovelVisualBeat",
     "NovelScene",
     "NovelProp",

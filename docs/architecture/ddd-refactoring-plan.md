@@ -1974,6 +1974,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十一批已将 Pydantic `StyleConfig` 从后端公共 `models.py` 迁入唯一 Asset & World application `style_models.py`，旧定义和随之失效的 `datetime` 导入直接删除，不保留 re-export 或别名；提示词构建器内部同名 dataclass 属于不同职责，保持不动。风格目录 infrastructure 向内依赖 application 模型，模块外测试经 Asset & World `public.py` 构造稳定类型；该模型不放入 domain，确保领域层继续禁止 Pydantic 等基础设施包且不新增门禁豁免。Pydantic JSON Schema 比较保持等价，新增旧格式运行时字典转换行为测试和唯一所有权门禁。风格接口与 Asset & World 用例回归 23 项、M04 合同 6 项、完整后端分层门禁 145 项通过，合计 174 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十二批已将章节事件提取与剧集分配仍在使用的 `NovelEvent` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `episode_planning_models.py`，旧定义直接删除；Cognee store 与事件提取器作为外部调用方只经 Narrative Planning `public.py` 使用稳定类型，`cognee/pipeline.py` 和 `cognee/__init__.py` 中无真实调用的两级模型转发同步删除，不保留旧别名。Pydantic JSON Schema 比较保持等价，新增默认字段行为测试和所有权门禁，并验证 CogneeStore 真实导入链无循环依赖。SQLiteStore 与 Narrative Planning 剧集用例回归 33 项、M03 合同 7 项、完整后端分层门禁 146 项通过，合计 186 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

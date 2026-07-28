@@ -6,6 +6,7 @@ import pytest
 
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
+    NovelEvent,
     get_episode_details,
     list_episode_summaries,
     update_episode_metadata,
@@ -46,6 +47,27 @@ def _episode():
         scene_menu=[{"scene_id": "宫门"}],
         prop_menu=[{"prop_id": "玉佩"}],
     )
+
+
+def test_novel_event_keeps_episode_planning_defaults() -> None:
+    event = NovelEvent(
+        event_id="ch1_e1",
+        chapter_num=1,
+        description="开场",
+    )
+
+    assert event.model_dump() == {
+        "event_id": "ch1_e1",
+        "chapter_num": 1,
+        "description": "开场",
+        "location": "",
+        "time_marker": "",
+        "characters": [],
+        "text_start": 0,
+        "text_end": 0,
+        "content": "",
+        "causes": [],
+    }
 
 
 def test_projects_episode_list_and_details() -> None:
