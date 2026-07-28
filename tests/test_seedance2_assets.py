@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
 

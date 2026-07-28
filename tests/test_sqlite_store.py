@@ -25,7 +25,7 @@ def test_import():
     from ai_anime.modules.narrative_planning.public import NovelEvent  # noqa: F401
 
     # 确认不再依赖 DataPoint
-    from ai_anime.cognee.pipeline import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
     from pydantic import BaseModel
 
     assert issubclass(NovelCharacter, BaseModel)
@@ -62,7 +62,7 @@ async def tmp_project(tmp_path):
 @pytest.mark.asyncio
 async def test_build_characters_from_graph_only_adds_missing_characters(tmp_project, monkeypatch):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     existing = NovelCharacter(
         name="林晚",
@@ -115,7 +115,7 @@ async def test_build_characters_from_graph_only_adds_missing_characters(tmp_proj
 
 @pytest.mark.asyncio
 async def test_ingest_novel_reuses_graph_based_build_steps(tmp_project, tmp_path, monkeypatch):
-    from ai_anime.models import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
 
     novel_path = tmp_path / "novel.txt"
     novel_path.write_text("林昭走进钟楼。", encoding="utf-8")
@@ -388,7 +388,7 @@ async def test_novel_content(tmp_project):
 # ── 4. characters 写入 + 内存缓存 ──────────────────────────
 @pytest.mark.asyncio
 async def test_character_crud(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -695,7 +695,7 @@ def test_stringify_search_fragment_handles_nested_lists():
 # ── 7. load_graph_state 恢复缓存 ──────────────────────────
 @pytest.mark.asyncio
 async def test_load_graph_state(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -724,7 +724,7 @@ async def test_load_graph_state(tmp_project):
 # ── 8. 身份 CRUD ──────────────────────────────────────────
 @pytest.mark.asyncio
 async def test_identity_crud(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter, CharacterIdentity
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -760,7 +760,7 @@ async def test_identity_crud(tmp_project):
 # ── 9. 删除全部数据 ──────────────────────────────────────
 @pytest.mark.asyncio
 async def test_delete_project_data(tmp_project):
-    from ai_anime.cognee.pipeline import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
 
     store = tmp_project
     await store._ensure_db()
@@ -921,7 +921,7 @@ async def test_persist_narration_script(tmp_project):
 
 @pytest.mark.asyncio
 async def test_persist_narration_script_completes_detected_refs_from_markers(tmp_project):
-    from ai_anime.cognee.pipeline import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.modules.asset_world.public import NovelProp
 
     store = tmp_project

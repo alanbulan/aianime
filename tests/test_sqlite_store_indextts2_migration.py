@@ -164,7 +164,7 @@ async def test_add_column_if_missing_ignores_duplicate_column_race():
 
 def test_character_voice_field_defaults_match_pydantic():
     """NovelCharacter / CharacterIdentity expose the new IndexTTS2 voice fields."""
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     char = NovelCharacter(name="测试角色")
     assert char.reference_audio_path == ""

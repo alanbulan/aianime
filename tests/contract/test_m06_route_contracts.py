@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 from ai_anime.modules.project_workspace.public import ProjectContext

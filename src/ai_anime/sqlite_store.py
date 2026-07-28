@@ -20,12 +20,16 @@ import aiosqlite
 from rich.console import Console
 
 from ai_anime.sqlite_pragmas import configure_sqlite_connection_async
-from ai_anime.models import CharacterIdentity, NovelCharacter
 from ai_anime.modules.production.public import (
     normalize_detected_identities,
     normalize_detected_props,
 )
-from ai_anime.modules.asset_world.public import NovelProp, NovelScene
+from ai_anime.modules.asset_world.public import (
+    CharacterIdentity,
+    NovelCharacter,
+    NovelProp,
+    NovelScene,
+)
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode,
     NovelVisualBeat,

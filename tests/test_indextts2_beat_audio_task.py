@@ -50,7 +50,7 @@ class FakeStore:
         return list(self._beats)
 
     async def list_characters(self):
-        from ai_anime.models import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
         project_dir = Path(self.project_dir)
         reference_audio_path = ""

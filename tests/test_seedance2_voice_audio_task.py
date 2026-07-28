@@ -32,7 +32,7 @@ class FakeStore:
         return list(self._beats)
 
     async def list_characters(self):
-        from ai_anime.models import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -69,7 +69,7 @@ class FakeStoreCharacterDefaultVoice:
         return list(self._beats)
 
     async def list_characters(self):
-        from ai_anime.models import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -170,7 +170,7 @@ class FakeNarrationStore:
         ]
 
     async def list_characters(self):
-        from ai_anime.models import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)

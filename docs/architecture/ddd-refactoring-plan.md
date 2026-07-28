@@ -1992,6 +1992,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十批已将显式无角色/无道具标记、检测结果规范化、真实引用过滤、视觉描述引用补全、角色/道具 marker 提取与 beat 道具 marker 收集等完整规则组从后端公共 `models.py` 迁入唯一 Production domain `detected_refs.py`，两个私有辅助函数同步迁移，旧定义直接删除，不保留 facade、别名或重复实现。Production 内部草图 marker 检测、颜色规则与姿态适配器直连 domain；Cognee/SQLite、API、Narrative Planning、Asset & World、Freezone、生成器、Seedance、验证器与任务 runner 等模块外调用方统一经 Production `public.py` 使用稳定入口。新增去重与空标记优先级、严格/宽松 marker 解析、字典/对象 beat 读取和唯一所有权门禁；Production 回归 230 项，跨领域与持久化回归 333 项通过、14 项按既有条件跳过，最终完整架构门禁 152 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百六十一批已将互相依赖的 `CharacterIdentity` 与 `NovelCharacter` 从后端根级 `models.py` 整体迁入唯一 Asset & World application `character_models.py`，Asset & World 内部角色目录与身份适配器直连 application，Agent、Cognee/SQLite、Seedance 与模块外测试统一经 Asset & World `public.py` 使用稳定入口。旧 `models.py`、对应 Ruff 豁免、Cognee 包级 `NovelCharacter` 转发及 pipeline 中无业务用途的 `CharacterIdentity` 转发已删除，pipeline 仅用私有 `_NovelCharacter` 名称满足内部类型与构造，不保留公开兼容名；两项永久 skip 且仍引用已移除 `set_description`/`dump_set_description` API 的旧手工分镜测试同步删除。两个类的 AST 与迁移前逐项一致，Pydantic JSON Schema 哈希分别保持 `01f1fb44bda08d648e8f0f19694edd75994d02d2fa0a69e3c62abbc22edc9dea`、`a8472b1a10dda3d3333c78b7962603158464eb7d3bb8e4a3b51fa7cba0654c17`；角色模型与 API 回归 100 项，持久化/Cognee/语音回归 182 项通过、1 项按既有条件跳过，Asset & World 与角色 API 回归 187 项通过，最终完整架构门禁 153 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

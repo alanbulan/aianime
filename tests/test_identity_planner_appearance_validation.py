@@ -10,7 +10,7 @@ from ai_anime.agents.identity_planner import (
     IdentityPlanner,
     IdentityRequirement,
 )
-from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
 
 VALID_APPEARANCE = "月白色棉麻长衫配深色腰带，衣襟绣有细密云纹，长发用木簪整齐束起"

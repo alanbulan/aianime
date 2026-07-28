@@ -36,7 +36,7 @@ class _FakeGenerator:
 
 
 def _characters():
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     character = NovelCharacter(
         name="谢铮",
@@ -185,7 +185,7 @@ async def test_seedance2_voice_clone_sends_only_spoken_text_to_fal(tmp_path):
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_falls_back_to_character_default(tmp_path):
     """L3: 当变体没有覆盖、没有匹配的时期预设时，应使用角色默认声线。"""
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
@@ -224,7 +224,7 @@ async def test_seedance2_voice_clone_falls_back_to_character_default(tmp_path):
 async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path_not_persisted(
     tmp_path,
 ):
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
@@ -265,7 +265,7 @@ async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
     """L2: 当变体有 age_group 且角色有对应时期声线时，应使用该声线（非角色默认）。"""
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
@@ -310,7 +310,7 @@ async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_styling_variant_uses_character_default(tmp_path):
     """无 age_group 的造型变体（总裁/家居）应共用角色默认声线。"""
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
@@ -460,7 +460,7 @@ async def test_seedance2_voice_batch_generates_only_missing_same_identity_beats(
 
 
 def _protagonist_characters(project_dir: Path, *, with_identity_audio: bool = True):
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     identity = CharacterIdentity(
         identity_id="林思望_常装",
@@ -523,7 +523,7 @@ def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_pa
 
 def test_resolve_narrator_source_first_person_falls_back_to_character_default(tmp_path):
     """L3 fallback: identity has no voice but the character-level default is set."""
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
@@ -563,7 +563,7 @@ def test_resolve_narrator_source_first_person_falls_back_to_character_default(tm
 
 
 def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
-    from ai_anime.models import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"

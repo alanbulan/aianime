@@ -3,7 +3,7 @@
 核心理念：所有实体直接存入 Cognee 图谱，不需要额外的 JSON 存储。
 
 使用方式：
-    from ai_anime.cognee import CogneeStore, NovelCharacter
+    from ai_anime.cognee import CogneeStore
 
     store = await create_cognee_store("hongloumeng")
 
@@ -19,7 +19,6 @@
 from .config import init_cognee, get_cognee_status
 
 from .store import CogneeStore, create_cognee_store
-from ai_anime.models import NovelCharacter
 from .pipeline import (
     run_character_extraction_pipeline,
     run_episode_planning_pipeline,
@@ -32,9 +31,6 @@ __all__ = [
     # 存储
     "CogneeStore",
     "create_cognee_store",
-
-    # 实体
-    "NovelCharacter",
 
     # Pipeline
     "run_character_extraction_pipeline",

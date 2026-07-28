@@ -11,7 +11,6 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import NovelCharacter
 from ai_anime.modules.production.public import (
     collect_prop_marker_ids_from_beat,
     real_detected_identities,
@@ -22,6 +21,7 @@ from ai_anime.project_config import (
     load_narrator_reference_audio,
 )
 from ai_anime.modules.asset_world.public import (
+    NovelCharacter,
     NovelProp,
     probe_voice_sample_duration_seconds,
     resolve_scene_plate,

@@ -5,7 +5,7 @@ import pytest
 async def test_character_extraction_keeps_single_narrator_main(monkeypatch):
     from cognee.infrastructure.llm.LLMGateway import LLMGateway
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelCharacter
 
     class _Result:
         characters = [
@@ -30,7 +30,7 @@ async def test_character_extraction_keeps_single_narrator_main(monkeypatch):
 
 
 def test_first_person_narrator_copy_uses_narrator_main_terms(tmp_path):
-    from ai_anime.models import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
     from ai_anime.seedance2_i2v.voice_clone import NARRATION_STYLES, resolve_narrator_source
 
     project_dir = tmp_path / "proj"

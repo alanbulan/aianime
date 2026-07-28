@@ -19,6 +19,10 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
 )
+from ai_anime.modules.asset_world.application.character_models import (
+    CharacterIdentity,
+    NovelCharacter,
+)
 from ai_anime.modules.asset_world.application.character_reference import (
     CharacterReferenceUseCases,
 )
@@ -359,6 +363,7 @@ __all__ = [
     "CharacterCatalogUseCases",
     "CharacterGenerationOptions",
     "CharacterGenerationUseCases",
+    "CharacterIdentity",
     "CharacterIdentityNotFound",
     "CharacterIdentityAssetSourceNotFound",
     "CharacterIdentityUseCases",
@@ -385,6 +390,7 @@ __all__ = [
     "InvalidImageSelection",
     "InvalidPropInput",
     "InvalidStyleInput",
+    "NovelCharacter",
     "NovelProp",
     "NovelScene",
     "PropAlreadyExists",

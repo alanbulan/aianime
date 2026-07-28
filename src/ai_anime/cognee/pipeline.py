@@ -14,10 +14,6 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ai_anime.shared.env_guard import preserve_st_env
-from ai_anime.models import (
-    CharacterIdentity,
-    NovelCharacter,
-)
 from ai_anime.config import ensure_project_dirs, get_newapi_reasoning_kwargs
 from ai_anime.cognee.screenplay_normalizer import (
     NormalizedSceneBlock,
@@ -35,12 +31,11 @@ from .config import apply_cognee_project_storage_context
 # LLMGateway, Task, run_pipeline, add_data_points, setup
 # 在各函数内部按需 import
 
-# 业务模型已迁移到 ai_anime.models
-from ai_anime.models import (
-    CharacterIdentity,
-    NovelCharacter,
+from ai_anime.modules.asset_world.public import (
+    NovelCharacter as _NovelCharacter,
+    NovelProp,
+    NovelScene,
 )
-from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode as _NovelEpisode,
     NovelVisualBeat,
@@ -55,7 +50,7 @@ from ai_anime.modules.narrative_planning.public import (
 class CharacterList(BaseModel):
     """角色列表容器。"""
 
-    characters: List[NovelCharacter]
+    characters: List[_NovelCharacter]
 
 
 class EpisodeList(BaseModel):
@@ -215,7 +210,9 @@ async def extract_episodes_from_text(
     return result.episodes
 
 
-async def generate_visual_prompts(characters: List[NovelCharacter]) -> List[NovelCharacter]:
+async def generate_visual_prompts(
+    characters: List[_NovelCharacter],
+) -> List[_NovelCharacter]:
     """为角色生成/优化 face_prompt。
 
     注意：不添加风格前缀，风格在图像生成时动态添加。
@@ -234,9 +231,9 @@ async def generate_visual_prompts(characters: List[NovelCharacter]) -> List[Nove
 
 
 async def _attach_character_metadata(
-    characters: List[NovelCharacter],
+    characters: List[_NovelCharacter],
     project_name: str = "",  # 保留参数用于向后兼容，但不再使用
-) -> List[NovelCharacter]:
+) -> List[_NovelCharacter]:
     """为角色附加元数据。
 
     注意：由于使用数据库级别隔离，不再需要 project_name。
@@ -259,7 +256,7 @@ async def run_character_extraction_pipeline(
     text: str,
     dataset_name: str = "novel",
     project_name: str = "",
-) -> List[NovelCharacter]:
+) -> List[_NovelCharacter]:
     """运行角色提取 Pipeline（已废弃）。
 
     文本提取已移除，请改用 build_characters_from_graph() 从图谱提取角色。
@@ -353,7 +350,7 @@ async def extract_characters_from_graph(
     novel_text: Optional[str] = None,
     on_progress: Optional[Any] = None,
     on_log: Optional[Any] = None,
-) -> List[NovelCharacter]:
+) -> List[_NovelCharacter]:
     """从 cognee 图谱中提取角色（分阶段架构）。
 
     流程：
@@ -481,7 +478,7 @@ async def extract_characters_from_graph(
             from ai_anime.config import get_fish_voice_id
 
             fish_voice_id = get_fish_voice_id(enriched.age_group, enriched.gender)
-            char = NovelCharacter(
+            char = _NovelCharacter(
                 name=enriched.name,
                 aliases=_clean_aliases(enriched.name, enriched.aliases or []),
                 role=enriched.role,

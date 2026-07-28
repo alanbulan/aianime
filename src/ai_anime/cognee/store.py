@@ -30,13 +30,17 @@ from ai_anime.official_defaults import DEFAULT_COGNEE_LLM_MODEL
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.utils.document_parsers import load_novel_text
 
-from ai_anime.models import CharacterIdentity, NovelCharacter
 from ai_anime.modules.production.public import (
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,
 )
-from ai_anime.modules.asset_world.public import NovelProp, NovelScene
+from ai_anime.modules.asset_world.public import (
+    CharacterIdentity,
+    NovelCharacter,
+    NovelProp,
+    NovelScene,
+)
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode,
     NovelEvent,
@@ -2147,7 +2151,7 @@ class CogneeStore:
         """接收 NarrationScript，映射 VisualBeat 字段到 SQLite，删旧插新。
 
         Args:
-            script: NarrationScript 实例 (from ai_anime.models)
+            script: NarrationScript 实例 (from narrative_planning.public)
         """
         allowed_identity_ids, allowed_prop_ids = await self._episode_asset_ref_scope(
             script.episode_number

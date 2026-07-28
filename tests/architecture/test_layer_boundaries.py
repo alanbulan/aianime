@@ -49,6 +49,12 @@ def _removed_freezone_route_source(path: Path) -> str:
     return ""
 
 
+def _removed_models_source(path: Path) -> str:
+    assert path == PACKAGE_ROOT / "models.py"
+    assert not path.exists()
+    return ""
+
+
 def _assert_ratchet(
     actual: Counter[tuple[str, str]],
     allowed_max: dict[tuple[str, str], int],
@@ -5025,7 +5031,7 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
     assert "add_video_to_pool" not in runner_source
     assert "ai_anime.modules.production.public" in _imports(video_runner)
     assert not legacy_indexer.exists()
-    assert "class VideoPoolEntry(" not in models.read_text(encoding="utf-8")
+    assert "class VideoPoolEntry(" not in _removed_models_source(models)
 
 
 def test_production_grid_pool_routes_delegate_to_application() -> None:
@@ -5099,7 +5105,7 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
         / "grid_pool_models.py"
     )
     pool_indexer = PACKAGE_ROOT / "generators" / "pool_indexer.py"
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     pool_source = pool_models.read_text(encoding="utf-8")
 
     for model_name in ("GridEntry", "PoolImage", "PoolIndex"):
@@ -5108,11 +5114,8 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
     assert "ai_anime.modules.production.public" in _imports(pool_indexer)
 
 
-def test_legacy_models_do_not_keep_unused_graph_types() -> None:
-    source = (PACKAGE_ROOT / "models.py").read_text(encoding="utf-8")
-
-    for model_name in ("NodeType", "RelationType", "EpisodeNode", "GenreStyle"):
-        assert f"class {model_name}(" not in source
+def test_legacy_models_module_is_removed() -> None:
+    assert not (PACKAGE_ROOT / "models.py").exists()
 
 
 def test_narrative_planning_script_models_have_one_owner() -> None:
@@ -5140,7 +5143,7 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
         / "beat_prompt_generators.py"
     )
     global_optimizer = PACKAGE_ROOT / "agents" / "global_video_optimizer.py"
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     model_source = script_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -5179,7 +5182,7 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
     cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
     cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
 
-    assert "class NovelEvent(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelEvent(" not in _removed_models_source(legacy_models)
     assert "class NovelEvent(BaseModel):" in event_models.read_text(encoding="utf-8")
     assert '"NovelEvent"' in public.read_text(encoding="utf-8")
     for caller in (cognee_store, event_extractor):
@@ -5208,7 +5211,7 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         cognee_pipeline,
     )
 
-    assert "class NovelEpisode(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelEpisode(" not in _removed_models_source(legacy_models)
     assert "class NovelEpisode(BaseModel):" in episode_models.read_text(
         encoding="utf-8"
     )
@@ -5231,7 +5234,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         / "episode_planning_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     owner_source = episode_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     callers = (
@@ -5298,7 +5301,7 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         PACKAGE_ROOT / "seedance2_i2v" / "prompt.py",
         PACKAGE_ROOT / "sqlite_store.py",
     )
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     owner_source = beat_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -5347,7 +5350,7 @@ def test_asset_world_style_config_has_one_owner() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
 
-    assert "class StyleConfig(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class StyleConfig(" not in _removed_models_source(legacy_models)
     assert "class StyleConfig(BaseModel):" in style_models.read_text(encoding="utf-8")
     assert "ai_anime.modules.asset_world.application.style_models" in _imports(
         style_catalog
@@ -5356,6 +5359,69 @@ def test_asset_world_style_config_has_one_owner() -> None:
         public
     )
     assert '"StyleConfig"' in public.read_text(encoding="utf-8")
+
+
+def test_asset_world_character_models_have_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    character_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "character_models.py"
+    )
+    character_catalog = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "character_catalog.py"
+    )
+    character_identity = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "character_identity.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
+    external_callers = (
+        PACKAGE_ROOT / "agents" / "identity_planner.py",
+        cognee_pipeline,
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
+    )
+    owner_source = character_models.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert not _removed_models_source(legacy_models)
+    for model_name in ("CharacterIdentity", "NovelCharacter"):
+        assert f"class {model_name}(BaseModel):" in owner_source
+        assert f'"{model_name}"' in public_source
+    for caller in (character_catalog, character_identity):
+        assert (
+            "ai_anime.modules.asset_world.application.character_models"
+            in _imports(caller)
+        )
+    assert "ai_anime.modules.asset_world.application.character_models" in _imports(
+        public
+    )
+    for caller in external_callers:
+        assert "ai_anime.modules.asset_world.public" in _imports(caller)
+    assert "NovelCharacter" not in cognee_package.read_text(encoding="utf-8")
+    pipeline_source = cognee_pipeline.read_text(encoding="utf-8")
+    assert "NovelCharacter as _NovelCharacter" in pipeline_source
+    assert "CharacterIdentity" not in pipeline_source
+
+    legacy_importers = [
+        _relative(path)
+        for path in _python_files(PACKAGE_ROOT)
+        if "ai_anime.models" in _imports(path)
+    ]
+    assert not legacy_importers
 
 
 def test_asset_world_prop_model_has_one_owner() -> None:
@@ -5384,7 +5450,7 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
     )
 
-    assert "class NovelProp(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelProp(" not in _removed_models_source(legacy_models)
     assert "class NovelProp(BaseModel):" in prop_models.read_text(encoding="utf-8")
     assert "ai_anime.modules.asset_world.application.prop_models" in _imports(
         prop_catalog
@@ -5430,7 +5496,7 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "utils" / "asset_resolver.py",
     )
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     owner_source = scene_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -5510,7 +5576,7 @@ def test_production_detected_refs_have_one_owner() -> None:
         "real_detected_identities",
         "real_detected_props",
     )
-    legacy_source = legacy_models.read_text(encoding="utf-8")
+    legacy_source = _removed_models_source(legacy_models)
     owner_source = owner.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -5971,7 +6037,7 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
     public_source = production_public.read_text(encoding="utf-8")
     assert "def sketch_color_assignment_use_cases(" not in public_source
     assert "def sketch_marker_detection_use_cases(" not in public_source
-    assert "split_detected_marker_keys" not in models.read_text(encoding="utf-8")
+    assert "split_detected_marker_keys" not in _removed_models_source(models)
     assert "def split_detected_marker_keys(" in domain.read_text(encoding="utf-8")
     for implementation_detail in (
         "detect_identities_by_ai",

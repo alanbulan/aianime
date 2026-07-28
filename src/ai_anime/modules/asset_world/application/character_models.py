@@ -1,17 +1,9 @@
-"""AI anime 数据模型。
-
-扩展 SuperScript 的图谱模型，添加视频生成专用节点。
-"""
+"""Character models owned by the Asset & World application layer."""
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-
-# =============================================================================
-# Cognee 业务实体（从 cognee/pipeline.py 迁出）
-# =============================================================================
 
 
 class CharacterIdentity(BaseModel):
@@ -100,7 +92,9 @@ class CharacterIdentity(BaseModel):
         default="extracted",
         description="来源: 'extracted'（小说提取）或 'user_created'（手动创建）",
     )
-    updated_at: str = Field(default="", description="身份资产最后一次内容变化时间 ISO 字符串")
+    updated_at: str = Field(
+        default="", description="身份资产最后一次内容变化时间 ISO 字符串"
+    )
 
     @model_validator(mode="after")
     def sanitize_names(self):
@@ -149,7 +143,9 @@ class NovelCharacter(BaseModel):
     role: str = Field(default="", description="角色定位（主角/配角/反派）")
     is_main: bool = Field(default=False, description="是否为主角/核心角色")
     gender: str = Field(default="", description="性别")
-    age_group: str = Field(default="youth", description="年龄段: child/youth/middle/elder")
+    age_group: str = Field(
+        default="youth", description="年龄段: child/youth/middle/elder"
+    )
     body_type: str = Field(default="", description="体型描述，如'纤细高挑'、'健壮魁梧'")
     fish_voice_id: str = Field(
         default="",
@@ -196,7 +192,9 @@ class NovelCharacter(BaseModel):
         default="[]",
         description="身份列表的 JSON 字符串",
     )
-    updated_at: str = Field(default="", description="角色资产最后一次内容变化时间 ISO 字符串")
+    updated_at: str = Field(
+        default="", description="角色资产最后一次内容变化时间 ISO 字符串"
+    )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -258,7 +256,9 @@ class NovelCharacter(BaseModel):
     def voice_samples_by_age_group(self, value: dict[str, dict]) -> None:
         import json
 
-        self.voice_samples_by_age_group_json = json.dumps(value or {}, ensure_ascii=False)
+        self.voice_samples_by_age_group_json = json.dumps(
+            value or {}, ensure_ascii=False
+        )
 
     @identities.setter
     def identities(self, value: List[CharacterIdentity]):
@@ -310,3 +310,6 @@ class NovelCharacter(BaseModel):
                         identity_id=identity.identity_id,
                     )
             self.identities = identities
+
+
+__all__ = ["CharacterIdentity", "NovelCharacter"]

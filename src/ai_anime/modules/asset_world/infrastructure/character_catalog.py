@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import NovelCharacter
+from ai_anime.modules.asset_world.application.character_models import NovelCharacter
 from ai_anime.modules.asset_world.application.dto import CreateCharacterCommand
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,

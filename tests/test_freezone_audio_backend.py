@@ -52,7 +52,7 @@ class FakeProjectStore:
         self.project_dir = str(project_dir)
 
     async def list_characters(self):
-        from ai_anime.models import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)

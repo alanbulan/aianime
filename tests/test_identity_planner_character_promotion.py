@@ -6,7 +6,7 @@ from ai_anime.agents.identity_planner import (
     EpisodeIdentityRequirements,
     IdentityPlanner,
 )
-from ai_anime.models import NovelCharacter
+from ai_anime.modules.asset_world.public import NovelCharacter
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 

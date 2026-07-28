@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 from ai_anime.modules.production.public import NO_CHARACTER_MARKER
 from ai_anime.modules.project_workspace.public import ProjectContext
 

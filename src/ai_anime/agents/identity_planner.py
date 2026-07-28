@@ -19,7 +19,7 @@ from ai_anime.config import (
     get_newapi_text_pydantic_model,
     get_newapi_text_pydantic_model_settings,
 )
-from ai_anime.models import CharacterIdentity
+from ai_anime.modules.asset_world.public import CharacterIdentity
 from ai_anime.shared.env_guard import preserve_st_env
 
 if TYPE_CHECKING:

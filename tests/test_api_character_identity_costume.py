@@ -8,7 +8,7 @@ import pytest
 from fastapi import UploadFile
 
 from ai_anime.api.characters_schemas import IdentityCreate
-from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
 
 class _CharacterStore:

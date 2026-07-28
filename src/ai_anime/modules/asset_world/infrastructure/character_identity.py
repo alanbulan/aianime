@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.freezone.paths import resolve_static_url_to_path
-from ai_anime.models import CharacterIdentity
+from ai_anime.modules.asset_world.application.character_models import CharacterIdentity
 from ai_anime.modules.asset_world.application.dto import (
     CreateIdentityCommand,
     IdentityAssetPaths,
