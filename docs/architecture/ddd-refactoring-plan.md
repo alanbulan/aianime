@@ -1729,6 +1729,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十四批已将 `UsageMeter` 与 `ProviderInstrumentation` 协议迁入 Model Usage application ports，将 CE no-op 实现迁入模块内唯一 infrastructure adapter，并由 composition/public 提供稳定的 usage meter 解析与本地适配器工厂；未注册 `usage_meter` 或已注册对象缺少模型调用预留能力时仍回退到 no-op，其他注册表异常继续抛出。CE bootstrap 改经 public factory 注册原 `usage_meter`、`provider_instrumentation` 键并安装同一 instrumentation 实例，应用容器类型、鉴权余额查询、Chat、Cognee、生成器、任务计量及三个领域组合根等 16 个生产调用文件全部改经 Model Usage public API。旧 `ports/usage.py`、`ports/local/usage.py`、`ports.get_usage_meter`、`ports.get_provider_instrumentation` 及旧 no-op 测试路径直接删除，不保留 facade、兼容转发或第二套实现；Usage、CE 注册、容器、鉴权、组合根、生成计费、任务计量、Cognee 与应用工厂定向回归 120 项及完整后端分层门禁 99 项均通过，修改文件 Ruff、Python 编译、核心文件格式检查与 `git diff --check` 通过；Cognee 相关告警均为既有依赖弃用告警。
 
+第三百三十五批已将根包 `llm_instrumentation.py` 拆入 Model Usage infrastructure：`runtime_context.py` 唯一管理用户/项目/资源/计费元数据 ContextVar、模型调用预留状态和预留栈，`registered_usage.py` 唯一持有进程注册表解析与 no-op 回退，`provider_instrumentation.py` 唯一负责 PydanticAI/OpenAI/LiteLLM trace、预留、退款和用量转发 hook；provider 不再反向导入本模块 public API，composition 与 provider 共同复用同一 registered resolver。Cognee 改经 public API 设置和恢复模型调用预留状态，public 同时提供 provider instrumentation 安装入口；ContextVar 键、资源类型白名单、metadata 复制、栈顺序、hook 幂等标记、模型归一、请求标识提取及计量时序均保持不变。旧根文件直接删除，不保留转发模块或第二套上下文；instrumentation/runtime/Usage、Cognee、CE 注册、容器与应用工厂定向回归 31 项及完整后端分层门禁 100 项均通过，修改文件 Ruff、Python 编译、迁移文件格式检查与 `git diff --check` 通过；Cognee 8 条告警均为既有依赖弃用告警。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

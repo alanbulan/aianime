@@ -3,10 +3,9 @@
 from ai_anime.modules.model_usage.application import GenerationCreditQueries, UsageMeter
 from ai_anime.modules.model_usage.infrastructure import (
     ConfiguredGenerationModelCatalog,
-    NoOpUsageMeter,
     RegisteredCreditQuote,
+    resolve_registered_usage_meter,
 )
-from ai_anime.ports import registry
 
 _model_catalog = ConfiguredGenerationModelCatalog()
 _credit_quote = RegisteredCreditQuote()
@@ -17,10 +16,4 @@ def generation_credit_queries() -> GenerationCreditQueries:
 
 
 def get_usage_meter() -> UsageMeter:
-    try:
-        meter = registry.get_port("usage_meter")
-    except registry.PortNotRegistered:
-        return NoOpUsageMeter()
-    if not hasattr(meter, "reserve_current_model_call_credit"):
-        return NoOpUsageMeter()
-    return meter
+    return resolve_registered_usage_meter()

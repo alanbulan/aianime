@@ -448,6 +448,13 @@ def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
         / "local_usage.py"
     )
     composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
+    registered_usage = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "registered_usage.py"
+    )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
     legacy_ports = PACKAGE_ROOT / "ports" / "__init__.py"
     local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
@@ -463,13 +470,53 @@ def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
     assert "class NoOpProviderInstrumentation:" in local_usage.read_text(
         encoding="utf-8"
     )
-    assert composition.read_text(encoding="utf-8").count(
+    assert registered_usage.read_text(encoding="utf-8").count(
         'registry.get_port("usage_meter")'
     ) == 1
+    assert "resolve_registered_usage_meter()" in composition.read_text(encoding="utf-8")
     assert "def get_usage_meter(" not in legacy_ports.read_text(encoding="utf-8")
     assert "build_local_usage_adapters" in public.read_text(encoding="utf-8")
     assert "build_local_usage_adapters" in local_ports.read_text(encoding="utf-8")
     assert "ai_anime.modules.model_usage.public" in _imports(container)
+
+
+def test_model_usage_owns_runtime_provider_instrumentation() -> None:
+    provider = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "provider_instrumentation.py"
+    )
+    runtime_context = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "runtime_context.py"
+    )
+    local_usage = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "local_usage.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
+    cognee_config = PACKAGE_ROOT / "cognee" / "config.py"
+    provider_source = provider.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert not (PACKAGE_ROOT / "llm_instrumentation.py").exists()
+    assert runtime_context.exists()
+    assert "ai_anime.modules.model_usage.public" not in _imports(provider)
+    assert "resolve_registered_usage_meter" in provider_source
+    assert "runtime_context" in "\n".join(_imports(local_usage))
+    assert "install_provider_instrumentation" in public_source
+    assert "set_model_call_reservation_active" in public_source
+    assert "reset_model_call_reservation_active" in public_source
+    assert "ai_anime.modules.model_usage.public" in _imports(cognee_config)
+    assert "ai_anime.llm_instrumentation" not in _imports(cognee_config)
 
 
 def test_platform_release_owns_release_feed_contract_and_adapters() -> None:

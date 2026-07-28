@@ -1,5 +1,7 @@
 """Stable application API exposed by Model Usage."""
 
+from contextvars import Token
+
 from ai_anime.modules.model_usage.application import (
     CreditQuotePort,
     GenerationCreditQueries,
@@ -60,6 +62,30 @@ def get_usage_meter() -> UsageMeter:
     return resolve()
 
 
+def install_provider_instrumentation() -> None:
+    from ai_anime.modules.model_usage.infrastructure.provider_instrumentation import (
+        install_provider_instrumentation as install,
+    )
+
+    install()
+
+
+def reset_model_call_reservation_active(token: Token) -> None:
+    from ai_anime.modules.model_usage.infrastructure.runtime_context import (
+        reset_model_call_reservation_active as reset,
+    )
+
+    reset(token)
+
+
+def set_model_call_reservation_active(active: bool) -> Token:
+    from ai_anime.modules.model_usage.infrastructure.runtime_context import (
+        set_model_call_reservation_active as set_active,
+    )
+
+    return set_active(active)
+
+
 __all__ = [
     "BILLING_RULE_NOT_CONFIGURED_CODE",
     "BILLING_RULE_NOT_CONFIGURED_MESSAGE",
@@ -87,7 +113,10 @@ __all__ = [
     "find_insufficient_credits_stop",
     "generation_credit_queries",
     "get_usage_meter",
+    "install_provider_instrumentation",
     "insufficient_credits_payload",
     "is_insufficient_credits_error",
     "iter_exception_chain",
+    "reset_model_call_reservation_active",
+    "set_model_call_reservation_active",
 ]

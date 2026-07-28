@@ -1,42 +1,26 @@
-"""LLM attribution context and provider instrumentation.
-
-This module stays in the engine side so provider monkey patches can run in
-CE and EE processes without importing EE/control-plane modules.
-"""
+"""PydanticAI, OpenAI, and LiteLLM usage instrumentation."""
 
 from __future__ import annotations
 
-import contextvars
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
-logger = logging.getLogger("ai_anime.llm_instrumentation")
-
-_PROJECT_CTX: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "ai_anime_project_id", default=None
+from ai_anime.modules.model_usage.infrastructure.registered_usage import (
+    resolve_registered_usage_meter,
 )
-_USER_CTX: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "ai_anime_llm_user_id", default=None
-)
-_RESOURCE_KIND_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "ai_anime_llm_resource_kind", default=""
-)
-_BILLING_METADATA_CTX: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
-    "ai_anime_billing_metadata", default={}
-)
-_CREDIT_RESERVATION_STACK: contextvars.ContextVar[tuple[str, ...]] = contextvars.ContextVar(
-    "st_credit_reservation_stack",
-    default=(),
-)
-_AGENT_CREDIT_RESERVATION_ACTIVE: contextvars.ContextVar[bool] = contextvars.ContextVar(
-    "st_agent_credit_reservation_active",
-    default=False,
+from ai_anime.modules.model_usage.infrastructure.runtime_context import (
+    get_llm_user_context,
+    get_project_context,
+    get_resource_kind_context,
+    model_call_reservation_active,
+    pop_credit_reservation,
+    push_credit_reservation,
+    reset_model_call_reservation_active,
+    set_model_call_reservation_active,
 )
 
-_ALLOWED_RESOURCE_KINDS = frozenset(
-    {"portrait", "sketch", "render", "video", "tts", "script", "ingest"}
-)
+logger = logging.getLogger(__name__)
 _PROVIDER_REQUEST_ID_HEADER_NAMES = (
     "x-request-id",
     "x-requestid",
@@ -53,70 +37,6 @@ _pydantic_ai_openai_trace_patched = False
 _agent_run_patched = False
 _litellm_hook_installed = False
 _litellm_acompletion_patched = False
-
-
-def set_project_context(project_id: Optional[str]) -> None:
-    _PROJECT_CTX.set(project_id or None)
-
-
-def get_project_context() -> Optional[str]:
-    return _PROJECT_CTX.get()
-
-
-def get_llm_user_context() -> Optional[str]:
-    return _USER_CTX.get()
-
-
-def get_resource_kind_context() -> str:
-    return _RESOURCE_KIND_CTX.get()
-
-
-def get_billing_metadata_context() -> dict[str, Any]:
-    return dict(_BILLING_METADATA_CTX.get() or {})
-
-
-def clear_llm_usage_context() -> None:
-    _USER_CTX.set(None)
-    set_project_context(None)
-    _RESOURCE_KIND_CTX.set("")
-    _BILLING_METADATA_CTX.set({})
-
-
-def set_llm_usage_context(
-    user_id: Optional[str],
-    project_id: Optional[str] = None,
-    resource_kind: str = "",
-    billing_metadata: Optional[dict[str, Any]] = None,
-) -> None:
-    _USER_CTX.set(user_id)
-    set_project_context(project_id)
-    kind = resource_kind if resource_kind in _ALLOWED_RESOURCE_KINDS else ""
-    _RESOURCE_KIND_CTX.set(kind)
-    _BILLING_METADATA_CTX.set(dict(billing_metadata or {}))
-
-
-def _push_credit_reservation(reservation_id: str) -> None:
-    if not reservation_id:
-        return
-    stack = _CREDIT_RESERVATION_STACK.get()
-    _CREDIT_RESERVATION_STACK.set((*stack, reservation_id))
-
-
-def _pop_credit_reservation() -> str:
-    stack = _CREDIT_RESERVATION_STACK.get()
-    if not stack:
-        return ""
-    reservation_id = stack[-1]
-    _CREDIT_RESERVATION_STACK.set(stack[:-1])
-    return reservation_id
-
-
-def set_model_call_reservation_active(active: bool):
-    return _AGENT_CREDIT_RESERVATION_ACTIVE.set(active)
-
-
-def reset_model_call_reservation_active(token) -> None:
-    _AGENT_CREDIT_RESERVATION_ACTIVE.reset(token)
 
 
 def _extract_model_name(agent: object) -> str:
@@ -147,14 +67,18 @@ def _text_billing_params_from_model_settings(
     params: dict[str, str] = {}
     for settings_value in (getattr(agent, "model_settings", None), run_model_settings):
         settings = _model_settings_dict(settings_value)
-        effort = settings.get("openai_reasoning_effort") or settings.get("reasoning_effort")
+        effort = settings.get("openai_reasoning_effort") or settings.get(
+            "reasoning_effort"
+        )
         clean_effort = str(effort or "").strip().lower()
         if clean_effort:
             params["effort"] = clean_effort
     return params or None
 
 
-def _text_billing_params_from_openai_kwargs(kwargs: dict | None) -> dict[str, str] | None:
+def _text_billing_params_from_openai_kwargs(
+    kwargs: dict | None,
+) -> dict[str, str] | None:
     if not isinstance(kwargs, dict):
         return None
     effort = kwargs.get("reasoning_effort") or kwargs.get("openai_reasoning_effort")
@@ -219,7 +143,9 @@ def _extract_provider_ids(response_obj: object) -> tuple[str, str, str]:
         req = _first_nonempty_str(
             getattr(obj, "request_id", None), getattr(obj, "_request_id", None)
         )
-        task = _first_nonempty_str(getattr(obj, "task_id", None), getattr(obj, "taskId", None))
+        task = _first_nonempty_str(
+            getattr(obj, "task_id", None), getattr(obj, "taskId", None)
+        )
         resp = _first_nonempty_str(
             getattr(obj, "id", None),
             getattr(obj, "response_id", None),
@@ -227,16 +153,28 @@ def _extract_provider_ids(response_obj: object) -> tuple[str, str, str]:
         )
         if isinstance(obj, dict):
             resp = _first_nonempty_str(
-                resp, obj.get("id"), obj.get("response_id"), obj.get("provider_response_id")
+                resp,
+                obj.get("id"),
+                obj.get("response_id"),
+                obj.get("provider_response_id"),
             )
             req = _first_nonempty_str(req, obj.get("request_id"), obj.get("requestId"))
             task = _first_nonempty_str(task, obj.get("task_id"), obj.get("taskId"))
-        for details in (getattr(obj, "provider_details", None), getattr(obj, "metadata", None)):
+        for details in (
+            getattr(obj, "provider_details", None),
+            getattr(obj, "metadata", None),
+        ):
             if isinstance(details, dict):
-                req = _first_nonempty_str(req, details.get("request_id"), details.get("requestId"))
-                task = _first_nonempty_str(task, details.get("task_id"), details.get("taskId"))
+                req = _first_nonempty_str(
+                    req, details.get("request_id"), details.get("requestId")
+                )
+                task = _first_nonempty_str(
+                    task, details.get("task_id"), details.get("taskId")
+                )
                 resp = _first_nonempty_str(
-                    resp, details.get("response_id"), details.get("provider_response_id")
+                    resp,
+                    details.get("response_id"),
+                    details.get("provider_response_id"),
                 )
         response_headers = getattr(obj, "_response_headers", None)
         req = _first_nonempty_str(
@@ -248,7 +186,9 @@ def _extract_provider_ids(response_obj: object) -> tuple[str, str, str]:
             req = _first_nonempty_str(
                 req, _header_value(headers, *_PROVIDER_REQUEST_ID_HEADER_NAMES)
             )
-            req = _first_nonempty_str(req, hidden.get("request_id"), hidden.get("requestId"))
+            req = _first_nonempty_str(
+                req, hidden.get("request_id"), hidden.get("requestId")
+            )
         return req, task, resp
 
     try:
@@ -345,22 +285,24 @@ def _extract_litellm_usage(kwargs: dict, response_obj: object) -> tuple[int, int
         else:
             in_tok = int(getattr(usage, "prompt_tokens", 0) or 0)
             out_tok = int(getattr(usage, "completion_tokens", 0) or 0)
-        model = (kwargs or {}).get("model", "") or getattr(response_obj, "model", "") or ""
+        model = (
+            (kwargs or {}).get("model", "") or getattr(response_obj, "model", "") or ""
+        )
     except Exception:
         pass
     return in_tok, out_tok, _normalize_recorded_model_name(model)
 
 
 async def _meter_reserve(**kwargs) -> str:
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    return await get_usage_meter().reserve_current_model_call_credit(**kwargs)
+    return await resolve_registered_usage_meter().reserve_current_model_call_credit(
+        **kwargs
+    )
 
 
 async def _meter_refund(reservation_id: str) -> None:
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    await get_usage_meter().refund_model_call_credit_reservation(reservation_id)
+    await resolve_registered_usage_meter().refund_model_call_credit_reservation(
+        reservation_id
+    )
 
 
 async def _forward_agent_usage(
@@ -369,17 +311,15 @@ async def _forward_agent_usage(
     *,
     credit_reservation_id: str = "",
 ) -> None:
-    user_id = _USER_CTX.get()
+    user_id = get_llm_user_context()
     if not user_id:
         return
-    project_id = _PROJECT_CTX.get()
-    resource_kind = _RESOURCE_KIND_CTX.get()
+    project_id = get_project_context()
+    resource_kind = get_resource_kind_context()
     model = _normalize_recorded_model_name(_extract_model_name(agent))
     request_id, task_id, response_id = _extract_provider_ids(result)
     meta = {"response_id": response_id} if response_id else None
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    meter = get_usage_meter()
+    meter = resolve_registered_usage_meter()
     await meter.bump_model_call(
         user_id=user_id,
         model=model,
@@ -395,9 +335,15 @@ async def _forward_agent_usage(
         usage = usage_fn() if callable(usage_fn) else None
         if usage is None:
             return
-        in_tok = getattr(usage, "input_tokens", None) or getattr(usage, "request_tokens", None) or 0
+        in_tok = (
+            getattr(usage, "input_tokens", None)
+            or getattr(usage, "request_tokens", None)
+            or 0
+        )
         out_tok = (
-            getattr(usage, "output_tokens", None) or getattr(usage, "response_tokens", None) or 0
+            getattr(usage, "output_tokens", None)
+            or getattr(usage, "response_tokens", None)
+            or 0
         )
         await meter.record_llm_tokens(
             user_id=user_id,
@@ -448,7 +394,8 @@ def _install_pydantic_ai_openai_trace_patch() -> None:
                 str(getattr(response, "_request_id", "") or "").strip()
                 or str(getattr(response, "request_id", "") or "").strip()
                 or _header_value(
-                    getattr(response, "_response_headers", None), *_PROVIDER_REQUEST_ID_HEADER_NAMES
+                    getattr(response, "_response_headers", None),
+                    *_PROVIDER_REQUEST_ID_HEADER_NAMES,
                 )
             )
         except Exception:
@@ -486,16 +433,18 @@ def _install_agent_run_patch() -> None:
             ),
             metadata={"source": "pydantic_ai_agent_run"},
         )
-        token = _AGENT_CREDIT_RESERVATION_ACTIVE.set(bool(reservation_id))
+        token = set_model_call_reservation_active(bool(reservation_id))
         try:
             result = await original_run(self, *args, **kwargs)
         except BaseException:
             await _meter_refund(reservation_id)
             raise
         finally:
-            _AGENT_CREDIT_RESERVATION_ACTIVE.reset(token)
+            reset_model_call_reservation_active(token)
         try:
-            await _forward_agent_usage(self, result, credit_reservation_id=reservation_id)
+            await _forward_agent_usage(
+                self, result, credit_reservation_id=reservation_id
+            )
         except Exception:
             pass
         return result
@@ -510,17 +459,15 @@ async def _forward_litellm_success(
     *,
     credit_reservation_id: str = "",
 ) -> None:
-    user_id = _USER_CTX.get()
+    user_id = get_llm_user_context()
     if not user_id:
         return
     in_tok, out_tok, model = _extract_litellm_usage(kwargs, response_obj)
-    project_id = _PROJECT_CTX.get()
-    resource_kind = _RESOURCE_KIND_CTX.get()
+    project_id = get_project_context()
+    resource_kind = get_resource_kind_context()
     request_id, task_id, response_id = _extract_provider_ids(response_obj)
     meta = {"response_id": response_id} if response_id else None
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    meter = get_usage_meter()
+    meter = resolve_registered_usage_meter()
     await meter.bump_model_call(
         user_id=user_id,
         model=model,
@@ -555,7 +502,7 @@ def _patch_litellm_acompletion(litellm_module: object) -> None:
         return
 
     async def _tracked_acompletion(*args, **kwargs):
-        if _AGENT_CREDIT_RESERVATION_ACTIVE.get() or not _USER_CTX.get():
+        if model_call_reservation_active() or not get_llm_user_context():
             return await original_acompletion(*args, **kwargs)
         model = str(kwargs.get("model") or (args[0] if args else "") or "").strip()
         if not model:
@@ -566,14 +513,14 @@ def _patch_litellm_acompletion(litellm_module: object) -> None:
             billing_params=_text_billing_params_from_openai_kwargs(kwargs),
             metadata={"source": "litellm_acompletion", "call_type": "acompletion"},
         )
-        token = _AGENT_CREDIT_RESERVATION_ACTIVE.set(bool(reservation_id))
+        token = set_model_call_reservation_active(bool(reservation_id))
         try:
             response = await original_acompletion(*args, **kwargs)
         except BaseException:
             await _meter_refund(reservation_id)
             raise
         finally:
-            _AGENT_CREDIT_RESERVATION_ACTIVE.reset(token)
+            reset_model_call_reservation_active(token)
         call_kwargs = dict(kwargs)
         call_kwargs.setdefault("model", model)
         try:
@@ -603,38 +550,45 @@ def _install_litellm_hook() -> None:
             return _extract_litellm_usage(kwargs, response_obj)
 
         async def _forward_success(self, kwargs, response_obj) -> None:
-            if _AGENT_CREDIT_RESERVATION_ACTIVE.get():
+            if model_call_reservation_active():
                 return
-            reservation_id = _pop_credit_reservation()
+            reservation_id = pop_credit_reservation()
             await _forward_litellm_success(
                 kwargs, response_obj, credit_reservation_id=reservation_id
             )
 
         async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
-            if _AGENT_CREDIT_RESERVATION_ACTIVE.get():
+            if model_call_reservation_active():
                 return None
-            if not _USER_CTX.get():
+            if not get_llm_user_context():
                 return None
-            model = str(data.get("model") or "").strip() if isinstance(data, dict) else ""
+            model = (
+                str(data.get("model") or "").strip() if isinstance(data, dict) else ""
+            )
             if not model:
                 return None
             reservation_id = await _meter_reserve(
                 model=model,
                 billing_kind="text",
                 billing_params=_text_billing_params_from_openai_kwargs(data),
-                metadata={"source": "litellm_pre_call", "call_type": str(call_type or "")},
+                metadata={
+                    "source": "litellm_pre_call",
+                    "call_type": str(call_type or ""),
+                },
             )
-            _push_credit_reservation(reservation_id)
+            push_credit_reservation(reservation_id)
             return None
 
-        async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
-            reservation_id = _pop_credit_reservation()
+        async def async_log_failure_event(
+            self, kwargs, response_obj, start_time, end_time
+        ):
+            reservation_id = pop_credit_reservation()
             await _meter_refund(reservation_id)
 
         def log_failure_event(self, kwargs, response_obj, start_time, end_time):
             import asyncio
 
-            reservation_id = _pop_credit_reservation()
+            reservation_id = pop_credit_reservation()
             coro = _meter_refund(reservation_id)
             try:
                 loop = asyncio.get_running_loop()
@@ -645,7 +599,9 @@ def _install_litellm_hook() -> None:
             else:
                 asyncio.run(coro)
 
-        async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
+        async def async_log_success_event(
+            self, kwargs, response_obj, start_time, end_time
+        ):
             await self._forward_success(kwargs, response_obj)
 
         def log_success_event(self, kwargs, response_obj, start_time, end_time):

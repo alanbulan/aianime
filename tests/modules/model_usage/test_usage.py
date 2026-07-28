@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.modules.model_usage import composition
+import ai_anime.modules.model_usage.infrastructure.registered_usage as registered_usage
 from ai_anime.modules.model_usage.infrastructure import (
     NoOpProviderInstrumentation,
     NoOpUsageMeter,
@@ -43,7 +43,7 @@ def test_usage_meter_returns_registered_adapter(monkeypatch) -> None:
             return "reservation-1"
 
     meter = RegisteredUsageMeter()
-    monkeypatch.setattr(composition.registry, "get_port", lambda _name: meter)
+    monkeypatch.setattr(registered_usage.registry, "get_port", lambda _name: meter)
 
     assert get_usage_meter() is meter
 
@@ -55,10 +55,10 @@ def test_usage_meter_falls_back_when_adapter_is_missing_or_incomplete(
 ) -> None:
     def get_port(name: str):
         if registered is None:
-            raise composition.registry.PortNotRegistered(name)
+            raise registered_usage.registry.PortNotRegistered(name)
         return registered
 
-    monkeypatch.setattr(composition.registry, "get_port", get_port)
+    monkeypatch.setattr(registered_usage.registry, "get_port", get_port)
 
     assert isinstance(get_usage_meter(), NoOpUsageMeter)
 
@@ -67,7 +67,7 @@ def test_usage_meter_does_not_hide_registry_failures(monkeypatch) -> None:
     def get_port(_name: str):
         raise RuntimeError("registry failed")
 
-    monkeypatch.setattr(composition.registry, "get_port", get_port)
+    monkeypatch.setattr(registered_usage.registry, "get_port", get_port)
 
     with pytest.raises(RuntimeError, match="registry failed"):
         get_usage_meter()

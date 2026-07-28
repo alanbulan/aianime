@@ -18,10 +18,6 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-from ai_anime.llm_instrumentation import (
-    reset_model_call_reservation_active,
-    set_model_call_reservation_active,
-)
 from ai_anime.official_defaults import (
     DEFAULT_COGNEE_LLM_MODEL,
     DEFAULT_COGNEE_LLM_PROVIDER,
@@ -32,6 +28,8 @@ from ai_anime.modules.model_usage.public import (
     find_insufficient_credits_error,
     find_insufficient_credits_stop,
     get_usage_meter,
+    reset_model_call_reservation_active,
+    set_model_call_reservation_active,
 )
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.shared.runtime_env import is_ce_effective

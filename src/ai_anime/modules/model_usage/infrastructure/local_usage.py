@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from ai_anime.llm_instrumentation import (
+from ai_anime.modules.model_usage.infrastructure.runtime_context import (
     clear_llm_usage_context,
     set_llm_usage_context,
 )

@@ -13,6 +13,9 @@ from ai_anime.modules.model_usage.infrastructure.local_usage import (
 from ai_anime.modules.model_usage.infrastructure.registered_credit_quote import (
     RegisteredCreditQuote,
 )
+from ai_anime.modules.model_usage.infrastructure.registered_usage import (
+    resolve_registered_usage_meter,
+)
 
 __all__ = [
     "ConfiguredGenerationModelCatalog",
@@ -20,4 +23,5 @@ __all__ = [
     "NoOpProviderInstrumentation",
     "NoOpUsageMeter",
     "RegisteredCreditQuote",
+    "resolve_registered_usage_meter",
 ]
