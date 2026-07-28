@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import (
+from ai_anime.api.production_pool_schemas import (
     GridCutRequest,
     GridSketchPreviewRequest,
     PoolSelectRequest,

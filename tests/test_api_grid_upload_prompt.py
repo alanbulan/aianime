@@ -66,7 +66,7 @@ def _seed_pool(grids_dir):
 @pytest.mark.asyncio
 async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     from ai_anime.api.routes import production_pool
-    from ai_anime.api.schemas import (
+    from ai_anime.api.production_pool_schemas import (
         GridCutRequest,
         GridSketchPreviewRequest,
         PoolSelectRequest,

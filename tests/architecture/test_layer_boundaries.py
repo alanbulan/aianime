@@ -189,6 +189,16 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/episodes.py",
             ("EpisodePlanRequest", "EpisodeUpdate", "InsertManualShotRequest"),
         ),
+        (
+            "production_pool_schemas.py",
+            "routes/production_pool.py",
+            (
+                "GridCutRequest",
+                "GridSketchPreviewRequest",
+                "PoolSelectRequest",
+                "VideoPoolSelectRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

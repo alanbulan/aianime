@@ -143,18 +143,6 @@ class Seedance2AssetAudioTrimRequest(BaseModel):
     duration_seconds: float = 4
 
 
-# ── 图片池选择 ────────────────────────────────────────────────────────────────
-
-
-class PoolSelectRequest(BaseModel):
-    pool_id: str
-    force: bool = False
-
-
-class VideoPoolSelectRequest(BaseModel):
-    pool_id: str
-
-
 class GlobalOptimizeRequest(BaseModel):
     language: str = "en"  # "zh" 中文 / "en" SuperPower英文(Gemini)
 
@@ -1647,25 +1635,6 @@ class IdentityUpdate(BaseModel):
 
 class ScriptSaveRequest(BaseModel):
     beats: list[dict]
-
-
-# ── 草图切割 ─────────────────────────────────────────────────────────────────
-
-
-class GridCutRequest(BaseModel):
-    grid_type: Literal["render", "sketch"] = "sketch"
-    mode_key: str | None = None
-    rows: int
-    cols: int
-    beat_start: int
-    beat_end: int
-    beat_numbers: list[int] | None = None
-
-
-class GridSketchPreviewRequest(BaseModel):
-    rows: int = Field(..., ge=1)
-    cols: int = Field(..., ge=1)
-    beat_numbers: list[int] = Field(..., min_length=1)
 
 
 # ── 渲染计划 ─────────────────────────────────────────────────────────────────
