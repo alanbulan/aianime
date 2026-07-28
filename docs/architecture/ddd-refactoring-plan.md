@@ -1914,6 +1914,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百二十一批已将仅由 Production Sketch route 使用的 `SketchGenerateRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/production_sketch_schemas.py` 入站适配器 schema，草图路由与两个直接特征测试同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。style、模型、网格索引、场景分组、画幅和图片模型选择字段及默认值保持不变；上一批 schema 所有权门禁扩展为显式案例表，同时锁定 Content 与 Production Sketch 的新所有者、route 导入和旧巨石零定义。草图生成路由回归 2 项与完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百二十二批已将 Asset World Viewer 独占的 `BeatBackgroundAnchorUpdate` 从后端公共 `api/schemas.py` 迁入唯一 `api/asset_world_viewer_schemas.py` 入站适配器 schema，Viewer route 切换新入口并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型；必填 `anchor_id` 请求合同保持不变。统一 schema 所有权门禁加入 Asset World Viewer 案例，锁定新所有者、route 导入和旧巨石零定义；3 项背景锚点真实 API 回归、M05 OpenAPI 与完整 happy-path 合同 2 项及完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -99,10 +99,6 @@ class SketchSettingsUpdate(BaseModel):
     sketch_image_selection: Optional[str] = None
 
 
-class BeatBackgroundAnchorUpdate(BaseModel):
-    anchor_id: str
-
-
 # ── 角色 ──────────────────────────────────────────────────────────────────────
 
 

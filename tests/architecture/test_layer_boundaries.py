@@ -110,6 +110,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     root_source = root_schemas.read_text(encoding="utf-8")
     cases = (
         (
+            "asset_world_viewer_schemas.py",
+            "routes/asset_world_viewer.py",
+            ("BeatBackgroundAnchorUpdate",),
+        ),
+        (
             "content_schemas.py",
             "routes/content.py",
             ("ContentUpdateRequest", "RewriteGenerateRequest"),

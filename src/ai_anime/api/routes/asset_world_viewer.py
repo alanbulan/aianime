@@ -11,9 +11,9 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 
+from ai_anime.api.asset_world_viewer_schemas import BeatBackgroundAnchorUpdate
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import BeatBackgroundAnchorUpdate
 from ai_anime.modules.asset_world.public import (
     BackgroundAnchorRejected,
     BeatViewerBeatNotFound,
