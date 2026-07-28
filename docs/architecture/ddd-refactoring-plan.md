@@ -1819,6 +1819,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十九批已拆分 SuperChat 消息时间线与历史合并：新增唯一 `features/superchat/message-timeline.ts`，集中持有后端历史归一、同回合 user/tool/assistant 稳定排序、文本等价判定、已完成回合识别、受保护活动回合保留、重复消息消除及临时工具消息时间投影；`use-superchat.ts` 删除全部时间线私有函数和原测试专用 `mergeHistorySnapshot` 导出，直接调用新模块，文件由 913 行降至 756 行，不保留 hook re-export、旧 helper 或第二套实现。原 7 项历史合并特征测试迁至职责准确的 `message-timeline.test.ts`，新增 3 项历史归一、非变异排序和完成判定测试；剩余缓存/消息归一测试从失实的 `use-superchat.test.ts` 改名为 `message-cache.test.ts`，架构门禁同步改为直接依赖各自所有者。SuperChat 全部特征测试 58 项、SuperChat 门禁 5 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百八十批已拆分 SuperChat assistant/tool 消息投影：新增唯一 `features/superchat/message-projection.ts`，组合消息归一与时间线排序，集中持有流式 assistant upsert、服务端 final assistant 替换、服务端 turn ID 优先级、工具结果文本投影、同回合工具消息更新、Canvas 命令强制保留及 project-created 末尾追加语义；`buildToolMessage` 保持模块私有，hook 只调用五个高层投影操作。`use-superchat.ts` 删除全部投影函数、隐藏工具常量及原测试专用导出，文件由 756 行降至 636 行，不保留 hook re-export、旧 helper 或第二套实现。新增 13 项独立特征测试覆盖 assistant 新增/更新/final 替换、空 payload、turn ID、五类工具保留判断、工具格式化、同回合更新和 project 事件顺序，并扩展架构门禁禁止投影规则回流；SuperChat 全部特征测试 72 项、SuperChat 门禁 6 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

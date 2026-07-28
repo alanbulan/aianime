@@ -176,4 +176,43 @@ describe("SuperChat boundaries", () => {
       expect(hook).not.toContain(privateRule);
     }
   });
+
+  it("keeps assistant and tool message projection outside the controller hook", () => {
+    const projection = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/message-projection.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/message-projection.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/message-projection";');
+    expect(tests).toContain('from "@/features/superchat/message-projection";');
+    for (const ownedOperation of [
+      "export function upsertAssistantMessage(",
+      "export function upsertServerAssistantMessage(",
+      "export function appendToolMessage(",
+      "export function shouldPreserveToolMessage(",
+      "export function upsertToolMessage(",
+    ]) {
+      expect(projection).toContain(ownedOperation);
+      expect(hook).not.toContain(ownedOperation);
+    }
+    for (const privateRule of [
+      "function resultText(",
+      "function buildToolMessage(",
+    ]) {
+      expect(projection).toContain(privateRule);
+      expect(hook).not.toContain(privateRule);
+    }
+    expect(projection).toContain(
+      'const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);',
+    );
+    expect(hook).not.toContain("EXECUTABLE_HIDDEN_TOOL_NAMES");
+  });
 });
