@@ -19,6 +19,12 @@ from ai_anime.modules.ai_assistant.domain.chat_presentation import (
     filter_tool_ui_specs_for_prompt,
     redact_local_filesystem_paths,
 )
+from ai_anime.modules.ai_assistant.domain.display_tools import (
+    display_tool_call_key,
+    extract_display_tool_call,
+    infer_display_tool_call_from_text,
+    is_display_tool_name,
+)
 from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
     codex_mcp_config_overrides,
 )
@@ -36,8 +42,12 @@ __all__ = [
     "completion_text_or_existing",
     "compose_agent_prompt",
     "dedupe_tool_ui_specs",
+    "display_tool_call_key",
+    "extract_display_tool_call",
     "filter_tool_ui_specs_for_prompt",
+    "infer_display_tool_call_from_text",
     "is_hidden_chat_tool_event",
+    "is_display_tool_name",
     "merge_stream_text",
     "message_content",
     "reingest_confirmation_reply",

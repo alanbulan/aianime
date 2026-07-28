@@ -517,6 +517,46 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     assert "chat_service._extract_tool_chat_error" not in service_test_source
 
 
+def test_ai_assistant_owns_display_tool_call_rules() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "display_tools.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported == "os"
+        or imported == "sqlite3"
+        or imported == "fastapi"
+        or imported.startswith("ai_anime.chat")
+    }
+    for operation in (
+        "display_tool_call_key",
+        "extract_display_tool_call",
+        "infer_display_tool_call_from_text",
+        "is_display_tool_name",
+    ):
+        assert f"def {operation}(" in domain_source
+        assert operation in public_source
+        assert operation in service_source
+    for legacy_implementation in (
+        "_DISPLAY_TOOL_NAMES =",
+        "def _decode_tool_args(",
+        "def _extract_display_tool_call(",
+        "def _display_tool_call_key(",
+        "def _infer_display_tool_call_from_text(",
+    ):
+        assert legacy_implementation not in service_source
+    assert "chat_service._extract_display_tool_call" not in service_test_source
+    assert "chat_service._infer_display_tool_call_from_text" not in service_test_source
+
+
 def test_ai_assistant_owns_scoped_chat_history() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     scope = module / "domain" / "scope.py"
