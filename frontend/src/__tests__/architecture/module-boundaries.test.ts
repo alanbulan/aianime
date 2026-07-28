@@ -106,6 +106,17 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
+  it("keeps episode presentation components behind module data boundaries", () => {
+    const failures = sourceFiles(resolve(SRC_ROOT, "components/episode"))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(isRawDataImport)
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+
+    expect(failures).toEqual([]);
+  });
+
   it("keeps the Production compose route as an adapter", () => {
     const routePath = resolve(
       SRC_ROOT,
