@@ -1,6 +1,6 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：执行中（阶段 7 收尾，阶段 8 Creative Canvas 已启动）
+> 状态：执行中（阶段 9 已完成，阶段 10 最终收敛已启动）
 >
 > 制定日期：2026-07-23
 >
@@ -447,8 +447,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
 | 7. Production | 进行中 | 后端路由拆分与 `generation.py` 删除已完成；前端视频配置已进入 Production 边界，继续拆分 beat workbench 的 controller/view |
 | 8. Creative Canvas | 进行中 | 前后端 Canvas 分层与 Freezone 路由拆分已推进，继续清理 legacy 依赖 |
-| 9. Supporting Contexts | 未开始 | Chat、Model、Usage、Release |
-| 10. 最终收敛 | 未开始 | 删除兼容层并执行全量门禁 |
+| 9. Supporting Contexts | 已完成 | Chat、Model Usage、Platform Release 已收敛到唯一公开边界并通过阶段合同 |
+| 10. 最终收敛 | 进行中 | 删除无调用兼容层并执行最终门禁 |
 
 阶段 0 的实际验证基线：
 
@@ -1899,6 +1899,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 退出条件：支持上下文均只通过公开应用接口依赖核心上下文；认证、通知、更新和模型契约通过。
 
 ### 阶段 10：兼容层清理与最终收敛
+
+当前进度：进行中。第四百一十五批已删除无生产调用方的前端旧查询文件 `lib/queries/sketches.ts`，其中 Beat pano background manifest 与缺失手工分镜草图派发两个未使用 hook 不再保留第二套直连 HTTP 实现；架构门禁改为直接锁定该文件不得恢复，Beat sketch/render 合同同步从对旧文件内容的恒真字符串检查收敛为文件不存在检查。仓库内除两处删除门禁外已无旧路径、类型或 hook 引用；前端架构与 Beat sketch/render 合同 2 个文件 221 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
 
 任务：
 

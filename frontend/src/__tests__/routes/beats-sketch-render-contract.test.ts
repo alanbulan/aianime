@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 function read(path: string) {
@@ -43,15 +43,12 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
-    const sketches = read("src/lib/queries/sketches.ts");
 
     expect(batchBarSources).not.toContain("useBatchSketches");
     expect(batchBarSources).not.toContain("batchSketchTask");
     expect(batchBarSources).not.toContain("handleBatchSketches");
     expect(batchBarSources).not.toContain("episode.workbench.batch.autoSelect");
-    expect(sketches).not.toContain("sketches/batch");
-    expect(sketches).not.toContain("useBatchRender");
-    expect(sketches).not.toContain("grids/batch-render");
+    expect(existsSync("src/lib/queries/sketches.ts")).toBe(false);
   });
 
   it("keeps global render generation out of the top toolbar", () => {

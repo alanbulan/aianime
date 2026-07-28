@@ -8012,10 +8012,6 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Asset & World callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/asset_world");
-    const legacySketchQueries = readFileSync(
-      resolve(SRC_ROOT, "lib/queries/sketches.ts"),
-      "utf8",
-    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -8090,6 +8086,7 @@ describe("frontend architecture boundaries", () => {
       "lib/queries/asset-references.ts",
       "lib/queries/props.ts",
       "lib/queries/scenes.ts",
+      "lib/queries/sketches.ts",
       "lib/queries/styles.ts",
       "lib/style-preview-url.ts",
       "types/character.ts",
@@ -8105,22 +8102,6 @@ describe("frontend architecture boundaries", () => {
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directAssetEndpointFailures).toEqual([]);
-    expect(legacySketchQueries).not.toContain("useBeatBackgroundAnchors");
-    expect(legacySketchQueries).not.toContain(
-      "useBeatDirectorStageManifest",
-    );
-    expect(legacySketchQueries).not.toContain(
-      "useCropBeatBackgroundAnchor",
-    );
-    expect(legacySketchQueries).not.toContain(
-      "useDirectorControlFrameStatus",
-    );
-    expect(legacySketchQueries).not.toContain(
-      "useUpdateBeatBackgroundAnchor",
-    );
-    expect(legacySketchQueries).not.toContain(
-      "useUploadBeatBackgroundAnchor",
-    );
   });
 
   it("keeps Freezone identity asset creation behind the Asset & World application port", () => {
@@ -8550,10 +8531,6 @@ describe("frontend architecture boundaries", () => {
         readFileSync(path, "utf8").includes("new MediaRecorder("),
       )
       .map(relativeSource);
-    const legacySketchQueries = readFileSync(
-      resolve(SRC_ROOT, "lib/queries/sketches.ts"),
-      "utf8",
-    );
     const internalImportFailures = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
@@ -9533,29 +9510,6 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
-    expect(legacySketchQueries).not.toContain("useAssignColors");
-    expect(legacySketchQueries).not.toContain("useDetectIdentities");
-    expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");
-    expect(legacySketchQueries).not.toContain("director-control-to-sketch");
-    expect(legacySketchQueries).not.toContain("useGenerateSketches");
-    expect(legacySketchQueries).not.toContain("useRegenerateGrid");
-    expect(legacySketchQueries).not.toContain("useRegenerateSketches");
-    expect(legacySketchQueries).not.toContain("useRegenerateRenderBeats");
-    expect(legacySketchQueries).not.toContain("useGrids(");
-    expect(legacySketchQueries).not.toContain("useGridsByBeat");
-    expect(legacySketchQueries).not.toContain("useRebuildPoolIndex");
-    expect(legacySketchQueries).not.toContain("export interface PoolImage");
-    expect(legacySketchQueries).not.toContain("StalePoolSelectError");
-    expect(legacySketchQueries).not.toContain("usePoolSelect");
-    expect(legacySketchQueries).not.toContain("useUploadBeatImage");
-    expect(legacySketchQueries).not.toContain("BeatImageUploadResult");
-    expect(legacySketchQueries).not.toContain("useCutGrid");
-    expect(legacySketchQueries).not.toContain("useExportGridPrompt");
-    expect(legacySketchQueries).not.toContain("useSketchGridPreview");
-    expect(legacySketchQueries).not.toContain("useUploadGrid");
-    expect(legacySketchQueries).not.toContain("GridUploadResult");
-    expect(legacySketchQueries).not.toContain("GridPromptResult");
-    expect(legacySketchQueries).not.toContain("GridSketchPreviewResult");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });
