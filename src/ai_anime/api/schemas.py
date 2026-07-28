@@ -1,6 +1,6 @@
 """API 请求/响应 Pydantic 模型。"""
 
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field, model_validator
@@ -9,7 +9,6 @@ from ai_anime.models import SceneRef
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
 )
-from ai_anime.modules.production.public import DEFAULT_VIDEO_BACKEND
 from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
 ProjectStatus = Literal["active", "archived", "deleted"]
@@ -119,56 +118,6 @@ class Seedance2PromptGenerateRequest(BaseModel):
 
 class BeatVideoPromptGenerateRequest(BaseModel):
     language: str = "zh"
-
-
-class Seedance2AssetDeleteRequest(BaseModel):
-    media_kind: Literal["images", "audios"]
-    path: str
-
-
-class Seedance2AssetCropRequest(BaseModel):
-    asset_key: str
-    source_path: str
-    target: Literal["reference_image", "first_frame", "last_frame"] = "reference_image"
-    x: float = 0
-    y: float = 0
-    width: float
-    height: float
-
-
-class Seedance2AssetAudioTrimRequest(BaseModel):
-    asset_key: str
-    source_path: str
-    start_seconds: float = 0
-    duration_seconds: float = 4
-
-
-class GlobalOptimizeRequest(BaseModel):
-    language: str = "en"  # "zh" 中文 / "en" SuperPower英文(Gemini)
-
-
-class VideoComposeRequest(BaseModel):
-    add_subtitles: bool = True
-    add_bgm: bool = False
-    resolution: str = "720x1280"
-
-
-class SingleVideoRequest(BaseModel):
-    resolution: str = "720x1280"
-    video_backend: str = DEFAULT_VIDEO_BACKEND
-    use_director_render: bool = False
-    seedance2_config_json: Optional[str] = None
-    mode: Optional[str] = None
-    duration: Optional[int] = None
-    ratio: Optional[str] = None
-    generate_audio: Optional[bool] = None
-    return_last_frame: Optional[bool] = None
-    human_review: Optional[bool] = None
-    scene_optimize: Optional[str] = None
-    final_prompt: Optional[str] = None
-    audio_setting: Optional[str] = None
-    prompt_guidance: Optional[str] = None
-    text_overlay: Optional[dict[str, Any]] = None
 
 
 # ── 风格 ──────────────────────────────────────────────────────────────────────

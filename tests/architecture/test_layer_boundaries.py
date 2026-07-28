@@ -211,6 +211,18 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "SketchRegenerateRequest",
             ),
         ),
+        (
+            "production_video_schemas.py",
+            "routes/production_video.py",
+            (
+                "GlobalOptimizeRequest",
+                "Seedance2AssetAudioTrimRequest",
+                "Seedance2AssetCropRequest",
+                "Seedance2AssetDeleteRequest",
+                "SingleVideoRequest",
+                "VideoComposeRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
@@ -4903,7 +4915,8 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
 
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    root_schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
     source = route.read_text(encoding="utf-8")
@@ -4919,10 +4932,11 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
         "VideoBackendOption",
     ):
         assert legacy_implementation not in source
-    schema_source = schemas.read_text(encoding="utf-8")
-    assert "class VideoGenerateRequest(" not in schema_source
-    assert "class VideoBackendOption(" not in schema_source
-    assert "DEFAULT_VIDEO_BACKEND" in schema_source
+    root_schema_source = root_schemas.read_text(encoding="utf-8")
+    assert "class VideoGenerateRequest(" not in root_schema_source
+    assert "class VideoBackendOption(" not in root_schema_source
+    assert "DEFAULT_VIDEO_BACKEND" not in root_schema_source
+    assert "DEFAULT_VIDEO_BACKEND" in video_schemas.read_text(encoding="utf-8")
     assert "is_seedance2_backend" in video_runner.read_text(encoding="utf-8")
     assert "is_huimeng_seedance2_backend" not in seedance_pipeline.read_text(
         encoding="utf-8"

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.schemas import VideoComposeRequest
+from ai_anime.api.production_video_schemas import VideoComposeRequest
 from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     EpisodeBeatsMissing,

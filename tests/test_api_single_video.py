@@ -14,7 +14,7 @@ async def test_single_video_route_maps_request_to_application(
     tmp_path: Path,
 ) -> None:
     from ai_anime.api.routes import production_video
-    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.api.production_video_schemas import SingleVideoRequest
 
     context = object()
     calls = []
@@ -85,7 +85,7 @@ async def test_single_video_route_preserves_rejection_envelope(
     monkeypatch,
 ) -> None:
     from ai_anime.api.routes import production_video
-    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.api.production_video_schemas import SingleVideoRequest
 
     async def resolve(*_args, **_kwargs):
         return type("Resolution", (), {"ctx": object()})()

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import (
+from ai_anime.api.production_video_schemas import (
     GlobalOptimizeRequest,
     Seedance2AssetAudioTrimRequest,
     Seedance2AssetCropRequest,
