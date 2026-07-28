@@ -833,6 +833,40 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("publishes Canvas media helpers through one public API", () => {
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const publicPath = resolve(canvasRoot, "public.ts");
+    const imageDataPath = resolve(canvasRoot, "application/imageData.ts");
+    const viewerKitRoot = resolve(SRC_ROOT, "features/viewer-kit");
+    const externalRoots = [MODULES_ROOT, viewerKitRoot];
+    const bypasses = externalRoots
+      .flatMap((root) => sourceFiles(root))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/features/canvas/") &&
+              specifier !== "@/features/canvas/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+    const publicSource = readFileSync(publicPath, "utf8");
+
+    expect(importSpecifiers(publicPath)).toEqual([
+      "@/features/canvas/application/imageData",
+    ]);
+    expect(publicSource).toContain("dataUrlToBlob,");
+    expect(publicSource).toContain("withImageCacheBust,");
+    expect(readFileSync(imageDataPath, "utf8")).toContain(
+      "export function dataUrlToBlob(",
+    );
+    expect(readFileSync(imageDataPath, "utf8")).toContain(
+      "export function withImageCacheBust(",
+    );
+    expect(bypasses).toEqual([]);
+  });
+
   it("keeps Freezone canvas and Beat Context transport behind application ports", () => {
     const canvasContractPath = resolve(
       SRC_ROOT,
