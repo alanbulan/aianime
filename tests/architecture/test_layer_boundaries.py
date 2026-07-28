@@ -368,6 +368,38 @@ def test_ai_assistant_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_chat_websocket_transport_stays_in_api_layer() -> None:
+    transport = PACKAGE_ROOT / "api" / "chat_websocket.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    transport_source = transport.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert "fastapi" in _imports(transport)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(transport)
+    assert "ai_anime.api.chat_websocket" in _imports(route)
+    for owned_operation in (
+        "async def send_json_best_effort(",
+        "async def _chat_heartbeat(",
+        "async def stream_chat_turn(",
+        "send_lock = asyncio.Lock()",
+        "heartbeat_task = asyncio.create_task(",
+        "await websocket.send_json(event)",
+    ):
+        assert owned_operation in transport_source
+    for removed_route_implementation in (
+        "import asyncio",
+        "import contextlib",
+        "async def _send_json_best_effort(",
+        "async def _chat_heartbeat(",
+        "send_lock = asyncio.Lock()",
+        "heartbeat_task = asyncio.create_task(",
+        "await websocket.send_json(event)",
+    ):
+        assert removed_route_implementation not in route_source
+    assert route_source.count("stream_chat_turn(") == 2
+    assert "send_json_best_effort(" in route_source
+
+
 def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = (
         PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
@@ -1267,7 +1299,7 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
     assert "hermes_home_replies = get_hermes_home_replies()" in route_source
     assert route_source.count("hermes_home_replies.stream(") == 1
     assert "async def _stream_home_turn(" in route_source
-    assert "await websocket.send_json(event)" in route_source
+    assert "stream_chat_turn(" in route_source
     assert "websocket" not in application_source
     for migrated_dependency in (
         "completion_text_or_existing",
@@ -1448,7 +1480,7 @@ def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
     assert "project_chat_turns = get_project_chat_turns()" in route_source
     assert route_source.count("project_chat_turns.stream(") == 1
     assert "async def _stream_project_turn(" in route_source
-    assert "await websocket.send_json(event)" in route_source
+    assert "stream_chat_turn(" in route_source
     assert "websocket" not in application_source
     for owned_operation in (
         "self._messages.append_user(",

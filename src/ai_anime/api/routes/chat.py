@@ -7,8 +7,6 @@ know whether the active backend is Hermes, Claude, or Codex.
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
 import uuid
 from typing import Any
 
@@ -20,6 +18,11 @@ from ai_anime.api.auth import (
     get_api_user,
     _verify_agent_bearer,
     _verify_browser_session,
+)
+from ai_anime.api.chat_websocket import (
+    ChatEventSink,
+    send_json_best_effort,
+    stream_chat_turn,
 )
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
@@ -256,12 +259,12 @@ async def _send_scope_changed(
             raise
         scope = ChatScope(kind="home")
         project_ctx = None
-        if not await _send_json_best_effort(
+        if not await send_json_best_effort(
             websocket,
             {"type": "error", "message": "项目不存在或已删除，已切回首页聊天。"},
         ):
             return None
-    if not await _send_json_best_effort(
+    if not await send_json_best_effort(
         websocket,
         {
             "type": "scope.changed",
@@ -272,41 +275,6 @@ async def _send_scope_changed(
     ):
         return None
     return scope
-
-
-async def _send_json_best_effort(
-    websocket: WebSocket,
-    payload: dict[str, Any],
-    send_lock: asyncio.Lock | None = None,
-) -> bool:
-    try:
-        if send_lock is None:
-            await websocket.send_json(payload)
-        else:
-            async with send_lock:
-                await websocket.send_json(payload)
-        return True
-    except Exception:
-        return False
-
-
-async def _chat_heartbeat(
-    websocket: WebSocket,
-    *,
-    scope: ChatScope,
-    turn_id: str,
-    send_lock: asyncio.Lock,
-    interval_seconds: float = 10.0,
-) -> None:
-    while True:
-        await asyncio.sleep(interval_seconds)
-        sent = await _send_json_best_effort(
-            websocket,
-            {"type": "chat.ping", "turn_id": turn_id, "scope": scope.to_dict()},
-            send_lock,
-        )
-        if not sent:
-            return
 
 
 async def _stream_project_turn(
@@ -323,16 +291,8 @@ async def _stream_project_turn(
     project_dir = project_ctx.output_dir if project_ctx is not None else None
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
     attachment_payloads = _attachment_payloads(attachments)
-    send_lock = asyncio.Lock()
-    heartbeat_task = asyncio.create_task(
-        _chat_heartbeat(websocket, scope=scope, turn_id=turn_id, send_lock=send_lock)
-    )
 
-    async def on_event(event: dict[str, Any]) -> None:
-        async with send_lock:
-            await websocket.send_json(event)
-
-    try:
+    async def event_stream(on_event: ChatEventSink) -> None:
         await project_chat_turns.stream(
             username,
             scope,
@@ -343,10 +303,13 @@ async def _stream_project_turn(
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )
-    finally:
-        heartbeat_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await heartbeat_task
+
+    await stream_chat_turn(
+        websocket,
+        scope=scope,
+        turn_id=turn_id,
+        event_stream=event_stream,
+    )
 
 
 async def _stream_home_turn(
@@ -359,16 +322,8 @@ async def _stream_home_turn(
     turn_id: str,
 ) -> None:
     attachment_payloads = _attachment_payloads(attachments)
-    send_lock = asyncio.Lock()
-    heartbeat_task = asyncio.create_task(
-        _chat_heartbeat(websocket, scope=scope, turn_id=turn_id, send_lock=send_lock)
-    )
 
-    async def on_event(event: dict[str, Any]) -> None:
-        async with send_lock:
-            await websocket.send_json(event)
-
-    try:
+    async def event_stream(on_event: ChatEventSink) -> None:
         await hermes_home_replies.stream(
             username,
             scope,
@@ -377,10 +332,13 @@ async def _stream_home_turn(
             turn_id,
             on_event,
         )
-    finally:
-        heartbeat_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await heartbeat_task
+
+    await stream_chat_turn(
+        websocket,
+        scope=scope,
+        turn_id=turn_id,
+        event_stream=event_stream,
+    )
 
 
 @router.websocket("/chat/ws")
@@ -436,7 +394,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                 continue
 
             if event_type != "chat.message":
-                await _send_json_best_effort(
+                await send_json_best_effort(
                     websocket,
                     {"type": "error", "message": f"unsupported event: {event_type}"},
                 )
@@ -447,7 +405,7 @@ async def chat_ws(websocket: WebSocket) -> None:
             turn_id = (msg.turn_id or "").strip() or uuid.uuid4().hex
             text = msg.text.strip()
             if not text:
-                await _send_json_best_effort(
+                await send_json_best_effort(
                     websocket,
                     {"type": "error", "turn_id": turn_id, "message": "empty message"},
                 )
@@ -475,7 +433,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                         turn_id=turn_id,
                     )
                 else:
-                    await _send_json_best_effort(
+                    await send_json_best_effort(
                         websocket,
                         {
                             "type": "error",
@@ -486,7 +444,7 @@ async def chat_ws(websocket: WebSocket) -> None:
             except Exception as exc:  # noqa: BLE001
                 message = str(exc)
                 if "当前用户已有 AI 对话正在处理中" in message:
-                    await _send_json_best_effort(
+                    await send_json_best_effort(
                         websocket,
                         {
                             "type": "chat.busy",
@@ -498,7 +456,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                     continue
                 billing_rule_error = find_billing_rule_not_configured_error(exc)
                 if billing_rule_error is not None:
-                    await _send_json_best_effort(
+                    await send_json_best_effort(
                         websocket,
                         {
                             "type": "error",
@@ -512,7 +470,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                     continue
                 insufficient_error = find_insufficient_credits_error(exc)
                 if insufficient_error is not None:
-                    await _send_json_best_effort(
+                    await send_json_best_effort(
                         websocket,
                         {
                             "type": "error",
@@ -522,7 +480,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                         },
                     )
                     continue
-                await _send_json_best_effort(
+                await send_json_best_effort(
                     websocket, {"type": "error", "turn_id": turn_id, "message": message}
                 )
     except WebSocketDisconnect:
