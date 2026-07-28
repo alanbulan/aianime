@@ -155,6 +155,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/props.py",
             ("PropCreate", "PropReferenceGenerateRequest", "PropUpdate"),
         ),
+        (
+            "canvas_assets_schemas.py",
+            "routes/canvas/assets.py",
+            ("CreateIdentityAssetRequest",),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

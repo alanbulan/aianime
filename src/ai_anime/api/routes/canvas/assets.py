@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_assets_schemas import CreateIdentityAssetRequest
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import CreateIdentityAssetRequest
 from ai_anime.modules.asset_world.public import (
     CharacterAlreadyExists,
     CharacterIdentityAssetSourceNotFound,

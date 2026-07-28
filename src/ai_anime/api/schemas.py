@@ -1629,15 +1629,6 @@ class ImpactRequest(BaseModel):
     target: SlotTarget = Field(discriminator="kind")
 
 
-class CreateIdentityAssetRequest(BaseModel):
-    source_url: str
-    character: str
-    identity_name: str
-    appearance_details: str = ""
-    face_prompt: str = ""
-    age_group: str = ""
-
-
 class CharacterUpdate(BaseModel):
     name: Optional[str] = None
     face_prompt: Optional[str] = None
