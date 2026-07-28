@@ -12,6 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
+import ai_anime.api.chat_access as chat_access
 from ai_anime.api.auth import get_api_user, get_websocket_user
 from ai_anime.api.chat_errors import chat_exception_event
 from ai_anime.api.chat_schemas import (
@@ -37,16 +38,13 @@ from ai_anime.modules.ai_assistant.public import (
     get_scoped_chat_messages,
     should_prewarm_scope,
 )
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     ProjectNotFound,
-    resolve_project_context,
 )
 
 router = APIRouter()
 
-AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 agent_backend_prewarmer = get_agent_backend_prewarmer()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
 hermes_home_replies = get_hermes_home_replies()
@@ -81,7 +79,7 @@ async def append_chat_notification(
     if len(text) > 4000:
         raise HTTPException(status_code=400, detail="text is too long")
 
-    project_ctx = await _project_context_for_scope(user, scope)
+    project_ctx = await chat_access.project_context_for_scope(user, scope)
     if scope.kind == "project" and not scope.id:
         raise HTTPException(status_code=400, detail="project scope id is required")
     message = scoped_chat_messages.append_notification(
@@ -102,7 +100,7 @@ async def append_chat_ui_event(
     username = str(user["username"])
     scope = to_chat_scope(payload.scope)
     if scope.kind == "project":
-        await _project_context_for_scope(user, scope)
+        await chat_access.project_context_for_scope(user, scope)
     turn_id = payload.turn_id.strip()
     if not turn_id:
         raise HTTPException(status_code=400, detail="turn_id is required")
@@ -116,44 +114,6 @@ async def append_chat_ui_event(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "data": event}
-
-
-async def _project_context_for_scope(
-    user: dict[str, Any], scope: ChatScope
-) -> ProjectContext | None:
-    if scope.kind != "project" or not scope.id:
-        return None
-    return await resolve_project_context(
-        user=user,
-        project_id=str(scope.id),
-        required_role="viewer",
-    )
-
-
-async def _requester_user_id_for_chat(user: dict[str, Any], scope: ChatScope) -> str:
-    if scope.kind == "project":
-        project_ctx = await _project_context_for_scope(user, scope)
-        if project_ctx is not None and project_ctx.requester_user_id:
-            return project_ctx.requester_user_id
-    user_id = str(user.get("id") or user.get("user_id") or "").strip()
-    if user_id:
-        return user_id
-    return str(user.get("username") or "").strip()
-
-
-async def _require_ai_assistant_access(
-    *,
-    user: dict[str, Any],
-    scope: ChatScope,
-) -> None:
-    user_id = await _requester_user_id_for_chat(user, scope)
-    await get_usage_meter().require_feature_credit_balance(
-        user_id=user_id,
-        feature_key=AI_ASSISTANT_CHAT_FEATURE_KEY,
-        project_id=str(scope.id or "") if scope.kind == "project" else "",
-        resource_kind="chat",
-        metadata={"scope": scope.to_dict()},
-    )
 
 
 async def _history(
@@ -177,7 +137,7 @@ async def _send_scope_changed(
     scope: ChatScope,
 ) -> ChatScope | None:
     try:
-        project_ctx = await _project_context_for_scope(user, scope)
+        project_ctx = await chat_access.project_context_for_scope(user, scope)
     except ProjectNotFound:
         if scope.kind != "project":
             raise
@@ -211,7 +171,7 @@ async def _stream_project_turn(
     attachments: list[ChatAttachmentIn],
     turn_id: str,
 ) -> None:
-    project_ctx = await _project_context_for_scope(user, scope)
+    project_ctx = await chat_access.project_context_for_scope(user, scope)
     project_dir = project_ctx.output_dir if project_ctx is not None else None
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
     serialized_attachments = attachment_payloads(attachments)
@@ -336,7 +296,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                 continue
 
             try:
-                await _require_ai_assistant_access(user=user, scope=scope)
+                await chat_access.require_ai_assistant_access(user=user, scope=scope)
                 if scope.kind == "project":
                     await _stream_project_turn(
                         websocket=websocket,

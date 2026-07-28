@@ -436,6 +436,45 @@ def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
     )
 
 
+def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
+    access = PACKAGE_ROOT / "api" / "chat_access.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    route_tests = REPO_ROOT / "tests" / "test_chat_route_prewarm.py"
+    notification_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    access_source = access.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+    route_test_source = route_tests.read_text(encoding="utf-8")
+    notification_test_source = notification_tests.read_text(encoding="utf-8")
+
+    assert "fastapi" not in _imports(access)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(access)
+    assert "ai_anime.modules.model_usage.public" in _imports(access)
+    assert "ai_anime.modules.project_workspace.public" in _imports(access)
+    assert "ai_anime.api.chat_access" in _imports(route)
+    for owned_rule in (
+        '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
+        "async def project_context_for_scope(",
+        "async def _requester_user_id(",
+        "async def require_ai_assistant_access(",
+        'required_role="viewer"',
+        "get_usage_meter().require_feature_credit_balance(",
+    ):
+        assert owned_rule in access_source
+        assert owned_rule not in route_source
+    for removed_route_dependency in (
+        "get_usage_meter",
+        "resolve_project_context",
+        "def _project_context_for_scope(",
+        "def _requester_user_id_for_chat(",
+        "def _require_ai_assistant_access(",
+    ):
+        assert removed_route_dependency not in route_source
+    assert route_source.count("chat_access.project_context_for_scope(") == 4
+    assert route_source.count("chat_access.require_ai_assistant_access(") == 1
+    assert "_require_ai_assistant_access" not in route_test_source
+    assert "_project_context_for_scope" not in notification_test_source
+
+
 def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     schemas = PACKAGE_ROOT / "api" / "chat_schemas.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"

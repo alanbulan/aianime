@@ -1797,6 +1797,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百六十八批已将 Chat WebSocket 凭据解析收口至现有 API auth adapter：`api.auth` 新增稳定 `get_websocket_user` 入口，统一保持有效 Bearer 优先、非 Bearer/空 token 回退浏览器 cookie、agent/browser 验证错误映射及既有 `ai_anime_session` cookie 语义。Chat route 删除 `_authenticate_ws`、cookie 常量和两个认证私有函数依赖，只调用公开认证入口并保留 unauthorized 事件与 1008 close 映射，文件由 394 行降至 374 行；M08 认证失败测试改在 `api.auth` 所有权边界注入，不通过 route 私有实现，不保留转发函数或第二套凭据解析。API auth 完整 7 项、Chat route 2 项、M08 Chat 合同 5 项及完整后端分层门禁 134 项均通过，修改文件 Ruff、Python 编译、增量代码格式检查与 `git diff --check` 通过。
 
+第三百六十九批已将 Chat 跨上下文授权收口至独立 API ACL adapter：新增唯一 `api/chat_access.py`，只经 AI Assistant、Model Usage 与 Project Workspace public API，统一负责 project scope viewer 解析、计费主体选择和 `ai_assistant_chat` 余额门禁；项目上下文 `requester_user_id` 优先于会话 `id`/`user_id`/`username`，project ID、resource kind 与 scope metadata 均保持原合同。Chat route 删除项目解析、请求者 ID、feature key 和 usage meter 私有编排，四个 ACL 调用点与一个余额检查调用点改经 adapter，文件由 374 行降至 334 行；项目授权调用次数和时序未合并，避免改变删除/权限竞争语义，测试直接在 adapter 所有权边界注入，不保留旧 helper 或第二套门禁。Chat access 7 项、Chat route/通知回归 2 项、M08 Chat 合同 5 项及完整后端分层门禁 135 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

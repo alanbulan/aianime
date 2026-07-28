@@ -42,7 +42,11 @@ async def test_append_chat_notification_persists_project_assistant_message(
         )
         return {"id": "1", "role": "assistant", "content": content}
 
-    monkeypatch.setattr(chat_routes, "_project_context_for_scope", fake_project_context)
+    monkeypatch.setattr(
+        chat_routes.chat_access,
+        "project_context_for_scope",
+        fake_project_context,
+    )
     monkeypatch.setattr(
         chat_routes.scoped_chat_messages,
         "append_notification",
