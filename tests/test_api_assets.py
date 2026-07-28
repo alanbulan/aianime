@@ -8,10 +8,10 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
+from ai_anime.api.props_schemas import PropUpdate
 from ai_anime.api.schemas import (
     PanoSphereCorrection,
     PanoViewerCorrection,
-    PropUpdate,
     ScenePanoGenerateRequest,
     SceneUpdate,
 )

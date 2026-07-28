@@ -13,7 +13,11 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
     resolve_project_scope,
 )
-from ai_anime.api.schemas import PropCreate, PropReferenceGenerateRequest, PropUpdate
+from ai_anime.api.props_schemas import (
+    PropCreate,
+    PropReferenceGenerateRequest,
+    PropUpdate,
+)
 from ai_anime.modules.asset_world.public import (
     CreatePropCommand,
     PropCatalogRejected,

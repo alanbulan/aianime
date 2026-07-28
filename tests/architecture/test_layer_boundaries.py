@@ -150,6 +150,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/styles.py",
             ("StylePreviewRequest",),
         ),
+        (
+            "props_schemas.py",
+            "routes/props.py",
+            ("PropCreate", "PropReferenceGenerateRequest", "PropUpdate"),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
