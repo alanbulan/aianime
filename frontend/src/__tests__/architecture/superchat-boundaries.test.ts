@@ -294,4 +294,35 @@ describe("SuperChat boundaries", () => {
       expect(hook).not.toContain(`case "${frameType}"`);
     }
   });
+
+  it("keeps notification and cancellation HTTP commands outside the controller hook", () => {
+    const commands = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-commands.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/chat-commands.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/chat-commands";');
+    expect(tests).toContain('from "@/features/superchat/chat-commands";');
+    for (const operation of [
+      "export async function appendChatNotification(",
+      "export async function cancelChatBestEffort(",
+    ]) {
+      expect(commands).toContain(operation);
+      expect(hook).not.toContain(operation);
+    }
+    expect(commands).toContain('from "@/shared/api/transport";');
+    expect(commands).toContain("type ChatNotificationResponse =");
+    expect(hook).not.toContain('from "@/shared/api/transport";');
+    expect(hook).not.toContain("ChatNotificationResponse");
+    expect(hook).not.toContain('api.post("api/v1/chat/cancel")');
+    expect(hook).not.toContain('.post("api/v1/chat/notifications"');
+  });
 });

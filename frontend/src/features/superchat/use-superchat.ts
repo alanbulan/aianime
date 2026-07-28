@@ -12,9 +12,7 @@ import type {
 } from "@/features/superchat/types";
 import {
   buildLocalUserMessage,
-  normalizeMessage,
 } from "@/features/superchat/message";
-import { api } from "@/shared/api/transport";
 import {
   activeTurnIsPending,
   clearActiveTurn,
@@ -47,11 +45,10 @@ import {
   type SuperChatSocketSession,
 } from "@/features/superchat/socket-session";
 import { useSuperChatFrameController } from "@/features/superchat/use-frame-controller";
-
-type ChatNotificationResponse = {
-  ok: boolean;
-  data?: unknown;
-};
+import {
+  appendChatNotification,
+  cancelChatBestEffort,
+} from "@/features/superchat/chat-commands";
 
 export function useSuperChat({
   project,
@@ -258,38 +255,12 @@ export function useSuperChat({
   }, [connected, desiredScope, displayName, markTurnActive, sendFrame]);
 
   const appendNotification = useCallback(async (text: string): Promise<boolean> => {
-    const trimmed = text.trim();
-    if (!trimmed) return false;
-    try {
-      const response = await api
-        .post("api/v1/chat/notifications", {
-          json: {
-            scope: desiredScope,
-            text: trimmed,
-          },
-        })
-        .json<ChatNotificationResponse>();
-      const message = normalizeMessage(response.data, "assistant");
-      if (message) {
-        setMessages((current) => sortMessages([...current, message]));
-      }
-      return true;
-    } catch (error) {
-      console.error("[superchat] append notification failed", error);
-      const fallback = normalizeMessage(
-        {
-          id: `task-notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          role: "assistant",
-          content: trimmed,
-          created_at: new Date().toISOString(),
-        },
-        "assistant",
-      );
-      if (fallback) {
-        setMessages((current) => sortMessages([...current, fallback]));
-      }
-      return false;
+    const result = await appendChatNotification(desiredScope, text);
+    const message = result.message;
+    if (message) {
+      setMessages((current) => sortMessages([...current, message]));
     }
+    return result.delivered;
   }, [desiredScope]);
 
   const abort = useCallback(() => {
@@ -298,7 +269,7 @@ export function useSuperChat({
       cancelledTurnIdsRef.current.add(turnId);
     }
     markTurnInactive(turnId);
-    void api.post("api/v1/chat/cancel").catch(() => undefined);
+    void cancelChatBestEffort();
     socketSessionRef.current?.close(4000, "client abort");
   }, [markTurnInactive]);
 

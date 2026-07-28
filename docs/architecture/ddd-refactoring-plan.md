@@ -1825,6 +1825,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百八十二批已拆分 SuperChat 服务端帧状态机：沿用项目既有窄 custom-controller 模式，新增唯一 `features/superchat/use-frame-controller.ts`，通过显式参数对象组合现有 active-turn、scope、message timeline 与 message projection 能力，集中持有 scope.changed、busy/ping/thread、assistant delta/final、tool call/result、done、project-created 和 error 共 11 类 frame 的状态转移；主 hook 继续唯一拥有 React 状态、refs、turn 激活/结束和流完成命令，仅负责装配。`use-superchat.ts` 删除完整 frame switch、相关纯规则 import 和 `ServerFrame` 依赖，文件由 558 行降至 396 行，不保留旧 handler、re-export 或第二套状态机。新增 7 项 controller 特征测试覆盖匹配/错 scope、历史投影、增量累积、取消抑制与 done 回收、Canvas 工具保留、pending turn 优先和错误分支，并扩展架构门禁确保 11 类 case 只存在于新所有者；SuperChat 全部特征测试 88 项、SuperChat 门禁 8 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百八十三批已拆分 SuperChat HTTP 命令：新增唯一 `features/superchat/chat-commands.ts`，集中持有通知 POST/响应 DTO、服务端消息归一、失败日志与本地 assistant fallback，以及取消 POST 的 best-effort 异常隔离；空通知继续不请求后端，通知投递成功与否继续通过 boolean 返回，主 hook 只把 capability 返回的消息并入时间线。`use-superchat.ts` 删除共享 API transport、通知响应类型、HTTP try/catch、fallback 构造和直接取消请求，文件由 396 行降至 367 行，不保留旧 gateway helper、re-export 或第二套实现。新增 5 项独立特征测试覆盖空通知、裁剪后的请求合同、成功归一、失败 fallback、取消成功/失败，并扩展架构门禁确保 HTTP 路径与 DTO 不回流 controller；SuperChat 全部特征测试 94 项、SuperChat 门禁 9 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
