@@ -5,9 +5,9 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
-    FreezoneJobAcceptedResponse,
     FreezoneStoryScriptGenerateRequest,
     FreezoneTextTranslateRequest,
 )

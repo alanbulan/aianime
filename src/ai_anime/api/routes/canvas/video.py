@@ -6,6 +6,7 @@ from typing import Awaitable
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     FreezoneAudioSeparateRequest,
@@ -13,7 +14,6 @@ from ai_anime.api.schemas import (
     FreezoneAnalyzeVideoStoryRequest,
     FreezoneExtractFramesRequest,
     FreezoneImageToVideoRequest,
-    FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoComposeRequest,

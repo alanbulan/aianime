@@ -1250,17 +1250,6 @@ class FreezoneStoryScriptGenerateRequest(BaseModel):
     )
 
 
-class FreezoneJobAcceptedData(BaseModel):
-    task_type: str
-    job_id: str
-    task_key: str
-
-
-class FreezoneJobAcceptedResponse(BaseModel):
-    ok: Literal[True] = True
-    data: FreezoneJobAcceptedData
-
-
 class FreezoneStageAssetAcceptedData(BaseModel):
     task_type: str
     job_id: str

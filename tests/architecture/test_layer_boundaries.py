@@ -309,6 +309,22 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     assert "ProjectStatusFilter = Literal[" not in root_source
     assert "ProjectStatusFilter = Literal[" in projects_source
 
+    canvas_job_source = (PACKAGE_ROOT / "api" / "canvas_job_schemas.py").read_text(
+        encoding="utf-8"
+    )
+    for model_name in ("FreezoneJobAcceptedData", "FreezoneJobAcceptedResponse"):
+        assert f"class {model_name}(" not in root_source
+        assert f"class {model_name}(BaseModel):" in canvas_job_source
+    for route_path in (
+        "routes/canvas/audio.py",
+        "routes/canvas/image.py",
+        "routes/canvas/skills.py",
+        "routes/canvas/text.py",
+        "routes/canvas/video.py",
+    ):
+        route = PACKAGE_ROOT / "api" / route_path
+        assert "ai_anime.api.canvas_job_schemas" in _imports(route)
+
 
 def test_legacy_generation_route_is_removed() -> None:
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(

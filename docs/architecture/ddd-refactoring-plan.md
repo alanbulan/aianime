@@ -1952,6 +1952,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十批已将 Projects/Characters 两个 route 的剩余入站模型从后端公共 `api/schemas.py` 收口：4 个 narrator/character record/copy/trim 请求进入唯一共享 `api/voice_schemas.py`，9 个 Character/Identity 请求与 `CharacterAssetKind` 进入唯一 `api/characters_schemas.py`，`ProjectCreate`、`ProjectUpdate` 与 `ProjectStatusFilter` 进入唯一 `api/projects_schemas.py`；两个 route 一次性移除旧巨石导入，三处直接模型测试同步切换新入口，不保留 re-export facade、旧别名或重复模型。声线 data URL/source/时段默认值、Character/Identity CRUD 与素材选择字段、Project spine/aspect/生成设置字段和枚举保持不变；统一 schema 所有权门禁分别锁定共享声线的两个消费者、两个 route 专属模型及两个类型别名的唯一位置，未为部分迁移放宽旧入口禁令。Project/Character/Identity/Voice 回归 30 项、M04 全端点合同 1 项及完整后端分层门禁 141 项通过，合计 172 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十一批已将 Canvas Audio/Image/Skills/Text/Video 五个 route 共享的 `FreezoneJobAcceptedData` 与 `FreezoneJobAcceptedResponse` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_job_schemas.py` 出站 schema，五个消费者同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。task type、job id、task key 及 `ok: true` 包络保持不变；统一 schema 所有权门禁锁定共享模型唯一位置和五个 route 的显式消费关系，各 route 的专属请求模型仍按后续独立批次迁移。M06 inline/celery 两组各 29 个 Freezone 任务端点合同 2 项与完整后端分层门禁 141 项通过，合计 143 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

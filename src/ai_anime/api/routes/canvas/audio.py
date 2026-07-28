@@ -7,11 +7,11 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     FreezoneAudioMusicRequest,
     FreezoneAudioSpeechRequest,
-    FreezoneJobAcceptedResponse,
 )
 from ai_anime.modules.creative_canvas.public import (
     CreateCreativeCanvasAudioVoiceCommand,
