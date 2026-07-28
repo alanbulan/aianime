@@ -70,7 +70,7 @@ async def _reserve_music_model_call(
     music_length_ms: int,
     source: str,
 ) -> str:
-    from ai_anime.ports import get_usage_meter
+    from ai_anime.modules.model_usage.public import get_usage_meter
 
     billing_seconds = freezone_audio_music_billing_seconds(music_length_ms)
     return await get_usage_meter().reserve_current_model_call_credit(
@@ -94,7 +94,7 @@ async def _refund_music_model_call(
     if not reservation_id:
         return
     try:
-        from ai_anime.ports import get_usage_meter
+        from ai_anime.modules.model_usage.public import get_usage_meter
 
         await get_usage_meter().refund_model_call_credit_reservation(
             reservation_id,
@@ -112,7 +112,7 @@ async def _confirm_music_model_call(
     if not reservation_id:
         return
     try:
-        from ai_anime.ports import get_usage_meter
+        from ai_anime.modules.model_usage.public import get_usage_meter
 
         await get_usage_meter().bump_model_call(
             user_id=None,

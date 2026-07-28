@@ -35,14 +35,16 @@ from ai_anime.config import (
     get_grid_generation_config,
     get_style_preset,
 )
-from ai_anime.ports import get_usage_meter
-from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.generators.huimengi import (
     HuimengTaskFailed,
     HuimengiTaskClient,
     bytes_to_data_url,
     extract_huimeng_result_url,
     validate_huimeng_media_download,
+)
+from ai_anime.modules.model_usage.public import (
+    get_usage_meter,
+    is_insufficient_credits_error,
 )
 from ai_anime.generators.prompt_builder import (
     PromptComponents,

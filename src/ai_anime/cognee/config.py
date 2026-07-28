@@ -27,11 +27,11 @@ from ai_anime.official_defaults import (
     DEFAULT_COGNEE_LLM_PROVIDER,
     OFFICIAL_NEWAPI_BASE_URL,
 )
-from ai_anime.ports import get_usage_meter
 from ai_anime.modules.model_usage.public import (
     InsufficientCreditsStop,
     find_insufficient_credits_error,
     find_insufficient_credits_stop,
+    get_usage_meter,
 )
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.shared.runtime_env import is_ce_effective

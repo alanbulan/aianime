@@ -352,13 +352,13 @@ def _extract_litellm_usage(kwargs: dict, response_obj: object) -> tuple[int, int
 
 
 async def _meter_reserve(**kwargs) -> str:
-    from ai_anime.ports import get_usage_meter
+    from ai_anime.modules.model_usage.public import get_usage_meter
 
     return await get_usage_meter().reserve_current_model_call_credit(**kwargs)
 
 
 async def _meter_refund(reservation_id: str) -> None:
-    from ai_anime.ports import get_usage_meter
+    from ai_anime.modules.model_usage.public import get_usage_meter
 
     await get_usage_meter().refund_model_call_credit_reservation(reservation_id)
 
@@ -377,7 +377,7 @@ async def _forward_agent_usage(
     model = _normalize_recorded_model_name(_extract_model_name(agent))
     request_id, task_id, response_id = _extract_provider_ids(result)
     meta = {"response_id": response_id} if response_id else None
-    from ai_anime.ports import get_usage_meter
+    from ai_anime.modules.model_usage.public import get_usage_meter
 
     meter = get_usage_meter()
     await meter.bump_model_call(
@@ -518,7 +518,7 @@ async def _forward_litellm_success(
     resource_kind = _RESOURCE_KIND_CTX.get()
     request_id, task_id, response_id = _extract_provider_ids(response_obj)
     meta = {"response_id": response_id} if response_id else None
-    from ai_anime.ports import get_usage_meter
+    from ai_anime.modules.model_usage.public import get_usage_meter
 
     meter = get_usage_meter()
     await meter.bump_model_call(

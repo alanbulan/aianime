@@ -208,7 +208,7 @@ def _client(
         fake_make_sqlite_store_for_context,
     )
     if usage_meter is not None:
-        monkeypatch.setattr(composition.ports, "get_usage_meter", lambda: usage_meter)
+        monkeypatch.setattr(composition, "get_usage_meter", lambda: usage_meter)
     monkeypatch.setattr(
         global_video_optimizer,
         "detect_identities_by_ai",

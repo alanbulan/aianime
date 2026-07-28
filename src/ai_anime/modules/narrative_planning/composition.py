@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.narrative_planning.application.beat_media import (
     EpisodeBeatMediaProjection,
 )
@@ -130,11 +131,9 @@ def schedule_episode_planning() -> ScheduleEpisodePlanning:
 
 
 def generate_seedance_prompt() -> GenerateSeedancePrompt:
-    from ai_anime import ports
-
     return GenerateSeedancePrompt(
         gateway=SeedancePanelPromptGateway(),
-        usage_meter=ports.get_usage_meter(),
+        usage_meter=get_usage_meter(),
     )
 
 

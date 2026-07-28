@@ -9,9 +9,11 @@ from typing import Any
 
 import httpx
 
-from ai_anime.ports import get_usage_meter
-from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.generators.tts_generator import TTSResult
+from ai_anime.modules.model_usage.public import (
+    get_usage_meter,
+    is_insufficient_credits_error,
+)
 
 
 async def _reserve_tts_model_call(model: str, *, source: str) -> str:

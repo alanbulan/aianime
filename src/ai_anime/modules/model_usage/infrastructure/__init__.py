@@ -6,6 +6,10 @@ from ai_anime.modules.model_usage.infrastructure.generation_catalog import (
 from ai_anime.modules.model_usage.infrastructure.local_credit_quote import (
     LocalCreditQuote,
 )
+from ai_anime.modules.model_usage.infrastructure.local_usage import (
+    NoOpProviderInstrumentation,
+    NoOpUsageMeter,
+)
 from ai_anime.modules.model_usage.infrastructure.registered_credit_quote import (
     RegisteredCreditQuote,
 )
@@ -13,5 +17,7 @@ from ai_anime.modules.model_usage.infrastructure.registered_credit_quote import 
 __all__ = [
     "ConfiguredGenerationModelCatalog",
     "LocalCreditQuote",
+    "NoOpProviderInstrumentation",
+    "NoOpUsageMeter",
     "RegisteredCreditQuote",
 ]

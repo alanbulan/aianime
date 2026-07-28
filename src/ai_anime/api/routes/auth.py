@@ -15,6 +15,7 @@ from ai_anime.modules.identity_access.public import (
     create_desktop_session,
     revoke_browser_session,
 )
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.shared.runtime_env import cookie_secure as runtime_cookie_secure
 
 router = APIRouter()
@@ -116,9 +117,7 @@ async def me(user: dict = Depends(get_api_user)):
     credit_balance = 0
     user_id = str(user.get("user_id") or user.get("id") or "").strip()
     if user_id:
-        from ai_anime.ports.registry import get_port
-
-        balance = await get_port("usage_meter").get_user_credit_balance(user_id)
+        balance = await get_usage_meter().get_user_credit_balance(user_id)
         credit_balance = balance if balance is not None else 0
 
     return JSONResponse(

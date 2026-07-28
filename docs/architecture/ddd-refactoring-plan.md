@@ -1727,6 +1727,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十三批已修复 Windows Chat 运行锁的 PID 存活探测：Windows 分支不再调用会通过 `TerminateProcess` 误结束被探测进程的 `os.kill(pid, 0)`，改用只读 `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` 与 `GetExitCodeProcess` 判断 `STILL_ACTIVE`，句柄始终关闭，访问被拒绝时按进程仍存活保守处理；POSIX 分支保持原行为。新增当前进程存活回归，原先会直接中止 pytest/Codex 终端的同文件现已完整运行；PID 定向回归 1 项、Chat lock 回归 8 项及 Chat 服务完整回归 64 项均通过，修改文件 Ruff、Python 编译与 `git diff --check` 通过。
 
+第三百三十四批已将 `UsageMeter` 与 `ProviderInstrumentation` 协议迁入 Model Usage application ports，将 CE no-op 实现迁入模块内唯一 infrastructure adapter，并由 composition/public 提供稳定的 usage meter 解析与本地适配器工厂；未注册 `usage_meter` 或已注册对象缺少模型调用预留能力时仍回退到 no-op，其他注册表异常继续抛出。CE bootstrap 改经 public factory 注册原 `usage_meter`、`provider_instrumentation` 键并安装同一 instrumentation 实例，应用容器类型、鉴权余额查询、Chat、Cognee、生成器、任务计量及三个领域组合根等 16 个生产调用文件全部改经 Model Usage public API。旧 `ports/usage.py`、`ports/local/usage.py`、`ports.get_usage_meter`、`ports.get_provider_instrumentation` 及旧 no-op 测试路径直接删除，不保留 facade、兼容转发或第二套实现；Usage、CE 注册、容器、鉴权、组合根、生成计费、任务计量、Cognee 与应用工厂定向回归 120 项及完整后端分层门禁 99 项均通过，修改文件 Ruff、Python 编译、核心文件格式检查与 `git diff --check` 通过；Cognee 相关告警均为既有依赖弃用告警。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

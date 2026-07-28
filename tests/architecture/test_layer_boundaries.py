@@ -436,6 +436,42 @@ def test_model_usage_owns_billing_error_taxonomy() -> None:
     assert "BillingRuleNotConfiguredError" in public_source
 
 
+def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
+    application_ports = (
+        PACKAGE_ROOT / "modules" / "model_usage" / "application" / "ports.py"
+    )
+    local_usage = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "local_usage.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
+    legacy_ports = PACKAGE_ROOT / "ports" / "__init__.py"
+    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    container = PACKAGE_ROOT / "bootstrap" / "container.py"
+
+    assert not (PACKAGE_ROOT / "ports" / "usage.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "local" / "usage.py").exists()
+    assert "class UsageMeter(Protocol)" in application_ports.read_text(encoding="utf-8")
+    assert "class ProviderInstrumentation(Protocol)" in application_ports.read_text(
+        encoding="utf-8"
+    )
+    assert "class NoOpUsageMeter:" in local_usage.read_text(encoding="utf-8")
+    assert "class NoOpProviderInstrumentation:" in local_usage.read_text(
+        encoding="utf-8"
+    )
+    assert composition.read_text(encoding="utf-8").count(
+        'registry.get_port("usage_meter")'
+    ) == 1
+    assert "def get_usage_meter(" not in legacy_ports.read_text(encoding="utf-8")
+    assert "build_local_usage_adapters" in public.read_text(encoding="utf-8")
+    assert "build_local_usage_adapters" in local_ports.read_text(encoding="utf-8")
+    assert "ai_anime.modules.model_usage.public" in _imports(container)
+
+
 def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
     composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
     local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"

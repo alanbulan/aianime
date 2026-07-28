@@ -102,9 +102,9 @@ def _client(
     ctx=None,
     usage_meter=None,
 ):
-    from ai_anime import ports
     from ai_anime.api.routes import scripts
     from ai_anime.api.deps import ProjectResolution
+    from ai_anime.modules.narrative_planning import composition
 
     sqlite_store = DummySqliteStore(beats)
 
@@ -134,7 +134,7 @@ def _client(
     )
     monkeypatch.setattr(scripts, "make_cognee_store", _make_cognee_store)
     if usage_meter is not None:
-        monkeypatch.setattr(ports, "get_usage_meter", lambda: usage_meter)
+        monkeypatch.setattr(composition, "get_usage_meter", lambda: usage_meter)
 
     app = FastAPI()
     app.include_router(scripts.router)

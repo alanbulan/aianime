@@ -9,26 +9,6 @@ def get_cloud_adapter():
     return get_port("cloud_adapter")
 
 
-def get_usage_meter():
-    try:
-        meter = get_port("usage_meter")
-    except Exception as exc:
-        if exc.__class__.__name__ != "PortNotRegistered":
-            raise
-        from ai_anime.ports.local.usage import NoOpUsageMeter
-
-        return NoOpUsageMeter()
-    if not hasattr(meter, "reserve_current_model_call_credit"):
-        from ai_anime.ports.local.usage import NoOpUsageMeter
-
-        return NoOpUsageMeter()
-    return meter
-
-
-def get_provider_instrumentation():
-    return get_port("provider_instrumentation")
-
-
 def get_task_backend():
     return get_port("task_backend")
 
@@ -50,7 +30,5 @@ __all__ = [
     "get_cancellation_store",
     "get_cloud_adapter",
     "get_lifecycle_port",
-    "get_provider_instrumentation",
     "get_task_backend",
-    "get_usage_meter",
 ]

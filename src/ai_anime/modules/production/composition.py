@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from ai_anime import ports
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlSketchUseCases,
 )
@@ -414,7 +414,7 @@ def sketch_marker_use_cases() -> SketchMarkerUseCases:
             AssetWorldRuntimePropMenuSource(),
             LocalSketchMarkerDetectionFiles(),
             GlobalVideoOptimizerSketchMarkerDetector(),
-            ports.get_usage_meter(),
+            get_usage_meter(),
         ),
     )
 

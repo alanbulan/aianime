@@ -27,7 +27,7 @@ from typing import Any, Callable
 
 from ai_anime.director_world import block_world_builder, pano_sharp, stage_manifest
 from ai_anime.director_world.paths import safe_name, world_path
-from ai_anime.ports import get_usage_meter
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.task_backend.cancel import TaskCancelled, TaskTimedOut
 from ai_anime.task_backend.subprocesses import run_project_subprocess
 from ai_anime.utils.path_resolver import (

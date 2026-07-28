@@ -27,7 +27,7 @@ from ai_anime.modules.project_workspace.public import (
     ProjectNotFound,
     list_project_workspaces,
 )
-from ai_anime.ports import get_usage_meter
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     resolve_project_context,

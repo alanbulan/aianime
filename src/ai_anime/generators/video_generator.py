@@ -23,7 +23,7 @@ import aiohttp
 import websockets
 from dotenv import load_dotenv
 
-from ai_anime.ports import get_usage_meter
+from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.video_request_usage import (
     record_video_request,
     update_video_request_status,
