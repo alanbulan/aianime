@@ -624,6 +624,50 @@ def test_ai_assistant_owns_agent_workspace() -> None:
     assert service_source.count("agent_workspace.build_environment(") == 3
 
 
+def test_ai_assistant_owns_agent_tool_configuration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "mcp_configuration.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "agent_tool_configuration.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported in {"os", "pathlib", "sys", "fastapi"}
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "def codex_mcp_config_overrides(" in domain_source
+    assert "class AgentToolConfiguration(Protocol):" in ports_source
+    assert "class LocalAgentToolConfiguration:" in adapter_source
+    assert "sys" in _imports(adapter)
+    assert "_agent_tool_configuration = LocalAgentToolConfiguration()" in composition_source
+    assert "def get_agent_tool_configuration(" in composition_source
+    assert "def get_agent_tool_configuration(" in public_source
+    assert "LocalAgentToolConfiguration" not in public_source
+    for legacy_name in (
+        "def _ai_anime_mcp_servers(",
+        "def _codex_mcp_config_overrides(",
+        "ai_anime.chat.ai_anime_mcp",
+        "mcp_servers.ai_anime",
+    ):
+        assert legacy_name not in service_source
+    assert "agent_tool_configuration = get_agent_tool_configuration()" in service_source
+    assert (
+        service_source.count("agent_tool_configuration.codex_config_overrides()")
+        == 2
+    )
+
+
 def test_ai_assistant_owns_agent_prompt_context() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "prompt_context.py"

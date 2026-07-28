@@ -14,6 +14,9 @@ from ai_anime.modules.ai_assistant.domain.chat_text import (
     text_with_attachment_context,
     tool_display_payload,
 )
+from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
+    codex_mcp_config_overrides,
+)
 from ai_anime.modules.ai_assistant.domain.scope import ChatScope
 from ai_anime.modules.ai_assistant.domain.prompt_context import compose_agent_prompt
 from ai_anime.modules.ai_assistant.domain.turn_guidance import (
@@ -23,6 +26,7 @@ from ai_anime.modules.ai_assistant.domain.turn_guidance import (
 
 __all__ = [
     "ChatScope",
+    "codex_mcp_config_overrides",
     "completion_text_or_existing",
     "compose_agent_prompt",
     "is_hidden_chat_tool_event",

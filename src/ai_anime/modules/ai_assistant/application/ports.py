@@ -104,3 +104,9 @@ class AgentWorkspace(Protocol):
         project: str,
         agent_token: str = "",
     ) -> dict[str, str]: ...
+
+
+class AgentToolConfiguration(Protocol):
+    def mcp_servers(self) -> dict[str, dict[str, Any]]: ...
+
+    def codex_config_overrides(self) -> tuple[str, ...]: ...

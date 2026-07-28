@@ -1,11 +1,9 @@
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.api.routes import chat as chat_routes
-from ai_anime.chat import backend_sdk
 from ai_anime.chat import service as chat_service
 
 
@@ -301,35 +299,6 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
         specs[0]["elements"][first_child]["props"]["src"]
         == "/static/projects/api-project/sketch.png?v=1"
     )
-
-
-def test_ai_anime_mcp_server_config_is_agent_neutral():
-    servers = chat_service._ai_anime_mcp_servers()
-
-    assert servers["ai_anime"]["type"] == "stdio"
-    assert servers["ai_anime"]["args"] == ["-m", "ai_anime.chat.ai_anime_mcp"]
-
-
-def test_codex_client_carries_ai_anime_mcp_servers(tmp_path):
-    overrides = chat_service._codex_mcp_config_overrides(
-        chat_service._ai_anime_mcp_servers()
-    )
-
-    expected_command = json.dumps(__import__("sys").executable, ensure_ascii=False)
-    assert f"mcp_servers.ai_anime.command={expected_command}" in overrides
-    assert 'mcp_servers.ai_anime.args=["-m","ai_anime.chat.ai_anime_mcp"]' in overrides
-
-    client = backend_sdk.CodexClient(
-        codex_bin=Path("/usr/local/bin/codex"),
-        cwd=tmp_path,
-        env={"AI_ANIME_AGENT_TOKEN": "token"},
-        model="gpt-5.4",
-        config_overrides=overrides,
-    )
-
-    thread = client.thread_start()
-
-    assert thread._config_overrides == overrides
 
 
 @pytest.mark.anyio

@@ -10,7 +10,6 @@ import os
 import re
 import shutil
 import sqlite3
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,6 +31,7 @@ from ai_anime.modules.ai_assistant.public import (
     completion_text_or_existing,
     get_agent_backend,
     get_agent_thread_sessions,
+    get_agent_tool_configuration,
     get_agent_workspace,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
@@ -50,6 +50,7 @@ from ai_anime.utils.static_urls import project_static_url
 logger = logging.getLogger("ai_anime.chat.service")
 agent_backend = get_agent_backend()
 agent_thread_sessions = get_agent_thread_sessions()
+agent_tool_configuration = get_agent_tool_configuration()
 agent_workspace = get_agent_workspace()
 chat_run_locks = get_chat_run_locks()
 
@@ -1969,7 +1970,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
         codex_bin=str(codex_bin) if codex_bin is not None else None,
         cwd=str(workspace),
         env=agent_workspace.build_environment(username, project),
-        config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
+        config_overrides=agent_tool_configuration.codex_config_overrides(),
     )
 
     with Codex(config=config) as codex:
@@ -2440,40 +2441,6 @@ def _build_claude_thread(username: str, project: str, agent_token: str):
     return client.thread_resume(session_id) if session_id else client.thread_start()
 
 
-def _ai_anime_mcp_servers() -> dict[str, dict[str, Any]]:
-    return {
-        "ai_anime": {
-            "type": "stdio",
-            "command": sys.executable,
-            "args": ["-m", "ai_anime.chat.ai_anime_mcp"],
-        }
-    }
-
-
-def _codex_mcp_config_overrides(
-    mcp_servers: dict[str, dict[str, Any]],
-) -> tuple[str, ...]:
-    overrides: list[str] = []
-    for name, server in sorted(mcp_servers.items()):
-        if str(server.get("type") or "stdio") != "stdio":
-            raise ValueError(
-                f"unsupported Codex MCP server type for {name}: {server.get('type')}"
-            )
-        command = str(server.get("command") or "").strip()
-        if not command:
-            raise ValueError(f"Codex MCP server {name} is missing command")
-        args = server.get("args") or []
-        if not isinstance(args, list):
-            raise ValueError(f"Codex MCP server {name} args must be a list")
-        prefix = f"mcp_servers.{name}"
-        overrides.append(f"{prefix}.command={json.dumps(command, ensure_ascii=False)}")
-        overrides.append(
-            f"{prefix}.args={json.dumps([str(arg) for arg in args], ensure_ascii=False, separators=(',', ':'))}"
-        )
-        overrides.append(f"{prefix}.enabled=true")
-    return tuple(overrides)
-
-
 def _build_codex_thread(username: str, project: str, agent_token: str):
     workspace = agent_workspace.ensure_codex(username)
     client = CodexClient(
@@ -2481,7 +2448,7 @@ def _build_codex_thread(username: str, project: str, agent_token: str):
         cwd=workspace,
         env=agent_workspace.build_environment(username, project, agent_token),
         model=agent_backend.codex_model(),
-        config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
+        config_overrides=agent_tool_configuration.codex_config_overrides(),
     )
     thread_id = agent_thread_sessions.get_active(username, "codex")
     return client.thread_resume(thread_id) if thread_id else client.thread_start()

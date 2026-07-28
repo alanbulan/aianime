@@ -4,6 +4,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
     AgentWorkspace,
     AgentThreadSessions,
+    AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
 )
@@ -38,6 +39,14 @@ def get_agent_backend() -> AgentBackend:
     return resolve()
 
 
+def get_agent_tool_configuration() -> AgentToolConfiguration:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_agent_tool_configuration as resolve,
+    )
+
+    return resolve()
+
+
 def get_agent_workspace() -> AgentWorkspace:
     from ai_anime.modules.ai_assistant.composition import get_agent_workspace as resolve
 
@@ -68,12 +77,14 @@ __all__ = [
     "AgentBackend",
     "AgentWorkspace",
     "AgentThreadSessions",
+    "AgentToolConfiguration",
     "ChatHistory",
     "ChatRunLocks",
     "ChatScope",
     "build_agent_prompt_context",
     "completion_text_or_existing",
     "get_agent_backend",
+    "get_agent_tool_configuration",
     "get_agent_workspace",
     "get_agent_thread_sessions",
     "get_chat_history",
