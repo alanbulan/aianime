@@ -12,7 +12,7 @@ import type {
 } from "@/features/superchat/types";
 import { cn } from "@/lib/utils";
 
-type ChatControlBarModel = {
+export type ChatControlBarModel = {
   activeModel: string | null;
   busy: boolean;
   connected: boolean;

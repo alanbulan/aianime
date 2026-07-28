@@ -582,6 +582,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/chat-control-bar.tsx"),
       "utf8",
     );
+    const header = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-header.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -594,23 +598,66 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(header).toContain(
+      'from "@/features/superchat/chat-control-bar";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-control-bar";',
     );
     expect(tests).toContain(
       'from "@/features/superchat/chat-control-bar";',
     );
     for (const ownedOperation of [
-      "type ChatControlBarModel =",
+      "export type ChatControlBarModel =",
       "export function ControlBar(",
       "export function HeaderControlPortal(",
     ]) {
       expect(controls).toContain(ownedOperation);
+      expect(header).not.toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
     expect(controls).toContain('import { createPortal } from "react-dom";');
     expect(controls).not.toContain("useSuperChat");
     expect(controls).not.toContain("ReturnType<");
+  });
+
+  it("keeps complete chat panel header presentation outside the panel", () => {
+    const header = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-panel-header.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-panel-header.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-panel-header";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-panel-header";',
+    );
+    expect(header).toContain("export function ChatPanelHeader(");
+    for (const ownedPresentation of [
+      "<HeaderControlPortal",
+      "<ControlBar",
+      't("freezone.chat.title")',
+      't("freezone.chat.close")',
+      't("aiAssistant.reconnecting")',
+      '<X className="size-4" />',
+    ]) {
+      expect(header).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(header).not.toContain("useSuperChat");
+    expect(header).not.toContain("ReturnType<");
   });
 
   it("keeps approval presentation outside the SuperChat panel", () => {

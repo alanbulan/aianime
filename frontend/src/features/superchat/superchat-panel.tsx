@@ -1,17 +1,12 @@
 // Copyright (c) 2026 AI anime
-import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
-import {
-  ControlBar,
-  HeaderControlPortal,
-} from "@/features/superchat/chat-control-bar";
+import { ChatPanelHeader } from "@/features/superchat/chat-panel-header";
 import { ApprovalCard } from "@/features/superchat/approval-card";
 import { SearchBar } from "@/features/superchat/chat-search-bar";
 import { PinnedPanel } from "@/features/superchat/pinned-messages-panel";
@@ -198,58 +193,14 @@ export function SuperChatPanel({
 
   return (
     <div className={cn("relative flex h-full min-h-0 overflow-hidden bg-background", isFreezoneLayout && "bg-transparent")}>
-      {!isFreezoneLayout && (
-        <HeaderControlPortal
+      <section className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <ChatPanelHeader
           chat={chat}
+          isFreezoneLayout={isFreezoneLayout}
+          onRequestClose={onRequestClose}
           searchOpen={searchOpen}
           onToggleSearch={() => setSearchOpen((value) => !value)}
         />
-      )}
-      <section className="relative z-10 flex min-w-0 flex-1 flex-col">
-        {isFreezoneLayout && (
-          <div className="flex min-h-9 shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-1">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="truncate text-sm font-medium text-foreground">
-                {t("freezone.chat.title")}
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    chat.connected ? "bg-success" : chat.connecting ? "bg-warning" : "bg-muted-foreground",
-                  )}
-                  aria-hidden="true"
-                />
-                <span className="truncate">
-                  {chat.connected
-                    ? t("aiAssistant.connected")
-                    : chat.connecting || chat.busy
-                      ? t("aiAssistant.reconnecting")
-                      : t("aiAssistant.disconnected")}
-                </span>
-              </div>
-            </div>
-            <ControlBar
-              chat={chat}
-              compact
-              searchOpen={searchOpen}
-              onToggleSearch={() => setSearchOpen((value) => !value)}
-            />
-            {onRequestClose && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={onRequestClose}
-                aria-label={t("freezone.chat.close")}
-                title={t("freezone.chat.close")}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" />
-              </Button>
-            )}
-          </div>
-        )}
         {chat.error && (
           <div className="border-b border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
             {chat.error}

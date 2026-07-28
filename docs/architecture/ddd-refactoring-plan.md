@@ -1879,6 +1879,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零九批已拆分 SuperChat Composer 提交控制器：新增唯一 `features/superchat/use-composer-submit-controller.ts`，通过显式附件、连接、队列、历史复位和发送命令窄合同，集中持有空内容/准备中门禁、断线提示、附件消息回退文案、附件快照、busy 入队、直接发送及仅成功后清空草稿和附件的完整提交分支。`superchat-panel.tsx` 删除原 `submit` 实现和 `sonner` 直接依赖，只装配既有 controller 命令并保留供消息投影使用的两个纯派生值，文件由 379 行降至 369 行，不保留第二套提交路径。新增 4 项 hook 特征测试覆盖空内容与准备门禁、断线不变异、busy 入队与附件克隆、直接发送失败保留和成功清空，并扩展架构门禁禁止提交编排回流面板；SuperChat 特征测试 39 个文件 195 项、SuperChat 门禁 35 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百一十批已拆分完整 SuperChat 顶部视图：新增唯一 `features/superchat/chat-panel-header.tsx`，通过导出的显式 `ChatControlBarModel` 窄合同组合既有控制栏，集中呈现默认桌面 header portal、freezone 标题、连接/重连/断开状态、紧凑控制栏和可选关闭动作；状态文案、语义颜色 token 与 portal 目标保持不变。`superchat-panel.tsx` 删除 X/Button、控制栏直接依赖及两套顶部 JSX，只在主 section 顶部装配 chat 模型、搜索状态和关闭动作，文件由 369 行降至 320 行，不保留第二套顶部布局。新增 3 项视图特征测试覆盖默认 portal、freezone 状态/控制/关闭交互和三类连接状态，并同步更新控制栏门禁指向新的直接消费者；SuperChat 特征测试 40 个文件 198 项、SuperChat 门禁 36 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
