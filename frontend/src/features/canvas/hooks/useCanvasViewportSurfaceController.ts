@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
+import type { CanvasViewportPort } from '../application/bookmarkActions';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import { useSnapAlignStore } from '../snap-align/snapAlignStore';
 import { useTrackpadPanStore } from '../trackpad-pan/trackpadPanStore';
@@ -22,6 +23,7 @@ import {
   useCanvasNodeFocusController,
   type CanvasNodeFocusController,
   type CanvasNodeFocusControllerOptions,
+  type CanvasNodeFocusRuntimePort,
 } from './useCanvasNodeFocusController';
 import {
   useCanvasSnapAlignment,
@@ -40,9 +42,15 @@ const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   clearGuides: () => useSnapAlignStore.getState().clearGuides(),
 };
 
+export interface CanvasViewportSurfacePort
+  extends CanvasViewportPort,
+    CanvasNodeFocusRuntimePort {
+  fitView: (options: CanvasAutoLayoutViewportOptions) => unknown;
+}
+
 export interface CanvasViewportSurfaceControllerOptions {
   wrapperRef: CanvasViewportRuntimeControllerOptions['wrapperRef'];
-  viewportPort: CanvasViewportRuntimeControllerOptions['viewportPort'];
+  viewportPort: CanvasViewportSurfacePort;
   transformStore: CanvasViewportRuntimeControllerOptions['transformStore'];
   commitViewport: CanvasViewportRuntimeControllerOptions['commitViewport'];
   setViewportSize: CanvasViewportRuntimeControllerOptions['setViewportSize'];

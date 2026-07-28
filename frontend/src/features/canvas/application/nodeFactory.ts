@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { XYPosition } from '@xyflow/react';
-
-import type { CanvasNode, CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
+import type {
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  CanvasPosition,
+} from '../domain/canvasNodes';
 import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import type {
   CanvasNodeDefaultDataGateway,
@@ -19,7 +22,7 @@ export class CanvasNodeFactory implements NodeFactory {
 
   createNode(
     type: CanvasNodeType,
-    position: XYPosition,
+    position: CanvasPosition,
     data: Partial<CanvasNodeData> = {}
   ): CanvasNode {
     const nodeData = {

@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook } from '@testing-library/react';
-import type { ReactFlowInstance } from '@xyflow/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCanvasStore } from '@/stores/canvasStore';
@@ -29,7 +28,7 @@ function createOptions() {
       viewport = nextViewport;
       return Promise.resolve(true);
     }),
-  } as unknown as ReactFlowInstance;
+  };
   const unsubscribeTransform = vi.fn();
   const commitViewport = vi.fn<CanvasViewportRuntimeControllerOptions['commitViewport']>();
   const setViewportSize = vi.fn<CanvasViewportRuntimeControllerOptions['setViewportSize']>();

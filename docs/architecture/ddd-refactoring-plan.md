@@ -2002,6 +2002,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十五批已将误放在 Canvas/Freezone application 层的两个 React Query hook factory 分别迁入唯一 presentation hooks 所有者 `features/canvas/hooks/freezoneCanvasQueryHooks.ts` 与 `features/freezone/hooks/contextQueryHooks.ts`，composition 直接装配新入口，原 application 文件整体删除，不保留转发、别名或第二套查询实现。查询用例与 gateway 仍由 application/infrastructure 唯一持有；新增门禁锁定旧路径不存在，并禁止两个 application 目录重新依赖 `@tanstack/react-query`。Freezone 查询、画布列表与 Beat Context 回归 9 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百六十六批已将 Canvas application 对 `@xyflow/react` 的 3 处直接类型依赖归零：节点工厂与图端口改用 domain 唯一 `CanvasPosition` 坐标契约，书签动作改为 application 自有的最小 `CanvasViewportPort`，viewport runtime/edge-pan presentation 复用该端口，surface controller 显式组合聚焦与 `fitView` 能力，不再用完整 React Flow 实例掩盖实际依赖。测试中的 `as unknown as ReactFlowInstance` 同步删除；新增门禁禁止 Canvas application 重新导入 React Flow。视口 runtime、surface、edge-pan 与节点工厂回归 7 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

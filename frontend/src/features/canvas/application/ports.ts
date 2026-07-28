@@ -1,11 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { XYPosition } from '@xyflow/react';
-
 import type {
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
   CanvasNodeType,
+  CanvasPosition,
   NodeToolType,
   StoryboardFrameItem,
 } from '../domain/canvasNodes';
@@ -58,7 +57,7 @@ export interface CanvasGraphGateway {
   getSnapshot: () => CanvasGraphSnapshot;
   addNode: (
     type: CanvasNodeType,
-    position: XYPosition,
+    position: CanvasPosition,
     data?: Partial<CanvasNodeData>,
   ) => string | null;
   addEdgeWithData: (
@@ -174,7 +173,7 @@ export interface CanvasNodeDefaultDataGateway {
 export interface NodeFactory {
   createNode: (
     type: CanvasNodeType,
-    position: XYPosition,
+    position: CanvasPosition,
     data?: Partial<CanvasNodeData>
   ) => CanvasNode;
 }

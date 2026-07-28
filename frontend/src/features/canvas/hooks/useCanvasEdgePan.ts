@@ -1,19 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 
+import type { CanvasViewportPort } from '../application/bookmarkActions';
 import type { CanvasViewportSnapshot } from './useCanvasViewportCommit';
 
 const EDGE_PAN_DRAG_THRESHOLD_PX = 4;
 const EDGE_PATH_SELECTOR = '.react-flow__edge-path, .react-flow__edge-interaction';
 const EDGE_UPDATER_SELECTOR = '.react-flow__edgeupdater';
-
-interface CanvasViewportPort {
-  getViewport: () => CanvasViewportSnapshot;
-  setViewport: (
-    viewport: CanvasViewportSnapshot,
-    options: { duration: number },
-  ) => unknown;
-}
 
 interface EdgeClickEvent {
   preventDefault: () => void;

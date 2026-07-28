@@ -1,11 +1,21 @@
 // Copyright (c) 2026 AI anime
-import type { ReactFlowInstance } from "@xyflow/react";
-
 import type { ViewportBookmark } from "@/features/canvas/domain/viewportBookmarks";
 
+export interface CanvasViewportPort {
+  getViewport: () => ViewportBookmark;
+  setViewport: (
+    viewport: ViewportBookmark,
+    options: {
+      duration: number;
+      ease?: (progress: number) => number;
+      interpolate?: "smooth";
+    },
+  ) => unknown;
+}
+
 /** Snapshot the live camera into a bookmark. */
-export function captureCurrentViewport(reactFlow: ReactFlowInstance): ViewportBookmark {
-  const { x, y, zoom } = reactFlow.getViewport();
+export function captureCurrentViewport(viewportPort: CanvasViewportPort): ViewportBookmark {
+  const { x, y, zoom } = viewportPort.getViewport();
   return { x, y, zoom };
 }
 
@@ -14,8 +24,8 @@ const easeInOutCubic = (t: number): number =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 /** Animate the camera to a bookmarked viewport with a smooth, eased glide. */
-export function jumpToBookmark(reactFlow: ReactFlowInstance, bookmark: ViewportBookmark): void {
-  void reactFlow.setViewport(
+export function jumpToBookmark(viewportPort: CanvasViewportPort, bookmark: ViewportBookmark): void {
+  void viewportPort.setViewport(
     { x: bookmark.x, y: bookmark.y, zoom: bookmark.zoom },
     { duration: 550, ease: easeInOutCubic, interpolate: "smooth" },
   );

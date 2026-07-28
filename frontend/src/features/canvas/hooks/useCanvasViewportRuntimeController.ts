@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useMemo, useRef, type RefObject } from 'react';
-import type { ReactFlowInstance } from '@xyflow/react';
 
 import {
   captureCurrentViewport,
   jumpToBookmark,
+  type CanvasViewportPort,
 } from '@/features/canvas/application/bookmarkActions';
 import { useCanvasStore } from '@/stores/canvasStore';
 
@@ -29,7 +29,7 @@ import {
 
 export interface CanvasViewportRuntimeControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  viewportPort: ReactFlowInstance;
+  viewportPort: CanvasViewportPort;
   transformStore: CanvasTransformStorePort;
   commitViewport: (viewport: CanvasViewportSnapshot) => void;
   setViewportSize: (size: CanvasViewportSize) => void;

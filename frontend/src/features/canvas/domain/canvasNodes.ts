@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { Edge, Node, XYPosition } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import type {
   DirectorControlFrameBundle,
   DirectorObjectLayer,
@@ -678,14 +678,19 @@ export type CanvasNodeData =
 export type CanvasNode = Node<CanvasNodeData, CanvasNodeType>;
 export type CanvasEdge = Edge;
 
+export interface CanvasPosition {
+  x: number;
+  y: number;
+}
+
 export interface NodeCreationDto {
   type: CanvasNodeType;
-  position: XYPosition;
+  position: CanvasPosition;
   data?: Partial<CanvasNodeData>;
 }
 
 export interface StoryboardNodeCreationDto {
-  position: XYPosition;
+  position: CanvasPosition;
   rows: number;
   cols: number;
   frames: StoryboardFrameItem[];

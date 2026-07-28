@@ -311,6 +311,16 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const directReactFlowUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).some(
+          (specifier) =>
+            specifier === "@xyflow/react" ||
+            specifier.startsWith("@xyflow/react/"),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const directCanvasStoreUsers = sourceFiles(applicationRoot)
       .filter((path) =>
         importSpecifiers(path).includes("@/stores/canvasStore"),
@@ -524,6 +534,7 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
     expect(domainApplicationImports).toEqual([]);
     expect(directApiUsers).toEqual([]);
+    expect(directReactFlowUsers).toEqual([]);
     expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
     expect(directTaskCenterStoreUsers).toEqual([]);
