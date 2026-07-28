@@ -108,4 +108,35 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("localStorage.");
     expect(hook).not.toContain("persistMessageSet");
   });
+
+  it("keeps scope mapping and matching outside the controller hook", () => {
+    const scope = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/scope.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/scope.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/scope";');
+    expect(tests).toContain('from "@/features/superchat/scope";');
+    for (const ownedOperation of [
+      "export function scopeForProject(",
+      "export function scopeSessionKey(",
+      "export function scopeMatches(",
+      "export function isChatScope(",
+    ]) {
+      expect(scope).toContain(ownedOperation);
+      expect(hook).not.toContain(ownedOperation);
+    }
+    expect(hook).not.toContain("function scopeForProject(");
+    expect(hook).not.toContain("function scopeSessionKey(");
+    expect(hook).not.toContain("function scopeMatches(");
+    expect(hook).not.toContain("function isChatScope(");
+  });
 });

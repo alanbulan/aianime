@@ -4,7 +4,6 @@ import type {
   ApprovalRequest,
   ChatAttachment,
   ChatMessage,
-  ChatScope,
   ClientFrame,
   ModelEntry,
   RelayInstanceInfo,
@@ -35,6 +34,12 @@ import {
   saveScopedMessageIds,
   saveSuperChatSettings,
 } from "@/features/superchat/preferences-storage";
+import {
+  isChatScope,
+  scopeForProject,
+  scopeMatches,
+  scopeSessionKey,
+} from "@/features/superchat/scope";
 
 const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);
 
@@ -50,35 +55,6 @@ function resolveChatWsUrl(): string {
   const url = new URL("/api/v1/chat/ws", window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return url.toString();
-}
-
-function scopeForProject(project?: string): ChatScope {
-  const name = project?.trim();
-  if (name) return { kind: "project", id: name };
-  return { kind: "home", id: null };
-}
-
-function scopeSessionKey(scope: ChatScope): string {
-  if (scope.kind === "project" && scope.id) return `ai_anime:project:${scope.id}:main`;
-  return "ai_anime:home:main";
-}
-
-function scopeMatches(a: ChatScope | undefined, b: ChatScope): boolean {
-  if (!a) return false;
-  if (a.kind !== b.kind) return false;
-  if (a.kind === "home") return true;
-  return (a.id ?? null) === (b.id ?? null);
-}
-
-function isChatScope(value: unknown): value is ChatScope {
-  if (!value || typeof value !== "object") return false;
-  const scope = value as Record<string, unknown>;
-  return (
-    scope.kind === "home"
-    || scope.kind === "project"
-    || scope.kind === "asset"
-    || scope.kind === "task"
-  );
 }
 
 function mergeHistory(messages: unknown[]): ChatMessage[] {

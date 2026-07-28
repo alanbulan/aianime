@@ -1815,6 +1815,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十七批已拆分 SuperChat 本地偏好存储：新增唯一 `features/superchat/preferences-storage.ts`，集中持有全局显示设置默认值与读写、scope 级 pinned/deleted key、集合反序列化和配额安全写入，并保持任一集合 JSON 损坏时两组状态共同回退为空、非数组值仅单组回退为空的既有语义；`use-superchat.ts` 删除 `SETTINGS_KEY`、设置读取、直接 `localStorage`/配额工具调用及 `persistMessageSet` 包装，直接使用偏好 adapter，文件由 960 行降至 937 行，不保留旧 helper、re-export 或第二套实现。新增 6 项独立特征测试覆盖默认值、畸形设置、缺省字段、显式设置、集合去重、非数组/损坏数据和 scope/kind 隔离写入，并扩展架构门禁确保 controller 不再持有存储细节；SuperChat 全部特征测试 48 项、SuperChat 门禁 3 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百七十八批已拆分 SuperChat scope 纯逻辑：新增唯一 `features/superchat/scope.ts`，集中持有项目名到 home/project scope 的归一、scope 到稳定 session key 的映射、服务端 scope kind 判定及 scope 匹配规则，并保持 home 只按 kind 匹配、project/asset/task 按可空 ID 匹配以及非 project scope 使用 home session key 的既有语义；`use-superchat.ts` 删除四个函数和不再需要的 `ChatScope` 类型依赖，直接调用 scope 模块，文件由 937 行降至 913 行，不保留旧 helper、re-export 或第二套实现。新增 5 项独立特征测试覆盖项目名裁剪、home 回退、session key、四类 scope 判定和匹配规则，并扩展架构门禁禁止纯逻辑回流；SuperChat 全部特征测试 54 项、SuperChat 门禁 4 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
