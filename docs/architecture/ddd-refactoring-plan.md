@@ -1843,6 +1843,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百九十一批已拆分 SuperChat 媒体详情模态视图：新增唯一 `features/superchat/spec-media-modals.tsx`，集中持有 `SpecMediaDetail` DTO、下载 DOM 动作、可播放视频预览弹窗和全屏 image/video 详情弹窗，以及描述回退、标签、分节和候选切换展示；`superchat-panel.tsx` 删除详情类型、下载 helper、两个弹窗和 Dialog/Download 直接依赖，只保留卡片状态与弹窗装配，文件由 2,482 行降至 2,266 行，不保留旧组件或 re-export。新增 3 项视图特征测试覆盖视频属性与关闭、图片元数据、下载、候选切换、显式分节和视频 poster，并扩展架构门禁确保模态层不反向依赖媒体投影或 controller；SuperChat 特征测试 21 个文件 125 项、SuperChat 门禁 17 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百九十二批已拆分 SuperChat UiSpec 媒体画廊视图：新增唯一 `features/superchat/spec-media-gallery.tsx`，组合既有媒体投影、URL 适配、结构化 JSON fallback 与媒体详情模态，集中持有 URL 异步解析、视频首帧提取、统一 image/video/audio 卡片、关键帧 pending 状态和 UiSpec 媒体分派；`superchat-panel.tsx` 删除全部同类 hooks、卡片、网格与 renderer，只保留 `UiSpecRenderer` 装配，文件由 2,266 行降至 1,924 行，不保留旧实现、re-export 或第二套媒体视图。新增 5 项视图特征测试覆盖非媒体 fallback、图片/音频 URL 解析、图片详情回调、关键帧 pending 进度和视频详情打开，并扩展架构门禁确保媒体视图及其 DOM 副作用不回流面板；SuperChat 特征测试 22 个文件 130 项、SuperChat 门禁 18 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

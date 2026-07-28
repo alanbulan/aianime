@@ -362,6 +362,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/spec-media-projection.ts"),
       "utf8",
     );
+    const gallery = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/spec-media-gallery.tsx"),
+      "utf8",
+    );
     const panel = readFileSync(
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
@@ -374,7 +378,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(gallery).toContain(
+      'from "@/features/superchat/spec-media-projection";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/spec-media-projection";',
     );
     expect(tests).toContain(
@@ -395,6 +402,52 @@ describe("SuperChat boundaries", () => {
     expect(projection).not.toContain('from "react"');
     expect(projection).not.toContain("document.");
     expect(projection).not.toContain("window.");
+  });
+
+  it("keeps UiSpec media gallery presentation outside the SuperChat panel", () => {
+    const gallery = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/spec-media-gallery.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/spec-media-gallery.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/spec-media-gallery";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/spec-media-gallery";',
+    );
+    for (const ownedOperation of [
+      "function resolveSpecMediaUrl(",
+      "function useResolvedSpecUrl(",
+      "function useVideoFirstFrame(",
+      "function KeyframeVideoPreviewCard(",
+      "function UnifiedMediaCard(",
+      "function UnifiedMediaGrid(",
+      "function KeyframeVideoPreview(",
+      "export function UiSpecRenderer(",
+    ]) {
+      expect(gallery).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(gallery).toContain(
+      'from "@/features/superchat/spec-media-projection";',
+    );
+    expect(gallery).toContain(
+      'from "@/features/superchat/spec-media-modals";',
+    );
+    expect(gallery).toContain('from "@/lib/media-url";');
+    expect(gallery).not.toContain("useSuperChat");
   });
 
   it("keeps recursive structured JSON rendering in a dedicated view", () => {
