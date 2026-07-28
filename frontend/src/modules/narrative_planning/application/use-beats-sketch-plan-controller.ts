@@ -124,7 +124,6 @@ export function createUseBeatsSketchPlanController(
       invalidateKeys: [
         queryKeys.grids(project, episodeNumber),
         queryKeys.beats(project, episodeNumber),
-        queryKeys.sketchImageUsage(project, episodeNumber),
         queryKeys.pipelineStatus(project),
       ],
     });

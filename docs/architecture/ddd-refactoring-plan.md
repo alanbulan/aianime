@@ -1902,6 +1902,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 当前进度：进行中。第四百一十五批已删除无生产调用方的前端旧查询文件 `lib/queries/sketches.ts`，其中 Beat pano background manifest 与缺失手工分镜草图派发两个未使用 hook 不再保留第二套直连 HTTP 实现；架构门禁改为直接锁定该文件不得恢复，Beat sketch/render 合同同步从对旧文件内容的恒真字符串检查收敛为文件不存在检查。仓库内除两处删除门禁外已无旧路径、类型或 hook 引用；前端架构与 Beat sketch/render 合同 2 个文件 221 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
 
+第四百一十六批已删除无生产调用方的 `lib/queries/sketch-image-usage.ts` 及仅验证该死实现的 3 项自测，移除 `useSketchImageUsage`、图片生成 guard/password 两个 mutation、对应 DTO 和三条旧直连 HTTP 路径；由于仓库内已无该查询的观察者，同批删除孤立 `sketchImageUsage` query key，以及 BatchPanel、Beats sketch plan 和 episode image task invalidation 中三处无效果缓存失效，不保留文件壳、测试壳或废弃 key。Production 架构门禁改为直接锁定旧文件不得恢复；受影响 controller/hook 2 个测试文件 7 项、Production 定向边界门禁 1 项、全量 TypeScript typecheck 与 `git diff --check` 均通过，定向边界运行中其余 209 项明确跳过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

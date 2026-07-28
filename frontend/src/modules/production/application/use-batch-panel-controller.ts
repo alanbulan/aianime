@@ -159,7 +159,6 @@ export function createUseBatchPanelController(
       invalidateKeys: [
         queryKeys.grids(project, episode),
         queryKeys.beats(project, episode),
-        queryKeys.sketchImageUsage(project, episode),
         queryKeys.pipelineStatus(project),
       ],
     });

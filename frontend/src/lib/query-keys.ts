@@ -77,8 +77,6 @@ export const queryKeys = {
     ] as const,
   sketchRegenQueue: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "sketch-regen-queue"] as const,
-  sketchImageUsage: (p: string, ep: number) =>
-    ["projects", p, "episodes", ep, "sketch-image-usage"] as const,
   sketchPoseEditor: (p: string, ep: number, beat: number) =>
     ["projects", p, "episodes", ep, "beats", beat, "sketch-pose-editor"] as const,
   beatPanoBackgroundManifest: (p: string, ep: number, beat: number) =>

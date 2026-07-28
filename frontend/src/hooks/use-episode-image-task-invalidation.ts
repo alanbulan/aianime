@@ -34,9 +34,6 @@ export function useEpisodeImageTaskInvalidation(
   const invalidateEpisodeImageData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
     queryClient.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.sketchImageUsage(project, episode),
-    });
     queryClient.invalidateQueries({ queryKey: queryKeys.pipelineStatus(project) });
   }, [episode, project, queryClient]);
 
