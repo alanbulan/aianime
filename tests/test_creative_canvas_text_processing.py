@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.canvas import text as text_routes
-from ai_anime.api.schemas import (
+from ai_anime.api.canvas_text_schemas import (
     FreezoneStoryScriptGenerateRequest,
     FreezoneTextTranslateRequest,
 )

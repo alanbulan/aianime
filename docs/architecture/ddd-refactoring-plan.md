@@ -1954,6 +1954,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十一批已将 Canvas Audio/Image/Skills/Text/Video 五个 route 共享的 `FreezoneJobAcceptedData` 与 `FreezoneJobAcceptedResponse` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_job_schemas.py` 出站 schema，五个消费者同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。task type、job id、task key 及 `ok: true` 包络保持不变；统一 schema 所有权门禁锁定共享模型唯一位置和五个 route 的显式消费关系，各 route 的专属请求模型仍按后续独立批次迁移。M06 inline/celery 两组各 29 个 Freezone 任务端点合同 2 项与完整后端分层门禁 141 项通过，合计 143 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十二批已将 Canvas Text route 独占的 `FreezoneTextTranslateRequest` 与 `FreezoneStoryScriptGenerateRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_text_schemas.py` 入站适配器 schema，Text route 与 `test_creative_canvas_text_processing.py` 的直接模型调用同步切换新入口，route 一次性停止导入旧巨石，不保留 re-export facade、旧别名或重复模型。翻译文本、node type 枚举、canvas/node 上下文，故事源文本/URL、默认中文 prompt、默认模型及全部 OpenAPI 字段描述保持不变；统一 schema 所有权门禁加入 Canvas Text 案例。完整 Canvas Text 处理/路由回归展开 13 项及完整后端分层门禁 141 项通过，合计 154 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
