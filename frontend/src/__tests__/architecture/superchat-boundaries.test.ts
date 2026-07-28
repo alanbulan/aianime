@@ -631,6 +631,48 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("EXECUTABLE_HIDDEN_TOOL_NAMES");
   });
 
+  it("keeps message presentation rules outside the SuperChat panel", () => {
+    const rules = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/message-presentation-rules.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/message-presentation-rules.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    for (const ownedRule of [
+      "const ASSISTANT_ERROR_TEXT_PATTERNS",
+      "const ASSISTANT_COMPLETION_TEXT_PATTERN",
+      "export function isToolMessage(",
+      "export function isHistoricalToolMessage(",
+      "export function normalizeMessageText(",
+      "export function isAssistantErrorReply(",
+      "export function assistantCompletionTextEnd(",
+      "export function isAssistantCompletionNotice(",
+      "export function errorTextRanges(",
+    ]) {
+      expect(rules).toContain(ownedRule);
+      expect(panel).not.toContain(ownedRule);
+    }
+    expect(rules).not.toContain('from "react"');
+    expect(rules).not.toContain("document.");
+    expect(rules).not.toContain("window.");
+  });
+
   it("keeps WebSocket lifecycle infrastructure outside the controller hook", () => {
     const socketSession = readFileSync(
       resolve(SRC_ROOT, "features/superchat/socket-session.ts"),
