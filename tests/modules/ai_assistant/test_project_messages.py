@@ -1,5 +1,8 @@
-from ai_anime.modules.ai_assistant.application import ProjectChatMessages
-from ai_anime.modules.ai_assistant.public import get_project_chat_messages
+from ai_anime.modules.ai_assistant.application import ProjectChatMessages, ProjectMedia
+from ai_anime.modules.ai_assistant.infrastructure import (
+    LocalProjectMediaFiles,
+    SQLiteChatHistory,
+)
 
 
 class StubHistory:
@@ -67,17 +70,16 @@ class UnusedMedia:
         raise AssertionError("media normalization is not expected")
 
 
-def test_project_chat_messages_composition_returns_one_process_instance():
-    assert get_project_chat_messages() is get_project_chat_messages()
-
-
 def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     project_dir = tmp_path / "output" / "admin" / "show-1"
     image = project_dir / "images" / "frame.png"
     image.parent.mkdir(parents=True)
     image.write_bytes(b"image")
-    messages = get_project_chat_messages()
+    messages = ProjectChatMessages(
+        SQLiteChatHistory(),
+        ProjectMedia(LocalProjectMediaFiles()),
+    )
 
     messages.append_assistant(
         "admin",

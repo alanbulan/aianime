@@ -1,7 +1,14 @@
 import pytest
 
-from ai_anime.modules.ai_assistant.application import DeterministicProjectReplies
-from ai_anime.modules.ai_assistant.public import get_project_chat_messages
+from ai_anime.modules.ai_assistant.application import (
+    DeterministicProjectReplies,
+    ProjectChatMessages,
+    ProjectMedia,
+)
+from ai_anime.modules.ai_assistant.infrastructure import (
+    LocalProjectMediaFiles,
+    SQLiteChatHistory,
+)
 
 
 @pytest.mark.anyio
@@ -13,7 +20,11 @@ async def test_deterministic_project_reply_redacts_local_paths(monkeypatch, tmp_
     async def on_event(event):
         events.append(event)
 
-    replies = DeterministicProjectReplies(get_project_chat_messages())
+    project_messages = ProjectChatMessages(
+        SQLiteChatHistory(),
+        ProjectMedia(LocalProjectMediaFiles()),
+    )
+    replies = DeterministicProjectReplies(project_messages)
     message = await replies.stream(
         "admin",
         "project-a",

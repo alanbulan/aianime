@@ -24,11 +24,10 @@ from ai_anime.api.auth import (
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     get_agent_backend_prewarmer,
-    get_chat_history,
     get_chat_worker_lifecycle,
     get_hermes_home_replies,
     get_project_chat_turns,
-    get_project_chat_messages,
+    get_scoped_chat_messages,
     should_prewarm_scope,
 )
 from ai_anime.modules.project_workspace.public import (
@@ -52,11 +51,10 @@ router = APIRouter()
 
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 agent_backend_prewarmer = get_agent_backend_prewarmer()
-chat_history = get_chat_history()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
 hermes_home_replies = get_hermes_home_replies()
 project_chat_turns = get_project_chat_turns()
-project_chat_messages = get_project_chat_messages()
+scoped_chat_messages = get_scoped_chat_messages()
 
 
 @router.post("/chat/cancel")
@@ -128,21 +126,16 @@ async def append_chat_notification(
     if len(text) > 4000:
         raise HTTPException(status_code=400, detail="text is too long")
 
-    if scope.kind == "project":
-        project_ctx = await _project_context_for_scope(user, scope)
-        if not scope.id:
-            raise HTTPException(status_code=400, detail="project scope id is required")
-        message = project_chat_messages.append_assistant(
-            username,
-            str(scope.id),
-            text,
-            project_dir=project_ctx.output_dir if project_ctx is not None else None,
-            project_state_dir=project_ctx.state_dir
-            if project_ctx is not None
-            else None,
-        )
-    else:
-        message = chat_history.append_message(username, scope, "assistant", text)
+    project_ctx = await _project_context_for_scope(user, scope)
+    if scope.kind == "project" and not scope.id:
+        raise HTTPException(status_code=400, detail="project scope id is required")
+    message = scoped_chat_messages.append_notification(
+        username,
+        scope,
+        text,
+        project_dir=project_ctx.output_dir if project_ctx is not None else None,
+        project_state_dir=project_ctx.state_dir if project_ctx is not None else None,
+    )
     return {"ok": True, "data": message}
 
 
@@ -159,7 +152,12 @@ async def append_chat_ui_event(
     if not turn_id:
         raise HTTPException(status_code=400, detail="turn_id is required")
     try:
-        event = chat_history.append_ui_event(username, scope, turn_id, payload.event)
+        event = scoped_chat_messages.append_ui_event(
+            username,
+            scope,
+            turn_id,
+            payload.event,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "data": event}
@@ -237,16 +235,12 @@ async def _history(
     *,
     project_ctx: ProjectContext | None = None,
 ) -> list[dict[str, Any]]:
-    if scope.kind == "project":
-        return project_chat_messages.list(
-            username,
-            str(scope.id),
-            project_dir=project_ctx.output_dir if project_ctx is not None else None,
-            project_state_dir=project_ctx.state_dir
-            if project_ctx is not None
-            else None,
-        )
-    return chat_history.list_messages(username, scope)
+    return scoped_chat_messages.list(
+        username,
+        scope,
+        project_dir=project_ctx.output_dir if project_ctx is not None else None,
+        project_state_dir=project_ctx.state_dir if project_ctx is not None else None,
+    )
 
 
 async def _send_scope_changed(

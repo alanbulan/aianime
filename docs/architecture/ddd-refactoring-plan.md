@@ -1787,6 +1787,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百六十三批已将 Chat worker 生命周期收口至 AI Assistant：application 新增唯一 `ChatWorkerLifecycle`，组合 Hermes runtime 与 Chat run locks，统一负责 worker 关闭、用户级运行锁强制释放、运行中 scope 同步和 busy 查询；关闭、释放和 scope 同步继续保持原 best-effort 隔离，busy 查询保持直接透传。composition/public 只暴露顶层 lifecycle capability，Chat cancel endpoint、scope changed payload 和 WebSocket scope 切换直接调用；route 删除原取消实现和 `_sync_running_agent_scope` 包装，文件由 556 行降至 535 行。失去外部生产消费者的 `get_hermes_runtime`、`get_chat_run_locks` 及对应低层类型同时从 composition/public 收回，adapter 测试不再依赖测试专用单例 API，不保留 facade、旧别名或第二套生命周期逻辑。Chat worker lifecycle 8 项、AI Assistant 模块 212 项、剩余 Chat/route 回归 1 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 129 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百六十四批已将 scope-aware Chat 消息读写编排收口至 AI Assistant：application 新增唯一 `ScopedChatMessages`，组合通用 Chat history 与项目消息 capability，统一负责 home/project 通知写入、UI event 持久化和 scope history 查询；composition/public 只暴露这一顶层进程级 capability。Chat route 继续负责 HTTP 输入校验、项目 ACL 与 `ProjectContext` 解析，并将已授权的项目输出目录和状态目录传入 application，消息存储分支从 route 删除，文件由 535 行降至 529 行。失去外部生产消费者的 `get_chat_history`、`get_project_chat_messages` 及对应低层类型同时从 composition/public 收回，底层 adapter/application 测试改为直接构造所属实现，不保留 facade、旧别名、测试专用 public API 或第二套读写流程。Scoped chat messages 6 项、AI Assistant 模块 216 项、剩余 Chat/route 回归 1 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 130 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

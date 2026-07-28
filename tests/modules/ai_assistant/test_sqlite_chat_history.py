@@ -4,11 +4,7 @@ from pathlib import Path
 import pytest
 
 from ai_anime.modules.ai_assistant.infrastructure import SQLiteChatHistory
-from ai_anime.modules.ai_assistant.public import ChatScope, get_chat_history
-
-
-def test_chat_history_composition_returns_one_process_instance():
-    assert get_chat_history() is get_chat_history()
+from ai_anime.modules.ai_assistant.public import ChatScope
 
 
 def test_chat_database_defaults_to_repository_state(monkeypatch):

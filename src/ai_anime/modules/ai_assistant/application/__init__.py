@@ -50,6 +50,9 @@ from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 from ai_anime.modules.ai_assistant.application.project_messages import (
     ProjectChatMessages,
 )
+from ai_anime.modules.ai_assistant.application.scoped_chat_messages import (
+    ScopedChatMessages,
+)
 from ai_anime.modules.ai_assistant.application.project_assistant_replies import (
     ProjectAssistantReplies,
 )
@@ -91,5 +94,6 @@ __all__ = [
     "ProjectAssistantReplies",
     "ProjectChatTurns",
     "ProjectChatMessages",
+    "ScopedChatMessages",
     "UserPreferences",
 ]

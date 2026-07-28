@@ -7,7 +7,6 @@ from ai_anime.modules.ai_assistant.application import (
     AgentPromptContext,
     AgentThreadReplies,
     AgentThreadRuntime,
-    ChatHistory,
     ChatPresentation,
     ChatWorkerLifecycle,
     DisplayFallbacks,
@@ -19,6 +18,7 @@ from ai_anime.modules.ai_assistant.application import (
     ProjectChatTurns,
     ProjectChatMessages,
     ProjectMedia,
+    ScopedChatMessages,
 )
 from ai_anime.modules.ai_assistant.infrastructure import (
     FileAgentThreadSessions,
@@ -56,6 +56,7 @@ _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
 _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
+_scoped_chat_messages = ScopedChatMessages(_chat_history, _project_chat_messages)
 _deterministic_project_replies = DeterministicProjectReplies(_project_chat_messages)
 _hermes_home_replies = HermesHomeReplies(_hermes_runtime, _chat_history)
 _agent_thread_replies = AgentThreadReplies(
@@ -104,10 +105,6 @@ def get_agent_thread_runtime() -> AgentThreadRuntime:
     return _agent_thread_runtime
 
 
-def get_chat_history() -> ChatHistory:
-    return _chat_history
-
-
 def get_chat_presentation() -> ChatPresentation:
     return _chat_presentation
 
@@ -132,13 +129,13 @@ def get_project_media() -> ProjectMedia:
     return _project_media
 
 
-def get_project_chat_messages() -> ProjectChatMessages:
-    return _project_chat_messages
-
-
 def get_project_assistant_replies() -> ProjectAssistantReplies:
     return _project_assistant_replies
 
 
 def get_project_chat_turns() -> ProjectChatTurns:
     return _project_chat_turns
+
+
+def get_scoped_chat_messages() -> ScopedChatMessages:
+    return _scoped_chat_messages

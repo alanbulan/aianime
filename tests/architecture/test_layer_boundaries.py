@@ -783,6 +783,9 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     public = module / "public.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     legacy_store = PACKAGE_ROOT / "chat" / "store.py"
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
 
     assert not legacy_store.exists()
     assert "ai_anime.chat.store" not in _imports(route)
@@ -794,7 +797,9 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     }
     assert "sqlite3" in _imports(history)
     assert "ai_anime.modules.ai_assistant.infrastructure" in _imports(composition)
-    assert "get_chat_history" in public.read_text(encoding="utf-8")
+    assert "def get_chat_history(" not in composition_source
+    assert "get_chat_history" not in public_source
+    assert "chat_history" not in route_source
 
 
 def test_ai_assistant_owns_project_chat_persistence() -> None:
@@ -870,13 +875,13 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
         "_project_chat_messages = ProjectChatMessages(_chat_history, _project_media)"
         in composition_source
     )
-    assert "def get_project_chat_messages(" in composition_source
-    assert "def get_project_chat_messages(" in public_source
+    assert "def get_project_chat_messages(" not in composition_source
+    assert "get_project_chat_messages" not in public_source
     assert "project_chat_messages" not in service_source
     assert "self._project_messages.append_assistant(" in deterministic_replies_source
     assert "self._messages.append_user(" in project_turns_source
-    assert "project_chat_messages = get_project_chat_messages()" in route_source
-    assert "project_chat_messages.append_user(" not in route_source
+    assert "scoped_chat_messages.append_notification(" in route_source
+    assert "project_chat_messages" not in route_source
     for legacy_implementation in (
         "def _assistant_history_contents(",
         "def _trace_history_contents(",
@@ -897,6 +902,45 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
         assert legacy_route_call not in route_source
     assert "chat_service.add_assistant_message" not in service_test_source
     assert "chat_service.list_messages" not in service_test_source
+
+
+def test_ai_assistant_owns_scoped_chat_message_orchestration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "scoped_chat_messages.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class ScopedChatMessages:" in application_source
+    for owned_operation in (
+        "self._project_messages.append_assistant(",
+        "self._history.append_message(",
+        "self._history.append_ui_event(",
+        "self._project_messages.list(",
+        "self._history.list_messages(",
+    ):
+        assert owned_operation in application_source
+    assert "_scoped_chat_messages = ScopedChatMessages(" in composition_source
+    assert "def get_scoped_chat_messages(" in composition_source
+    assert "def get_scoped_chat_messages(" in public_source
+    assert "scoped_chat_messages = get_scoped_chat_messages()" in route_source
+    for route_call in (
+        "scoped_chat_messages.append_notification(",
+        "scoped_chat_messages.append_ui_event(",
+        "scoped_chat_messages.list(",
+    ):
+        assert route_call in route_source
 
 
 def test_chat_service_has_no_unreachable_codex_history_cache() -> None:

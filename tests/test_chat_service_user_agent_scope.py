@@ -22,11 +22,10 @@ async def test_append_chat_notification_persists_project_assistant_message(
             output_dir=tmp_path / "out", state_dir=tmp_path / "state"
         )
 
-    def fake_append_assistant(
+    def fake_append_notification(
         username,
-        project,
+        scope,
         content,
-        media=None,
         *,
         project_dir=None,
         project_state_dir=None,
@@ -34,7 +33,7 @@ async def test_append_chat_notification_persists_project_assistant_message(
         seen.update(
             {
                 "username": username,
-                "project": project,
+                "project": scope.id,
                 "content": content,
                 "project_dir": project_dir,
                 "project_state_dir": project_state_dir,
@@ -44,9 +43,9 @@ async def test_append_chat_notification_persists_project_assistant_message(
 
     monkeypatch.setattr(chat_routes, "_project_context_for_scope", fake_project_context)
     monkeypatch.setattr(
-        chat_routes.project_chat_messages,
-        "append_assistant",
-        fake_append_assistant,
+        chat_routes.scoped_chat_messages,
+        "append_notification",
+        fake_append_notification,
     )
 
     result = await chat_routes.append_chat_notification(

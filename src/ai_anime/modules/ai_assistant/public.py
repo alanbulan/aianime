@@ -7,12 +7,11 @@ from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
     AgentBackendPrewarmer,
     AgentThreadRuntime,
-    ChatHistory,
     ChatWorkerLifecycle,
     HermesHomeReplies,
     ProjectAssistantReplies,
     ProjectChatTurns,
-    ProjectChatMessages,
+    ScopedChatMessages,
 )
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
@@ -123,12 +122,6 @@ def get_agent_thread_runtime() -> AgentThreadRuntime:
     return resolve()
 
 
-def get_chat_history() -> ChatHistory:
-    from ai_anime.modules.ai_assistant.composition import get_chat_history as resolve
-
-    return resolve()
-
-
 def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
     from ai_anime.modules.ai_assistant.composition import (
         get_chat_worker_lifecycle as resolve,
@@ -140,14 +133,6 @@ def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
 def get_hermes_home_replies() -> HermesHomeReplies:
     from ai_anime.modules.ai_assistant.composition import (
         get_hermes_home_replies as resolve,
-    )
-
-    return resolve()
-
-
-def get_project_chat_messages() -> ProjectChatMessages:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_project_chat_messages as resolve,
     )
 
     return resolve()
@@ -169,16 +154,23 @@ def get_project_chat_turns() -> ProjectChatTurns:
     return resolve()
 
 
+def get_scoped_chat_messages() -> ScopedChatMessages:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_scoped_chat_messages as resolve,
+    )
+
+    return resolve()
+
+
 __all__ = [
     "AgentBackend",
     "AgentBackendPrewarmer",
     "AgentThreadRuntime",
-    "ChatHistory",
     "ChatWorkerLifecycle",
     "HermesHomeReplies",
     "ProjectAssistantReplies",
     "ProjectChatTurns",
-    "ProjectChatMessages",
+    "ScopedChatMessages",
     "ChatScope",
     "append_tool_ui_specs",
     "build_agent_prompt_context",
@@ -193,12 +185,11 @@ __all__ = [
     "get_agent_backend",
     "get_agent_backend_prewarmer",
     "get_agent_thread_runtime",
-    "get_chat_history",
     "get_chat_worker_lifecycle",
     "get_hermes_home_replies",
     "get_project_assistant_replies",
     "get_project_chat_turns",
-    "get_project_chat_messages",
+    "get_scoped_chat_messages",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
     "normalize_json_render_reply",
