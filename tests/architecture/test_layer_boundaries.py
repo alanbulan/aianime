@@ -165,6 +165,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/canvas/media.py",
             ("FreezoneThreeDViewerScreenshotRequest",),
         ),
+        (
+            "canvas_presets_schemas.py",
+            "routes/canvas/presets.py",
+            ("PresetCanvasRequest",),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

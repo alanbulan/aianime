@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from ai_anime.api.canvas_presets_schemas import PresetCanvasRequest
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
@@ -29,7 +30,6 @@ from ai_anime.api.schemas import (
     FreezoneSketchFromContextRequest,
     FreezoneTemplateEditRequest,
     FreezoneVideoOmniGenRequest,
-    PresetCanvasRequest,
     PushRequest,
 )
 from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
