@@ -413,6 +413,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const messageView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -421,7 +425,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(messageView).toContain(
+      'from "@/features/superchat/spec-media-gallery";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/spec-media-gallery";',
     );
     expect(tests).toContain(
@@ -459,6 +466,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const messageView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -467,7 +478,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(messageView).toContain(
+      'from "@/features/superchat/structured-json-view";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/structured-json-view";',
     );
     expect(tests).toContain(
@@ -483,6 +497,57 @@ describe("SuperChat boundaries", () => {
     expect(jsonView).not.toContain("UiSpec");
     expect(jsonView).not.toContain("StructuredBlock");
     expect(jsonView).not.toContain("useSuperChat");
+  });
+
+  it("keeps chat message presentation in a dedicated view", () => {
+    const messageView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/chat-message-view.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/chat-message-view";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/chat-message-view";',
+    );
+    for (const ownedOperation of [
+      "function PlainMessageText(",
+      "function MarkdownMessageText(",
+      "function MessageText(",
+      "function HighlightedErrorText(",
+      "function HighlightedCompletionText(",
+      "export function DotsIndicator(",
+      "function ChatAvatarFrame(",
+      "export function StructuredRenderer(",
+      "export const MessageBubble = memo(",
+      "function AttachmentList(",
+      "function AttachmentChip(",
+      "function shouldRenderAttachmentChip(",
+      "function isImageAttachment(",
+      "function isVideoAttachment(",
+    ]) {
+      expect(messageView).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(messageView).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(messageView).toContain(
+      'from "@/features/superchat/spec-media-gallery";',
+    );
+    expect(messageView).not.toContain("useSuperChat");
   });
 
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
