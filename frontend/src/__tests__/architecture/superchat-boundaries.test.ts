@@ -109,6 +109,47 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("persistMessageSet");
   });
 
+  it("keeps ingest upload persistence outside the SuperChat panel", () => {
+    const storage = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/ingest-upload-storage.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/ingest-upload-storage.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/ingest-upload-storage";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/ingest-upload-storage";',
+    );
+    for (const ownedOperation of [
+      "function uploadedIngestFilesKey(",
+      "function isUploadedIngestFile(",
+      "export function loadUploadedIngestFiles(",
+      "export function saveUploadedIngestFiles(",
+      "export function mergeUploadedIngestFiles(",
+      "export function uploadedIngestFileFromUpload(",
+    ]) {
+      expect(storage).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(storage).toContain(
+      'const UPLOADED_INGEST_FILES_PREFIX = "superchat:ingest-uploads:";',
+    );
+    expect(panel).not.toContain("UPLOADED_INGEST_FILES_PREFIX");
+    expect(panel).not.toContain("localStorage.");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),

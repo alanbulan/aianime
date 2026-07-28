@@ -53,6 +53,13 @@ import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
 import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";
 import { ComposerWaitingStatus } from "@/features/superchat/composer-waiting-status";
 import { calculateTimelineContextDelta } from "@/features/superchat/timeline-scroll";
+import {
+  loadUploadedIngestFiles,
+  mergeUploadedIngestFiles,
+  saveUploadedIngestFiles,
+  uploadedIngestFileFromUpload,
+  type UploadedIngestFile,
+} from "@/features/superchat/ingest-upload-storage";
 import { useEventBus } from "@/task-center/event-bus-context";
 import {
   extractStructuredBlocks,
@@ -98,15 +105,6 @@ type PreparedIngestAttachment = {
   original: ChatAttachment;
   upload?: IngestUploadResult;
   error?: string;
-};
-
-type UploadedIngestFile = {
-  filename: string;
-  originalName?: string;
-  size: number;
-  totalChars?: number;
-  chapterCount?: number;
-  uploadedAt: number;
 };
 
 type ReingestConfirmation = {
@@ -2054,57 +2052,6 @@ const NOVEL_ATTACHMENT_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 const INLINE_TEXT_ATTACHMENT_LIMIT = 120_000;
-const UPLOADED_INGEST_FILES_PREFIX = "superchat:ingest-uploads:";
-
-function uploadedIngestFilesKey(project?: string): string | null {
-  const id = project?.trim();
-  if (!id) return null;
-  return `${UPLOADED_INGEST_FILES_PREFIX}${id}`;
-}
-
-function isUploadedIngestFile(value: unknown): value is UploadedIngestFile {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.filename === "string" &&
-    typeof record.size === "number" &&
-    typeof record.uploadedAt === "number"
-  );
-}
-
-function loadUploadedIngestFiles(project?: string): UploadedIngestFile[] {
-  const key = uploadedIngestFilesKey(project);
-  if (!key) return [];
-  try {
-    const raw = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(raw) ? raw.filter(isUploadedIngestFile).slice(-20) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUploadedIngestFiles(project: string | undefined, files: UploadedIngestFile[]) {
-  const key = uploadedIngestFilesKey(project);
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(files.slice(-20)));
-  } catch {
-    // best-effort chat context
-  }
-}
-
-function mergeUploadedIngestFiles(
-  current: UploadedIngestFile[],
-  additions: UploadedIngestFile[],
-): UploadedIngestFile[] {
-  if (additions.length === 0) return current;
-  const byFilename = new Map<string, UploadedIngestFile>();
-  for (const item of current) byFilename.set(item.filename, item);
-  for (const item of additions) byFilename.set(item.filename, item);
-  return [...byFilename.values()]
-    .sort((left, right) => left.uploadedAt - right.uploadedAt)
-    .slice(-20);
-}
 
 function extensionOf(filename?: string): string {
   const name = filename?.trim().toLowerCase() ?? "";
@@ -2142,18 +2089,6 @@ function isOverwriteChoice(text: string): boolean {
 
 function isFinalOverwriteConfirmation(text: string): boolean {
   return /^(确定|继续)[。.!！?？\s]*$/.test(text.trim());
-}
-
-function uploadedFileFromPrepared(item: PreparedIngestAttachment): UploadedIngestFile | null {
-  if (!item.upload) return null;
-  return {
-    filename: item.upload.filename,
-    originalName: item.original.fileName,
-    size: item.upload.size,
-    totalChars: item.upload.total_chars,
-    chapterCount: item.upload.count,
-    uploadedAt: Date.now(),
-  };
 }
 
 function buildUploadedFilesContext(project: string | undefined, files: UploadedIngestFile[]): string {
@@ -2680,7 +2615,11 @@ export function SuperChatPanel({
   const recordUploadedFiles = useCallback(
     (project: string | undefined, prepared: PreparedIngestAttachment[]): UploadedIngestFile[] => {
       const additions = prepared
-        .map(uploadedFileFromPrepared)
+        .map((item) =>
+          item.upload
+            ? uploadedIngestFileFromUpload(item.upload, item.original.fileName)
+            : null,
+        )
         .filter((item): item is UploadedIngestFile => Boolean(item));
       if (additions.length === 0) return uploadedIngestFiles;
 
