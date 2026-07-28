@@ -256,4 +256,42 @@ describe("SuperChat boundaries", () => {
       expect(hook).not.toContain(removedRef);
     }
   });
+
+  it("keeps server frame state transitions in a dedicated controller", () => {
+    const frameController = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-frame-controller.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/use-frame-controller.test.tsx"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/use-frame-controller";');
+    expect(tests).toContain('from "@/features/superchat/use-frame-controller";');
+    expect(frameController).toContain("export function useSuperChatFrameController(");
+    expect(hook).not.toContain("function useSuperChatFrameController(");
+    expect(frameController).toContain("switch (frame.type)");
+    expect(hook).not.toContain("switch (frame.type)");
+    for (const frameType of [
+      "scope.changed",
+      "chat.busy",
+      "chat.ping",
+      "thread.started",
+      "assistant.delta",
+      "assistant.message",
+      "tool.call",
+      "tool.result",
+      "chat.done",
+      "project.created",
+      "error",
+    ]) {
+      expect(frameController).toContain(`case "${frameType}"`);
+      expect(hook).not.toContain(`case "${frameType}"`);
+    }
+  });
 });
