@@ -2058,6 +2058,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十三批已将 Freezone 移动端聊天 Sheet、桌面浮层过渡、悬浮入口静态/视频切换、拖拽门限、容器钳制、点击抑制和位置 localStorage 生命周期从 `FreezoneShell` 整体迁入唯一 presentation 组件 `presentation/FreezoneChatDock.tsx`；Shell 只保留 CE 显示条件、open 状态与三段翻译文案装配，不再直接依赖 Button、Sheet、媒体查询、样式合并或 SuperChatPanel。桌面延迟卸载、移动端开关、关闭回调、启动位置恢复、窗口缩小后的坐标钳制、拖拽后不误开面板以及头像静态/动态素材路径均保持不变，原内部组件、常量和专属导入直接删除；`FreezoneShell` 由 1,197 行降至 902 行。聊天 Dock 3 项特征测试、新增 presentation 唯一所有者架构断言、完整前端架构门禁 3 个文件 276 项（其中 module boundaries 236 项）、前端 TypeScript 全量检查与 `git diff --check` 通过；按用户要求未启动 Electron/Vite、未构建、未做界面验证。
 
+第四百九十四批已将 Freezone toast、首次 loading、重进 loading 遮罩、同步错误、409 冲突恢复和云端备份状态角标从 `FreezoneShell` 迁入唯一 presentation 模块 `presentation/FreezoneCanvasFeedback.tsx`；Shell 只按同步状态装配组件并传入 retry/save-copy/snapshot 回调，不再直接依赖 `ConflictSnapshot`、`CanvasBackupStatus`、`useMemo`、Blob 下载或反馈局部状态。冲突快照继续在 overlay 挂载时固定读取，下载文件名与对象 URL 生命周期、保存中/失败状态、无快照禁用、pending/failed 角标语义、hydrate 指针拦截和错误重试均保持不变；浏览器同步存储端口门禁同步改为检查新的实际类型消费者，不保留 Shell 类型转发。旧 6 个内部组件和废弃导入直接删除，`FreezoneShell` 由 902 行降至 710 行；反馈组件 4 项特征测试、受影响架构门禁、完整前端架构门禁 3 个文件 277 项（其中 module boundaries 237 项）、前端 TypeScript 全量检查与 `git diff --check` 通过，未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

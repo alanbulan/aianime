@@ -1733,6 +1733,60 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain("<Sheet open={open}");
   });
 
+  it("keeps Freezone canvas feedback in one presentation module", () => {
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const presentationSource = readFileSync(presentationPath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const shellImports = importSpecifiers(shellPath);
+    const declarations = [
+      "FreezoneToast",
+      "CanvasConflictOverlay",
+      "BackupStatusIndicator",
+      "CanvasLoadingScreen",
+      "CanvasLoadingOverlay",
+      "CanvasErrorOverlay",
+    ];
+
+    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasSyncStorage",
+      ]),
+    );
+    expect(shellImports).toContain(
+      "./presentation/FreezoneCanvasFeedback",
+    );
+    for (const name of declarations) {
+      const declaration = ["export function", `${name}(`].join(" ");
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+      ]);
+      expect(shellSource).toContain(`<${name}`);
+      expect(shellSource).not.toContain(`function ${name}(`);
+    }
+    expect(presentationSource).toContain("readConflictSnapshot()");
+    expect(presentationSource).toContain("URL.createObjectURL(blob)");
+    expect(presentationSource).toContain('status !== "pending"');
+    expect(shellImports).not.toContain("./application/canvasSyncStorage");
+    expect(shellImports).not.toContain(
+      "@/features/freezone/domain/canvasStorage",
+    );
+    expect(shellSource).not.toContain("URL.createObjectURL(");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(
@@ -5682,7 +5736,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
     );
-    const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
+    const feedbackPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+    );
     const storageSource = readFileSync(storagePath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
@@ -5773,8 +5830,8 @@ describe("frontend architecture boundaries", () => {
     expect(draftStorageSource).not.toContain(
       'const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
     );
-    expect(importSpecifiers(shellPath)).toContain(
-      "./application/canvasSyncStorage",
+    expect(importSpecifiers(feedbackPath)).toContain(
+      "../application/canvasSyncStorage",
     );
   });
 
