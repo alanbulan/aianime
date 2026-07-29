@@ -1687,6 +1687,52 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain('"freezone/projection-remove"');
   });
 
+  it("keeps Freezone chat chrome in one presentation component", () => {
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneChatDock.tsx",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const presentationSource = readFileSync(presentationPath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const declaration = ["export function", "FreezoneChatDock("].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+      new Set([
+        "react",
+        "@/components/ui/button",
+        "@/components/ui/sheet",
+        "@/features/superchat/superchat-panel",
+        "@/hooks/use-media-query",
+        "@/lib/utils",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/presentation/FreezoneChatDock.tsx",
+    ]);
+    expect(importSpecifiers(shellPath)).toContain(
+      "./presentation/FreezoneChatDock",
+    );
+    expect(presentationSource).toContain('<SuperChatPanel variant="freezone"');
+    expect(presentationSource).toContain("<Sheet open={open}");
+    expect(presentationSource).toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
+    expect(presentationSource).toContain('window.addEventListener("pointermove"');
+    expect(presentationSource).toContain('src="/images/avatar-motion.mp4"');
+    expect(shellSource).toContain("<FreezoneChatDock");
+    expect(shellSource).not.toContain("function FreezoneChatDock(");
+    expect(shellSource).not.toContain("function FreezoneChatToggleButton(");
+    expect(shellSource).not.toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
+    expect(shellSource).not.toContain('<SuperChatPanel variant="freezone"');
+    expect(shellSource).not.toContain("<Sheet open={open}");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(

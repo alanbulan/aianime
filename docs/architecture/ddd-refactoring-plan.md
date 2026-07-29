@@ -2056,6 +2056,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十二批已将 projection metadata 的显式请求读取、legacy scope/key 恢复、字段校验与 beat 请求归一化从 `FreezoneShell` 迁入既有纯规则模块 `projections.ts`，并将 projection 同步/移除的事件订阅、在途门禁、远端构建、本地入队、状态更新和消息投影迁入唯一 presentation controller `hooks/useCanvasProjectionCommandController.ts`；Shell 只传 project/canvas、metadata、翻译后的消息和 toast 输出，资产提交与布局未改。同步继续固定 `base_revision=0` 和 `force_refresh=true`，继续在构建成功后入队并立即消费、乐观标记 fresh，缺失 legacy 请求、构建失败、移除阻断和卸载退订语义保持不变；移动中发现并纠正了一处尚未进入提交的空字符串/非有限 number 语义收紧，最终规则与旧判断一致。旧 helper、refs、handlers、事件 effect 和废弃导入直接删除，不保留 Shell 转发导出；`FreezoneShell` 由 1,400 行降至 1,197 行。Controller、projection 纯规则、画布列表与 Viewer 合同回归 4 个文件 66 项、本批 3 项架构断言、完整前端架构门禁 3 个文件 275 项（其中 module boundaries 235 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；完整门禁首次运行仅有 4 项后半段全仓扫描超过默认 5 秒，无代码断言失败，改用 15 秒单项超时后全量通过，进程未崩溃。
 
+第四百九十三批已将 Freezone 移动端聊天 Sheet、桌面浮层过渡、悬浮入口静态/视频切换、拖拽门限、容器钳制、点击抑制和位置 localStorage 生命周期从 `FreezoneShell` 整体迁入唯一 presentation 组件 `presentation/FreezoneChatDock.tsx`；Shell 只保留 CE 显示条件、open 状态与三段翻译文案装配，不再直接依赖 Button、Sheet、媒体查询、样式合并或 SuperChatPanel。桌面延迟卸载、移动端开关、关闭回调、启动位置恢复、窗口缩小后的坐标钳制、拖拽后不误开面板以及头像静态/动态素材路径均保持不变，原内部组件、常量和专属导入直接删除；`FreezoneShell` 由 1,197 行降至 902 行。聊天 Dock 3 项特征测试、新增 presentation 唯一所有者架构断言、完整前端架构门禁 3 个文件 276 项（其中 module boundaries 236 项）、前端 TypeScript 全量检查与 `git diff --check` 通过；按用户要求未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
