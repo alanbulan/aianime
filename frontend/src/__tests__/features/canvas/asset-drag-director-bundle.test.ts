@@ -115,7 +115,10 @@ describe("director bundle canvas assets", () => {
 
   it("exposes director_render as a normal beat commit target", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/commit/commitDialogViewModel.ts",
+      ),
       "utf8",
     );
     const beatSlotKinds = source.match(/const BEAT_SLOT_KINDS:[\s\S]*?=\s*\[([\s\S]*?)\];/);
@@ -163,6 +166,13 @@ describe("director bundle canvas assets", () => {
       resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
       "utf8",
     );
+    const viewModel = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/commit/commitDialogViewModel.ts",
+      ),
+      "utf8",
+    );
     const shell = readFileSync(
       resolve(process.cwd(), "src/features/freezone/FreezoneShell.tsx"),
       "utf8",
@@ -179,11 +189,12 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
 
-    expect(dialog).toContain("导演合成资产");
+    expect(viewModel).toContain("导演合成资产");
     expect(rules).toContain("导演合成资产");
     expect(shell).toContain("useCanvasCommitController");
     expect(zh).toContain("导演合成资产");
     expect(dialog).not.toContain("导演合成 bundle");
+    expect(viewModel).not.toContain("导演合成 bundle");
     expect(rules).not.toContain("导演合成 bundle");
     expect(shell).not.toContain("导演合成 bundle");
     expect(zh).not.toContain("导演合成 bundle");

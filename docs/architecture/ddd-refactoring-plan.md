@@ -2096,6 +2096,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十二批已将画布目录的成员/其他分组折叠状态、当前画布自动展开、完整目录 DOM、表单与按钮事件适配、分组标题、列表项、类型图标及恢复/删除/来源跳转动作装配从 `CanvasesTab` 迁入唯一 presentation 组件 `presentation/CanvasBrowserView.tsx`；稳定入口只装配 `useCanvasBrowserController` 与 View，并显式传递状态和命令。创建输入与禁用态、错误/加载状态、当前与非当前画布视觉、成员和历史分组折叠、个人画布命名、相对时间、主线恢复、删除以及来源画布跳转行为保持不变；旧 DOM、展示 state、i18n 和图标依赖从入口直接删除，纯 view model 的消费合同同步改为检查真实 View，不保留 facade、旧 helper 或第二套布局。`CanvasesTab` 由 395 行降至 51 行，完整 View 为 444 行；View、controller、投影与查询回归 4 个文件 20 项、相关架构断言 2 项、完整前端架构门禁 3 个文件 294 项（其中 module boundaries 254 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十三批已将提交弹窗的目标类型文案与可选范围、全局/Beat/场景槽位分类、导演世界模型来源到可提交槽位的判定、身份与场景选项投影、媒体/来源标签、完整目标构造及目标摘要从 `CommitDialog` 迁入唯一纯 presentation view model `commit/commitDialogViewModel.ts`；弹窗继续唯一持有浏览器文件名解析、异步目录加载、提交副作用和 DOM。隐藏 deprecated/派生槽位、空导演世界不提供文件槽位、pano 与 SOG 分流、legacy identity 回显、场景/道具 ID trim、目标文案和导演世界来源名称语义保持不变，并将两组等价的字符串与来源 URL helper 合并为单一实现；原常量和函数从弹窗直接删除，目标与 Director bundle 静态测试改为读取真实所有者，不保留 facade、旧导出或第二套投影。`CommitDialog` 由 1,199 行降至 866 行，纯 view model 为 340 行；目标规则、提交、Director bundle 与 Viewer 合同回归 4 个文件 52 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 295 项（其中 module boundaries 255 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

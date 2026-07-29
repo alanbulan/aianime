@@ -1886,6 +1886,74 @@ describe("frontend architecture boundaries", () => {
     expect(rulesSource).not.toContain("useCanvasStore");
   });
 
+  it("keeps CommitDialog presentation rules in one pure view model", () => {
+    const viewModelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/commitDialogViewModel.ts",
+    );
+    const dialogPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/CommitDialog.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/freezone/commit-dialog-targets.test.ts",
+    );
+    const viewModelSource = readFileSync(viewModelPath, "utf8");
+    const dialogSource = readFileSync(dialogPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export const", "KIND_LABELS"].join(" "),
+      ["export const", "GLOBAL_SLOT_KINDS"].join(" "),
+      ["export const", "BEAT_SLOT_KINDS"].join(" "),
+      ["export const", "SCENE_SLOT_KINDS"].join(" "),
+      ["export function", "isUserSelectableCommitKind("].join(" "),
+      ["export function", "modelSlotKindsForNodeData("].join(" "),
+      ["export function", "identityOptionValue("].join(" "),
+      ["export function", "identityOptionLabel("].join(" "),
+      ["export function", "firstIdentityOptionValue("].join(" "),
+      ["export function", "sceneOptionValue("].join(" "),
+      ["export function", "sceneOptionLabel("].join(" "),
+      ["export function", "renderMediaLabel("].join(" "),
+      ["export function", "directorWorldSourceDisplayName("].join(" "),
+      ["export function", "identityOptionsForSelect("].join(" "),
+      ["export function", "buildCommitTarget("].join(" "),
+      ["export function", "renderCommitTargetLabel("].join(" "),
+      ["export function", "shortKindLabel("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/commit/commitDialogViewModel.ts",
+      ]),
+    );
+    expect(new Set(importSpecifiers(viewModelPath))).toEqual(
+      new Set([
+        "@/features/freezone/domain/assetCommit",
+        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/asset_world/public",
+      ]),
+    );
+    expect(viewModelSource).not.toContain("react");
+    expect(viewModelSource).not.toContain("window.");
+    expect(viewModelSource).not.toContain("document.");
+    expect(viewModelSource).not.toContain("@/features/freezone/composition");
+    expect(viewModelSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(dialogPath)).toContain("./commitDialogViewModel");
+    for (const declaration of declarations) {
+      expect(dialogSource).not.toContain(declaration);
+    }
+    expect(testSource).toContain(
+      'from "@/features/freezone/commit/commitDialogViewModel"',
+    );
+  });
+
   it("keeps Freezone canvas commit orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,

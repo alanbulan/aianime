@@ -5,11 +5,14 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCommitTarget,
   directorWorldSourceDisplayName,
+  identityOptionsForSelect,
   isUserSelectableCommitKind,
   modelSlotKindsForNodeData,
+  renderCommitTargetLabel,
   sceneOptionLabel,
-} from "@/features/freezone/commit/CommitDialog";
+} from "@/features/freezone/commit/commitDialogViewModel";
 import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { assetToPushTarget, completeTarget, inferDefaultTarget } from "@/features/freezone/commit/pushTarget";
 
@@ -25,6 +28,47 @@ describe("CommitDialog target kinds", () => {
     expect(isUserSelectableCommitKind("scene_reverse_master")).toBe(true);
     expect(isUserSelectableCommitKind("scene_director_pano_360")).toBe(true);
     expect(isUserSelectableCommitKind("scene_3gs_master_ply")).toBe(true);
+  });
+
+  it("builds canonical trimmed targets and their user-facing labels", () => {
+    const target = buildCommitTarget(
+      "scene_master",
+      null,
+      null,
+      null,
+      null,
+      " 公寓楼电梯间 ",
+      "",
+    );
+
+    expect(target).toEqual({
+      kind: "scene_master",
+      scene_id: "公寓楼电梯间",
+    });
+    expect(target && renderCommitTargetLabel(target)).toBe(
+      "公寓楼电梯间 / 场景主图",
+    );
+  });
+
+  it("keeps a selected legacy identity available in the identity dropdown", () => {
+    expect(identityOptionsForSelect([
+      {
+        id: "identity-a",
+        identity_id: "identity-a",
+        identity_name: "身份 A",
+      },
+    ], "legacy-id")).toEqual([
+      {
+        id: "legacy-id",
+        identity_id: "legacy-id",
+        identity_name: "legacy-id",
+      },
+      {
+        id: "identity-a",
+        identity_id: "identity-a",
+        identity_name: "身份 A",
+      },
+    ]);
   });
 
   it("routes scene 360 candidates to Director Pano 360 instead of the old scene_360 slot", () => {
@@ -118,12 +162,16 @@ describe("CommitDialog target kinds", () => {
       resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
       "utf8",
     );
+    const viewModelSource = readFileSync(
+      resolve(process.cwd(), "src/features/freezone/commit/commitDialogViewModel.ts"),
+      "utf8",
+    );
 
     expect(isUserSelectableCommitKind("scene_3gs_custom_scene")).toBe(true);
     expect(source).toContain('mediaType === "model"');
-    expect(source).toContain('"scene_3gs_custom_scene"');
     expect(source).toContain("modelCommitKindAllowed");
-    expect(source).toContain("MODEL_WORLD_SLOT_KINDS");
+    expect(viewModelSource).toContain('"scene_3gs_custom_scene"');
+    expect(viewModelSource).toContain("MODEL_WORLD_SLOT_KINDS");
   });
 
   it("separates pano 360 image commits from 3GS world commits", () => {
