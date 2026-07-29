@@ -2037,6 +2037,104 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './ThreeDWorldNodeView'");
   });
 
+  it("separates the Canvas Skill node model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/skillNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/skillNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useSkillNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useSkillNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNodeView.test.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "SkillNode", "=", "memo("].join(" "),
+      ["export function", "skillInputSignature("].join(" "),
+      ["export function", "useSkillNodeController("].join(" "),
+      ["export function", "SkillNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useSkillNodeController",
+        "./SkillNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/SkillNode.tsx"],
+      ["features/canvas/application/skillNodeModel.ts"],
+      ["features/canvas/hooks/useSkillNodeController.ts"],
+      ["features/canvas/nodes/SkillNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(registrySource).toContain(
+      "import { SkillNode } from './SkillNode'",
+    );
+    expect(registrySource).toContain("skillNode: SkillNode");
+    expect(entrySource).toContain("useSkillNodeController(props)");
+    expect(entrySource).toContain("createElement(SkillNodeView, { controller })");
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("startCanvasSkillRun({");
+    expect(controllerSource).toContain("awaitCanvasSkillRunResult({");
+    expect(controllerSource).toContain("getCanvasSceneAssetsForBeat({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<BackgroundCropperDialog");
+    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<SkillInputHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("startCanvasSkillRun(");
+    expect(modelTestSource).toContain("from './skillNodeModel'");
+    expect(controllerTestSource).toContain("from './useSkillNodeController'");
+    expect(viewTestSource).toContain("from './SkillNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -8321,7 +8419,7 @@ describe("frontend architecture boundaries", () => {
     );
     const skillNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/hooks/useSkillNodeController.ts",
     );
     const legacyApiPath = resolve(SRC_ROOT, "api/skills.ts");
     const domainModel = readFileSync(domainPath, "utf8");
@@ -16369,7 +16467,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/hooks/useSkillNodeController.ts",
     );
     const outputProjectionPath = resolve(
       SRC_ROOT,
@@ -16465,7 +16563,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/hooks/useSkillNodeController.ts",
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const legacyApiPath = resolve(SRC_ROOT, "api/sceneAssets.ts");
@@ -16574,7 +16672,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePaths = [
       "features/canvas/nodes/ImageGenNode.tsx",
-      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -21330,7 +21428,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
-      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",

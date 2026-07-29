@@ -217,7 +217,11 @@ describe("freezone viewer contracts", () => {
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
     );
     const canvasComposition = read("src/features/canvas/composition.ts");
-    const skillNode = read("src/features/canvas/nodes/SkillNode.tsx");
+    const skillNode = [
+      read("src/features/canvas/application/skillNodeModel.ts"),
+      read("src/features/canvas/hooks/useSkillNodeController.ts"),
+      read("src/features/canvas/nodes/SkillNodeView.tsx"),
+    ].join("\n");
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");
 
