@@ -780,6 +780,7 @@ describe("frontend architecture boundaries", () => {
               specifier.includes("features/freezone/domain/sceneAssets") ||
               specifier.includes("features/freezone/domain/assetCommit") ||
               specifier.includes("features/freezone/domain/beatContext") ||
+              specifier.includes("features/freezone/domain/capabilities/") ||
               specifier.includes("features/freezone/domain/canvasProjection") ||
               specifier.includes("features/freezone/domain/canvasStorage") ||
               specifier.includes("features/freezone/domain/referenceRoles") ||
@@ -824,6 +825,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
+        "@/features/freezone/domain/capabilities/contracts",
+        "@/features/freezone/domain/capabilities/registry",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
         "@/features/freezone/domain/referenceRoles",
@@ -976,6 +979,67 @@ describe("frontend architecture boundaries", () => {
       expect(imports).not.toContain(
         "@/features/freezone/application/canvasMetadataState",
       );
+    }
+  });
+
+  it("separates generation capability contracts from the registry", () => {
+    const contractsPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/capabilities/contracts.ts",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/capabilities/registry.ts",
+    );
+    const implementationPaths = [
+      "candidateCapabilities.ts",
+      "portraitFromRef.ts",
+      "realSceneSketchRepair.ts",
+    ].map((name) =>
+      resolve(SRC_ROOT, "features/freezone/domain/capabilities", name),
+    );
+    const legacyPaths = [
+      "capabilityRegistry.ts",
+      "candidate_capabilities.ts",
+      "portrait_from_ref.ts",
+      "real_scene_sketch_repair.ts",
+    ].map((name) =>
+      resolve(SRC_ROOT, "features/freezone/capabilities", name),
+    );
+    const canvasConsumerPaths = [
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "features/canvas/nodes/ImageEditNode.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(importSpecifiers(contractsPath)).toEqual([]);
+    expect(new Set(importSpecifiers(registryPath))).toEqual(
+      new Set([
+        "./candidateCapabilities",
+        "./contracts",
+        "./portraitFromRef",
+        "./realSceneSketchRepair",
+      ]),
+    );
+    for (const implementationPath of implementationPaths) {
+      expect(importSpecifiers(implementationPath)).toEqual(["./contracts"]);
+      expect(readFileSync(implementationPath, "utf8")).not.toContain(
+        "./registry",
+      );
+    }
+    for (const consumerPath of canvasConsumerPaths) {
+      const imports = importSpecifiers(consumerPath);
+      expect(imports).toContain("@/features/freezone/public");
+      expect(
+        imports.some((specifier) =>
+          specifier.startsWith("@/features/freezone/capabilities/"),
+        ),
+      ).toBe(false);
+      expect(
+        imports.some((specifier) =>
+          specifier.startsWith("@/features/freezone/domain/capabilities/"),
+        ),
+      ).toBe(false);
     }
   });
 

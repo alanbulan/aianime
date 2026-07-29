@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { GenerationCapability } from "./capabilityRegistry";
-import { stringifyParamValue } from "./capabilityRegistry";
+import {
+  stringifyParamValue,
+  type GenerationCapability,
+} from "./contracts";
 
 export const portraitFromRefCapability: GenerationCapability = {
   id: "portrait_from_ref",

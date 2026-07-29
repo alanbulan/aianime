@@ -18,11 +18,11 @@
 import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
 import {
+  composeCapability,
   getFreezoneCanvasMetadata,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
 } from "@/features/freezone/public";
-import { composeCapability } from "@/features/freezone/capabilities/capabilityRegistry";
 import type {
   AiGateway,
   CanvasGenerationTaskRef,

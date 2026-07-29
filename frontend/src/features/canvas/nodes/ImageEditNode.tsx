@@ -100,7 +100,7 @@ import {
   listCapabilities,
   stringifyParamValue,
   type CapabilityParamDefinition,
-} from '@/features/freezone/capabilities/capabilityRegistry';
+} from '@/features/freezone/public';
 import { UiButton } from '@/components/ui';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';

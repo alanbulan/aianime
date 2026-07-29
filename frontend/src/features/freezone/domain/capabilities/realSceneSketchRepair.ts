@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { GenerationCapability } from "./capabilityRegistry";
-import { stringifyParamValue } from "./capabilityRegistry";
+import {
+  stringifyParamValue,
+  type GenerationCapability,
+} from "./contracts";
 
 const PRESERVE_OPTIONS = [
   { value: "camera", label: "原始机位 / 构图" },

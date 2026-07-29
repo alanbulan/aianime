@@ -16,6 +16,23 @@ export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenc
 export { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/canvasDraftComposition";
 export { presetRequestFromMetadata } from "@/features/freezone/application/canvasPreset";
 export { getFreezoneCanvasMetadata } from "@/features/freezone/application/canvasMetadataState";
+export {
+  composeCapability,
+  defaultCapabilityParams,
+  getCapability,
+  listCapabilities,
+} from "@/features/freezone/domain/capabilities/registry";
+export { stringifyParamValue } from "@/features/freezone/domain/capabilities/contracts";
+export type {
+  CapabilityCategory,
+  CapabilityComposeContext,
+  CapabilityInputDefinition,
+  CapabilityParamDefinition,
+  CapabilityParamOption,
+  CapabilityParamType,
+  ComposedCapabilityJob,
+  GenerationCapability,
+} from "@/features/freezone/domain/capabilities/contracts";
 export type {
   FreezoneAssetUploadOptions,
   FreezoneAssetUploadResult,

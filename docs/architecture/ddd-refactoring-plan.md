@@ -2118,6 +2118,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十三批已将 Freezone 根级可变状态 `canvasMetadataContext.ts` 迁入唯一 application owner `application/canvasMetadataState.ts`，由 Freezone 的 hydrate/runtime bridge 两个生命周期 hook 保留写入与清空职责；`freezone/public.ts` 只向跨上下文消费者公开 getter，Canvas AI gateway、BeatContext、ImageGen 与 Pano360 Viewer 四个生产读取方统一改经 public API，旧根路径直接删除，不保留 facade、别名或第二份 metadata 快照。hydrate 草稿/远端画布、投影合并/移除和画布卸载时的 metadata 发布时机保持不变，getter 继续返回当前对象引用或 `null`；外部 BeatContext 测试仅直连 application setter 建立模块内状态夹具，不扩大 public 写权限。状态、AI gateway、BeatContext、ImageGen、Viewer 合同与两个生命周期 hook 回归 7 个文件 55 项、完整前端架构门禁 3 个文件 301 项（其中 module boundaries 261 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十四批已将 Freezone 根级 `capabilities` 目录整体迁入 `domain/capabilities`，把原 `capabilityRegistry.ts` 同时持有的类型/参数格式化规则与注册编排拆为唯一 `contracts.ts` 和 `registry.ts`；Candidate、Portrait/MultiView 与 Real Scene Repair 三个实现文件统一改为只依赖 contracts，registry 单向注册实现，消除“registry 导入实现、实现反向导入 registry”的循环依赖。旧目录四个文件直接删除，不保留 facade、旧文件名或转发导出；`freezone/public.ts` 统一公开稳定 contracts/registry 能力，Canvas AI gateway 与 ImageEditNode 不再穿透 Freezone 内部路径。8 个能力 ID 与顺序、参数默认值推导、值格式化、能力查找、未知 ID 空结果、实际 compose prompt/reference/model/output 语义保持不变。Capability registry、AI gateway 与提交目标回归 3 个文件 20 项、完整前端架构门禁 3 个文件 302 项（其中 module boundaries 262 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

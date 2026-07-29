@@ -73,7 +73,7 @@ describe("CommitDialog target kinds", () => {
 
   it("routes scene 360 candidates to Director Pano 360 instead of the old scene_360 slot", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/capabilities/candidate_capabilities.ts"),
+      resolve(process.cwd(), "src/features/freezone/domain/capabilities/candidateCapabilities.ts"),
       "utf8",
     );
 
