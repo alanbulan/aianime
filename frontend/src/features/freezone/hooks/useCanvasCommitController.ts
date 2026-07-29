@@ -12,6 +12,7 @@ import {
 } from "@/features/canvas/domain/assetDropInfo";
 import { saveOpenDirectorWorldScene } from "@/features/canvas/domain/directorWorldSceneSaveRegistry";
 import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
+import { isCommitCandidateData } from "@/features/canvas/public";
 import type {
   PushResult,
   PushTarget,
@@ -28,7 +29,6 @@ import {
   sceneDirectorWorldDataForManifest,
   shouldRefreshCommittedTargetNodes,
 } from "../commit/canvasCommitRules";
-import { isCommitCandidateData } from "../commit/commitEligibility";
 import { commitDirectorRenderFromCanvasSource } from "../commit/directorRenderCommit";
 import { promoteToAsset } from "../commit/promoteToAsset";
 import {

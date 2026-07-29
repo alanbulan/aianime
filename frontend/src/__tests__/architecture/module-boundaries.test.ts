@@ -1526,10 +1526,26 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("publishes Canvas media helpers through one public API", () => {
+  it("publishes shared Canvas helpers through one public API", () => {
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const publicPath = resolve(canvasRoot, "public.ts");
     const imageDataPath = resolve(canvasRoot, "application/imageData.ts");
+    const eligibilityPath = resolve(
+      canvasRoot,
+      "domain/canvasCommitEligibility.ts",
+    );
+    const eligibilityTestPath = resolve(
+      canvasRoot,
+      "domain/canvasCommitEligibility.test.ts",
+    );
+    const legacyEligibilityPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/commitEligibility.ts",
+    );
+    const commitControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasCommitController.ts",
+    );
     const viewerKitRoot = resolve(SRC_ROOT, "features/viewer-kit");
     const externalRoots = [MODULES_ROOT, viewerKitRoot];
     const bypasses = externalRoots
@@ -1545,20 +1561,47 @@ describe("frontend architecture boundaries", () => {
       )
       .sort();
     const publicSource = readFileSync(publicPath, "utf8");
+    const eligibilityDeclaration = [
+      "export function",
+      "isCommitCandidateData(",
+    ].join(" ");
+    const eligibilityOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(eligibilityDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(publicPath)).toEqual([
       "@/features/canvas/application/imageData",
+      "@/features/canvas/domain/canvasCommitEligibility",
       "@/features/canvas/pricing/types",
     ]);
     expect(publicSource).toContain("dataUrlToBlob,");
     expect(publicSource).toContain("withImageCacheBust,");
     expect(publicSource).toContain("DEFAULT_GRSAI_CREDIT_TIER_ID,");
     expect(publicSource).toContain("PRICE_DISPLAY_CURRENCY_MODES,");
+    expect(publicSource).toContain("isCommitCandidateData");
     expect(readFileSync(imageDataPath, "utf8")).toContain(
       "export function dataUrlToBlob(",
     );
     expect(readFileSync(imageDataPath, "utf8")).toContain(
       "export function withImageCacheBust(",
+    );
+    expect(existsSync(legacyEligibilityPath)).toBe(false);
+    expect(importSpecifiers(eligibilityPath)).toEqual(["./mainlineNodeTypes"]);
+    expect(eligibilityOwners).toEqual([
+      "features/canvas/domain/canvasCommitEligibility.ts",
+    ]);
+    expect(importSpecifiers(eligibilityTestPath)).toEqual([
+      "vitest",
+      "./canvasCommitEligibility",
+    ]);
+    expect(importSpecifiers(commitControllerPath)).toContain(
+      "@/features/canvas/public",
+    );
+    expect(importSpecifiers(commitControllerPath)).not.toContain(
+      "../commit/commitEligibility",
     );
     expect(bypasses).toEqual([]);
   });
@@ -3108,10 +3151,10 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/assetDropInfo",
         "@/features/canvas/domain/directorWorldSceneSaveRegistry",
         "@/features/canvas/domain/mainlineNodeTypes",
+        "@/features/canvas/public",
         "@/features/freezone/domain/assetCommit",
         "@/lib/query-keys",
         "../commit/canvasCommitRules",
-        "../commit/commitEligibility",
         "../commit/directorRenderCommit",
         "../commit/promoteToAsset",
         "../commit/pushTarget",

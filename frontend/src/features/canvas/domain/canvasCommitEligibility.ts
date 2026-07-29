@@ -1,12 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { isSlotTarget } from "../../canvas/domain/mainlineNodeTypes.ts";
+import { isSlotTarget } from "./mainlineNodeTypes";
 
 /**
  * 从节点 data 里取出「可提交的媒体源 URL」,按媒体类型回退:
- * 图片 → 视频 → 音频 → 文件/3GS/GLB。供 Commit controller 与
- * CommitDialog 共用,避免一处支持音频、一处仍只读图片。
+ * 图片 → 视频 → 音频 → 文件/3GS/GLB。提交资格判断统一使用该顺序。
  */
-export function getCommitSourceUrl(data: unknown): string | null {
+function getCommitSourceUrl(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const value = data as Record<string, unknown>;
   const pick = (key: string): string | null =>

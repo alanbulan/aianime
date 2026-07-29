@@ -2146,6 +2146,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十七批已将 Freezone 根级 `CanvasesTab.tsx` 归入唯一 presentation 组件 `presentation/CanvasesTab.tsx`，查询共享测试同步从外置测试目录归位到组件旁；组件继续只装配 `useCanvasBrowserController` 与 `CanvasBrowserView`，`AssetLibraryPanelView` 及其测试改用同目录所有者，不再跨 presentation 边界回指 feature 根。旧组件和旧测试路径直接删除，不保留 facade、re-export 或第二套入口；项目/当前画布参数、主线恢复开关、reload token、控制器状态与全部 View 回调透传语义均保持不变。相关回归 6 个文件 27 项通过（保留既有非失败 `act(...)` 与 i18next 测试警告），完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十八批已将 Freezone `commit/commitEligibility.ts` 中依赖 Canvas slot target 的提交候选资格规则迁入唯一 Canvas domain 模块 `domain/canvasCommitEligibility.ts`，并补齐七类媒体源接受与五类拒绝形态的直接领域测试；唯一生产调用方 `useCanvasCommitController` 改经 `canvas/public.ts` 使用 `isCommitCandidateData`，不再穿透旧 Freezone commit 路径。旧源文件直接删除，未被外部使用的 URL 提取 helper 收为模块私有，不保留 facade、re-export 或第二套规则；preset 管理节点拒绝、仅用户生成节点、合法 slot target、图片/视频/音频/文件/模型/PLY/通用 URL 回退及已提交节点拒绝语义均保持不变。相关回归 4 个文件 54 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
