@@ -2104,6 +2104,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十六批已将提交弹窗的 Portal、进退场过渡、来源预览与标题投影、目标类型/位置/影响表单、加载/错误/覆盖提示、提交 footer、`UiSelect`/输入/按钮事件适配及浏览器文件名回退从 `CommitDialog` 迁入唯一 presentation 组件 `presentation/CommitDialogView.tsx`；稳定入口只装配目标 controller、提交 controller 与 View，不再持有 DOM、展示 helper 或样式。视频/音频/图片/3D 来源预览、导演世界 manifest 文案、Beat 快捷槽位、角色身份与场景目录回显、全局影响列表、过期标记、遮罩/关闭禁用和提交 busy 行为保持不变；原 JSX 整体迁移后从入口删除，目标与 Director bundle 静态合同、颜色审计和目录 public 消费者同步改为真实 View 所有者，不保留旧 View、facade 或第二套布局。`CommitDialog` 由 552 行降至 91 行，唯一完整 View 为 562 行；View、两个 controller、弹窗集成、目标、Director bundle 与 Viewer 合同回归 7 个文件 62 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十七批经全仓生产引用、导出、路由、界面文案和测试审计确认 `commit/BatchCommitDialog.tsx` 仅剩文件自身，`BatchCommitDialog` 与 `BatchCommitItem` 均无任何调用方；现已删除该 270 行不可达组件及其中独立维护的批量提交队列状态、全局槽位集合、目标标签投影和完整 DOM，不再为未接入的第二套提交路径继续分层。唯一架构清单同步移除伪消费者，并新增旧文件路径必须不存在的合同；删除后全仓仅保留该门禁路径字符串。完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）、前端 TypeScript 全量检查与 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

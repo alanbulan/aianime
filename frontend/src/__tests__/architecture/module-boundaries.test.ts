@@ -2298,6 +2298,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/commit/promoteToAsset.ts",
     );
+    const unusedBatchDialogPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/BatchCommitDialog.tsx",
+    );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const directLegacyConsumers = sourceFiles(SRC_ROOT)
@@ -2328,7 +2332,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCommitDialogSubmitController.ts",
       "features/freezone/commit/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
-      "features/freezone/commit/BatchCommitDialog.tsx",
       "features/freezone/commit/directorRenderCommit.ts",
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
       "features/freezone/commit/committedNodePatch.ts",
@@ -2340,6 +2343,7 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(existsSync(legacyApiPath)).toBe(false);
+    expect(existsSync(unusedBatchDialogPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(applicationPath)).toEqual([
       "../domain/assetCommit",
