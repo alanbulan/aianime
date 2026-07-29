@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
 import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
-import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
 import { setFreezoneCanvasMetadata } from "@/features/freezone/application/canvasMetadataState";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
@@ -227,37 +226,6 @@ describe("BeatContextNode", () => {
     expect(localeValue(zh, "node.beatContextNode.heading")).toBe("镜头上下文");
     expect(localeValue(zh, "node.beatContextNode.standaloneTitle")).toBe("自定义镜头上下文");
     expect(localeValue(en, "viewer.threeD.beatOverlay.title")).toBe("Shot overlay");
-  });
-
-  it("preserves local time of day when sync response omits the field", () => {
-    const patch = buildBeatContextNodeRefreshPatch(
-      "demo",
-      {
-        episode: 1,
-        beat: 3,
-        label: "EP1 / Beat 3",
-        visual_description: "全景镜头，兰州拉面馆内。",
-        narration_segment: "",
-        scene_id: "兰州拉面馆",
-        detected_identities: [],
-        detected_props: [],
-        sketch_colors: {},
-        prop_marker_colors: {},
-        assets: [],
-      },
-      makeData({
-        snapshot: {
-          ...makeData().snapshot,
-          timeOfDay: "夜晚",
-        },
-        beat_edit_fields: {
-          time_of_day: "夜晚",
-        },
-      }),
-    );
-
-    expect(patch.snapshot?.timeOfDay).toBe("夜晚");
-    expect(patch.beat_edit_fields?.time_of_day).toBe("夜晚");
   });
 
   it("renders selectable identity and prop chips instead of CSV inputs", () => {

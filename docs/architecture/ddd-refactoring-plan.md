@@ -2140,6 +2140,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十四批已将 Freezone `context/skillNodeInputs.ts` 中只依赖 Skill Contract 与当前 Beat Context 的输入接纳、就绪判定和请求快照解析规则整体迁入唯一 domain 模块 `domain/skillInputResolution.ts`，原 8 项行为测试同步从外置测试目录归位到 domain；`inputAcceptsNode`、`isSkillReadyToSubmit` 与 `resolveInputsForSkill` 三个实际跨域入口经 `freezone/public.ts` 公开，Canvas Skill 连线规则与 `SkillNode` 不再穿透 Freezone 内部路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套解析；节点类型别名、字段/媒体/provenance 接纳、single/multi 基数、引用来源优先级与去重、无角色/无道具哨兵过滤、slot target 推导、Beat Context 草稿和主线 provenance 防泄漏语义均保持不变。相关回归 5 个文件 64 项，完整前端架构门禁 3 个文件 311 项（其中 module boundaries 271 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十五批已将 Freezone `context/beatContextSnapshot.ts` 中面向 Canvas 的 Beat 查询结果到节点刷新 patch 投影整体迁入唯一 Canvas application 模块 `application/beatContextRefreshProjection.ts`，现有省略 `time_of_day` 时保留本地值的用例从 BeatContextNode 组件测试归位到新模块旁；唯一生产调用方 `BeatContextNode` 改用 Canvas 自有模块，跨领域的 Beat 与主线上下文类型只经 `freezone/public.ts` 获取。旧源文件和旧测试片段直接删除，不保留 facade、re-export 或第二套投影；Beat 字段归一、缺失时间回退、三类资产存在标记、主线上下文装配、刷新时间、fresh 状态和编辑字段映射语义均保持不变。相关回归 4 个文件 38 项，完整前端架构门禁 3 个文件 312 项（其中 module boundaries 272 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

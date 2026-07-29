@@ -38,7 +38,7 @@ import {
 } from "@/features/canvas/ui/NodeHeader";
 import { NodeResizeHandle } from "@/features/canvas/ui/NodeResizeHandle";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
+import { buildBeatContextNodeRefreshPatch } from "@/features/canvas/application/beatContextRefreshProjection";
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import {
   applyRemoteFreezoneCanvas,

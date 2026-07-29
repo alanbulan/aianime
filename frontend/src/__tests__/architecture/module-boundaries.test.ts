@@ -977,6 +977,56 @@ describe("frontend architecture boundaries", () => {
     expect(canvasBypasses).toEqual([]);
   });
 
+  it("owns Beat Context refresh projection in Canvas application", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/beatContextSnapshot.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatContextRefreshProjection.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatContextRefreshProjection.test.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const declaration = [
+      "export function",
+      "buildBeatContextNodeRefreshPatch(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const legacyConsumers = sourceFiles(SRC_ROOT)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => specifier.includes("beatContextSnapshot"))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["@/features/freezone/public", "../domain/canvasNodes"]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/canvas/application/beatContextRefreshProjection.ts",
+    ]);
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/application/beatContextRefreshProjection",
+    );
+    expect(importSpecifiers(testPath)).toEqual([
+      "vitest",
+      "./beatContextRefreshProjection",
+    ]);
+    expect(legacyConsumers).toEqual([]);
+  });
+
   it("owns Skill input resolution in the Freezone domain", () => {
     const legacyPath = resolve(
       SRC_ROOT,
