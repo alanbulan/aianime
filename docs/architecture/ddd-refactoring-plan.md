@@ -2176,6 +2176,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百五十二批已将 Canvas 约 360 行混合 `ImageNode.tsx` 拆为应用层尺寸回退规则 `application/imageNodeSizing.ts`、唯一状态 controller `hooks/useImageNodeController.ts`、纯 presentation `nodes/ImageNodeView.tsx` 和保留原注册路径的真实装配根；应用层独占持久化宽高合法性与回退，controller 独占 React Flow zoom/internals、关联边与候选绑定投影、标题/尺寸/原图和预览图选择、生成计时与延迟文案、自然分辨率状态、宽高比写回、手工尺寸保护及失败重试编排，View 独占 Header、图片、分辨率标记、生成/失败/空状态、Handle、resize 与重试 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名或第二套尺寸规则；预览图低缩放优先、原图高缩放优先、缓存版本、300 短边紧凑尺寸、140 短边缩放下限、1600 最大尺寸、生成遮罩、请求 ID、可重试判断、自然尺寸强制场景及 `exportImageNode: ImageNode` 注册语义保持不变。新增尺寸规则 2 项、controller 6 项和 View 4 项测试，连同原尺寸下限、图像缓存刷新与导出图重试共回归 5 个文件 21 项；新增架构合同首次因把真实 `exportImageNode` 注册键误写为 `imageNode` 失败，修正合同后最终通过，产品代码无失败。完整前端架构门禁 3 个文件 318 项（其中 module boundaries 278 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百五十三批已将 Canvas 约 182 行混合 `VideoComposeNode.tsx` 拆为纯领域输入投影 `domain/videoComposeInputs.ts`、唯一状态 controller `hooks/useVideoComposeNodeController.ts`、纯 presentation `nodes/VideoComposeNodeView.tsx` 和保留原注册路径的真实装配根；领域层独占可播放视频/音频过滤、按上游 y 坐标排序、视频计数和至少两条视频准入规则，controller 独占标题/URL/草稿投影、React Flow internals、编辑器显隐、节点选中/重命名、草稿持久化及合成结果视频节点创建/连边/选中/聚焦，View 独占 Handle、Header、入口按钮、提示与 `VideoComposeModal` JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名或第二套输入规则；240x136 固定尺寸、音频进入种子但不计入视频下限、按钮只按视频数禁用、缺项目时点击无动作、缺 Canvas ID 回退 `default`、结果节点 580x380 定位参数、结果名、封面和草稿写回顺序及 `videoComposeNode` 注册语义保持不变。新增领域规则 3 项、controller 4 项和 View 3 项测试，连同时间线模型、Canvas 合成用例与合成网关共回归 6 个文件 29 项；完整前端架构门禁 3 个文件 319 项（其中 module boundaries 279 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

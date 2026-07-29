@@ -720,6 +720,109 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './ImageNodeView'");
   });
 
+  it("separates the Canvas video-compose inputs, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoComposeNode.tsx",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeInputs.ts",
+    );
+    const domainTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeInputs.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoComposeNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoComposeNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const domainTestSource = readFileSync(domainTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "VideoComposeNode", "=", "memo("].join(" "),
+      ["export function", "projectVideoComposeInputs("].join(" "),
+      ["export function", "useVideoComposeNodeController("].join(" "),
+      ["export function", "VideoComposeNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useVideoComposeNodeController",
+        "./VideoComposeNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/VideoComposeNode.tsx"],
+      ["features/canvas/domain/videoComposeInputs.ts"],
+      ["features/canvas/hooks/useVideoComposeNodeController.ts"],
+      ["features/canvas/nodes/VideoComposeNodeView.tsx"],
+    ]);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { VideoComposeNode } from './VideoComposeNode'",
+    );
+    expect(registrySource).toContain("videoComposeNode: VideoComposeNode");
+    expect(entrySource).toContain("useVideoComposeNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(VideoComposeNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useUpstreamNodes(id)");
+    expect(controllerSource).toContain("projectVideoComposeInputs(");
+    expect(controllerSource).toContain("useCanvasStore.getState()");
+    expect(controllerSource).toContain("store.findNodePosition(id, 580, 380)");
+    expect(controllerSource).toContain(
+      "store.addNode(CANVAS_NODE_TYPES.video",
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<VideoComposeModal");
+    expect(viewSource).toContain("<VideoComposeModal");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("useUpstreamNodes(");
+    expect(viewSource).not.toContain("findNodePosition(");
+    expect(domainTestSource).toContain("from './videoComposeInputs'");
+    expect(controllerTestSource).toContain(
+      "from './useVideoComposeNodeController'",
+    );
+    expect(viewTestSource).toContain("from './VideoComposeNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
