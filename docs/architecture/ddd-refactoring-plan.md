@@ -2102,6 +2102,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十五批已将提交弹窗的提交就绪判定、busy 状态、模型槽位校验、最新节点状态读取、导演合成提交、导演世界结构化提交、普通资产提升、提交后节点补丁、导演世界状态同步以及成功/失败回调编排迁入唯一 presentation controller `hooks/useCommitDialogSubmitController.ts`；弹窗只消费 `{submitting, ready, submit}`，继续装配目标 controller、过渡状态和 DOM。普通资产仍按全局槽位决定 `mark_stale`，3D 提交仍优先读取点击时最新节点来源，导演合成与完整导演世界仍走各自专用路径，来源槽位提交仍在存在场景状态时同步 manifest，所有路径仍只在成功后关闭弹窗且失败后恢复 busy；旧提交状态、handler 和领域服务调用从弹窗直接删除，Canvas 规则与 Viewer 静态合同同步指向真实 controller，不保留 facade、旧实现或第二套提交编排。`CommitDialog` 由 625 行降至 552 行，submit controller 为 165 行；提交 controller、目标 controller、弹窗集成、Director bundle 与 Viewer 合同回归 6 个文件 60 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 297 项（其中 module boundaries 257 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十六批已将提交弹窗的 Portal、进退场过渡、来源预览与标题投影、目标类型/位置/影响表单、加载/错误/覆盖提示、提交 footer、`UiSelect`/输入/按钮事件适配及浏览器文件名回退从 `CommitDialog` 迁入唯一 presentation 组件 `presentation/CommitDialogView.tsx`；稳定入口只装配目标 controller、提交 controller 与 View，不再持有 DOM、展示 helper 或样式。视频/音频/图片/3D 来源预览、导演世界 manifest 文案、Beat 快捷槽位、角色身份与场景目录回显、全局影响列表、过期标记、遮罩/关闭禁用和提交 busy 行为保持不变；原 JSX 整体迁移后从入口删除，目标与 Director bundle 静态合同、颜色审计和目录 public 消费者同步改为真实 View 所有者，不保留旧 View、facade 或第二套布局。`CommitDialog` 由 552 行降至 91 行，唯一完整 View 为 562 行；View、两个 controller、弹窗集成、目标、Director bundle 与 Viewer 合同回归 7 个文件 62 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

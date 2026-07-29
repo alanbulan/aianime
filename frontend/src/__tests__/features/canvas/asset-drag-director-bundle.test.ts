@@ -162,8 +162,11 @@ describe("director bundle canvas assets", () => {
   });
 
   it("labels director render commit success messages as composite asset writes", () => {
-    const dialog = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
+    const dialogView = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/CommitDialogView.tsx",
+      ),
       "utf8",
     );
     const viewModel = readFileSync(
@@ -193,7 +196,7 @@ describe("director bundle canvas assets", () => {
     expect(rules).toContain("导演合成资产");
     expect(shell).toContain("useCanvasCommitController");
     expect(zh).toContain("导演合成资产");
-    expect(dialog).not.toContain("导演合成 bundle");
+    expect(dialogView).not.toContain("导演合成 bundle");
     expect(viewModel).not.toContain("导演合成 bundle");
     expect(rules).not.toContain("导演合成 bundle");
     expect(shell).not.toContain("导演合成 bundle");

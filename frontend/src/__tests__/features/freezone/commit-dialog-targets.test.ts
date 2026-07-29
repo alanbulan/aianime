@@ -102,7 +102,10 @@ describe("CommitDialog target kinds", () => {
 
   it("labels scene director world commits as manifest state instead of a raw 3D model", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/CommitDialogView.tsx",
+      ),
       "utf8",
     );
 
@@ -114,7 +117,10 @@ describe("CommitDialog target kinds", () => {
 
   it("shows model scene targets as scene selection instead of a raw scene_id-only field", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/CommitDialogView.tsx",
+      ),
       "utf8",
     );
     const controllerSource = readFileSync(
@@ -165,10 +171,6 @@ describe("CommitDialog target kinds", () => {
   });
 
   it("keeps custom 3D world sources on the normal slot commit path", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
-      "utf8",
-    );
     const viewModelSource = readFileSync(
       resolve(process.cwd(), "src/features/freezone/commit/commitDialogViewModel.ts"),
       "utf8",
@@ -180,9 +182,16 @@ describe("CommitDialog target kinds", () => {
       ),
       "utf8",
     );
+    const submitControllerSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
+      ),
+      "utf8",
+    );
 
     expect(isUserSelectableCommitKind("scene_3gs_custom_scene")).toBe(true);
-    expect(source).toContain('mediaType === "model"');
+    expect(submitControllerSource).toContain('mediaType === "model"');
     expect(controllerSource).toContain("modelCommitKindAllowed");
     expect(viewModelSource).toContain('"scene_3gs_custom_scene"');
     expect(viewModelSource).toContain("MODEL_WORLD_SLOT_KINDS");
