@@ -20,10 +20,12 @@ import type { PanoCaptureResult, PanoCaptureSaveResult, PanoViewerManifest } fro
 import {
   FOV_MAX,
   FOV_MIN,
+  PANO_DEGREES_TO_RADIANS,
   PANO_CAPTURE_ASPECTS,
   type PanoCaptureAspect,
   cropCanvasToAspect,
   cropCanvasToFrame,
+  clampPanoFov,
   fovToFocal,
   fovToZoom,
   normalizePanoDegrees,
@@ -37,7 +39,6 @@ import {
 const { ROTATE_UP, ROTATE_DOWN, ROTATE_LEFT, ROTATE_RIGHT, ZOOM_IN, ZOOM_OUT } =
   CONSTANTS.ACTIONS;
 
-const DEG_TO_RAD = Math.PI / 180;
 const FOV_PRESETS = [
   { label: "鱼眼 160°", value: 160 },
   { label: "广角 120°", value: 120 },
@@ -116,9 +117,9 @@ function roundDegrees(value: number): number {
 
 function sphereCorrectionOption(correction: PanoViewerManifest["correction"]["sphere_correction_deg"]) {
   return {
-    roll: correction.roll * DEG_TO_RAD,
-    tilt: correction.pitch * DEG_TO_RAD,
-    pan: correction.yaw * DEG_TO_RAD,
+    roll: correction.roll * PANO_DEGREES_TO_RADIANS,
+    tilt: correction.pitch * PANO_DEGREES_TO_RADIANS,
+    pan: correction.yaw * PANO_DEGREES_TO_RADIANS,
   };
 }
 
@@ -415,7 +416,7 @@ export function PanoCaptureSurface({
 
   const setFovDeg = useCallback(
     (next: number) => {
-      const clamped = Math.max(FOV_MIN, Math.min(FOV_MAX, next));
+      const clamped = clampPanoFov(next);
       viewerRef.current?.zoom(fovToZoom(clamped));
       setLiveCamera((prev) => ({ ...prev, fovDeg: clamped }));
     },
@@ -441,8 +442,8 @@ export function PanoCaptureSurface({
     if (!viewer || !planetBackup) return;
     setFovDeg(planetBackup.fovDeg);
     viewer.rotate({
-      yaw: planetBackup.yawDeg * DEG_TO_RAD,
-      pitch: planetBackup.pitchDeg * DEG_TO_RAD,
+      yaw: planetBackup.yawDeg * PANO_DEGREES_TO_RADIANS,
+      pitch: planetBackup.pitchDeg * PANO_DEGREES_TO_RADIANS,
     });
     setLiveCamera(planetBackup);
     setPlanetBackup(null);
@@ -570,7 +571,7 @@ export function PanoCaptureSurface({
       frontYawDeg + DIRECTION_OFFSETS[direction],
     );
     viewerRef.current?.rotate({
-      yaw: yawDeg * DEG_TO_RAD,
+      yaw: yawDeg * PANO_DEGREES_TO_RADIANS,
       pitch: 0,
     });
     setLiveCamera((prev) => ({ ...prev, yawDeg, pitchDeg: 0 }));
@@ -611,9 +612,9 @@ export function PanoCaptureSurface({
         yaw: roundDegrees(sphereCorrection.yaw),
       },
       sphere_correction_rad: {
-        roll: Number((sphereCorrection.roll * DEG_TO_RAD).toFixed(6)),
-        tilt: Number((sphereCorrection.pitch * DEG_TO_RAD).toFixed(6)),
-        pan: Number((sphereCorrection.yaw * DEG_TO_RAD).toFixed(6)),
+        roll: Number((sphereCorrection.roll * PANO_DEGREES_TO_RADIANS).toFixed(6)),
+        tilt: Number((sphereCorrection.pitch * PANO_DEGREES_TO_RADIANS).toFixed(6)),
+        pan: Number((sphereCorrection.yaw * PANO_DEGREES_TO_RADIANS).toFixed(6)),
       },
       cubemap_contract: {
         front_yaw_deg: roundDegrees(frontYawDeg),

@@ -10,7 +10,16 @@ function read(path: string) {
 
 describe("freezone viewer contracts", () => {
   it("keeps Pano360ViewerNode as a compatible freezone canvas tool", () => {
-    const node = read("src/features/canvas/nodes/Pano360ViewerNode.tsx");
+    const entry = read("src/features/canvas/nodes/Pano360ViewerNode.tsx");
+    const model = read(
+      "src/features/canvas/application/pano360ViewerNodeModel.ts",
+    );
+    const controller = read(
+      "src/features/canvas/hooks/usePano360ViewerNodeController.ts",
+    );
+    const view = read(
+      "src/features/canvas/nodes/Pano360ViewerNodeView.tsx",
+    );
     const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
     const registry = read("src/features/canvas/domain/nodeRegistry.ts");
     const nodeSelectionMenuModel = read(
@@ -19,12 +28,13 @@ describe("freezone viewer contracts", () => {
     const spawnOverlay = read("src/features/canvas/ui/NodeSpawnPlusOverlay.tsx");
     const nodesIndex = read("src/features/canvas/nodes/index.ts");
 
-    expect(node).toContain("snap2x2");
-    expect(node).toContain("snap4x3");
-    expect(node).toContain("sphere_correction_deg");
-    expect(node).toContain("selected_background");
-    expect(node).toContain("360 自由画布查看器");
-    expect(node).not.toContain("PanoCaptureDialog");
+    expect(entry).toContain("usePano360ViewerNodeController(props)");
+    expect(controller).toContain("snap2x2");
+    expect(controller).toContain("snap4x3");
+    expect(model).toContain("sphere_correction_deg");
+    expect(view).toContain("selected_background");
+    expect(view).toContain("360 自由画布查看器");
+    expect(`${entry}${controller}${view}`).not.toContain("PanoCaptureDialog");
     expect(canvasNodes).toContain("pano360Viewer");
     expect(canvasNodes).toContain("Pano360ViewerNodeData");
     expect(registry).toContain("pano360ViewerNodeDefinition");

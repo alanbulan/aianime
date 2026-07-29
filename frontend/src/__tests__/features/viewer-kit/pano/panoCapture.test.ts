@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   canvasCropRectFromFrame,
+  centeredPanoCropRect,
+  clampPanoFov,
   fovToFocal,
   fovToZoom,
   normalizePanoDegrees,
@@ -14,6 +16,8 @@ describe("pano capture camera math", () => {
   it("converts between FOV and Photo Sphere Viewer zoom", () => {
     expect(fovToZoom(70)).toBeCloseTo(60.61, 2);
     expect(zoomToFov(fovToZoom(70))).toBeCloseTo(70, 5);
+    expect(clampPanoFov(1)).toBe(5);
+    expect(clampPanoFov(200)).toBe(170);
   });
 
   it("reports the same focal-length approximation as the legacy AI anime pano viewer", () => {
@@ -40,6 +44,21 @@ describe("pano capture camera math", () => {
       y: 100,
       width: 800,
       height: 450,
+    });
+  });
+
+  it("centers an aspect crop inside the viewer canvas", () => {
+    expect(centeredPanoCropRect(1200, 800, 16 / 9)).toEqual({
+      x: 0,
+      y: 63,
+      width: 1200,
+      height: 675,
+    });
+    expect(centeredPanoCropRect(1600, 600, 16 / 9)).toEqual({
+      x: 267,
+      y: 0,
+      width: 1067,
+      height: 600,
     });
   });
 

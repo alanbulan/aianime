@@ -1242,6 +1242,144 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './ScriptNodeView'");
   });
 
+  it("separates the Canvas pano-viewer model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/Pano360ViewerNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/pano360ViewerNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/pano360ViewerNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/usePano360ViewerNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/usePano360ViewerNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/Pano360ViewerNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/Pano360ViewerNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const viewerKitPublicPath = resolve(
+      SRC_ROOT,
+      "features/viewer-kit/public.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const viewerKitPublicSource = readFileSync(viewerKitPublicPath, "utf8");
+    const declarations = [
+      ["export const", "Pano360ViewerNode", "=", "memo("].join(" "),
+      ["export function", "resolvePanoViewerNodeSize("].join(" "),
+      ["export function", "usePano360ViewerNodeController("].join(" "),
+      ["export function", "Pano360ViewerNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/usePano360ViewerNodeController",
+        "./Pano360ViewerNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/Pano360ViewerNode.tsx"],
+      ["features/canvas/application/pano360ViewerNodeModel.ts"],
+      ["features/canvas/hooks/usePano360ViewerNodeController.ts"],
+      ["features/canvas/nodes/Pano360ViewerNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("new Viewer(");
+    expect(importSpecifiers(modelPath)).toContain(
+      "@/features/viewer-kit/public",
+    );
+    expect(importSpecifiers(modelPath)).not.toContain(
+      "@/features/viewer-kit/pano/panoCapture",
+    );
+    expect(registrySource).toContain(
+      "import { Pano360ViewerNode } from './Pano360ViewerNode'",
+    );
+    expect(registrySource).toContain(
+      "pano360ViewerNode: Pano360ViewerNode",
+    );
+    expect(entrySource).toContain(
+      "usePano360ViewerNodeController(props)",
+    );
+    expect(entrySource).toContain(
+      "createElement(Pano360ViewerNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("new Viewer({");
+    expect(controllerSource).toContain("getFreezoneCanvasMetadata(");
+    expect(controllerSource).toContain(
+      "uploadAndAutoCommitSelectedBackgroundCandidate(",
+    );
+    expect(controllerSource).toContain("addPanoCaptureGroup(");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/features/viewer-kit/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/viewer-kit/pano/panoCapture",
+    );
+    expect(controllerSource).not.toContain("function waitFrames(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<NodeHeader");
+    expect(viewSource).toContain("<ReactFlowNodeToolbar");
+    expect(viewSource).toContain("<SliderRow");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("new Viewer(");
+    expect(viewSource).not.toContain("getFreezoneCanvasMetadata(");
+    expect(viewerKitPublicSource).toContain("waitFrames as waitPanoFrames");
+    expect(viewerKitPublicSource).toContain(
+      "normalizePanoDegrees",
+    );
+    expect(modelTestSource).toContain(
+      "from './pano360ViewerNodeModel'",
+    );
+    expect(controllerTestSource).toContain(
+      "from './usePano360ViewerNodeController'",
+    );
+    expect(viewTestSource).toContain(
+      "from './Pano360ViewerNodeView'",
+    );
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -2530,7 +2668,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/infrastructure/freezoneAiGateway.ts",
       "features/canvas/nodes/BeatContextNode.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
-      "features/canvas/nodes/Pano360ViewerNode.tsx",
+      "features/canvas/hooks/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const getterDeclaration = [
       "export function",

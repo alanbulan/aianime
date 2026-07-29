@@ -14,7 +14,7 @@ export const PANO_CAPTURE_ASPECTS: Array<{ value: PanoCaptureAspect; label: stri
 export const FOV_MIN = 5;
 export const FOV_MAX = 170;
 
-const DEG_TO_RAD = Math.PI / 180;
+export const PANO_DEGREES_TO_RADIANS = Math.PI / 180;
 
 export interface PanoCropFrame {
   x: number;
@@ -23,8 +23,12 @@ export interface PanoCropFrame {
   height: number;
 }
 
+export function clampPanoFov(value: number): number {
+  return Math.max(FOV_MIN, Math.min(FOV_MAX, value));
+}
+
 export function fovToZoom(fov: number): number {
-  const clamped = Math.max(FOV_MIN, Math.min(FOV_MAX, fov));
+  const clamped = clampPanoFov(fov);
   return ((FOV_MAX - clamped) / (FOV_MAX - FOV_MIN)) * 100;
 }
 
@@ -33,8 +37,10 @@ export function zoomToFov(zoom: number): number {
 }
 
 export function fovToFocal(fov: number): number {
-  const clamped = Math.max(FOV_MIN, Math.min(FOV_MAX, fov));
-  return Math.round(18 / Math.tan((clamped / 2) * DEG_TO_RAD));
+  const clamped = clampPanoFov(fov);
+  return Math.round(
+    18 / Math.tan((clamped / 2) * PANO_DEGREES_TO_RADIANS),
+  );
 }
 
 export function normalizePanoDegrees(value: number): number {
@@ -83,6 +89,27 @@ function aspectRatioValue(aspect: PanoCaptureAspect): number {
   return PANO_CAPTURE_ASPECTS.find((item) => item.value === aspect)?.ratio ?? 16 / 9;
 }
 
+export function centeredPanoCropRect(
+  width: number,
+  height: number,
+  targetRatio: number,
+): PanoCropFrame {
+  const sourceRatio = width / Math.max(1, height);
+  let cropWidth = width;
+  let cropHeight = height;
+  if (sourceRatio > targetRatio) {
+    cropWidth = Math.round(height * targetRatio);
+  } else {
+    cropHeight = Math.round(width / targetRatio);
+  }
+  return {
+    x: Math.max(0, Math.round((width - cropWidth) / 2)),
+    y: Math.max(0, Math.round((height - cropHeight) / 2)),
+    width: cropWidth,
+    height: cropHeight,
+  };
+}
+
 async function cropCanvasToRect(
   canvas: HTMLCanvasElement,
   rect: PanoCropFrame,
@@ -120,20 +147,14 @@ export async function cropCanvasToAspect(
   canvas: HTMLCanvasElement,
   aspect: PanoCaptureAspect,
 ): Promise<{ blob: Blob; width: number; height: number; crop: PanoCaptureResult["crop"] }> {
-  const sourceWidth = canvas.width;
-  const sourceHeight = canvas.height;
-  const targetRatio = aspectRatioValue(aspect);
-  const sourceRatio = sourceWidth / Math.max(1, sourceHeight);
-  let cropWidth = sourceWidth;
-  let cropHeight = sourceHeight;
-  if (sourceRatio > targetRatio) {
-    cropWidth = Math.round(sourceHeight * targetRatio);
-  } else {
-    cropHeight = Math.round(sourceWidth / targetRatio);
-  }
-  const x = Math.max(0, Math.round((sourceWidth - cropWidth) / 2));
-  const y = Math.max(0, Math.round((sourceHeight - cropHeight) / 2));
-  return cropCanvasToRect(canvas, { x, y, width: cropWidth, height: cropHeight });
+  return cropCanvasToRect(
+    canvas,
+    centeredPanoCropRect(
+      canvas.width,
+      canvas.height,
+      aspectRatioValue(aspect),
+    ),
+  );
 }
 
 export async function cropCanvasToFrame(

@@ -51,7 +51,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/nodes/ImageEditNode.tsx": 0,
   "features/canvas/nodes/ImageGenNode.tsx": 0,
   "features/canvas/nodes/ImageNode.tsx": 0,
-  "features/canvas/nodes/Pano360ViewerNode.tsx": 0,
+  "features/canvas/nodes/Pano360ViewerNodeView.tsx": 0,
   "features/canvas/nodes/ScriptNode.tsx": 0,
   "features/canvas/nodes/shared/ReferenceTextChip.tsx": 0,
   "features/canvas/nodes/StoryboardGenNode.tsx": 2,
