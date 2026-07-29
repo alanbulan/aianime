@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasEdge, CanvasNode } from "@/features/canvas/domain/canvasNodes";
+import type { CanvasEdge, CanvasNode } from "./canvasNodes";
 
 function projectionKeyFromNode(node: CanvasNode): string | null {
   const data = (node.data ?? {}) as {

@@ -9,11 +9,13 @@ import {
   queueLocalFreezoneProjection,
 } from "@/features/freezone/canvasSyncRuntime";
 import {
-  normalizePresetProjectionRequest,
-  personalCanvasIdForUsername,
   projectionMetadataWithRequest,
+} from "@/features/freezone/domain/canvasProjectionMetadata";
+import {
+  normalizePresetProjectionRequest,
   projectionKeyForPresetRequest,
-} from "@/features/freezone/projections";
+} from "@/features/freezone/domain/canvasProjectionRequest";
+import { personalCanvasIdForUsername } from "@/features/freezone/domain/canvasIdentity";
 import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
 
 export async function openPresetProjectionInMyCanvas(

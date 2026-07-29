@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import { projectionScopedId } from "@/features/freezone/projectionGraphIds";
+import { projectionScopedId } from "@/features/canvas/domain/projectionGraphIds";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 describe("canvasStore projection groups", () => {

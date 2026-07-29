@@ -13,7 +13,7 @@ import { useAllProjectSummaries } from "@/modules/project_workspace/public";
 import { readLastCanvas, writeUrl } from "@/lib/url-params";
 
 import { FreezoneShell } from "./FreezoneShell";
-import { canvasIdForFreezoneEntry } from "./projections";
+import { canvasIdForFreezoneEntry } from "./domain/canvasIdentity";
 
 export interface FreezoneProjectPageProps {
   projectId: string;

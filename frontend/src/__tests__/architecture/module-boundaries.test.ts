@@ -1592,8 +1592,29 @@ describe("frontend architecture boundaries", () => {
         "features/freezone/hooks/useCanvasProjectionCommandController.ts",
       ),
     );
-    const projectionRuleImports = importSpecifiers(
-      resolve(SRC_ROOT, "features/freezone/projections.ts"),
+    const projectionRequestImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/domain/canvasProjectionRequest.ts",
+      ),
+    );
+    const projectionMetadataImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/domain/canvasProjectionMetadata.ts",
+      ),
+    );
+    const projectionGraphImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/application/canvasProjectionGraph.ts",
+      ),
+    );
+    const projectionGraphIdImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/domain/projectionGraphIds.ts",
+      ),
     );
     const openProjectionImports = importSpecifiers(
       resolve(SRC_ROOT, "features/freezone/openPresetProjection.ts"),
@@ -1602,9 +1623,23 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/freezone/projectionStatusStore.ts"),
     );
     expect(commandControllerImports).toContain("../composition");
-    expect(projectionRuleImports).toContain(
-      "@/features/freezone/domain/canvasStorage",
+    expect(projectionRequestImports).toEqual(["./canvasStorage"]);
+    expect(new Set(projectionMetadataImports)).toEqual(
+      new Set(["./canvasProjectionRequest", "./canvasStorage"]),
     );
+    expect(new Set(projectionGraphImports)).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/domain/projectionGraphIds",
+      ]),
+    );
+    expect(projectionGraphIdImports).toEqual(["./canvasNodes"]);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/projections.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/projectionGraphIds.ts")),
+    ).toBe(false);
     expect(openProjectionImports).toContain("@/features/freezone/composition");
     expect(openProjectionImports).toContain(
       "@/features/freezone/domain/canvasStorage",
@@ -1614,7 +1649,10 @@ describe("frontend architecture boundaries", () => {
     );
     for (const imports of [
       commandControllerImports,
-      projectionRuleImports,
+      projectionRequestImports,
+      projectionMetadataImports,
+      projectionGraphImports,
+      projectionGraphIdImports,
       openProjectionImports,
       statusStoreImports,
     ]) {
@@ -1677,16 +1715,19 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/hooks/useCanvasProjectionCommandController.ts",
     );
-    const projectionRulesPath = resolve(
+    const projectionMetadataPath = resolve(
       SRC_ROOT,
-      "features/freezone/projections.ts",
+      "features/freezone/domain/canvasProjectionMetadata.ts",
     );
     const shellPath = resolve(
       SRC_ROOT,
       "features/freezone/FreezoneShell.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
-    const projectionRulesSource = readFileSync(projectionRulesPath, "utf8");
+    const projectionMetadataSource = readFileSync(
+      projectionMetadataPath,
+      "utf8",
+    );
     const shellSource = readFileSync(shellPath, "utf8");
     const declaration = [
       "export function",
@@ -1704,7 +1745,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "../canvasSyncRuntime",
         "../composition",
-        "../projections",
+        "../domain/canvasProjectionMetadata",
+        "../domain/canvasProjectionRequest",
         "../projectionStatusStore",
       ]),
     );
@@ -1714,7 +1756,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(shellPath)).toContain(
       "./hooks/useCanvasProjectionCommandController",
     );
-    expect(projectionRulesSource).toContain(
+    expect(projectionMetadataSource).toContain(
       "export function requestFromProjectionMetadata(",
     );
     expect(controllerSource).toContain("buildProjectionFromPreset(");
@@ -6602,7 +6644,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(new Set(importSpecifiers(viewModelPath))).toEqual(
-      new Set(["../domain/canvasStorage", "../projections"]),
+      new Set(["../domain/canvasIdentity", "../domain/canvasStorage"]),
     );
     expect(viewModelSource).not.toContain("react");
     expect(viewModelSource).not.toContain("zustand");
@@ -6662,7 +6704,7 @@ describe("frontend architecture boundaries", () => {
         "@/lib/url-params",
         "@/modules/identity_access/public",
         "@/shared/api/errors",
-        "../projections",
+        "../domain/canvasIdentity",
         "../presentation/canvasBrowserViewModel",
       ]),
     );
@@ -7624,9 +7666,10 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasSyncCore",
         "../application/canvasSyncHydration",
         "../application/canvasSyncStorage",
+        "../application/canvasProjectionGraph",
         "../canvasMetadataContext",
         "../canvasSyncRuntime",
-        "../projections",
+        "../domain/canvasProjectionMetadata",
         "../shotMetadataStore",
         "./useCanvasDraftPersistenceController",
         "./useCanvasSaveController",

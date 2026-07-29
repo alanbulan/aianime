@@ -50,10 +50,13 @@ vi.mock("../canvasMetadataContext", () => ({
   setFreezoneCanvasMetadata: mocks.setFreezoneCanvasMetadata,
 }));
 
-vi.mock("../projections", () => ({
+vi.mock("../application/canvasProjectionGraph", () => ({
   mergeProjectedCanvasWithLocalCanvas: mocks.mergeProjectedCanvas,
-  mergeProjectionMetadata: mocks.mergeProjectionMetadata,
   removeProjectionFromLocalCanvas: mocks.removeProjectionFromCanvas,
+}));
+
+vi.mock("../domain/canvasProjectionMetadata", () => ({
+  mergeProjectionMetadata: mocks.mergeProjectionMetadata,
   removeProjectionMetadata: mocks.removeProjectionMetadata,
 }));
 

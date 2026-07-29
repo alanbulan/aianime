@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { FreezoneCanvasSummary } from "../domain/canvasStorage";
-import { personalCanvasIdForUsername } from "../projections";
+import { personalCanvasIdForUsername } from "../domain/canvasIdentity";
 
 export const PERSONAL_CANVAS_DISPLAY_NAME = "__personal_canvas__";
 

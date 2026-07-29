@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { registerFreezoneCanvasRuntime } from "@/features/freezone/canvasSyncRuntime";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { personalCanvasIdForUsername } from "@/features/freezone/projections";
+import { personalCanvasIdForUsername } from "@/features/freezone/domain/canvasIdentity";
 
 const buildProjectionFromPreset = vi.fn();
 

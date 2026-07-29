@@ -12,9 +12,9 @@ import {
 import { buildProjectionFromPreset } from "../composition";
 import {
   projectionMetadataWithRequest,
-  projectionTargetForCanvasPanel,
   requestFromProjectionMetadata,
-} from "../projections";
+} from "../domain/canvasProjectionMetadata";
+import { projectionTargetForCanvasPanel } from "../domain/canvasProjectionRequest";
 import { markCanvasProjectionFresh } from "../projectionStatusStore";
 
 export interface CanvasProjectionCommandMessages {

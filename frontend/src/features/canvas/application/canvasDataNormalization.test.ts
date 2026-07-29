@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { projectionScopedId } from '@/features/freezone/projectionGraphIds';
+import { projectionScopedId } from '@/features/canvas/domain/projectionGraphIds';
 
 import {
   CANVAS_NODE_TYPES,

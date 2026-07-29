@@ -11,7 +11,7 @@ import { writeUrl } from "@/lib/url-params";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { ApiError, BackendStatusError } from "@/shared/api/errors";
 
-import { personalCanvasIdForUsername } from "../projections";
+import { personalCanvasIdForUsername } from "../domain/canvasIdentity";
 import {
   buildCanvasBrowserSections,
   canDeleteCanvasSummary,

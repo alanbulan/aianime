@@ -15,10 +15,12 @@ import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
 import { registerFreezoneCanvasRuntime } from "../canvasSyncRuntime";
 import {
   mergeProjectedCanvasWithLocalCanvas,
-  mergeProjectionMetadata,
   removeProjectionFromLocalCanvas,
+} from "../application/canvasProjectionGraph";
+import {
+  mergeProjectionMetadata,
   removeProjectionMetadata,
-} from "../projections";
+} from "../domain/canvasProjectionMetadata";
 import {
   EMPTY_SHOT_METADATA,
   useShotMetadataStore,

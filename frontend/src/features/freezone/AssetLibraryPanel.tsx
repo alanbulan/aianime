@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
+import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/domain/canvasProjectionMetadata";
 import { addAssetToCanvas } from "@/features/freezone/assetLibraryCanvasInsertionComposition";
 import { resolveCanvasKind } from "@/features/freezone/presentation/assetLibraryViewModel";
 import { AssetLibraryPanelView } from "@/features/freezone/presentation/AssetLibraryPanelView";

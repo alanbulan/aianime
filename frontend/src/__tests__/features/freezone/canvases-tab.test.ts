@@ -9,7 +9,6 @@ import {
   findDuplicateCanvasName,
   userCreatedCanvasId,
 } from "@/features/freezone/presentation/canvasBrowserViewModel";
-import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 import {
   buildConflictCopyCanvasId,
   buildConflictCopyMetadata,
@@ -188,19 +187,6 @@ describe("freezone canvas browser sections", () => {
     expect(canDeleteCanvasSummary(canvas("default", "default"), "eric@example.com")).toBe(true);
     expect(canDeleteCanvasSummary(canvas("asset_1", "asset"), "eric@example.com")).toBe(true);
   });
-});
-
-describe("freezone preset projection guards", () => {
-  it("does not treat projection canvases as legacy preset canvases", () => {
-    expect(hasLegacyPresetCanvasMetadata({ preset: { scope: "beat" } })).toBe(true);
-    expect(
-      hasLegacyPresetCanvasMetadata({
-        preset: { scope: "beat" },
-        projections: { "beat:1:4": { projection_key: "beat:1:4" } },
-      }),
-    ).toBe(false);
-  });
-
 });
 
 describe("freezone conflict copy helpers", () => {

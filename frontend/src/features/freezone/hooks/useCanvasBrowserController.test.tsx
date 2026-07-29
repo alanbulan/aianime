@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FreezoneCanvasSummary } from "../domain/canvasStorage";
-import { personalCanvasIdForUsername } from "../projections";
+import { personalCanvasIdForUsername } from "../domain/canvasIdentity";
 import { userCreatedCanvasId } from "../presentation/canvasBrowserViewModel";
 import { useCanvasBrowserController } from "./useCanvasBrowserController";
 
