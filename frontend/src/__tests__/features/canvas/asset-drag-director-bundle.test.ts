@@ -147,7 +147,10 @@ describe("director bundle canvas assets", () => {
 
   it("commits director_render replacements through the unified director render helper", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/AssetLibraryPanel.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useAssetLibraryReplacementController.ts",
+      ),
       "utf8",
     );
 

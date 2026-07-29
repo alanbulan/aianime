@@ -1,8 +1,5 @@
 // Copyright (c) 2026 AI anime
 import {
-  createContext,
-  useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -34,26 +31,17 @@ import {
 import { BeatContextPanel } from "@/features/freezone/presentation/AssetLibraryBeatPanels";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { CANVAS_ASSET_DRAG_MIME } from "@/features/canvas/domain/assetDrag";
-import { useAssetDropStore } from "@/features/canvas/assetDropStore";
 import { assetToPushTarget } from "@/features/freezone/commit/pushTarget";
-import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
-import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";
-import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
+import {
+  useAssetLibraryReplacementController,
+  type AssetLibraryReplacementHandler,
+} from "@/features/freezone/hooks/useAssetLibraryReplacementController";
 import {
   assetDropMediaType,
   isThreeDAsset,
   type AssetTab,
   type LibraryAsset,
 } from "@/features/freezone/domain/assetLibraryModel";
-
-/** 拖拽替换的协调上下文,供深层 AssetCard 消费(避免逐层透传)。 */
-interface AssetReplaceContextValue {
-  confirmingAssetId: string | null;
-  busyAssetId: string | null;
-  onConfirm: (asset: LibraryAsset) => void;
-  onCancel: () => void;
-}
-const AssetReplaceContext = createContext<AssetReplaceContextValue | null>(null);
 
 type PanelTab = "library" | "canvases";
 
@@ -63,10 +51,7 @@ interface AssetLibraryPanelProps {
   collapsed?: boolean;
   onCollapsedChange?: (next: boolean) => void;
   /** 拖拽节点替换某条素材完成(或失败)后回调:成功时携带 target/result。 */
-  onReplaced?: (
-    payload: { target: PushTarget; result: PushResult } | null,
-    message: string,
-  ) => void;
+  onReplaced?: AssetLibraryReplacementHandler;
   /** 当前画布 id —— 用于「画布」tab 高亮当前项。 */
   currentCanvasId: string;
   /** 主线 preset 画布的「同步主线视图」回调；只在 preset 画布下显示按钮。 */
@@ -105,9 +90,12 @@ export function AssetLibraryPanel({
   const [tab, setTab] = useState<AssetTab>("beat");
   const [query, setQuery] = useState("");
   const hasPresetLabel = hasLegacyPresetCanvasMetadata(metadata);
-  // 替换/提交成功后自增,用于强制重新拉取素材列表。
-  const [internalReloadToken, setInternalReloadToken] = useState(0);
   const [internalCollapsed, setInternalCollapsed] = useState(true);
+  const replacementController = useAssetLibraryReplacementController({
+    project,
+    onReplaced,
+  });
+  const internalReloadToken = replacementController.reloadToken;
   const collapsed = collapsedProp ?? internalCollapsed;
   const setCollapsed = (next: boolean) => {
     if (onCollapsedChange) {
@@ -196,93 +184,15 @@ export function AssetLibraryPanel({
     });
   }, [assets, query, tab]);
 
-  // —— 拖拽节点替换素材 ——
-  const pendingReplace = useAssetDropStore((s) => s.pendingReplace);
-  const clearPendingReplace = useAssetDropStore((s) => s.clearPendingReplace);
-  const [replaceBusyId, setReplaceBusyId] = useState<string | null>(null);
-  const confirmingAssetId = pendingReplace?.assetId ?? null;
-
-  const handleCancelReplace = useCallback(() => {
-    clearPendingReplace();
-  }, [clearPendingReplace]);
-
-  const handleConfirmReplace = useCallback(
-    (asset: LibraryAsset) => {
-      const replace = useAssetDropStore.getState().pendingReplace;
-      if (!replace || replace.assetId !== asset.id) return;
-      const target = assetToPushTarget(asset.source);
-      if (!target) {
-        const src = asset.source as Record<string, unknown>;
-        console.warn("[freezone] 无法推断替换目标", asset.label, asset.source);
-        onReplaced?.(
-          null,
-          `无法识别「${asset.label}」的提交目标（kind=${String(src.kind)} / role=${String(src.role)}）`,
-        );
-        clearPendingReplace();
-        return;
-      }
-      if (target.kind === "director_render") {
-        setReplaceBusyId(asset.id);
-        commitDirectorRenderFromCanvasSource(project, target, {
-          sourceUrl: replace.sourceUrl,
-          bundle: replace.directorControlBundle,
-          sourceNodeId: replace.nodeId,
-          label: replace.label,
-        })
-          .then((result) => {
-            setInternalReloadToken((t) => t + 1);
-            onReplaced?.({ target, result }, `已提交到「${asset.label}」`);
-          })
-          .catch((err) => {
-            const msg = err instanceof Error ? err.message : String(err);
-            onReplaced?.(null, `替换「${asset.label}」失败：${msg}`);
-          })
-          .finally(() => {
-            setReplaceBusyId(null);
-            clearPendingReplace();
-          });
-        return;
-      }
-      const sourceUrl = replace.sourceUrl;
-      setReplaceBusyId(asset.id);
-      promoteToAsset(project, sourceUrl, target, { mark_stale: false })
-        .then((result) => {
-          // 重新拉取素材列表,让左侧缩略图同步成最新资产。
-          setInternalReloadToken((t) => t + 1);
-          onReplaced?.({ target, result }, `已用画布节点替换「${asset.label}」`);
-        })
-        .catch((err) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          onReplaced?.(null, `替换「${asset.label}」失败：${msg}`);
-        })
-        .finally(() => {
-          setReplaceBusyId(null);
-          clearPendingReplace();
-        });
-    },
-    [clearPendingReplace, onReplaced, project],
-  );
-
-  const replaceContextValue = useMemo<AssetReplaceContextValue>(
-    () => ({
-      confirmingAssetId,
-      busyAssetId: replaceBusyId,
-      onConfirm: handleConfirmReplace,
-      onCancel: handleCancelReplace,
-    }),
-    [confirmingAssetId, replaceBusyId, handleConfirmReplace, handleCancelReplace],
-  );
-
   const tabCounts = useMemo(
     () => tabs.map((t) => ({ ...t, count: countAssetsForTab(assets, t.id) })),
     [assets],
   );
 
   return (
-    <AssetReplaceContext.Provider value={replaceContextValue}>
-      <aside
-        className="pointer-events-none absolute inset-y-0 left-0 z-30 overflow-visible"
-      >
+    <aside
+      className="pointer-events-none absolute inset-y-0 left-0 z-30 overflow-visible"
+    >
         {/* 折叠/展开胶囊 — 停在卡片右侧的画布上 */}
         <div
           className="group/handle pointer-events-auto absolute top-3 z-30 flex h-10 w-10 items-center justify-center transition-[left] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -409,6 +319,12 @@ export function AssetLibraryPanel({
                       index={index}
                       cacheToken={assetImageCacheToken}
                       onAdd={() => addAssetToCanvas(asset, index)}
+                      activeDragMediaType={replacementController.activeDragMediaType}
+                      hoverAssetId={replacementController.hoverAssetId}
+                      isConfirming={replacementController.confirmingAssetId === asset.id}
+                      isReplacing={replacementController.busyAssetId === asset.id}
+                      onConfirm={() => replacementController.confirmReplacement(asset)}
+                      onCancel={replacementController.cancelReplacement}
                     />
                   ))}
                 </div>
@@ -424,8 +340,7 @@ export function AssetLibraryPanel({
             />
           )}
         </div>
-      </aside>
-    </AssetReplaceContext.Provider>
+    </aside>
   );
 }
 
@@ -438,11 +353,23 @@ function AssetCard({
   index,
   onAdd,
   cacheToken,
+  activeDragMediaType,
+  hoverAssetId,
+  isConfirming,
+  isReplacing,
+  onConfirm,
+  onCancel,
 }: {
   asset: LibraryAsset;
   index: number;
   cacheToken: string;
   onAdd: () => void;
+  activeDragMediaType: ReturnType<typeof assetDropMediaType>;
+  hoverAssetId: string | null;
+  isConfirming: boolean;
+  isReplacing: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) {
   const isThreeD = isThreeDAsset(asset);
   const isAudio = asset.mediaType === "audio";
@@ -461,18 +388,13 @@ function AssetCard({
       : null;
   const disabled = !isThreeD && (asset.mediaType === "text" || asset.mediaType === "file");
   const dropMediaType = assetDropMediaType(asset);
-  const activeDrag = useAssetDropStore((s) => s.activeDrag);
   const target = assetToPushTarget(asset.source);
   const replaceable =
     asset.source.pushable !== false &&
     Boolean(dropMediaType) &&
     target !== null &&
-    (target.kind !== "director_render" || activeDrag?.mediaType === "image");
-  const hoverAssetId = useAssetDropStore((s) => s.hoverAssetId);
+    (target.kind !== "director_render" || activeDragMediaType === "image");
   const isDropHover = replaceable && hoverAssetId === asset.id;
-  const replaceCtx = useContext(AssetReplaceContext);
-  const isConfirming = replaceCtx?.confirmingAssetId === asset.id;
-  const isReplacing = replaceCtx?.busyAssetId === asset.id;
   const dragPayload = disabled ? null : assetToDragPayload(asset);
   const typeBadge = sceneAssetTypeBadge(asset);
 
@@ -577,7 +499,7 @@ function AssetCard({
             <button
               type="button"
               className="h-6 flex-1 rounded-md border border-border text-[11px] text-foreground/85 hover:bg-muted disabled:opacity-50"
-              onClick={() => replaceCtx?.onConfirm(asset)}
+              onClick={onConfirm}
               disabled={isReplacing}
             >
               {isReplacing ? "替换中…" : "替换"}
@@ -585,7 +507,7 @@ function AssetCard({
             <button
               type="button"
               className="h-6 flex-1 rounded-md text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-              onClick={() => replaceCtx?.onCancel()}
+              onClick={onCancel}
               disabled={isReplacing}
             >
               取消

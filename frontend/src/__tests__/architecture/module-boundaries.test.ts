@@ -2026,7 +2026,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const internalConsumerPaths = [
       "features/freezone/FreezoneShell.tsx",
-      "features/freezone/AssetLibraryPanel.tsx",
+      "features/freezone/hooks/useAssetLibraryReplacementController.ts",
       "features/freezone/commit/CommitDialog.tsx",
       "features/freezone/commit/BatchCommitDialog.tsx",
       "features/freezone/commit/directorRenderCommit.ts",
@@ -6145,6 +6145,78 @@ describe("frontend architecture boundaries", () => {
       expect(panelSource).not.toContain(legacyDeclaration);
     }
     expect(testSource).toContain('from "./AssetLibraryBeatPanels"');
+  });
+
+  it("keeps asset library replacement orchestration in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useAssetLibraryReplacementController.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useAssetLibraryReplacementController.test.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useAssetLibraryReplacementController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(
+      resolve(SRC_ROOT, "features/freezone"),
+    )
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useAssetLibraryReplacementController.ts",
+    ]);
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/assetDropStore",
+        "@/features/freezone/domain/assetCommit",
+        "../commit/directorRenderCommit",
+        "../commit/promoteToAsset",
+        "../commit/pushTarget",
+        "../domain/assetLibraryModel",
+      ]),
+    );
+    expect(controllerSource).toContain(
+      "useAssetDropStore.getState().pendingReplace",
+    );
+    expect(controllerSource).toContain(
+      "commitDirectorRenderFromCanvasSource(project, target, {",
+    );
+    expect(controllerSource).toContain(
+      "promoteToAsset(project, replacement.sourceUrl, target, {",
+    );
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/hooks/useAssetLibraryReplacementController",
+    );
+    expect(panelSource).toContain(
+      "replacementController.confirmReplacement(asset)",
+    );
+    for (const legacyDependency of [
+      "AssetReplaceContext",
+      "useAssetDropStore",
+      "commitDirectorRenderFromCanvasSource",
+      "promoteToAsset",
+      "replaceBusyId",
+      "handleConfirmReplace",
+      "handleCancelReplace",
+    ]) {
+      expect(panelSource).not.toContain(legacyDependency);
+    }
+    expect(testSource).toContain(
+      'from "./useAssetLibraryReplacementController"',
+    );
   });
 
   it("keeps asset library canvas insertion behind one application use case", () => {

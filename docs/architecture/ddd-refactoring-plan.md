@@ -2080,6 +2080,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零四批已将资产库 Beat 缩略卡、剧集/Beat 折叠、默认画布上下文、preset 分组及入口分派从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryBeatPanels.tsx`；组件通过 `onAddAsset(asset, index)` 接收画布插入命令，不直接依赖 Canvas/Freezone composition，并继续复用 application 拖拽 payload 与纯展示模型。默认画布仍使用全部 Beat 资产中的全局索引，preset 分组仍使用当前资产集合中的局部索引，音视频/3D 缩略图、空状态、折叠初始状态、分组顺序和点击、右键、拖拽行为保持不变；旧组件实现从面板直接删除，不保留 facade、旧导出或第二套实现。`AssetLibraryPanel` 由 1,038 行降至 661 行；直接组件与面板回归 2 个文件 8 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 287 项（其中 module boundaries 247 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零五批已将资产库拖拽替换的 Store 订阅、待确认/忙碌状态、目标解析、普通资产提交、Director Render bundle 提交、结果提示、清理和成功刷新计数从 `AssetLibraryPanel` 迁入唯一 presentation controller `hooks/useAssetLibraryReplacementController.ts`；面板只消费控制器状态并向普通资产卡显式传入确认/取消命令，原本仅跨一层组件的 `AssetReplaceContext` 整体删除。普通提交继续使用 `mark_stale: false`，Director Render 继续透传 source URL、control bundle、节点 ID 和标签；无效目标、提交成功、提交失败、pending 清理、busy 复位及仅成功时刷新查询的语义保持不变，同时将每张卡片分别订阅 Asset Drop Store 收敛为控制器单次订阅，不保留旧 handler、Context 或第二套提交编排。`AssetLibraryPanel` 由 661 行降至 583 行；控制器、面板与 Director bundle 合同回归 3 个文件 21 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 288 项（其中 module boundaries 248 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
