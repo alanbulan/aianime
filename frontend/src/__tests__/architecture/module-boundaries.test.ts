@@ -815,7 +815,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
-        "@/features/freezone/canvasDraftStorage",
+        "@/features/freezone/canvasDraftComposition",
         "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
@@ -874,14 +874,24 @@ describe("frontend architecture boundaries", () => {
   it("installs Freezone storage recovery from the application bootstrap", () => {
     const bootstrapPath = resolve(SRC_ROOT, "app/bootstrap.tsx");
     const settingsPath = resolve(SRC_ROOT, "stores/settingsStore.ts");
-    const draftStoragePath = resolve(
+    const legacyDraftStoragePath = resolve(
       SRC_ROOT,
       "features/freezone/canvasDraftStorage.ts",
     );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasDraftComposition.ts",
+    );
+    const draftStoragePath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+    );
     const bootstrap = readFileSync(bootstrapPath, "utf8");
     const settings = readFileSync(settingsPath, "utf8");
+    const composition = readFileSync(compositionPath, "utf8");
     const draftStorage = readFileSync(draftStoragePath, "utf8");
 
+    expect(existsSync(legacyDraftStoragePath)).toBe(false);
     expect(importSpecifiers(bootstrapPath)).toContain(
       "@/features/freezone/public",
     );
@@ -889,13 +899,17 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(settingsPath)).toContain("@/features/canvas/public");
     expect(settings).not.toContain("@/features/freezone/canvasDraftStorage");
     expect(settings).not.toContain("@/features/canvas/pricing/types");
-    expect(draftStorage).toContain(
+    expect(composition).toContain(
       "export function installFreezoneCanvasStorageReclaimer()",
+    );
+    expect(composition).toContain(
+      "return installBrowserCanvasStorageReclaimer();",
     );
     expect(draftStorage).toContain(
       "return registerStorageReclaimer(pruneFreezoneCanvasStorage);",
     );
     expect(draftStorage).not.toContain("registerStorageReclaimer(() =>");
+    expect(draftStorage).not.toContain("pruneOldCanvasDrafts");
   });
 
   it("owns the Canvas Store inside Creative Canvas", () => {
@@ -1756,7 +1770,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const draftStorage = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/canvasDraftStorage.ts"),
+      resolve(SRC_ROOT, "features/freezone/application/canvasDraft.ts"),
       "utf8",
     );
     const forbiddenHistoryImports = importSpecifiers(historyPath).filter(
@@ -2055,7 +2069,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const draftStorage = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/canvasDraftStorage.ts"),
+      resolve(SRC_ROOT, "features/freezone/application/canvasDraft.ts"),
       "utf8",
     );
     const forbiddenMutationImports = importSpecifiers(mutationPath).filter(
@@ -5001,7 +5015,7 @@ describe("frontend architecture boundaries", () => {
     );
     const draftStoragePath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasDraftStorage.ts",
+      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
     );
     const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
     const storageSource = readFileSync(storagePath, "utf8");
@@ -5083,7 +5097,7 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasSyncStorage",
     );
     expect(importSpecifiers(draftStoragePath)).toContain(
-      "./application/canvasSyncStorage",
+      "../application/canvasSyncStorage",
     );
     expect(draftStorageSource).not.toContain(
       'const CANVAS_HISTORY_PREFIX = "freezone:canvas-history:"',
@@ -5096,6 +5110,93 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(shellPath)).toContain(
       "./application/canvasSyncStorage",
+    );
+  });
+
+  it("keeps browser canvas drafts behind one application port", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasDraftStorage.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasDraft.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasDraftComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const forbiddenApplicationImports = importSpecifiers(applicationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/shared/api/"),
+    );
+    const gatewayDeclaration = [
+      "export interface",
+      "CanvasDraftStorageGateway",
+    ].join(" ");
+    const gatewayOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(gatewayDeclaration))
+      .map(relativeSource)
+      .sort();
+    const signatureDeclaration = [
+      "export function",
+      "canvasDraftSignature(",
+    ].join(" ");
+    const signatureOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(signatureDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(forbiddenApplicationImports).toEqual([]);
+    expect(applicationSource).not.toContain("window.");
+    expect(applicationSource).not.toContain("document.");
+    expect(applicationSource).not.toContain("localStorage");
+    expect(gatewayOwners).toEqual([
+      "features/freezone/application/canvasDraft.ts",
+    ]);
+    expect(signatureOwners).toEqual([
+      "features/freezone/application/canvasDraft.ts",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/lib/localStorageQuota",
+        "../application/canvasDraft",
+        "../application/canvasSyncStorage",
+      ]),
+    );
+    expect(adapterSource).toContain("createStoredCanvasDraft(");
+    expect(adapterSource).toContain("parseStoredCanvasDraft(");
+    expect(adapterSource).not.toContain("pruneOldCanvasDrafts");
+    expect(importSpecifiers(compositionPath)).toEqual([
+      "./infrastructure/browserCanvasDraftStorageGateway",
+    ]);
+    expect(importSpecifiers(hookPath)).toContain("../application/canvasDraft");
+    expect(importSpecifiers(hookPath)).toContain("../canvasDraftComposition");
+    expect(importSpecifiers(hookPath)).not.toContain(
+      "../infrastructure/browserCanvasDraftStorageGateway",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/canvasDraftComposition",
     );
   });
 

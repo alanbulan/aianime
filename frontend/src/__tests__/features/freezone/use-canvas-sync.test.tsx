@@ -17,9 +17,8 @@ import {
   useCanvasSync,
 } from "@/features/freezone/hooks/useCanvasSync";
 import {
-  readCanvasDraft,
-  writeCanvasDraft,
-} from "@/features/freezone/canvasDraftStorage";
+  canvasDraftStorageGateway,
+} from "@/features/freezone/canvasDraftComposition";
 import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
@@ -28,6 +27,9 @@ import {
 import { useShotMetadataStore } from "@/features/freezone/shotMetadataStore";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
+
+const { readDraft: readCanvasDraft, writeDraft: writeCanvasDraft } =
+  canvasDraftStorageGateway;
 
 vi.mock("@/features/canvas/composition", () => ({
   createCanvasFromPreset: vi.fn(),

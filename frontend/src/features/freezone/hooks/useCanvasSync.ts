@@ -55,12 +55,9 @@ import {
 } from "../projections";
 import {
   canvasDraftSignature,
-  clearCanvasDraft,
-  pruneOldCanvasDrafts,
-  readCanvasDraft,
-  writeCanvasDraft,
   type StoredCanvasDraft,
-} from "../canvasDraftStorage";
+} from "../application/canvasDraft";
+import { canvasDraftStorageGateway } from "../canvasDraftComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
@@ -85,7 +82,7 @@ function schedulePruneOnce(): void {
   if (prunePending) return;
   prunePending = true;
   const run = () => {
-    pruneOldCanvasDrafts();
+    canvasDraftStorageGateway.prune();
   };
   if (typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(run, { timeout: 2_000 });
@@ -486,7 +483,7 @@ export function useCanvasSync(
     }
     const canvasState = useCanvasStore.getState();
     const shot = useShotMetadataStore.getState().shot;
-    return writeCanvasDraft(project, canvasId, {
+    return canvasDraftStorageGateway.writeDraft(project, canvasId, {
       baseRevision: revisionRef.current,
       nodes: canvasState.nodes,
       edges: canvasState.edges,
@@ -534,7 +531,7 @@ export function useCanvasSync(
       window.clearTimeout(draftTimerRef.current);
       draftTimerRef.current = null;
     }
-    clearCanvasDraft(project, canvasId);
+    canvasDraftStorageGateway.clearDraft(project, canvasId);
   };
 
   // Stash local edits to localStorage so the user can grab them via the
@@ -627,7 +624,7 @@ export function useCanvasSync(
       lastRemoteNodeCountRef.current = remoteNodes.length;
       pendingClientSaveIdRef.current = null;
       pendingClientSaveIdSignatureRef.current = null;
-      clearCanvasDraft(project, canvasId);
+      canvasDraftStorageGateway.clearDraft(project, canvasId);
       const meta = (remote.metadata ?? null) as
         | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
         | null;
@@ -760,7 +757,7 @@ export function useCanvasSync(
           | null;
         const remoteSignature = canvasDraftSignature(nodes, edges, meta);
         lastPersistedDraftSignatureRef.current = remoteSignature;
-        const draft = readCanvasDraft(project, canvasId);
+        const draft = canvasDraftStorageGateway.readDraft(project, canvasId);
         const draftDecision = decideHydrateDraft(
           draft,
           remoteRevision,
@@ -825,7 +822,7 @@ export function useCanvasSync(
             timestamp: new Date(draftDecision.draft.updatedAt).toISOString(),
           });
         } else if (draft) {
-          clearCanvasDraft(project, canvasId);
+          canvasDraftStorageGateway.clearDraft(project, canvasId);
         }
 
         setCanvasData(nodes, edges);
@@ -1218,7 +1215,7 @@ export function useCanvasSync(
     // snapshot so a future 409 starts fresh. If they wanted to keep it, they
     // would have clicked the "下载本地 JSON" button first.
     canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
-    clearCanvasDraft(project, canvasId);
+    canvasDraftStorageGateway.clearDraft(project, canvasId);
     setReloadKey((k) => k + 1);
   };
   const saveCopy = async () => {
@@ -1252,7 +1249,7 @@ export function useCanvasSync(
     pendingClientSaveIdSignatureRef.current = null;
     // The local edits are now durable in the copy canvas — drop the snapshot.
     canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
-    clearCanvasDraft(project, canvasId);
+    canvasDraftStorageGateway.clearDraft(project, canvasId);
     setSyncStatus("ready");
     setError(null);
     return copyCanvasId;
@@ -1545,7 +1542,7 @@ function consumeSaveResponse(
   if (args.clearDraftAfterSave) {
     args.clearDraftAfterSave();
   } else {
-    clearCanvasDraft(args.project, args.canvasId);
+    canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
   }
   if (decision.saveSource === "manual_clear") {
     // One-shot intent has been honored by the server. Clear the flag so a
@@ -1629,7 +1626,7 @@ async function handleSaveError(
       if (args.clearDraftAfterSave) {
         args.clearDraftAfterSave();
       } else {
-        clearCanvasDraft(args.project, args.canvasId);
+        canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
       }
       args.publishBackupStatus?.(outcome.backupStatus);
       args.setError(null);
@@ -1648,7 +1645,7 @@ async function handleSaveError(
     }
     case "ok": {
       dropPendingId();
-      clearCanvasDraft(args.project, args.canvasId);
+      canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
       args.publishBackupStatus?.(outcome.backupStatus ?? null);
       args.setError(null);
       args.setStatus("ready");

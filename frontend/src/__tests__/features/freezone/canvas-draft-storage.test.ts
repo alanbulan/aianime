@@ -5,14 +5,19 @@ import {
   CANVAS_DRAFT_MAX_BYTES,
   FREEZONE_CANVAS_TTL_MS,
   canvasDraftSignature,
+} from "@/features/freezone/application/canvasDraft";
+import {
+  canvasDraftStorageGateway,
   installFreezoneCanvasStorageReclaimer,
-  pruneFreezoneCanvasStorage,
-  pruneOldCanvasDrafts,
-  readCanvasDraft,
-  writeCanvasDraft,
-} from "@/features/freezone/canvasDraftStorage";
+} from "@/features/freezone/canvasDraftComposition";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { safeLocalStorageSet } from "@/lib/localStorageQuota";
+
+const {
+  prune: pruneFreezoneCanvasStorage,
+  readDraft: readCanvasDraft,
+  writeDraft: writeCanvasDraft,
+} = canvasDraftStorageGateway;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -168,7 +173,7 @@ describe("canvas draft storage", () => {
       updatedAt: 7 * 24 * 60 * 60 * 1_000,
     });
 
-    pruneOldCanvasDrafts(8 * 24 * 60 * 60 * 1_000 + 2);
+    pruneFreezoneCanvasStorage(8 * 24 * 60 * 60 * 1_000 + 2);
 
     expect(readCanvasDraft("project-a", "old")).toBeNull();
     expect(readCanvasDraft("project-a", "fresh")).not.toBeNull();

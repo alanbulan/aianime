@@ -2022,6 +2022,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十五批已将 `useCanvasSync` 中 viewport、跨刷新 undo/redo history 与冲突快照的浏览器存储实现迁入唯一 `browserCanvasSyncStorageGateway`，由 application `CanvasSyncStorageGateway` 定义最小端口、状态/快照合同及纯 history 截断、冲突副本和 viewport 校验规则，并经专用 `canvasSyncComposition` 装配后供 hook 使用；hook 不再直接访问 localStorage 或配额工具，由 1,947 行降至 1,716 行。三个历史存储 key 前缀与 key 构造同步从旧 hook/草稿回收器副本统一归入 application，浏览器写入适配器和 `canvasDraftStorage` TTL 回收共同复用，不保留重复常量、旧函数或 facade；键值格式、1.5 MB history 上限、10 步截断、read-once 清理、冲突快照字段和同步写入时序保持不变。同步、冲突、画布列表与配额回收回归 104 项、相关架构门禁 2 项和完整前端架构门禁 220 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十六批已将根级 `canvasDraftStorage.ts` 中混合的草稿 DTO、稳定签名、历史兼容解析与存储端口迁入唯一 application `canvasDraft.ts`，浏览器 JSON/localStorage 读写、1.5 MB history 降级、TTL 分类清理和配额回收注册迁入唯一 `browserCanvasDraftStorageGateway`，并由 `canvasDraftComposition` 显式装配供同步 hook 与应用 bootstrap 使用；Freezone public 仅暴露 composition 的回收安装入口，旧根文件直接删除。失去必要性的 `pruneOldCanvasDrafts` deprecated 别名及全部旧导入同步清零，不保留 re-export、facade 或第二套草稿实现；draft key 编码、版本 1、7 天 TTL、超限时先丢 history、损坏数据清理、签名字段排序和注册/注销行为保持不变。草稿、同步、冲突与配额回收回归 104 项、相关架构门禁 6 项和完整前端架构门禁 221 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
