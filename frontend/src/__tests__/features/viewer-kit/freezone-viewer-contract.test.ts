@@ -425,7 +425,9 @@ describe("freezone viewer contracts", () => {
     const submitController = read(
       "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
     );
-    const shell = read("src/features/freezone/FreezoneShell.tsx");
+    const shell = read(
+      "src/features/freezone/hooks/useFreezoneShellController.ts",
+    );
     const commitController = read(
       "src/features/freezone/hooks/useCanvasCommitController.ts",
     );
@@ -500,7 +502,9 @@ describe("freezone viewer contracts", () => {
 
   it("routes projection group toolbar actions through projection sync and remove events", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
-    const shell = read("src/features/freezone/FreezoneShell.tsx");
+    const shell = read(
+      "src/features/freezone/hooks/useFreezoneShellController.ts",
+    );
     const commandController = read(
       "src/features/freezone/hooks/useCanvasProjectionCommandController.ts",
     );

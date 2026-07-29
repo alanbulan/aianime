@@ -2166,6 +2166,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十七批已将 Freezone 根级混合页面 `FreezoneProjectPage.tsx` 拆为唯一页面 controller `hooks/useFreezoneProjectPageController.ts`、纯 presentation View `presentation/FreezoneProjectPageView.tsx` 和真实装配根 `routeComposition.ts`；原 5 行 route re-export facade 直接改为调用 controller 并创建 View，路由文件继续只传递项目参数。controller 独占项目查询、账号读取、Router canvas 参数、全局错误订阅、项目 id/name 匹配、本地画布读取和入口画布解析，并以 `loading / not-found / ready` 判别状态输出；View 只渲染加载、项目缺失、FreezoneShell 与错误弹窗，不再依赖 Router、项目查询、账号 store 或 URL 存储。旧根级页面直接删除，不保留 facade、re-export 或第二套页面；查询数据缺失时保持加载、id 优先于 name、路由 canvas 优先于本地记录、个人画布回退、返回项目 URL 清理、ReactFlow provider 和全局错误关闭/退订语义均保持不变。新增 controller 5 项与 View 3 项测试，并连同既有画布身份 2 项共回归 3 个文件 10 项；完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十八批已将 Freezone 根级混合 Shell 拆为唯一运行时 controller `hooks/useFreezoneShellController.ts`、纯 presentation View `presentation/FreezoneShellView.tsx` 和真实装配根 `FreezoneShell.tsx`；装配根只将项目 ID 与画布 ID 交给 controller 并创建 View，controller 独占画布同步、入口生命周期、投影状态/命令、提交编排、冲突副本、主线恢复、素材刷新、聊天开关、提示和既有弹窗状态，View 只渲染 Canvas、素材面板、聊天 Dock、反馈层和弹窗。原 Shell 中的 JSX 与副作用实现已全部迁出，不保留 facade、re-export 或第二套装配；阻塞/覆盖加载、错误/冲突反馈、备份状态、空白画布收起、提交弹窗、素材刷新 token、CE 隐藏聊天、主线恢复提示和冲突副本 URL 更新语义保持不变。只读检查另确认 `context/contextMatching.ts`、`context/contextPromptCompiler.ts` 与 `context/contextOperations.tsx` 仅互相引用且无生产调用方，本批按范围约束未迁移或删除。新增 controller 4 项与 View 3 项测试，连同页面及 Viewer Kit/Canvas 静态契约共回归 6 个文件 51 项；完整前端架构门禁 3 个文件 314 项（其中 module boundaries 274 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

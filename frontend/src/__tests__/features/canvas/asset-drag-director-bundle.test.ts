@@ -177,7 +177,10 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
     const shell = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/FreezoneShell.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useFreezoneShellController.ts",
+      ),
       "utf8",
     );
     const rules = readFileSync(
@@ -241,8 +244,18 @@ describe("director bundle canvas assets", () => {
   });
 
   it("refreshes the asset library after commits handled outside the library panel", () => {
-    const shell = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/FreezoneShell.tsx"),
+    const shellController = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useFreezoneShellController.ts",
+      ),
+      "utf8",
+    );
+    const shellView = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/FreezoneShellView.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
@@ -260,9 +273,9 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
 
-    expect(shell).toContain("assetLibraryReloadToken");
-    expect(shell).toContain("setAssetLibraryReloadToken");
-    expect(shell).toContain("reloadToken={assetLibraryReloadToken}");
+    expect(shellController).toContain("assetLibraryReloadToken");
+    expect(shellController).toContain("setAssetLibraryReloadToken");
+    expect(shellView).toContain("reloadToken={assetLibrary.reloadToken}");
     expect(panel).toContain("reloadToken?: number");
     expect(panel).toContain("useAssetLibraryCatalogController");
     expect(catalogController).toContain("projectAssetsReloadKey");
