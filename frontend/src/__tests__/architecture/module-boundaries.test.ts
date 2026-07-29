@@ -1522,6 +1522,131 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './StoryboardNodeView'");
   });
 
+  it("separates the Canvas storyboard-generator model, runtime, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardGenNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardGenNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardGenNodeModel.test.ts",
+    );
+    const runtimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserStoryboardGenRuntime.ts",
+    );
+    const runtimeTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useStoryboardGenNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useStoryboardGenNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardGenNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardGenNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const runtimeSource = readFileSync(runtimePath, "utf8");
+    const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "StoryboardGenNode", "=", "memo("].join(" "),
+      ["export function", "resolveStoryboardGenLayout("].join(" "),
+      ["export function", "generateStoryboardGridImageDataUrl("].join(" "),
+      ["export function", "useStoryboardGenNodeController("].join(" "),
+      ["export function", "StoryboardGenNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useStoryboardGenNodeController",
+        "./StoryboardGenNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/StoryboardGenNode.tsx"],
+      ["features/canvas/application/storyboardGenNodeModel.ts"],
+      ["features/canvas/infrastructure/browserStoryboardGenRuntime.ts"],
+      ["features/canvas/hooks/useStoryboardGenNodeController.ts"],
+      ["features/canvas/nodes/StoryboardGenNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(runtimeSource).toContain("document.createElement('canvas')");
+    expect(runtimeSource).toContain("document.createElement('div')");
+    expect(runtimeSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { StoryboardGenNode } from './StoryboardGenNode'",
+    );
+    expect(registrySource).toContain("storyboardGenNode: StoryboardGenNode");
+    expect(entrySource).toContain("useStoryboardGenNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(StoryboardGenNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useSettingsStore(");
+    expect(controllerSource).toContain(
+      "canvasAiGateway.submitGenerateImageJob(",
+    );
+    expect(controllerSource).toContain("generateStoryboardGridImageDataUrl(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<NodeHeader");
+    expect(viewSource).toContain("<GridStepperControl");
+    expect(viewSource).toContain("<ModelParamsControls");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("useSettingsStore(");
+    expect(viewSource).not.toContain("canvasAiGateway");
+    expect(modelTestSource).toContain("from './storyboardGenNodeModel'");
+    expect(runtimeTestSource).toContain(
+      "from './browserStoryboardGenRuntime'",
+    );
+    expect(controllerTestSource).toContain(
+      "from './useStoryboardGenNodeController'",
+    );
+    expect(viewTestSource).toContain("from './StoryboardGenNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
