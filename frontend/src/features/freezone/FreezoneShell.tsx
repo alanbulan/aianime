@@ -23,7 +23,7 @@ import {
   CanvasLoadingScreen,
   FreezoneToast,
 } from "./presentation/FreezoneCanvasFeedback";
-import { AssetLibraryPanel } from "./AssetLibraryPanel";
+import { AssetLibraryPanel } from "./presentation/AssetLibraryPanel";
 import type {
   PushTarget,
   PushTargetKind,

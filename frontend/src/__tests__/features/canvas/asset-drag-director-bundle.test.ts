@@ -205,7 +205,10 @@ describe("director bundle canvas assets", () => {
 
   it("uses mainline asset wording and keeps current background labels beat-agnostic", () => {
     const panel = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/AssetLibraryPanel.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+      ),
       "utf8",
     );
     const panelView = readFileSync(
@@ -243,7 +246,10 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
     const panel = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/AssetLibraryPanel.tsx"),
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+      ),
       "utf8",
     );
     const catalogController = readFileSync(

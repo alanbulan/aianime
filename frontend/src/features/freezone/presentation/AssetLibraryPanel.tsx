@@ -1,13 +1,13 @@
 // Copyright (c) 2026 AI anime
-import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/domain/canvasProjectionMetadata";
-import { addAssetToCanvas } from "@/features/freezone/assetLibraryCanvasInsertionComposition";
-import { resolveCanvasKind } from "@/features/freezone/presentation/assetLibraryViewModel";
-import { AssetLibraryPanelView } from "@/features/freezone/presentation/AssetLibraryPanelView";
+import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
+import { hasLegacyPresetCanvasMetadata } from "../domain/canvasProjectionMetadata";
 import {
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
-} from "@/features/freezone/hooks/useAssetLibraryReplacementController";
-import { useAssetLibraryCatalogController } from "@/features/freezone/hooks/useAssetLibraryCatalogController";
+} from "../hooks/useAssetLibraryReplacementController";
+import { useAssetLibraryCatalogController } from "../hooks/useAssetLibraryCatalogController";
+import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
+import { resolveCanvasKind } from "./assetLibraryViewModel";
 
 interface AssetLibraryPanelProps {
   project: string;

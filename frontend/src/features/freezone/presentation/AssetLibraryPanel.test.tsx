@@ -27,7 +27,7 @@ vi.mock("@/features/freezone/presentation/CanvasesTab", () => ({
   CanvasesTab: () => null,
 }));
 
-import { AssetLibraryPanel } from "@/features/freezone/AssetLibraryPanel";
+import { AssetLibraryPanel } from "./AssetLibraryPanel";
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

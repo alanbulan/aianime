@@ -89,7 +89,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/ui/tool-editors/CropToolEditor.tsx": 0,
   "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx": 4,
   "features/canvas/ui/VideoViewerModal.tsx": 4,
-  "features/freezone/AssetLibraryPanel.tsx": 0,
+  "features/freezone/presentation/AssetLibraryPanel.tsx": 0,
   "features/freezone/presentation/CommitDialogView.tsx": 0,
   "features/freezone/presentation/NodeContextBadges.tsx": 0,
   "features/freezone/FreezoneShell.tsx": 0,

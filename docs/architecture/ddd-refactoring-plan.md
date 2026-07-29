@@ -2162,6 +2162,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十五批已将 Freezone 最后一个 `commit/sceneDirectorWorldCommit.ts` 拆为唯一领域模块 `domain/directorWorldCommit.ts`、application 用例与 gateway port `application/sceneDirectorWorldCommit.ts`、Asset World 适配器 `infrastructure/assetWorldSceneDirectorCommitGateway.ts`，并由既有 `composition.ts` 完成唯一装配；纯目标判定、来源槽位节点 patch、来源身份归一和提交计划构建归 domain，保存/清理顺序与失败传播归 application，Asset World manifest DTO、保存/清理 API 映射及可注入依赖工厂归 infrastructure。两个提交 controller 经 composition 调用命令并直用同域纯规则，Canvas 提交规则和节点 patch application 统一依赖新 domain；旧文件直接删除，`commit/` 不再保留源码，不留 facade、re-export 或第二套提交路径，domain/application 不再穿透 Canvas、Viewer Kit 内部路径或 Asset World 持久化 API。无场景状态拒绝、未提交来源拒绝、活动来源最后保存、legacy 媒体版本身份归一、候选来源保持本地身份、先保存后清理陈旧来源、保存失败不清理及禁用裁剪时逐来源同步语义保持不变；场景提交测试改为向真实基础设施适配器注入四个边界 mock，避免公共 barrel 循环 mock。相关回归 6 个文件 63 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十六批已将 Freezone 根级容器 `AssetLibraryPanel.tsx` 及其外置 Beat Context 集成测试归入唯一 presentation 所有者 `presentation/AssetLibraryPanel.tsx` 与同目录 `AssetLibraryPanel.test.tsx`；唯一生产调用方 FreezoneShell、Viewer Kit/Canvas 静态契约、颜色字面量基线和八处既有架构所有权检查统一使用新路径，组件内部对插入 composition、领域规则、两个 controller、view model 与 View 的依赖改为同 feature 相对导入。旧根级组件与外置测试路径直接删除，不保留 facade、re-export 或第二套入口；组件 props、画布类型与 preset 标签投影、素材替换/目录 controller 装配、reload token、折叠状态、主线恢复回调及 `onAddAsset` 透传语义均保持不变。相关回归 4 个文件 44 项通过（保留既有非失败 React `act(...)` 测试警告），完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

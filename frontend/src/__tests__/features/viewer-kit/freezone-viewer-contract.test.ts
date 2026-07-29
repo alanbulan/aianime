@@ -79,7 +79,9 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
-    const panel = read("src/features/freezone/AssetLibraryPanel.tsx");
+    const panel = read(
+      "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+    );
     const assetLibraryModel = read(
       "src/features/freezone/domain/assetLibraryModel.ts",
     );
