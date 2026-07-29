@@ -224,7 +224,7 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
     const badges = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/context/NodeContextBadges.tsx"),
+      resolve(process.cwd(), "src/features/freezone/presentation/NodeContextBadges.tsx"),
       "utf8",
     );
 

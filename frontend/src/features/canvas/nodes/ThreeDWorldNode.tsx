@@ -84,7 +84,7 @@ import {
   hasMainlineContexts,
   NodeContextBadges,
   validMainlineContexts,
-} from '@/features/freezone/context/NodeContextBadges';
+} from '@/features/freezone/public';
 import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';

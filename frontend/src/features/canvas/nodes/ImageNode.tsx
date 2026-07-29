@@ -40,9 +40,9 @@ import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/feature
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   CandidateBindingBadges,
+  collectCandidateBindingsForNode,
   hasMainlineContexts,
-} from '@/features/freezone/context/NodeContextBadges';
-import { collectCandidateBindingsForNode } from '@/features/freezone/public';
+} from '@/features/freezone/public';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import {
   canRegenerateExportImageNode,

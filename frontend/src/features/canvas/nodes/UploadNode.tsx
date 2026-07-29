@@ -67,9 +67,9 @@ import {
 } from '@/features/canvas/ui/NodeSideActionRail';
 import {
   CandidateBindingBadges,
+  collectCandidateBindingsForNode,
   hasMainlineContexts,
-} from '@/features/freezone/context/NodeContextBadges';
-import { collectCandidateBindingsForNode } from '@/features/freezone/public';
+} from '@/features/freezone/public';
 import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,

@@ -91,7 +91,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/ui/VideoViewerModal.tsx": 4,
   "features/freezone/AssetLibraryPanel.tsx": 0,
   "features/freezone/presentation/CommitDialogView.tsx": 0,
-  "features/freezone/context/NodeContextBadges.tsx": 0,
+  "features/freezone/presentation/NodeContextBadges.tsx": 0,
   "features/freezone/FreezoneShell.tsx": 0,
   "features/superchat/superchat-panel.tsx": 0,
   "modules/platform_release/presentation/VersionUpdateDialog.tsx": 0,

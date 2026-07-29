@@ -36,6 +36,12 @@ export {
   translateSkillParameterOption,
   translateSkillRequirement,
 } from "@/features/freezone/presentation/skillI18n";
+export {
+  CandidateBindingBadges,
+  hasMainlineContexts,
+  NodeContextBadges,
+  validMainlineContexts,
+} from "@/features/freezone/presentation/NodeContextBadges";
 export type {
   MainlineContext,
   MainlineContextEdgeLike,

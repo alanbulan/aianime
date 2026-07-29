@@ -40,7 +40,7 @@ import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import {
   hasMainlineContexts,
   NodeContextBadges,
-} from '@/features/freezone/context/NodeContextBadges';
+} from '@/features/freezone/public';
 import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
 import { loadCanvasAudioReferences } from '@/features/canvas/audioComposition';
 import { uploadCanvasAsset } from '@/features/canvas/composition';

@@ -80,6 +80,7 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import {
+  CandidateBindingBadges,
   collectCandidateBindingsForNode,
   getFreezoneCanvasMetadata,
 } from '@/features/freezone/public';
@@ -140,7 +141,6 @@ import {
   type MentionCandidate,
   type PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
-import { CandidateBindingBadges } from '@/features/freezone/context/NodeContextBadges';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { CreditCostPill, formatCreditCost } from '@/components/credits/credit-visual';

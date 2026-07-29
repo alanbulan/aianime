@@ -2,7 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { NodeContextBadges } from "@/features/freezone/context/NodeContextBadges";
+import { NodeContextBadges } from "./NodeContextBadges";
 
 describe("NodeContextBadges", () => {
   it("does not repeat the primary context in the detail badge row", () => {

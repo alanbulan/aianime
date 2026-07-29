@@ -143,7 +143,7 @@ import {
 import {
   hasMainlineContexts,
   NodeContextBadges,
-} from "@/features/freezone/context/NodeContextBadges";
+} from "@/features/freezone/public";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

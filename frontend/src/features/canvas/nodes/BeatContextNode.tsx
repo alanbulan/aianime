@@ -38,7 +38,6 @@ import {
 } from "@/features/canvas/ui/NodeHeader";
 import { NodeResizeHandle } from "@/features/canvas/ui/NodeResizeHandle";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { NodeContextBadges } from "@/features/freezone/context/NodeContextBadges";
 import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import {
@@ -47,6 +46,7 @@ import {
   flushFreezoneCanvasRuntime,
   getFreezoneCanvasMetadata,
   listFreezoneBeatContext,
+  NodeContextBadges,
   openPresetProjectionInMyCanvas,
   parseBeatContextVisualMarkers,
   presetRequestFromMetadata,

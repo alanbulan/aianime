@@ -838,6 +838,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
         "@/features/freezone/hooks/useCanvasProjectionStatus",
+        "@/features/freezone/presentation/NodeContextBadges",
         "@/features/freezone/presentation/skillI18n",
       ]),
     );
@@ -1091,6 +1092,82 @@ describe("frontend architecture boundaries", () => {
       new Set(["vitest", "./skillI18n", "../domain/skillContract"]),
     );
     expect(canvasBypasses).toEqual([]);
+  });
+
+  it("owns mainline context badges in Freezone presentation", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/NodeContextBadges.tsx",
+    );
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/NodeContextBadges.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/NodeContextBadges.test.tsx",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const colorTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/architecture/ui-color-literals.test.ts",
+    );
+    const assetDragTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/canvas/asset-drag-director-bundle.test.ts",
+    );
+    const declarations = [
+      "validMainlineContexts(",
+      "hasMainlineContexts(",
+      "NodeContextBadges(",
+      "CandidateBindingBadges(",
+    ].map((name) => ["export function", name].join(" "));
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const canvasBypasses = sourceFiles(canvasRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/freezone/context/NodeContextBadges" ||
+              specifier === "@/features/freezone/presentation/NodeContextBadges",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+    const colorTestSource = readFileSync(colorTestPath, "utf8");
+    const assetDragTestSource = readFileSync(assetDragTestPath, "utf8");
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(presentationPath)).toEqual([
+      "../domain/mainlineContext",
+    ]);
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/NodeContextBadges.tsx",
+      ]),
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/presentation/NodeContextBadges",
+    );
+    expect(new Set(importSpecifiers(testPath))).toEqual(
+      new Set(["@testing-library/react", "vitest", "./NodeContextBadges"]),
+    );
+    expect(canvasBypasses).toEqual([]);
+    expect(colorTestSource).toContain(
+      '"features/freezone/presentation/NodeContextBadges.tsx": 0',
+    );
+    expect(colorTestSource).not.toContain(
+      '"features/freezone/context/NodeContextBadges.tsx": 0',
+    );
+    expect(assetDragTestSource).toContain(
+      "src/features/freezone/presentation/NodeContextBadges.tsx",
+    );
   });
 
   it("separates shot metadata rules, state, and cross-context composition", () => {

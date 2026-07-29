@@ -2134,6 +2134,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十一批已将 Freezone `context/skillI18n.ts` 中依赖 i18next TFunction 与 Skill Contract 的展示翻译 helper 迁入唯一 presentation `presentation/skillI18n.ts`，原 4 项行为测试同步从 Canvas 外置测试目录归位到 presentation；NodeSelectionMenu、CanvasAddNodePanel、节点目录 controller 与 SkillNode 统一经 `freezone/public.ts` 使用 8 个翻译函数，不再穿透 Freezone context 或 presentation 内部路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套翻译；skill ID 点号转下划线、option 非字母数字规范化、命中翻译优先、缺失 key 回退后端 label/value、required/optional 与 single/multi 映射语义保持不变。Skill i18n、节点目录 controller 与 SkillNode 导演世界回归 3 个文件 17 项，完整前端架构门禁 3 个文件 309 项（其中 module boundaries 269 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十二批已将 Freezone `context/NodeContextBadges.tsx` 中的主线上下文徽标组件整体迁入唯一 presentation `presentation/NodeContextBadges.tsx`，原行为测试同步归位到 presentation；`CandidateBindingBadges`、`hasMainlineContexts`、`NodeContextBadges` 与 `validMainlineContexts` 四个现有入口统一经 `freezone/public.ts` 公开，Audio、Beat Context、Image Gen、Image、3D World、Upload 与 Video 七个 Canvas 节点不再穿透 Freezone 内部路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套组件；徽标排序、文案、布局、候选角色标签和样式 token 均保持不变。相关回归 4 个文件 56 项，完整前端架构门禁 3 个文件 310 项（其中 module boundaries 270 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
