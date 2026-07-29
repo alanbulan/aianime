@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import type { TFunction } from 'i18next';
 
 import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
-import { translateSkillName } from '@/features/freezone/context/skillI18n';
+import { translateSkillName } from '@/features/freezone/public';
 
 import { nodeCatalog } from '../application/nodeCatalog';
 import type { CanvasNodePlacement } from './useCanvasNodePlacementController';

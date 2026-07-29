@@ -838,6 +838,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
         "@/features/freezone/hooks/useCanvasProjectionStatus",
+        "@/features/freezone/presentation/skillI18n",
       ]),
     );
     expect(externalContractImportFailures).toEqual([]);
@@ -1025,6 +1026,71 @@ describe("frontend architecture boundaries", () => {
       "vitest",
       "./inferSkillConnectionRole",
     ]);
+  });
+
+  it("owns Skill translations in Freezone presentation", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/skillI18n.ts",
+    );
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/skillI18n.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/skillI18n.test.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const presentationSource = readFileSync(presentationPath, "utf8");
+    const declarations = [
+      "translateSkillName(",
+      "translateSkillDescription(",
+      "translateSkillInputLabel(",
+      "translateSkillOutputLabel(",
+      "translateSkillParameterLabel(",
+      "translateSkillParameterOption(",
+      "translateSkillRequirement(",
+      "translateSkillCardinality(",
+    ].map((name) => ["export function", name].join(" "));
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const canvasBypasses = sourceFiles(canvasRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/freezone/context/skillI18n" ||
+              specifier === "@/features/freezone/presentation/skillI18n",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+      new Set(["i18next", "../domain/skillContract"]),
+    );
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/skillI18n.ts",
+      ]),
+    );
+    expect(presentationSource).not.toContain("react");
+    expect(presentationSource).not.toContain("window.");
+    expect(presentationSource).not.toContain("document.");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/presentation/skillI18n",
+    );
+    expect(new Set(importSpecifiers(testPath))).toEqual(
+      new Set(["vitest", "./skillI18n", "../domain/skillContract"]),
+    );
+    expect(canvasBypasses).toEqual([]);
   });
 
   it("separates shot metadata rules, state, and cross-context composition", () => {

@@ -58,22 +58,20 @@ import {
   getCurrentBeatContextFromNode,
   isSkillRunFailureStatus,
   skillRunErrorMessage,
-  type MainlineContext,
-  type SceneAssetsForBeat,
-  type SkillInputRole,
-  type SkillProvider,
-  type SkillRunOutput,
-} from '@/features/freezone/public';
-import {
-  translateSkillDescription,
   translateSkillCardinality,
+  translateSkillDescription,
   translateSkillInputLabel,
   translateSkillName,
   translateSkillOutputLabel,
   translateSkillParameterLabel,
   translateSkillParameterOption,
   translateSkillRequirement,
-} from '@/features/freezone/context/skillI18n';
+  type MainlineContext,
+  type SceneAssetsForBeat,
+  type SkillInputRole,
+  type SkillProvider,
+  type SkillRunOutput,
+} from '@/features/freezone/public';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';

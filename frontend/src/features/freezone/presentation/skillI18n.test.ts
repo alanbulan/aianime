@@ -10,8 +10,8 @@ import {
   translateSkillParameterLabel,
   translateSkillParameterOption,
   translateSkillRequirement,
-} from "@/features/freezone/context/skillI18n";
-import type { SkillDefinition } from "@/features/freezone/public";
+} from "./skillI18n";
+import type { SkillDefinition } from "../domain/skillContract";
 
 const translations: Record<string, string> = {
   "viewer.threeD.skillDefinitions.freezone_sketch_from_context.name": "从当前背景生成草图",

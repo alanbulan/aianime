@@ -26,6 +26,16 @@ export {
   parseBeatContextVisualMarkers,
 } from "@/features/freezone/domain/currentBeatContext";
 export { inferSkillConnectionRole } from "@/features/freezone/domain/inferSkillConnectionRole";
+export {
+  translateSkillCardinality,
+  translateSkillDescription,
+  translateSkillInputLabel,
+  translateSkillName,
+  translateSkillOutputLabel,
+  translateSkillParameterLabel,
+  translateSkillParameterOption,
+  translateSkillRequirement,
+} from "@/features/freezone/presentation/skillI18n";
 export type {
   MainlineContext,
   MainlineContextEdgeLike,

@@ -18,11 +18,12 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition, SkillProvider } from '@/features/freezone/public';
 import {
   translateSkillDescription,
   translateSkillName,
-} from '@/features/freezone/context/skillI18n';
+  type SkillDefinition,
+  type SkillProvider,
+} from '@/features/freezone/public';
 import {
   CanvasAddNodeGrid,
   CanvasMenuSectionHeader,

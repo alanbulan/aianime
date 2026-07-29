@@ -2132,6 +2132,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十批已将 Freezone `context/inferSkillConnectionRole.ts` 中只依赖 Skill Contract 的画布连线输入角色推导规则迁入唯一 `domain/inferSkillConnectionRole.ts`，原 6 项行为测试同步从 Canvas 外置测试目录归位到 domain；Canvas `skillConnectionEdges` 通过既有 `freezone/public.ts` 使用唯一推导函数，不再以相对路径穿透 Freezone context。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套映射；显式非通用 target handle 优先、BeatContextNode 映射 `beat_context`、设置当前背景技能的图片特例、source role 优先于 slot kind、scene/background/sketch/frame/identity/prop/director/source_image token 映射以及无法分类返回 `null` 的保守语义保持不变。角色推导与完整 Skill 连线回归 2 个文件 17 项，完整前端架构门禁 3 个文件 308 项（其中 module boundaries 268 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十一批已将 Freezone `context/skillI18n.ts` 中依赖 i18next TFunction 与 Skill Contract 的展示翻译 helper 迁入唯一 presentation `presentation/skillI18n.ts`，原 4 项行为测试同步从 Canvas 外置测试目录归位到 presentation；NodeSelectionMenu、CanvasAddNodePanel、节点目录 controller 与 SkillNode 统一经 `freezone/public.ts` 使用 8 个翻译函数，不再穿透 Freezone context 或 presentation 内部路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套翻译；skill ID 点号转下划线、option 非字母数字规范化、命中翻译优先、缺失 key 回退后端 label/value、required/optional 与 single/multi 映射语义保持不变。Skill i18n、节点目录 controller 与 SkillNode 导演世界回归 3 个文件 17 项，完整前端架构门禁 3 个文件 309 项（其中 module boundaries 269 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
