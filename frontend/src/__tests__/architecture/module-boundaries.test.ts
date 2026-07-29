@@ -5621,6 +5621,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasConflictController.ts",
+    );
     const recoverySource = readFileSync(recoveryPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
     const declaration = [
@@ -5664,7 +5668,13 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(saveCompositionPath)).toContain(
       "./canvasConflictRecoveryComposition",
     );
+    expect(importSpecifiers(controllerPath)).toContain(
+      "../canvasConflictRecoveryComposition",
+    );
     expect(importSpecifiers(hookPath)).toContain(
+      "./useCanvasConflictController",
+    );
+    expect(importSpecifiers(hookPath)).not.toContain(
       "../canvasConflictRecoveryComposition",
     );
     expect(hookSource).not.toContain("snapshotConflict");
@@ -5679,6 +5689,53 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain(
       "canvasSyncStorageGateway.clearConflictSnapshot",
     );
+  });
+
+  it("keeps canvas conflict commands in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasConflictController.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasConflictController.test.tsx",
+    );
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasConflictController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasSyncStorage",
+        "../canvasConflictRecoveryComposition",
+        "../shotMetadataStore",
+        "./useCanvasSaveController",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasConflictController.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasConflictController",
+    );
+    expect(testSource).toContain('from "./useCanvasConflictController"');
+    expect(syncHookSource).not.toContain("canvasConflictRecovery.discard(");
+    expect(syncHookSource).not.toContain("canvasConflictRecovery.saveCopy(");
+    expect(syncHookSource).not.toContain("canvasConflictRecovery.readSnapshot(");
+    expect(syncHookSource).not.toContain("canvasConflictRecovery.clearSnapshot(");
   });
 
   it("keeps mainline preset refresh orchestration in Freezone application", () => {

@@ -11,10 +11,8 @@ import {
   type ConflictSnapshot,
 } from "../application/canvasSyncStorage";
 import {
-  useShotMetadataStore,
   type ShotMetadata,
 } from "../shotMetadataStore";
-import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
 import {
   useCanvasHistoryPersistence,
@@ -24,6 +22,7 @@ import {
   useCanvasDraftPersistenceController,
 } from "./useCanvasDraftPersistenceController";
 import { useCanvasSaveController } from "./useCanvasSaveController";
+import { useCanvasConflictController } from "./useCanvasConflictController";
 import { useCanvasRuntimeBridge } from "./useCanvasRuntimeBridge";
 import { useCanvasHydrationLifecycle } from "./useCanvasHydrationLifecycle";
 
@@ -236,30 +235,18 @@ export function useCanvasSync(
     return () => window.removeEventListener("beforeunload", handler);
   }, [project, canvasId, metadata]);
 
-  const retry = () => {
-    // The user picked "refresh" on the conflict overlay — discard the local
-    // snapshot so a future 409 starts fresh. If they wanted to keep it, they
-    // would have clicked the "下载本地 JSON" button first.
-    canvasConflictRecovery.discard(project, canvasId);
-    setReloadKey((k) => k + 1);
-  };
-  const saveCopy = async () => {
-    const shot = useShotMetadataStore.getState().shot;
-    const result = await canvasConflictRecovery.saveCopy({
-      project,
-      sourceCanvasId: canvasId,
-      envelope: canvasEnvelopeRef.current,
-      shotMetadata: shot,
-    });
-    revisionRef.current = result.revision;
-    setRevision(revisionRef.current);
-    setBackupStatus(result.backupStatus);
-    // Conflict copy is its own fresh save attempt; clear any stale pending id.
-    saveController.resetIdentity();
-    setSyncStatus("ready");
-    setError(null);
-    return result.canvasId;
-  };
+  const conflictController = useCanvasConflictController({
+    project,
+    canvasId,
+    canvasEnvelopeRef,
+    revisionRef,
+    saveController,
+    reload: () => setReloadKey((key) => key + 1),
+    setRevision,
+    setBackupStatus,
+    setStatus: setSyncStatus,
+    setError,
+  });
 
   const restoreMainlineDefault = async (options?: { bestEffort?: boolean }) => {
     return await refreshCanvasPreset({
@@ -287,12 +274,10 @@ export function useCanvasSync(
     hydratedCanvasId,
     backupStatus,
     flush,
-    retry,
-    saveCopy,
+    retry: conflictController.retry,
+    saveCopy: conflictController.saveCopy,
     restoreMainlineDefault,
-    readConflictSnapshot: () =>
-      canvasConflictRecovery.readSnapshot(canvasId),
-    clearConflictSnapshot: () =>
-      canvasConflictRecovery.clearSnapshot(canvasId),
+    readConflictSnapshot: conflictController.readConflictSnapshot,
+    clearConflictSnapshot: conflictController.clearConflictSnapshot,
   };
 }
