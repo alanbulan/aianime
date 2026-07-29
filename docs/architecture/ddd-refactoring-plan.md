@@ -2090,6 +2090,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零九批已将资产抽屉的受控/非受控折叠状态、画布/主线分段状态、资产 tab 与搜索状态、完整抽屉 DOM、加载错误/空状态分派、Beat/普通卡装配及 `CanvasesTab` 装配从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryPanelView.tsx`；稳定公共入口 `AssetLibraryPanel` 仅解析 canvas kind 与 legacy preset 标记，装配 catalog/replacement controllers，并注入唯一 `addAssetToCanvas` 命令。默认折叠、受控折叠回调、句柄位置与过渡、初始显示项目画布、tab/search 状态保留、错误优先级、卡片索引、替换状态/命令及外部 reload 透传行为保持不变；旧 JSX 和本地展示 state 从控制器直接删除，不保留 facade、第二套 View 或重复命令。`AssetLibraryPanel` 由 247 行降至 69 行，完整 View 为 240 行；View、控制器、Director bundle 与 Viewer 合同回归 4 个文件 44 项、本批及关联架构断言 9 项、完整前端架构门禁 3 个文件 291 项（其中 module boundaries 251 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十批已将画布目录的个人/成员/其他分组、最近更新时间排序、画布类型、冲突副本与来源画布识别、删除权限、展示名称与相对时间、重名校验及用户画布 ID 生成从 `CanvasesTab` 迁入唯一纯 presentation view model `presentation/canvasBrowserViewModel.ts`；组件只消费投影结果和类型，并继续唯一持有查询、创建、删除、主线恢复、URL 切换及 DOM。个人画布占位、成员与历史画布分组顺序、冲突副本归类、用户创建画布类型、名称标准化、稳定 ID、删除限制、来源跳转和时间文案语义保持不变；原函数从组件直接删除，测试改为依赖真实所有者，不保留 facade 或第二套实现。`CanvasesTab` 由 811 行降至 499 行，纯 view model 为 327 行；目录投影与查询回归 2 个文件 13 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 292 项（其中 module boundaries 252 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

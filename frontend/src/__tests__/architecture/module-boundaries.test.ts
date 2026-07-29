@@ -6199,6 +6199,66 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain('from "./assetLibraryViewModel"');
   });
 
+  it("keeps canvas browser presentation rules in one pure view model", () => {
+    const viewModelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/canvasBrowserViewModel.ts",
+    );
+    const tabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasesTab.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/freezone/canvases-tab.test.ts",
+    );
+    const viewModelSource = readFileSync(viewModelPath, "utf8");
+    const tabSource = readFileSync(tabPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export function", "buildCanvasBrowserSections("].join(" "),
+      ["export function", "canDeleteCanvasSummary("].join(" "),
+      ["export function", "canvasKindFromSummary("].join(" "),
+      ["export function", "displayNameForCanvasSummary("].join(" "),
+      ["export function", "findDuplicateCanvasName("].join(" "),
+      ["export function", "formatCanvasRelativeTime("].join(" "),
+      ["export function", "isConflictCopyCanvas("].join(" "),
+      ["export function", "sourceCanvasIdFromSummary("].join(" "),
+      ["export function", "userCreatedCanvasId("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/canvasBrowserViewModel.ts",
+      ]),
+    );
+    expect(new Set(importSpecifiers(viewModelPath))).toEqual(
+      new Set(["../domain/canvasStorage", "../projections"]),
+    );
+    expect(viewModelSource).not.toContain("react");
+    expect(viewModelSource).not.toContain("zustand");
+    expect(viewModelSource).not.toContain("window.");
+    expect(viewModelSource).not.toContain("document.");
+    expect(viewModelSource).not.toContain("localStorage");
+    expect(viewModelSource).not.toContain("@/features/canvas/composition");
+    expect(viewModelSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(tabPath)).toContain(
+      "./presentation/canvasBrowserViewModel",
+    );
+    for (const legacyDeclaration of declarations) {
+      expect(tabSource).not.toContain(legacyDeclaration);
+    }
+    expect(testSource).toContain(
+      'from "@/features/freezone/presentation/canvasBrowserViewModel"',
+    );
+  });
+
   it("keeps the complete asset-library layout in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

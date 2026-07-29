@@ -8,7 +8,7 @@ import {
   canvasKindFromSummary,
   findDuplicateCanvasName,
   userCreatedCanvasId,
-} from "@/features/freezone/CanvasesTab";
+} from "@/features/freezone/presentation/canvasBrowserViewModel";
 import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 import {
   buildConflictCopyCanvasId,
