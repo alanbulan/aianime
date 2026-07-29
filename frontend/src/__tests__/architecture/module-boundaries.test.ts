@@ -6025,6 +6025,65 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain('from "./assetLibraryProjection"');
   });
 
+  it("keeps asset library presentation rules in one pure view model", () => {
+    const viewModelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/assetLibraryViewModel.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/assetLibraryViewModel.test.ts",
+    );
+    const viewModelSource = readFileSync(viewModelPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export function", "beatAssetItems("].join(" "),
+      ["export function", "sceneAssetTypeBadge("].join(" "),
+      ["export function", "groupBeatAssets("].join(" "),
+      ["function", "beatGroupForAsset("].join(" "),
+      ["export function", "countAssetsForTab("].join(" "),
+      ["export function", "resolveCanvasKind("].join(" "),
+      ["export function", "resolveCurrentEpisode("].join(" "),
+      ["export function", "resolveCurrentBeat("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/assetLibraryViewModel.ts",
+      ]),
+    );
+    expect(importSpecifiers(viewModelPath)).toEqual([
+      "../domain/assetLibraryModel",
+    ]);
+    expect(viewModelSource).not.toContain("react");
+    expect(viewModelSource).not.toContain("zustand");
+    expect(viewModelSource).not.toContain("window.");
+    expect(viewModelSource).not.toContain("document.");
+    expect(viewModelSource).not.toContain("localStorage");
+    expect(viewModelSource).not.toContain("@/features/freezone/composition");
+    expect(viewModelSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/presentation/assetLibraryViewModel",
+    );
+    for (const legacyDeclaration of declarations) {
+      expect(panelSource).not.toContain(legacyDeclaration);
+    }
+    expect(panelSource).not.toContain("ROLE_LABELS");
+    expect(panelSource).not.toContain("ROLE_ORDER");
+    expect(testSource).toContain('from "./assetLibraryViewModel"');
+  });
+
   it("keeps canvas hydration reconciliation in Freezone application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,

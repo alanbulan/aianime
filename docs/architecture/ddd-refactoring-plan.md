@@ -2074,6 +2074,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零一批已将 Beat context/project asset/preset reference 到侧栏资产目录的过滤、角色与 tab 归一化、标签与媒体类型投影、source metadata 装配、Beat 上下文生成、作用域去重以及最终 Director World 收敛从 `AssetLibraryPanel` 迁入唯一纯 application 模块 `application/assetLibraryProjection.ts`；面板只传 project、metadata、查询结果和 canvas kind 并消费投影结果，分组布局、场景徽标和画布落点仍留在原 presentation 边界。重复 URL 的跨 Beat 产物继续按 project/episode/beat 分离，缺失文件、Freezone 临时资产和 scene auxiliary pointer 继续过滤，legacy director tab、控制包、slot target、pushable、preset 范围及“当前分镜”文案继续保持原语义；旧常量和 helper 直接删除，不保留 facade 或第二套实现，同时将 Viewer 静态合同从旧面板实现改为读取实际领域所有者。`AssetLibraryPanel` 由 1,757 行降至 1,358 行；投影、面板、Viewer 合同与拖拽回归 4 个文件 44 项、本批及关联架构断言 3 项、完整前端架构门禁 3 个文件 284 项（其中 module boundaries 244 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零二批已将 Beat 卡片角色选择与顺序、六类上下文分组、资产 tab 计数、场景类型徽标和 canvas preset scope/episode/beat 读取从 `AssetLibraryPanel` 迁入唯一纯 presentation view model `presentation/assetLibraryViewModel.ts`；面板只消费已投影的展示规则，React 状态、查询、组件布局、拖拽和 Store 副作用均未改变。Beat 输出顺序与原先不展示音频缩略项的行为、分组优先级与中文标题、仅统计 `from_beat_context` 的 Beat 数量、场景徽标语义 token，以及 preset 优先于 default push target 的回退顺序均保持不变；旧常量和 helper 直接删除，不保留 facade 或第二套实现。`AssetLibraryPanel` 由 1,358 行降至 1,164 行；view model 与面板回归 2 个文件 9 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 285 项（其中 module boundaries 245 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
