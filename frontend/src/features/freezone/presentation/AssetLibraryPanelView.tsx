@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 
-import { CanvasesTab } from "../CanvasesTab";
+import { CanvasesTab } from "./CanvasesTab";
 import type { FreezoneBeatContextResponse } from "../domain/beatContext";
 import type {
   AssetTab,

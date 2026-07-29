@@ -2144,6 +2144,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十六批已将 Freezone `context/beatContextProjection.ts` 中只依赖 Canvas 图契约的 Beat 身份/道具自动角色绑定规则整体迁入唯一 Canvas domain 模块 `domain/beatContextRoleBindings.ts`，原行为测试同步从 Freezone 外置测试目录归位到 domain；唯一生产调用方 `BeatContextNode` 改用 Canvas 自有领域模块，不再穿透 Freezone 内部路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套规则；无角色/无道具哨兵过滤、frame_from_context 目标解析、身份历史 ID 前缀兼容、道具精确匹配、过期绑定移除、缺失绑定补齐、边 ID/handle/metadata 装配和无变化时保留原数组语义均保持不变。相关回归 4 个文件 38 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十七批已将 Freezone 根级 `CanvasesTab.tsx` 归入唯一 presentation 组件 `presentation/CanvasesTab.tsx`，查询共享测试同步从外置测试目录归位到组件旁；组件继续只装配 `useCanvasBrowserController` 与 `CanvasBrowserView`，`AssetLibraryPanelView` 及其测试改用同目录所有者，不再跨 presentation 边界回指 feature 根。旧组件和旧测试路径直接删除，不保留 facade、re-export 或第二套入口；项目/当前画布参数、主线恢复开关、reload token、控制器状态与全部 View 回调透传语义均保持不变。相关回归 6 个文件 27 项通过（保留既有非失败 `act(...)` 与 i18next 测试警告），完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

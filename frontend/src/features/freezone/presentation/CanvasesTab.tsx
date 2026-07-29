@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { useCanvasBrowserController } from "./hooks/useCanvasBrowserController";
-import { CanvasBrowserView } from "./presentation/CanvasBrowserView";
+import { useCanvasBrowserController } from "../hooks/useCanvasBrowserController";
+import { CanvasBrowserView } from "./CanvasBrowserView";
 
 interface CanvasesTabProps {
   project: string;

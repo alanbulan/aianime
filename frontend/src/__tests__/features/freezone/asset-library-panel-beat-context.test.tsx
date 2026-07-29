@@ -23,7 +23,7 @@ vi.mock("@/features/freezone/composition", async (importOriginal) => {
   };
 });
 
-vi.mock("@/features/freezone/CanvasesTab", () => ({
+vi.mock("@/features/freezone/presentation/CanvasesTab", () => ({
   CanvasesTab: () => null,
 }));
 

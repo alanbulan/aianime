@@ -20,7 +20,7 @@ vi.mock("@/features/canvas/composition", async () => {
   };
 });
 
-import { CanvasesTab } from "@/features/freezone/CanvasesTab";
+import { CanvasesTab } from "./CanvasesTab";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

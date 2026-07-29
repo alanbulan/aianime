@@ -1806,7 +1806,7 @@ describe("frontend architecture boundaries", () => {
     const freezonePublicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const canvasesTabPath = resolve(
       SRC_ROOT,
-      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
     );
     const canvasBrowserControllerPath = resolve(
       SRC_ROOT,
@@ -1879,7 +1879,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "./hooks/useCanvasBrowserController",
+      "../hooks/useCanvasBrowserController",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
@@ -2137,7 +2137,7 @@ describe("frontend architecture boundaries", () => {
     ];
     const canvasesTabPath = resolve(
       SRC_ROOT,
-      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
@@ -2174,7 +2174,7 @@ describe("frontend architecture boundaries", () => {
       expect(source).toContain("@/features/canvas/composition");
     }
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "./hooks/useCanvasBrowserController",
+      "../hooks/useCanvasBrowserController",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
@@ -7422,7 +7422,7 @@ describe("frontend architecture boundaries", () => {
     );
     const tabPath = resolve(
       SRC_ROOT,
-      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -7473,7 +7473,7 @@ describe("frontend architecture boundaries", () => {
       "./canvasBrowserViewModel",
     );
     expect(importSpecifiers(tabPath)).not.toContain(
-      "./presentation/canvasBrowserViewModel",
+      "./canvasBrowserViewModel",
     );
     for (const legacyDeclaration of declarations) {
       expect(tabSource).not.toContain(legacyDeclaration);
@@ -7491,7 +7491,7 @@ describe("frontend architecture boundaries", () => {
     );
     const tabPath = resolve(
       SRC_ROOT,
-      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -7532,7 +7532,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
     expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
     expect(importSpecifiers(tabPath)).toContain(
-      "./hooks/useCanvasBrowserController",
+      "../hooks/useCanvasBrowserController",
     );
     for (const legacyOwner of [
       "useFreezoneCanvases",
@@ -7558,6 +7558,10 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/presentation/CanvasBrowserView.tsx",
     );
     const tabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/CanvasesTab.tsx",
+    );
+    const legacyTabPath = resolve(
       SRC_ROOT,
       "features/freezone/CanvasesTab.tsx",
     );
@@ -7599,11 +7603,12 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("@/features/canvas/composition");
     expect(viewSource).not.toContain("@/modules/identity_access/public");
     expect(viewSource).not.toContain("@/shared/api/");
+    expect(existsSync(legacyTabPath)).toBe(false);
     expect(importSpecifiers(tabPath)).toContain(
-      "./hooks/useCanvasBrowserController",
+      "../hooks/useCanvasBrowserController",
     );
     expect(importSpecifiers(tabPath)).toContain(
-      "./presentation/CanvasBrowserView",
+      "./CanvasBrowserView",
     );
     expect(tabSource).toContain("<CanvasBrowserView");
     for (const legacyOwner of [
@@ -7657,7 +7662,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "@/features/canvas/domain/assetDropInfo",
-        "../CanvasesTab",
+        "./CanvasesTab",
         "../domain/beatContext",
         "../domain/assetLibraryModel",
         "./AssetLibraryAssetCard",
