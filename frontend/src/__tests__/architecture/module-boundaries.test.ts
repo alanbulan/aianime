@@ -322,6 +322,117 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain('from "./FreezoneShellView"');
   });
 
+  it("separates the Canvas node-selection menu controller and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/NodeSelectionMenu.tsx",
+    );
+    const entryTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/NodeSelectionMenu.test.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeSelectionMenuController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeSelectionMenuController.test.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/nodeSelectionMenuModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/nodeSelectionMenuModel.test.ts",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeSelectionMenuView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeSelectionMenuView.test.tsx",
+    );
+    const stagePath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasStageView.tsx",
+    );
+    const legacyTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/canvas/node-selection-menu.test.tsx",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const entryTestSource = readFileSync(entryTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const declarations = [
+      ["export function", "NodeSelectionMenu("].join(" "),
+      ["export function", "useNodeSelectionMenuController("].join(" "),
+      ["export function", "referenceGenerateItemsForAllowedTypes("].join(" "),
+      ["export function", "skillGroupsForNodeSelectionMenu("].join(" "),
+      ["export function", "NodeSelectionMenuView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(existsSync(legacyTestPath)).toBe(false);
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "./hooks/useNodeSelectionMenuController",
+        "./ui/NodeSelectionMenuView",
+      ]),
+    );
+    expect(new Set(importSpecifiers(modelPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/freezone/public",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/NodeSelectionMenu.tsx"],
+      ["features/canvas/hooks/useNodeSelectionMenuController.ts"],
+      ["features/canvas/ui/nodeSelectionMenuModel.ts"],
+      ["features/canvas/ui/nodeSelectionMenuModel.ts"],
+      ["features/canvas/ui/NodeSelectionMenuView.tsx"],
+    ]);
+    expect(importSpecifiers(stagePath)).toContain("../NodeSelectionMenu");
+    expect(entrySource).toContain("useNodeSelectionMenuController(props)");
+    expect(entrySource).toContain(
+      "createElement(NodeSelectionMenuView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useLayoutEffect(");
+    expect(controllerSource).toContain("document.addEventListener('mousedown'");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(modelSource).not.toContain("from 'react'");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(viewSource).toContain("<CanvasAddNodeGrid");
+    expect(viewSource).toContain("controller.activeSkillGroup.items.map");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("document.");
+    expect(entryTestSource).toContain('from \'./NodeSelectionMenu\'');
+    expect(controllerTestSource).toContain(
+      'from \'./useNodeSelectionMenuController\'',
+    );
+    expect(modelTestSource).toContain('from \'./nodeSelectionMenuModel\'');
+    expect(viewTestSource).toContain('from \'./NodeSelectionMenuView\'');
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [

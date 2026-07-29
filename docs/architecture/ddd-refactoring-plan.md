@@ -2168,6 +2168,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十八批已将 Freezone 根级混合 Shell 拆为唯一运行时 controller `hooks/useFreezoneShellController.ts`、纯 presentation View `presentation/FreezoneShellView.tsx` 和真实装配根 `FreezoneShell.tsx`；装配根只将项目 ID 与画布 ID 交给 controller 并创建 View，controller 独占画布同步、入口生命周期、投影状态/命令、提交编排、冲突副本、主线恢复、素材刷新、聊天开关、提示和既有弹窗状态，View 只渲染 Canvas、素材面板、聊天 Dock、反馈层和弹窗。原 Shell 中的 JSX 与副作用实现已全部迁出，不保留 facade、re-export 或第二套装配；阻塞/覆盖加载、错误/冲突反馈、备份状态、空白画布收起、提交弹窗、素材刷新 token、CE 隐藏聊天、主线恢复提示和冲突副本 URL 更新语义保持不变。只读检查另确认 `context/contextMatching.ts`、`context/contextPromptCompiler.ts` 与 `context/contextOperations.tsx` 仅互相引用且无生产调用方，本批按范围约束未迁移或删除。新增 controller 4 项与 View 3 项测试，连同页面及 Viewer Kit/Canvas 静态契约共回归 6 个文件 51 项；完整前端架构门禁 3 个文件 314 项（其中 module boundaries 274 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十九批已将 Canvas 根级 487 行混合节点选择菜单拆为纯展示模型 `ui/nodeSelectionMenuModel.ts`、唯一状态 controller `hooks/useNodeSelectionMenuController.ts`、纯 presentation View `ui/NodeSelectionMenuView.tsx` 和真实装配根 `NodeSelectionMenu.tsx`；引用生成节点优先级、可用类型投影、隐藏 Skill 与 provider 顺序归展示模型，viewport 夹取、技能面板左右定位、显隐过渡、悬停关闭计时、外部点击、节点/Skill 选择时序和翻译运行时归 controller，View 只持有图标映射与菜单 JSX。原混合实现和外置测试路径直接删除，不保留 facade、re-export、重复状态或第二套投影；无 `allowedTypes` 时完整菜单、图片生成/编辑/上传优先级、360/3D 入口、隐藏 Skill、provider 分组、初始不展开技能、点击外部延迟关闭、节点选择晚于关闭过渡、Skill 立即回调及左右面板布局语义保持不变。原菜单行为测试归位到装配根旁，并新增模型 3 项、controller 4 项和 View 2 项测试；连同 CanvasStage、手工 Skill 连线与 Viewer 合同共回归 7 个文件 39 项，最终交互修正后菜单直接回归 4 个文件 10 项复验；完整前端架构门禁 3 个文件 315 项（其中 module boundaries 275 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过。只读检查另确认根级 `CanvasToolbar.tsx` 无生产调用方，本批按范围约束未删除；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

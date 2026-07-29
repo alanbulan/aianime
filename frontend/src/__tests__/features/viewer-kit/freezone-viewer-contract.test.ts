@@ -13,7 +13,9 @@ describe("freezone viewer contracts", () => {
     const node = read("src/features/canvas/nodes/Pano360ViewerNode.tsx");
     const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
     const registry = read("src/features/canvas/domain/nodeRegistry.ts");
-    const nodeSelectionMenu = read("src/features/canvas/NodeSelectionMenu.tsx");
+    const nodeSelectionMenuModel = read(
+      "src/features/canvas/ui/nodeSelectionMenuModel.ts",
+    );
     const spawnOverlay = read("src/features/canvas/ui/NodeSpawnPlusOverlay.tsx");
     const nodesIndex = read("src/features/canvas/nodes/index.ts");
 
@@ -27,7 +29,7 @@ describe("freezone viewer contracts", () => {
     expect(canvasNodes).toContain("Pano360ViewerNodeData");
     expect(registry).toContain("pano360ViewerNodeDefinition");
     expect(registry).toContain("node.menu.pano360Viewer");
-    expect(nodeSelectionMenu).toContain("CANVAS_NODE_TYPES.pano360Viewer");
+    expect(nodeSelectionMenuModel).toContain("CANVAS_NODE_TYPES.pano360Viewer");
     expect(spawnOverlay).toContain("CANVAS_NODE_TYPES.pano360Viewer");
     expect(nodesIndex).toContain("pano360ViewerNode: Pano360ViewerNode");
     expect(nodesIndex).toContain("Pano360ViewerNode");
