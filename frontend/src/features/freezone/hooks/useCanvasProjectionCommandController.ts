@@ -8,7 +8,7 @@ import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
   removeLocalFreezoneProjection,
-} from "../canvasSyncRuntime";
+} from "../application/canvasRuntimeState";
 import { buildProjectionFromPreset } from "../composition";
 import {
   projectionMetadataWithRequest,

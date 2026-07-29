@@ -21,7 +21,7 @@ vi.mock("../composition", () => ({
   buildProjectionFromPreset: mocks.buildProjectionFromPreset,
 }));
 
-vi.mock("../canvasSyncRuntime", () => ({
+vi.mock("../application/canvasRuntimeState", () => ({
   consumeQueuedLocalFreezoneProjections: mocks.consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection: mocks.queueLocalFreezoneProjection,
   removeLocalFreezoneProjection: mocks.removeLocalFreezoneProjection,

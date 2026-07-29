@@ -23,7 +23,7 @@ import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { setFreezoneCanvasMetadata } from "../application/canvasMetadataState";
 import { canvasSyncStorageGateway } from "../canvasSyncComposition";
-import { consumeQueuedLocalFreezoneProjections } from "../canvasSyncRuntime";
+import { consumeQueuedLocalFreezoneProjections } from "../application/canvasRuntimeState";
 import {
   EMPTY_SHOT_METADATA,
   type ShotMetadata,

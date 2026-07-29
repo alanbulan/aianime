@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
-import type { FreezoneCanvasPayload } from "@/features/freezone/domain/canvasStorage";
-import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
+import type { CanvasEdge, CanvasNode } from "@/features/canvas/domain/canvasNodes";
+
+import type { FreezoneCanvasPayload } from "../domain/canvasStorage";
 
 export type RemoteCanvasMerge = (
   remoteNodes: CanvasNode[],
@@ -52,7 +53,14 @@ export function registerFreezoneCanvasRuntime(
   applyLocalProjection?: LocalProjectionApplier,
   removeLocalProjection?: LocalProjectionRemover,
 ): () => void {
-  const runtime = { project, canvasId, apply, flush, applyLocalProjection, removeLocalProjection };
+  const runtime = {
+    project,
+    canvasId,
+    apply,
+    flush,
+    applyLocalProjection,
+    removeLocalProjection,
+  };
   currentRuntime = runtime;
   return () => {
     if (currentRuntime === runtime) {
@@ -67,7 +75,11 @@ export function applyRemoteFreezoneCanvas(
   remote: FreezoneCanvasPayload,
   merge?: RemoteCanvasMerge,
 ): boolean {
-  if (!currentRuntime || currentRuntime.project !== project || currentRuntime.canvasId !== canvasId) {
+  if (
+    !currentRuntime ||
+    currentRuntime.project !== project ||
+    currentRuntime.canvasId !== canvasId
+  ) {
     return false;
   }
   currentRuntime.apply(remote, merge);
@@ -78,7 +90,11 @@ export async function flushFreezoneCanvasRuntime(
   project: string,
   canvasId: string,
 ): Promise<boolean | null> {
-  if (!currentRuntime || currentRuntime.project !== project || currentRuntime.canvasId !== canvasId) {
+  if (
+    !currentRuntime ||
+    currentRuntime.project !== project ||
+    currentRuntime.canvasId !== canvasId
+  ) {
     return null;
   }
   if (!currentRuntime.flush) {

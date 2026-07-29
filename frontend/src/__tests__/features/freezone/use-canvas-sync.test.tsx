@@ -25,7 +25,7 @@ import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
   removeLocalFreezoneProjection,
-} from "@/features/freezone/canvasSyncRuntime";
+} from "@/features/freezone/application/canvasRuntimeState";
 import { shotMetadataState } from "@/features/freezone/shotMetadataComposition";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/features/canvas/canvasStore";

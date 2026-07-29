@@ -76,7 +76,7 @@ vi.mock("../canvasSyncComposition", () => ({
   },
 }));
 
-vi.mock("../canvasSyncRuntime", () => ({
+vi.mock("../application/canvasRuntimeState", () => ({
   consumeQueuedLocalFreezoneProjections: mocks.consumeQueuedProjections,
 }));
 

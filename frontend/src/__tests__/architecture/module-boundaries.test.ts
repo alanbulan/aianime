@@ -818,6 +818,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/freezone/application/canvasMetadataState",
         "@/features/freezone/application/canvasPreset",
+        "@/features/freezone/application/canvasRuntimeState",
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
         "@/features/freezone/canvasDraftComposition",
@@ -1997,7 +1998,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/canvasStore",
-        "../canvasSyncRuntime",
+        "../application/canvasRuntimeState",
         "../composition",
         "../application/canvasProjectionStatusState",
         "../domain/canvasProjectionMetadata",
@@ -7894,6 +7895,48 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("saveCanvasBeforeUnload({");
   });
 
+  it("keeps canvas runtime state in application and cross-context access public", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasSyncRuntime.ts",
+    );
+    const statePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasRuntimeState.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasConsumerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const stateSource = readFileSync(statePath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const canvasConsumerImports = importSpecifiers(canvasConsumerPath);
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(new Set(importSpecifiers(statePath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "../domain/canvasStorage",
+      ]),
+    );
+    expect(stateSource).not.toContain("react");
+    expect(stateSource).not.toContain("window.");
+    expect(stateSource).not.toContain("document.");
+    expect(publicSource).toContain("applyRemoteFreezoneCanvas");
+    expect(publicSource).toContain("flushFreezoneCanvasRuntime");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/application/canvasRuntimeState",
+    );
+    expect(canvasConsumerImports).toContain("@/features/freezone/public");
+    expect(canvasConsumerImports).not.toContain(
+      "@/features/freezone/canvasSyncRuntime",
+    );
+    expect(canvasConsumerImports).not.toContain(
+      "@/features/freezone/application/canvasRuntimeState",
+    );
+  });
+
   it("keeps external canvas runtime projection bridging in one hook", () => {
     const bridgePath = resolve(
       SRC_ROOT,
@@ -7924,7 +7967,7 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasSyncStorage",
         "../application/canvasProjectionGraph",
         "../application/canvasMetadataState",
-        "../canvasSyncRuntime",
+        "../application/canvasRuntimeState",
         "../domain/canvasProjectionMetadata",
         "../domain/shotMetadata",
         "../shotMetadataComposition",
@@ -7991,7 +8034,7 @@ describe("frontend architecture boundaries", () => {
         "../canvasHydrationComposition",
         "../application/canvasMetadataState",
         "../canvasSyncComposition",
-        "../canvasSyncRuntime",
+        "../application/canvasRuntimeState",
         "../domain/shotMetadata",
         "../shotMetadataComposition",
         "./useCanvasDraftPersistenceController",

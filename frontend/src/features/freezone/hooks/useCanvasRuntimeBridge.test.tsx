@@ -42,7 +42,7 @@ vi.mock("@/features/canvas/canvasStore", () => ({
   },
 }));
 
-vi.mock("../canvasSyncRuntime", () => ({
+vi.mock("../application/canvasRuntimeState", () => ({
   registerFreezoneCanvasRuntime: mocks.registerRuntime,
 }));
 

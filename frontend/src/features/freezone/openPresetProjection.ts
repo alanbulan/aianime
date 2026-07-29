@@ -7,7 +7,7 @@ import { writeUrl } from "@/lib/url-params";
 import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
-} from "@/features/freezone/canvasSyncRuntime";
+} from "@/features/freezone/application/canvasRuntimeState";
 import {
   projectionMetadataWithRequest,
 } from "@/features/freezone/domain/canvasProjectionMetadata";

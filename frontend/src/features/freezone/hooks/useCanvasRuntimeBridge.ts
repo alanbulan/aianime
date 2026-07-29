@@ -12,7 +12,7 @@ import { canvasEnvelopeFromRemote } from "../application/canvasSyncCore";
 import { canvasContentSignature } from "../application/canvasSyncHydration";
 import type { CanvasSyncStatus } from "../application/canvasSyncStorage";
 import { setFreezoneCanvasMetadata } from "../application/canvasMetadataState";
-import { registerFreezoneCanvasRuntime } from "../canvasSyncRuntime";
+import { registerFreezoneCanvasRuntime } from "../application/canvasRuntimeState";
 import {
   mergeProjectedCanvasWithLocalCanvas,
   removeProjectionFromLocalCanvas,

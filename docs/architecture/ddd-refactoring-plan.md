@@ -2122,6 +2122,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十五批已将 Freezone 根级 `projectionStatusStore.ts` 中混合的投影状态与 React 订阅职责拆为唯一 application 状态 `application/canvasProjectionStatusState.ts` 和 presentation Hook `hooks/useCanvasProjectionStatus.ts`；application 仅持有投影状态 Map、订阅端口及读写命令，不再依赖 React，Hook 通过 `useSyncExternalStore` 适配组件订阅。状态轮询生命周期与投影同步命令直接写入 application 状态，GroupNode 与节点操作栏两个 Canvas 跨领域消费者统一经 `freezone/public.ts` 使用 Hook；旧根文件直接删除，不保留 facade、re-export 或第二套状态。空投影键过滤、按 projection key 查询、空状态清理短路、同步后乐观标记 fresh、轮询刷新和组件实时更新语义保持不变；新增状态与 React Hook 分层门禁及订阅行为测试。相关回归 5 个文件 36 项通过，其中新增 Hook 测试复验 1 项无 React 警告；完整前端架构门禁 3 个文件 303 项（其中 module boundaries 263 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十六批已将 Freezone 根级 `canvasSyncRuntime.ts` 的当前画布运行时注册表与本地投影待处理队列整体迁入唯一 application 状态 `application/canvasRuntimeState.ts`，并将其 Canvas 图类型依赖从 Zustand 组合根收窄到纯 domain 契约。运行时 bridge、hydrate 生命周期、投影命令与打开 preset 投影等 Freezone 内部调用方直连 application；唯一跨领域生产调用方 BeatContextNode 改经 `freezone/public.ts` 使用远端画布应用与 flush 两个必要命令，注册、排队、消费和移除能力不扩大到公共 API。旧根文件直接删除，不保留 facade、re-export 或第二套运行时；项目/画布精确匹配、旧 unregister 不清除新 runtime、同 projection key 后写覆盖、拒绝项保留重试、成功项移出队列、flush 缺失返回 `null` 和本地投影移除语义保持不变。运行时、打开 preset、画布同步、bridge、hydrate 与投影命令回归 6 个文件 50 项，完整前端架构门禁 3 个文件 304 项（其中 module boundaries 264 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
