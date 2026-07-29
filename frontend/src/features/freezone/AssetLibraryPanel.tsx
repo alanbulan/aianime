@@ -1,24 +1,15 @@
 // Copyright (c) 2026 AI anime
 import {
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CanvasesTab } from "./CanvasesTab";
 import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
-import {
-  useFreezoneBeatContext,
-  useFreezoneProjectAssets,
-} from "@/features/freezone/composition";
-import { buildLibraryAssets } from "@/features/freezone/application/assetLibraryProjection";
 import { addAssetToCanvas } from "@/features/freezone/assetLibraryCanvasInsertionComposition";
 import {
   countAssetsForTab,
   resolveCanvasKind,
-  resolveCurrentBeat,
-  resolveCurrentEpisode,
 } from "@/features/freezone/presentation/assetLibraryViewModel";
 import { BeatContextPanel } from "@/features/freezone/presentation/AssetLibraryBeatPanels";
 import { AssetLibraryAssetCard } from "@/features/freezone/presentation/AssetLibraryAssetCard";
@@ -26,6 +17,7 @@ import {
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
 } from "@/features/freezone/hooks/useAssetLibraryReplacementController";
+import { useAssetLibraryCatalogController } from "@/features/freezone/hooks/useAssetLibraryCatalogController";
 import type { AssetTab } from "@/features/freezone/domain/assetLibraryModel";
 
 type PanelTab = "library" | "canvases";
@@ -80,7 +72,19 @@ export function AssetLibraryPanel({
     project,
     onReplaced,
   });
-  const internalReloadToken = replacementController.reloadToken;
+  const catalogController = useAssetLibraryCatalogController({
+    project,
+    metadata,
+    canvasKind,
+    replacementReloadToken: replacementController.reloadToken,
+    reloadToken,
+  });
+  const {
+    assets,
+    beatContext,
+    error,
+    assetImageCacheToken,
+  } = catalogController;
   const collapsed = collapsedProp ?? internalCollapsed;
   const setCollapsed = (next: boolean) => {
     if (onCollapsedChange) {
@@ -89,70 +93,6 @@ export function AssetLibraryPanel({
       setInternalCollapsed(next);
     }
   };
-
-  const projectAssetsQuery = useFreezoneProjectAssets(project);
-  const projectAssets = projectAssetsQuery.data ?? [];
-  const projectAssetsReloadKey = `${internalReloadToken}:${reloadToken ?? 0}`;
-  const previousProjectAssetsReloadKeyRef = useRef(projectAssetsReloadKey);
-
-  useEffect(() => {
-    if (previousProjectAssetsReloadKeyRef.current === projectAssetsReloadKey) return;
-    previousProjectAssetsReloadKeyRef.current = projectAssetsReloadKey;
-    void projectAssetsQuery.refetch();
-  }, [projectAssetsQuery, projectAssetsReloadKey]);
-
-  const currentEpisode = useMemo(
-    () => resolveCurrentEpisode(metadata),
-    [metadata],
-  );
-  const currentBeat = useMemo(
-    () => resolveCurrentBeat(metadata),
-    [metadata],
-  );
-
-  const beatContextEnabled =
-    canvasKind !== "asset" &&
-    !(canvasKind === "episode" && currentEpisode === null) &&
-    !(canvasKind === "beat" && (currentEpisode === null || currentBeat === null));
-  const beatContextQuery = useFreezoneBeatContext(
-    project,
-    {
-      episode: typeof currentEpisode === "number" ? currentEpisode : null,
-      beat: canvasKind === "beat" && typeof currentBeat === "number" ? currentBeat : null,
-    },
-    beatContextEnabled,
-  );
-  const beatContext = beatContextEnabled ? (beatContextQuery.data ?? null) : null;
-  const beatContextReloadKey = `${internalReloadToken}:${reloadToken ?? 0}`;
-  const previousBeatContextReloadKeyRef = useRef(beatContextReloadKey);
-
-  useEffect(() => {
-    if (previousBeatContextReloadKeyRef.current === beatContextReloadKey) return;
-    previousBeatContextReloadKeyRef.current = beatContextReloadKey;
-    if (!beatContextEnabled) return;
-    void beatContextQuery.refetch();
-  }, [beatContextEnabled, beatContextQuery, beatContextReloadKey]);
-
-  const projectAssetsError =
-    projectAssetsQuery.error instanceof Error
-      ? projectAssetsQuery.error.message
-      : projectAssetsQuery.error
-        ? String(projectAssetsQuery.error)
-        : null;
-  const beatContextError =
-    beatContextQuery.error instanceof Error
-      ? beatContextQuery.error.message
-      : beatContextQuery.error
-        ? String(beatContextQuery.error)
-        : null;
-  const error = projectAssetsError ?? beatContextError;
-
-  const assets = useMemo(
-    () => buildLibraryAssets({ project, metadata, projectAssets, beatContext, canvasKind }),
-    [project, metadata, projectAssets, beatContext, canvasKind],
-  );
-  const assetPreviewCacheToken = `${internalReloadToken}:${reloadToken ?? 0}`;
-  const assetImageCacheToken = assetPreviewCacheToken;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

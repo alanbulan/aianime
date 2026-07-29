@@ -225,14 +225,22 @@ describe("director bundle canvas assets", () => {
       resolve(process.cwd(), "src/features/freezone/AssetLibraryPanel.tsx"),
       "utf8",
     );
+    const catalogController = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useAssetLibraryCatalogController.ts",
+      ),
+      "utf8",
+    );
 
     expect(shell).toContain("assetLibraryReloadToken");
     expect(shell).toContain("setAssetLibraryReloadToken");
     expect(shell).toContain("reloadToken={assetLibraryReloadToken}");
     expect(panel).toContain("reloadToken?: number");
-    expect(panel).toContain("projectAssetsReloadKey");
-    expect(panel).toContain("projectAssetsQuery.refetch()");
-    expect(panel).toContain("beatContextQuery.refetch()");
+    expect(panel).toContain("useAssetLibraryCatalogController");
+    expect(catalogController).toContain("projectAssetsReloadKey");
+    expect(catalogController).toContain("projectAssetsQuery.refetch()");
+    expect(catalogController).toContain("beatContextQuery.refetch()");
   });
 
   it("carries director bundle through canvas node drag-replace metadata", () => {

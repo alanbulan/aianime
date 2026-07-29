@@ -2084,6 +2084,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零六批已将非 Beat 资产卡的图片/音频/视频/3D 缩略图、场景类型徽标、加入画布动作、Canvas drag payload 序列化、自定义拖拽预览、替换目标可用性、悬停反馈及确认覆盖层从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryAssetCard.tsx`；面板只逐项传入资产、替换控制器状态和加入/确认/取消命令，普通卡与 Beat 卡共同复用唯一 application 拖拽 payload 工厂。8 项内 eager 加载阈值、无视频封面时首帧回退、不可渲染文件禁用、Director Render 仅接受图片拖拽、data attribute 协议、预览样式/移除时序及按钮事件行为保持不变；旧 `AssetCard` 与 `createAssetDragImage` 从面板直接删除，不保留 facade、旧导出或第二套实现。`AssetLibraryPanel` 由 583 行降至 330 行；卡片、面板与 Director bundle 合同回归 3 个文件 21 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 289 项（其中 module boundaries 249 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零七批已将项目资产与 Beat Context 的 React Query 调用、画布 scope 判定、内外 reload token 监听与显式 refetch、查询错误归一、目录资产投影和缩略图缓存 token 从 `AssetLibraryPanel` 迁入唯一 presentation controller `hooks/useAssetLibraryCatalogController.ts`；面板只传 project、metadata、canvas kind 与刷新计数并消费 `{assets, beatContext, error, assetImageCacheToken}`，不再直接依赖 Freezone query composition 或 application 投影。首次挂载不额外 refetch、同项目查询共享、reload 同时刷新两类数据、asset 画布禁用 Beat 请求、episode/beat 缺失时保持禁用、项目错误优先于 Beat 错误及成功刷新后清除错误的语义保持不变；旧 query/ref/error/projection 代码从面板直接删除，不保留 facade 或第二套生命周期。`AssetLibraryPanel` 由 330 行降至 270 行；控制器、面板与外部提交刷新合同回归 3 个文件 20 项、本批及关联架构断言 3 项、完整前端架构门禁 3 个文件 290 项（其中 module boundaries 250 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
