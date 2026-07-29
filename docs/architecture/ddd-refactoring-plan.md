@@ -2028,6 +2028,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十八批已将 `useCanvasSync` 与 `BeatContextNode` 中两套同名 preset metadata 解析器及其有限数字/可选字符串辅助函数收敛到唯一 Freezone application `canvasPreset.ts`，Freezone 内部 hook 直连 application，Canvas 节点仅经 Freezone `public.ts` 使用稳定入口；两个旧定义直接删除，不保留 facade、别名或第二套规则。episode/beat/asset 可恢复 scope、默认 `primary_slot=render`、有限数字和 save-only 字段剔除行为保持一致；此前两处对空白可选字符串的分歧统一为 `null`，有效 metadata 合同不变。`useCanvasSync` 由 1,568 行降至 1,540 行，`BeatContextNode` 由 1,670 行降至 1,637 行；纯规则、同步 hook 与 Beat Context 回归 50 项，相关架构门禁 2 项和完整前端架构门禁 223 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十九批已将远端画布 server-owned envelope 提取与保存错误 `{status, body}` 归一化从 `useCanvasSync` 迁入现有唯一 application `canvasSyncCore.ts`，hook 删除 `ApiError` 具体类型依赖及本地 wrapper，`ApiError`、`BackendStatusError` 和同形错误统一由纯结构读取处理；原函数直接删除，不保留转发或第二套实现。schema/owner/access/scope/revision/audit 字段继续透传，nodes、edges、viewport 与 metadata 不进入 envelope，错误分类结果和 retry/冲突时序不变；`useCanvasSync` 由 1,540 行降至 1,495 行。同步 core、hook 与画布列表回归 92 项、相关架构门禁 1 项和完整前端架构门禁 223 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

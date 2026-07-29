@@ -17,14 +17,15 @@ import type {
   FreezoneCanvasPayload,
   FreezoneCanvasSaveResult,
 } from "@/features/freezone/domain/canvasStorage";
-import { ApiError } from "@/shared/api/errors";
 import {
   buildSavePayload,
+  canvasEnvelopeFromRemote,
   checkPayloadLimits,
   classifySaveError,
   decideSaveAction,
   describePayloadViolation,
   MAX_BODY_BYTES,
+  saveErrorStatusAndBody,
   type SaveDecision,
   type SaveResponseOutcome,
 } from "../application/canvasSyncCore";
@@ -202,29 +203,6 @@ function acquireHydrateFlight(
       }, FREEZONE_HYDRATE_RELEASE_GRACE_MS);
     },
   };
-}
-
-export function saveErrorStatusAndBody(err: unknown): {
-  status: number | null;
-  body: Parameters<typeof classifySaveError>[1] | undefined;
-} {
-  if (err instanceof ApiError) {
-    return {
-      status: err.status,
-      body: err.body as Parameters<typeof classifySaveError>[1] | undefined,
-    };
-  }
-  if (typeof err !== "object" || err === null) return { status: null, body: undefined };
-  const status = (err as { status?: unknown }).status;
-  const body = (err as { body?: unknown }).body;
-  return {
-    status: typeof status === "number" ? status : null,
-    body: body as Parameters<typeof classifySaveError>[1] | undefined,
-  };
-}
-
-function statusFromError(err: unknown): number | null {
-  return saveErrorStatusAndBody(err).status;
 }
 
 function viewportsEqual(a: Viewport, b: Viewport): boolean {
@@ -1153,7 +1131,7 @@ export function useCanvasSync(
       setReloadKey((k) => k + 1);
       return canvasId;
     } catch (err) {
-      const status = statusFromError(err);
+      const status = saveErrorStatusAndBody(err).status;
       if (options?.bestEffort && (status === 409 || status === 503)) {
         setError(null);
         setSyncStatus("ready");
@@ -1514,27 +1492,4 @@ async function handleSaveError(
       return false;
     }
   }
-}
-
-function canvasEnvelopeFromRemote(
-  remote: FreezoneCanvasPayload,
-): Partial<FreezoneCanvasPayload> {
-  return {
-    schema_version: remote.schema_version,
-    canvas_id: remote.canvas_id,
-    project_id: remote.project_id,
-    canvas_scope: remote.canvas_scope,
-    owner_principal_type: remote.owner_principal_type,
-    owner_principal_id: remote.owner_principal_id,
-    access_model: remote.access_model,
-    min_project_role: remote.min_project_role,
-    episode: remote.episode,
-    beat: remote.beat,
-    asset_target: remote.asset_target,
-    revision: remote.revision,
-    created_by: remote.created_by,
-    updated_by: remote.updated_by,
-    created_at: remote.created_at,
-    updated_at: remote.updated_at,
-  };
 }

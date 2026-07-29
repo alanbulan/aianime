@@ -79,6 +79,29 @@ export type SaveDecision =
       allowEmptyOverwrite: boolean;
     };
 
+export function canvasEnvelopeFromRemote(
+  remote: FreezoneCanvasPayload,
+): Partial<FreezoneCanvasPayload> {
+  return {
+    schema_version: remote.schema_version,
+    canvas_id: remote.canvas_id,
+    project_id: remote.project_id,
+    canvas_scope: remote.canvas_scope,
+    owner_principal_type: remote.owner_principal_type,
+    owner_principal_id: remote.owner_principal_id,
+    access_model: remote.access_model,
+    min_project_role: remote.min_project_role,
+    episode: remote.episode,
+    beat: remote.beat,
+    asset_target: remote.asset_target,
+    revision: remote.revision,
+    created_by: remote.created_by,
+    updated_by: remote.updated_by,
+    created_at: remote.created_at,
+    updated_at: remote.updated_at,
+  };
+}
+
 /**
  * Five-state decision machine, applied each time the debounced save timer
  * fires.
@@ -341,6 +364,21 @@ export function describePayloadViolation(v: PayloadLimitViolation): string {
 
 export interface SaveErrorBody {
   detail?: { code?: unknown };
+}
+
+export function saveErrorStatusAndBody(err: unknown): {
+  status: number | null;
+  body: SaveErrorBody | undefined;
+} {
+  if (typeof err !== "object" || err === null) {
+    return { status: null, body: undefined };
+  }
+  const status = (err as { status?: unknown }).status;
+  const body = (err as { body?: unknown }).body;
+  return {
+    status: typeof status === "number" ? status : null,
+    body: body as SaveErrorBody | undefined,
+  };
 }
 
 export type SaveResponseOutcome =

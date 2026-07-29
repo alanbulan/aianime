@@ -4963,6 +4963,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
     const coreSource = readFileSync(corePath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
     const forbiddenCoreImports = importSpecifiers(corePath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4975,14 +4976,17 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/features/freezone/composition" ||
         specifier.startsWith("@/shared/api/"),
     );
-    const decisionDeclaration = [
-      "export function",
-      "decideSaveAction(",
-    ].join(" ");
-    const decisionOwners = sourceFiles(SRC_ROOT)
-      .filter((path) => readFileSync(path, "utf8").includes(decisionDeclaration))
-      .map(relativeSource)
-      .sort();
+    const declarations = [
+      ["export function", "decideSaveAction("].join(" "),
+      ["export function", "canvasEnvelopeFromRemote("].join(" "),
+      ["export function", "saveErrorStatusAndBody("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
 
     expect(existsSync(legacyCorePath)).toBe(false);
     expect(existsSync(legacyHookPath)).toBe(false);
@@ -4990,10 +4994,15 @@ describe("frontend architecture boundaries", () => {
     expect(coreSource).not.toContain("window.");
     expect(coreSource).not.toContain("document.");
     expect(coreSource).not.toContain("localStorage");
-    expect(decisionOwners).toEqual([
-      "features/freezone/application/canvasSyncCore.ts",
+    expect(declarationOwners).toEqual([
+      ["features/freezone/application/canvasSyncCore.ts"],
+      ["features/freezone/application/canvasSyncCore.ts"],
+      ["features/freezone/application/canvasSyncCore.ts"],
     ]);
     expect(importSpecifiers(hookPath)).toContain("../application/canvasSyncCore");
+    expect(importSpecifiers(hookPath)).not.toContain("@/shared/api/errors");
+    expect(hookSource).not.toContain("function canvasEnvelopeFromRemote(");
+    expect(hookSource).not.toContain("function saveErrorStatusAndBody(");
     expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
   });
 

@@ -29,8 +29,6 @@ import {
   shouldDeferPresetRefreshUntilReady,
   shouldFlushBeforePresetRefresh,
 } from "@/features/freezone/application/canvasSyncHydration";
-import { saveErrorStatusAndBody } from "@/features/freezone/hooks/useCanvasSync";
-import { BackendStatusError } from "@/shared/api/errors";
 
 function canvas(
   id: string,
@@ -536,16 +534,6 @@ describe("freezone preset auto refresh guard", () => {
         meta: { prop_id: "纸箱", prop: "纸箱" },
       },
       mainline_context: [expect.objectContaining({ kind: "prop", propId: "纸箱" })],
-    });
-  });
-});
-
-describe("freezone save error normalization", () => {
-  it("extracts status and body from backend status errors", () => {
-    const body = { detail: { code: "canvas_lock_busy" } };
-    expect(saveErrorStatusAndBody(new BackendStatusError("busy", 503, body))).toEqual({
-      status: 503,
-      body,
     });
   });
 });

@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildSavePayload,
+  canvasEnvelopeFromRemote,
   checkPayloadLimits,
   classifySaveError,
   decideSaveAction,
@@ -9,10 +10,12 @@ import {
   MAX_BODY_BYTES,
   MAX_EDGES,
   MAX_NODES,
+  saveErrorStatusAndBody,
   sanitizePreviewImageUrls,
   type SaveSnapshot,
 } from "@/features/freezone/application/canvasSyncCore";
 import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutation";
+import { BackendStatusError } from "@/shared/api/errors";
 
 // Helper to build a snapshot with sensible defaults; tests override only what
 // they care about so the intent of each case is obvious from the diff.
@@ -29,6 +32,46 @@ function snapshot(overrides: Partial<SaveSnapshot> = {}): SaveSnapshot {
     ...overrides,
   };
 }
+
+describe("canvas sync protocol mapping", () => {
+  it("keeps only the server-owned canvas envelope", () => {
+    const envelope = canvasEnvelopeFromRemote({
+      schema_version: 2,
+      canvas_id: "canvas-a",
+      project_id: "project-a",
+      canvas_scope: "beat",
+      revision: 4,
+      nodes: [{ id: "node-a" }],
+      edges: [{ id: "edge-a" }],
+      viewport: { x: 1, y: 2, zoom: 3 },
+      metadata: { preset: { scope: "beat" } },
+    });
+
+    expect(envelope).toMatchObject({
+      schema_version: 2,
+      canvas_id: "canvas-a",
+      project_id: "project-a",
+      canvas_scope: "beat",
+      revision: 4,
+    });
+    expect(envelope).not.toHaveProperty("nodes");
+    expect(envelope).not.toHaveProperty("edges");
+    expect(envelope).not.toHaveProperty("viewport");
+    expect(envelope).not.toHaveProperty("metadata");
+  });
+
+  it("extracts status and body without depending on a concrete error class", () => {
+    const body = { detail: { code: "canvas_lock_busy" } };
+
+    expect(
+      saveErrorStatusAndBody(new BackendStatusError("busy", 503, body)),
+    ).toEqual({ status: 503, body });
+    expect(saveErrorStatusAndBody("busy")).toEqual({
+      status: null,
+      body: undefined,
+    });
+  });
+});
 
 describe("decideSaveAction", () => {
   it("skips when hydrate has not finished", () => {
