@@ -1543,6 +1543,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
     );
+    const caretRuntimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserTextareaCaret.ts",
+    );
+    const caretRuntimeTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserTextareaCaret.test.ts",
+    );
     const controllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useStoryboardGenNodeController.ts",
@@ -1568,6 +1576,8 @@ describe("frontend architecture boundaries", () => {
     const modelTestSource = readFileSync(modelTestPath, "utf8");
     const runtimeSource = readFileSync(runtimePath, "utf8");
     const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
+    const caretRuntimeSource = readFileSync(caretRuntimePath, "utf8");
+    const caretRuntimeTestSource = readFileSync(caretRuntimeTestPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -1577,6 +1587,7 @@ describe("frontend architecture boundaries", () => {
       ["export const", "StoryboardGenNode", "=", "memo("].join(" "),
       ["export function", "resolveStoryboardGenLayout("].join(" "),
       ["export function", "generateStoryboardGridImageDataUrl("].join(" "),
+      ["export function", "measureTextareaCaretOffset("].join(" "),
       ["export function", "useStoryboardGenNodeController("].join(" "),
       ["export function", "StoryboardGenNodeView("].join(" "),
     ];
@@ -1600,6 +1611,7 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/nodes/StoryboardGenNode.tsx"],
       ["features/canvas/application/storyboardGenNodeModel.ts"],
       ["features/canvas/infrastructure/browserStoryboardGenRuntime.ts"],
+      ["features/canvas/infrastructure/browserTextareaCaret.ts"],
       ["features/canvas/hooks/useStoryboardGenNodeController.ts"],
       ["features/canvas/nodes/StoryboardGenNodeView.tsx"],
     ]);
@@ -1608,7 +1620,10 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
     expect(runtimeSource).toContain("document.createElement('canvas')");
-    expect(runtimeSource).toContain("document.createElement('div')");
+    expect(runtimeSource).toContain("measureTextareaCaretOffset(");
+    expect(runtimeSource).not.toContain("document.createElement('div')");
+    expect(caretRuntimeSource).toContain("document.createElement('div')");
+    expect(caretRuntimeSource).not.toContain("useCanvasStore");
     expect(runtimeSource).not.toContain("useCanvasStore");
     expect(registrySource).toContain(
       "import { StoryboardGenNode } from './StoryboardGenNode'",
@@ -1641,10 +1656,133 @@ describe("frontend architecture boundaries", () => {
     expect(runtimeTestSource).toContain(
       "from './browserStoryboardGenRuntime'",
     );
+    expect(caretRuntimeTestSource).toContain(
+      "from './browserTextareaCaret'",
+    );
     expect(controllerTestSource).toContain(
       "from './useStoryboardGenNodeController'",
     );
     expect(viewTestSource).toContain("from './StoryboardGenNodeView'");
+  });
+
+  it("separates the Canvas image-edit model, runtime, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageEditNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditNodeModel.test.ts",
+    );
+    const runtimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserImageEditRuntime.ts",
+    );
+    const runtimeTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserImageEditRuntime.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageEditNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageEditNodeView.test.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const runtimeSource = readFileSync(runtimePath, "utf8");
+    const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "ImageEditNode", "=", "memo("].join(" "),
+      ["export function", "resolveImageEditNodeSize("].join(" "),
+      ["export function", "resolveImageEditPickerAnchor("].join(" "),
+      ["export function", "useImageEditNodeController("].join(" "),
+      ["export function", "ImageEditNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useImageEditNodeController",
+        "./ImageEditNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/ImageEditNode.tsx"],
+      ["features/canvas/application/imageEditNodeModel.ts"],
+      ["features/canvas/infrastructure/browserImageEditRuntime.ts"],
+      ["features/canvas/hooks/useImageEditNodeController.ts"],
+      ["features/canvas/nodes/ImageEditNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(runtimeSource).toContain("measureTextareaCaretOffset(");
+    expect(runtimeSource).not.toContain("document.createElement('div')");
+    expect(runtimeSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { ImageEditNode } from './ImageEditNode'",
+    );
+    expect(registrySource).toContain("imageNode: ImageEditNode");
+    expect(entrySource).toContain("useImageEditNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(ImageEditNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useSettingsStore(");
+    expect(controllerSource).toContain(
+      "canvasAiGateway.submitGenerateImageJob(",
+    );
+    expect(controllerSource).toContain("planImageEditAssetReferences({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<NodeHeader");
+    expect(viewSource).toContain("<ModelParamsControls");
+    expect(viewSource).toContain("<AssetLibraryModal");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("useSettingsStore(");
+    expect(viewSource).not.toContain("canvasAiGateway");
+    expect(modelTestSource).toContain("from './imageEditNodeModel'");
+    expect(runtimeTestSource).toContain("from './browserImageEditRuntime'");
+    expect(controllerTestSource).toContain(
+      "from './useImageEditNodeController'",
+    );
+    expect(viewTestSource).toContain("from './ImageEditNodeView'");
   });
 
   it("keeps the Beat state read model in Production", () => {
@@ -2989,7 +3127,9 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasConsumerPaths = [
       "features/canvas/infrastructure/freezoneAiGateway.ts",
-      "features/canvas/nodes/ImageEditNode.tsx",
+      "features/canvas/application/imageEditNodeModel.ts",
+      "features/canvas/hooks/useImageEditNodeController.ts",
+      "features/canvas/nodes/ImageEditNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
@@ -4858,7 +4998,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasCommitEligibility.ts",
       "features/canvas/domain/mainlineNodeTypes.ts",
       "features/canvas/domain/mainlineNodeFlags.ts",
-      "features/canvas/nodes/ImageEditNode.tsx",
+      "features/canvas/application/imageEditNodeModel.ts",
+      "features/canvas/hooks/useImageEditNodeController.ts",
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     ];
 
@@ -21027,8 +21168,19 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
-    const consumerPaths = [
-      "features/canvas/nodes/ImageEditNode.tsx",
+    const imageEditModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditNodeModel.ts",
+    );
+    const imageEditControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditNodeController.ts",
+    );
+    const imageEditViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageEditNodeView.tsx",
+    );
+    const combinedConsumerPaths = [
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/VideoNode.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -21116,11 +21268,26 @@ describe("frontend architecture boundaries", () => {
     expect(legacyOpsSource).not.toContain(
       "freezone/video/asset-library/sync-from-mainline",
     );
-    for (const consumerPath of consumerPaths) {
+    for (const consumerPath of combinedConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
       expect(imports).toContain("@/features/canvas/domain/assetLibrary");
       expect(imports).toContain("@/features/canvas/ui/AssetLibraryModal");
     }
+    expect(importSpecifiers(imageEditModelPath)).toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(importSpecifiers(imageEditControllerPath)).toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(importSpecifiers(imageEditControllerPath)).not.toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(imageEditViewPath)).toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(imageEditViewPath)).not.toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
   });
 
   it("keeps generation history queries behind one application boundary", () => {

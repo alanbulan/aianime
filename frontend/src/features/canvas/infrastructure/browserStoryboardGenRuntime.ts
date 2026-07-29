@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { measureTextareaCaretOffset } from './browserTextareaCaret';
 
 export interface StoryboardPickerAnchor {
   left: number;
@@ -12,42 +13,6 @@ export const STORYBOARD_PICKER_FALLBACK_ANCHOR: StoryboardPickerAnchor = {
 
 const GRID_LINE_THICKNESS_PERCENT = 0.4;
 
-function getTextareaCaretOffset(
-  textarea: HTMLTextAreaElement,
-  caretIndex: number,
-): StoryboardPickerAnchor {
-  const mirror = document.createElement('div');
-  const computed = window.getComputedStyle(textarea);
-  const mirrorStyle = mirror.style;
-  mirrorStyle.position = 'absolute';
-  mirrorStyle.visibility = 'hidden';
-  mirrorStyle.pointerEvents = 'none';
-  mirrorStyle.whiteSpace = 'pre-wrap';
-  mirrorStyle.overflowWrap = 'break-word';
-  mirrorStyle.wordBreak = 'break-word';
-  mirrorStyle.boxSizing = computed.boxSizing;
-  mirrorStyle.width = `${textarea.clientWidth}px`;
-  mirrorStyle.font = computed.font;
-  mirrorStyle.lineHeight = computed.lineHeight;
-  mirrorStyle.letterSpacing = computed.letterSpacing;
-  mirrorStyle.padding = computed.padding;
-  mirrorStyle.border = computed.border;
-  mirrorStyle.textTransform = computed.textTransform;
-  mirrorStyle.textIndent = computed.textIndent;
-  mirror.textContent = textarea.value.slice(0, caretIndex);
-
-  const marker = document.createElement('span');
-  marker.textContent = textarea.value.slice(caretIndex, caretIndex + 1) || ' ';
-  mirror.appendChild(marker);
-  document.body.appendChild(mirror);
-  const anchor = {
-    left: marker.offsetLeft - textarea.scrollLeft,
-    top: marker.offsetTop - textarea.scrollTop,
-  };
-  document.body.removeChild(mirror);
-  return anchor;
-}
-
 export function resolveStoryboardPickerAnchor(
   container: HTMLDivElement | null,
   textarea: HTMLTextAreaElement,
@@ -57,7 +22,7 @@ export function resolveStoryboardPickerAnchor(
   if (!container) return STORYBOARD_PICKER_FALLBACK_ANCHOR;
   const containerRect = container.getBoundingClientRect();
   const textareaRect = textarea.getBoundingClientRect();
-  const caretOffset = getTextareaCaretOffset(textarea, caretIndex);
+  const caretOffset = measureTextareaCaretOffset(textarea, caretIndex);
   const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
   return {
     left: Math.max(
