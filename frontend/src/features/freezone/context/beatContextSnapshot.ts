@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { FreezoneBeatContextBeat } from "@/features/freezone/domain/beatContext";
 import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
-import type { MainlineContext } from "./mainlineContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 
 export function buildBeatContextNodeRefreshPatch(
   projectId: string,

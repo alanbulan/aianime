@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { ContextMatch } from "./contextMatching";
-import type { MainlineContext } from "./mainlineContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 
 function compactList(values: Array<string | undefined | null>): string {
   return values

@@ -13,6 +13,18 @@ export {
 export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjectionComposition";
 export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetadataComposition";
 export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenceRoles";
+export {
+  collectCandidateBindingsForNode,
+  collectNodeMainlineContexts,
+  extractMainlineContextsFromNode,
+  validateCandidateBindingRoleCandidate,
+  validatePropagatingEdgeCandidate,
+} from "@/features/freezone/domain/mainlineContext";
+export type {
+  MainlineContext,
+  MainlineContextEdgeLike,
+  MainlineContextNodeLike,
+} from "@/features/freezone/domain/mainlineContext";
 export { useCanvasProjectionStatus } from "@/features/freezone/hooks/useCanvasProjectionStatus";
 export {
   applyRemoteFreezoneCanvas,

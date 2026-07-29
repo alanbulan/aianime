@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
-import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
+import type { MainlineContext } from "./mainlineContext";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 
 export type AssetTab = "beat" | "characters" | "scenes" | "props";

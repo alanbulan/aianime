@@ -3,7 +3,7 @@ import {
   extractMainlineContextsFromNode,
   type MainlineContext,
   type MainlineContextNodeLike,
-} from "@/features/freezone/context/mainlineContext";
+} from "../domain/mainlineContext";
 
 export interface CurrentBeatContext {
   episode?: number;

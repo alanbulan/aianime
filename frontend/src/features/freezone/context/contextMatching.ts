@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { MainlineContext } from "./mainlineContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 
 export interface ContextMatch {
   matched: boolean;

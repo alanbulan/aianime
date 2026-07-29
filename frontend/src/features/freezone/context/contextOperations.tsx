@@ -12,7 +12,7 @@ import {
   compileFrameGenerationContextPrompt,
   compileSelectedBackgroundToSketchPrompt,
 } from "./contextPromptCompiler";
-import type { MainlineContext } from "./mainlineContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 
 export interface ContextOperation {
   id: string;

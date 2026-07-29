@@ -2126,6 +2126,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十七批已将根级 `openPresetProjection.ts` 中混合的 preset 投影应用编排与 Router/History、登录 Store、HTTP composition、Canvas 运行时适配拆为纯 application 工厂 `application/openPresetProjection.ts` 和唯一装配入口 `openPresetProjectionComposition.ts`。application 通过显式依赖接收当前用户、单次导航会话、投影构建和投影发布能力，只持有用户名校验、个人画布 ID、请求规范化、projection key、metadata 组装及异步期间离页判定；composition 绑定 Identity public、TanStack Router/History fallback、既有投影 composition 与运行时队列。BeatContextNode 与 NodeActionToolbar 两个 Canvas 调用方统一并入 `freezone/public.ts`，旧根路径直接删除，不保留 facade、re-export 或第二套流程。Beat 请求强制规范为 render 槽位、`base_revision: 0`、投影先发布后导航、请求期间主动离页不拉回 Freezone、同页只更新 canvas 参数、无 Router 时 pushState 加 popstate 和缺失用户报错语义保持不变。application、composition 与 Render Section 回归 3 个文件 15 项，完整前端架构门禁 3 个文件 305 项（其中 module boundaries 265 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十八批已将 Freezone `context/mainlineContext.ts` 中零依赖的主线上下文、传播边、Beat 解析与候选绑定规则整体迁入唯一纯 domain `domain/mainlineContext.ts`，消除 `domain/beatContext.ts`、`domain/assetLibraryModel.ts` 和 application 素材投影对 context 技术目录的反向依赖；其余 context 编译/快照/徽标模块统一直连 domain。`freezone/public.ts` 只向 Canvas 公开跨域实际使用的主线上下文提取/收集、候选绑定收集、传播校验与候选角色校验 5 个函数及 3 个最小图契约类型，Canvas application/domain/node/ui 与对应测试不再穿透 Freezone 内部目录。旧 context 文件直接删除，不保留 facade、re-export 或第二套规则；上下文 kind 白名单、传播边显式开关、上游 DFS 与稳定去重、Beat 节点解析、候选绑定双向兼容、canonical 角色唯一性和多 Beat 链路拒绝语义保持不变。边创建、提示词色板、素材投影/模型、当前 Beat、上下文徽标与 Beat 节点回归 7 个文件 44 项，完整前端架构门禁 3 个文件 306 项（其中 module boundaries 266 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

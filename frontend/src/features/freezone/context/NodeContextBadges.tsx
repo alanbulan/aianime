@@ -1,6 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { isMainlineContext, type MainlineContext } from "./mainlineContext";
-import type { CandidateBindingRole } from "./mainlineContext";
+import {
+  isMainlineContext,
+  type CandidateBindingRole,
+  type MainlineContext,
+} from "../domain/mainlineContext";
 
 interface NodeContextBadgesProps {
   contexts?: unknown;

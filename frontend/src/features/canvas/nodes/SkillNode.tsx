@@ -58,6 +58,7 @@ import {
 import {
   isSkillRunFailureStatus,
   skillRunErrorMessage,
+  type MainlineContext,
   type SceneAssetsForBeat,
   type SkillInputRole,
   type SkillProvider,
@@ -73,7 +74,6 @@ import {
   translateSkillParameterOption,
   translateSkillRequirement,
 } from '@/features/freezone/context/skillI18n';
-import type { MainlineContext } from '@/features/freezone/context/mainlineContext';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';

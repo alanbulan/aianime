@@ -42,7 +42,7 @@ import {
   CandidateBindingBadges,
   hasMainlineContexts,
 } from '@/features/freezone/context/NodeContextBadges';
-import { collectCandidateBindingsForNode } from '@/features/freezone/context/mainlineContext';
+import { collectCandidateBindingsForNode } from '@/features/freezone/public';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import {
   canRegenerateExportImageNode,

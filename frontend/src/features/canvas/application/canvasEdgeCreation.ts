@@ -2,8 +2,8 @@
 import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
-} from '@/features/freezone/context/mainlineContext';
-import type { SkillDefinition } from '@/features/freezone/public';
+  type SkillDefinition,
+} from '@/features/freezone/public';
 
 import {
   validateCanvasConnection,

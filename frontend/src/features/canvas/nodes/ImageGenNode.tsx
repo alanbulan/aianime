@@ -79,7 +79,10 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getFreezoneCanvasMetadata } from '@/features/freezone/public';
+import {
+  collectCandidateBindingsForNode,
+  getFreezoneCanvasMetadata,
+} from '@/features/freezone/public';
 import {
   generateCanvasImage,
   getCanvasBeatDirectorManifest,
@@ -138,9 +141,6 @@ import {
   type PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
 import { CandidateBindingBadges } from '@/features/freezone/context/NodeContextBadges';
-import {
-  collectCandidateBindingsForNode,
-} from '@/features/freezone/context/mainlineContext';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { CreditCostPill, formatCreditCost } from '@/components/credits/credit-visual';

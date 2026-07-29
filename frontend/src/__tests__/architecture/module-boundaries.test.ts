@@ -830,6 +830,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/capabilities/registry",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
+        "@/features/freezone/domain/mainlineContext",
         "@/features/freezone/domain/referenceRoles",
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
@@ -843,6 +844,68 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(nodeRegistryPath)).toContain(
       "@/features/freezone/public",
     );
+  });
+
+  it("owns mainline context graph rules in the Freezone domain", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/mainlineContext.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/mainlineContext.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const contextRoot = resolve(SRC_ROOT, "features/freezone/context");
+    const declarations = [
+      "isMainlineContext(",
+      "collectNodeMainlineContexts(",
+      "collectCandidateBindingsForNode(",
+      "validateCandidateBindingRoleCandidate(",
+      "validatePropagatingEdgeCandidate(",
+    ].map((name) => ["export function", name].join(" "));
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const canvasBypasses = sourceFiles(canvasRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/freezone/context/mainlineContext" ||
+              specifier === "@/features/freezone/domain/mainlineContext",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+    const contextImportFailures = sourceFiles(contextRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.includes("mainlineContext") &&
+              specifier !== "../domain/mainlineContext",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/domain/mainlineContext.ts",
+      ]),
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/domain/mainlineContext",
+    );
+    expect(canvasBypasses).toEqual([]);
+    expect(contextImportFailures).toEqual([]);
   });
 
   it("separates shot metadata rules, state, and cross-context composition", () => {
@@ -1244,10 +1307,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
-    expect(importSpecifiers(beatContextContractPath)).toEqual([
-      "../context/mainlineContext",
-      "./assetCommit",
-    ]);
+    expect(new Set(importSpecifiers(beatContextContractPath))).toEqual(
+      new Set(["./assetCommit", "./mainlineContext"]),
+    );
     expect(new Set(importSpecifiers(canvasApplicationPath))).toEqual(
       new Set([
         "@/features/freezone/public",
@@ -6757,9 +6819,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(projectionPath))).toEqual(
       new Set([
-        "../context/mainlineContext",
         "../domain/assetLibraryModel",
         "../domain/beatContext",
+        "../domain/mainlineContext",
       ]),
     );
     expect(projectionSource).not.toContain("window.");

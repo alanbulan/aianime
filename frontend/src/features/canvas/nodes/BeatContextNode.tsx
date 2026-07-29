@@ -39,12 +39,12 @@ import {
 import { NodeResizeHandle } from "@/features/canvas/ui/NodeResizeHandle";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { NodeContextBadges } from "@/features/freezone/context/NodeContextBadges";
-import { extractMainlineContextsFromNode } from "@/features/freezone/context/mainlineContext";
 import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import { parseBeatContextVisualMarkers } from "@/features/freezone/context/currentBeatContext";
 import {
   applyRemoteFreezoneCanvas,
+  extractMainlineContextsFromNode,
   flushFreezoneCanvasRuntime,
   getFreezoneCanvasMetadata,
   listFreezoneBeatContext,

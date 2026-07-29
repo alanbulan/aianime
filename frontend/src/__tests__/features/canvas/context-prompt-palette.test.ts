@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
+import type { MainlineContext } from "@/features/freezone/public";
 import {
   buildContextPromptPalette,
   buildContextPromptPaletteForNode,

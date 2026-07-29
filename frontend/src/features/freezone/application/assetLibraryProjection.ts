@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { MainlineContext } from "../context/mainlineContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 import {
   directorControlBundleFromAssetSource,
   finalizeDirectorWorldAssets,

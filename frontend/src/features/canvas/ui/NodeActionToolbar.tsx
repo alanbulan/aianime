@@ -66,10 +66,6 @@ import {
 } from "@/lib/audioTranscode";
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
 import { inheritMainlineFields } from "@/features/canvas/domain/inheritMainlineFields";
-import {
-  extractMainlineContextsFromNode,
-  type MainlineContext,
-} from "@/features/freezone/context/mainlineContext";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 import {
@@ -102,7 +98,9 @@ import type {
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import {
+  extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
+  type MainlineContext,
   useCanvasProjectionStatus,
 } from "@/features/freezone/public";
 import {

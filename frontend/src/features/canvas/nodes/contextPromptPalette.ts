@@ -5,7 +5,7 @@ import {
   type MainlineContext,
   type MainlineContextEdgeLike,
   type MainlineContextNodeLike,
-} from "@/features/freezone/context/mainlineContext";
+} from "@/features/freezone/public";
 import {
   currentBeatContextToMainlineContext,
   getCurrentBeatContextFromNode,
