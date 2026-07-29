@@ -813,6 +813,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(publicPath))).toEqual(
       new Set([
+        "@/features/freezone/application/canvasPreset",
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
         "@/features/freezone/canvasDraftComposition",
@@ -5049,6 +5050,45 @@ describe("frontend architecture boundaries", () => {
     );
     expect(hookSource).not.toContain("const nodeSignatureCache");
     expect(hookSource).not.toContain("function decideHydrateDraft(");
+  });
+
+  it("keeps preset metadata parsing in Freezone application", () => {
+    const parserPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasPreset.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const beatNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const parserSource = readFileSync(parserPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const beatNodeSource = readFileSync(beatNodePath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const declaration = ["function", "presetRequestFromMetadata("].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(parserPath)).toEqual([
+      "@/features/freezone/domain/canvasStorage",
+    ]);
+    expect(parserSource).not.toContain("window.");
+    expect(parserSource).not.toContain("document.");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasPreset.ts",
+    ]);
+    expect(importSpecifiers(hookPath)).toContain("../application/canvasPreset");
+    expect(importSpecifiers(beatNodePath)).toContain("@/features/freezone/public");
+    expect(hookSource).not.toContain(declaration);
+    expect(beatNodeSource).not.toContain(declaration);
+    expect(publicSource).toContain("presetRequestFromMetadata");
   });
 
   it("keeps browser canvas sync persistence behind an application port", () => {

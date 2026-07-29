@@ -2026,6 +2026,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十七批已将 `useCanvasSync` 中画布持久内容指纹、本地草稿 hydrate 仲裁和 preset projection best-effort 刷新判定迁入唯一 Freezone application `canvasSyncHydration.ts`，hook 仅保留 React 生命周期、状态编排与端口调用，由 1,716 行降至 1,568 行。节点/边 WeakMap 分片指纹缓存、React Flow 瞬态字段排除、metadata 子集比较、草稿/远端版本冲突文案及刷新时序条件均保持原行为；旧 hook 定义直接删除，不保留 re-export、别名或第二套规则，画布列表测试同步改为依赖 application 所有者。新增纯规则回归和唯一所有权门禁；hydrate、同步与画布列表回归 60 项、相关架构门禁 3 项和完整前端架构门禁 222 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十八批已将 `useCanvasSync` 与 `BeatContextNode` 中两套同名 preset metadata 解析器及其有限数字/可选字符串辅助函数收敛到唯一 Freezone application `canvasPreset.ts`，Freezone 内部 hook 直连 application，Canvas 节点仅经 Freezone `public.ts` 使用稳定入口；两个旧定义直接删除，不保留 facade、别名或第二套规则。episode/beat/asset 可恢复 scope、默认 `primary_slot=render`、有限数字和 save-only 字段剔除行为保持一致；此前两处对空白可选字符串的分歧统一为 `null`，有效 metadata 合同不变。`useCanvasSync` 由 1,568 行降至 1,540 行，`BeatContextNode` 由 1,670 行降至 1,637 行；纯规则、同步 hook 与 Beat Context 回归 50 项，相关架构门禁 2 项和完整前端架构门禁 223 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

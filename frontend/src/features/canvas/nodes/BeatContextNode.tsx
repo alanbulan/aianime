@@ -51,7 +51,7 @@ import { parseBeatContextVisualMarkers } from "@/features/freezone/context/curre
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import {
   listFreezoneBeatContext,
-  type FreezonePresetCanvasRequest,
+  presetRequestFromMetadata,
 } from "@/features/freezone/public";
 import {
   updateBeat,
@@ -313,37 +313,6 @@ function syncBeatContextMainlineLinks(
   if (nextEdges !== store.edges) {
     store.replaceEdges(nextEdges);
   }
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function presetRequestFromMetadata(
-  preset: unknown,
-): Omit<
-  FreezonePresetCanvasRequest,
-  "canvas_id" | "overwrite_existing"
-> | null {
-  if (!preset || typeof preset !== "object") return null;
-  const data = preset as Record<string, unknown>;
-  const scope = typeof data.scope === "string" ? data.scope : "";
-  if (scope !== "episode" && scope !== "beat" && scope !== "asset") return null;
-  return {
-    scope,
-    episode: numberOrNull(data.episode),
-    beat: numberOrNull(data.beat),
-    primary_slot:
-      typeof data.primary_slot === "string" ? data.primary_slot : "render",
-    asset_kind: stringOrNull(data.asset_kind),
-    character: stringOrNull(data.character),
-    identity_id: stringOrNull(data.identity_id),
-    asset_id: stringOrNull(data.asset_id),
-  };
 }
 
 async function restoreCurrentMainlinePresetCanvas(

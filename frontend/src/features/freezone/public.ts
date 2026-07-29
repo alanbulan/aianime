@@ -12,6 +12,7 @@ export {
 } from "@/features/freezone/composition";
 export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 export { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/canvasDraftComposition";
+export { presetRequestFromMetadata } from "@/features/freezone/application/canvasPreset";
 export type {
   FreezoneAssetUploadOptions,
   FreezoneAssetUploadResult,
