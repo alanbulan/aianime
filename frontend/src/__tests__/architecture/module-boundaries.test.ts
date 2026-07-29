@@ -6228,12 +6228,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/CanvasesTab.tsx",
     );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/CanvasBrowserView.tsx",
+    );
     const testPath = resolve(
       SRC_ROOT,
       "__tests__/features/freezone/canvases-tab.test.ts",
     );
     const viewModelSource = readFileSync(viewModelPath, "utf8");
     const tabSource = readFileSync(tabPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["export function", "buildCanvasBrowserSections("].join(" "),
@@ -6268,11 +6273,15 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("localStorage");
     expect(viewModelSource).not.toContain("@/features/canvas/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
-    expect(importSpecifiers(tabPath)).toContain(
+    expect(importSpecifiers(viewPath)).toContain(
+      "./canvasBrowserViewModel",
+    );
+    expect(importSpecifiers(tabPath)).not.toContain(
       "./presentation/canvasBrowserViewModel",
     );
     for (const legacyDeclaration of declarations) {
       expect(tabSource).not.toContain(legacyDeclaration);
+      expect(viewSource).not.toContain(legacyDeclaration);
     }
     expect(testSource).toContain(
       'from "@/features/freezone/presentation/canvasBrowserViewModel"',
@@ -6345,6 +6354,74 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain(
       'from "./useCanvasBrowserController"',
     );
+  });
+
+  it("keeps the complete canvas-browser layout in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/CanvasBrowserView.tsx",
+    );
+    const tabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasesTab.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/CanvasBrowserView.test.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const tabSource = readFileSync(tabPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export interface", "CanvasBrowserViewProps"].join(" "),
+      ["export function", "CanvasBrowserView("].join(" "),
+      ["function", "CanvasSectionTitle("].join(" "),
+      ["function", "CollapsibleCanvasSection("].join(" "),
+      ["function", "CanvasListItem("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/CanvasBrowserView.tsx",
+      ]),
+    );
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
+      new Set([
+        "react",
+        "lucide-react",
+        "react-i18next",
+        "./canvasBrowserViewModel",
+      ]),
+    );
+    expect(viewSource).not.toContain("useCanvasBrowserController");
+    expect(viewSource).not.toContain("@/features/canvas/composition");
+    expect(viewSource).not.toContain("@/modules/identity_access/public");
+    expect(viewSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(tabPath)).toContain(
+      "./hooks/useCanvasBrowserController",
+    );
+    expect(importSpecifiers(tabPath)).toContain(
+      "./presentation/CanvasBrowserView",
+    );
+    expect(tabSource).toContain("<CanvasBrowserView");
+    for (const legacyOwner of [
+      "useEffect",
+      "useState",
+      "useTranslation",
+      "CanvasSectionTitle",
+      "CollapsibleCanvasSection",
+      "CanvasListItem",
+      "lucide-react",
+    ]) {
+      expect(tabSource).not.toContain(legacyOwner);
+    }
+    expect(testSource).toContain('from "./CanvasBrowserView"');
   });
 
   it("keeps the complete asset-library layout in one presentation view", () => {

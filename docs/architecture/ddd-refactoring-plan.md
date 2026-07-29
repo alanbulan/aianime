@@ -2094,6 +2094,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十一批已将画布目录的 React Query 调用与 reload 生命周期、账号读取、已删除项遮蔽、输入/错误/忙碌状态、创建与删除编排、主线恢复确认及 URL 切换从 `CanvasesTab` 迁入唯一 presentation controller `hooks/useCanvasBrowserController.ts`；组件只装配控制器，并继续持有折叠展示状态、表单/按钮事件适配和 DOM。首次挂载不额外 refetch、相同 QueryClient 共享请求、reload token 变化刷新、创建重名与 409 文案、稳定 ID、成功后刷新并切换、删除确认与当前画布回退、主线恢复 busy 复位及失败错误归一语义保持不变；原副作用与状态从组件直接删除，两条旧架构合同同步改为检查真实 controller 所有者，不保留 facade 或第二套编排。`CanvasesTab` 由 499 行降至 395 行，controller 为 190 行；控制器与目录回归 3 个文件 17 项、相关架构断言 3 项、完整前端架构门禁 3 个文件 293 项（其中 module boundaries 253 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十二批已将画布目录的成员/其他分组折叠状态、当前画布自动展开、完整目录 DOM、表单与按钮事件适配、分组标题、列表项、类型图标及恢复/删除/来源跳转动作装配从 `CanvasesTab` 迁入唯一 presentation 组件 `presentation/CanvasBrowserView.tsx`；稳定入口只装配 `useCanvasBrowserController` 与 View，并显式传递状态和命令。创建输入与禁用态、错误/加载状态、当前与非当前画布视觉、成员和历史分组折叠、个人画布命名、相对时间、主线恢复、删除以及来源画布跳转行为保持不变；旧 DOM、展示 state、i18n 和图标依赖从入口直接删除，纯 view model 的消费合同同步改为检查真实 View，不保留 facade、旧 helper 或第二套布局。`CanvasesTab` 由 395 行降至 51 行，完整 View 为 444 行；View、controller、投影与查询回归 4 个文件 20 项、相关架构断言 2 项、完整前端架构门禁 3 个文件 294 项（其中 module boundaries 254 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
