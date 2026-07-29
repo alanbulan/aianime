@@ -916,6 +916,116 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './GroupNodeView'");
   });
 
+  it("separates the Canvas text-annotation model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/textAnnotationNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/textAnnotationNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useTextAnnotationNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/TextAnnotationNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/TextAnnotationNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "TextAnnotationNode", "=", "memo("].join(" "),
+      ["export function", "resolveTextAnnotationMode("].join(" "),
+      ["export function", "useTextAnnotationNodeController("].join(" "),
+      ["export function", "TextAnnotationNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useTextAnnotationNodeController",
+        "./TextAnnotationNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/TextAnnotationNode.tsx"],
+      ["features/canvas/domain/textAnnotationNodeModel.ts"],
+      ["features/canvas/hooks/useTextAnnotationNodeController.ts"],
+      ["features/canvas/nodes/TextAnnotationNodeView.tsx"],
+    ]);
+    expect(importSpecifiers(modelPath)).toEqual(["./canvasNodes"]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { TextAnnotationNode } from './TextAnnotationNode'",
+    );
+    expect(registrySource).toContain(
+      "textAnnotationNode: TextAnnotationNode",
+    );
+    expect(entrySource).toContain("useTextAnnotationNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(TextAnnotationNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("generateCanvasReversePrompt(");
+    expect(controllerSource).toContain("submitVideoGeneration({");
+    expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("useIsBoxSelecting()");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<ReactMarkdown");
+    expect(viewSource).toContain("<ReactMarkdown");
+    expect(viewSource).toContain("<ProviderModelPicker");
+    expect(viewSource).toContain("<NodeGenerationOverlay");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("generateCanvasReversePrompt(");
+    expect(viewSource).not.toContain("submitVideoGeneration(");
+    expect(viewSource).not.toContain("translateCanvasText(");
+    expect(modelTestSource).toContain(
+      "from './textAnnotationNodeModel'",
+    );
+    expect(controllerTestSource).toContain(
+      "from './useTextAnnotationNodeController'",
+    );
+    expect(viewTestSource).toContain("from './TextAnnotationNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -15113,15 +15223,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
-    const textNodePath = resolve(
+    const textNodeControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const textNodeSource = readFileSync(textNodePath, "utf8");
+    const textNodeControllerSource = readFileSync(
+      textNodeControllerPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -15166,16 +15279,28 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "freezoneGenerationTaskGateway.awaitCompletion(taskKey, projectId)",
     );
-    expect(importSpecifiers(textNodePath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(textNodePath)).not.toContain("@/api/tasks");
-    expect(textNodeSource).toContain("await generateCanvasReversePrompt(");
-    expect(textNodeSource).toContain(
+    expect(importSpecifiers(textNodeControllerPath)).not.toContain(
+      "@/api/ops",
+    );
+    expect(importSpecifiers(textNodeControllerPath)).not.toContain(
+      "@/api/tasks",
+    );
+    expect(textNodeControllerSource).toContain(
+      "await generateCanvasReversePrompt(",
+    );
+    expect(textNodeControllerSource).toContain(
       "await awaitCanvasGenerationTaskCompletion(",
     );
-    expect(textNodeSource).not.toContain("ensureBackendImageUrl");
-    expect(textNodeSource).not.toContain("submitFreezoneReversePrompt");
-    expect(textNodeSource).not.toContain("fetchFreezoneReversePromptResult");
-    expect(textNodeSource).not.toContain("awaitTaskCompletion");
+    expect(textNodeControllerSource).not.toContain(
+      "ensureBackendImageUrl",
+    );
+    expect(textNodeControllerSource).not.toContain(
+      "submitFreezoneReversePrompt",
+    );
+    expect(textNodeControllerSource).not.toContain(
+      "fetchFreezoneReversePromptResult",
+    );
+    expect(textNodeControllerSource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
     ]);
@@ -19907,7 +20032,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/AudioOperationsPanel.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/ScriptNode.tsx",
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const declaration = [
@@ -19994,15 +20119,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/VideoNode.tsx",
     );
-    const textNodePath = resolve(
+    const textNodeControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const videoNode = readFileSync(videoNodePath, "utf8");
-    const textNode = readFileSync(textNodePath, "utf8");
+    const textNodeController = readFileSync(
+      textNodeControllerPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(
       resolve(SRC_ROOT, "api/ops.ts"),
       "utf8",
@@ -20058,7 +20186,9 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneVideoGenerationSubmissionGateway",
     );
     expect(videoNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(5);
-    expect(textNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(1);
+    expect(
+      textNodeController.match(/submitVideoGeneration\(\{/g),
+    ).toHaveLength(1);
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
     ]);
@@ -20737,7 +20867,7 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const consumerPaths = [
       "features/canvas/application/resumeGeneration.ts",
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
     ];
     const consumerSources = Object.fromEntries(
       consumerPaths.map((path) => [
@@ -20787,8 +20917,11 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/application/generationOutputUrl",
     );
     expect(imageGenNode).not.toContain("function resolveOutputUrl(");
-    expect(consumerSources["features/canvas/nodes/TextAnnotationNode.tsx"])
-      .not.toContain("function resolveVideoOutputUrl(");
+    expect(
+      consumerSources[
+        "features/canvas/hooks/useTextAnnotationNodeController.ts"
+      ],
+    ).not.toContain("function resolveVideoOutputUrl(");
     expect(videoNode).not.toContain("function resolveOutputUrl(");
     expect(consumerSources["features/canvas/application/resumeGeneration.ts"])
       .not.toContain("function resolveUrlFromResult(");
@@ -20903,7 +21036,7 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
     ];
 
