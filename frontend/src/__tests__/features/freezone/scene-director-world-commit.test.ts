@@ -2,47 +2,55 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  clearSceneDirectorWorld,
-  loadSceneDirectorStageManifest,
-  saveSceneDirectorWorld,
-  saveSceneDirectorWorldSource,
-} from "@/modules/asset_world/public";
-import {
-  commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,
   nodeDataAfterDirectorWorldSourceSlotCommit,
-} from "@/features/freezone/commit/sceneDirectorWorldCommit";
+  type SceneDirectorWorldTarget,
+} from "@/features/freezone/domain/directorWorldCommit";
+import {
+  commitSceneDirectorWorldFromCanvasNode as commitSceneDirectorWorldFromCanvasNodeUseCase,
+  type SceneDirectorWorldCommitOptions,
+} from "@/features/freezone/application/sceneDirectorWorldCommit";
+import {
+  createAssetWorldSceneDirectorCommitGateway,
+  type AssetWorldSceneDirectorCommitDependencies,
+} from "@/features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway";
 
-vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/modules/asset_world/public")>(),
-  clearSceneDirectorWorld: vi.fn(async () => ({ active_source_id: "" })),
-  loadSceneDirectorStageManifest: vi.fn(async () => ({
-    viewer_kind: "three_d_director",
-    mode: "scene",
-    project: "proj",
-    scene_id: "公寓楼电梯间",
-    display_name: "公寓楼电梯间",
-    source: { source_kind: "master" },
-    sources: [],
-    scenes_by_source_id: {},
-    palette: { actors: [], props: [], anonymous_colors: [], anonymous_prop_colors: [] },
-    allowed_destinations: ["view"],
-  })),
-  saveSceneDirectorWorld: vi.fn(async (_project: string, _sceneId: string, payload: Record<string, unknown>) => ({
-    active_source_id: payload.active_source_id,
-    manifest: null,
-  })),
-  saveSceneDirectorWorldSource: vi.fn(async (_project: string, _sceneId: string, payload: Record<string, unknown>) => ({
-    active_source_id: payload.source_id,
-    manifest: null,
-  })),
-}));
+const clearSceneDirectorWorld = vi.fn<
+  AssetWorldSceneDirectorCommitDependencies["clearSceneDirectorWorld"]
+>();
+const loadSceneDirectorStageManifest = vi.fn<
+  AssetWorldSceneDirectorCommitDependencies["loadSceneDirectorStageManifest"]
+>();
+const saveSceneDirectorWorld = vi.fn<
+  AssetWorldSceneDirectorCommitDependencies["saveSceneDirectorWorld"]
+>();
+const saveSceneDirectorWorldSource = vi.fn<
+  AssetWorldSceneDirectorCommitDependencies["saveSceneDirectorWorldSource"]
+>();
+const assetWorldSceneDirectorCommitGateway =
+  createAssetWorldSceneDirectorCommitGateway({
+    clearSceneDirectorWorld,
+    loadSceneDirectorStageManifest,
+    saveSceneDirectorWorld,
+    saveSceneDirectorWorldSource,
+  });
+
+const commitSceneDirectorWorldFromCanvasNode = (
+  project: string,
+  target: SceneDirectorWorldTarget,
+  nodeData: Record<string, unknown>,
+  options?: SceneDirectorWorldCommitOptions,
+) => commitSceneDirectorWorldFromCanvasNodeUseCase(
+  { project, target, nodeData, options },
+  assetWorldSceneDirectorCommitGateway,
+);
 
 describe("commitSceneDirectorWorldFromCanvasNode", () => {
   beforeEach(() => {
-    vi.mocked(clearSceneDirectorWorld).mockClear();
-    vi.mocked(loadSceneDirectorStageManifest).mockClear();
-    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
+    clearSceneDirectorWorld.mockReset().mockResolvedValue({
+      active_source_id: "",
+    });
+    loadSceneDirectorStageManifest.mockReset().mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",
@@ -54,13 +62,11 @@ describe("commitSceneDirectorWorldFromCanvasNode", () => {
       palette: { actors: [], props: [], anonymous_colors: [], anonymous_prop_colors: [] },
       allowed_destinations: ["view"],
     });
-    vi.mocked(saveSceneDirectorWorld).mockClear();
-    vi.mocked(saveSceneDirectorWorld).mockResolvedValue({
+    saveSceneDirectorWorld.mockReset().mockResolvedValue({
       active_source_id: "",
       manifest: null,
     });
-    vi.mocked(saveSceneDirectorWorldSource).mockClear();
-    vi.mocked(saveSceneDirectorWorldSource).mockResolvedValue({
+    saveSceneDirectorWorldSource.mockReset().mockResolvedValue({
       active_source_id: "",
       manifest: null,
     });

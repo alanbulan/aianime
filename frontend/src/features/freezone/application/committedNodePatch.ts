@@ -3,7 +3,7 @@ import type { PushResult, PushTarget } from "../domain/assetCommit";
 import {
   isDirectorWorldSourceSlotTarget,
   nodeDataAfterDirectorWorldSourceSlotCommit,
-} from "../commit/sceneDirectorWorldCommit";
+} from "../domain/directorWorldCommit";
 
 function stringValue(value: unknown): string {
   return typeof value === "string" && value.trim() ? value.trim() : "";

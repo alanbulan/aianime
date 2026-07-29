@@ -1,17 +1,14 @@
 // Copyright (c) 2026 AI anime
-import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
-import {
-  clearSceneDirectorWorld,
-  directorSourceIdentityUrl,
-  loadSceneDirectorStageManifest,
-  saveSceneDirectorWorld,
-  saveSceneDirectorWorldSource,
-} from "@/modules/asset_world/public";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
-import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
+import { directorSourceIdentityUrl } from "@/modules/asset_world/public";
 
-type SceneDirectorWorldTarget = Extract<PushTarget, { kind: "scene_director_world" }>;
-type DirectorWorldSourceSlotTarget = Extract<PushTarget, {
+import type { PushResult, PushTarget } from "./assetCommit";
+
+export type SceneDirectorWorldTarget = Extract<
+  PushTarget,
+  { kind: "scene_director_world" }
+>;
+
+export type DirectorWorldSourceSlotTarget = Extract<PushTarget, {
   kind:
     | "scene_director_pano_360"
     | "scene_3gs_master_ply"
@@ -20,9 +17,54 @@ type DirectorWorldSourceSlotTarget = Extract<PushTarget, {
     | "scene_3gs_custom_scene";
 }>;
 
-interface SceneDirectorWorldCommitOptions {
-  pruneStale?: boolean;
+type DirectorWorldSourceType = "sog" | "pano360" | "mesh";
+type DirectorWorldSourceKind =
+  | "active"
+  | "master"
+  | "reverse"
+  | "pano"
+  | "uploaded"
+  | "custom";
+
+interface DirectorWorldSource extends Record<string, unknown> {
+  id?: string;
+  source_type?: DirectorWorldSourceType;
+  source_kind?: DirectorWorldSourceKind;
+  label?: string;
+  ply_url?: string;
+  url?: string;
+  pano_url?: string;
+  slot_kind?: "scene_director_pano_360" | "scene_360_candidate";
+  current?: boolean;
+  transform?: unknown;
 }
+
+export interface DirectorWorldSceneSnapshot extends Record<string, unknown> {
+  world?: Record<string, unknown> & { activeSourceId?: string };
+}
+
+export interface SceneDirectorWorldCommitPlanEntry {
+  sourceId: string;
+  snapshot: DirectorWorldSceneSnapshot;
+  source?: Record<string, unknown>;
+}
+
+export interface SceneDirectorWorldCommitPlan {
+  sceneId: string;
+  entries: SceneDirectorWorldCommitPlanEntry[];
+  result: PushResult;
+}
+
+const SOURCE_KIND_BY_SLOT: Record<
+  DirectorWorldSourceSlotTarget["kind"],
+  DirectorWorldSourceKind
+> = {
+  scene_director_pano_360: "pano",
+  scene_3gs_master_ply: "master",
+  scene_3gs_reverse_ply: "reverse",
+  scene_3gs_pano_ply: "pano",
+  scene_3gs_custom_scene: "custom",
+};
 
 function recordValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -40,32 +82,50 @@ function stringValue(value: unknown): string {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
-function sceneSnapshot(value: unknown): ThreeDSceneSnapshot | null {
-  return recordValue(value) as ThreeDSceneSnapshot | null;
+function sceneSnapshot(value: unknown): DirectorWorldSceneSnapshot | null {
+  return recordValue(value) as DirectorWorldSceneSnapshot | null;
 }
 
-export function hasDirectorWorldSceneState(nodeData: Record<string, unknown> | null | undefined): boolean {
+function directorWorldSources(value: unknown): DirectorWorldSource[] {
+  return Array.isArray(value)
+    ? value.filter((source): source is DirectorWorldSource =>
+        Boolean(source && typeof source === "object"),
+      )
+    : [];
+}
+
+export function hasDirectorWorldSceneState(
+  nodeData: Record<string, unknown> | null | undefined,
+): boolean {
   if (!nodeData) return false;
   if (sceneSnapshot(nodeData.scene)) return true;
   const scenesBySourceId = recordValue(nodeData.scenesBySourceId);
-  return Object.values(scenesBySourceId ?? {}).some((snapshot) => Boolean(sceneSnapshot(snapshot)));
+  return Object.values(scenesBySourceId ?? {}).some((snapshot) =>
+    Boolean(sceneSnapshot(snapshot)),
+  );
 }
 
 function sourceUrl(source: DirectorWorldSource | undefined): string {
-  return stringValue(source?.url) || stringValue(source?.ply_url) || stringValue(source?.pano_url);
+  return stringValue(source?.url) ||
+    stringValue(source?.ply_url) ||
+    stringValue(source?.pano_url);
 }
 
 function isCanonicalDirectorWorldUrl(url: string): boolean {
   return url.includes("/director_worlds/") && !url.includes("/freezone/");
 }
 
-function isUncommittedDirectorWorldSource(source: DirectorWorldSource | undefined): boolean {
+function isUncommittedDirectorWorldSource(
+  source: DirectorWorldSource | undefined,
+): boolean {
   if (!source) return false;
   const url = sourceUrl(source);
   return !url || !isCanonicalDirectorWorldUrl(url);
 }
 
-function sourceIdFromSnapshot(snapshot: ThreeDSceneSnapshot | null): string {
+function sourceIdFromSnapshot(
+  snapshot: DirectorWorldSceneSnapshot | null,
+): string {
   return stringValue(snapshot?.world?.activeSourceId);
 }
 
@@ -94,7 +154,7 @@ function sourcePatchForCommittedSlot(
   targetUrl: string,
   sourceId: string,
 ): DirectorWorldSource {
-  const sourceType: DirectorWorldSource["source_type"] =
+  const sourceType: DirectorWorldSourceType =
     target.kind === "scene_director_pano_360" ? "pano360" : "sog";
   return {
     id: sourceId,
@@ -109,7 +169,9 @@ function sourcePatchForCommittedSlot(
   };
 }
 
-function sourceLabelForSlot(kind: DirectorWorldSourceSlotTarget["kind"]): string {
+function sourceLabelForSlot(
+  kind: DirectorWorldSourceSlotTarget["kind"],
+): string {
   if (kind === "scene_3gs_master_ply") return "正面世界";
   if (kind === "scene_3gs_reverse_ply") return "背面世界";
   if (kind === "scene_3gs_pano_ply") return "360世界";
@@ -117,7 +179,9 @@ function sourceLabelForSlot(kind: DirectorWorldSourceSlotTarget["kind"]): string
   return "360图";
 }
 
-function sourceFilename(result: Pick<PushResult, "target_path" | "target_url">): string {
+function sourceFilename(
+  result: Pick<PushResult, "target_path" | "target_url">,
+): string {
   const raw = stringValue(result.target_path) || stringValue(result.target_url);
   const clean = raw.split("#", 1)[0]?.split("?", 1)[0] ?? raw;
   return clean.split("/").filter(Boolean).pop() || raw;
@@ -147,9 +211,9 @@ function projectIdFromNodeData(
 }
 
 function snapshotForSourceId(
-  snapshot: ThreeDSceneSnapshot,
+  snapshot: DirectorWorldSceneSnapshot,
   sourceId: string,
-): ThreeDSceneSnapshot {
+): DirectorWorldSceneSnapshot {
   return {
     ...snapshot,
     world: {
@@ -161,7 +225,11 @@ function snapshotForSourceId(
 
 function committedSourceSlotFromNodeData(
   nodeData: Record<string, unknown>,
-): { target: DirectorWorldSourceSlotTarget; targetUrl: string; sourceId: string } | null {
+): {
+  target: DirectorWorldSourceSlotTarget;
+  targetUrl: string;
+  sourceId: string;
+} | null {
   const target = recordValue(nodeData.slot_target);
   const pushTarget = target as unknown as PushTarget | null;
   if (!pushTarget || !isDirectorWorldSourceSlotTarget(pushTarget)) return null;
@@ -194,49 +262,25 @@ function sourcePayloadForMainlineCommit(
   if (committedSlot && activeSourceId && localSourceId === activeSourceId) {
     return {
       ...source,
-      ...sourcePatchForCommittedSlot(committedSlot.target, committedSlot.targetUrl, committedSlot.sourceId),
+      ...sourcePatchForCommittedSlot(
+        committedSlot.target,
+        committedSlot.targetUrl,
+        committedSlot.sourceId,
+      ),
       ...(source?.transform ? { transform: source.transform } : {}),
-    } as Record<string, unknown>;
+    };
   }
   if (!source) return undefined;
   const sourceId = stringValue(source.id);
   return {
     ...source,
     ...(sourceId ? { id: canonicalSceneSourceId(sourceId) } : {}),
-  } as Record<string, unknown>;
+  };
 }
 
-async function existingSceneDirectorWorldSourceIds(
-  project: string,
-  sceneId: string,
-): Promise<Set<string>> {
-  try {
-    const manifest = await loadSceneDirectorStageManifest(project, sceneId);
-    const ids = new Set<string>();
-    const activeSourceId = stringValue(manifest.active_source_id);
-    if (activeSourceId) ids.add(activeSourceId);
-    for (const source of manifest.sources ?? []) {
-      const sourceId = stringValue(source.id);
-      if (sourceId) ids.add(sourceId);
-    }
-    for (const sourceId of Object.keys(manifest.scenes_by_source_id ?? {})) {
-      if (sourceId.trim()) ids.add(sourceId.trim());
-    }
-    return ids;
-  } catch {
-    return new Set();
-  }
-}
-
-const SOURCE_KIND_BY_SLOT: Record<DirectorWorldSourceSlotTarget["kind"], NonNullable<DirectorWorldSource["source_kind"]>> = {
-  scene_director_pano_360: "pano",
-  scene_3gs_master_ply: "master",
-  scene_3gs_reverse_ply: "reverse",
-  scene_3gs_pano_ply: "pano",
-  scene_3gs_custom_scene: "custom",
-};
-
-export function isDirectorWorldSourceSlotTarget(target: PushTarget): target is DirectorWorldSourceSlotTarget {
+export function isDirectorWorldSourceSlotTarget(
+  target: PushTarget,
+): target is DirectorWorldSourceSlotTarget {
   return (
     target.kind === "scene_director_pano_360" ||
     target.kind === "scene_3gs_master_ply" ||
@@ -254,12 +298,9 @@ export function nodeDataAfterDirectorWorldSourceSlotCommit(
 ): Record<string, unknown> {
   const targetUrl = stringValue(result.target_url);
   if (!targetUrl) return nodeData;
-  const isCandidate = nodeData.user_spawned === true || !hasMainlineContext(nodeData);
-  const sources = Array.isArray(nodeData.sources)
-    ? nodeData.sources.filter((source): source is DirectorWorldSource =>
-        Boolean(source && typeof source === "object"),
-      )
-    : [];
+  const isCandidate = nodeData.user_spawned === true ||
+    !hasMainlineContext(nodeData);
+  const sources = directorWorldSources(nodeData.sources);
   const currentScene = sceneSnapshot(nodeData.scene);
   const previousActiveSourceId =
     stringValue(nodeData.activeSourceId) ||
@@ -269,7 +310,7 @@ export function nodeDataAfterDirectorWorldSourceSlotCommit(
     "committed-source";
   const committedSourceId = sourceIdForCommittedSlot(target, targetUrl);
   const activeSourceId = isCandidate ? previousActiveSourceId : committedSourceId;
-  const sourceType: DirectorWorldSource["source_type"] =
+  const sourceType: DirectorWorldSourceType =
     target.kind === "scene_director_pano_360" ? "pano360" : "sog";
   const candidateSourcePatch: Partial<DirectorWorldSource> = {
     url: targetUrl,
@@ -300,12 +341,13 @@ export function nodeDataAfterDirectorWorldSourceSlotCommit(
   }
   const previousScenes = recordValue(nodeData.scenesBySourceId) ?? {};
   const previousSnapshot =
-    sceneSnapshot(previousScenes[previousActiveSourceId]) ??
-    currentScene;
+    sceneSnapshot(previousScenes[previousActiveSourceId]) ?? currentScene;
   const nextSnapshot = previousSnapshot
     ? snapshotForSourceId(previousSnapshot, activeSourceId)
     : null;
-  const nextScenesBySourceId: Record<string, unknown> = isCandidate ? {} : { ...previousScenes };
+  const nextScenesBySourceId: Record<string, unknown> = isCandidate
+    ? {}
+    : { ...previousScenes };
   if (!isCandidate && previousActiveSourceId !== activeSourceId) {
     delete nextScenesBySourceId[previousActiveSourceId];
   }
@@ -367,22 +409,28 @@ export function nodeDataAfterDirectorWorldSourceSlotCommit(
     ...(nextSnapshot ? { scene: nextSnapshot } : {}),
     scenesBySourceId: nextScenesBySourceId,
     ...(sourceType === "pano360"
-      ? { panoUrl: targetUrl, url: targetUrl, plyUrl: undefined, modelUrl: undefined, fileUrl: undefined }
-      : { plyUrl: targetUrl, modelUrl: targetUrl, fileUrl: targetUrl, url: targetUrl, panoUrl: undefined }),
+      ? {
+          panoUrl: targetUrl,
+          url: targetUrl,
+          plyUrl: undefined,
+          modelUrl: undefined,
+          fileUrl: undefined,
+        }
+      : {
+          plyUrl: targetUrl,
+          modelUrl: targetUrl,
+          fileUrl: targetUrl,
+          url: targetUrl,
+          panoUrl: undefined,
+        }),
   };
 }
 
-export async function commitSceneDirectorWorldFromCanvasNode(
-  project: string,
+export function buildSceneDirectorWorldCommitPlan(
   target: SceneDirectorWorldTarget,
   nodeData: Record<string, unknown>,
-  options: SceneDirectorWorldCommitOptions = {},
-): Promise<PushResult> {
-  const sources = Array.isArray(nodeData.sources)
-    ? nodeData.sources.filter((item): item is DirectorWorldSource =>
-        Boolean(item && typeof item === "object"),
-      )
-    : [];
+): SceneDirectorWorldCommitPlan {
+  const sources = directorWorldSources(nodeData.sources);
   const activeSourceId =
     stringValue(nodeData.activeSourceId) ||
     sourceIdFromSnapshot(sceneSnapshot(nodeData.scene)) ||
@@ -390,12 +438,12 @@ export async function commitSceneDirectorWorldFromCanvasNode(
     stringValue(sources[0]?.id);
 
   const scenesBySourceId = recordValue(nodeData.scenesBySourceId) ?? {};
-  const entries = new Map<string, ThreeDSceneSnapshot>();
+  const snapshots = new Map<string, DirectorWorldSceneSnapshot>();
   for (const [sourceId, snapshot] of Object.entries(scenesBySourceId)) {
     const trimmed = sourceId.trim();
     const scene = sceneSnapshot(snapshot);
     if (trimmed && scene) {
-      entries.set(trimmed, scene);
+      snapshots.set(trimmed, scene);
     }
   }
 
@@ -403,70 +451,54 @@ export async function commitSceneDirectorWorldFromCanvasNode(
   if (currentScene) {
     const currentSourceId = activeSourceId || sourceIdFromSnapshot(currentScene);
     if (currentSourceId) {
-      entries.set(currentSourceId, currentScene);
+      snapshots.set(currentSourceId, currentScene);
     }
   }
 
-  if (entries.size === 0) {
+  if (snapshots.size === 0) {
     throw new Error("当前导演世界没有可提交的场景状态");
   }
 
-  for (const sourceId of entries.keys()) {
+  for (const sourceId of snapshots.keys()) {
     const source = sources.find((item) => item.id === sourceId);
     if (isUncommittedDirectorWorldSource(source)) {
       throw new Error("先把当前世界来源提交到主线槽位，再提交导演世界状态");
     }
   }
 
-  const orderedEntries = Array.from(entries.entries());
-  orderedEntries.sort(([a], [b]) => {
+  const orderedSnapshots = Array.from(snapshots.entries());
+  orderedSnapshots.sort(([a], [b]) => {
     if (a === activeSourceId) return 1;
     if (b === activeSourceId) return -1;
     return 0;
   });
 
-  const saveEntries = orderedEntries.map(([localSourceId, snapshot]) => {
-    const mainlineSourceId = mainlineSourceIdForLocalSource(nodeData, localSourceId);
+  const entries = orderedSnapshots.map(([localSourceId, snapshot]) => {
+    const sourceId = mainlineSourceIdForLocalSource(nodeData, localSourceId);
     return {
-      localSourceId,
-      mainlineSourceId,
-      snapshot: mainlineSourceId === localSourceId
+      sourceId,
+      snapshot: sourceId === localSourceId
         ? snapshot
-      : snapshotForSourceId(snapshot, mainlineSourceId),
+        : snapshotForSourceId(snapshot, sourceId),
+      source: sourcePayloadForMainlineCommit(
+        nodeData,
+        sources,
+        localSourceId,
+      ),
     };
   });
-  const nextSourceIds = new Set(saveEntries.map((entry) => entry.mainlineSourceId));
-  for (const entry of saveEntries) {
-    const activeSource = sourcePayloadForMainlineCommit(nodeData, sources, entry.localSourceId);
-    if (options.pruneStale === false) {
-      await saveSceneDirectorWorldSource(project, target.scene_id, {
-        source_id: entry.mainlineSourceId,
-        snapshot: entry.snapshot,
-        source: activeSource,
-      });
-    } else {
-      await saveSceneDirectorWorld(project, target.scene_id, {
-        active_source_id: entry.mainlineSourceId,
-        snapshot: entry.snapshot,
-        active_source: activeSource,
-      });
-    }
-  }
-  if (options.pruneStale ?? true) {
-    const existingSourceIds = await existingSceneDirectorWorldSourceIds(project, target.scene_id);
-    for (const sourceId of existingSourceIds) {
-      if (!nextSourceIds.has(sourceId)) {
-        await clearSceneDirectorWorld(project, target.scene_id, sourceId);
-      }
-    }
-  }
-
-  const finalSourceId = orderedEntries[orderedEntries.length - 1]?.[0] ?? activeSourceId;
+  const finalSourceId = orderedSnapshots[orderedSnapshots.length - 1]?.[0] ??
+    activeSourceId;
   const finalSource = sources.find((source) => source.id === finalSourceId);
+
   return {
-    target_path: `director_worlds/${target.scene_id}/v1/stage_manifest.json`,
-    target_url: sourceUrl(finalSource),
-    backup: null,
-    affected_count: orderedEntries.length,
+    sceneId: target.scene_id,
+    entries,
+    result: {
+      target_path: `director_worlds/${target.scene_id}/v1/stage_manifest.json`,
+      target_url: sourceUrl(finalSource),
+      backup: null,
+      affected_count: orderedSnapshots.length,
+    },
   };
 }

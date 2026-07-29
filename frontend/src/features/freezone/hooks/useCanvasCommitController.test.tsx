@@ -25,18 +25,9 @@ vi.mock("../composition", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../composition")>()),
   commitDirectorRenderFromCanvasSource: mocks.commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset: mocks.promoteToAsset,
+  commitSceneDirectorWorldFromCanvasNode:
+    mocks.commitSceneDirectorWorldFromCanvasNode,
 }));
-
-vi.mock("../commit/sceneDirectorWorldCommit", async (importOriginal) => {
-  const original = await importOriginal<
-    typeof import("../commit/sceneDirectorWorldCommit")
-  >();
-  return {
-    ...original,
-    commitSceneDirectorWorldFromCanvasNode:
-      mocks.commitSceneDirectorWorldFromCanvasNode,
-  };
-});
 
 vi.mock("@/features/canvas/domain/directorWorldSceneSaveRegistry", () => ({
   saveOpenDirectorWorldScene: mocks.saveOpenDirectorWorldScene,

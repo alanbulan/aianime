@@ -9,6 +9,10 @@ import {
   type DirectorRenderTarget,
 } from "./application/directorRenderCommit";
 import {
+  commitSceneDirectorWorldFromCanvasNode as commitSceneDirectorWorldFromCanvasNodeUseCase,
+  type SceneDirectorWorldCommitOptions,
+} from "./application/sceneDirectorWorldCommit";
+import {
   uploadFreezoneAsset as uploadFreezoneAssetUseCase,
 } from "./application/assetUpload";
 import {
@@ -25,7 +29,9 @@ import {
 import type { PushTarget } from "./domain/assetCommit";
 import type { FreezoneAssetUploadOptions } from "./domain/assetUpload";
 import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection";
+import type { SceneDirectorWorldTarget } from "./domain/directorWorldCommit";
 import { browserDirectorRenderCommitGateway } from "./infrastructure/browserDirectorRenderCommitGateway";
+import { assetWorldSceneDirectorCommitGateway } from "./infrastructure/assetWorldSceneDirectorCommitGateway";
 import { httpFreezoneAssetCommitGateway } from "./infrastructure/httpFreezoneAssetCommitGateway";
 import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
 import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
@@ -81,6 +87,18 @@ export function commitDirectorRenderFromCanvasSource(
   return commitDirectorRenderFromCanvasSourceUseCase(
     { projectId, target, source },
     browserDirectorRenderCommitGateway,
+  );
+}
+
+export function commitSceneDirectorWorldFromCanvasNode(
+  project: string,
+  target: SceneDirectorWorldTarget,
+  nodeData: Record<string, unknown>,
+  options?: SceneDirectorWorldCommitOptions,
+) {
+  return commitSceneDirectorWorldFromCanvasNodeUseCase(
+    { project, target, nodeData, options },
+    assetWorldSceneDirectorCommitGateway,
   );
 }
 

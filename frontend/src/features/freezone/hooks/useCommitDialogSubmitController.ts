@@ -14,14 +14,14 @@ import type {
 import {
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
+  commitSceneDirectorWorldFromCanvasNode,
 } from "../composition";
 import { renderCommitSuccessMessage } from "../application/canvasCommitRules";
 import { nodeDataAfterCommittedSlot } from "../application/committedNodePatch";
 import {
-  commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-} from "../commit/sceneDirectorWorldCommit";
+} from "../domain/directorWorldCommit";
 
 export interface CommitDialogSubmitControllerOptions {
   project: string;

@@ -24,11 +24,11 @@ vi.mock("../composition", async (importOriginal) => ({
   commitDirectorRenderFromCanvasSource: (...args: unknown[]) =>
     mocks.commitDirectorRenderFromCanvasSource(...args),
   commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
-}));
-
-vi.mock("../commit/sceneDirectorWorldCommit", () => ({
   commitSceneDirectorWorldFromCanvasNode: (...args: unknown[]) =>
     mocks.commitSceneDirectorWorldFromCanvasNode(...args),
+}));
+
+vi.mock("../domain/directorWorldCommit", () => ({
   hasDirectorWorldSceneState: (...args: unknown[]) =>
     mocks.hasDirectorWorldSceneState(...args),
   isDirectorWorldSourceSlotTarget: (...args: unknown[]) =>

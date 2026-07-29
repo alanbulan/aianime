@@ -14,7 +14,7 @@ import {
 import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-} from "../commit/sceneDirectorWorldCommit";
+} from "../domain/directorWorldCommit";
 
 export function renderCommitSuccessMessage(
   target: PushTarget,

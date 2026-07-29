@@ -22,6 +22,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
+  commitSceneDirectorWorldFromCanvasNode,
 } from "../composition";
 import {
   inferCanonicalRefreshTarget,
@@ -39,10 +40,9 @@ import {
   isScenePushTargetKind,
 } from "../domain/pushTarget";
 import {
-  commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-} from "../commit/sceneDirectorWorldCommit";
+} from "../domain/directorWorldCommit";
 
 export interface CanvasCommitPrompt {
   nodeId: string;

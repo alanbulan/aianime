@@ -2845,16 +2845,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(rulesPath))).toEqual(
       new Set([
-        "../commit/sceneDirectorWorldCommit",
         "../domain/assetCommit",
+        "../domain/directorWorldCommit",
         "../domain/pushTarget",
         "./committedNodePatch",
       ]),
     );
     expect(new Set(importSpecifiers(committedPatchPath))).toEqual(
       new Set([
-        "../commit/sceneDirectorWorldCommit",
         "../domain/assetCommit",
+        "../domain/directorWorldCommit",
       ]),
     );
     expect(new Set(importSpecifiers(committedPatchTestPath))).toEqual(
@@ -3073,7 +3073,7 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasCommitRules",
         "../application/committedNodePatch",
         "../composition",
-        "../commit/sceneDirectorWorldCommit",
+        "../domain/directorWorldCommit",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
@@ -3203,7 +3203,7 @@ describe("frontend architecture boundaries", () => {
         "@/lib/query-keys",
         "../application/canvasCommitRules",
         "../composition",
-        "../commit/sceneDirectorWorldCommit",
+        "../domain/directorWorldCommit",
         "../domain/pushTarget",
       ]),
     );
@@ -3352,7 +3352,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCommitDialogSubmitController.ts",
       "features/freezone/presentation/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
-      "features/freezone/commit/sceneDirectorWorldCommit.ts",
     ];
     const publicConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
@@ -14819,7 +14818,27 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/domain/assetLibraryModel.ts",
     );
-    const freezoneCommitPath = resolve(
+    const freezoneDomainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/directorWorldCommit.ts",
+    );
+    const freezoneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/sceneDirectorWorldCommit.ts",
+    );
+    const freezoneAdapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway.ts",
+    );
+    const freezoneCompositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const freezoneCommitTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/freezone/scene-director-world-commit.test.ts",
+    );
+    const legacyFreezoneCommitPath = resolve(
       SRC_ROOT,
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
     );
@@ -14838,7 +14857,16 @@ describe("frontend architecture boundaries", () => {
     );
     const sourceIdentitySource = readFileSync(sourceIdentityPath, "utf8");
     const canvasSourcesSource = readFileSync(canvasSourcesPath, "utf8");
-    const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
+    const freezoneDomainSource = readFileSync(freezoneDomainPath, "utf8");
+    const freezoneApplicationSource = readFileSync(
+      freezoneApplicationPath,
+      "utf8",
+    );
+    const freezoneAdapterSource = readFileSync(freezoneAdapterPath, "utf8");
+    const freezoneCompositionSource = readFileSync(
+      freezoneCompositionPath,
+      "utf8",
+    );
     const sourceEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -14917,17 +14945,59 @@ describe("frontend architecture boundaries", () => {
     expect(canvasCompositionSource).toContain(
       "getSceneDirectorStageManifest: loadSceneDirectorStageManifest",
     );
-    expect(importSpecifiers(freezoneCommitPath)).toContain(
+    expect(existsSync(legacyFreezoneCommitPath)).toBe(false);
+    expect(new Set(importSpecifiers(freezoneDomainPath))).toEqual(
+      new Set([
+        "@/modules/asset_world/public",
+        "./assetCommit",
+      ]),
+    );
+    expect(freezoneDomainSource).toContain(
+      "export function buildSceneDirectorWorldCommitPlan(",
+    );
+    expect(freezoneDomainSource).not.toContain("@/features/canvas/");
+    expect(freezoneDomainSource).not.toContain("@/features/viewer-kit/");
+    expect(new Set(importSpecifiers(freezoneApplicationPath))).toEqual(
+      new Set([
+        "../domain/assetCommit",
+        "../domain/directorWorldCommit",
+      ]),
+    );
+    expect(freezoneApplicationSource).toContain(
+      "buildSceneDirectorWorldCommitPlan(params.target, params.nodeData)",
+    );
+    expect(freezoneApplicationSource).not.toContain(
       "@/modules/asset_world/public",
     );
-    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
-      "@/api/viewerManifests",
+    expect(new Set(importSpecifiers(freezoneAdapterPath))).toEqual(
+      new Set([
+        "@/modules/asset_world/public",
+        "../application/sceneDirectorWorldCommit",
+      ]),
     );
-    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
-      "@/features/canvas/domain/directorWorldSources",
+    expect(freezoneAdapterSource).toContain(
+      "await dependencies.loadSceneDirectorStageManifest(",
     );
-    expect(freezoneCommitSource).toContain(
-      "await loadSceneDirectorStageManifest(project, sceneId)",
+    expect(freezoneAdapterSource).toContain(
+      "export function createAssetWorldSceneDirectorCommitGateway(",
+    );
+    expect(importSpecifiers(freezoneCompositionPath)).toContain(
+      "./application/sceneDirectorWorldCommit",
+    );
+    expect(importSpecifiers(freezoneCompositionPath)).toContain(
+      "./infrastructure/assetWorldSceneDirectorCommitGateway",
+    );
+    expect(freezoneCompositionSource).toContain(
+      "commitSceneDirectorWorldFromCanvasNodeUseCase(",
+    );
+    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
+      "@/features/freezone/domain/directorWorldCommit",
+    );
+    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
+      "@/features/freezone/application/sceneDirectorWorldCommit",
+    );
+    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
+      "@/features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway",
     );
   });
 
