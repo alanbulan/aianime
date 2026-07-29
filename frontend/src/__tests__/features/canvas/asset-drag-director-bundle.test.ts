@@ -194,6 +194,13 @@ describe("director bundle canvas assets", () => {
       resolve(process.cwd(), "src/features/freezone/AssetLibraryPanel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/presentation/AssetLibraryPanelView.tsx",
+      ),
+      "utf8",
+    );
     const selectedBackgroundSlot = readFileSync(
       resolve(process.cwd(), "src/features/canvas/application/selectedBackgroundSlot.ts"),
       "utf8",
@@ -207,10 +214,10 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
 
-    expect(panel).toContain("主线资产");
+    expect(panelView).toContain("主线资产");
     expect(badges).toContain("主线资产");
-    expect(`${panel}\n${badges}`).not.toContain("主线素材");
-    expect(panel).not.toContain(">素材库<");
+    expect(`${panel}\n${panelView}\n${badges}`).not.toContain("主线素材");
+    expect(panelView).not.toContain(">素材库<");
     expect(selectedBackgroundSlot).not.toContain("当前背景 · EP");
     expect(selectedBackgroundSlot).not.toContain("已设置 EP");
     expect(zh).toContain('"selectedBackgroundOutputLabel": "当前背景"');

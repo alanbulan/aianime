@@ -106,7 +106,7 @@ describe("freezone viewer contracts", () => {
     expect(assetLibraryModel).toContain("if (sceneContext) return [sceneContext];");
     expect(assetLibraryModel).toContain('kind: "scene"');
     expect(assetLibraryModel).toContain("sceneId,");
-    expect(panel).toContain("addAssetToCanvas(asset");
+    expect(panel).toContain("onAddAsset={addAssetToCanvas}");
     expect(assetLibraryInsertionComposition).toContain(
       "hydratePayload: hydrateAssetDragPayload",
     );

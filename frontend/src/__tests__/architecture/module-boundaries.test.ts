@@ -5886,6 +5886,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/AssetLibraryPanel.tsx",
     );
+    const panelViewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
+    );
     const projectionPath = resolve(
       SRC_ROOT,
       "features/freezone/application/assetLibraryProjection.ts",
@@ -5900,6 +5904,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
+    const panelViewSource = readFileSync(panelViewPath, "utf8");
     const projectionSource = readFileSync(projectionPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
     const dragTestSource = readFileSync(dragTestPath, "utf8");
@@ -5942,8 +5947,8 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("localStorage");
-    expect(importSpecifiers(panelPath)).toContain(
-      "@/features/freezone/domain/assetLibraryModel",
+    expect(importSpecifiers(panelViewPath)).toContain(
+      "../domain/assetLibraryModel",
     );
     expect(importSpecifiers(projectionPath)).toContain(
       "../domain/assetLibraryModel",
@@ -5961,6 +5966,7 @@ describe("frontend architecture boundaries", () => {
       ["type", "AssetTab ="].join(" "),
     ]) {
       expect(panelSource).not.toContain(legacyDeclaration);
+      expect(panelViewSource).not.toContain(legacyDeclaration);
     }
     expect(modelTestSource).toContain('from "./assetLibraryModel"');
     expect(dragTestSource).toContain(
@@ -6122,12 +6128,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/AssetLibraryPanel.tsx",
     );
+    const panelViewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
+    );
     const testPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/assetLibraryViewModel.test.ts",
     );
     const viewModelSource = readFileSync(viewModelPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
+    const panelViewSource = readFileSync(panelViewPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["export function", "beatAssetItems("].join(" "),
@@ -6166,25 +6177,32 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).toContain(
       "@/features/freezone/presentation/assetLibraryViewModel",
     );
-    expect(panelSource).toContain("buildAssetLibraryTabs(canvasKind, assets)");
-    expect(panelSource).toContain(
-      "filterAssetLibraryAssets(assets, tab, query)",
+    expect(importSpecifiers(panelViewPath)).toContain(
+      "./assetLibraryViewModel",
+    );
+    expect(panelViewSource).toContain(
+      "buildAssetLibraryTabs(canvasKind, catalog.assets)",
+    );
+    expect(panelViewSource).toContain(
+      "filterAssetLibraryAssets(catalog.assets, tab, query)",
     );
     for (const legacyDeclaration of declarations) {
       expect(panelSource).not.toContain(legacyDeclaration);
+      expect(panelViewSource).not.toContain(legacyDeclaration);
     }
     expect(panelSource).not.toContain("ROLE_LABELS");
     expect(panelSource).not.toContain("ROLE_ORDER");
     expect(panelSource).not.toContain("beatTabLabel");
     expect(panelSource).not.toContain("source.from_beat_context");
     expect(panelSource).not.toContain("countAssetsForTab(");
+    expect(panelViewSource).not.toContain("countAssetsForTab(");
     expect(testSource).toContain('from "./assetLibraryViewModel"');
   });
 
-  it("keeps asset library Beat presentation in one component module", () => {
-    const presentationPath = resolve(
+  it("keeps the complete asset-library layout in one presentation view", () => {
+    const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -6192,10 +6210,86 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryPanelView.test.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export interface", "AssetLibraryPanelViewProps"].join(" "),
+      ["export function", "AssetLibraryPanelView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/AssetLibraryPanelView.tsx",
+      ]),
+    );
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
+      new Set([
+        "react",
+        "lucide-react",
+        "@/features/canvas/domain/assetDropInfo",
+        "../CanvasesTab",
+        "../domain/beatContext",
+        "../domain/assetLibraryModel",
+        "./AssetLibraryAssetCard",
+        "./AssetLibraryBeatPanels",
+        "./assetLibraryViewModel",
+      ]),
+    );
+    expect(viewSource).not.toContain("zustand");
+    expect(viewSource).not.toContain("useAssetDropStore");
+    expect(viewSource).not.toContain("@/features/canvas/canvasStore");
+    expect(viewSource).not.toContain("@/features/freezone/composition");
+    expect(viewSource).not.toContain("@/features/freezone/hooks/");
+    expect(viewSource).not.toContain("@/features/freezone/application/");
+    expect(viewSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/presentation/AssetLibraryPanelView",
+    );
+    expect(panelSource).toContain("<AssetLibraryPanelView");
+    expect(panelSource).toContain("onAddAsset={addAssetToCanvas}");
+    for (const movedPresentationOwner of [
+      "useState",
+      "useMemo",
+      "<aside",
+      "ChevronLeft",
+      "ChevronRight",
+      "CanvasesTab",
+      "BeatContextPanel",
+      "AssetLibraryAssetCard",
+      "buildAssetLibraryTabs",
+      "filterAssetLibraryAssets",
+      "主线资产",
+      "搜索素材...",
+    ]) {
+      expect(panelSource).not.toContain(movedPresentationOwner);
+    }
+    expect(testSource).toContain('from "./AssetLibraryPanelView"');
+  });
+
+  it("keeps asset library Beat presentation in one component module", () => {
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+    );
+    const panelViewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
       "features/freezone/presentation/AssetLibraryBeatPanels.test.tsx",
     );
     const presentationSource = readFileSync(presentationPath, "utf8");
-    const panelSource = readFileSync(panelPath, "utf8");
+    const panelViewSource = readFileSync(panelViewPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["function", "MiniThumb("].join(" "),
@@ -6237,12 +6331,12 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/shared/api/");
     expect(presentationSource).not.toContain("addAssetToCanvas");
     expect(presentationSource).toContain("onAddAsset(asset, index)");
-    expect(importSpecifiers(panelPath)).toContain(
-      "@/features/freezone/presentation/AssetLibraryBeatPanels",
+    expect(importSpecifiers(panelViewPath)).toContain(
+      "./AssetLibraryBeatPanels",
     );
-    expect(panelSource).toContain("onAddAsset={addAssetToCanvas}");
+    expect(panelViewSource).toContain("onAddAsset={onAddAsset}");
     for (const legacyDeclaration of declarations) {
-      expect(panelSource).not.toContain(legacyDeclaration);
+      expect(panelViewSource).not.toContain(legacyDeclaration);
     }
     expect(testSource).toContain('from "./AssetLibraryBeatPanels"');
   });
@@ -6252,16 +6346,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/presentation/AssetLibraryAssetCard.tsx",
     );
-    const panelPath = resolve(
+    const panelViewPath = resolve(
       SRC_ROOT,
-      "features/freezone/AssetLibraryPanel.tsx",
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/AssetLibraryAssetCard.test.tsx",
     );
     const presentationSource = readFileSync(presentationPath, "utf8");
-    const panelSource = readFileSync(panelPath, "utf8");
+    const panelViewSource = readFileSync(panelViewPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["export function", "AssetLibraryAssetCard("].join(" "),
@@ -6297,10 +6391,10 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/features/canvas/composition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
-    expect(importSpecifiers(panelPath)).toContain(
-      "@/features/freezone/presentation/AssetLibraryAssetCard",
+    expect(importSpecifiers(panelViewPath)).toContain(
+      "./AssetLibraryAssetCard",
     );
-    expect(panelSource).toContain("<AssetLibraryAssetCard");
+    expect(panelViewSource).toContain("<AssetLibraryAssetCard");
     for (const legacyOwner of [
       ["function", "AssetCard("].join(" "),
       ["function", "createAssetDragImage("].join(" "),
@@ -6311,7 +6405,7 @@ describe("frontend architecture boundaries", () => {
       "assetDropMediaType",
       "withImageCacheBust",
     ]) {
-      expect(panelSource).not.toContain(legacyOwner);
+      expect(panelViewSource).not.toContain(legacyOwner);
     }
     expect(testSource).toContain('from "./AssetLibraryAssetCard"');
   });
@@ -6325,12 +6419,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/AssetLibraryPanel.tsx",
     );
+    const panelViewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
+    );
     const testPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useAssetLibraryReplacementController.test.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
+    const panelViewSource = readFileSync(panelViewPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "export function",
@@ -6369,8 +6468,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).toContain(
       "@/features/freezone/hooks/useAssetLibraryReplacementController",
     );
-    expect(panelSource).toContain(
-      "replacementController.confirmReplacement(asset)",
+    expect(panelSource).toContain("replacement={replacementController}");
+    expect(panelViewSource).toContain(
+      "replacement.confirmReplacement(asset)",
     );
     for (const legacyDependency of [
       "AssetReplaceContext",
@@ -6382,6 +6482,7 @@ describe("frontend architecture boundaries", () => {
       "handleCancelReplace",
     ]) {
       expect(panelSource).not.toContain(legacyDependency);
+      expect(panelViewSource).not.toContain(legacyDependency);
     }
     expect(testSource).toContain(
       'from "./useAssetLibraryReplacementController"',

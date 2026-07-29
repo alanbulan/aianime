@@ -2088,6 +2088,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零八批已将画布类型到 Beat tab 文案的映射、四类固定资产 tab 装配、各 tab 计数以及按 tab/搜索词过滤资产的规则从 `AssetLibraryPanel` 迁入现有唯一纯 presentation view model `presentation/assetLibraryViewModel.ts`；面板只用 `useMemo` 调用 `buildAssetLibraryTabs` 与 `filterAssetLibraryAssets` 并渲染结果，不再内联展示分支。默认/空白画布“全部Beat”、剧集画布“本集Beat”、其余画布“当前Beat”的文案，Beat 仅包含 `from_beat_context` 资产，其他 tab 按资产分类过滤，以及 label/sublabel/kind/role 的 trim + 不区分大小写搜索语义均保持不变；原内联逻辑直接删除，不保留第二套投影。`AssetLibraryPanel` 由 270 行降至 247 行；view model 与面板回归 2 个文件 11 项、关联架构断言 1 项、完整前端架构门禁 3 个文件 290 项（其中 module boundaries 250 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零九批已将资产抽屉的受控/非受控折叠状态、画布/主线分段状态、资产 tab 与搜索状态、完整抽屉 DOM、加载错误/空状态分派、Beat/普通卡装配及 `CanvasesTab` 装配从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryPanelView.tsx`；稳定公共入口 `AssetLibraryPanel` 仅解析 canvas kind 与 legacy preset 标记，装配 catalog/replacement controllers，并注入唯一 `addAssetToCanvas` 命令。默认折叠、受控折叠回调、句柄位置与过渡、初始显示项目画布、tab/search 状态保留、错误优先级、卡片索引、替换状态/命令及外部 reload 透传行为保持不变；旧 JSX 和本地展示 state 从控制器直接删除，不保留 facade、第二套 View 或重复命令。`AssetLibraryPanel` 由 247 行降至 69 行，完整 View 为 240 行；View、控制器、Director bundle 与 Viewer 合同回归 4 个文件 44 项、本批及关联架构断言 9 项、完整前端架构门禁 3 个文件 291 项（其中 module boundaries 251 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
