@@ -63,29 +63,16 @@ import {
 import {
   canvasDraftSignature,
 } from "../application/canvasDraft";
-import { canvasDraftStorageGateway } from "../canvasDraftComposition";
+import {
+  canvasDraftStorageGateway,
+  scheduleCanvasDraftPruneOnce,
+} from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
 /** Extra app-level retry attempts when ky surfaces a 503 canvas_lock_busy. */
 const LOCK_BUSY_MAX_RETRIES = 1;
-
-let prunePending = false;
-
-/** 整页生命周期内只调度一次旧草稿清理，且一旦排上队就让它跑完。 */
-function schedulePruneOnce(): void {
-  if (prunePending) return;
-  prunePending = true;
-  const run = () => {
-    canvasDraftStorageGateway.prune();
-  };
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(run, { timeout: 2_000 });
-    return;
-  }
-  window.setTimeout(run, 300);
-}
 
 function viewportsEqual(a: Viewport, b: Viewport): boolean {
   return a.x === b.x && a.y === b.y && a.zoom === b.zoom;
@@ -438,7 +425,7 @@ export function useCanvasSync(
     // 清理旧草稿要遍历并解析整个 localStorage（草稿动辄几 MB），放在挂载的关键路径上
     // 会直接卡住切页那一帧；挪到空闲期做，它跟本次 hydrate 没有先后依赖。整页只跑一次，
     // 且不随卸载取消 —— 否则「进画布不到两秒就切走」这种最常见的路径永远清理不到。
-    schedulePruneOnce();
+    scheduleCanvasDraftPruneOnce();
     const hydrateFlight = canvasHydrateFlightCoordinator.acquire(
       project,
       canvasId,

@@ -2032,6 +2032,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十批已将 `useCanvasSync` 顶部的 hydrate 请求共享、consumer 引用计数、释放宽限、Abort 与 settled payload 短时复用状态机迁入唯一 application `canvasHydrateFlights.ts`，由 `canvasHydrationComposition.ts` 注入 Canvas loader、当前本地编辑状态、浏览器时钟和 timer；hook 只获取并释放 lease，不再持有模块级 Map、AbortController 或具体 GET 调用。50 ms StrictMode 重挂宽限、10 秒 settled 复用窗口、仅无本地编辑时复用、reload key 隔离和最后 consumer 离开后取消请求的行为保持不变，旧常量与实现直接删除，不保留 hook 转发；`useCanvasSync` 由 1,495 行降至 1,381 行。独立 coordinator 与 hook 集成回归 32 项、相关架构门禁 2 项和完整前端架构门禁 224 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十一批已将旧草稿/历史/冲突数据的一次性空闲清理调度从 `useCanvasSync` 迁入现有 `canvasDraftComposition.ts`，hook 仅在 hydrate effect 调用 `scheduleCanvasDraftPruneOnce`；composition 持有页面生命周期 once 状态和浏览器 idle/timer，browser adapter 继续唯一持有 localStorage 遍历与 TTL 清理算法。`requestIdleCallback` 的 2 秒 timeout、无 idle API 时 300 ms fallback、任务排入后不因组件卸载取消及整页只调度一次的语义保持不变，旧 `prunePending` 与本地函数直接删除；`useCanvasSync` 由 1,381 行降至 1,368 行。草稿存储与同步 hook 回归 42 项、相关架构门禁 1 项和完整前端架构门禁 224 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

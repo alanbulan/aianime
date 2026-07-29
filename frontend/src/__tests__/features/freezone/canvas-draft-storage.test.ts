@@ -9,6 +9,7 @@ import {
 import {
   canvasDraftStorageGateway,
   installFreezoneCanvasStorageReclaimer,
+  scheduleCanvasDraftPruneOnce,
 } from "@/features/freezone/canvasDraftComposition";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { safeLocalStorageSet } from "@/lib/localStorageQuota";
@@ -21,6 +22,33 @@ const {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe("canvas draft prune scheduling", () => {
+  it("schedules one idle prune for the page lifetime", () => {
+    const scheduled: { run: (() => void) | null } = { run: null };
+    const requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
+      scheduled.run = () =>
+        callback({
+          didTimeout: false,
+          timeRemaining: () => 50,
+        });
+      return 1;
+    });
+    vi.stubGlobal("requestIdleCallback", requestIdleCallback);
+    const prune = vi.spyOn(canvasDraftStorageGateway, "prune");
+
+    scheduleCanvasDraftPruneOnce();
+    scheduleCanvasDraftPruneOnce();
+
+    expect(requestIdleCallback).toHaveBeenCalledTimes(1);
+    expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), {
+      timeout: 2_000,
+    });
+    scheduled.run?.();
+    expect(prune).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("canvas draft storage", () => {

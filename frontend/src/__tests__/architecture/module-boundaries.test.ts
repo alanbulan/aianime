@@ -5289,6 +5289,8 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
     const forbiddenApplicationImports = importSpecifiers(applicationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -5342,11 +5344,18 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(compositionPath)).toEqual([
       "./infrastructure/browserCanvasDraftStorageGateway",
     ]);
+    expect(compositionSource).toContain(
+      "export function scheduleCanvasDraftPruneOnce()",
+    );
+    expect(compositionSource).toContain("window.requestIdleCallback(run");
     expect(importSpecifiers(hookPath)).toContain("../application/canvasDraft");
     expect(importSpecifiers(hookPath)).toContain("../canvasDraftComposition");
     expect(importSpecifiers(hookPath)).not.toContain(
       "../infrastructure/browserCanvasDraftStorageGateway",
     );
+    expect(hookSource).toContain("scheduleCanvasDraftPruneOnce();");
+    expect(hookSource).not.toContain("requestIdleCallback");
+    expect(hookSource).not.toContain("prunePending");
     expect(importSpecifiers(publicPath)).toContain(
       "@/features/freezone/canvasDraftComposition",
     );
