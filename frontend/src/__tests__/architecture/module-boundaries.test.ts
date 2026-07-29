@@ -1026,6 +1026,116 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './TextAnnotationNodeView'");
   });
 
+  it("separates the Canvas upload-node model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/UploadNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/uploadNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/uploadNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useUploadNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useUploadNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/UploadNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/UploadNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "UploadNode", "=", "memo("].join(" "),
+      ["export function", "resolveUploadNodeLayout("].join(" "),
+      ["export function", "useUploadNodeController("].join(" "),
+      ["export function", "UploadNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useUploadNodeController",
+        "./UploadNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/UploadNode.tsx"],
+      ["features/canvas/application/uploadNodeModel.ts"],
+      ["features/canvas/hooks/useUploadNodeController.ts"],
+      ["features/canvas/nodes/UploadNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("uploadCanvasAsset(");
+    expect(registrySource).toContain(
+      "import { UploadNode } from './UploadNode'",
+    );
+    expect(registrySource).toContain("uploadNode: UploadNode");
+    expect(entrySource).toContain("useUploadNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(UploadNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("uploadCanvasAsset(");
+    expect(controllerSource).toContain("canvasEventBus.subscribe(");
+    expect(controllerSource).toContain("getCanvasBeatDirectorManifest(");
+    expect(controllerSource).toContain("captureCanvasNodeBusyRef");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain(
+      "onSubmitDirectorCombined={controller.submitDirectorCombined}",
+    );
+    expect(viewSource).toContain(
+      "onCaptureCanvasNode={controller.captureDirectorCanvasNode}",
+    );
+    expect(viewSource).toContain("<CanvasNodeImage");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("uploadCanvasAsset(");
+    expect(modelTestSource).toContain("from './uploadNodeModel'");
+    expect(controllerTestSource).toContain(
+      "from './useUploadNodeController'",
+    );
+    expect(viewTestSource).toContain("from './UploadNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -15541,7 +15651,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
       "features/canvas/nodes/ThreeDWorldNode.tsx",
-      "features/canvas/nodes/UploadNode.tsx",
+      "features/canvas/hooks/useUploadNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
     const assetGatewaySource = readFileSync(assetGatewayPath, "utf8");
@@ -20293,7 +20403,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
       "features/canvas/nodes/ThreeDWorldNode.tsx",
-      "features/canvas/nodes/UploadNode.tsx",
+      "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
       "features/canvas/ui/AssetLibraryModal.tsx",
       "features/canvas/ui/EraseOverlay.tsx",

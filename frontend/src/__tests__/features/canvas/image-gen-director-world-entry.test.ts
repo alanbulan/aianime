@@ -27,22 +27,30 @@ describe("ImageGenNode director combined world entry", () => {
   });
 
   it("lets dragged director bundle upload nodes open Director World", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/UploadNode.tsx"),
+    const modelSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/application/uploadNodeModel.ts"),
+      "utf8",
+    );
+    const controllerSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
+      "utf8",
+    );
+    const viewSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/nodes/UploadNodeView.tsx"),
       "utf8",
     );
 
-    expect(source).toContain("getCanvasBeatDirectorManifest");
-    expect(source).toContain("sourceRole === \"director_combined\"");
-    expect(source).toContain("onSubmitDirectorCombined={handleDirectorCaptureCombined}");
-    expect(source).toContain("onCaptureCanvasNode={handleDirectorOutputCanvasNode}");
-    expect(source).not.toContain("autoCommitDirectorCombined");
-    expect(source).toContain("meta.captureBundle");
-    expect(source).toContain("label: '导演合成图'");
-    expect(source).toContain("label: '纯背景图'");
-    expect(source).toContain("addPanoCaptureGroup");
-    expect(source).toContain("kind: 'director_render'");
-    expect(source).not.toContain("freezone/assets-updated");
+    expect(controllerSource).toContain("getCanvasBeatDirectorManifest");
+    expect(modelSource).toContain("role === 'director_combined'");
+    expect(viewSource).toContain("onSubmitDirectorCombined={controller.submitDirectorCombined}");
+    expect(viewSource).toContain("onCaptureCanvasNode={controller.captureDirectorCanvasNode}");
+    expect(controllerSource).not.toContain("autoCommitDirectorCombined");
+    expect(controllerSource).toContain("meta.captureBundle");
+    expect(controllerSource).toContain("label: '导演合成图'");
+    expect(controllerSource).toContain("label: '纯背景图'");
+    expect(controllerSource).toContain("addPanoCaptureGroup");
+    expect(controllerSource).toContain("kind: 'director_render'");
+    expect(controllerSource).not.toContain("freezone/assets-updated");
   });
 
   it("exports both combined and env_only from normal Director World canvas output", () => {
@@ -63,7 +71,7 @@ describe("ImageGenNode director combined world entry", () => {
       "utf8",
     );
     const uploadSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/UploadNode.tsx"),
+      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
       "utf8",
     );
 
@@ -72,15 +80,23 @@ describe("ImageGenNode director combined world entry", () => {
   });
 
   it("restores the bundle source when opening Director World from a dragged upload node", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/UploadNode.tsx"),
+    const modelSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/application/uploadNodeModel.ts"),
+      "utf8",
+    );
+    const controllerSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
+      "utf8",
+    );
+    const viewSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/nodes/UploadNodeView.tsx"),
       "utf8",
     );
 
-    expect(source).toContain("directorControlBundleSourceId");
-    expect(source).toContain("active_source_id: directorControlBundleSourceId");
-    expect(source).toContain("sceneSnapshotFromDirectorControlBundle");
-    expect(source).toContain("initialScene={directorInitialScene}");
+    expect(controllerSource).toContain("directorControlBundleSourceId");
+    expect(controllerSource).toContain("active_source_id: directorControlBundleSourceId");
+    expect(modelSource).toContain("sceneSnapshotFromDirectorControlBundle");
+    expect(viewSource).toContain("initialScene={controller.directorInitialScene}");
   });
 
   it("only writes beat bundles directly in mainline commit mode", () => {
