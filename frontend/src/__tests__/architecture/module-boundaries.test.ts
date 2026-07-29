@@ -433,6 +433,90 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain('from \'./NodeSelectionMenuView\'');
   });
 
+  it("separates the Canvas video-story node controller and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoStoryNode.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoStoryNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoStoryNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoStoryNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoStoryNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "VideoStoryNode", "=", "memo("].join(" "),
+      ["export function", "useVideoStoryNodeController("].join(" "),
+      ["export function", "VideoStoryNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useVideoStoryNodeController",
+        "./VideoStoryNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/VideoStoryNode.tsx"],
+      ["features/canvas/hooks/useVideoStoryNodeController.ts"],
+      ["features/canvas/nodes/VideoStoryNodeView.tsx"],
+    ]);
+    expect(registrySource).toContain("import { VideoStoryNode } from './VideoStoryNode'");
+    expect(registrySource).toContain("videoStoryNode: VideoStoryNode");
+    expect(entrySource).toContain("useVideoStoryNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(VideoStoryNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(entrySource).not.toContain("createPortal(");
+    expect(controllerSource).toContain("useUpdateNodeInternals()");
+    expect(controllerSource).toContain("updateNodeData(id, {");
+    expect(controllerSource).toContain("window.addEventListener('keydown'");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("createPortal(");
+    expect(viewSource).toContain("<StoryTable");
+    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("useUpdateNodeInternals(");
+    expect(controllerTestSource).toContain(
+      'from \'./useVideoStoryNodeController\'',
+    );
+    expect(viewTestSource).toContain('from \'./VideoStoryNodeView\'');
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [

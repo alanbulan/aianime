@@ -2170,6 +2170,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十九批已将 Canvas 根级 487 行混合节点选择菜单拆为纯展示模型 `ui/nodeSelectionMenuModel.ts`、唯一状态 controller `hooks/useNodeSelectionMenuController.ts`、纯 presentation View `ui/NodeSelectionMenuView.tsx` 和真实装配根 `NodeSelectionMenu.tsx`；引用生成节点优先级、可用类型投影、隐藏 Skill 与 provider 顺序归展示模型，viewport 夹取、技能面板左右定位、显隐过渡、悬停关闭计时、外部点击、节点/Skill 选择时序和翻译运行时归 controller，View 只持有图标映射与菜单 JSX。原混合实现和外置测试路径直接删除，不保留 facade、re-export、重复状态或第二套投影；无 `allowedTypes` 时完整菜单、图片生成/编辑/上传优先级、360/3D 入口、隐藏 Skill、provider 分组、初始不展开技能、点击外部延迟关闭、节点选择晚于关闭过渡、Skill 立即回调及左右面板布局语义保持不变。原菜单行为测试归位到装配根旁，并新增模型 3 项、controller 4 项和 View 2 项测试；连同 CanvasStage、手工 Skill 连线与 Viewer 合同共回归 7 个文件 39 项，最终交互修正后菜单直接回归 4 个文件 10 项复验；完整前端架构门禁 3 个文件 315 项（其中 module boundaries 275 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过。只读检查另确认根级 `CanvasToolbar.tsx` 无生产调用方，本批按范围约束未删除；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百五十批已将 Canvas 359 行混合 `VideoStoryNode.tsx` 拆为唯一状态 controller `hooks/useVideoStoryNodeController.ts`、纯 presentation `nodes/VideoStoryNodeView.tsx` 和保留原注册路径的真实装配根；controller 独占标题投影、宽高下限、React Flow internals 刷新、选中/重命名、分析状态判别、表格单元格去重写回、全屏状态与 Escape 生命周期，View 独占 React Flow Handle、表格/关键帧、加载/失败/空结果、resize、生成遮罩和全屏 portal JSX。原节点内联状态与 JSX 已全部迁出，不保留 facade、re-export 或第二套实现；720x360 默认尺寸、480x240 最小尺寸、1600x1200 最大尺寸、分析优先于错误、原始返回保留、关键帧只读、空单元格占位、仅变化单元格写回、全屏无行禁用、Escape/关闭按钮退出及节点注册映射语义保持不变。新增 controller 4 项与 View 3 项直接回归共 2 个文件 7 项；完整前端架构门禁 3 个文件 316 项（其中 module boundaries 276 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
