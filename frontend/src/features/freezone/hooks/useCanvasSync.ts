@@ -6,27 +6,14 @@ import type {
   CanvasBackupStatus,
   FreezoneCanvasPayload,
 } from "@/features/freezone/domain/canvasStorage";
-import { canvasEnvelopeFromRemote } from "../application/canvasSyncCore";
 import {
-  canvasContentSignature,
-  decideHydrateDraft,
-} from "../application/canvasSyncHydration";
-import {
-  isCanvasSyncViewport,
   type CanvasSyncStatus,
   type ConflictSnapshot,
 } from "../application/canvasSyncStorage";
-import { canvasSyncStorageGateway } from "../canvasSyncComposition";
 import {
-  EMPTY_SHOT_METADATA,
   useShotMetadataStore,
   type ShotMetadata,
 } from "../shotMetadataStore";
-import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
-import { consumeQueuedLocalFreezoneProjections } from "../canvasSyncRuntime";
-import { canvasDraftSignature } from "../application/canvasDraft";
-import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
-import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
 import {
@@ -38,6 +25,7 @@ import {
 } from "./useCanvasDraftPersistenceController";
 import { useCanvasSaveController } from "./useCanvasSaveController";
 import { useCanvasRuntimeBridge } from "./useCanvasRuntimeBridge";
+import { useCanvasHydrationLifecycle } from "./useCanvasHydrationLifecycle";
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -177,204 +165,32 @@ export function useCanvasSync(
     setError,
   });
 
-  // ---- 1. Hydrate ---- //
-  useEffect(() => {
-    let cancelled = false;
-    // 清理旧草稿要遍历并解析整个 localStorage（草稿动辄几 MB），放在挂载的关键路径上
-    // 会直接卡住切页那一帧；挪到空闲期做，它跟本次 hydrate 没有先后依赖。整页只跑一次，
-    // 且不随卸载取消 —— 否则「进画布不到两秒就切走」这种最常见的路径永远清理不到。
-    scheduleCanvasDraftPruneOnce();
-    const hydrateFlight = canvasHydrateFlightCoordinator.acquire(
-      project,
-      canvasId,
-      reloadKey,
-    );
-    setSyncStatus("loading");
-    setError(null);
-    lastSignatureRef.current = null;
-    revisionRef.current = null;
-    metadataRef.current = null;
-    setRevision(null);
-    setHydratedCanvasId(null);
-    canvasEnvelopeRef.current = {};
-    draftPersistence.resetPersistedSignature();
-    hydratedRef.current = false;
-    switchingRef.current = true;
-    lastRemoteNodeCountRef.current = 0;
-    saveController.resetIdentity();
-    setBackupStatus(null);
-
-    (async () => {
-      try {
-        const remote = await hydrateFlight.promise;
-        if (cancelled) return;
-        const remoteRevision =
-          typeof remote.revision === "number" ? remote.revision : null;
-        revisionRef.current = remoteRevision;
-        setRevision(remoteRevision);
-        canvasEnvelopeRef.current = canvasEnvelopeFromRemote(remote);
-        const nodes = (remote.nodes ?? []) as Parameters<typeof setCanvasData>[0];
-        const edges = (remote.edges ?? []) as Parameters<typeof setCanvasData>[1];
-        const meta = (remote.metadata ?? null) as
-          | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
-          | null;
-        const remoteSignature = canvasDraftSignature(nodes, edges, meta);
-        draftPersistence.markPersisted(remoteSignature);
-        const draft = draftPersistence.readStored();
-        const draftDecision = decideHydrateDraft(
-          draft,
-          remoteRevision,
-          remoteSignature,
-          nodes,
-          edges,
-          meta,
-        );
-        lastRemoteNodeCountRef.current = nodes.length;
-        if (draftDecision.kind === "draft") {
-          const draftMeta = draftDecision.draft.metadata as
-            | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
-            | null;
-          metadataRef.current = draftMeta;
-          setMetadata(draftMeta);
-          setFreezoneCanvasMetadata(draftMeta);
-          useShotMetadataStore
-            .getState()
-            .hydrate(draftMeta?.shotMetadata ?? EMPTY_SHOT_METADATA);
-          // Seed from the remote state so the atomic draft hydrate is observed
-          // as dirty local content and flows through the normal debounced save.
-          lastSignatureRef.current = canvasContentSignature(nodes, edges);
-          hydratedRef.current = true;
-          switchingRef.current = false;
-          hydrateCanvasDraft({
-            nodes: draftDecision.draft.nodes,
-            edges: draftDecision.draft.edges,
-            history: draftDecision.draft.history,
-            mutation: draftDecision.draft.mutation,
-          });
-          useCanvasStore
-            .getState()
-            .hydrateViewportBookmarks(draftMeta?.viewportBookmarks);
-          const draftViewport = isCanvasSyncViewport(draftDecision.draft.viewport)
-            ? draftDecision.draft.viewport
-            : canvasSyncStorageGateway.readViewport(project, canvasId) ??
-              (isCanvasSyncViewport(remote.viewport) ? remote.viewport : null);
-          if (draftViewport) {
-            lastSavedViewportRef.current = draftViewport;
-            setViewportState(draftViewport);
-            requestAnimationFrame(() => {
-              if (cancelled) return;
-              reactFlow.setViewport(draftViewport, { duration: 0 });
-            });
-          }
-          // The draft carries its own undo history (hydrateCanvasDraft above),
-          // so the separate mirror is redundant here — drop it read-once like
-          // the remote branch. The edit-gated write effect re-creates it.
-          canvasSyncStorageGateway.clearHistory(project, canvasId);
-          setHydratedCanvasId(canvasId);
-          setSyncStatus("ready");
-          return;
-        }
-
-        if (draftDecision.kind === "conflict") {
-          canvasConflictRecovery.capture({
-            canvasId,
-            nodes: draftDecision.draft.nodes,
-            edges: draftDecision.draft.edges,
-            viewport: draftDecision.draft.viewport ?? null,
-            metadata: draftDecision.draft.metadata ?? null,
-            timestamp: new Date(draftDecision.draft.updatedAt).toISOString(),
-          });
-        } else if (draft) {
-          draftPersistence.clearStored();
-        }
-
-        setCanvasData(nodes, edges);
-        // Seed the fingerprint from the normalized store state so the first
-        // post-hydrate emission (measure/select) is recognized as a no-op.
-        const hydrated = useCanvasStore.getState();
-        lastSignatureRef.current = canvasContentSignature(
-          hydrated.nodes,
-          hydrated.edges,
-        );
-        // Restore the cross-refresh undo/redo stacks, but only when the loaded
-        // canvas still matches the content the history was captured against —
-        // otherwise (edited on another device, backend newer) we'd let the user
-        // undo into a state that never existed here.
-        const storedHistory = canvasSyncStorageGateway.readHistory(
-          project,
-          canvasId,
-        );
-        if (storedHistory && storedHistory.signature === lastSignatureRef.current) {
-          restoreHistory({ past: storedHistory.past, future: storedHistory.future });
-        }
-        // Read-once: the mirror only exists to bridge this refresh. Drop it now
-        // that it's been consumed (or is stale) so undo stacks don't accumulate
-        // per canvas. The write effect re-persists it once the user edits again.
-        canvasSyncStorageGateway.clearHistory(project, canvasId);
-        // Restore the saved camera position so a refresh lands where the user
-        // left off. Prefer the client-side localStorage copy: it's updated on
-        // every pan/zoom (debounced + a synchronous beforeunload write), so it
-        // always reflects the *last* position. The backend `viewport` only
-        // rides along with content (nodes/edges) PUTs, so after a pure pan/zoom
-        // it's stale — using it first would yank the camera back to wherever it
-        // was during the last content edit. Fall back to the backend value only
-        // when there's no local copy (fresh browser / cross-device). Seed both
-        // the store (drives `currentViewport`) and the live ReactFlow instance;
-        // rAF ensures it applies after nodes first render.
-        const savedViewport =
-          canvasSyncStorageGateway.readViewport(project, canvasId) ??
-          (isCanvasSyncViewport(remote.viewport) ? remote.viewport : null);
-        if (savedViewport) {
-          lastSavedViewportRef.current = savedViewport;
-          setViewportState(savedViewport);
-          requestAnimationFrame(() => {
-            if (cancelled) return;
-            reactFlow.setViewport(savedViewport, { duration: 0 });
-          });
-        }
-        // Hydrate freezone-specific sidecar metadata.
-        metadataRef.current = meta;
-        setMetadata(meta);
-        setFreezoneCanvasMetadata(meta);
-        useCanvasStore.getState().hydrateViewportBookmarks(meta?.viewportBookmarks);
-        const hydrate = useShotMetadataStore.getState().hydrate;
-        hydrate(meta?.shotMetadata ?? EMPTY_SHOT_METADATA);
-        // Order matters: only flip `hydrated → true` after the store is fully
-        // seeded, then drop the `switching` gate. Inverting these would let
-        // the first signature-change subscription fire while the dangerous-
-        // empty guard still thought we were mid-switch.
-        hydratedRef.current = true;
-        switchingRef.current = false;
-        setHydratedCanvasId(canvasId);
-        if (draftDecision.kind === "conflict") {
-          setError(draftDecision.message);
-          setSyncStatus("conflict");
-        } else {
-          setSyncStatus("ready");
-          consumeQueuedLocalFreezoneProjections(project, canvasId);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        // Stay non-hydrated on failure so an autosave triggered by a stray
-        // store mutation in the error overlay does not slip through.
-        hydratedRef.current = false;
-        switchingRef.current = false;
-        setRevision(null);
-        setHydratedCanvasId(null);
-        setError(err instanceof Error ? err.message : String(err));
-        setSyncStatus("error");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      hydrateFlight.release();
-      setFreezoneCanvasMetadata(null);
-    };
-    // setCanvasData is a stable Zustand setter; project/canvasId (or a manual
-    // retry bumping reloadKey) trigger a fresh hydrate.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, canvasId, reloadKey]);
+  useCanvasHydrationLifecycle({
+    project,
+    canvasId,
+    reloadKey,
+    revisionRef,
+    canvasEnvelopeRef,
+    lastSignatureRef,
+    lastRemoteNodeCountRef,
+    metadataRef,
+    hydratedRef,
+    switchingRef,
+    lastSavedViewportRef,
+    draftPersistence,
+    readSaveController: () => saveController,
+    setCanvasData,
+    hydrateCanvasDraft,
+    restoreHistory,
+    setViewportState,
+    viewportPort: reactFlow,
+    setRevision,
+    setMetadata,
+    setHydratedCanvasId,
+    setBackupStatus,
+    setStatus: setSyncStatus,
+    setError,
+  });
 
   useCanvasHistoryPersistence({
     project,

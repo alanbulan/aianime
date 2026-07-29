@@ -2050,6 +2050,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十九批已将 Freezone 外部画布 runtime 注册、远端替换/合并、projection 新增/移除及其即时恢复草稿和保存触发迁入唯一 presentation hook `hooks/useCanvasRuntimeBridge.ts`；投影纯合并规则继续唯一归属 `projections.ts`，runtime registry 继续唯一归属 `canvasSyncRuntime.ts`，bridge 只编排 refs、Store 和保存 controller。远端刷新仍先取消 debounce、进入 switching、重锚 revision/envelope/signature/node count、清理旧草稿与幂等 ID、hydrate metadata 后恢复 ready；合并出的本地工作和投影编辑仍以 0 ms task 立即落草稿并保存，conflict/error 仍只保留恢复草稿。通过惰性读取保存 controller，runtime bridge 的 effect 继续先于 hydrate、history 和 autosave 注册，不改变生命周期顺序。总同步 hook 删除 runtime/projection 直接依赖和整段回调实现，由 578 行降至 482 行；runtime/save/draft controller 与同步 hook 回归 4 个文件 44 项、完整前端架构门禁 3 个文件 272 项（其中 module boundaries 232 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百九十批已将 Freezone 初始画布 hydrate 的 React 生命周期迁入唯一 presentation hook `hooks/useCanvasHydrationLifecycle.ts`，统一编排 flight acquire/release、同步基线重置、远端 payload 应用、同 revision 草稿恢复、冲突快照、history/viewport read-once 恢复、metadata hydrate、queued projection 消费和失败状态；草稿仲裁、内容签名、envelope 提取、viewport 校验及 flight 复用规则继续唯一归属 application。远端、草稿和冲突三条分支仍保持原有 hydrated/switching 翻转顺序，草稿继续携带自身 history，远端 history 仅在签名匹配时恢复，本地 viewport 继续优先于后端值，requestAnimationFrame 仍在节点渲染后同步 React Flow，cleanup 仍释放 lease 并清空共享 metadata。通过惰性读取保存 controller，runtime bridge、hydrate、history 和 autosave 的 effect 注册顺序不变。总同步 hook 删除全部 hydrate 细节和直接存储/flight 依赖，由 482 行降至 298 行；hydration/runtime/save/draft Hook 与同步 hook 回归 5 个文件 48 项、完整前端架构门禁 3 个文件 273 项（其中 module boundaries 233 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

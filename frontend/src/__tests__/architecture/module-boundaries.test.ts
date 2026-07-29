@@ -1441,6 +1441,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSaveController.ts",
     );
+    const hydrationLifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+    );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
 
     expect(existsSync(apiCanvasPath)).toBe(false);
@@ -1463,6 +1467,9 @@ describe("frontend architecture boundaries", () => {
       "../canvasSaveComposition",
     );
     expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasHydrationLifecycle",
+    );
+    expect(importSpecifiers(hydrationLifecyclePath)).toContain(
       "../canvasHydrationComposition",
     );
     expect(importSpecifiers(syncHookPath)).toContain(
@@ -4988,13 +4995,26 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/application/canvasSyncCore.ts",
     );
-    const hookPath = resolve(
+    const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const runtimeBridgePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+    );
+    const hydrationLifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+    );
     const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
     const coreSource = readFileSync(corePath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const runtimeBridgeSource = readFileSync(runtimeBridgePath, "utf8");
+    const hydrationLifecycleSource = readFileSync(
+      hydrationLifecyclePath,
+      "utf8",
+    );
     const forbiddenCoreImports = importSpecifiers(corePath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -5030,10 +5050,22 @@ describe("frontend architecture boundaries", () => {
       ["features/freezone/application/canvasSyncCore.ts"],
       ["features/freezone/application/canvasSyncCore.ts"],
     ]);
-    expect(importSpecifiers(hookPath)).toContain("../application/canvasSyncCore");
-    expect(importSpecifiers(hookPath)).not.toContain("@/shared/api/errors");
-    expect(hookSource).not.toContain("function canvasEnvelopeFromRemote(");
-    expect(hookSource).not.toContain("function saveErrorStatusAndBody(");
+    expect(importSpecifiers(runtimeBridgePath)).toContain(
+      "../application/canvasSyncCore",
+    );
+    expect(importSpecifiers(hydrationLifecyclePath)).toContain(
+      "../application/canvasSyncCore",
+    );
+    expect(importSpecifiers(syncHookPath)).not.toContain(
+      "../application/canvasSyncCore",
+    );
+    expect(runtimeBridgeSource).not.toContain(
+      "function canvasEnvelopeFromRemote(",
+    );
+    expect(hydrationLifecycleSource).not.toContain(
+      "function canvasEnvelopeFromRemote(",
+    );
+    expect(syncHookSource).not.toContain("function saveErrorStatusAndBody(");
     expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
   });
 
@@ -5320,12 +5352,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/application/canvasSyncHydration.ts",
     );
-    const hookPath = resolve(
+    const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
     );
     const hydrationSource = readFileSync(hydrationPath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const forbiddenImports = importSpecifiers(hydrationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -5363,11 +5395,11 @@ describe("frontend architecture boundaries", () => {
       ["features/freezone/application/canvasSyncHydration.ts"],
       ["features/freezone/application/canvasSyncHydration.ts"],
     ]);
-    expect(importSpecifiers(hookPath)).toContain(
+    expect(importSpecifiers(lifecyclePath)).toContain(
       "../application/canvasSyncHydration",
     );
-    expect(hookSource).not.toContain("const nodeSignatureCache");
-    expect(hookSource).not.toContain("function decideHydrateDraft(");
+    expect(lifecycleSource).not.toContain("const nodeSignatureCache");
+    expect(lifecycleSource).not.toContain("function decideHydrateDraft(");
   });
 
   it("keeps canvas hydrate flight coordination in Freezone application", () => {
@@ -5379,12 +5411,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/canvasHydrationComposition.ts",
     );
-    const hookPath = resolve(
+    const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
     );
     const coordinatorSource = readFileSync(coordinatorPath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const declaration = [
       "export function",
       "createCanvasHydrateFlightCoordinator(",
@@ -5410,12 +5442,12 @@ describe("frontend architecture boundaries", () => {
         "./application/canvasHydrateFlights",
       ]),
     );
-    expect(importSpecifiers(hookPath)).toContain(
+    expect(importSpecifiers(lifecyclePath)).toContain(
       "../canvasHydrationComposition",
     );
-    expect(hookSource).not.toContain("const hydrateFlights");
-    expect(hookSource).not.toContain("function acquireHydrateFlight(");
-    expect(hookSource).not.toContain("getFreezoneCanvas");
+    expect(lifecycleSource).not.toContain("const hydrateFlights");
+    expect(lifecycleSource).not.toContain("function acquireHydrateFlight(");
+    expect(lifecycleSource).not.toContain("getFreezoneCanvas");
   });
 
   it("keeps preset metadata parsing in Freezone application", () => {
@@ -5481,7 +5513,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
     );
     const draftStoragePath = resolve(
       SRC_ROOT,
@@ -5808,7 +5840,78 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("saveProjectionEditNow");
     expect(
       syncHookSource.indexOf("useCanvasRuntimeBridge({"),
-    ).toBeLessThan(syncHookSource.indexOf("// ---- 1. Hydrate ---- //"));
+    ).toBeLessThan(syncHookSource.indexOf("useCanvasHydrationLifecycle({"));
+  });
+
+  it("keeps canvas hydration lifecycle in one presentation hook", () => {
+    const lifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasHydrationLifecycle(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/canvasStore",
+        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasDraft",
+        "../application/canvasSyncCore",
+        "../application/canvasSyncHydration",
+        "../application/canvasSyncStorage",
+        "../canvasConflictRecoveryComposition",
+        "../canvasDraftComposition",
+        "../canvasHydrationComposition",
+        "../canvasMetadataContext",
+        "../canvasSyncComposition",
+        "../canvasSyncRuntime",
+        "../shotMetadataStore",
+        "./useCanvasDraftPersistenceController",
+        "./useCanvasSaveController",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasHydrationLifecycle",
+    );
+    expect(lifecycleSource).toContain(
+      "canvasHydrateFlightCoordinator.acquire(",
+    );
+    expect(lifecycleSource).toContain("decideHydrateDraft(");
+    expect(lifecycleSource).toContain("canvasSyncStorageGateway.readHistory(");
+    expect(lifecycleSource).toContain("canvasSyncStorageGateway.readViewport(");
+    expect(lifecycleSource).toContain("canvasConflictRecovery.capture({");
+    expect(syncHookSource).toContain(
+      "readSaveController: () => saveController",
+    );
+    expect(syncHookSource).not.toContain(
+      "canvasHydrateFlightCoordinator.acquire(",
+    );
+    expect(syncHookSource).not.toContain("decideHydrateDraft(");
+    expect(syncHookSource).not.toContain("canvasSyncStorageGateway.readHistory(");
+    expect(syncHookSource).not.toContain("requestAnimationFrame(");
+    expect(
+      syncHookSource.indexOf("useCanvasRuntimeBridge({"),
+    ).toBeLessThan(syncHookSource.indexOf("useCanvasHydrationLifecycle({"));
+    expect(
+      syncHookSource.indexOf("useCanvasHydrationLifecycle({"),
+    ).toBeLessThan(syncHookSource.indexOf("useCanvasHistoryPersistence({"));
   });
 
   it("keeps browser canvas drafts behind one application port", () => {
@@ -5828,15 +5931,15 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/canvasDraftComposition.ts",
     );
-    const hookPath = resolve(
+    const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const forbiddenApplicationImports = importSpecifiers(applicationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -5894,14 +5997,18 @@ describe("frontend architecture boundaries", () => {
       "export function scheduleCanvasDraftPruneOnce()",
     );
     expect(compositionSource).toContain("window.requestIdleCallback(run");
-    expect(importSpecifiers(hookPath)).toContain("../application/canvasDraft");
-    expect(importSpecifiers(hookPath)).toContain("../canvasDraftComposition");
-    expect(importSpecifiers(hookPath)).not.toContain(
+    expect(importSpecifiers(lifecyclePath)).toContain(
+      "../application/canvasDraft",
+    );
+    expect(importSpecifiers(lifecyclePath)).toContain(
+      "../canvasDraftComposition",
+    );
+    expect(importSpecifiers(lifecyclePath)).not.toContain(
       "../infrastructure/browserCanvasDraftStorageGateway",
     );
-    expect(hookSource).toContain("scheduleCanvasDraftPruneOnce();");
-    expect(hookSource).not.toContain("requestIdleCallback");
-    expect(hookSource).not.toContain("prunePending");
+    expect(lifecycleSource).toContain("scheduleCanvasDraftPruneOnce();");
+    expect(lifecycleSource).not.toContain("requestIdleCallback");
+    expect(lifecycleSource).not.toContain("prunePending");
     expect(importSpecifiers(publicPath)).toContain(
       "@/features/freezone/canvasDraftComposition",
     );
