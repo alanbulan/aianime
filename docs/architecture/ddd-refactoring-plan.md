@@ -2070,6 +2070,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十九批已将主线 preset 恢复命令的 metadata/revision/hydrate 状态、当前 Store 编辑计数、动态 revision ref、flush/reload 与状态输出装配从同步聚合 Hook 迁入唯一 presentation controller `hooks/useCanvasPresetRefreshController.ts`；application `canvasPresetRefresh.ts` 继续唯一持有 preset 校验、best-effort 延迟、保存门禁、远端重建以及 409/503 错误策略，`useCanvasSync` 只注入现有状态并透出 controller 命令。当前编辑计数仍在命令执行时读取，`base_revision` 仍在 flush 后经 ref 读取最新值，显式恢复与 best-effort 的行为和错误文案均未改变；旧 Hook 对 preset refresh composition 和 Store 编辑计数的直接依赖删除，三处静态架构契约同步改为检查新实际所有者，不保留 facade 或第二套实现。`useCanvasSync` 由 283 行降至 278 行；controller 与同步集成回归 2 个文件 31 项、相关架构断言 4 项、完整前端架构门禁 3 个文件 282 项（其中 module boundaries 242 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百批已将资产库类型、导演合成控制包恢复、拖拽媒体类型映射、3D 资产识别、同场景 Director World source 合并、active source 选择、3D 封面优先级和 scene mainline context 投影从 `AssetLibraryPanel` 迁入唯一纯领域模块 `domain/assetLibraryModel.ts`；面板只负责收集通用资产并调用 `finalizeDirectorWorldAssets`，原拖拽回归也改为直接依赖领域所有者。显式控制包继续优先于 legacy `combined.png` 推导，同场景 master/reverse/pano source 继续合并为单个 `scene_director_world`，显式 current source、master 场景图封面和既有 scene context 均保持不变；旧类型、helper、聚合函数和面板导出直接删除，不保留 facade 或第二套实现。`AssetLibraryPanel` 由 2,074 行降至 1,757 行；领域模型与拖拽回归 2 个文件 14 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 283 项（其中 module boundaries 243 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

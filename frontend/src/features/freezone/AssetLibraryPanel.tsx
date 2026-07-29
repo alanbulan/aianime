@@ -37,65 +37,26 @@ import {
   type CanvasAssetDragPayload,
 } from "@/features/canvas/domain/assetDrag";
 import { hydrateAssetDragPayload } from "@/features/canvas/composition";
-import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { useAssetDropStore } from "@/features/canvas/assetDropStore";
-import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 import { assetToPushTarget } from "@/features/freezone/commit/pushTarget";
 import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";
 import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
+import {
+  assetDropMediaType,
+  directorControlBundleFromAssetSource,
+  finalizeDirectorWorldAssets,
+  isThreeDAsset,
+  SCENE_DIRECTOR_WORLD_ROLE,
+  type AssetMediaType,
+  type AssetTab,
+  type CanvasKind,
+  type LibraryAsset,
+  type PresetReference,
+} from "@/features/freezone/domain/assetLibraryModel";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
-
-/** 把侧栏资产映射成可与画布节点匹配的拖拽媒体类型。 */
-function assetDropMediaType(asset: LibraryAsset): DropMediaType | null {
-  if (isThreeDAsset(asset)) return "model";
-  if (asset.mediaType === "image") return "image";
-  if (asset.mediaType === "video") return "video";
-  if (asset.mediaType === "audio") return "audio";
-  return null;
-}
-
-function recordValue(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" ? value as Record<string, unknown> : null;
-}
-
-function stringValue(value: unknown): string {
-  return typeof value === "string" && value.trim() ? value.trim() : "";
-}
-
-export function directorControlBundleFromAssetSource(
-  source: Record<string, unknown>,
-): Record<string, unknown> | null {
-  const explicit = recordValue(source.director_control_bundle);
-  if (explicit) return explicit;
-
-  const role = stringValue(source.role);
-  const relPath = stringValue(source.rel_path);
-  const url = stringValue(source.url);
-  if (role !== "director_combined" || !relPath.endsWith("/combined.png") || !url) {
-    return null;
-  }
-  const relBase = relPath.slice(0, -"/combined.png".length);
-  const urlBase = url.endsWith("/combined.png")
-    ? url.slice(0, -"/combined.png".length)
-    : "";
-  if (!urlBase) return null;
-  return {
-    schema_version: "director_control_bundle_v1",
-    rel_paths: {
-      combined: `${relBase}/combined.png`,
-      env_only: `${relBase}/env_only.png`,
-      frame_meta: `${relBase}/frame_meta.json`,
-    },
-    urls: {
-      combined: `${urlBase}/combined.png`,
-      env_only: `${urlBase}/env_only.png`,
-      frame_meta: `${urlBase}/frame_meta.json`,
-    },
-  };
-}
 
 /** 拖拽替换的协调上下文,供深层 AssetCard 消费(避免逐层透传)。 */
 interface AssetReplaceContextValue {
@@ -105,44 +66,6 @@ interface AssetReplaceContextValue {
   onCancel: () => void;
 }
 const AssetReplaceContext = createContext<AssetReplaceContextValue | null>(null);
-
-type AssetTab = "beat" | "characters" | "scenes" | "props";
-
-type CanvasKind = "default" | "episode" | "beat" | "asset" | "blank";
-
-type AssetMediaType = "image" | "video" | "audio" | "text" | "file" | "unknown";
-
-interface PresetReference {
-  kind?: string;
-  role?: string;
-  label?: string;
-  rel_path?: string | null;
-  url?: string | null;
-  exists?: boolean;
-  media_type?: string;
-  aspect_ratio?: string;
-  meta?: Record<string, unknown>;
-  mainline_context?: MainlineContext[];
-}
-
-interface LibraryAsset {
-  id: string;
-  tab: AssetTab;
-  kind: string;
-  role: string;
-  label: string;
-  sublabel?: string;
-  url: string;
-  aspectRatio: string;
-  mediaType: AssetMediaType;
-  source: Record<string, unknown>;
-  mainlineContext?: MainlineContext[];
-  beatContext?: MainlineContext & { episode: number; beat: number };
-  /** 缩略图。3GS 包本身没法直接渲染，借用同 scene_id 的 scene 图当封面。 */
-  coverUrl?: string;
-}
-
-const SCENE_DIRECTOR_WORLD_ROLE = "scene_director_world";
 
 const BEAT_SCOPED_LIBRARY_ASSET_ROLES = new Set([
   "current_sketch",
@@ -1217,236 +1140,7 @@ function buildLibraryAssets({
     if (!isUsableAsset(asset)) continue;
     addUnique(out, seen, fromFreezoneAsset(asset, { fromBeatContext: false, projectId: project }));
   }
-  attachThreeDCovers(out);
-  return coalesceSceneDirectorWorldAssets(out);
-}
-
-function attachThreeDCovers(assets: LibraryAsset[]): void {
-  const SCENE_ROLE_PRIORITY: Record<string, number> = {
-    scene_master: 0,
-    scene_reverse_master: 1,
-    scene_director_pano_360: 2,
-  };
-  const bySceneId = new Map<string, { url: string; priority: number }>();
-  for (const asset of assets) {
-    if (asset.mediaType !== "image") continue;
-    const sceneId =
-      typeof asset.source.meta === "object" && asset.source.meta !== null
-        ? ((asset.source.meta as Record<string, unknown>).scene_id as string | undefined)
-        : undefined;
-    if (!sceneId) continue;
-    const priority = SCENE_ROLE_PRIORITY[asset.role] ?? 99;
-    const existing = bySceneId.get(sceneId);
-    if (!existing || priority < existing.priority) {
-      bySceneId.set(sceneId, { url: asset.url, priority });
-    }
-  }
-  for (const asset of assets) {
-    if (asset.coverUrl) continue;
-    if (!isThreeDAsset(asset)) continue;
-    const sceneId =
-      typeof asset.source.meta === "object" && asset.source.meta !== null
-        ? ((asset.source.meta as Record<string, unknown>).scene_id as string | undefined)
-        : undefined;
-    if (!sceneId) continue;
-    const cover = bySceneId.get(sceneId);
-    if (cover) asset.coverUrl = cover.url;
-  }
-}
-
-function coalesceSceneDirectorWorldAssets(assets: LibraryAsset[]): LibraryAsset[] {
-  const grouped = new Map<string, LibraryAsset[]>();
-  for (const asset of assets) {
-    if (!isSceneDirectorWorldSourceRole(asset.role)) continue;
-    const sceneId = sceneIdForLibraryAsset(asset);
-    if (!sceneId) continue;
-    const group = grouped.get(sceneId) ?? [];
-    group.push(asset);
-    grouped.set(sceneId, group);
-  }
-  if (grouped.size === 0) return assets;
-
-  const emittedScenes = new Set<string>();
-  const next: LibraryAsset[] = [];
-  for (const asset of assets) {
-    const sceneId = sceneIdForLibraryAsset(asset);
-    if (sceneId && grouped.has(sceneId) && isSceneDirectorWorldSourceRole(asset.role)) {
-      if (!emittedScenes.has(sceneId)) {
-        emittedScenes.add(sceneId);
-        const bundled = createSceneDirectorWorldAsset(
-          sceneId,
-          grouped.get(sceneId) ?? [],
-          assets.filter((candidate) => sceneIdForLibraryAsset(candidate) === sceneId),
-        );
-        if (bundled) next.push(bundled);
-      }
-      continue;
-    }
-    next.push(asset);
-  }
-  return next;
-}
-
-function createSceneDirectorWorldAsset(
-  sceneId: string,
-  sourceAssets: LibraryAsset[],
-  sceneAssets: LibraryAsset[],
-): LibraryAsset | null {
-  const rawSources = sourceAssets
-    .map((asset) => directorWorldSourceFromSceneAsset(sceneId, asset))
-    .filter((source): source is DirectorWorldSource => source !== null);
-  if (rawSources.length === 0) return null;
-
-  const activeSource =
-    rawSources.find((source) => source.current) ??
-    rawSources.find((source) => source.source_type === "sog") ??
-    rawSources[0];
-  const sources = rawSources.map((source) => ({
-    ...source,
-    current: rawSources.some((candidate) => candidate.current)
-      ? source.current
-      : source.id === activeSource?.id,
-  }));
-  const cover =
-    sceneCoverAsset(sceneAssets)?.url ??
-    sourceAssets.find((asset) => asset.coverUrl)?.coverUrl ??
-    sourceAssets.find((asset) => asset.mediaType === "image")?.url;
-  const representative =
-    sourceAssets.find((asset) => asset.url === directorWorldSourceUrl(activeSource)) ??
-    sourceAssets[0];
-  const sceneLabel = sceneLabelForLibraryAsset(representative, sceneId);
-  const meta = {
-    ...(recordValue(representative.source.meta) ?? {}),
-    scene_id: sceneId,
-    scene: sceneLabel,
-    source_count: sources.length,
-  };
-
-  return {
-    id: `scene-director-world:${sceneId}`,
-    tab: "scenes",
-    kind: "director",
-    role: SCENE_DIRECTOR_WORLD_ROLE,
-    label: `${sceneLabel} / 导演世界`,
-    sublabel: `包含 ${sources.length} 个导演源`,
-    url: directorWorldSourceUrl(activeSource) ?? representative.url,
-    aspectRatio: "1:1",
-    mediaType: "file",
-    coverUrl: cover,
-    mainlineContext: sceneMainlineContext(sceneAssets, representative, sceneId),
-    source: {
-      ...representative.source,
-      kind: "director",
-      role: SCENE_DIRECTOR_WORLD_ROLE,
-      label: `${sceneLabel} / 导演世界`,
-      meta,
-      media_type: "file",
-      rel_path: undefined,
-      slot_target: undefined,
-      pushable: false,
-      director_world_sources: sources,
-      active_source_id: activeSource?.id,
-      mainline_context: sceneMainlineContext(sceneAssets, representative, sceneId),
-    },
-  };
-}
-
-function isSceneDirectorWorldSourceRole(role: string | undefined): boolean {
-  return (
-    role === "scene_director_pano_360" ||
-    role === "scene_3gs_master_ply" ||
-    role === "scene_3gs_reverse_ply" ||
-    role === "scene_3gs_pano_ply" ||
-    role === "scene_3gs_custom_scene"
-  );
-}
-
-function sceneIdForLibraryAsset(asset: LibraryAsset): string | null {
-  const meta = recordValue(asset.source.meta);
-  const sceneId = stringValue(meta?.scene_id) || stringValue(asset.source.scene_id);
-  return sceneId || null;
-}
-
-function sceneLabelForLibraryAsset(asset: LibraryAsset, sceneId: string): string {
-  const meta = recordValue(asset.source.meta);
-  return stringValue(meta?.scene) || stringValue(meta?.scene_name) || sceneId;
-}
-
-function sceneMainlineContext(
-  sceneAssets: LibraryAsset[],
-  representative: LibraryAsset,
-  sceneId: string,
-): MainlineContext[] {
-  const existing =
-    sceneAssets.find((asset) => asset.mainlineContext?.length)?.mainlineContext ??
-    representative.mainlineContext;
-  const sceneContext = existing?.find((ctx) => ctx.kind === "scene" && ctx.sceneId === sceneId);
-  if (sceneContext) return [sceneContext];
-  return [{
-    kind: "scene",
-    projectId: stringValue(representative.source.projectId),
-    sceneId,
-    role: SCENE_DIRECTOR_WORLD_ROLE,
-    label: sceneLabelForLibraryAsset(representative, sceneId),
-    sourceUrl: representative.url,
-  }];
-}
-
-function sceneCoverAsset(sceneAssets: LibraryAsset[]): LibraryAsset | null {
-  return (
-    sceneAssets.find((asset) => asset.role === "scene_master" && asset.mediaType === "image") ??
-    sceneAssets.find((asset) => asset.role === "scene_reverse_master" && asset.mediaType === "image") ??
-    sceneAssets.find((asset) => asset.role === "scene_director_pano_360" && asset.mediaType === "image") ??
-    null
-  );
-}
-
-function directorWorldSourceFromSceneAsset(
-  sceneId: string,
-  asset: LibraryAsset,
-): DirectorWorldSource | null {
-  const sourceType = asset.role === "scene_director_pano_360" ? "pano360" : "sog";
-  const sourceKind = sceneDirectorSourceKind(asset.role);
-  const url = asset.url;
-  if (!sourceKind || !url) return null;
-  const id = sourceType === "pano360"
-    ? `scene-pano:${sceneId}`
-    : `legacy:${sourceKind}:${sourceType}:${directorSourceIdentityUrl(url)}`;
-  return {
-    id,
-    source_type: sourceType,
-    source_kind: sourceKind,
-    label: sourceKindLabel({ source_kind: sourceKind, source_type: sourceType }),
-    url,
-    ply_url: sourceType === "sog" ? url : undefined,
-    pano_url: sourceType === "pano360" ? url : undefined,
-    slot_kind: sourceType === "pano360" ? "scene_director_pano_360" : undefined,
-    current: Boolean(recordValue(asset.source.meta)?.current),
-  };
-}
-
-function sceneDirectorSourceKind(
-  role: string,
-): NonNullable<DirectorWorldSource["source_kind"]> | null {
-  if (role === "scene_3gs_master_ply") return "master";
-  if (role === "scene_3gs_reverse_ply") return "reverse";
-  if (role === "scene_3gs_pano_ply") return "pano";
-  if (role === "scene_3gs_custom_scene") return "custom";
-  if (role === "scene_director_pano_360") return "pano";
-  return null;
-}
-
-function directorWorldSourceUrl(source: DirectorWorldSource | undefined): string | null {
-  return source?.ply_url ?? source?.pano_url ?? source?.url ?? null;
-}
-
-function sourceKindLabel(source: Pick<DirectorWorldSource, "source_kind" | "source_type">): string {
-  if (source.source_type === "pano360") return "360图";
-  if (source.source_kind === "master") return "正面世界";
-  if (source.source_kind === "reverse") return "背面世界";
-  if (source.source_kind === "pano") return "360世界";
-  if (source.source_kind === "custom") return "自定义世界";
-  return "导演世界";
+  return finalizeDirectorWorldAssets(out);
 }
 
 function isUsableAsset(asset: FreezoneProjectAsset): boolean {
@@ -1921,17 +1615,6 @@ function resolveCurrentBeat(
     | undefined;
   if (typeof defaultTarget?.beat === "number") return defaultTarget.beat;
   return null;
-}
-
-function isThreeDAsset(asset: LibraryAsset): boolean {
-  const role = asset.role || "";
-  const kind = asset.kind || "";
-  if (role === SCENE_DIRECTOR_WORLD_ROLE) return true;
-  if (role.startsWith("scene_3gs_")) return true;
-  const relPath = typeof asset.source.rel_path === "string" ? asset.source.rel_path : "";
-  if (asset.mediaType === "file" && /\.(ply|glb)$/i.test(relPath)) return true;
-  if (kind === "director" && /\.(ply|glb)$/i.test(asset.url || "")) return true;
-  return false;
 }
 
 function viewportCenteredPosition(

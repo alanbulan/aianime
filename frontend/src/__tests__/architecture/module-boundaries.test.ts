@@ -5870,6 +5870,92 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("preset: metadata?.preset");
   });
 
+  it("keeps asset library Director World modeling in one Freezone domain module", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/assetLibraryModel.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/assetLibraryModel.test.ts",
+    );
+    const dragTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/canvas/asset-drag-director-bundle.test.ts",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const dragTestSource = readFileSync(dragTestPath, "utf8");
+    const declarations = [
+      ["export const", "SCENE_DIRECTOR_WORLD_ROLE"].join(" "),
+      ["export interface", "LibraryAsset {"].join(" "),
+      ["export function", "directorControlBundleFromAssetSource("].join(" "),
+      ["export function", "assetDropMediaType("].join(" "),
+      ["export function", "isThreeDAsset("].join(" "),
+      ["export function", "finalizeDirectorWorldAssets("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const forbiddenModelImports = importSpecifiers(modelPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier === "@/features/canvas/canvasStore" ||
+        specifier === "@/features/canvas/assetDropStore" ||
+        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier.startsWith("@/shared/api/") ||
+        specifier.startsWith("@/api/"),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/domain/assetLibraryModel.ts",
+      ]),
+    );
+    expect(forbiddenModelImports).toEqual([]);
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("localStorage");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/domain/assetLibraryModel",
+    );
+    expect(panelSource).toContain("finalizeDirectorWorldAssets(out)");
+    for (const legacyDeclaration of [
+      ["function", "attachThreeDCovers("].join(" "),
+      ["function", "coalesceSceneDirectorWorldAssets("].join(" "),
+      ["function", "createSceneDirectorWorldAsset("].join(" "),
+      ["function", "directorWorldSourceFromSceneAsset("].join(" "),
+      ["function", "assetDropMediaType("].join(" "),
+      ["function", "isThreeDAsset("].join(" "),
+      ["export function", "directorControlBundleFromAssetSource("].join(" "),
+      ["interface", "LibraryAsset {"].join(" "),
+      ["type", "AssetTab ="].join(" "),
+    ]) {
+      expect(panelSource).not.toContain(legacyDeclaration);
+    }
+    expect(modelTestSource).toContain('from "./assetLibraryModel"');
+    expect(dragTestSource).toContain(
+      "@/features/freezone/domain/assetLibraryModel",
+    );
+    expect(dragTestSource).not.toContain(
+      "@/features/freezone/AssetLibraryPanel",
+    );
+  });
+
   it("keeps canvas hydration reconciliation in Freezone application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,

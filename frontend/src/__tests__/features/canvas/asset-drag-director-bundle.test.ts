@@ -10,7 +10,7 @@ import {
 } from "@/features/canvas/domain/assetDrag";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { usableDirectorWorldPreviewUrl } from "@/features/canvas/nodes/ThreeDWorldNode";
-import { directorControlBundleFromAssetSource } from "@/features/freezone/AssetLibraryPanel";
+import { directorControlBundleFromAssetSource } from "@/features/freezone/domain/assetLibraryModel";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 describe("director bundle canvas assets", () => {
