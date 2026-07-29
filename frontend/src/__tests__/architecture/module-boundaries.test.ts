@@ -6147,6 +6147,75 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain('from "./AssetLibraryBeatPanels"');
   });
 
+  it("keeps ordinary asset-library card presentation in one component module", () => {
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryAssetCard.tsx",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryAssetCard.test.tsx",
+    );
+    const presentationSource = readFileSync(presentationPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export function", "AssetLibraryAssetCard("].join(" "),
+      ["function", "createAssetDragImage("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/AssetLibraryAssetCard.tsx",
+      ]),
+    );
+    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+      new Set([
+        "react",
+        "lucide-react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/domain/assetDrag",
+        "../application/assetLibraryCanvasInsertion",
+        "../commit/pushTarget",
+        "../domain/assetLibraryModel",
+        "./assetLibraryViewModel",
+      ]),
+    );
+    expect(presentationSource).not.toContain("zustand");
+    expect(presentationSource).not.toContain("useAssetDropStore");
+    expect(presentationSource).not.toContain("@/features/canvas/canvasStore");
+    expect(presentationSource).not.toContain("@/features/canvas/composition");
+    expect(presentationSource).not.toContain("@/features/freezone/composition");
+    expect(presentationSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/presentation/AssetLibraryAssetCard",
+    );
+    expect(panelSource).toContain("<AssetLibraryAssetCard");
+    for (const legacyOwner of [
+      ["function", "AssetCard("].join(" "),
+      ["function", "createAssetDragImage("].join(" "),
+      "data-drag-thumb",
+      "CANVAS_ASSET_DRAG_MIME",
+      "assetToDragPayload",
+      "assetToPushTarget",
+      "assetDropMediaType",
+      "withImageCacheBust",
+    ]) {
+      expect(panelSource).not.toContain(legacyOwner);
+    }
+    expect(testSource).toContain('from "./AssetLibraryAssetCard"');
+  });
+
   it("keeps asset library replacement orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
@@ -6232,6 +6301,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/AssetLibraryPanel.tsx",
     );
+    const beatPresentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+    );
+    const assetCardPresentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryAssetCard.tsx",
+    );
     const testPath = resolve(
       SRC_ROOT,
       "features/freezone/application/assetLibraryCanvasInsertion.test.ts",
@@ -6286,7 +6363,13 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("canvasStore");
     expect(applicationSource).not.toContain("@/features/canvas/composition");
     expect(compositionSource).toContain("insertAssetLibraryAsset({");
-    expect(importSpecifiers(panelPath)).toContain(
+    expect(importSpecifiers(beatPresentationPath)).toContain(
+      "../application/assetLibraryCanvasInsertion",
+    );
+    expect(importSpecifiers(assetCardPresentationPath)).toContain(
+      "../application/assetLibraryCanvasInsertion",
+    );
+    expect(importSpecifiers(panelPath)).not.toContain(
       "@/features/freezone/application/assetLibraryCanvasInsertion",
     );
     expect(importSpecifiers(panelPath)).toContain(

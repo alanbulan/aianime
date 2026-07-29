@@ -2082,6 +2082,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零五批已将资产库拖拽替换的 Store 订阅、待确认/忙碌状态、目标解析、普通资产提交、Director Render bundle 提交、结果提示、清理和成功刷新计数从 `AssetLibraryPanel` 迁入唯一 presentation controller `hooks/useAssetLibraryReplacementController.ts`；面板只消费控制器状态并向普通资产卡显式传入确认/取消命令，原本仅跨一层组件的 `AssetReplaceContext` 整体删除。普通提交继续使用 `mark_stale: false`，Director Render 继续透传 source URL、control bundle、节点 ID 和标签；无效目标、提交成功、提交失败、pending 清理、busy 复位及仅成功时刷新查询的语义保持不变，同时将每张卡片分别订阅 Asset Drop Store 收敛为控制器单次订阅，不保留旧 handler、Context 或第二套提交编排。`AssetLibraryPanel` 由 661 行降至 583 行；控制器、面板与 Director bundle 合同回归 3 个文件 21 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 288 项（其中 module boundaries 248 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零六批已将非 Beat 资产卡的图片/音频/视频/3D 缩略图、场景类型徽标、加入画布动作、Canvas drag payload 序列化、自定义拖拽预览、替换目标可用性、悬停反馈及确认覆盖层从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryAssetCard.tsx`；面板只逐项传入资产、替换控制器状态和加入/确认/取消命令，普通卡与 Beat 卡共同复用唯一 application 拖拽 payload 工厂。8 项内 eager 加载阈值、无视频封面时首帧回退、不可渲染文件禁用、Director Render 仅接受图片拖拽、data attribute 协议、预览样式/移除时序及按钮事件行为保持不变；旧 `AssetCard` 与 `createAssetDragImage` 从面板直接删除，不保留 facade、旧导出或第二套实现。`AssetLibraryPanel` 由 583 行降至 330 行；卡片、面板与 Director bundle 合同回归 3 个文件 21 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 289 项（其中 module boundaries 249 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
