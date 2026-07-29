@@ -6084,6 +6084,90 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain('from "./assetLibraryViewModel"');
   });
 
+  it("keeps asset library canvas insertion behind one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/assetLibraryCanvasInsertionComposition.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetLibraryCanvasInsertion.test.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export function", "assetToDragPayload("].join(" "),
+      ["export function", "viewportCenteredPosition("].join(" "),
+      ["export async function", "insertAssetLibraryAsset("].join(" "),
+      ["export function", "addAssetToCanvas("].join(" "),
+    ];
+    const expectedOwners = [
+      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "features/freezone/assetLibraryCanvasInsertionComposition.ts",
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      expectedOwners.map((owner) => [owner]),
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/domain/assetDrag",
+        "@/features/viewer-kit/three-d/directorManifest",
+        "../domain/assetLibraryModel",
+      ]),
+    );
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "./application/assetLibraryCanvasInsertion",
+        "./domain/assetLibraryModel",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("zustand");
+    expect(applicationSource).not.toContain("window.");
+    expect(applicationSource).not.toContain("document.");
+    expect(applicationSource).not.toContain("localStorage");
+    expect(applicationSource).not.toContain("canvasStore");
+    expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(compositionSource).toContain("insertAssetLibraryAsset({");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/application/assetLibraryCanvasInsertion",
+    );
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/assetLibraryCanvasInsertionComposition",
+    );
+    expect(importSpecifiers(panelPath)).not.toContain(
+      "@/features/canvas/canvasStore",
+    );
+    expect(importSpecifiers(panelPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
+    expect(panelSource).not.toContain("spawnAssetNode(");
+    expect(panelSource).not.toContain("viewportCenteredPosition(");
+    expect(testSource).toContain('from "./assetLibraryCanvasInsertion"');
+  });
+
   it("keeps canvas hydration reconciliation in Freezone application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,

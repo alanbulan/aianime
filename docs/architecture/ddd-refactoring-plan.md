@@ -2076,6 +2076,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零二批已将 Beat 卡片角色选择与顺序、六类上下文分组、资产 tab 计数、场景类型徽标和 canvas preset scope/episode/beat 读取从 `AssetLibraryPanel` 迁入唯一纯 presentation view model `presentation/assetLibraryViewModel.ts`；面板只消费已投影的展示规则，React 状态、查询、组件布局、拖拽和 Store 副作用均未改变。Beat 输出顺序与原先不展示音频缩略项的行为、分组优先级与中文标题、仅统计 `from_beat_context` 的 Beat 数量、场景徽标语义 token，以及 preset 优先于 default push target 的回退顺序均保持不变；旧常量和 helper 直接删除，不保留 facade 或第二套实现。`AssetLibraryPanel` 由 1,358 行降至 1,164 行；view model 与面板回归 2 个文件 9 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 285 项（其中 module boundaries 245 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零三批已将资产到 Canvas drag payload 的媒体/Director World 投影、视口中心落点与节点避碰、manifest hydrate、节点创建和聚焦从 `AssetLibraryPanel` 迁入唯一 application 用例 `application/assetLibraryCanvasInsertion.ts`，并由 `assetLibraryCanvasInsertionComposition.ts` 绑定 Canvas Store 与既有 hydrate composition；面板只序列化拖拽事件并调用插入命令，不再直接读取 Canvas Store、生成节点或处理 hydrate 失败。3D active source 与 pano/SOG URL 选择、图片/视频/音频映射、不可渲染文件拒绝、无视口回退网格、最多十圈避碰、hydrate 失败后沿用原 payload 以及创建后聚焦语义均保持不变；旧 helper 和 Canvas 依赖直接删除，不保留 facade 或第二套实现，Viewer 静态合同同步改为验证真实 composition/use case 链路。`AssetLibraryPanel` 由 1,164 行降至 1,038 行；插入用例、面板、Viewer、拖拽 hydrate 与 Director bundle 回归 5 个文件 50 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 286 项（其中 module boundaries 246 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

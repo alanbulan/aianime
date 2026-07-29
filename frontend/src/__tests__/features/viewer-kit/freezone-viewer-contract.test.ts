@@ -83,6 +83,12 @@ describe("freezone viewer contracts", () => {
     const assetLibraryModel = read(
       "src/features/freezone/domain/assetLibraryModel.ts",
     );
+    const assetLibraryInsertion = read(
+      "src/features/freezone/application/assetLibraryCanvasInsertion.ts",
+    );
+    const assetLibraryInsertionComposition = read(
+      "src/features/freezone/assetLibraryCanvasInsertionComposition.ts",
+    );
     const mediaTransferController = read(
       "src/features/canvas/hooks/useCanvasMediaTransferController.ts",
     );
@@ -100,7 +106,13 @@ describe("freezone viewer contracts", () => {
     expect(assetLibraryModel).toContain("if (sceneContext) return [sceneContext];");
     expect(assetLibraryModel).toContain('kind: "scene"');
     expect(assetLibraryModel).toContain("sceneId,");
-    expect(panel).toContain("hydrateAssetDragPayload(payload)");
+    expect(panel).toContain("addAssetToCanvas(asset");
+    expect(assetLibraryInsertionComposition).toContain(
+      "hydratePayload: hydrateAssetDragPayload",
+    );
+    expect(assetLibraryInsertion).toContain(
+      "hydratedPayload = await hydratePayload(payload)",
+    );
     expect(mediaTransferController).toContain("hydrateAssetDragPayload(payload)");
     expect(hydrate).toContain("manifestGateway.getSceneDirectorStageManifest");
     expect(hydrate).not.toContain('from "@/api/');
