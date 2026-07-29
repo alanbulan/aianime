@@ -3,10 +3,13 @@ import type { Connection } from '@xyflow/react';
 
 import type { CanvasEdge, CanvasNode } from './canvasNodes';
 import { isPresetManagedEdge } from './mainlineNodeFlags';
-import { getCurrentBeatContextFromNode } from '../../freezone/context/currentBeatContext.ts';
 import { inputAcceptsNode } from '../../freezone/context/skillNodeInputs.ts';
 import { inferSkillConnectionRole } from '../../freezone/context/inferSkillConnectionRole.ts';
-import type { SkillDefinition, SkillInputRole } from '@/features/freezone/public';
+import {
+  getCurrentBeatContextFromNode,
+  type SkillDefinition,
+  type SkillInputRole,
+} from '@/features/freezone/public';
 
 export interface SkillRoleBindingEdgeData {
   edgeKind: 'role_binding';

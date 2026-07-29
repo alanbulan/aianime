@@ -20,6 +20,11 @@ export {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from "@/features/freezone/domain/mainlineContext";
+export {
+  currentBeatContextToMainlineContext,
+  getCurrentBeatContextFromNode,
+  parseBeatContextVisualMarkers,
+} from "@/features/freezone/domain/currentBeatContext";
 export type {
   MainlineContext,
   MainlineContextEdgeLike,

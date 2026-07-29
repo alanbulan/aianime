@@ -2128,6 +2128,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十八批已将 Freezone `context/mainlineContext.ts` 中零依赖的主线上下文、传播边、Beat 解析与候选绑定规则整体迁入唯一纯 domain `domain/mainlineContext.ts`，消除 `domain/beatContext.ts`、`domain/assetLibraryModel.ts` 和 application 素材投影对 context 技术目录的反向依赖；其余 context 编译/快照/徽标模块统一直连 domain。`freezone/public.ts` 只向 Canvas 公开跨域实际使用的主线上下文提取/收集、候选绑定收集、传播校验与候选角色校验 5 个函数及 3 个最小图契约类型，Canvas application/domain/node/ui 与对应测试不再穿透 Freezone 内部目录。旧 context 文件直接删除，不保留 facade、re-export 或第二套规则；上下文 kind 白名单、传播边显式开关、上游 DFS 与稳定去重、Beat 节点解析、候选绑定双向兼容、canonical 角色唯一性和多 Beat 链路拒绝语义保持不变。边创建、提示词色板、素材投影/模型、当前 Beat、上下文徽标与 Beat 节点回归 7 个文件 44 项，完整前端架构门禁 3 个文件 306 项（其中 module boundaries 266 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十九批已将 Freezone `context/currentBeatContext.ts` 中只依赖 mainline domain 的当前 Beat 读取、视觉 marker 解析与 MainlineContext 投影规则整体迁入唯一 `domain/currentBeatContext.ts`，原 3 项行为测试同步归位到 domain；Freezone Skill 输入解析直连 domain，Canvas 的 Skill 连线 domain、SkillNode、BeatContextNode 与提示词色板统一经 `freezone/public.ts` 使用 3 个纯函数，不公开未被跨域消费的内部类型。旧 context 源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套解析；standalone 上下文优先级、主线 provenance 防泄漏、`{{身份}}`/`[[道具]]` marker 去重、选中项按 marker 过滤、snake/camel 历史字段兼容、本地编辑覆盖 snapshot、身份/道具稳定去重、颜色映射合并及 mainline 字段投影语义保持不变。Current Beat、Skill 输入/连线、提示词色板、Beat 节点与 Skill 导演世界回归 6 个文件 61 项，完整前端架构门禁 3 个文件 307 项（其中 module boundaries 267 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

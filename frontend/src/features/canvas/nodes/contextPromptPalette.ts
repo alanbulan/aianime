@@ -1,15 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
   collectNodeMainlineContexts,
+  currentBeatContextToMainlineContext,
   extractMainlineContextsFromNode,
+  getCurrentBeatContextFromNode,
   type MainlineContext,
   type MainlineContextEdgeLike,
   type MainlineContextNodeLike,
 } from "@/features/freezone/public";
-import {
-  currentBeatContextToMainlineContext,
-  getCurrentBeatContextFromNode,
-} from "@/features/freezone/context/currentBeatContext";
 
 export type ContextPromptPaletteEntryKind = "actor" | "prop";
 

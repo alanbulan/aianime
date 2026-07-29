@@ -48,7 +48,6 @@ import type {
   DirectorWorldSource,
 } from '@/features/viewer-kit/three-d/directorManifest';
 import { isSkillReadyToSubmit, resolveInputsForSkill } from '@/features/freezone/context/skillNodeInputs';
-import { getCurrentBeatContextFromNode } from '@/features/freezone/context/currentBeatContext';
 import {
   nodeDataForOutput,
   nodeTypeForOutput,
@@ -56,6 +55,7 @@ import {
   outputText,
 } from '@/features/freezone/context/skillNodeOutputs';
 import {
+  getCurrentBeatContextFromNode,
   isSkillRunFailureStatus,
   skillRunErrorMessage,
   type MainlineContext,

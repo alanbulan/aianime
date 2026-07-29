@@ -830,6 +830,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/capabilities/registry",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
+        "@/features/freezone/domain/currentBeatContext",
         "@/features/freezone/domain/mainlineContext",
         "@/features/freezone/domain/referenceRoles",
         "@/features/freezone/domain/skillContract",
@@ -906,6 +907,70 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasBypasses).toEqual([]);
     expect(contextImportFailures).toEqual([]);
+  });
+
+  it("owns current Beat Context parsing in the Freezone domain", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/currentBeatContext.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/currentBeatContext.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/currentBeatContext.test.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const skillInputsPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/skillNodeInputs.ts",
+    );
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const declarations = [
+      "parseBeatContextVisualMarkers(",
+      "getCurrentBeatContextFromNode(",
+      "currentBeatContextToMainlineContext(",
+    ].map((name) => ["export function", name].join(" "));
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const canvasBypasses = sourceFiles(canvasRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/freezone/context/currentBeatContext" ||
+              specifier === "@/features/freezone/domain/currentBeatContext" ||
+              specifier.endsWith("freezone/context/currentBeatContext.ts"),
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./mainlineContext"]);
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/domain/currentBeatContext.ts",
+      ]),
+    );
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("window.");
+    expect(domainSource).not.toContain("document.");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/domain/currentBeatContext",
+    );
+    expect(importSpecifiers(skillInputsPath)).toContain(
+      "../domain/currentBeatContext",
+    );
+    expect(importSpecifiers(testPath)).toEqual(["vitest", "./currentBeatContext"]);
+    expect(canvasBypasses).toEqual([]);
   });
 
   it("separates shot metadata rules, state, and cross-context composition", () => {

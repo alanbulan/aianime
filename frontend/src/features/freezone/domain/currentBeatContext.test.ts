@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { getCurrentBeatContextFromNode } from "@/features/freezone/context/currentBeatContext";
+import { getCurrentBeatContextFromNode } from "./currentBeatContext";
 
 describe("getCurrentBeatContextFromNode", () => {
   it("uses standalone beat_context as the current canvas-owned context", () => {
