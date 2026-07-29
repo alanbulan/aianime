@@ -10,7 +10,7 @@ export {
   useFreezoneBeatContext,
   useFreezoneProjectAssets,
 } from "@/features/freezone/composition";
-export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjectionComposition";
 export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetadataComposition";
 export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenceRoles";
 export { useCanvasProjectionStatus } from "@/features/freezone/hooks/useCanvasProjectionStatus";

@@ -2124,6 +2124,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十六批已将 Freezone 根级 `canvasSyncRuntime.ts` 的当前画布运行时注册表与本地投影待处理队列整体迁入唯一 application 状态 `application/canvasRuntimeState.ts`，并将其 Canvas 图类型依赖从 Zustand 组合根收窄到纯 domain 契约。运行时 bridge、hydrate 生命周期、投影命令与打开 preset 投影等 Freezone 内部调用方直连 application；唯一跨领域生产调用方 BeatContextNode 改经 `freezone/public.ts` 使用远端画布应用与 flush 两个必要命令，注册、排队、消费和移除能力不扩大到公共 API。旧根文件直接删除，不保留 facade、re-export 或第二套运行时；项目/画布精确匹配、旧 unregister 不清除新 runtime、同 projection key 后写覆盖、拒绝项保留重试、成功项移出队列、flush 缺失返回 `null` 和本地投影移除语义保持不变。运行时、打开 preset、画布同步、bridge、hydrate 与投影命令回归 6 个文件 50 项，完整前端架构门禁 3 个文件 304 项（其中 module boundaries 264 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十七批已将根级 `openPresetProjection.ts` 中混合的 preset 投影应用编排与 Router/History、登录 Store、HTTP composition、Canvas 运行时适配拆为纯 application 工厂 `application/openPresetProjection.ts` 和唯一装配入口 `openPresetProjectionComposition.ts`。application 通过显式依赖接收当前用户、单次导航会话、投影构建和投影发布能力，只持有用户名校验、个人画布 ID、请求规范化、projection key、metadata 组装及异步期间离页判定；composition 绑定 Identity public、TanStack Router/History fallback、既有投影 composition 与运行时队列。BeatContextNode 与 NodeActionToolbar 两个 Canvas 调用方统一并入 `freezone/public.ts`，旧根路径直接删除，不保留 facade、re-export 或第二套流程。Beat 请求强制规范为 render 槽位、`base_revision: 0`、投影先发布后导航、请求期间主动离页不拉回 Freezone、同页只更新 canvas 参数、无 Router 时 pushState 加 popstate 和缺失用户报错语义保持不变。application、composition 与 Render Section 回归 3 个文件 15 项，完整前端架构门禁 3 个文件 305 项（其中 module boundaries 265 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

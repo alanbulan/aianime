@@ -43,12 +43,12 @@ import { extractMainlineContextsFromNode } from "@/features/freezone/context/mai
 import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/beatContextSnapshot";
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import { parseBeatContextVisualMarkers } from "@/features/freezone/context/currentBeatContext";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import {
   applyRemoteFreezoneCanvas,
   flushFreezoneCanvasRuntime,
   getFreezoneCanvasMetadata,
   listFreezoneBeatContext,
+  openPresetProjectionInMyCanvas,
   presetRequestFromMetadata,
 } from "@/features/freezone/public";
 import {

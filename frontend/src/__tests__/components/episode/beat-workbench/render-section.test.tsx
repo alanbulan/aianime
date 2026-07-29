@@ -188,7 +188,7 @@ vi.mock("@/hooks/use-now", () => ({
   useNow: () => 1_747_392_000_000,
 }));
 
-vi.mock("@/features/freezone/openPresetProjection", () => ({
+vi.mock("@/features/freezone/openPresetProjectionComposition", () => ({
   openPresetProjectionInMyCanvas: vi.fn().mockResolvedValue(undefined),
 }));
 

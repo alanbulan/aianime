@@ -101,7 +101,10 @@ import type {
 } from "@/features/canvas/domain/gridAction";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
-import { useCanvasProjectionStatus } from "@/features/freezone/public";
+import {
+  openPresetProjectionInMyCanvas,
+  useCanvasProjectionStatus,
+} from "@/features/freezone/public";
 import {
   matteInWorker,
   preloadMatteWorker,
@@ -119,7 +122,6 @@ import {
   separateCanvasAudioVideo,
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { readUrl } from "@/lib/url-params";
 import { sanitizeStoryboardText } from "@/features/canvas/application/storyboardText";
 import { buildGenerationErrorReport } from "@/features/canvas/application/generationErrorReport";

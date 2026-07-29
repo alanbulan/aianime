@@ -820,7 +820,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/application/canvasPreset",
         "@/features/freezone/application/canvasRuntimeState",
         "@/features/freezone/composition",
-        "@/features/freezone/openPresetProjection",
+        "@/features/freezone/openPresetProjectionComposition",
         "@/features/freezone/canvasDraftComposition",
         "@/features/freezone/shotMetadataComposition",
         "@/features/freezone/domain/assetCommit",
@@ -1827,7 +1827,10 @@ describe("frontend architecture boundaries", () => {
       ),
     );
     const openProjectionImports = importSpecifiers(
-      resolve(SRC_ROOT, "features/freezone/openPresetProjection.ts"),
+      resolve(
+        SRC_ROOT,
+        "features/freezone/application/openPresetProjection.ts",
+      ),
     );
     const statusStateImports = importSpecifiers(
       resolve(
@@ -1853,9 +1856,8 @@ describe("frontend architecture boundaries", () => {
     expect(
       existsSync(resolve(SRC_ROOT, "features/freezone/projectionGraphIds.ts")),
     ).toBe(false);
-    expect(openProjectionImports).toContain("@/features/freezone/composition");
     expect(openProjectionImports).toContain(
-      "@/features/freezone/domain/canvasStorage",
+      "../domain/canvasStorage",
     );
     expect(statusStateImports).toEqual(["../domain/canvasProjection"]);
     for (const imports of [
@@ -1874,6 +1876,85 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "httpFreezoneCanvasProjectionGateway",
     );
+  });
+
+  it("separates preset projection opening from browser composition", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/openPresetProjection.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/openPresetProjection.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/openPresetProjectionComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasConsumerPaths = [
+      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const declaration = [
+      "export const",
+      "openPresetProjectionInMyCanvas",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/canvasIdentity",
+        "../domain/canvasProjection",
+        "../domain/canvasProjectionMetadata",
+        "../domain/canvasProjectionRequest",
+        "../domain/canvasStorage",
+      ]),
+    );
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/lib/app-router",
+        "@/lib/url-params",
+        "@/modules/identity_access/public",
+        "./application/canvasRuntimeState",
+        "./application/openPresetProjection",
+        "./composition",
+      ]),
+    );
+    expect(applicationSource).not.toContain("window.");
+    expect(applicationSource).not.toContain("getAppRouter");
+    expect(applicationSource).not.toContain("useAuthStore");
+    expect(applicationSource).not.toContain("buildProjectionFromPreset");
+    expect(compositionSource).toContain("createOpenPresetProjection({");
+    expect(compositionSource).toContain("getAppRouter()");
+    expect(compositionSource).toContain("window.history.pushState(");
+    expect(compositionSource).toContain("queueLocalFreezoneProjection(");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/openPresetProjectionComposition",
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/openPresetProjectionComposition.ts",
+    ]);
+    for (const consumerPath of canvasConsumerPaths) {
+      const imports = importSpecifiers(consumerPath);
+      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).not.toContain(
+        "@/features/freezone/openPresetProjection",
+      );
+      expect(imports).not.toContain(
+        "@/features/freezone/openPresetProjectionComposition",
+      );
+      expect(imports).not.toContain(
+        "@/features/freezone/application/openPresetProjection",
+      );
+    }
   });
 
   it("separates projection status state from its React hook", () => {

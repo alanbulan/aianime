@@ -2,7 +2,8 @@
 import type { AnyRouter } from "@tanstack/react-router";
 
 // The app's tanstack-router singleton. Registered once from app/bootstrap after the
-// router is created, so plain (non-hook) modules — url-params, openPresetProjection —
+// router is created, so plain (non-hook) modules — url-params and Freezone
+// navigation composition —
 // can route navigations THROUGH the router instead of mutating window.history
 // directly.
 //
