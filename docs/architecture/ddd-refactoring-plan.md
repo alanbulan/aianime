@@ -2030,6 +2030,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十九批已将远端画布 server-owned envelope 提取与保存错误 `{status, body}` 归一化从 `useCanvasSync` 迁入现有唯一 application `canvasSyncCore.ts`，hook 删除 `ApiError` 具体类型依赖及本地 wrapper，`ApiError`、`BackendStatusError` 和同形错误统一由纯结构读取处理；原函数直接删除，不保留转发或第二套实现。schema/owner/access/scope/revision/audit 字段继续透传，nodes、edges、viewport 与 metadata 不进入 envelope，错误分类结果和 retry/冲突时序不变；`useCanvasSync` 由 1,540 行降至 1,495 行。同步 core、hook 与画布列表回归 92 项、相关架构门禁 1 项和完整前端架构门禁 223 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十批已将 `useCanvasSync` 顶部的 hydrate 请求共享、consumer 引用计数、释放宽限、Abort 与 settled payload 短时复用状态机迁入唯一 application `canvasHydrateFlights.ts`，由 `canvasHydrationComposition.ts` 注入 Canvas loader、当前本地编辑状态、浏览器时钟和 timer；hook 只获取并释放 lease，不再持有模块级 Map、AbortController 或具体 GET 调用。50 ms StrictMode 重挂宽限、10 秒 settled 复用窗口、仅无本地编辑时复用、reload key 隔离和最后 consumer 离开后取消请求的行为保持不变，旧常量与实现直接删除，不保留 hook 转发；`useCanvasSync` 由 1,495 行降至 1,381 行。独立 coordinator 与 hook 集成回归 32 项、相关架构门禁 2 项和完整前端架构门禁 224 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -5061,6 +5061,54 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("function decideHydrateDraft(");
   });
 
+  it("keeps canvas hydrate flight coordination in Freezone application", () => {
+    const coordinatorPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasHydrateFlights.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasHydrationComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const coordinatorSource = readFileSync(coordinatorPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const declaration = [
+      "export function",
+      "createCanvasHydrateFlightCoordinator(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(coordinatorPath)).toEqual([
+      "@/features/freezone/domain/canvasStorage",
+    ]);
+    expect(coordinatorSource).not.toContain("window.");
+    expect(coordinatorSource).not.toContain("document.");
+    expect(coordinatorSource).not.toContain("localStorage");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasHydrateFlights.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "./application/canvasHydrateFlights",
+      ]),
+    );
+    expect(importSpecifiers(hookPath)).toContain(
+      "../canvasHydrationComposition",
+    );
+    expect(hookSource).not.toContain("const hydrateFlights");
+    expect(hookSource).not.toContain("function acquireHydrateFlight(");
+    expect(hookSource).not.toContain("getFreezoneCanvas");
+  });
+
   it("keeps preset metadata parsing in Freezone application", () => {
     const parserPath = resolve(
       SRC_ROOT,

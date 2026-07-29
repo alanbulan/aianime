@@ -9,7 +9,6 @@ import {
 import {
   createCanvasFromPreset,
   generateClientSaveId,
-  getFreezoneCanvas,
   putFreezoneCanvas,
 } from "@/features/canvas/composition";
 import type {
@@ -65,22 +64,12 @@ import {
   canvasDraftSignature,
 } from "../application/canvasDraft";
 import { canvasDraftStorageGateway } from "../canvasDraftComposition";
+import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
 /** Extra app-level retry attempts when ky surfaces a 503 canvas_lock_busy. */
 const LOCK_BUSY_MAX_RETRIES = 1;
-export const FREEZONE_HYDRATE_RELEASE_GRACE_MS = 50;
-/**
- * 已结算的 hydrate 结果保留多久可复用。顶栏在「AI anime 画布 / AI anime 工作台」之间来回切时会整体
- * 卸载再挂载画布，复用能省掉一趟往返的全量拉取。仅在期间没有任何本地编辑
- * （userEditsSinceHydrate === 0）时复用。
- *
- * 窗口刻意压得很短：复用的 payload 连同它的 revision 一起被当成最新的，期间别的
- * 标签页或协作者改了同一张画布，我们既画的是旧内容，之后保存还会撞 409。10 秒够
- * 覆盖「切过去又立刻切回来」，再长就是拿正确性换手感了。
- */
-export const FREEZONE_HYDRATE_SETTLED_REUSE_MS = 10_000;
 
 let prunePending = false;
 
@@ -96,113 +85,6 @@ function schedulePruneOnce(): void {
     return;
   }
   window.setTimeout(run, 300);
-}
-
-type HydrateFlight = {
-  controller: AbortController;
-  promise: Promise<FreezoneCanvasPayload>;
-  consumers: number;
-  settled: boolean;
-  settledAt: number | null;
-  releaseTimer: number | null;
-};
-
-const hydrateFlights = new Map<string, HydrateFlight>();
-
-function hydrateFlightKey(
-  project: string,
-  canvasId: string,
-  reloadKey: number,
-): string {
-  return `${project}\u0000${canvasId}\u0000${reloadKey}`;
-}
-
-function acquireHydrateFlight(
-  project: string,
-  canvasId: string,
-  reloadKey: number,
-): { promise: Promise<FreezoneCanvasPayload>; release: () => void } {
-  const key = hydrateFlightKey(project, canvasId, reloadKey);
-  let flight = hydrateFlights.get(key);
-  if (flight?.settled) {
-    const canReuseJustSettledFlight =
-      flight.consumers === 0 &&
-      flight.releaseTimer != null &&
-      flight.settledAt != null &&
-      Date.now() - flight.settledAt <= FREEZONE_HYDRATE_SETTLED_REUSE_MS &&
-      useCanvasStore.getState().userEditsSinceHydrate === 0;
-    if (!canReuseJustSettledFlight) {
-      if (flight.releaseTimer != null) {
-        window.clearTimeout(flight.releaseTimer);
-      }
-      hydrateFlights.delete(key);
-      flight = undefined;
-    }
-  }
-  if (!flight) {
-    const controller = new AbortController();
-    const createdFlight: HydrateFlight = {
-      controller,
-      promise: getFreezoneCanvas(project, canvasId, {
-        signal: controller.signal,
-      }),
-      consumers: 0,
-      settled: false,
-      settledAt: null,
-      releaseTimer: null,
-    };
-    void createdFlight.promise.then(
-      () => {
-        createdFlight.settled = true;
-        createdFlight.settledAt = Date.now();
-      },
-      () => {
-        createdFlight.settled = true;
-        createdFlight.settledAt = Date.now();
-      },
-    );
-    hydrateFlights.set(key, createdFlight);
-    flight = createdFlight;
-  }
-  if (flight.releaseTimer != null) {
-    window.clearTimeout(flight.releaseTimer);
-    flight.releaseTimer = null;
-  }
-  flight.consumers += 1;
-  let released = false;
-  return {
-    promise: flight.promise,
-    release: () => {
-      if (released) return;
-      released = true;
-      flight.consumers = Math.max(0, flight.consumers - 1);
-      if (flight.consumers > 0) return;
-      flight.releaseTimer = window.setTimeout(() => {
-        if (flight.consumers > 0) return;
-        if (hydrateFlights.get(key) !== flight) return;
-        if (
-          flight.settled &&
-          flight.settledAt != null &&
-          useCanvasStore.getState().userEditsSinceHydrate === 0
-        ) {
-          const remaining =
-            FREEZONE_HYDRATE_SETTLED_REUSE_MS - (Date.now() - flight.settledAt);
-          if (remaining > 0) {
-            flight.releaseTimer = window.setTimeout(() => {
-              if (flight.consumers === 0 && hydrateFlights.get(key) === flight) {
-                hydrateFlights.delete(key);
-              }
-            }, remaining);
-            return;
-          }
-        }
-        if (!flight.settled) {
-          flight.controller.abort();
-        }
-        hydrateFlights.delete(key);
-      }, FREEZONE_HYDRATE_RELEASE_GRACE_MS);
-    },
-  };
 }
 
 function viewportsEqual(a: Viewport, b: Viewport): boolean {
@@ -557,7 +439,11 @@ export function useCanvasSync(
     // 会直接卡住切页那一帧；挪到空闲期做，它跟本次 hydrate 没有先后依赖。整页只跑一次，
     // 且不随卸载取消 —— 否则「进画布不到两秒就切走」这种最常见的路径永远清理不到。
     schedulePruneOnce();
-    const hydrateFlight = acquireHydrateFlight(project, canvasId, reloadKey);
+    const hydrateFlight = canvasHydrateFlightCoordinator.acquire(
+      project,
+      canvasId,
+      reloadKey,
+    );
     setSyncStatus("loading");
     setError(null);
     lastSignatureRef.current = null;

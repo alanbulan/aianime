@@ -14,8 +14,8 @@ import {
 import {
   FREEZONE_HYDRATE_RELEASE_GRACE_MS,
   FREEZONE_HYDRATE_SETTLED_REUSE_MS,
-  useCanvasSync,
-} from "@/features/freezone/hooks/useCanvasSync";
+} from "@/features/freezone/application/canvasHydrateFlights";
+import { useCanvasSync } from "@/features/freezone/hooks/useCanvasSync";
 import {
   canvasDraftStorageGateway,
 } from "@/features/freezone/canvasDraftComposition";
