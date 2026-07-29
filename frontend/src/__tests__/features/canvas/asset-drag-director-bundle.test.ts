@@ -183,7 +183,7 @@ describe("director bundle canvas assets", () => {
     const rules = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/commit/canvasCommitRules.ts",
+        "src/features/freezone/application/canvasCommitRules.ts",
       ),
       "utf8",
     );

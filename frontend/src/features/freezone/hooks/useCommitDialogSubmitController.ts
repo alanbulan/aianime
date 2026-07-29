@@ -15,8 +15,8 @@ import {
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
 } from "../composition";
-import { renderCommitSuccessMessage } from "../commit/canvasCommitRules";
-import { nodeDataAfterCommittedSlot } from "../commit/committedNodePatch";
+import { renderCommitSuccessMessage } from "../application/canvasCommitRules";
+import { nodeDataAfterCommittedSlot } from "../application/committedNodePatch";
 import {
   commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,

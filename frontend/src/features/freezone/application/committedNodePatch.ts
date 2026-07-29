@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
-import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
+import type { PushResult, PushTarget } from "../domain/assetCommit";
 import {
   isDirectorWorldSourceSlotTarget,
   nodeDataAfterDirectorWorldSourceSlotCommit,
-} from "./sceneDirectorWorldCommit";
+} from "../commit/sceneDirectorWorldCommit";
 
 function stringValue(value: unknown): string {
   return typeof value === "string" && value.trim() ? value.trim() : "";

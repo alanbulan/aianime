@@ -2156,6 +2156,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十二批已将 Freezone `commit/CommitDialog.tsx` 与 `commit/commitDialogViewModel.ts` 归入唯一 presentation 所有者 `presentation/CommitDialog.tsx` 和 `presentation/commitDialogViewModel.ts`；弹窗入口继续只装配目标/提交 controller 与 `CommitDialogView`，View、目标 controller、FreezoneShell 及相关测试统一使用新路径。旧文件直接删除，不保留 facade、re-export 或第二套入口；弹窗 props、目标状态与提交状态透传、目标类型可见性、模型来源槽位、身份/场景选项、媒体/来源/目标标签和 DOM 渲染语义保持不变。相关回归 6 个文件 35 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十三批已将 Freezone `commit/canvasCommitRules.ts` 与 `commit/committedNodePatch.ts` 归入唯一 application 所有者 `application/canvasCommitRules.ts` 和 `application/committedNodePatch.ts`，原规则测试与外置节点 patch 测试同步归位到 application；FreezoneShell、画布提交 controller、提交弹窗 controller 及其 mock 统一使用新路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套规则；提交成功文案、导演世界 manifest 选择、来源槽位/普通目标节点 patch、canonical 节点刷新、候选提交标记、PushTarget 归一/等值、角色元数据回退，以及图片/视频/音频/身份/场景主线上下文投影语义保持不变。相关回归 8 个文件 76 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

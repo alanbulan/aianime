@@ -35,12 +35,12 @@ vi.mock("../commit/sceneDirectorWorldCommit", () => ({
     mocks.isDirectorWorldSourceSlotTarget(...args),
 }));
 
-vi.mock("../commit/committedNodePatch", () => ({
+vi.mock("../application/committedNodePatch", () => ({
   nodeDataAfterCommittedSlot: (...args: unknown[]) =>
     mocks.nodeDataAfterCommittedSlot(...args),
 }));
 
-vi.mock("../commit/canvasCommitRules", () => ({
+vi.mock("../application/canvasCommitRules", () => ({
   renderCommitSuccessMessage: (...args: unknown[]) =>
     mocks.renderCommitSuccessMessage(...args),
 }));

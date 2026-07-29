@@ -3,7 +3,7 @@ import type {
   PushResult,
   PushTarget,
   PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
+} from "../domain/assetCommit";
 
 import { nodeDataAfterCommittedSlot } from "./committedNodePatch";
 import {
@@ -14,7 +14,7 @@ import {
 import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-} from "./sceneDirectorWorldCommit";
+} from "../commit/sceneDirectorWorldCommit";
 
 export function renderCommitSuccessMessage(
   target: PushTarget,

@@ -10,7 +10,7 @@ import { CommitDialog } from "./presentation/CommitDialog";
 import {
   defaultCharacterFromMetadata,
   normalizePushTarget,
-} from "./commit/canvasCommitRules";
+} from "./application/canvasCommitRules";
 import { CreateIdentityDialog } from "./presentation/CreateIdentityDialog";
 import { CompareDialog } from "./presentation/CompareDialog";
 import { MaskEditor } from "./presentation/MaskEditor";

@@ -31,7 +31,7 @@ import {
   resolveSubmitNodeData,
   sceneDirectorWorldDataForManifest,
   shouldRefreshCommittedTargetNodes,
-} from "../commit/canvasCommitRules";
+} from "../application/canvasCommitRules";
 import {
   assetToPushTarget,
   coercePushTarget,

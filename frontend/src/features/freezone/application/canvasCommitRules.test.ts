@@ -14,7 +14,7 @@ import {
   shouldRefreshCommittedTargetNodes,
 } from "./canvasCommitRules";
 
-describe("Freezone canvas commit rules", () => {
+describe("Freezone canvas commit application rules", () => {
   it("does not refresh canvas node urls after scene director world manifest commits", () => {
     expect(shouldRefreshCommittedTargetNodes({
       kind: "scene_director_world",

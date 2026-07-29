@@ -2792,7 +2792,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps Freezone canvas commit decisions in one pure rules module", () => {
     const rulesPath = resolve(
       SRC_ROOT,
+      "features/freezone/application/canvasCommitRules.ts",
+    );
+    const committedPatchPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/committedNodePatch.ts",
+    );
+    const legacyRulesPath = resolve(
+      SRC_ROOT,
       "features/freezone/commit/canvasCommitRules.ts",
+    );
+    const legacyCommittedPatchPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/committedNodePatch.ts",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -2804,7 +2816,15 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/canvasCommitRules.test.ts",
+      "features/freezone/application/canvasCommitRules.test.ts",
+    );
+    const committedPatchTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/committedNodePatch.test.ts",
+    );
+    const legacyCommittedPatchTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/freezone/committed-node-patch.test.ts",
     );
     const rulesSource = readFileSync(rulesPath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
@@ -2825,17 +2845,33 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(rulesPath))).toEqual(
       new Set([
-        "@/features/freezone/domain/assetCommit",
+        "../commit/sceneDirectorWorldCommit",
+        "../domain/assetCommit",
         "../domain/pushTarget",
         "./committedNodePatch",
-        "./sceneDirectorWorldCommit",
       ]),
     );
+    expect(new Set(importSpecifiers(committedPatchPath))).toEqual(
+      new Set([
+        "../commit/sceneDirectorWorldCommit",
+        "../domain/assetCommit",
+      ]),
+    );
+    expect(new Set(importSpecifiers(committedPatchTestPath))).toEqual(
+      new Set([
+        "vitest",
+        "../domain/assetCommit",
+        "./committedNodePatch",
+      ]),
+    );
+    expect(existsSync(legacyRulesPath)).toBe(false);
+    expect(existsSync(legacyCommittedPatchPath)).toBe(false);
+    expect(existsSync(legacyCommittedPatchTestPath)).toBe(false);
     expect(importSpecifiers(shellPath)).toContain(
-      "./commit/canvasCommitRules",
+      "./application/canvasCommitRules",
     );
     expect(importSpecifiers(submitControllerPath)).toContain(
-      "../commit/canvasCommitRules",
+      "../application/canvasCommitRules",
     );
     expect(submitControllerSource).not.toContain(
       "function renderCommitSuccessMessage(",
@@ -2848,7 +2884,7 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/freezone/commit/canvasCommitRules.ts",
+        "features/freezone/application/canvasCommitRules.ts",
       ]);
       expect(shellSource).not.toContain(`function ${name}(`);
     }
@@ -3034,9 +3070,9 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/assetDropInfo",
         "@/features/freezone/domain/assetCommit",
+        "../application/canvasCommitRules",
+        "../application/committedNodePatch",
         "../composition",
-        "../commit/canvasCommitRules",
-        "../commit/committedNodePatch",
         "../commit/sceneDirectorWorldCommit",
       ]),
     );
@@ -3165,8 +3201,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/public",
         "@/features/freezone/domain/assetCommit",
         "@/lib/query-keys",
+        "../application/canvasCommitRules",
         "../composition",
-        "../commit/canvasCommitRules",
         "../commit/sceneDirectorWorldCommit",
         "../domain/pushTarget",
       ]),
@@ -3317,7 +3353,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/presentation/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
-      "features/freezone/commit/committedNodePatch.ts",
     ];
     const publicConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
