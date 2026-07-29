@@ -15,10 +15,7 @@ import {
   nodeDataPatchAfterCommittedSourceSlot,
   requestFromProjectionMetadata,
   resolveSubmitNodeData,
-  shouldClearProjectionStatuses,
-  shouldFetchProjectionStatuses,
   shouldRefreshCommittedTargetNodes,
-  shouldSkipProjectionStatusRevision,
 } from "@/features/freezone/FreezoneShell";
 import {
   buildConflictCopyCanvasId,
@@ -209,113 +206,6 @@ describe("freezone preset projection guards", () => {
         projections: { "beat:1:4": { projection_key: "beat:1:4" } },
       }),
     ).toBe(false);
-  });
-
-  it("keeps projection panel visible during transient canvas save states", () => {
-    expect(
-      shouldClearProjectionStatuses({
-        canvasId: "user_eric",
-        hydratedCanvasId: "user_eric",
-        projectionKeyCount: 2,
-      }),
-    ).toBe(false);
-    expect(
-      shouldClearProjectionStatuses({
-        canvasId: "user_eric",
-        hydratedCanvasId: "other",
-        projectionKeyCount: 2,
-      }),
-    ).toBe(true);
-    expect(
-      shouldClearProjectionStatuses({
-        canvasId: "user_eric",
-        hydratedCanvasId: "user_eric",
-        projectionKeyCount: 0,
-      }),
-    ).toBe(true);
-  });
-
-  it("does not fetch projection statuses while the canvas save is unsettled", () => {
-    expect(
-      shouldFetchProjectionStatuses({
-        canvasId: "user_eric",
-        hydratedCanvasId: "user_eric",
-        projectionKeyCount: 2,
-        revision: 7,
-        syncStatus: "saving",
-      }),
-    ).toBe(false);
-    expect(
-      shouldFetchProjectionStatuses({
-        canvasId: "user_eric",
-        hydratedCanvasId: "user_eric",
-        projectionKeyCount: 2,
-        revision: 8,
-        syncStatus: "ready",
-      }),
-    ).toBe(true);
-  });
-
-  it("does not refetch projection statuses for the same persisted revision", () => {
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 7,
-        refreshToken: 0,
-        lastChecked: { canvasId: "user_eric", revision: 7, refreshToken: 0 },
-      }),
-    ).toBe(true);
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 8,
-        refreshToken: 0,
-        lastChecked: { canvasId: "user_eric", revision: 7, refreshToken: 0 },
-      }),
-    ).toBe(false);
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 7,
-        refreshToken: 0,
-        lastChecked: { canvasId: "other", revision: 7, refreshToken: 0 },
-      }),
-    ).toBe(false);
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 7,
-        refreshToken: 1,
-        lastChecked: { canvasId: "user_eric", revision: 7, refreshToken: 0 },
-      }),
-    ).toBe(false);
-  });
-
-  it("refetches projection statuses after the persisted revision changes", () => {
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 9,
-        refreshToken: 0,
-        lastChecked: {
-          canvasId: "user_eric",
-          revision: 8,
-          refreshToken: 0,
-        },
-      }),
-    ).toBe(false);
-    expect(
-      shouldSkipProjectionStatusRevision({
-        canvasId: "user_eric",
-        revision: 8,
-        refreshToken: 0,
-        lastChecked: {
-          canvasId: "user_eric",
-          revision: 8,
-          refreshToken: 0,
-        },
-      }),
-    ).toBe(true);
   });
 
   it("recovers a sync request from legacy projection metadata without request", () => {

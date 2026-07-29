@@ -468,6 +468,9 @@ describe("freezone viewer contracts", () => {
   it("routes projection group toolbar actions through projection sync and remove events", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const shell = read("src/features/freezone/FreezoneShell.tsx");
+    const statusLifecycle = read(
+      "src/features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+    );
     const ports = read("src/features/canvas/application/ports.ts");
     const groupNode = read("src/features/canvas/nodes/GroupNode.tsx");
 
@@ -480,8 +483,9 @@ describe("freezone viewer contracts", () => {
     expect(shell).toContain('"freezone/projection-remove"');
     expect(shell).toContain("handleRemoveProjection(projectionKey)");
     expect(shell).not.toContain("<ProjectionPanel");
-    expect(shell).toContain("setCanvasProjectionStatuses(result.projections)");
-    expect(shell).toContain("clearCanvasProjectionStatuses()");
+    expect(shell).toContain("useCanvasProjectionStatusLifecycle({");
+    expect(statusLifecycle).toContain("setCanvasProjectionStatuses(result.projections)");
+    expect(statusLifecycle).toContain("clearCanvasProjectionStatuses()");
     expect(groupNode).toContain("useCanvasProjectionStatus(projectionKey)");
     expect(groupNode).toContain("projection-stale-frame");
     expect(groupNode).toContain("projection-stale-banner");

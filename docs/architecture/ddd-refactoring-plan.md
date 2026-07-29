@@ -2052,6 +2052,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十批已将 Freezone 初始画布 hydrate 的 React 生命周期迁入唯一 presentation hook `hooks/useCanvasHydrationLifecycle.ts`，统一编排 flight acquire/release、同步基线重置、远端 payload 应用、同 revision 草稿恢复、冲突快照、history/viewport read-once 恢复、metadata hydrate、queued projection 消费和失败状态；草稿仲裁、内容签名、envelope 提取、viewport 校验及 flight 复用规则继续唯一归属 application。远端、草稿和冲突三条分支仍保持原有 hydrated/switching 翻转顺序，草稿继续携带自身 history，远端 history 仅在签名匹配时恢复，本地 viewport 继续优先于后端值，requestAnimationFrame 仍在节点渲染后同步 React Flow，cleanup 仍释放 lease 并清空共享 metadata。通过惰性读取保存 controller，runtime bridge、hydrate、history 和 autosave 的 effect 注册顺序不变。总同步 hook 删除全部 hydrate 细节和直接存储/flight 依赖，由 482 行降至 298 行；hydration/runtime/save/draft Hook 与同步 hook 回归 5 个文件 48 项、完整前端架构门禁 3 个文件 273 项（其中 module boundaries 233 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百九十一批已将 Freezone projection 状态键投影、可查询条件、persisted revision 去重、焦点/页面可见性/30 秒定时刷新、请求取消和状态仓发布从 `FreezoneShell` 迁入唯一 presentation hook `hooks/useCanvasProjectionStatusLifecycle.ts`；Shell 只传入 project/canvas 标识和同步快照，projection 同步与移除命令仍留在原交互边界，本批未触碰资产库。画布未 hydrate 或没有 projection 时继续清空旧状态，saving/conflict/error 和空 revision 继续禁止查询，同一 revision 继续只查询一次，显式刷新仍允许重查，请求失败和过期请求的处理语义保持不变；原先挂在画布列表测试中的三段状态规则测试迁入 Hook 专属测试，并新增实际请求、状态发布、焦点刷新、不可查询清理和失败清理覆盖，旧 Shell 规则与轮询实现直接删除。`FreezoneShell` 由 1,554 行降至 1,400 行；Hook、画布列表与 Viewer 合同回归 3 个文件 48 项、完整前端架构门禁 3 个文件 274 项（其中 module boundaries 234 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

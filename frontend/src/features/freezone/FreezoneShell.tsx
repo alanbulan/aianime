@@ -5,10 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import type { ProjectSummary } from "@/modules/project_workspace/public";
-import {
-  buildProjectionFromPreset,
-  getProjectionStatuses,
-} from "@/features/freezone/composition";
+import { buildProjectionFromPreset } from "@/features/freezone/composition";
 import type {
   CanvasBackupStatus,
   FreezonePresetCanvasRequest,
@@ -67,10 +64,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   useCanvasSync,
 } from "./hooks/useCanvasSync";
-import type {
-  CanvasSyncStatus,
-  ConflictSnapshot,
-} from "./application/canvasSyncStorage";
+import type { ConflictSnapshot } from "./application/canvasSyncStorage";
 import { prefetchFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
 import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
@@ -82,9 +76,7 @@ import {
   projectionTargetForCanvasPanel,
 } from "@/features/freezone/projections";
 import {
-  clearCanvasProjectionStatuses,
   markCanvasProjectionFresh,
-  setCanvasProjectionStatuses,
 } from "@/features/freezone/projectionStatusStore";
 import {
   consumeQueuedLocalFreezoneProjections,
@@ -92,6 +84,7 @@ import {
   removeLocalFreezoneProjection,
 } from "@/features/freezone/canvasSyncRuntime";
 import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
+import { useCanvasProjectionStatusLifecycle } from "./hooks/useCanvasProjectionStatusLifecycle";
 
 export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 
@@ -101,7 +94,6 @@ interface FreezoneShellProps {
 }
 
 const FREEZONE_CHAT_WIDTH = "clamp(500px, 34vw, 540px)";
-const PROJECTION_STATUS_REFRESH_MS = 30_000;
 
 function renderCommitSuccessMessage(target: PushTarget, result: PushResult): string {
   if (target.kind === "director_render") {
@@ -162,58 +154,6 @@ export function shouldRefreshCommittedTargetNodes(target: PushTarget): boolean {
   // replacement. Refreshing canvas node URLs with its result corrupts the visual
   // node into a broken image/manifest preview.
   return target.kind !== "scene_director_world";
-}
-
-export function shouldClearProjectionStatuses({
-  canvasId,
-  hydratedCanvasId,
-  projectionKeyCount,
-}: {
-  canvasId: string;
-  hydratedCanvasId: string | null;
-  projectionKeyCount: number;
-}): boolean {
-  return hydratedCanvasId !== canvasId || projectionKeyCount === 0;
-}
-
-export function shouldFetchProjectionStatuses({
-  canvasId,
-  hydratedCanvasId,
-  projectionKeyCount,
-  revision,
-  syncStatus,
-}: {
-  canvasId: string;
-  hydratedCanvasId: string | null;
-  projectionKeyCount: number;
-  revision: number | null;
-  syncStatus: CanvasSyncStatus;
-}): boolean {
-  if (shouldClearProjectionStatuses({ canvasId, hydratedCanvasId, projectionKeyCount })) {
-    return false;
-  }
-  return syncStatus === "ready" && revision != null;
-}
-
-export function shouldSkipProjectionStatusRevision({
-  canvasId,
-  revision,
-  refreshToken,
-  lastChecked,
-}: {
-  canvasId: string;
-  revision: number;
-  refreshToken: number;
-  lastChecked: { canvasId: string; revision: number; refreshToken: number } | null;
-}): boolean {
-  if (lastChecked?.canvasId !== canvasId) return false;
-  return lastChecked.revision === revision && lastChecked.refreshToken === refreshToken;
-}
-
-function projectionKeysFromMetadata(metadata: Record<string, unknown> | null | undefined): string[] {
-  const projections = metadata?.projections;
-  if (!projections || typeof projections !== "object") return [];
-  return Object.keys(projections).filter((key) => key.trim());
 }
 
 export function requestFromProjectionMetadata(
@@ -390,13 +330,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
       lastRenderedCanvasKey === canvasKey(projectId, canvasId) &&
       useCanvasStore.getState().nodes.length > 0,
   );
-  const [projectionStatusRefreshToken, setProjectionStatusRefreshToken] = useState(0);
-  const lastProjectionStatusRevisionRef = useRef<{
-    canvasId: string;
-    revision: number;
-    refreshToken: number;
-  } | null>(null);
-
   const invalidateCommittedTargetQueries = useCallback((target: PushTarget) => {
     if (isDirectorWorldSourceSlotTarget(target) || target.kind === "scene_director_world") {
       queryClient.invalidateQueries({
@@ -448,101 +381,14 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     }
   }, [canvasId, projectId, sync.hydratedCanvasId, sync.status]);
 
-  const projectionKeys = useMemo(
-    () => projectionKeysFromMetadata(sync.metadata),
-    [sync.metadata],
-  );
-  useEffect(() => {
-    if (!shouldFetchProjectionStatuses({
-      canvasId,
-      hydratedCanvasId: sync.hydratedCanvasId,
-      projectionKeyCount: projectionKeys.length,
-      revision: sync.revision,
-      syncStatus: sync.status,
-    })) {
-      return;
-    }
-    const bump = () => setProjectionStatusRefreshToken((value) => value + 1);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") bump();
-    };
-    window.addEventListener("focus", bump);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    const timer = window.setInterval(bump, PROJECTION_STATUS_REFRESH_MS);
-    return () => {
-      window.removeEventListener("focus", bump);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.clearInterval(timer);
-    };
-  }, [
-    canvasId,
-    projectionKeys.length,
-    sync.hydratedCanvasId,
-    sync.revision,
-    sync.status,
-  ]);
-  useEffect(() => {
-    if (shouldClearProjectionStatuses({
-      canvasId,
-      hydratedCanvasId: sync.hydratedCanvasId,
-      projectionKeyCount: projectionKeys.length,
-    })) {
-      clearCanvasProjectionStatuses();
-      return;
-    }
-    const revision = sync.revision;
-    if (!shouldFetchProjectionStatuses({
-      canvasId,
-      hydratedCanvasId: sync.hydratedCanvasId,
-      projectionKeyCount: projectionKeys.length,
-      revision,
-      syncStatus: sync.status,
-    })) {
-      return;
-    }
-    // shouldFetchProjectionStatuses already returns false when revision is null;
-    // this redundant guard narrows the type for the non-null usages below.
-    if (revision == null) {
-      return;
-    }
-    if (shouldSkipProjectionStatusRevision({
-      canvasId,
-      revision,
-      refreshToken: projectionStatusRefreshToken,
-      lastChecked: lastProjectionStatusRevisionRef.current,
-    })) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const result = await getProjectionStatuses(projectId, canvasId, projectionKeys);
-        if (!cancelled) {
-          lastProjectionStatusRevisionRef.current = {
-            canvasId,
-            revision,
-            refreshToken: projectionStatusRefreshToken,
-          };
-          setCanvasProjectionStatuses(result.projections);
-        }
-      } catch {
-        if (!cancelled) {
-          clearCanvasProjectionStatuses();
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    canvasId,
+  useCanvasProjectionStatusLifecycle({
     projectId,
-    projectionKeys,
-    projectionStatusRefreshToken,
-    sync.hydratedCanvasId,
-    sync.revision,
-    sync.status,
-  ]);
+    canvasId,
+    hydratedCanvasId: sync.hydratedCanvasId,
+    metadata: sync.metadata,
+    revision: sync.revision,
+    syncStatus: sync.status,
+  });
 
   const handleSyncProjection = useCallback(async (projectionKey: string) => {
     if (syncingProjectionRef.current) return;

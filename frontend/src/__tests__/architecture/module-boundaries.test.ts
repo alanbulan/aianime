@@ -1570,6 +1570,51 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps canvas projection status polling in one presentation hook", () => {
+    const lifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasProjectionStatusLifecycle(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
+      new Set([
+        "react",
+        "../application/canvasSyncStorage",
+        "../composition",
+        "../projectionStatusStore",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+    ]);
+    expect(importSpecifiers(shellPath)).toContain(
+      "./hooks/useCanvasProjectionStatusLifecycle",
+    );
+    expect(lifecycleSource).toContain("getProjectionStatuses(");
+    expect(lifecycleSource).toContain("window.addEventListener(\"focus\"");
+    expect(lifecycleSource).toContain("setCanvasProjectionStatuses(");
+    expect(lifecycleSource).toContain("clearCanvasProjectionStatuses()");
+    expect(shellSource).toContain("useCanvasProjectionStatusLifecycle({");
+    expect(shellSource).not.toContain("getProjectionStatuses(");
+    expect(shellSource).not.toContain("setCanvasProjectionStatuses(");
+    expect(shellSource).not.toContain("clearCanvasProjectionStatuses()");
+    expect(shellSource).not.toContain("PROJECTION_STATUS_REFRESH_MS");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(
