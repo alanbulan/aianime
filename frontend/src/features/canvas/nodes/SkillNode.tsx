@@ -53,7 +53,7 @@ import {
   nodeTypeForOutput,
   outputLabel,
   outputText,
-} from '@/features/freezone/context/skillNodeOutputs';
+} from '@/features/canvas/application/skillOutputProjection';
 import {
   getCurrentBeatContextFromNode,
   isSkillRunFailureStatus,

@@ -14162,7 +14162,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/SkillNode.tsx",
     );
-    const outputModelPath = resolve(
+    const outputProjectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/skillOutputProjection.ts",
+    );
+    const legacyOutputModelPath = resolve(
       SRC_ROOT,
       "features/freezone/context/skillNodeOutputs.ts",
     );
@@ -14220,11 +14224,15 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "awaitCanvasSkillRunResultUseCase(params, {",
     );
-    expect(importSpecifiers(outputModelPath)).toContain(
-      "../domain/skillExecution",
+    expect(existsSync(legacyOutputModelPath)).toBe(false);
+    expect(new Set(importSpecifiers(outputProjectionPath))).toEqual(
+      new Set(["@/features/freezone/public", "../domain/canvasNodes"]),
     );
-    expect(importSpecifiers(outputModelPath)).not.toContain(
-      "../../../api/skills.ts",
+    expect(imports).toContain(
+      "@/features/canvas/application/skillOutputProjection",
+    );
+    expect(imports).not.toContain(
+      "@/features/freezone/context/skillNodeOutputs",
     );
     expect(nodeSource).not.toContain("awaitTaskCompletion");
   });

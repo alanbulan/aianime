@@ -1,10 +1,11 @@
 // Copyright (c) 2026 AI anime
+import type { SkillRunOutput } from "@/features/freezone/public";
+
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,
   type CanvasNodeType,
-} from "../../canvas/domain/canvasNodes.ts";
-import type { SkillRunOutput } from "../domain/skillExecution";
+} from "../domain/canvasNodes";
 
 function recordValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? value as Record<string, unknown> : null;

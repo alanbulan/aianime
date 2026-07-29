@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveInputsForSkill } from "@/features/freezone/context/skillNodeInputs";
-import { nodeDataForOutput } from "@/features/freezone/context/skillNodeOutputs";
 import type { SkillDefinition } from "@/features/freezone/public";
 
 const beatContextSkill: SkillDefinition = {
@@ -504,29 +503,6 @@ describe("resolveInputsForSkill", () => {
     });
     expect(inputs[0].beat_context).not.toHaveProperty("source", "standalone");
     expect(inputs[0]).toHaveProperty("mainline_context");
-  });
-
-  it("keeps mainline_context on skill output candidates as provenance", () => {
-    const mainlineContext = [{ kind: "sketch", episode: 1, beat: 4 }];
-
-    const data = nodeDataForOutput(
-      {
-        role: "current_sketch_candidate",
-        media_type: "image",
-        node_type: "imageGenNode",
-        pushable: false,
-        image_url: "/static/sketch.png",
-        mainline_context: mainlineContext,
-      },
-      "freezone.sketch_from_context",
-      "skill_sketch",
-    );
-
-    expect(data.mainline_context).toEqual(mainlineContext);
-    expect(data.candidate_origin).toEqual({
-      skill_id: "freezone.sketch_from_context",
-      skill_node_id: "skill_sketch",
-    });
   });
 
   it("does not consume a normal candidate node mainline_context as skill input context", () => {
