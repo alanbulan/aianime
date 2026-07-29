@@ -8,7 +8,7 @@ import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 
 import { useCommitDialogSubmitController } from "../hooks/useCommitDialogSubmitController";
 import { useCommitDialogTargetController } from "../hooks/useCommitDialogTargetController";
-import { CommitDialogView } from "../presentation/CommitDialogView";
+import { CommitDialogView } from "./CommitDialogView";
 
 interface CommitDialogProps {
   project: string;

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PushTarget } from "@/features/freezone/public";
-import { CommitDialog } from "@/features/freezone/commit/CommitDialog";
+import { CommitDialog } from "@/features/freezone/presentation/CommitDialog";
 import {
   commitFreezoneAsset as promoteToAsset,
   getFreezoneAssetImpact as previewAssetImpact,

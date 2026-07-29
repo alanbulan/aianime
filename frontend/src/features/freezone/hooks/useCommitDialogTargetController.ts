@@ -34,7 +34,7 @@ import {
   modelSlotKindsForNodeData,
   renderCommitTargetLabel,
   sceneOptionValue,
-} from "../commit/commitDialogViewModel";
+} from "../presentation/commitDialogViewModel";
 
 export interface CommitDialogTargetControllerOptions {
   project: string;

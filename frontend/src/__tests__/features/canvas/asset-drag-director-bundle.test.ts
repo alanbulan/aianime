@@ -117,7 +117,7 @@ describe("director bundle canvas assets", () => {
     const source = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/commit/commitDialogViewModel.ts",
+        "src/features/freezone/presentation/commitDialogViewModel.ts",
       ),
       "utf8",
     );
@@ -172,7 +172,7 @@ describe("director bundle canvas assets", () => {
     const viewModel = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/commit/commitDialogViewModel.ts",
+        "src/features/freezone/presentation/commitDialogViewModel.ts",
       ),
       "utf8",
     );

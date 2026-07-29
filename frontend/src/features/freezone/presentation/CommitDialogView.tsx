@@ -28,7 +28,7 @@ import {
   sceneOptionLabel,
   sceneOptionValue,
   shortKindLabel,
-} from "../commit/commitDialogViewModel";
+} from "./commitDialogViewModel";
 
 const COMMIT_FIELD_BORDER_CLASS =
   "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";

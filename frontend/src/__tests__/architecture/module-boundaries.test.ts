@@ -2861,6 +2861,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps CommitDialog presentation rules in one pure view model", () => {
     const viewModelPath = resolve(
       SRC_ROOT,
+      "features/freezone/presentation/commitDialogViewModel.ts",
+    );
+    const legacyViewModelPath = resolve(
+      SRC_ROOT,
       "features/freezone/commit/commitDialogViewModel.ts",
     );
     const viewPath = resolve(
@@ -2902,9 +2906,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/commit/commitDialogViewModel.ts",
+        "features/freezone/presentation/commitDialogViewModel.ts",
       ]),
     );
+    expect(existsSync(legacyViewModelPath)).toBe(false);
     expect(new Set(importSpecifiers(viewModelPath))).toEqual(
       new Set([
         "@/features/freezone/domain/assetCommit",
@@ -2918,13 +2923,13 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("@/features/freezone/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
     expect(importSpecifiers(viewPath)).toContain(
-      "../commit/commitDialogViewModel",
+      "./commitDialogViewModel",
     );
     for (const declaration of declarations) {
       expect(viewSource).not.toContain(declaration);
     }
     expect(testSource).toContain(
-      'from "@/features/freezone/commit/commitDialogViewModel"',
+      'from "@/features/freezone/presentation/commitDialogViewModel"',
     );
   });
 
@@ -2935,7 +2940,7 @@ describe("frontend architecture boundaries", () => {
     );
     const dialogPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/presentation/CommitDialog.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -2972,7 +2977,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
         "../composition",
-        "../commit/commitDialogViewModel",
+        "../presentation/commitDialogViewModel",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
@@ -2995,7 +3000,7 @@ describe("frontend architecture boundaries", () => {
     );
     const dialogPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/presentation/CommitDialog.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -3055,6 +3060,10 @@ describe("frontend architecture boundaries", () => {
     );
     const entryPath = resolve(
       SRC_ROOT,
+      "features/freezone/presentation/CommitDialog.tsx",
+    );
+    const legacyEntryPath = resolve(
+      SRC_ROOT,
       "features/freezone/commit/CommitDialog.tsx",
     );
     const testPath = resolve(
@@ -3094,7 +3103,7 @@ describe("frontend architecture boundaries", () => {
         "@/components/ui/useDialogTransition",
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
-        "../commit/commitDialogViewModel",
+        "./commitDialogViewModel",
       ]),
     );
     expect(new Set(importSpecifiers(entryPath))).toEqual(
@@ -3103,9 +3112,10 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/assetDropInfo",
         "../hooks/useCommitDialogSubmitController",
         "../hooks/useCommitDialogTargetController",
-        "../presentation/CommitDialogView",
+        "./CommitDialogView",
       ]),
     );
+    expect(existsSync(legacyEntryPath)).toBe(false);
     expect(entrySource).toContain("<CommitDialogView");
     expect(testSource).toContain('from "./CommitDialogView"');
     for (const marker of presentationMarkers) {
@@ -3304,7 +3314,7 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
       "features/freezone/hooks/useCommitDialogTargetController.ts",
       "features/freezone/hooks/useCommitDialogSubmitController.ts",
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/presentation/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
       "features/freezone/commit/committedNodePatch.ts",

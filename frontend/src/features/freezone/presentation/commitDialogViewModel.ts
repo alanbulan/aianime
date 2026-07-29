@@ -6,7 +6,7 @@ import type {
 import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 import type { Identity, SceneAsset } from "@/modules/asset_world/public";
 
-// Hidden kinds remain in the backend contract for legacy canvas data, but the
+// Hidden kinds remain in the backend contract for legacy canvas data, but this
 // dialog does not offer deprecated or derived slots for manual selection.
 export const KIND_LABELS: Record<PushTargetKind, string> = {
   frame: "首帧",

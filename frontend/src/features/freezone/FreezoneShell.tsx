@@ -6,7 +6,7 @@ import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPrev
 import type { ProjectSummary } from "@/modules/project_workspace/public";
 import { writeUrl } from "@/lib/url-params";
 import { isCeRuntime } from "@/lib/runtime-config";
-import { CommitDialog } from "./commit/CommitDialog";
+import { CommitDialog } from "./presentation/CommitDialog";
 import {
   defaultCharacterFromMetadata,
   normalizePushTarget,
