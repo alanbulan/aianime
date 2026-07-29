@@ -1830,9 +1830,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/FreezoneShell.tsx",
     );
-    const dialogPath = resolve(
+    const submitControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/hooks/useCommitDialogSubmitController.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -1840,7 +1840,7 @@ describe("frontend architecture boundaries", () => {
     );
     const rulesSource = readFileSync(rulesPath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
-    const dialogSource = readFileSync(dialogPath, "utf8");
+    const submitControllerSource = readFileSync(submitControllerPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       "renderCommitSuccessMessage",
@@ -1866,8 +1866,12 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(shellPath)).toContain(
       "./commit/canvasCommitRules",
     );
-    expect(importSpecifiers(dialogPath)).toContain("./canvasCommitRules");
-    expect(dialogSource).not.toContain("function renderCommitSuccessMessage(");
+    expect(importSpecifiers(submitControllerPath)).toContain(
+      "../commit/canvasCommitRules",
+    );
+    expect(submitControllerSource).not.toContain(
+      "function renderCommitSuccessMessage(",
+    );
     expect(testSource).toContain('from "./canvasCommitRules"');
     for (const name of declarations) {
       const declaration = ["export function", `${name}(`].join(" ");
@@ -2012,6 +2016,67 @@ describe("frontend architecture boundaries", () => {
       expect(dialogSource).not.toContain(call);
     }
     expect(dialogSource).not.toContain("modelCommitKindAllowed");
+  });
+
+  it("keeps CommitDialog submission orchestration in one controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+    );
+    const dialogPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/CommitDialog.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCommitDialogSubmitController.test.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const dialogSource = readFileSync(dialogPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCommitDialogSubmitController(",
+    ].join(" ");
+    const owners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const orchestrationCalls = [
+      "commitDirectorRenderFromCanvasSource(",
+      "commitSceneDirectorWorldFromCanvasNode(",
+      "modelSourceUrlFromNodeData(latestNodeData)",
+      "promoteToAsset(project, submitSourceUrl, target, {",
+      "nodeDataAfterCommittedSlot(",
+      "renderCommitSuccessMessage(target, result)",
+    ];
+
+    expect(owners).toEqual([
+      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+    ]);
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/assetDropInfo",
+        "@/features/freezone/domain/assetCommit",
+        "../commit/canvasCommitRules",
+        "../commit/committedNodePatch",
+        "../commit/directorRenderCommit",
+        "../commit/promoteToAsset",
+        "../commit/sceneDirectorWorldCommit",
+      ]),
+    );
+    expect(importSpecifiers(dialogPath)).toContain(
+      "../hooks/useCommitDialogSubmitController",
+    );
+    expect(testSource).toContain(
+      'from "./useCommitDialogSubmitController"',
+    );
+    for (const call of orchestrationCalls) {
+      expect(controllerSource).toContain(call);
+      expect(dialogSource).not.toContain(call);
+    }
+    expect(dialogSource).not.toContain("setSubmitting");
   });
 
   it("keeps Freezone canvas commit orchestration in one presentation controller", () => {
@@ -2186,6 +2251,7 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/FreezoneShell.tsx",
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
       "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "features/freezone/hooks/useCommitDialogSubmitController.ts",
       "features/freezone/commit/CommitDialog.tsx",
       "features/freezone/commit/BatchCommitDialog.tsx",
       "features/freezone/commit/directorRenderCommit.ts",

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
@@ -8,28 +8,14 @@ import type {
   PushTarget,
   PushTargetKind,
 } from "@/features/freezone/domain/assetCommit";
-import {
-  modelSourceUrlFromNodeData,
-  type DropMediaType,
-} from "@/features/canvas/domain/assetDropInfo";
+import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
 import {
   UI_DIALOG_TRANSITION_MS,
 } from "@/components/ui/motion";
 import { useDialogTransition } from "@/components/ui/useDialogTransition";
-import { promoteToAsset } from "./promoteToAsset";
-import { commitDirectorRenderFromCanvasSource } from "./directorRenderCommit";
-import {
-  commitSceneDirectorWorldFromCanvasNode,
-  hasDirectorWorldSceneState,
-  isDirectorWorldSourceSlotTarget,
-} from "./sceneDirectorWorldCommit";
-import { nodeDataAfterCommittedSlot } from "./committedNodePatch";
-import { renderCommitSuccessMessage } from "./canvasCommitRules";
 import {
   BEAT_SLOT_KINDS,
-  GLOBAL_SLOT_KINDS,
-  buildCommitTarget,
   directorWorldSourceDisplayName,
   identityOptionLabel,
   identityOptionValue,
@@ -39,6 +25,7 @@ import {
   shortKindLabel,
 } from "./commitDialogViewModel";
 import { useCommitDialogTargetController } from "../hooks/useCommitDialogTargetController";
+import { useCommitDialogSubmitController } from "../hooks/useCommitDialogSubmitController";
 
 const COMMIT_FIELD_BORDER_CLASS =
   "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";
@@ -134,7 +121,23 @@ export function CommitDialog({
     defaultTarget,
     nodeData,
   });
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, ready, submit } = useCommitDialogSubmitController({
+    project,
+    sourceUrl,
+    previewUrl,
+    mediaType,
+    target,
+    modelSlotKinds,
+    noTargetYet,
+    isGlobalSlot,
+    markStale,
+    directorControlBundle,
+    nodeData,
+    getNodeData,
+    setError,
+    onClose,
+    onSuccess,
+  });
   const { shouldRender, isVisible } = useDialogTransition(true, UI_DIALOG_TRANSITION_MS);
 
   const nodeSourceLabel =
@@ -163,82 +166,6 @@ export function CommitDialog({
       : mediaType === "model"
         ? "3gs"
         : "image";
-
-  const ready =
-    !submitting &&
-    !!sourceUrl &&
-    !noTargetYet &&
-    ((isBeatStyle && episode !== null && beat !== null) ||
-      (isIdentityStyle && !!character && (!needsIdentityId || !!identityId)) ||
-      (isSceneStyle && !!sceneId.trim()) ||
-      (isPropStyle && !!propId.trim()));
-
-  const handleSubmit = async () => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      const target = buildCommitTarget(kind, episode, beat, character, identityId, sceneId, propId);
-      if (!target) throw new Error("目标不完整");
-      if (mediaType === "model" && isDirectorWorldSourceSlotTarget(target) && !modelSlotKinds.includes(target.kind)) {
-        throw new Error("无来源没有可提交的 3D 世界素材；请切换到具体世界来源后再提交到主线槽位。");
-      }
-      if (target.kind === "director_render") {
-        const result = await commitDirectorRenderFromCanvasSource(project, target, {
-          sourceUrl,
-          previewUrl,
-          bundle: directorControlBundle,
-        });
-        onSuccess(renderCommitSuccessMessage(target, result), result, target);
-        onClose();
-        return;
-      }
-      if (target.kind === "scene_director_world") {
-        const latestNodeData = getNodeData?.() ?? nodeData;
-        if (!latestNodeData) {
-          throw new Error("导演世界提交需要画布节点状态");
-        }
-        const result = await commitSceneDirectorWorldFromCanvasNode(project, target, latestNodeData);
-        onSuccess(renderCommitSuccessMessage(target, result), result, target);
-        onClose();
-        return;
-      }
-      const latestNodeData = getNodeData?.() ?? nodeData;
-      const submitSourceUrl =
-        mediaType === "model" && latestNodeData
-          ? modelSourceUrlFromNodeData(latestNodeData) ?? sourceUrl
-          : sourceUrl;
-      const result = await promoteToAsset(project, submitSourceUrl, target, {
-        mark_stale: markStale && GLOBAL_SLOT_KINDS.has(target.kind),
-      });
-      let message = renderCommitSuccessMessage(target, result);
-      let nodeDataPatch: Record<string, unknown> | null = null;
-      const directorWorldManifestData =
-        mediaType === "model" && latestNodeData && isDirectorWorldSourceSlotTarget(target)
-          ? nodeDataAfterCommittedSlot(latestNodeData, target, result, project)
-          : null;
-      if (latestNodeData && !isDirectorWorldSourceSlotTarget(target)) {
-        nodeDataPatch = nodeDataAfterCommittedSlot(latestNodeData, target, result, project);
-      }
-      if (directorWorldManifestData && isDirectorWorldSourceSlotTarget(target)) {
-        nodeDataPatch = directorWorldManifestData;
-        if (hasDirectorWorldSceneState(directorWorldManifestData)) {
-          await commitSceneDirectorWorldFromCanvasNode(
-            project,
-            { kind: "scene_director_world", scene_id: target.scene_id },
-            directorWorldManifestData,
-            { pruneStale: false },
-          );
-          message += "；已同步导演世界状态";
-        }
-      }
-      onSuccess(message, result, target, nodeDataPatch);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (!shouldRender || typeof document === "undefined") {
     return null;
@@ -581,7 +508,7 @@ export function CommitDialog({
           <UiButton
             variant="primary"
             size="sm"
-            onClick={handleSubmit}
+            onClick={submit}
             disabled={!ready}
             className="!h-9 rounded-full !bg-primary px-4 text-primary-foreground hover:!bg-primary/90"
           >
@@ -613,7 +540,7 @@ function sourceDisplayName(sourceUrl: string): string {
   }
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">

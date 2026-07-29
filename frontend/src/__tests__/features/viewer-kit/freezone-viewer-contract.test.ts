@@ -420,7 +420,9 @@ describe("freezone viewer contracts", () => {
   it("commits scene director worlds only through the explicit structured commit path", () => {
     const push = read("src/features/freezone/domain/assetCommit.ts");
     const target = read("src/features/freezone/commit/pushTarget.ts");
-    const dialog = read("src/features/freezone/commit/CommitDialog.tsx");
+    const submitController = read(
+      "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
+    );
     const shell = read("src/features/freezone/FreezoneShell.tsx");
     const commitController = read(
       "src/features/freezone/hooks/useCanvasCommitController.ts",
@@ -428,7 +430,9 @@ describe("freezone viewer contracts", () => {
 
     expect(push).toContain('"scene_director_world"');
     expect(target).toContain('role === "scene_director_world"');
-    expect(dialog).toContain("commitSceneDirectorWorldFromCanvasNode");
+    expect(submitController).toContain(
+      "commitSceneDirectorWorldFromCanvasNode",
+    );
     expect(shell).toContain("useCanvasCommitController");
     expect(commitController).toContain("saveOpenDirectorWorldScene(nodeId)");
     expect(commitController).toContain("nodeData: latestData");
