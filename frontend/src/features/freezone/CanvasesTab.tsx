@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
   Box,
   ChevronDown,
@@ -15,27 +15,16 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
-import {
-  createBlankFreezoneCanvas,
-  deleteFreezoneCanvas,
-  useFreezoneCanvases,
-} from "@/features/canvas/composition";
-import { ApiError, BackendStatusError } from "@/shared/api/errors";
-import { writeUrl } from "@/lib/url-params";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "@/modules/identity_access/public";
-import { personalCanvasIdForUsername } from "@/features/freezone/projections";
+import { useCanvasBrowserController } from "./hooks/useCanvasBrowserController";
 import {
   PERSONAL_CANVAS_DISPLAY_NAME,
-  buildCanvasBrowserSections,
   canDeleteCanvasSummary,
   canvasKindFromSummary,
   displayNameForCanvasSummary,
-  findDuplicateCanvasName,
   formatCanvasRelativeTime,
   isConflictCopyCanvas,
   sourceCanvasIdFromSummary,
-  userCreatedCanvasId,
   type CanvasDisplaySummary,
   type CanvasKind,
 } from "./presentation/canvasBrowserViewModel";
@@ -72,48 +61,28 @@ export function CanvasesTab({
   reloadToken,
 }: CanvasesTabProps) {
   const { t } = useTranslation();
-  const username = useAuthStore((state) => state.username);
-  const canvasesQuery = useFreezoneCanvases(project);
-  const [deletedCanvasIds, setDeletedCanvasIds] = useState<Set<string>>(() => new Set());
-  const items = (canvasesQuery.data ?? []).filter((item) => !deletedCanvasIds.has(item.id));
-  const loading = canvasesQuery.isLoading;
-  const queryError = canvasesQuery.error;
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [deletingCanvasId, setDeletingCanvasId] = useState<string | null>(null);
-  const [creatingCanvas, setCreatingCanvas] = useState(false);
-  const [newCanvasName, setNewCanvasName] = useState("");
-  const [restoringMainline, setRestoringMainline] = useState(false);
+  const {
+    username,
+    sections,
+    loading,
+    error,
+    newCanvasName,
+    creatingCanvas,
+    deletingCanvasId,
+    restoringMainline,
+    setNewCanvasName,
+    switchTo,
+    restoreMainline,
+    createCanvas,
+    deleteCanvas,
+  } = useCanvasBrowserController({
+    project,
+    currentCanvasId,
+    onRestoreMainlineDefault,
+    reloadToken,
+  });
   const [expandedMembers, setExpandedMembers] = useState(false);
   const [expandedOther, setExpandedOther] = useState(false);
-  const reloadKey = `${reloadToken ?? 0}`;
-  const previousReloadKeyRef = useRef(reloadKey);
-
-  useEffect(() => {
-    if (previousReloadKeyRef.current === reloadKey) return;
-    previousReloadKeyRef.current = reloadKey;
-    void canvasesQuery.refetch();
-  }, [canvasesQuery, reloadKey]);
-
-  const error = localError ?? (queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null);
-
-  const switchTo = (id: string) => {
-    if (id === currentCanvasId) return;
-    writeUrl({ canvas: id });
-  };
-
-  const handleRestoreMainline = async () => {
-    if (!onRestoreMainlineDefault) return;
-    const ok = window.confirm(t("freezone.canvases.restoreConfirm"));
-    if (!ok) return;
-    setRestoringMainline(true);
-    try {
-      await onRestoreMainlineDefault();
-    } finally {
-      setRestoringMainline(false);
-    }
-  };
-
-  const sections = buildCanvasBrowserSections(items, currentCanvasId, username);
   const currentCanvasInMembers = sections.memberCanvases.some((item) => item.id === currentCanvasId);
   const currentCanvasInOther = sections.otherCanvases.some((item) => item.id === currentCanvasId);
   const showRestoreMainlineAction = currentCanvasId !== "default" && hasPresetLabel;
@@ -132,75 +101,12 @@ export function CanvasesTab({
 
   const handleRestoreMainlineClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    void handleRestoreMainline();
+    void restoreMainline();
   };
 
-  const handleCreateCanvas = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateCanvas = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const name = newCanvasName.trim();
-    if (!name) {
-      setLocalError(t("freezone.canvases.createNameRequired"));
-      return;
-    }
-    const duplicate = findDuplicateCanvasName(items, name, t);
-    if (duplicate) {
-      setLocalError(t("freezone.canvases.createDuplicate", { name }));
-      return;
-    }
-    const canvasId = userCreatedCanvasId(name, username);
-    if (items.some((item) => item.id === canvasId)) {
-      setLocalError(t("freezone.canvases.createDuplicate", { name }));
-      return;
-    }
-    setCreatingCanvas(true);
-    setLocalError(null);
-    try {
-      await createBlankFreezoneCanvas(project, {
-        canvasId,
-        name,
-        creatorUsername: username,
-      });
-      setDeletedCanvasIds((prev) => {
-        if (!prev.has(canvasId)) return prev;
-        const next = new Set(prev);
-        next.delete(canvasId);
-        return next;
-      });
-      setNewCanvasName("");
-      await canvasesQuery.refetch();
-      writeUrl({ canvas: canvasId });
-    } catch (err) {
-      if (isConflictError(err)) {
-        setLocalError(t("freezone.canvases.createDuplicate", { name }));
-        return;
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      setLocalError(t("freezone.canvases.createFailed", { message }));
-    } finally {
-      setCreatingCanvas(false);
-    }
-  };
-
-  const handleDeleteCanvas = async (item: CanvasDisplaySummary) => {
-    if (!canDeleteCanvasSummary(item, username)) return;
-    const name = displayNameForCanvasSummary(item, t);
-    const ok = window.confirm(t("freezone.canvases.deleteConfirm", { name }));
-    if (!ok) return;
-    setDeletingCanvasId(item.id);
-    setLocalError(null);
-    try {
-      await deleteFreezoneCanvas(project, item.id);
-      setDeletedCanvasIds((prev) => new Set(prev).add(item.id));
-      await canvasesQuery.refetch();
-      if (item.id === currentCanvasId) {
-        writeUrl({ canvas: username ? personalCanvasIdForUsername(username) : "default" });
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setLocalError(t("freezone.canvases.deleteFailed", { message }));
-    } finally {
-      setDeletingCanvasId(null);
-    }
+    void createCanvas();
   };
 
   return (
@@ -218,10 +124,7 @@ export function CanvasesTab({
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-2">
             <input
               value={newCanvasName}
-              onChange={(event) => {
-                setNewCanvasName(event.target.value);
-                if (localError) setLocalError(null);
-              }}
+              onChange={(event) => setNewCanvasName(event.target.value)}
               maxLength={40}
               placeholder={t("freezone.canvases.createPlaceholder")}
               disabled={creatingCanvas}
@@ -253,7 +156,7 @@ export function CanvasesTab({
               onRestoreMainline={handleRestoreMainlineClick}
               canDelete={canDeleteCanvasSummary(sections.defaultCanvas, username)}
               deleting={deletingCanvasId === sections.defaultCanvas.id}
-              onDelete={handleDeleteCanvas}
+              onDelete={deleteCanvas}
             />
 
             {sections.memberCanvases.length > 0 && (
@@ -276,7 +179,7 @@ export function CanvasesTab({
                     onRestoreMainline={handleRestoreMainlineClick}
                     canDelete={canDeleteCanvasSummary(item, username)}
                     deleting={deletingCanvasId === item.id}
-                    onDelete={handleDeleteCanvas}
+                    onDelete={deleteCanvas}
                   />
                 ))}
               </CollapsibleCanvasSection>
@@ -302,7 +205,7 @@ export function CanvasesTab({
                     onRestoreMainline={handleRestoreMainlineClick}
                     canDelete={canDeleteCanvasSummary(item, username)}
                     deleting={deletingCanvasId === item.id}
-                    onDelete={handleDeleteCanvas}
+                    onDelete={deleteCanvas}
                   />
                 ))}
               </CollapsibleCanvasSection>
@@ -488,12 +391,5 @@ function CanvasListItem({
         </button>
       )}
     </div>
-  );
-}
-
-function isConflictError(error: unknown): boolean {
-  return (
-    (error instanceof ApiError && error.status === 409) ||
-    (error instanceof BackendStatusError && error.status === 409)
   );
 }

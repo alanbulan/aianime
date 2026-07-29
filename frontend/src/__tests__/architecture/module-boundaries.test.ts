@@ -1118,6 +1118,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/CanvasesTab.tsx",
     );
+    const canvasBrowserControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasBrowserController.ts",
+    );
     const assetLibraryControllerPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useAssetLibraryCatalogController.ts",
@@ -1181,7 +1185,13 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(legacyConsumers).toEqual([]);
     expect(applicationReactQueryUsers).toEqual([]);
+    expect(importSpecifiers(canvasBrowserControllerPath)).toContain(
+      "@/features/canvas/composition",
+    );
     expect(importSpecifiers(canvasesTabPath)).toContain(
+      "./hooks/useCanvasBrowserController",
+    );
+    expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(assetLibraryControllerPath)).toContain(
@@ -1438,8 +1448,12 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const migratedConsumerPaths = [
       "features/freezone/CanvasDebugPanel.tsx",
-      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/hooks/useCanvasBrowserController.ts",
     ];
+    const canvasesTabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasesTab.tsx",
+    );
     const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
@@ -1469,6 +1483,12 @@ describe("frontend architecture boundaries", () => {
       expect(source).not.toContain("@/api/canvas");
       expect(source).toContain("@/features/canvas/composition");
     }
+    expect(importSpecifiers(canvasesTabPath)).toContain(
+      "./hooks/useCanvasBrowserController",
+    );
+    expect(importSpecifiers(canvasesTabPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
     expect(syncHookSource).not.toContain("@/api/canvas");
     expect(syncHookSource).not.toContain("@/features/canvas/composition");
     expect(importSpecifiers(syncHookPath)).toContain(
@@ -6256,6 +6276,74 @@ describe("frontend architecture boundaries", () => {
     }
     expect(testSource).toContain(
       'from "@/features/freezone/presentation/canvasBrowserViewModel"',
+    );
+  });
+
+  it("keeps canvas browser orchestration in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasBrowserController.ts",
+    );
+    const tabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasesTab.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasBrowserController.test.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const tabSource = readFileSync(tabPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasBrowserController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasBrowserController.ts",
+    ]);
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/composition",
+        "@/lib/url-params",
+        "@/modules/identity_access/public",
+        "@/shared/api/errors",
+        "../projections",
+        "../presentation/canvasBrowserViewModel",
+      ]),
+    );
+    expect(controllerSource).toContain("useFreezoneCanvases(project)");
+    expect(controllerSource).toContain("createBlankFreezoneCanvas(project");
+    expect(controllerSource).toContain("deleteFreezoneCanvas(project");
+    expect(controllerSource).toContain("writeUrl({");
+    expect(controllerSource).not.toContain("zustand");
+    expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
+    expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
+    expect(importSpecifiers(tabPath)).toContain(
+      "./hooks/useCanvasBrowserController",
+    );
+    for (const legacyOwner of [
+      "useFreezoneCanvases",
+      "createBlankFreezoneCanvas",
+      "deleteFreezoneCanvas",
+      "useAuthStore",
+      "writeUrl",
+      "ApiError",
+      "BackendStatusError",
+      "findDuplicateCanvasName",
+      "userCreatedCanvasId",
+    ]) {
+      expect(tabSource).not.toContain(legacyOwner);
+    }
+    expect(testSource).toContain(
+      'from "./useCanvasBrowserController"',
     );
   });
 
