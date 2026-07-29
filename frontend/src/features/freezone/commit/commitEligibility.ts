@@ -3,7 +3,7 @@ import { isSlotTarget } from "../../canvas/domain/mainlineNodeTypes.ts";
 
 /**
  * 从节点 data 里取出「可提交的媒体源 URL」,按媒体类型回退:
- * 图片 → 视频 → 音频 → 文件/3GS/GLB。供 Commit 入口(FreezoneShell)与
+ * 图片 → 视频 → 音频 → 文件/3GS/GLB。供 Commit controller 与
  * CommitDialog 共用,避免一处支持音频、一处仍只读图片。
  */
 export function getCommitSourceUrl(data: unknown): string | null {

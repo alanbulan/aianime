@@ -2062,6 +2062,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十五批已将 Freezone 提交成功文案、导演世界清单数据选择、source-slot/普通目标节点 patch 分流、提交数据回退、刷新排除、目标归一化/推断/同一性比较和默认角色读取从 `FreezoneShell` 迁入唯一纯规则模块 `commit/canvasCommitRules.ts`；Shell 只保留 Store 读取、已提交节点刷新/标记与自动提交副作用。`CommitDialog` 原有的重复成功文案实现同步删除并改用同一规则，普通提交的 backup/stale 详情继续保留；`hasLegacyPresetCanvasMetadata` 不再经 Shell 转发，测试直接依赖实际 `projections.ts` 所有者，不保留 facade、旧导出或第二套逻辑。原画布列表中的提交规则回归迁入同目录专属测试，并补齐身份 ID、canonical target 推断和导演世界清单有效/无效状态覆盖；`FreezoneShell` 由 710 行降至 607 行。相关回归 3 个文件 45 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 278 项（其中 module boundaries 238 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第四百九十六批已将 `freezone/commit-node` 与 `freezone/assets-updated` 事件订阅、手动提交前开放 Director World 落盘、自动提交 flush 门禁、普通/导演合成/导演世界三路提交编排、source-slot 清单同步、Canvas Store 节点刷新与候选标记、场景 Query 失效和提交 Dialog 状态从 `FreezoneShell` 迁入唯一 presentation controller `hooks/useCanvasCommitController.ts`；`AssetLibraryPanel` 替换完成也复用 controller 的同一刷新命令，Shell 只装配同步端口、素材变更回调并渲染 `CommitDialog`。最新节点二次读取、仅开放场景变更时预 flush、自动提交成功后再次 flush、用户节点不被 canonical 刷新覆盖、3D source-slot 同步后追加状态文案、专用导演提交 gateway 和卸载退订行为均保持不变；旧事件 effect、Query Client、提交服务调用、Store helper、`PushPrompt` 及废弃导入直接删除，相关静态契约测试改为检查新的实际所有者，不保留 facade 或第二套实现。`FreezoneShell` 由 607 行降至 335 行；controller 专属测试 6 项、受影响回归 6 个文件 66 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 279 项（其中 module boundaries 239 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

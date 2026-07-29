@@ -355,7 +355,7 @@ export interface CanvasEventMap {
   };
   /**
    * 节点 toolbar 上的 Commit 按钮触发：把该节点的图写回主流程对应 slot。
-   * FreezoneShell 监听后查节点、推 CommitDialog；toolbar 只负责发事件。
+   * Freezone commit controller 监听后查节点、推 CommitDialog；toolbar 只负责发事件。
    */
   'freezone/commit-node': {
     nodeId: string;

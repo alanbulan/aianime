@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import type { ProjectSummary } from "@/modules/project_workspace/public";
@@ -9,24 +8,9 @@ import { currentCanvasParam } from "@/lib/app-router";
 import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { CommitDialog } from "./commit/CommitDialog";
-import { promoteToAsset } from "./commit/promoteToAsset";
-import { commitDirectorRenderFromCanvasSource } from "./commit/directorRenderCommit";
-import {
-  commitSceneDirectorWorldFromCanvasNode,
-  hasDirectorWorldSceneState,
-  isDirectorWorldSourceSlotTarget,
-} from "./commit/sceneDirectorWorldCommit";
-import { isCommitCandidateData } from "./commit/commitEligibility";
 import {
   defaultCharacterFromMetadata,
-  inferCanonicalRefreshTarget,
-  nodeDataPatchAfterCommittedTarget,
   normalizePushTarget,
-  pushTargetsEqual,
-  renderCommitSuccessMessage,
-  resolveSubmitNodeData,
-  sceneDirectorWorldDataForManifest,
-  shouldRefreshCommittedTargetNodes,
 } from "./commit/canvasCommitRules";
 import { CreateIdentityDialog } from "./presentation/CreateIdentityDialog";
 import { CompareDialog } from "./presentation/CompareDialog";
@@ -43,26 +27,10 @@ import {
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
 import type {
-  PushResult,
   PushTarget,
   PushTargetKind,
 } from "@/features/freezone/domain/assetCommit";
-import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
-import { canvasEventBus } from "@/features/canvas/application/canvasServices";
-import { saveOpenDirectorWorldScene } from "@/features/canvas/domain/directorWorldSceneSaveRegistry";
-import {
-  assetToPushTarget,
-  isPlyOrGlbPushTargetKind,
-  isScenePushTargetKind,
-} from "@/features/freezone/commit/pushTarget";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import {
-  deriveNodeDropInfo,
-  modelSourceUrlFromNodeData,
-  type DropMediaType,
-} from "@/features/canvas/domain/assetDropInfo";
-import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { queryKeys } from "@/lib/query-keys";
 import {
   useCanvasSync,
 } from "./hooks/useCanvasSync";
@@ -71,19 +39,13 @@ import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezone
 import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
 import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
 import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
+import { useCanvasCommitController } from "./hooks/useCanvasCommitController";
 import { useCanvasProjectionCommandController } from "./hooks/useCanvasProjectionCommandController";
 import { useCanvasProjectionStatusLifecycle } from "./hooks/useCanvasProjectionStatusLifecycle";
 
 interface FreezoneShellProps {
   project: ProjectSummary;
   canvasId: string;
-}
-
-function latestCanvasNodeData(nodeId: string): Record<string, unknown> | null {
-  const node = useCanvasStore.getState().nodes.find((candidate) => candidate.id === nodeId);
-  return node?.data && typeof node.data === "object"
-    ? node.data as Record<string, unknown>
-    : null;
 }
 
 /**
@@ -103,9 +65,7 @@ let lastRenderedCanvasKey: string | null = null;
 
 export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const projectId = project.id;
-  const [pushState, setPushState] = useState<PushPrompt | null>(null);
   const [comparePair, setComparePair] = useState<
     | {
         left: { url: string; label: string };
@@ -125,6 +85,9 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const showChatDock = !isCeRuntime();
+  const handleAssetsChanged = useCallback(() => {
+    setAssetLibraryReloadToken((token) => token + 1);
+  }, []);
   // 顶栏在「AI anime 画布 / AI anime 工作台」之间切换会整体卸载再挂载本组件，但画布数据留在全局 store 里。
   // 如果这里从 false 起步，回到AI anime 画布就会先把画面换成「正在加载画布…」，等 hydrate 回来
   // 才重新画出来 —— 看着就是卡。同一个画布重进时直接渲染 store 里的既有内容，
@@ -134,19 +97,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
       lastRenderedCanvasKey === canvasKey(projectId, canvasId) &&
       useCanvasStore.getState().nodes.length > 0,
   );
-  const invalidateCommittedTargetQueries = useCallback((target: PushTarget) => {
-    if (isDirectorWorldSourceSlotTarget(target) || target.kind === "scene_director_world") {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.sceneDirectorStageManifest(projectId, target.scene_id),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.scenes(projectId) });
-      return;
-    }
-    if (isScenePushTargetKind(target.kind) && "scene_id" in target) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.scenes(projectId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.scene(projectId, target.scene_id) });
-    }
-  }, [projectId, queryClient]);
   const sync = useCanvasSync(projectId, canvasId);
 
   const handleBlankPaneClick = useCallback(() => {
@@ -194,144 +144,12 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     syncStatus: sync.status,
   });
 
-  // 节点 toolbar 上的 Commit 按钮通过 canvasEventBus 触发；这里订阅、查节点、
-  // 推 CommitDialog。比 AssetLibraryPanel 的 Commit 宽松：任何带 imageUrl 的
-  // 节点都允许提交，slot_target 只是给 dialog 一个 default，缺失也能让用户手选目标。
-  useEffect(() => {
-    return canvasEventBus.subscribe("freezone/commit-node", ({ nodeId, auto, successMessage }) => {
-      const node = useCanvasStore.getState().nodes.find((n) => n.id === nodeId);
-      if (!node) {
-        setToast("当前节点没有可提交的内容");
-        return;
-      }
-      // 泛化:不再只认 imageUrl,而是按节点类型推断媒体 url(图像/视频/音频/3GS)。
-      const info = deriveNodeDropInfo(node);
-      if (!info?.sourceUrl) {
-        setToast("当前节点没有可提交的内容");
-        return;
-      }
-      const sourceUrl = info.sourceUrl;
-      const data = (node.data ?? {}) as Record<string, unknown>;
-      const preview =
-        typeof data.previewImageUrl === "string" && data.previewImageUrl
-          ? data.previewImageUrl
-          : info.mediaType === "image"
-            ? sourceUrl
-            : null;
-      const sourceMeta = data.__freezone_source as Record<string, unknown> | undefined;
-      const defaultTarget =
-        coerceSlotTarget(data.slot_target) ??
-        coerceSlotTarget(data.capabilityDefaultPushTarget) ??
-        assetToPushTarget(sourceMeta) ??
-        undefined;
-      if (!auto) {
-        void (async () => {
-          try {
-            const savedOpenScene = await saveOpenDirectorWorldScene(nodeId);
-            if (savedOpenScene) {
-              const flushed = await sync.flush();
-              if (!flushed) {
-                throw new Error("当前画布未保存成功，处理冲突后再提交");
-              }
-            }
-            const latestNode = useCanvasStore.getState().nodes.find((candidate) => candidate.id === nodeId);
-            if (!latestNode) {
-              setToast("当前节点没有可提交的内容");
-              return;
-            }
-            const latestInfo = deriveNodeDropInfo(latestNode);
-            if (!latestInfo?.sourceUrl) {
-              setToast("当前节点没有可提交的内容");
-              return;
-            }
-            const latestData = (latestNode.data ?? {}) as Record<string, unknown>;
-            const latestPreview =
-              typeof latestData.previewImageUrl === "string" && latestData.previewImageUrl
-                ? latestData.previewImageUrl
-                : latestInfo.mediaType === "image"
-                  ? latestInfo.sourceUrl
-                  : null;
-            const latestSourceMeta = latestData.__freezone_source as Record<string, unknown> | undefined;
-            setPushState({
-              nodeId,
-              sourceUrl: latestInfo.sourceUrl,
-              previewUrl: latestPreview,
-              mediaType: latestInfo.mediaType,
-              defaultTarget:
-                coerceSlotTarget(latestData.slot_target) ??
-                coerceSlotTarget(latestData.capabilityDefaultPushTarget) ??
-                assetToPushTarget(latestSourceMeta) ??
-                defaultTarget,
-              sourceLabel: latestInfo.label,
-              directorControlBundle: latestInfo.directorControlBundle,
-              nodeData: latestData,
-            });
-          } catch (err) {
-            setToast(err instanceof Error ? err.message : String(err));
-          }
-        })();
-        return;
-      }
-      if (!defaultTarget) {
-        setToast("当前节点没有可自动提交的主线目标");
-        return;
-      }
-      void (async () => {
-        setToast("正在写入当前背景…");
-        try {
-          const flushed = await sync.flush();
-          if (!flushed) {
-            throw new Error("当前画布未保存成功，处理冲突后再提交");
-          }
-          const latestData = resolveSubmitNodeData(latestCanvasNodeData(nodeId), data) ?? data;
-          const latestSourceUrl =
-            info.mediaType === "model"
-              ? modelSourceUrlFromNodeData(latestData) ?? sourceUrl
-              : sourceUrl;
-          const target = defaultTarget as PushTarget;
-          const result = target.kind === "director_render"
-            ? await commitDirectorRenderFromCanvasSource(projectId, target, {
-                sourceUrl: latestSourceUrl,
-                previewUrl: preview,
-                bundle: info.directorControlBundle,
-                sourceNodeId: nodeId,
-                label: typeof latestData.displayName === "string" ? latestData.displayName : undefined,
-              })
-            : target.kind === "scene_director_world"
-              ? await commitSceneDirectorWorldFromCanvasNode(projectId, target, latestData)
-              : await promoteToAsset(projectId, latestSourceUrl, target, {
-                mark_stale: false,
-              });
-          const nodeDataPatch = nodeDataPatchAfterCommittedTarget(latestData, target, result, projectId);
-          if (nodeDataPatch) {
-            useCanvasStore.getState().updateNodeData(nodeId, nodeDataPatch);
-          }
-          const manifestNodeData = nodeDataPatch && hasDirectorWorldSceneState(nodeDataPatch)
-            ? nodeDataPatch
-            : sceneDirectorWorldDataForManifest(latestData, target, result, projectId);
-          if (manifestNodeData && isDirectorWorldSourceSlotTarget(target)) {
-            await commitSceneDirectorWorldFromCanvasNode(projectId, {
-              kind: "scene_director_world",
-              scene_id: target.scene_id,
-            }, manifestNodeData, { pruneStale: false });
-          }
-          refreshCommittedTargetNodes(target, result);
-          invalidateCommittedTargetQueries(target);
-          markCommitCandidatePushed(nodeId, target, result);
-          setAssetLibraryReloadToken((token) => token + 1);
-          setToast(
-            successMessage ??
-              `${renderCommitSuccessMessage(target, result)}${
-                manifestNodeData ? "；已同步导演世界状态" : ""
-              }`,
-          );
-          void sync.flush();
-        } catch (err) {
-          setToast(err instanceof Error ? err.message : String(err));
-        }
-      })();
-    });
-  }, [projectId, sync]);
+  const commitController = useCanvasCommitController({
+    projectId,
+    flush: sync.flush,
+    onAssetsChanged: handleAssetsChanged,
+    onMessage: setToast,
+  });
 
   useCanvasProjectionCommandController({
     projectId,
@@ -345,12 +163,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     },
     onMessage: setToast,
   });
-
-  useEffect(() => {
-    return canvasEventBus.subscribe("freezone/assets-updated", () => {
-      setAssetLibraryReloadToken((token) => token + 1);
-    });
-  }, []);
 
   const canvasDefaultTarget = normalizePushTarget(
     (sync.metadata?.default_push_target ?? null) as
@@ -415,7 +227,7 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
               onRefresh={sync.retry}
               onSaveCopy={async () => {
                 const copyCanvasId = await sync.saveCopy();
-                setAssetLibraryReloadToken((token) => token + 1);
+                handleAssetsChanged();
                 writeUrl({ canvas: copyCanvasId });
               }}
               readConflictSnapshot={sync.readConflictSnapshot}
@@ -451,13 +263,7 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
                 setToast(err instanceof Error ? err.message : String(err));
               }
             }}
-            onReplaced={(payload, message) => {
-              if (payload) {
-                refreshCommittedTargetNodes(payload.target, payload.result);
-                setAssetLibraryReloadToken((token) => token + 1);
-              }
-              setToast(message);
-            }}
+            onReplaced={commitController.handleAssetReplaced}
           />
         </main>
         {showChatDock && (
@@ -471,29 +277,19 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
         )}
       </div>
       <NodeReplaceDragPreview />
-      {pushState && (
+      {commitController.prompt && (
         <CommitDialog
           project={projectId}
-          sourceUrl={pushState.sourceUrl}
-          previewUrl={pushState.previewUrl ?? undefined}
-          sourceLabelOverride={pushState.sourceLabel}
-          mediaType={pushState.mediaType}
-          defaultTarget={pushState.defaultTarget}
-          directorControlBundle={pushState.directorControlBundle}
-          nodeData={pushState.nodeData}
-          getNodeData={() => resolveSubmitNodeData(latestCanvasNodeData(pushState.nodeId), pushState.nodeData)}
-          onClose={() => setPushState(null)}
-          onSuccess={(msg, result, target, nodeDataPatch) => {
-            if (nodeDataPatch) {
-              useCanvasStore.getState().updateNodeData(pushState.nodeId, nodeDataPatch);
-            }
-            refreshCommittedTargetNodes(target, result);
-            invalidateCommittedTargetQueries(target);
-            markCommitCandidatePushed(pushState.nodeId, target, result);
-            setAssetLibraryReloadToken((token) => token + 1);
-            setPushState(null);
-            setToast(msg);
-          }}
+          sourceUrl={commitController.prompt.sourceUrl}
+          previewUrl={commitController.prompt.previewUrl ?? undefined}
+          sourceLabelOverride={commitController.prompt.sourceLabel}
+          mediaType={commitController.prompt.mediaType}
+          defaultTarget={commitController.prompt.defaultTarget}
+          directorControlBundle={commitController.prompt.directorControlBundle}
+          nodeData={commitController.prompt.nodeData}
+          getNodeData={commitController.getPromptNodeData}
+          onClose={commitController.closePrompt}
+          onSuccess={commitController.handlePromptSuccess}
         />
       )}
       {createIdentitySource && (
@@ -528,74 +324,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
       {toast && <FreezoneToast text={toast} onClose={() => setToast(null)} />}
     </div>
   );
-}
-
-function refreshCommittedTargetNodes(
-  target: PushTarget,
-  result: PushResult,
-): void {
-  if (!shouldRefreshCommittedTargetNodes(target)) return;
-  const targetUrl = result.target_url;
-  if (!targetUrl) return;
-  const previewUrl = withImageCacheBust(targetUrl, Date.now());
-
-  const store = useCanvasStore.getState();
-  for (const node of store.nodes) {
-    const data = (node.data ?? {}) as Record<string, unknown>;
-    if (data.user_spawned === true) continue;
-    const sourceMeta = data.__freezone_source as
-      | { kind?: string; role?: string; meta?: Record<string, unknown> }
-      | undefined;
-    const nodeTarget =
-      coerceSlotTarget(data.slot_target) ??
-      inferCanonicalRefreshTarget(sourceMeta);
-    if (!nodeTarget || !pushTargetsEqual(nodeTarget, target)) continue;
-
-    const baseUpdate =
-      target.kind === "video"
-        ? { videoUrl: targetUrl, previewImageUrl: previewUrl }
-        : target.kind === "beat_audio"
-          ? { audioUrl: targetUrl, url: targetUrl }
-          : isPlyOrGlbPushTargetKind(target.kind)
-            ? { fileUrl: targetUrl, modelUrl: targetUrl, plyUrl: targetUrl, url: targetUrl }
-            : { imageUrl: targetUrl, previewImageUrl: previewUrl };
-    store.updateNodeData(node.id, {
-      ...baseUpdate,
-      committed_slot_url: targetUrl,
-    } as Record<string, unknown>);
-  }
-}
-
-function markCommitCandidatePushed(
-  nodeId: string,
-  target: PushTarget,
-  result: PushResult,
-): void {
-  const store = useCanvasStore.getState();
-  const node = store.nodes.find((candidate) => candidate.id === nodeId);
-  const data = (node?.data ?? {}) as Record<string, unknown>;
-  if (!isCommitCandidateData(data)) return;
-  const slot = coerceSlotTarget(data.slot_target);
-  if (!slot || !pushTargetsEqual(slot, target)) return;
-
-  const update: Record<string, unknown> = {
-    committed_at: new Date().toISOString(),
-  };
-  if (typeof result.target_url === "string" && result.target_url.length > 0) {
-    update.committed_slot_url = result.target_url;
-  }
-  store.updateNodeData(nodeId, update);
-}
-
-interface PushPrompt {
-  nodeId: string;
-  sourceUrl: string;
-  previewUrl: string | null;
-  sourceLabel: string;
-  mediaType: DropMediaType;
-  defaultTarget?: Partial<PushTarget> & { kind: PushTargetKind };
-  directorControlBundle?: Record<string, unknown> | null;
-  nodeData?: Record<string, unknown> | null;
 }
 
 interface SelectedImageSummary {

@@ -401,18 +401,24 @@ describe("freezone viewer contracts", () => {
     const target = read("src/features/freezone/commit/pushTarget.ts");
     const dialog = read("src/features/freezone/commit/CommitDialog.tsx");
     const shell = read("src/features/freezone/FreezoneShell.tsx");
+    const commitController = read(
+      "src/features/freezone/hooks/useCanvasCommitController.ts",
+    );
 
     expect(push).toContain('"scene_director_world"');
     expect(target).toContain('role === "scene_director_world"');
     expect(dialog).toContain("commitSceneDirectorWorldFromCanvasNode");
-    expect(shell).toContain("saveOpenDirectorWorldScene(nodeId)");
-    expect(shell).toContain("nodeData: latestData");
-    expect(shell).toContain("nodeDataPatchAfterCommittedTarget");
-    expect(shell).toContain("sceneDirectorWorldDataForManifest");
-    expect(shell).toContain("invalidateCommittedTargetQueries(target)");
-    expect(shell).toContain("queryKeys.sceneDirectorStageManifest(projectId, target.scene_id)");
-    expect(shell).not.toContain("updateNodeData(nodeId, manifestNodeData)");
-    expect(shell).not.toContain("updateNodeData(pushState.nodeId, manifestNodeData)");
+    expect(shell).toContain("useCanvasCommitController");
+    expect(commitController).toContain("saveOpenDirectorWorldScene(nodeId)");
+    expect(commitController).toContain("nodeData: latestData");
+    expect(commitController).toContain("nodeDataPatchAfterCommittedTarget");
+    expect(commitController).toContain("sceneDirectorWorldDataForManifest");
+    expect(commitController).toContain("invalidateCommittedTargetQueries(target)");
+    expect(commitController).toContain(
+      "queryKeys.sceneDirectorStageManifest(projectId, target.scene_id)",
+    );
+    expect(commitController).not.toContain("updateNodeData(nodeId, manifestNodeData)");
+    expect(shell).not.toContain("saveOpenDirectorWorldScene");
   });
 
   it("keeps Director World generation behind the connected ThreeDWorldNode", () => {

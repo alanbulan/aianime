@@ -1852,6 +1852,71 @@ describe("frontend architecture boundaries", () => {
     expect(rulesSource).not.toContain("useCanvasStore");
   });
 
+  it("keeps Freezone canvas commit orchestration in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasCommitController.ts",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasCommitController.test.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      "useCanvasCommitController",
+      "latestCanvasNodeData",
+      "refreshCommittedTargetNodes",
+      "markCommitCandidatePushed",
+    ];
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@tanstack/react-query",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/assetDropInfo",
+        "@/features/canvas/domain/directorWorldSceneSaveRegistry",
+        "@/features/canvas/domain/mainlineNodeTypes",
+        "@/features/freezone/domain/assetCommit",
+        "@/lib/query-keys",
+        "../commit/canvasCommitRules",
+        "../commit/commitEligibility",
+        "../commit/directorRenderCommit",
+        "../commit/promoteToAsset",
+        "../commit/pushTarget",
+        "../commit/sceneDirectorWorldCommit",
+      ]),
+    );
+    expect(importSpecifiers(shellPath)).toContain(
+      "./hooks/useCanvasCommitController",
+    );
+    expect(testSource).toContain('from "./useCanvasCommitController"');
+    for (const name of declarations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(`function ${name}(`))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/freezone/hooks/useCanvasCommitController.ts",
+      ]);
+      expect(shellSource).not.toContain(`function ${name}(`);
+    }
+    expect(shellSource).not.toContain("canvasEventBus");
+    expect(shellSource).not.toContain("promoteToAsset");
+    expect(shellSource).not.toContain("commitDirectorRenderFromCanvasSource");
+    expect(shellSource).not.toContain("commitSceneDirectorWorldFromCanvasNode");
+    expect(shellSource).not.toContain("interface PushPrompt");
+    expect(controllerSource).not.toContain("CommitDialog");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(

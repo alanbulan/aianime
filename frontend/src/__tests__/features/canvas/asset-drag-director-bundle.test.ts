@@ -164,15 +164,24 @@ describe("director bundle canvas assets", () => {
       resolve(process.cwd(), "src/features/freezone/FreezoneShell.tsx"),
       "utf8",
     );
+    const rules = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/commit/canvasCommitRules.ts",
+      ),
+      "utf8",
+    );
     const zh = readFileSync(
       resolve(process.cwd(), "public/locales/zh/translation.json"),
       "utf8",
     );
 
     expect(dialog).toContain("导演合成资产");
-    expect(shell).toContain("导演合成资产");
+    expect(rules).toContain("导演合成资产");
+    expect(shell).toContain("useCanvasCommitController");
     expect(zh).toContain("导演合成资产");
     expect(dialog).not.toContain("导演合成 bundle");
+    expect(rules).not.toContain("导演合成 bundle");
     expect(shell).not.toContain("导演合成 bundle");
     expect(zh).not.toContain("导演合成 bundle");
   });
