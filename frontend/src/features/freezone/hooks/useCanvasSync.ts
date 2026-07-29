@@ -6,10 +6,6 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from "@/features/canvas/canvasStore";
-import type {
-  CanvasHistorySnapshot,
-  CanvasHistoryState,
-} from "@/features/canvas/domain/canvasHistory";
 import {
   createCanvasFromPreset,
   generateClientSaveId,
@@ -34,6 +30,14 @@ import {
   type SaveResponseOutcome,
 } from "../application/canvasSyncCore";
 import {
+  buildConflictCopyCanvasId,
+  buildConflictCopyMetadata,
+  isCanvasSyncViewport,
+  type CanvasSyncStatus,
+  type ConflictSnapshot,
+} from "../application/canvasSyncStorage";
+import { canvasSyncStorageGateway } from "../canvasSyncComposition";
+import {
   EMPTY_SHOT_METADATA,
   useShotMetadataStore,
   type ShotMetadata,
@@ -57,7 +61,6 @@ import {
   writeCanvasDraft,
   type StoredCanvasDraft,
 } from "../canvasDraftStorage";
-import { safeLocalStorageSet } from "@/lib/localStorageQuota";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
@@ -372,247 +375,8 @@ function decideHydrateDraft(
   };
 }
 
-/** Narrow an opaque persisted value to a ReactFlow `{x, y, zoom}` viewport. */
-function isViewport(value: unknown): value is Viewport {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Partial<Viewport>;
-  return (
-    typeof v.x === "number" &&
-    typeof v.y === "number" &&
-    typeof v.zoom === "number"
-  );
-}
-
 function viewportsEqual(a: Viewport, b: Viewport): boolean {
   return a.x === b.x && a.y === b.y && a.zoom === b.zoom;
-}
-
-// Camera position is persisted client-side (localStorage), keyed per
-// project+canvas. This makes "refresh restores my position" work without any
-// backend change: localStorage writes are synchronous so they survive an
-// immediate refresh, unlike a debounced network save. The viewport is still
-// included in the canvas PUT too (harmless, forward-compatible) so cross-device
-// restore works for free once the backend persists it.
-function viewportStorageKey(project: string, canvasId: string): string {
-  return `freezone:canvas-viewport:${project}:${canvasId}`;
-}
-
-function readStoredViewport(project: string, canvasId: string): Viewport | null {
-  try {
-    const raw = localStorage.getItem(viewportStorageKey(project, canvasId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    return isViewport(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredViewport(
-  project: string,
-  canvasId: string,
-  viewport: Viewport,
-): void {
-  safeLocalStorageSet(
-    viewportStorageKey(project, canvasId),
-    JSON.stringify(viewport),
-  );
-}
-
-// The in-memory undo/redo stacks die on refresh; mirror them to localStorage
-// (per canvas) so undo survives a reload. `signature` pins the history to the
-// canvas content it belongs to — on hydrate we only restore when the loaded
-// content still matches, so we never undo into a state edited elsewhere.
-const HISTORY_STORAGE_MAX_BYTES = 1_500_000;
-// The persisted mirror only needs to bridge a single refresh, so cap it to the
-// most recent N undo/redo steps instead of the full in-memory stack (up to 50
-// full-canvas snapshots). This keeps each per-canvas blob small on top of the
-// byte budget below.
-export const HISTORY_PERSIST_MAX_STEPS = 10;
-
-interface StoredCanvasHistory {
-  signature: string;
-  past: CanvasHistorySnapshot[];
-  future: CanvasHistorySnapshot[];
-  // Freshness stamp so `pruneFreezoneCanvasStorage` can TTL-expire orphans
-  // (a canvas edited then never reopened). Absent on legacy blobs → pruned.
-  updatedAt: number;
-}
-
-function historyStorageKey(project: string, canvasId: string): string {
-  return `freezone:canvas-history:${project}:${canvasId}`;
-}
-
-/** Keep only the most recent N steps of each stack for cross-refresh restore. */
-export function trimHistoryForStorage(
-  history: CanvasHistoryState,
-  maxSteps = HISTORY_PERSIST_MAX_STEPS,
-): { past: CanvasHistorySnapshot[]; future: CanvasHistorySnapshot[] } {
-  return {
-    past: history.past.slice(-maxSteps),
-    future: history.future.slice(0, maxSteps),
-  };
-}
-
-function readStoredHistory(
-  project: string,
-  canvasId: string,
-): StoredCanvasHistory | null {
-  try {
-    const raw = localStorage.getItem(historyStorageKey(project, canvasId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return null;
-    const value = parsed as Partial<StoredCanvasHistory>;
-    if (
-      typeof value.signature !== "string" ||
-      !Array.isArray(value.past) ||
-      !Array.isArray(value.future)
-    ) {
-      return null;
-    }
-    return {
-      signature: value.signature,
-      past: value.past,
-      future: value.future,
-      updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredHistory(
-  project: string,
-  canvasId: string,
-  signature: string,
-  history: CanvasHistoryState,
-  now = Date.now(),
-): void {
-  try {
-    const key = historyStorageKey(project, canvasId);
-    const trimmed = trimHistoryForStorage(history);
-    let past = trimmed.past;
-    const future = trimmed.future;
-    const serialize = () => JSON.stringify({ signature, past, future, updatedAt: now });
-    let serialized = serialize();
-    // Each step is a full canvas snapshot; after the step cap, still drop the
-    // oldest undo steps until the blob fits the per-canvas byte budget rather
-    // than blowing the storage quota.
-    while (serialized.length > HISTORY_STORAGE_MAX_BYTES && past.length > 0) {
-      past = past.slice(1);
-      serialized = serialize();
-    }
-    if (serialized.length > HISTORY_STORAGE_MAX_BYTES) {
-      localStorage.removeItem(key);
-      return;
-    }
-    safeLocalStorageSet(key, serialized);
-  } catch {
-    // Quota / unavailable storage — cross-refresh undo is best-effort.
-  }
-}
-
-// The mirror exists only to bridge a refresh; drop it once consumed/stale so
-// per-canvas history can't accumulate. See the hydrate path for the read-once
-// clear and the write effect for the edit-gated re-persist.
-function clearStoredHistory(project: string, canvasId: string): void {
-  try {
-    localStorage.removeItem(historyStorageKey(project, canvasId));
-  } catch {
-    // Best-effort cleanup.
-  }
-}
-
-// "conflict" is from the revision-aware save path (HEAD); kept across merge.
-export type CanvasSyncStatus = "loading" | "ready" | "saving" | "error" | "conflict";
-
-/**
- * Shape of the locally-stashed payload written to `localStorage` on a 409.
- * Lets the user grab a JSON dump of their unsaved work even after the
- * overlay forces a refresh.
- */
-export interface ConflictSnapshot {
-  canvas_id: string;
-  nodes: unknown[];
-  edges: unknown[];
-  viewport: unknown;
-  metadata: Record<string, unknown> | null;
-  timestamp: string;
-}
-
-function conflictStorageKey(canvasId: string): string {
-  return `freezone:conflict:${canvasId}`;
-}
-
-function readConflictSnapshot(canvasId: string): ConflictSnapshot | null {
-  try {
-    const raw = localStorage.getItem(conflictStorageKey(canvasId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ConflictSnapshot> | null;
-    if (
-      !parsed ||
-      typeof parsed.canvas_id !== "string" ||
-      !Array.isArray(parsed.nodes) ||
-      !Array.isArray(parsed.edges)
-    ) {
-      return null;
-    }
-    return {
-      canvas_id: parsed.canvas_id,
-      nodes: parsed.nodes,
-      edges: parsed.edges,
-      viewport: parsed.viewport ?? null,
-      metadata: (parsed.metadata as Record<string, unknown> | null) ?? null,
-      timestamp: typeof parsed.timestamp === "string" ? parsed.timestamp : "",
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeConflictSnapshot(snapshot: ConflictSnapshot): void {
-  safeLocalStorageSet(
-    conflictStorageKey(snapshot.canvas_id),
-    JSON.stringify(snapshot),
-  );
-}
-
-function clearConflictSnapshot(canvasId: string): void {
-  try {
-    localStorage.removeItem(conflictStorageKey(canvasId));
-  } catch {
-    // Best-effort cleanup.
-  }
-}
-
-export function buildConflictCopyCanvasId(
-  sourceCanvasId: string,
-  now = Date.now(),
-  random = Math.random().toString(36).slice(2, 8),
-): string {
-  const safeSource = sourceCanvasId
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 32) || "canvas";
-  const safeRandom = random.replace(/[^a-z0-9]+/g, "").slice(0, 8) || "copy";
-  return `copy_${now}_${safeRandom}_${safeSource}`.slice(0, 64).replace(/_+$/g, "");
-}
-
-export function buildConflictCopyMetadata({
-  sourceCanvasId,
-  metadata,
-}: {
-  sourceCanvasId: string;
-  metadata: Record<string, unknown> | null | undefined;
-}): Record<string, unknown> {
-  return {
-    ...(metadata ?? {}),
-    canvas_origin: "conflict_copy",
-    source_canvas_id: sourceCanvasId,
-  };
 }
 
 interface CanvasSyncResult {
@@ -776,7 +540,7 @@ export function useCanvasSync(
   // Stash local edits to localStorage so the user can grab them via the
   // conflict overlay's "下载本地 JSON" button even after they refresh.
   const snapshotConflict = (args: SaveArgs) => {
-    writeConflictSnapshot({
+    canvasSyncStorageGateway.writeConflictSnapshot({
       canvas_id: args.canvasId,
       nodes: args.nodes,
       edges: args.edges,
@@ -1030,10 +794,10 @@ export function useCanvasSync(
           useCanvasStore
             .getState()
             .hydrateViewportBookmarks(draftMeta?.viewportBookmarks);
-          const draftViewport = isViewport(draftDecision.draft.viewport)
+          const draftViewport = isCanvasSyncViewport(draftDecision.draft.viewport)
             ? draftDecision.draft.viewport
-            : readStoredViewport(project, canvasId) ??
-              (isViewport(remote.viewport) ? remote.viewport : null);
+            : canvasSyncStorageGateway.readViewport(project, canvasId) ??
+              (isCanvasSyncViewport(remote.viewport) ? remote.viewport : null);
           if (draftViewport) {
             lastSavedViewportRef.current = draftViewport;
             setViewportState(draftViewport);
@@ -1045,14 +809,14 @@ export function useCanvasSync(
           // The draft carries its own undo history (hydrateCanvasDraft above),
           // so the separate mirror is redundant here — drop it read-once like
           // the remote branch. The edit-gated write effect re-creates it.
-          clearStoredHistory(project, canvasId);
+          canvasSyncStorageGateway.clearHistory(project, canvasId);
           setHydratedCanvasId(canvasId);
           setSyncStatus("ready");
           return;
         }
 
         if (draftDecision.kind === "conflict") {
-          writeConflictSnapshot({
+          canvasSyncStorageGateway.writeConflictSnapshot({
             canvas_id: canvasId,
             nodes: draftDecision.draft.nodes,
             edges: draftDecision.draft.edges,
@@ -1076,14 +840,17 @@ export function useCanvasSync(
         // canvas still matches the content the history was captured against —
         // otherwise (edited on another device, backend newer) we'd let the user
         // undo into a state that never existed here.
-        const storedHistory = readStoredHistory(project, canvasId);
+        const storedHistory = canvasSyncStorageGateway.readHistory(
+          project,
+          canvasId,
+        );
         if (storedHistory && storedHistory.signature === lastSignatureRef.current) {
           restoreHistory({ past: storedHistory.past, future: storedHistory.future });
         }
         // Read-once: the mirror only exists to bridge this refresh. Drop it now
         // that it's been consumed (or is stale) so undo stacks don't accumulate
         // per canvas. The write effect re-persists it once the user edits again.
-        clearStoredHistory(project, canvasId);
+        canvasSyncStorageGateway.clearHistory(project, canvasId);
         // Restore the saved camera position so a refresh lands where the user
         // left off. Prefer the client-side localStorage copy: it's updated on
         // every pan/zoom (debounced + a synchronous beforeunload write), so it
@@ -1095,8 +862,8 @@ export function useCanvasSync(
         // the store (drives `currentViewport`) and the live ReactFlow instance;
         // rAF ensures it applies after nodes first render.
         const savedViewport =
-          readStoredViewport(project, canvasId) ??
-          (isViewport(remote.viewport) ? remote.viewport : null);
+          canvasSyncStorageGateway.readViewport(project, canvasId) ??
+          (isCanvasSyncViewport(remote.viewport) ? remote.viewport : null);
         if (savedViewport) {
           lastSavedViewportRef.current = savedViewport;
           setViewportState(savedViewport);
@@ -1168,7 +935,7 @@ export function useCanvasSync(
       if (state.userEditsSinceHydrate <= 0) {
         return;
       }
-      writeStoredHistory(
+      canvasSyncStorageGateway.writeHistory(
         project,
         canvasId,
         canvasContentSignature(state.nodes, state.edges),
@@ -1300,7 +1067,7 @@ export function useCanvasSync(
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         lastSavedViewportRef.current = viewport;
-        writeStoredViewport(project, canvasId, viewport);
+        canvasSyncStorageGateway.writeViewport(project, canvasId, viewport);
       }, 300);
     });
     return () => {
@@ -1356,8 +1123,8 @@ export function useCanvasSync(
       const currentViewport = useCanvasStore.getState().currentViewport;
       // Final, synchronous guarantee for the refresh case: a pending debounced
       // localStorage write may not have fired yet, so persist the latest
-      // position now (localStorage.setItem completes before the page unloads).
-      writeStoredViewport(project, canvasId, currentViewport);
+      // position now (the synchronous browser-storage write completes before unload).
+      canvasSyncStorageGateway.writeViewport(project, canvasId, currentViewport);
       lastSavedViewportRef.current = currentViewport;
       const hasUnsettledContentSave =
         draftTimerRef.current != null ||
@@ -1450,12 +1217,12 @@ export function useCanvasSync(
     // The user picked "refresh" on the conflict overlay — discard the local
     // snapshot so a future 409 starts fresh. If they wanted to keep it, they
     // would have clicked the "下载本地 JSON" button first.
-    clearConflictSnapshot(canvasId);
+    canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
     clearCanvasDraft(project, canvasId);
     setReloadKey((k) => k + 1);
   };
   const saveCopy = async () => {
-    const snapshot = readConflictSnapshot(canvasId);
+    const snapshot = canvasSyncStorageGateway.readConflictSnapshot(canvasId);
     if (!snapshot) {
       throw new Error("No local conflict snapshot is available to save.");
     }
@@ -1484,7 +1251,7 @@ export function useCanvasSync(
     pendingClientSaveIdRef.current = null;
     pendingClientSaveIdSignatureRef.current = null;
     // The local edits are now durable in the copy canvas — drop the snapshot.
-    clearConflictSnapshot(canvasId);
+    canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
     clearCanvasDraft(project, canvasId);
     setSyncStatus("ready");
     setError(null);
@@ -1563,8 +1330,10 @@ export function useCanvasSync(
     retry,
     saveCopy,
     restoreMainlineDefault,
-    readConflictSnapshot: () => readConflictSnapshot(canvasId),
-    clearConflictSnapshot: () => clearConflictSnapshot(canvasId),
+    readConflictSnapshot: () =>
+      canvasSyncStorageGateway.readConflictSnapshot(canvasId),
+    clearConflictSnapshot: () =>
+      canvasSyncStorageGateway.clearConflictSnapshot(canvasId),
   };
 }
 

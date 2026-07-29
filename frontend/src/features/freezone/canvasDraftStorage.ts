@@ -14,19 +14,19 @@ import {
   isCanvasMutationState,
   type CanvasMutationState,
 } from "@/features/canvas/domain/canvasMutation";
+import {
+  CANVAS_CONFLICT_PREFIX,
+  CANVAS_HISTORY_PREFIX,
+  CANVAS_VIEWPORT_PREFIX,
+} from "./application/canvasSyncStorage";
 
 export const CANVAS_DRAFT_MAX_BYTES = 1_500_000;
 const CANVAS_DRAFT_VERSION = 1;
 const CANVAS_DRAFT_PREFIX = "ai-anime-freezone:canvas-draft:";
 const CANVAS_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
 
-// Sibling per-canvas keys written elsewhere (useCanvasSync). They share the
-// draft's lifecycle/TTL so none of them can pile up unbounded and exhaust the
-// origin's localStorage quota. Kept here (not imported from useCanvasSync) so
-// the prune stays free of React/hook imports.
-const CANVAS_HISTORY_PREFIX = "freezone:canvas-history:";
-const CANVAS_CONFLICT_PREFIX = "freezone:conflict:";
-const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:";
+// Sibling per-canvas keys share the draft's lifecycle/TTL so none of them can
+// pile up unbounded and exhaust the origin's localStorage quota.
 // Unified time-to-live for every per-canvas key.
 export const FREEZONE_CANVAS_TTL_MS = CANVAS_DRAFT_TTL_MS;
 

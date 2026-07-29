@@ -8,10 +8,12 @@ import {
 } from "@/features/canvas/composition";
 import { ApiError } from "@/shared/api/errors";
 import {
-  FREEZONE_HYDRATE_RELEASE_GRACE_MS,
-  FREEZONE_HYDRATE_SETTLED_REUSE_MS,
   HISTORY_PERSIST_MAX_STEPS,
   trimHistoryForStorage,
+} from "@/features/freezone/application/canvasSyncStorage";
+import {
+  FREEZONE_HYDRATE_RELEASE_GRACE_MS,
+  FREEZONE_HYDRATE_SETTLED_REUSE_MS,
   useCanvasSync,
 } from "@/features/freezone/hooks/useCanvasSync";
 import {

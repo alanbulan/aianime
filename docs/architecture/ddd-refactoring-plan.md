@@ -2020,6 +2020,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十四批已将 Freezone 纯画布保存决策 `canvasSyncCore.ts` 从 feature 根迁入唯一 application，将 React/React Flow/Zustand 同步运行时 `useCanvasSync.ts` 迁入 hooks，`FreezoneShell` 与测试调用方全部切换新所有者；保存决策、payload 清理、错误分类、hydrate、草稿、历史、冲突、重试和 projection 刷新实现均原样保留，不新增 facade、旧路径转发或第二套同步逻辑。新增门禁锁定两个旧根路径不存在、保存决策声明唯一，且 application 不得依赖 React、React Flow、Zustand、Freezone infrastructure/composition、共享 transport、DOM 或 localStorage。同步核心、hook 生命周期与画布列表回归 91 项、相关架构门禁 4 项和完整前端架构门禁 219 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十五批已将 `useCanvasSync` 中 viewport、跨刷新 undo/redo history 与冲突快照的浏览器存储实现迁入唯一 `browserCanvasSyncStorageGateway`，由 application `CanvasSyncStorageGateway` 定义最小端口、状态/快照合同及纯 history 截断、冲突副本和 viewport 校验规则，并经专用 `canvasSyncComposition` 装配后供 hook 使用；hook 不再直接访问 localStorage 或配额工具，由 1,947 行降至 1,716 行。三个历史存储 key 前缀与 key 构造同步从旧 hook/草稿回收器副本统一归入 application，浏览器写入适配器和 `canvasDraftStorage` TTL 回收共同复用，不保留重复常量、旧函数或 facade；键值格式、1.5 MB history 上限、10 步截断、read-once 清理、冲突快照字段和同步写入时序保持不变。同步、冲突、画布列表与配额回收回归 104 项、相关架构门禁 2 项和完整前端架构门禁 220 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -1748,6 +1748,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
       "utf8",
     );
+    const canvasSyncStorage = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/application/canvasSyncStorage.ts",
+      ),
+      "utf8",
+    );
     const draftStorage = readFileSync(
       resolve(SRC_ROOT, "features/freezone/canvasDraftStorage.ts"),
       "utf8",
@@ -1821,7 +1828,11 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasHistoryNavigation",
     );
-    expect(canvasSync).toContain(
+    expect(canvasSyncStorage).toContain(
+      "@/features/canvas/domain/canvasHistory",
+    );
+    expect(canvasSync).toContain("../application/canvasSyncStorage");
+    expect(canvasSync).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
     expect(draftStorage).toContain(
@@ -4969,6 +4980,123 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(importSpecifiers(hookPath)).toContain("../application/canvasSyncCore");
     expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
+  });
+
+  it("keeps browser canvas sync persistence behind an application port", () => {
+    const storagePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasSyncStorage.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/browserCanvasSyncStorageGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasSyncComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const draftStoragePath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasDraftStorage.ts",
+    );
+    const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
+    const storageSource = readFileSync(storagePath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const draftStorageSource = readFileSync(draftStoragePath, "utf8");
+    const forbiddenStorageImports = importSpecifiers(storagePath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/shared/api/"),
+    );
+    const storageBypasses = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier.startsWith("../infrastructure/") ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier === "@/lib/localStorageQuota",
+    );
+    const gatewayDeclaration = [
+      "export interface",
+      "CanvasSyncStorageGateway",
+    ].join(" ");
+    const gatewayOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(gatewayDeclaration))
+      .map(relativeSource)
+      .sort();
+    const viewportDeclaration = [
+      "export function",
+      "isCanvasSyncViewport(",
+    ].join(" ");
+    const viewportOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(viewportDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenStorageImports).toEqual([]);
+    expect(storageSource).not.toContain("window.");
+    expect(storageSource).not.toContain("document.");
+    expect(storageSource).not.toContain("localStorage");
+    expect(gatewayOwners).toEqual([
+      "features/freezone/application/canvasSyncStorage.ts",
+    ]);
+    expect(viewportOwners).toEqual([
+      "features/freezone/application/canvasSyncStorage.ts",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/lib/localStorageQuota",
+        "../application/canvasSyncStorage",
+      ]),
+    );
+    expect(storageSource).toContain(
+      'CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
+    );
+    expect(storageSource).toContain(
+      'CANVAS_HISTORY_PREFIX = "freezone:canvas-history:"',
+    );
+    expect(storageSource).toContain(
+      'CANVAS_CONFLICT_PREFIX = "freezone:conflict:"',
+    );
+    expect(adapterSource).toContain("canvasViewportStorageKey(project, canvasId)");
+    expect(adapterSource).toContain("canvasHistoryStorageKey(project, canvasId)");
+    expect(adapterSource).toContain("canvasConflictStorageKey(canvasId)");
+    expect(adapterSource).toContain("isCanvasSyncViewport(parsed)");
+    expect(importSpecifiers(compositionPath)).toEqual([
+      "./infrastructure/browserCanvasSyncStorageGateway",
+    ]);
+    expect(storageBypasses).toEqual([]);
+    expect(hookSource).not.toContain("localStorage.");
+    expect(hookSource).toContain("isCanvasSyncViewport(remote.viewport)");
+    expect(importSpecifiers(hookPath)).toContain("../canvasSyncComposition");
+    expect(importSpecifiers(hookPath)).toContain(
+      "../application/canvasSyncStorage",
+    );
+    expect(importSpecifiers(draftStoragePath)).toContain(
+      "./application/canvasSyncStorage",
+    );
+    expect(draftStorageSource).not.toContain(
+      'const CANVAS_HISTORY_PREFIX = "freezone:canvas-history:"',
+    );
+    expect(draftStorageSource).not.toContain(
+      'const CANVAS_CONFLICT_PREFIX = "freezone:conflict:"',
+    );
+    expect(draftStorageSource).not.toContain(
+      'const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
+    );
+    expect(importSpecifiers(shellPath)).toContain(
+      "./application/canvasSyncStorage",
+    );
   });
 
   it("keeps Canvas asynchronous node task concurrency in one presentation hook", () => {

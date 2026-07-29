@@ -66,9 +66,11 @@ import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { queryKeys } from "@/lib/query-keys";
 import {
   useCanvasSync,
-  type CanvasSyncStatus,
-  type ConflictSnapshot,
 } from "./hooks/useCanvasSync";
+import type {
+  CanvasSyncStatus,
+  ConflictSnapshot,
+} from "./application/canvasSyncStorage";
 import { prefetchFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
 import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";

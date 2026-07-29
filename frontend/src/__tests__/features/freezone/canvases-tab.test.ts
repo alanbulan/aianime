@@ -23,6 +23,8 @@ import {
 import {
   buildConflictCopyCanvasId,
   buildConflictCopyMetadata,
+} from "@/features/freezone/application/canvasSyncStorage";
+import {
   saveErrorStatusAndBody,
   shouldAbortBestEffortPresetRefresh,
   shouldDeferPresetRefreshUntilReady,
