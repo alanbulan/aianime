@@ -12,13 +12,10 @@ const mocks = vi.hoisted(() => ({
   promoteToAsset: vi.fn(),
 }));
 
-vi.mock("../commit/directorRenderCommit", () => ({
-  commitDirectorRenderFromCanvasSource:
-    mocks.commitDirectorRenderFromCanvasSource,
-}));
-
 vi.mock("../composition", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../composition")>()),
+  commitDirectorRenderFromCanvasSource:
+    mocks.commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset: mocks.promoteToAsset,
 }));
 

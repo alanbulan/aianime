@@ -21,12 +21,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../composition", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../composition")>()),
-  commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
-}));
-
-vi.mock("../commit/directorRenderCommit", () => ({
   commitDirectorRenderFromCanvasSource: (...args: unknown[]) =>
     mocks.commitDirectorRenderFromCanvasSource(...args),
+  commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
 }));
 
 vi.mock("../commit/sceneDirectorWorldCommit", () => ({

@@ -4,6 +4,11 @@ import {
   getFreezoneAssetImpact as getFreezoneAssetImpactUseCase,
 } from "./application/assetCommit";
 import {
+  commitDirectorRenderFromCanvasSource as commitDirectorRenderFromCanvasSourceUseCase,
+  type DirectorRenderCanvasCommitSource,
+  type DirectorRenderTarget,
+} from "./application/directorRenderCommit";
+import {
   uploadFreezoneAsset as uploadFreezoneAssetUseCase,
 } from "./application/assetUpload";
 import {
@@ -20,6 +25,7 @@ import {
 import type { PushTarget } from "./domain/assetCommit";
 import type { FreezoneAssetUploadOptions } from "./domain/assetUpload";
 import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection";
+import { browserDirectorRenderCommitGateway } from "./infrastructure/browserDirectorRenderCommitGateway";
 import { httpFreezoneAssetCommitGateway } from "./infrastructure/httpFreezoneAssetCommitGateway";
 import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
 import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
@@ -64,6 +70,17 @@ export function getFreezoneAssetImpact(
   return getFreezoneAssetImpactUseCase(
     { projectId, target },
     httpFreezoneAssetCommitGateway,
+  );
+}
+
+export function commitDirectorRenderFromCanvasSource(
+  projectId: string,
+  target: DirectorRenderTarget,
+  source: DirectorRenderCanvasCommitSource,
+) {
+  return commitDirectorRenderFromCanvasSourceUseCase(
+    { projectId, target, source },
+    browserDirectorRenderCommitGateway,
   );
 }
 

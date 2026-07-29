@@ -3029,7 +3029,6 @@ describe("frontend architecture boundaries", () => {
         "../composition",
         "../commit/canvasCommitRules",
         "../commit/committedNodePatch",
-        "../commit/directorRenderCommit",
         "../commit/sceneDirectorWorldCommit",
       ]),
     );
@@ -3156,7 +3155,6 @@ describe("frontend architecture boundaries", () => {
         "@/lib/query-keys",
         "../composition",
         "../commit/canvasCommitRules",
-        "../commit/directorRenderCommit",
         "../commit/pushTarget",
         "../commit/sceneDirectorWorldCommit",
       ]),
@@ -3297,7 +3295,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCommitDialogSubmitController.ts",
       "features/freezone/commit/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
-      "features/freezone/commit/directorRenderCommit.ts",
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
       "features/freezone/commit/committedNodePatch.ts",
       "features/freezone/commit/pushTarget.ts",
@@ -7923,7 +7920,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/assetDropStore",
         "@/features/freezone/domain/assetCommit",
         "../composition",
-        "../commit/directorRenderCommit",
         "../commit/pushTarget",
         "../domain/assetLibraryModel",
       ]),
@@ -14849,7 +14845,19 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx",
     );
-    const freezoneCommitPath = resolve(
+    const freezoneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/directorRenderCommit.ts",
+    );
+    const freezoneAdapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/browserDirectorRenderCommitGateway.ts",
+    );
+    const freezoneCompositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const legacyFreezoneCommitPath = resolve(
       SRC_ROOT,
       "features/freezone/commit/directorRenderCommit.ts",
     );
@@ -14859,7 +14867,15 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
     const dialogSource = readFileSync(dialogPath, "utf8");
-    const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
+    const freezoneApplicationSource = readFileSync(
+      freezoneApplicationPath,
+      "utf8",
+    );
+    const freezoneAdapterSource = readFileSync(freezoneAdapterPath, "utf8");
+    const freezoneCompositionSource = readFileSync(
+      freezoneCompositionPath,
+      "utf8",
+    );
     const endpointOwner = (endpoint: string) =>
       sourceFiles(SRC_ROOT)
         .filter((path) => !path.includes(".test."))
@@ -14871,6 +14887,7 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(existsSync(legacyApiPath)).toBe(false);
+    expect(existsSync(legacyFreezoneCommitPath)).toBe(false);
     expect(importSpecifiers(applicationPath)).toEqual([
       "../directorManifest",
     ]);
@@ -14904,14 +14921,39 @@ describe("frontend architecture boundaries", () => {
       "@/api/viewerManifests",
     );
     expect(dialogSource).toContain("saveBeatDirectorStageOverlay(");
-    expect(importSpecifiers(freezoneCommitPath)).toContain(
+    expect(importSpecifiers(freezoneApplicationPath)).toEqual([
+      "../domain/assetCommit",
+    ]);
+    expect(new Set(importSpecifiers(freezoneAdapterPath))).toEqual(
+      new Set([
+        "@/features/viewer-kit/public",
+        "../application/directorRenderCommit",
+      ]),
+    );
+    expect(freezoneApplicationSource).not.toContain("fetch(");
+    expect(freezoneApplicationSource).not.toContain("FileReader");
+    expect(freezoneApplicationSource).not.toContain(
       "@/features/viewer-kit/public",
     );
-    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
+    expect(importSpecifiers(freezoneAdapterPath)).not.toContain(
       "@/api/viewerManifests",
     );
-    expect(freezoneCommitSource).toContain(
+    expect(freezoneAdapterSource).toContain("fetch(url");
+    expect(freezoneAdapterSource).toContain("new FileReader()");
+    expect(freezoneAdapterSource).toContain(
       "await saveBeatDirectorControlFrame(",
+    );
+    expect(importSpecifiers(freezoneCompositionPath)).toContain(
+      "./application/directorRenderCommit",
+    );
+    expect(importSpecifiers(freezoneCompositionPath)).toContain(
+      "./infrastructure/browserDirectorRenderCommitGateway",
+    );
+    expect(freezoneCompositionSource).toContain(
+      "commitDirectorRenderFromCanvasSourceUseCase(",
+    );
+    expect(freezoneCompositionSource).toContain(
+      "browserDirectorRenderCommitGateway",
     );
   });
 
