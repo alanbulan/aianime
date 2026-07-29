@@ -5879,6 +5879,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/AssetLibraryPanel.tsx",
     );
+    const projectionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetLibraryProjection.ts",
+    );
     const modelTestPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/assetLibraryModel.test.ts",
@@ -5889,6 +5893,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
+    const projectionSource = readFileSync(projectionPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
     const dragTestSource = readFileSync(dragTestPath, "utf8");
     const declarations = [
@@ -5933,7 +5938,10 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).toContain(
       "@/features/freezone/domain/assetLibraryModel",
     );
-    expect(panelSource).toContain("finalizeDirectorWorldAssets(out)");
+    expect(importSpecifiers(projectionPath)).toContain(
+      "../domain/assetLibraryModel",
+    );
+    expect(projectionSource).toContain("finalizeDirectorWorldAssets(out)");
     for (const legacyDeclaration of [
       ["function", "attachThreeDCovers("].join(" "),
       ["function", "coalesceSceneDirectorWorldAssets("].join(" "),
@@ -5954,6 +5962,67 @@ describe("frontend architecture boundaries", () => {
     expect(dragTestSource).not.toContain(
       "@/features/freezone/AssetLibraryPanel",
     );
+  });
+
+  it("keeps asset library catalog projection in one Freezone application module", () => {
+    const projectionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetLibraryProjection.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetLibraryProjection.test.ts",
+    );
+    const projectionSource = readFileSync(projectionPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["export function", "buildLibraryAssets("].join(" "),
+      ["function", "isUsableAsset("].join(" "),
+      ["function", "isDirectorControlRef("].join(" "),
+      ["function", "fromFreezoneAsset("].join(" "),
+      ["function", "normalizeMainlineAssetLabel("].join(" "),
+      ["function", "libraryAssetDedupKey("].join(" "),
+      ["function", "isBeatScopedLibraryAsset("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/application/assetLibraryProjection.ts",
+      ]),
+    );
+    expect(new Set(importSpecifiers(projectionPath))).toEqual(
+      new Set([
+        "../context/mainlineContext",
+        "../domain/assetLibraryModel",
+        "../domain/beatContext",
+      ]),
+    );
+    expect(projectionSource).not.toContain("window.");
+    expect(projectionSource).not.toContain("document.");
+    expect(projectionSource).not.toContain("localStorage");
+    expect(projectionSource).not.toContain("@/features/freezone/composition");
+    expect(projectionSource).not.toContain("@/features/freezone/infrastructure/");
+    expect(projectionSource).not.toContain("@/shared/api/");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/application/assetLibraryProjection",
+    );
+    for (const legacyDeclaration of declarations) {
+      expect(panelSource).not.toContain(legacyDeclaration);
+    }
+    expect(panelSource).not.toContain("BEAT_SCOPED_LIBRARY_ASSET_ROLES");
+    expect(panelSource).not.toContain("BEAT_SCOPED_LIBRARY_ASSET_KINDS");
+    expect(testSource).toContain('from "./assetLibraryProjection"');
   });
 
   it("keeps canvas hydration reconciliation in Freezone application", () => {

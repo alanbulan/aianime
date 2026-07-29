@@ -2072,6 +2072,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百批已将资产库类型、导演合成控制包恢复、拖拽媒体类型映射、3D 资产识别、同场景 Director World source 合并、active source 选择、3D 封面优先级和 scene mainline context 投影从 `AssetLibraryPanel` 迁入唯一纯领域模块 `domain/assetLibraryModel.ts`；面板只负责收集通用资产并调用 `finalizeDirectorWorldAssets`，原拖拽回归也改为直接依赖领域所有者。显式控制包继续优先于 legacy `combined.png` 推导，同场景 master/reverse/pano source 继续合并为单个 `scene_director_world`，显式 current source、master 场景图封面和既有 scene context 均保持不变；旧类型、helper、聚合函数和面板导出直接删除，不保留 facade 或第二套实现。`AssetLibraryPanel` 由 2,074 行降至 1,757 行；领域模型与拖拽回归 2 个文件 14 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 283 项（其中 module boundaries 243 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零一批已将 Beat context/project asset/preset reference 到侧栏资产目录的过滤、角色与 tab 归一化、标签与媒体类型投影、source metadata 装配、Beat 上下文生成、作用域去重以及最终 Director World 收敛从 `AssetLibraryPanel` 迁入唯一纯 application 模块 `application/assetLibraryProjection.ts`；面板只传 project、metadata、查询结果和 canvas kind 并消费投影结果，分组布局、场景徽标和画布落点仍留在原 presentation 边界。重复 URL 的跨 Beat 产物继续按 project/episode/beat 分离，缺失文件、Freezone 临时资产和 scene auxiliary pointer 继续过滤，legacy director tab、控制包、slot target、pushable、preset 范围及“当前分镜”文案继续保持原语义；旧常量和 helper 直接删除，不保留 facade 或第二套实现，同时将 Viewer 静态合同从旧面板实现改为读取实际领域所有者。`AssetLibraryPanel` 由 1,757 行降至 1,358 行；投影、面板、Viewer 合同与拖拽回归 4 个文件 44 项、本批及关联架构断言 3 项、完整前端架构门禁 3 个文件 284 项（其中 module boundaries 244 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -80,17 +80,26 @@ describe("freezone viewer contracts", () => {
 
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
     const panel = read("src/features/freezone/AssetLibraryPanel.tsx");
+    const assetLibraryModel = read(
+      "src/features/freezone/domain/assetLibraryModel.ts",
+    );
     const mediaTransferController = read(
       "src/features/canvas/hooks/useCanvasMediaTransferController.ts",
     );
     const hydrate = read("src/features/canvas/application/assetDragHydration.ts");
     const composition = read("src/features/canvas/composition.ts");
 
-    expect(panel).toContain('const SCENE_DIRECTOR_WORLD_ROLE = "scene_director_world"');
-    expect(panel).toContain('const sceneContext = existing?.find((ctx) => ctx.kind === "scene" && ctx.sceneId === sceneId)');
-    expect(panel).toContain("if (sceneContext) return [sceneContext];");
-    expect(panel).toContain('kind: "scene"');
-    expect(panel).toContain("sceneId,");
+    expect(assetLibraryModel).toContain(
+      ["export const", "SCENE_DIRECTOR_WORLD_ROLE"].join(" "),
+    );
+    expect(assetLibraryModel).toContain('"scene_director_world"');
+    expect(assetLibraryModel).toContain("const sceneContext = existing?.find(");
+    expect(assetLibraryModel).toContain(
+      'context.kind === "scene" && context.sceneId === sceneId',
+    );
+    expect(assetLibraryModel).toContain("if (sceneContext) return [sceneContext];");
+    expect(assetLibraryModel).toContain('kind: "scene"');
+    expect(assetLibraryModel).toContain("sceneId,");
     expect(panel).toContain("hydrateAssetDragPayload(payload)");
     expect(mediaTransferController).toContain("hydrateAssetDragPayload(payload)");
     expect(hydrate).toContain("manifestGateway.getSceneDirectorStageManifest");
@@ -98,7 +107,7 @@ describe("freezone viewer contracts", () => {
     expect(composition).toContain("hydrateAssetDragPayloadUseCase(");
     expect(hydrate).toContain("directorWorldSourcesFromManifest");
     expect(hydrate).toContain('role !== SCENE_DIRECTOR_WORLD_ROLE');
-    expect(panel).not.toContain("if (existing?.length) return existing;");
+    expect(assetLibraryModel).not.toContain("if (existing?.length) return existing;");
   });
 
   it("lets a source-less ThreeDWorldNode enter a blank Director World", () => {
