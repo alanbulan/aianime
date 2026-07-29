@@ -1731,50 +1731,104 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain('"freezone/projection-remove"');
   });
 
-  it("keeps Freezone chat chrome in one presentation component", () => {
-    const presentationPath = resolve(
+  it("separates Freezone chat state from its presentation view", () => {
+    const entryPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/FreezoneChatDock.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneChatDockController.ts",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneChatDockView.tsx",
     );
     const shellPath = resolve(
       SRC_ROOT,
       "features/freezone/FreezoneShell.tsx",
     );
-    const presentationSource = readFileSync(presentationPath, "utf8");
+    const entryTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneChatDock.test.tsx",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneChatDockController.test.tsx",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
-    const declaration = ["export function", "FreezoneChatDock("].join(" ");
-    const declarationOwners = sourceFiles(SRC_ROOT)
-      .filter((path) => readFileSync(path, "utf8").includes(declaration))
-      .map(relativeSource)
-      .sort();
+    const entryTestSource = readFileSync(entryTestPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const declarations = [
+      ["export function", "FreezoneChatDock("].join(" "),
+      ["export function", "FreezoneChatDockView("].join(" "),
+      ["export function", "useFreezoneChatDockController("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
 
-    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "../hooks/useFreezoneChatDockController",
+        "./FreezoneChatDockView",
+      ]),
+    );
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set(["react", "@/hooks/use-media-query"]),
+    );
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
         "react",
         "@/components/ui/button",
         "@/components/ui/sheet",
         "@/features/superchat/superchat-panel",
-        "@/hooks/use-media-query",
         "@/lib/utils",
+        "../hooks/useFreezoneChatDockController",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/presentation/FreezoneChatDock.tsx",
+      ["features/freezone/presentation/FreezoneChatDock.tsx"],
+      ["features/freezone/presentation/FreezoneChatDockView.tsx"],
+      ["features/freezone/hooks/useFreezoneChatDockController.ts"],
     ]);
     expect(importSpecifiers(shellPath)).toContain(
       "./presentation/FreezoneChatDock",
     );
-    expect(presentationSource).toContain('<SuperChatPanel variant="freezone"');
-    expect(presentationSource).toContain("<Sheet open={open}");
-    expect(presentationSource).toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
-    expect(presentationSource).toContain('window.addEventListener("pointermove"');
-    expect(presentationSource).toContain('src="/images/avatar-motion.mp4"');
+    expect(entrySource).toContain("useFreezoneChatDockController({");
+    expect(entrySource).toContain("<FreezoneChatDockView");
+    expect(viewSource).toContain('<SuperChatPanel');
+    expect(viewSource).toContain("<Sheet open={open}");
+    expect(viewSource).toContain('src="/images/avatar-motion.mp4"');
+    expect(controllerSource).toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
+    expect(controllerSource).toContain(
+      'window.addEventListener("pointermove"',
+    );
+    expect(controllerSource).toContain(
+      "setShouldRenderPanel(false), 320",
+    );
+    expect(entryTestSource).toContain('from "./FreezoneChatDock"');
+    expect(controllerTestSource).toContain(
+      'from "./useFreezoneChatDockController"',
+    );
     expect(shellSource).toContain("<FreezoneChatDock");
     expect(shellSource).not.toContain("function FreezoneChatDock(");
-    expect(shellSource).not.toContain("function FreezoneChatToggleButton(");
-    expect(shellSource).not.toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
-    expect(shellSource).not.toContain('<SuperChatPanel variant="freezone"');
-    expect(shellSource).not.toContain("<Sheet open={open}");
+    for (const source of [entrySource, shellSource]) {
+      expect(source).not.toContain("function FreezoneChatToggleButton(");
+      expect(source).not.toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
+      expect(source).not.toContain('<SuperChatPanel');
+      expect(source).not.toContain("<Sheet open={open}");
+      expect(source).not.toContain('window.addEventListener("pointermove"');
+    }
+    expect(viewSource).not.toContain("useMediaQuery(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(controllerSource).not.toContain("className=");
   });
 
   it("keeps Freezone canvas feedback in one presentation module", () => {

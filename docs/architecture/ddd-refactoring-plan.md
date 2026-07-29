@@ -2108,6 +2108,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十八批经可达性审计确认 `CanvasDebugPanel` 的唯一 JSX 入口被常量 `false` 永久短路，且其 Canvas history 列表/恢复命令没有其他生产调用方；现已删除 355 行调试面板、Shell 中对应 import/open state/关闭动作与不可达 JSX，并整链移除前端 `listFreezoneCanvasHistory`、`restoreFreezoneCanvasVersion`、storage port/gateway/composition 方法、history DTO、restore request、legacy history ID 解析、public 导出及仅验证这些失效能力的测试。`FreezoneShell` 由 300 行降至 283 行，Canvas storage application 与 HTTP gateway 分别收敛至 131 行和 62 行；服务端保存时的历史快照与后端接口未改动，常规画布列表、读取、保存、删除、preset 和 keepalive 行为保持不变。Canvas storage 用例/网关、M06 合同、Director bundle 与 Viewer 回归 5 个文件 51 项、完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十九批已将 Freezone Chat Dock 的桌面媒体查询、面板延迟挂载/卸载、launcher 初始位置读取与容器钳位、pointer 拖拽监听、位置持久化、拖拽后点击抑制以及头像视频播放状态从混合 presentation 组件迁入唯一 `hooks/useFreezoneChatDockController.ts`；完整移动端 Sheet、桌面 aside、launcher 图片/视频 DOM 和样式迁入无 Hook 的 `presentation/FreezoneChatDockView.tsx`，稳定 `FreezoneChatDock` 只装配 controller 与 View。移动端点击打开、桌面 320 ms 关闭动画、SuperChat 关闭回调、跨挂载位置恢复、4 px 拖拽阈值、窗口边界钳位和 hover/focus 视频动效保持不变；原状态、副作用、DOM 和本地 helper 从入口直接删除，不保留旧组件、转发实现或第二套交互。原 301 行文件收敛为 31 行入口，controller 为 216 行，唯一完整 View 为 182 行；Chat Dock 集成、controller 与 Viewer/Shell 合同回归 3 个文件 29 项，完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
