@@ -65,29 +65,36 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps ThreeDWorldNode freezone mode optional and separate from mainline beat overlay requirements", () => {
-    const node = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const model = read(
+      "src/features/canvas/application/threeDWorldNodeModel.ts",
+    );
+    const controller = read(
+      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
+    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const implementation = `${model}\n${controller}\n${view}`;
 
-    expect(node).toContain("ThreeDDirectorDialog");
-    expect(node).toContain("const SCENE_DIRECTOR_SOURCE_ROLES = new Set");
-    expect(node).toContain("'scene_3gs_master_ply'");
-    expect(node).toContain("'scene_3gs_custom_scene'");
-    expect(node).toContain("function isCandidateDirectorWorldNode");
-    expect(node).toContain("!hasMainlineContexts");
-    expect(node).toContain("return activeSource ? [activeSource] : [];");
-    expect(node).toContain("function isSceneDirectorWorldNode");
-    expect(node).toContain("if (!hasMainlineContexts");
-    expect(node).toContain("const sceneDirectorWorld = isSceneDirectorWorldNode(data)");
-    expect(node).toContain("if (sceneDirectorWorld) return null;");
-    expect(node).toContain("viewerPurpose={beatContext ? 'beat' : 'freezone'}");
-    expect(node).toContain("canvas_screenshot_node");
-    expect(node).toContain("beat_selected_background");
-    expect(node).toContain("onSubmitDirectorCombined={beatContext ? handleSubmitDirectorCombined : undefined}");
-    expect(node).toContain("onCaptureCanvasNode={handleCaptureCanvasNode}");
-    expect(node).toContain("isDirectorRenderNode");
-    expect(node).toContain("isDirectorRenderNode ? fallbackThumb ?? upstreamThumb : upstreamThumb ?? fallbackThumb");
-    expect(node).toContain("snapshot: meta.snapshot");
-    expect(node).not.toContain("blockings_dir_fs:");
-    expect(node).not.toContain("slate_beat:");
+    expect(view).toContain("ThreeDDirectorDialog");
+    expect(model).toContain("const SCENE_DIRECTOR_SOURCE_ROLES = new Set");
+    expect(model).toContain("'scene_3gs_master_ply'");
+    expect(model).toContain("'scene_3gs_custom_scene'");
+    expect(model).toContain("function isCandidateDirectorWorldNode");
+    expect(model).toContain("!hasMainlineContexts");
+    expect(model).toContain("return activeSource ? [activeSource] : [];");
+    expect(model).toContain("function isSceneDirectorWorldNode");
+    expect(model).toContain("!hasMainlineContexts(");
+    expect(model).toContain("if (isSceneDirectorWorldNode(data)) return null;");
+    expect(controller).toContain("resolveThreeDWorldBeatContext(data, contexts)");
+    expect(view).toContain("viewerPurpose={beatContext ? 'beat' : 'freezone'}");
+    expect(model).toContain("canvas_screenshot_node");
+    expect(model).toContain("beat_selected_background");
+    expect(view).toContain("beatContext ? controller.submitDirectorCombined : undefined");
+    expect(view).toContain("onCaptureCanvasNode={controller.captureCanvasNode}");
+    expect(model).toContain("isDirectorRenderNode");
+    expect(model).toContain("fallbackUrl ?? upstreamUrl");
+    expect(controller).toContain("snapshot: meta.snapshot");
+    expect(implementation).not.toContain("blockings_dir_fs:");
+    expect(implementation).not.toContain("slate_beat:");
   });
 
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
@@ -137,15 +144,22 @@ describe("freezone viewer contracts", () => {
   });
 
   it("lets a source-less ThreeDWorldNode enter a blank Director World", () => {
-    const node = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const model = read(
+      "src/features/canvas/application/threeDWorldNodeModel.ts",
+    );
+    const controller = read(
+      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
+    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const implementation = `${model}\n${controller}\n${view}`;
 
-    expect(node).toContain("source_type: 'sog' as const");
-    expect(node).toContain("source_kind: 'custom' as const");
-    expect(node).toContain("pano_url: undefined");
-    expect(node).toContain("{selected ? (");
-    expect(node).not.toContain("if (!data.plyUrl && !data.panoUrl && !data.sources?.length && upstreamPanoSources.length === 0) return;");
-    expect(node).not.toContain("{selected && hasWorldSource ? (");
-    expect(node).toContain("t('viewer.threeD.enterDirectorWorld')");
+    expect(model).toContain("source_type: 'sog' as const");
+    expect(model).toContain("source_kind: 'custom' as const");
+    expect(model).toContain("pano_url: undefined");
+    expect(view).toContain("{selected ? (");
+    expect(implementation).not.toContain("if (!data.plyUrl && !data.panoUrl && !data.sources?.length && upstreamPanoSources.length === 0) return;");
+    expect(view).not.toContain("{selected && preview.hasWorldSource ? (");
+    expect(view).toContain("t('viewer.threeD.enterDirectorWorld')");
   });
 
   it("exposes a director world camera reset without clearing saved scene data", () => {
@@ -199,7 +213,9 @@ describe("freezone viewer contracts", () => {
   it("lets scene director worlds create unbounded anonymous actors and props with neutral fallback color", () => {
     const dialog = read("src/features/viewer-kit/three-d/ThreeDDirectorDialog.tsx");
     const manifest = read("src/features/viewer-kit/three-d/directorManifest.ts");
-    const worldNode = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const worldController = read(
+      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
     const canvasComposition = read("src/features/canvas/composition.ts");
     const skillNode = read("src/features/canvas/nodes/SkillNode.tsx");
     const zh = read("public/locales/zh/translation.json");
@@ -207,10 +223,10 @@ describe("freezone viewer contracts", () => {
 
     expect(manifest).toContain("anonymous_prop_colors: string[];");
     expect(canvasComposition).toContain("getCanvasDirectorStagePalette");
-    expect(worldNode).toContain("getCanvasDirectorStagePalette({ projectId })");
-    expect(worldNode).toContain("defaultPalette");
-    expect(worldNode).not.toContain("ANONYMOUS_DIRECTOR_COLORS");
-    expect(worldNode).not.toContain("ANONYMOUS_DIRECTOR_PROP_COLORS");
+    expect(worldController).toContain("getCanvasDirectorStagePalette({ projectId })");
+    expect(worldController).toContain("defaultPalette");
+    expect(worldController).not.toContain("ANONYMOUS_DIRECTOR_COLORS");
+    expect(worldController).not.toContain("ANONYMOUS_DIRECTOR_PROP_COLORS");
     expect(dialog).not.toContain("ANONYMOUS_ACTOR_COLORS");
     expect(dialog).not.toContain("ANONYMOUS_PROP_COLORS");
     expect(skillNode).not.toContain("BEAT_ACTOR_COLORS");
@@ -402,33 +418,40 @@ describe("freezone viewer contracts", () => {
 
   it("lets canvas ThreeDWorldNode open pano360 image sources when explicitly connected", () => {
     const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
-    const node = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const model = read(
+      "src/features/canvas/application/threeDWorldNodeModel.ts",
+    );
+    const controller = read(
+      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
+    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const implementation = `${model}\n${controller}\n${view}`;
 
     expect(canvasNodes).toContain("panoUrl?: string | null");
     expect(canvasNodes).toContain("sources?: DirectorWorldSource[]");
-    expect(node).toContain("source_type: sourceType");
-    expect(node).toContain("sourceType = data.plyUrl ? 'sog' : 'pano360'");
-    expect(node).toContain("directorPanoSourceFromCanvasNode");
-    expect(node).toContain("const upstreamPanoSources");
-    expect(node).toContain("for (const source of upstreamPanoSources)");
-    expect(node).not.toContain("getSceneDirectorStageManifest");
-    expect(node).not.toContain("canHydrateSceneDirectorWorld");
-    expect(node).not.toContain("saveSceneDirectorWorld");
-    expect(node).not.toContain("clearSceneDirectorWorld");
-    expect(node).not.toContain("localScenePatchFromManifest");
-    expect(node).not.toContain("sceneIdFromThreeDWorldNode");
-    expect(node).toContain("directorManifest?.scene");
-    expect(node).toContain("directorManifest?.scenes_by_source_id");
-    expect(node).not.toContain("function isPanoImageNode");
-    expect(node).not.toContain("function directorPanoSourceFromUpstream");
-    expect(node).not.toContain("if (!data.plyUrl && !data.panoUrl && !data.sources?.length && upstreamPanoSources.length === 0) return");
-    expect(node).toContain("{selected ? (");
-    expect(node).toContain("sources: directorSources.length > 0 ? directorSources : undefined");
-    expect(node).toContain("activeSourceId");
-    expect(node).toContain("snapshot.world?.activeSourceId");
-    expect(node).toContain("activeSourceId: nextActiveSourceId");
-    expect(node).toContain("scenesBySourceId");
-    expect(node).toContain("initialScenesBySourceId");
+    expect(model).toContain("source_type: sourceType");
+    expect(model).toContain("sourceType = data.plyUrl ? 'sog' : 'pano360'");
+    expect(model).toContain("directorPanoSourceFromCanvasNode");
+    expect(controller).toContain("const upstreamPanoSources");
+    expect(model).toContain("for (const source of upstreamPanoSources)");
+    expect(implementation).not.toContain("getSceneDirectorStageManifest");
+    expect(implementation).not.toContain("canHydrateSceneDirectorWorld");
+    expect(implementation).not.toContain("saveSceneDirectorWorld");
+    expect(implementation).not.toContain("clearSceneDirectorWorld");
+    expect(implementation).not.toContain("localScenePatchFromManifest");
+    expect(implementation).not.toContain("sceneIdFromThreeDWorldNode");
+    expect(controller).toContain("directorManifest?.scene");
+    expect(controller).toContain("directorManifest?.scenes_by_source_id");
+    expect(implementation).not.toContain("function isPanoImageNode");
+    expect(implementation).not.toContain("function directorPanoSourceFromUpstream");
+    expect(implementation).not.toContain("if (!data.plyUrl && !data.panoUrl && !data.sources?.length && upstreamPanoSources.length === 0) return");
+    expect(view).toContain("{selected ? (");
+    expect(model).toContain("sources: directorSources.length > 0 ? directorSources : undefined");
+    expect(controller).toContain("activeSourceId");
+    expect(model).toContain("snapshot.world?.activeSourceId");
+    expect(model).toContain("activeSourceId: nextActiveSourceId");
+    expect(model).toContain("scenesBySourceId");
+    expect(view).toContain("initialScenesBySourceId");
   });
 
   it("commits scene director worlds only through the explicit structured commit path", () => {
@@ -465,7 +488,16 @@ describe("freezone viewer contracts", () => {
   it("keeps Director World generation behind the connected ThreeDWorldNode", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const overlay = read("src/features/canvas/ui/SelectedNodeOverlay.tsx");
-    const worldNode = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const worldModel = read(
+      "src/features/canvas/application/threeDWorldNodeModel.ts",
+    );
+    const worldController = read(
+      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
+    const worldView = read(
+      "src/features/canvas/nodes/ThreeDWorldNodeView.tsx",
+    );
+    const worldImplementation = `${worldModel}\n${worldController}\n${worldView}`;
     const sourceKindDomain = read("src/features/canvas/domain/imageTo3d.ts");
     const generationUseCase = read(
       "src/features/canvas/application/generateCanvasImageTo3d.ts",
@@ -477,18 +509,18 @@ describe("freezone viewer contracts", () => {
     expect(toolbar).not.toContain("nodeToolbar.addPanoToDirectorWorld");
     expect(overlay).not.toContain("handleGenerateDirectorWorldFromImage");
     expect(overlay).not.toContain("handleAddPanoToDirectorWorld");
-    expect(worldNode).not.toContain("PLY_KIND_OPTIONS");
-    expect(worldNode).toContain("DIRECTOR_IMAGE_SOURCE_OPTIONS");
-    expect(worldNode).toContain("nodeToolbar.normalImage");
-    expect(worldNode).toContain("nodeToolbar.image360");
-    expect(worldNode).toContain("referenceImages");
-    expect(worldNode).toContain("onReferenceImageChange");
-    expect(worldNode).toContain("const inferredImageSourceKind");
-    expect(worldNode).toContain("if (isPanoImageCanvasNode(sourceNodeForGeneration)) return 'pano';");
-    expect(worldNode).toContain("resolveCanvasImageTo3dSourceKind(");
-    expect(worldNode).toContain("await generateCanvasImageTo3d(");
-    expect(worldNode).not.toContain("submitFreezoneImageTo3GS");
-    expect(worldNode).not.toContain("awaitTaskCompletion");
+    expect(worldImplementation).not.toContain("PLY_KIND_OPTIONS");
+    expect(worldView).toContain("DIRECTOR_IMAGE_SOURCE_OPTIONS");
+    expect(worldView).toContain("nodeToolbar.normalImage");
+    expect(worldView).toContain("nodeToolbar.image360");
+    expect(worldView).toContain("referenceImages");
+    expect(worldView).toContain("onReferenceImageChange");
+    expect(worldModel).toContain("resolveThreeDWorldImageSourceKind");
+    expect(worldModel).toContain("isPanoImageCanvasNode(sourceNode)");
+    expect(worldController).toContain("resolveCanvasImageTo3dSourceKind(");
+    expect(worldController).toContain("await generateCanvasImageTo3d(");
+    expect(worldImplementation).not.toContain("submitFreezoneImageTo3GS");
+    expect(worldImplementation).not.toContain("awaitTaskCompletion");
     expect(sourceKindDomain).toContain('sourceRole === "scene_reverse_master"');
     expect(generationUseCase).toContain("sourceFromImageTo3gsResult(");
     expect(zh).toContain('"generateDirectorWorld": "生成3DGS世界"');

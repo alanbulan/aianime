@@ -55,7 +55,7 @@ describe("ImageGenNode director combined world entry", () => {
 
   it("exports both combined and env_only from normal Director World canvas output", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/ThreeDWorldNode.tsx"),
+      resolve(process.cwd(), "src/features/canvas/hooks/useThreeDWorldNodeController.ts"),
       "utf8",
     );
 
@@ -67,7 +67,7 @@ describe("ImageGenNode director combined world entry", () => {
 
   it("guards Director World canvas output against duplicate in-flight group creation", () => {
     const threeDWorldSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/ThreeDWorldNode.tsx"),
+      resolve(process.cwd(), "src/features/canvas/hooks/useThreeDWorldNodeController.ts"),
       "utf8",
     );
     const uploadSource = readFileSync(

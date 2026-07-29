@@ -24,6 +24,7 @@ import {
   resolveUploadNodeTitle,
   sceneSnapshotFromDirectorControlBundle,
 } from '@/features/canvas/application/uploadNodeModel';
+import { uploadDirectorCaptureBundle } from '@/features/canvas/application/directorCaptureBundle';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   resolveImageDisplayUrl,
@@ -31,6 +32,10 @@ import {
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
+import {
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
+} from '@/features/canvas/infrastructure/browserDirectorCaptureRuntime';
 import {
   getCanvasBeatDirectorManifest,
   prepareNodeImageFromFile,
@@ -44,7 +49,6 @@ import {
 } from '@/features/freezone/public';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type {
-  DirectorControlFrameBundle,
   DirectorStageManifest,
 } from '@/features/viewer-kit/three-d/directorManifest';
 import { readUrl } from '@/lib/url-params';
@@ -56,84 +60,6 @@ export interface UploadNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') resolve(reader.result);
-      else reject(new Error('无法读取导演世界截图'));
-    };
-    reader.onerror = () =>
-      reject(reader.error ?? new Error('无法读取导演世界截图'));
-    reader.readAsDataURL(blob);
-  });
-}
-
-function imageSize(dataUrl: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () =>
-      resolve({
-        width: image.naturalWidth || 1,
-        height: image.naturalHeight || 1,
-      });
-    image.onerror = () => reject(new Error('无法解析导演世界截图尺寸'));
-    image.src = dataUrl;
-  });
-}
-
-async function uploadDirectorCaptureBundle(
-  projectId: string,
-  nodeId: string,
-  meta: NonNullable<ThreeDDirectorCaptureMeta['captureBundle']>,
-): Promise<DirectorControlFrameBundle> {
-  const stamp = Date.now();
-  const [combined, envOnly, frameMeta] = await Promise.all([
-    uploadCanvasAsset(
-      projectId,
-      meta.combined,
-      `director-world-${nodeId}-combined-${stamp}.png`,
-      { disableTimeout: true },
-    ),
-    uploadCanvasAsset(
-      projectId,
-      meta.env_only,
-      `director-world-${nodeId}-env-only-${stamp}.png`,
-      { disableTimeout: true },
-    ),
-    uploadCanvasAsset(
-      projectId,
-      new Blob([JSON.stringify(meta.frame_meta)], {
-        type: 'application/json',
-      }),
-      `director-world-${nodeId}-frame-meta-${stamp}.json`,
-      { disableTimeout: true },
-    ),
-  ]);
-
-  return {
-    schema_version: 'director_control_bundle_v1',
-    dir: 'freezone/director-world',
-    paths: {
-      combined: combined.filename,
-      env_only: envOnly.filename,
-      frame_meta: frameMeta.filename,
-    },
-    rel_paths: {
-      combined: combined.filename,
-      env_only: envOnly.filename,
-      frame_meta: frameMeta.filename,
-    },
-    urls: {
-      combined: combined.url,
-      env_only: envOnly.url,
-      frame_meta: frameMeta.url,
-    },
-    source: meta.frame_meta.source,
-    frame_meta: meta.frame_meta,
-  };
 }
 
 export function useUploadNodeController({
@@ -536,6 +462,7 @@ export function useUploadNodeController({
         projectId,
         id,
         meta.captureBundle,
+        uploadCanvasAsset,
       );
       const imageUrl = bundle.urls?.combined ?? '';
       if (!imageUrl) throw new Error('画布导演合成图缺少图片地址');
@@ -565,14 +492,15 @@ export function useUploadNodeController({
             projectId,
             id,
             meta.captureBundle,
+            uploadCanvasAsset,
           );
           const [combinedDataUrl, envOnlyDataUrl] = await Promise.all([
-            blobToDataUrl(meta.captureBundle.combined),
-            blobToDataUrl(meta.captureBundle.env_only),
+            directorCaptureBlobToDataUrl(meta.captureBundle.combined),
+            directorCaptureBlobToDataUrl(meta.captureBundle.env_only),
           ]);
           const [combinedSize, envOnlySize] = await Promise.all([
-            imageSize(combinedDataUrl),
-            imageSize(envOnlyDataUrl),
+            readDirectorCaptureImageSize(combinedDataUrl),
+            readDirectorCaptureImageSize(envOnlyDataUrl),
           ]);
           const baseMetadata = {
             viewer: 'director_world',
@@ -616,8 +544,8 @@ export function useUploadNodeController({
           }
           return;
         }
-        const dataUrl = await blobToDataUrl(blob);
-        const size = await imageSize(dataUrl);
+        const dataUrl = await directorCaptureBlobToDataUrl(blob);
+        const size = await readDirectorCaptureImageSize(dataUrl);
         const uploadedUrl = await uploadLocalImageToBackend(
           dataUrl,
           `director-world-${id}-combined-${Date.now()}.png`,

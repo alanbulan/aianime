@@ -1889,6 +1889,154 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './BeatContextNodeView'");
   });
 
+  it("separates the Canvas Director World model, capture use case, runtime, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/threeDWorldNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/threeDWorldNodeModel.test.ts",
+    );
+    const capturePath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/directorCaptureBundle.ts",
+    );
+    const captureTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/directorCaptureBundle.test.ts",
+    );
+    const runtimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserDirectorCaptureRuntime.ts",
+    );
+    const runtimeTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserDirectorCaptureRuntime.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useThreeDWorldNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldNodeView.test.tsx",
+    );
+    const thumbPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const captureSource = readFileSync(capturePath, "utf8");
+    const captureTestSource = readFileSync(captureTestPath, "utf8");
+    const runtimeSource = readFileSync(runtimePath, "utf8");
+    const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const thumbSource = readFileSync(thumbPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "ThreeDWorldNode", "=", "memo("].join(" "),
+      ["export function", "directorSourcesForNode("].join(" "),
+      ["export async function", "uploadDirectorCaptureBundle("].join(" "),
+      ["export function", "directorCaptureBlobToDataUrl("].join(" "),
+      ["export function", "useThreeDWorldNodeController("].join(" "),
+      ["export function", "ThreeDWorldNodeView("].join(" "),
+      ["export function", "ThreeDWorldReferenceImageThumb("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useThreeDWorldNodeController",
+        "./ThreeDWorldNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/ThreeDWorldNode.tsx"],
+      ["features/canvas/application/threeDWorldNodeModel.ts"],
+      ["features/canvas/application/directorCaptureBundle.ts"],
+      ["features/canvas/infrastructure/browserDirectorCaptureRuntime.ts"],
+      ["features/canvas/hooks/useThreeDWorldNodeController.ts"],
+      ["features/canvas/nodes/ThreeDWorldNodeView.tsx"],
+      ["features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(captureSource).toContain("uploadAsset(");
+    expect(captureSource).not.toContain("uploadCanvasAsset");
+    expect(captureSource).not.toContain("ThreeDDirectorDialog");
+    expect(captureSource).not.toContain("useCanvasStore");
+    expect(runtimeSource).toContain("new FileReader()");
+    expect(runtimeSource).toContain("new Image()");
+    expect(runtimeSource).not.toContain("react");
+    expect(runtimeSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { ThreeDWorldNode } from './ThreeDWorldNode'",
+    );
+    expect(registrySource).toContain("threeDWorldNode: ThreeDWorldNode");
+    expect(entrySource).toContain("useThreeDWorldNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(ThreeDWorldNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("generateCanvasImageTo3d(");
+    expect(controllerSource).toContain("uploadDirectorCaptureBundle(");
+    expect(controllerSource).toContain("setDirectorWorldSceneSaveHandler(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<NodeGenerationHistory");
+    expect(viewSource).toContain("<ThreeDWorldReferenceImageThumb");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("generateCanvasImageTo3d(");
+    expect(thumbSource).toContain("useState<");
+    expect(thumbSource).toContain("createPortal(");
+    expect(thumbSource).not.toContain("useCanvasStore(");
+    expect(modelTestSource).toContain("from './threeDWorldNodeModel'");
+    expect(captureTestSource).toContain("from './directorCaptureBundle'");
+    expect(runtimeTestSource).toContain(
+      "from './browserDirectorCaptureRuntime'",
+    );
+    expect(controllerTestSource).toContain(
+      "from './useThreeDWorldNodeController'",
+    );
+    expect(viewTestSource).toContain("from './ThreeDWorldNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -16427,7 +16575,7 @@ describe("frontend architecture boundaries", () => {
     const nodePaths = [
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
-      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
@@ -16501,7 +16649,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
     );
     const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -16947,7 +17095,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -21164,6 +21312,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/uploadCanvasAsset.ts",
     );
+    const directorCapturePath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/directorCaptureBundle.ts",
+    );
     const adapterPath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneAssetGateway.ts",
@@ -21179,7 +21331,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
-      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
       "features/canvas/ui/AssetLibraryModal.tsx",
@@ -21189,6 +21341,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationSource = readFileSync(applicationPath, "utf8");
+    const directorCaptureSource = readFileSync(directorCapturePath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const consumerSources = consumerPaths.map((path) =>
@@ -21229,6 +21382,23 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain("options");
     expect(compositionSource).toContain("uploadCanvasAssetUseCase(");
     expect(compositionSource).toContain("freezoneAssetGateway");
+    expect(directorCaptureSource).toContain("uploadAsset(");
+    expect(directorCaptureSource).not.toContain("uploadCanvasAsset");
+    expect(
+      directorCaptureSource.match(/uploadAsset\(/g),
+    ).toHaveLength(3);
+    expect(directorCaptureSource.match(/disableTimeout: true/g)).toHaveLength(1);
+    expect(
+      directorCaptureSource.match(/DIRECTOR_CAPTURE_UPLOAD_OPTIONS/g),
+    ).toHaveLength(4);
+    expect(consumerSources[6]).toContain("directorCaptureBundle");
+    expect(consumerSources[7]).toContain("directorCaptureBundle");
+    expect(consumerSources[6]).not.toContain(
+      "director-world-${nodeId}-combined-",
+    );
+    expect(consumerSources[7]).not.toContain(
+      "director-world-${nodeId}-combined-",
+    );
     expect(directImageUploadOwners).toEqual([]);
     expect(directVideoUploadOwners).toEqual([]);
     for (const consumerSource of consumerSources) {
@@ -21241,7 +21411,7 @@ describe("frontend architecture boundaries", () => {
       consumerSources
         .join("\n")
         .match(/disableTimeout: true/g),
-    ).toHaveLength(12);
+    ).toHaveLength(6);
   });
 
   it("keeps Canvas asset-library contracts and transport mapping out of views", () => {
@@ -21415,7 +21585,7 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       ...hookPaths,
       resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
       resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
       resolve(SRC_ROOT, "features/canvas/ui/NodeGenerationHistory.tsx"),

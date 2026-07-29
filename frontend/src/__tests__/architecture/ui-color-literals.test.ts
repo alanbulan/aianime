@@ -66,6 +66,8 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/nodes/StoryboardNodeView.tsx": 0,
   "features/canvas/nodes/StylePickerPopover.tsx": 0,
   "features/canvas/nodes/ThreeDWorldNode.tsx": 0,
+  "features/canvas/nodes/ThreeDWorldNodeView.tsx": 0,
+  "features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx": 0,
   "features/canvas/nodes/UploadNode.tsx": 0,
   "features/canvas/nodes/VideoClipPanel.tsx": 0,
   "features/canvas/nodes/VideoNode.tsx": 6,

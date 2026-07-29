@@ -9,7 +9,7 @@ import {
   type CanvasAssetNodeSpawnPort,
 } from "@/features/canvas/domain/assetDrag";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import { usableDirectorWorldPreviewUrl } from "@/features/canvas/nodes/ThreeDWorldNode";
+import { usableDirectorWorldPreviewUrl } from "@/features/canvas/application/threeDWorldNodeModel";
 import { directorControlBundleFromAssetSource } from "@/features/freezone/domain/assetLibraryModel";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
