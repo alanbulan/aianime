@@ -30,6 +30,13 @@ import {
   type SaveResponseOutcome,
 } from "../application/canvasSyncCore";
 import {
+  canvasContentSignature,
+  decideHydrateDraft,
+  shouldAbortBestEffortPresetRefresh,
+  shouldDeferPresetRefreshUntilReady,
+  shouldFlushBeforePresetRefresh,
+} from "../application/canvasSyncHydration";
+import {
   buildConflictCopyCanvasId,
   buildConflictCopyMetadata,
   isCanvasSyncViewport,
@@ -55,7 +62,6 @@ import {
 } from "../projections";
 import {
   canvasDraftSignature,
-  type StoredCanvasDraft,
 } from "../application/canvasDraft";
 import { canvasDraftStorageGateway } from "../canvasDraftComposition";
 
@@ -198,29 +204,6 @@ function acquireHydrateFlight(
   };
 }
 
-export function shouldAbortBestEffortPresetRefresh(
-  bestEffort: boolean | undefined,
-  flushed: boolean,
-): boolean {
-  return Boolean(bestEffort) && !flushed;
-}
-
-export function shouldFlushBeforePresetRefresh(
-  bestEffort: boolean | undefined,
-  userEditsSinceHydrate: number,
-): boolean {
-  return !bestEffort || userEditsSinceHydrate > 0;
-}
-
-export function shouldDeferPresetRefreshUntilReady(
-  bestEffort: boolean | undefined,
-  revision: number | null,
-  hydratedCanvasId: string | null,
-  canvasId: string,
-): boolean {
-  return Boolean(bestEffort) && (revision == null || hydratedCanvasId !== canvasId);
-}
-
 export function saveErrorStatusAndBody(err: unknown): {
   status: number | null;
   body: Parameters<typeof classifySaveError>[1] | undefined;
@@ -242,134 +225,6 @@ export function saveErrorStatusAndBody(err: unknown): {
 
 function statusFromError(err: unknown): number | null {
   return saveErrorStatusAndBody(err).status;
-}
-
-/**
- * A stable string fingerprint of the *persisted* canvas shape — the business
- * data the backend stores (`nodes` / `edges`). It deliberately omits the
- * ephemeral fields ReactFlow stamps onto nodes for the current view:
- *
- *   - `selected`  — selecting / deselecting a node
- *   - `dragging`  — mid-drag transient flag
- *   - `measured`  — auto-measured render size, updated on every layout pass
- *
- * Save only when this fingerprint changes. Pure view-state changes (zoom, pan,
- * viewport resize, selection, hover, focus, tool dialogs, image preview) never
- * touch it, so they no longer trigger a full PUT.
- */
-/**
- * 逐节点/逐边的指纹缓存。store 的更新是不可变的：一次选中、一次拖拽只会替换受影响的
- * 那几个节点对象，其余节点对象的引用不变。按对象身份缓存分片后，签名的代价就从
- * 「每次变更都 stringify 整张图」降到「只 stringify 真正变了的那几个节点」——画布里
- * 有几十个图片/视频节点时，这是切页那一帧卡死的主要来源。
- */
-const nodeSignatureCache = new WeakMap<object, string>();
-const edgeSignatureCache = new WeakMap<object, string>();
-
-function nodeSignature(node: CanvasNode): string {
-  const cached = nodeSignatureCache.get(node);
-  if (cached !== undefined) return cached;
-  const signature = JSON.stringify({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    width: node.width,
-    height: node.height,
-    style: node.style,
-    parentId: node.parentId,
-    extent: node.extent,
-    data: node.data,
-  });
-  nodeSignatureCache.set(node, signature);
-  return signature;
-}
-
-function edgeSignature(edge: CanvasEdge): string {
-  const cached = edgeSignatureCache.get(edge);
-  if (cached !== undefined) return cached;
-  const signature = JSON.stringify({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    sourceHandle: edge.sourceHandle,
-    targetHandle: edge.targetHandle,
-    type: edge.type,
-    data: edge.data,
-  });
-  edgeSignatureCache.set(edge, signature);
-  return signature;
-}
-
-function canvasContentSignature(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
-): string {
-  return `${nodes.map(nodeSignature).join("")}${edges
-    .map(edgeSignature)
-    .join("")}`;
-}
-
-type HydrateDraftDecision =
-  | { kind: "remote" }
-  | { kind: "draft"; draft: StoredCanvasDraft }
-  | { kind: "conflict"; draft: StoredCanvasDraft; message: string };
-
-function jsonContainsSubset(
-  superset: unknown,
-  subset: unknown,
-): boolean {
-  if (subset === undefined) return true;
-  if (subset === null || typeof subset !== "object") {
-    return Object.is(superset, subset);
-  }
-  if (Array.isArray(subset)) {
-    if (!Array.isArray(superset) || superset.length < subset.length) {
-      return false;
-    }
-    return subset.every((item, index) => jsonContainsSubset(superset[index], item));
-  }
-  if (!superset || typeof superset !== "object" || Array.isArray(superset)) {
-    return false;
-  }
-  const supersetRecord = superset as Record<string, unknown>;
-  const subsetRecord = subset as Record<string, unknown>;
-  return Object.keys(subsetRecord).every((key) =>
-    jsonContainsSubset(supersetRecord[key], subsetRecord[key]),
-  );
-}
-
-function decideHydrateDraft(
-  draft: StoredCanvasDraft | null,
-  remoteRevision: number | null,
-  remoteSignature: string,
-  remoteNodes: CanvasNode[],
-  remoteEdges: CanvasEdge[],
-  remoteMetadata: Record<string, unknown> | null,
-): HydrateDraftDecision {
-  if (!draft) return { kind: "remote" };
-  if (draft.signature === remoteSignature) {
-    return { kind: "remote" };
-  }
-  const draftContentAlreadySaved =
-    canvasContentSignature(draft.nodes, draft.edges) ===
-      canvasContentSignature(remoteNodes, remoteEdges) &&
-    jsonContainsSubset(remoteMetadata ?? null, draft.metadata ?? null);
-  if (draftContentAlreadySaved) {
-    return { kind: "remote" };
-  }
-  if (
-    typeof draft.baseRevision === "number" &&
-    typeof remoteRevision === "number" &&
-    draft.baseRevision === remoteRevision
-  ) {
-    return { kind: "draft", draft };
-  }
-  return {
-    kind: "conflict",
-    draft,
-    message:
-      "本地有未同步的画布草稿，但服务器版本已经变化。请保存副本或丢弃本地草稿后继续。",
-  };
 }
 
 function viewportsEqual(a: Viewport, b: Viewport): boolean {

@@ -4996,6 +4996,61 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
   });
 
+  it("keeps canvas hydration reconciliation in Freezone application", () => {
+    const hydrationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasSyncHydration.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const hydrationSource = readFileSync(hydrationPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const forbiddenImports = importSpecifiers(hydrationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/shared/api/"),
+    );
+    const declarations = [
+      ["export function", "canvasContentSignature("].join(" "),
+      ["export function", "decideHydrateDraft("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(new Set(importSpecifiers(hydrationPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "./canvasDraft",
+      ]),
+    );
+    expect(hydrationSource).not.toContain("window.");
+    expect(hydrationSource).not.toContain("document.");
+    expect(hydrationSource).not.toContain("localStorage");
+    expect(declarationOwners).toEqual([
+      ["features/freezone/application/canvasSyncHydration.ts"],
+      ["features/freezone/application/canvasSyncHydration.ts"],
+    ]);
+    expect(importSpecifiers(hookPath)).toContain(
+      "../application/canvasSyncHydration",
+    );
+    expect(hookSource).not.toContain("const nodeSignatureCache");
+    expect(hookSource).not.toContain("function decideHydrateDraft(");
+  });
+
   it("keeps browser canvas sync persistence behind an application port", () => {
     const storagePath = resolve(
       SRC_ROOT,

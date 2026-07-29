@@ -2024,6 +2024,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十六批已将根级 `canvasDraftStorage.ts` 中混合的草稿 DTO、稳定签名、历史兼容解析与存储端口迁入唯一 application `canvasDraft.ts`，浏览器 JSON/localStorage 读写、1.5 MB history 降级、TTL 分类清理和配额回收注册迁入唯一 `browserCanvasDraftStorageGateway`，并由 `canvasDraftComposition` 显式装配供同步 hook 与应用 bootstrap 使用；Freezone public 仅暴露 composition 的回收安装入口，旧根文件直接删除。失去必要性的 `pruneOldCanvasDrafts` deprecated 别名及全部旧导入同步清零，不保留 re-export、facade 或第二套草稿实现；draft key 编码、版本 1、7 天 TTL、超限时先丢 history、损坏数据清理、签名字段排序和注册/注销行为保持不变。草稿、同步、冲突与配额回收回归 104 项、相关架构门禁 6 项和完整前端架构门禁 221 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十七批已将 `useCanvasSync` 中画布持久内容指纹、本地草稿 hydrate 仲裁和 preset projection best-effort 刷新判定迁入唯一 Freezone application `canvasSyncHydration.ts`，hook 仅保留 React 生命周期、状态编排与端口调用，由 1,716 行降至 1,568 行。节点/边 WeakMap 分片指纹缓存、React Flow 瞬态字段排除、metadata 子集比较、草稿/远端版本冲突文案及刷新时序条件均保持原行为；旧 hook 定义直接删除，不保留 re-export、别名或第二套规则，画布列表测试同步改为依赖 application 所有者。新增纯规则回归和唯一所有权门禁；hydrate、同步与画布列表回归 60 项、相关架构门禁 3 项和完整前端架构门禁 222 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

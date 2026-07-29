@@ -25,11 +25,11 @@ import {
   buildConflictCopyMetadata,
 } from "@/features/freezone/application/canvasSyncStorage";
 import {
-  saveErrorStatusAndBody,
   shouldAbortBestEffortPresetRefresh,
   shouldDeferPresetRefreshUntilReady,
   shouldFlushBeforePresetRefresh,
-} from "@/features/freezone/hooks/useCanvasSync";
+} from "@/features/freezone/application/canvasSyncHydration";
+import { saveErrorStatusAndBody } from "@/features/freezone/hooks/useCanvasSync";
 import { BackendStatusError } from "@/shared/api/errors";
 
 function canvas(
