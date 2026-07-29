@@ -2048,6 +2048,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十八批已将 Freezone 常规保存的 React 生命周期迁入唯一 presentation controller `hooks/useCanvasSaveController.ts`，统一持有 800 ms 自动保存 timer、在途 Promise、幂等 client save ID、画布/shot metadata 订阅、立即保存、flush、远端刷新取消和 beforeunload 参数组装；application `canvasSave.ts` 与 `canvasUnloadSave.ts` 继续唯一持有保存判定、payload、重试、冲突和 keepalive 规则。节点/边引用热点过滤、程序化投影抑制消费、conflict/error 时只落恢复草稿、保存成功草稿回调、effect cleanup 草稿兜底以及卸载 pending/in-flight 判定均保持原时序。总同步 hook 不再直接依赖两个保存 composition，也不持有保存 timer、在途请求或幂等 ID ref，由 774 行降至 578 行；保存/草稿 controller 与同步 hook 回归 3 个文件 39 项、完整前端架构门禁 3 个文件 271 项（其中 module boundaries 231 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十九批已将 Freezone 外部画布 runtime 注册、远端替换/合并、projection 新增/移除及其即时恢复草稿和保存触发迁入唯一 presentation hook `hooks/useCanvasRuntimeBridge.ts`；投影纯合并规则继续唯一归属 `projections.ts`，runtime registry 继续唯一归属 `canvasSyncRuntime.ts`，bridge 只编排 refs、Store 和保存 controller。远端刷新仍先取消 debounce、进入 switching、重锚 revision/envelope/signature/node count、清理旧草稿与幂等 ID、hydrate metadata 后恢复 ready；合并出的本地工作和投影编辑仍以 0 ms task 立即落草稿并保存，conflict/error 仍只保留恢复草稿。通过惰性读取保存 controller，runtime bridge 的 effect 继续先于 hydrate、history 和 autosave 注册，不改变生命周期顺序。总同步 hook 删除 runtime/projection 直接依赖和整段回调实现，由 578 行降至 482 行；runtime/save/draft controller 与同步 hook 回归 4 个文件 44 项、完整前端架构门禁 3 个文件 272 项（其中 module boundaries 232 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

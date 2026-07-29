@@ -1,11 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import { useReactFlow, type Viewport } from "@xyflow/react";
-import {
-  useCanvasStore,
-  type CanvasEdge,
-  type CanvasNode,
-} from "@/features/canvas/canvasStore";
+import { useCanvasStore } from "@/features/canvas/canvasStore";
 import type {
   CanvasBackupStatus,
   FreezoneCanvasPayload,
@@ -27,16 +23,7 @@ import {
   type ShotMetadata,
 } from "../shotMetadataStore";
 import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
-import {
-  consumeQueuedLocalFreezoneProjections,
-  registerFreezoneCanvasRuntime,
-} from "../canvasSyncRuntime";
-import {
-  mergeProjectedCanvasWithLocalCanvas,
-  mergeProjectionMetadata,
-  removeProjectionFromLocalCanvas,
-  removeProjectionMetadata,
-} from "../projections";
+import { consumeQueuedLocalFreezoneProjections } from "../canvasSyncRuntime";
 import { canvasDraftSignature } from "../application/canvasDraft";
 import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
@@ -50,6 +37,7 @@ import {
   useCanvasDraftPersistenceController,
 } from "./useCanvasDraftPersistenceController";
 import { useCanvasSaveController } from "./useCanvasSaveController";
+import { useCanvasRuntimeBridge } from "./useCanvasRuntimeBridge";
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -166,112 +154,28 @@ export function useCanvasSync(
     setBackupStatus(next);
   };
 
-  // ---- 0. External-trigger remote canvas refresh ---- //
-  // canvasSyncRuntime lets other features (beat-context preset refresh,
-  // mainline rebuild) hand us a fresh server payload to apply in place.
-  // We mirror the hydrate path: stop any pending debounce, re-anchor the
-  // signature/revision/envelope so the next local edit doesn't immediately
-  // re-PUT with stale baseline, then push the new content into the store.
-  useEffect(() => {
-    const saveProjectionEditNow = () => {
-      window.setTimeout(() => {
-        if (!hydratedRef.current || switchingRef.current) return;
-        draftPersistence.persistNow();
-        if (statusRef.current === "conflict" || statusRef.current === "error") {
-          return;
-        }
-        void saveController.saveCurrent();
-      }, 0);
-    };
-
-    return registerFreezoneCanvasRuntime(project, canvasId, (remote, merge) => {
-      saveController.cancelPendingSave();
-      // Treat this as a brief "switching" window — the same guard the hydrate
-      // path uses to suppress in-flight save callbacks from clobbering the
-      // freshly-applied remote content.
-      switchingRef.current = true;
-      const local = useCanvasStore.getState();
-      const remoteNodes = (remote.nodes ?? []) as CanvasNode[];
-      const remoteEdges = (remote.edges ?? []) as CanvasEdge[];
-      const next = merge
-        ? merge(remoteNodes, remoteEdges, local.nodes, local.edges)
-        : { nodes: remoteNodes, edges: remoteEdges };
-      const remoteSignature = canvasContentSignature(remoteNodes, remoteEdges);
-      const nextSignature = canvasContentSignature(next.nodes, next.edges);
-      const mergedLocalWork = Boolean(merge) && nextSignature !== remoteSignature;
-      const remoteRevision =
-        typeof remote.revision === "number" ? remote.revision : null;
-      revisionRef.current = remoteRevision;
-      setRevision(remoteRevision);
-      canvasEnvelopeRef.current = canvasEnvelopeFromRemote(remote);
-      lastSignatureRef.current = nextSignature;
-      lastRemoteNodeCountRef.current = remoteNodes.length;
-      saveController.resetIdentity();
-      draftPersistence.clearStored();
-      const meta = (remote.metadata ?? null) as
-        | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
-        | null;
-      metadataRef.current = meta;
-      setMetadata(meta);
-      setFreezoneCanvasMetadata(meta);
-      useCanvasStore.getState().hydrateViewportBookmarks(meta?.viewportBookmarks);
-      useShotMetadataStore
-        .getState()
-        .hydrate(meta?.shotMetadata ?? EMPTY_SHOT_METADATA);
-      setCanvasData(next.nodes, next.edges);
-      setSyncStatus("ready");
-      setError(null);
-      hydratedRef.current = true;
-      switchingRef.current = false;
-      setHydratedCanvasId(canvasId);
-      if (mergedLocalWork) {
-        window.setTimeout(() => {
-          if (!hydratedRef.current || switchingRef.current) return;
-          void saveController.saveCurrent();
-        }, 0);
-      }
-    }, flush, (projection) => {
-      if (!hydratedRef.current || switchingRef.current) {
-        return false;
-      }
-      const local = useCanvasStore.getState();
-      const next = mergeProjectedCanvasWithLocalCanvas(
-        projection.nodes,
-        projection.edges,
-        local.nodes,
-        local.edges,
-        projection.projectionKey,
-      );
-      metadataRef.current = mergeProjectionMetadata(
-        metadataRef.current,
-        projection.metadata,
-        projection.projectionKey,
-      );
-      setMetadata(metadataRef.current);
-      setFreezoneCanvasMetadata(metadataRef.current);
-      suppressNextCanvasAutosaveRef.current = true;
-      applyCanvasDataEdit(next.nodes, next.edges);
-      saveProjectionEditNow();
-      return true;
-    }, (projectionKey) => {
-      if (!hydratedRef.current || switchingRef.current) {
-        return false;
-      }
-      const local = useCanvasStore.getState();
-      const next = removeProjectionFromLocalCanvas(
-        local.nodes,
-        local.edges,
-        projectionKey,
-      );
-      metadataRef.current = removeProjectionMetadata(metadataRef.current, projectionKey);
-      setMetadata(metadataRef.current);
-      setFreezoneCanvasMetadata(metadataRef.current);
-      suppressNextCanvasAutosaveRef.current = true;
-      applyCanvasDataEdit(next.nodes, next.edges);
-      saveProjectionEditNow();
-      return true;
-    });
-  }, [applyCanvasDataEdit, project, canvasId, setCanvasData]);
+  useCanvasRuntimeBridge({
+    project,
+    canvasId,
+    revisionRef,
+    canvasEnvelopeRef,
+    lastSignatureRef,
+    lastRemoteNodeCountRef,
+    metadataRef,
+    hydratedRef,
+    switchingRef,
+    statusRef,
+    suppressNextCanvasAutosaveRef,
+    draftPersistence,
+    readSaveController: () => saveController,
+    setCanvasData,
+    applyCanvasDataEdit,
+    setRevision,
+    setMetadata,
+    setHydratedCanvasId,
+    setStatus: setSyncStatus,
+    setError,
+  });
 
   // ---- 1. Hydrate ---- //
   useEffect(() => {

@@ -5751,6 +5751,66 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("saveCanvasBeforeUnload({");
   });
 
+  it("keeps external canvas runtime projection bridging in one hook", () => {
+    const bridgePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const bridgeSource = readFileSync(bridgePath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasRuntimeBridge(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(bridgePath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/canvasStore",
+        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasSyncCore",
+        "../application/canvasSyncHydration",
+        "../application/canvasSyncStorage",
+        "../canvasMetadataContext",
+        "../canvasSyncRuntime",
+        "../projections",
+        "../shotMetadataStore",
+        "./useCanvasDraftPersistenceController",
+        "./useCanvasSaveController",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasRuntimeBridge",
+    );
+    expect(bridgeSource).toContain("registerFreezoneCanvasRuntime(");
+    expect(bridgeSource).toContain("mergeProjectedCanvasWithLocalCanvas(");
+    expect(bridgeSource).toContain("removeProjectionFromLocalCanvas(");
+    expect(bridgeSource).toContain("const saveProjectionEditNow = () =>");
+    expect(syncHookSource).toContain(
+      "readSaveController: () => saveController",
+    );
+    expect(syncHookSource).not.toContain("registerFreezoneCanvasRuntime(");
+    expect(syncHookSource).not.toContain(
+      "mergeProjectedCanvasWithLocalCanvas(",
+    );
+    expect(syncHookSource).not.toContain("removeProjectionFromLocalCanvas(");
+    expect(syncHookSource).not.toContain("saveProjectionEditNow");
+    expect(
+      syncHookSource.indexOf("useCanvasRuntimeBridge({"),
+    ).toBeLessThan(syncHookSource.indexOf("// ---- 1. Hydrate ---- //"));
+  });
+
   it("keeps browser canvas drafts behind one application port", () => {
     const legacyPath = resolve(
       SRC_ROOT,
