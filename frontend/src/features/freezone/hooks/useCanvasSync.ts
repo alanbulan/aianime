@@ -16,9 +16,7 @@ import type {
   FreezoneCanvasPayload,
 } from "@/features/freezone/domain/canvasStorage";
 import {
-  buildSavePayload,
   canvasEnvelopeFromRemote,
-  decideSaveAction,
   saveErrorStatusAndBody,
 } from "../application/canvasSyncCore";
 import type { CanvasSaveArgs } from "../application/canvasSave";
@@ -63,6 +61,7 @@ import {
 } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { scheduleCanvasSave } from "../canvasSaveComposition";
+import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
@@ -201,16 +200,6 @@ export function useCanvasSync(
     shotMetadata: shot,
     viewportBookmarks: useCanvasStore.getState().viewportBookmarks,
   });
-  const currentDraftSignature = () => {
-    const canvasState = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
-    return canvasDraftSignature(
-      canvasState.nodes,
-      canvasState.edges,
-      buildPersistMetadata(shot),
-    );
-  };
-
   const scheduleDraftWrite = () => {
     if (draftTimerRef.current != null) {
       window.clearTimeout(draftTimerRef.current);
@@ -806,102 +795,54 @@ export function useCanvasSync(
     });
   };
 
-  // Save once more on tab close — best effort, fire-and-forget. Fires when a
-  // debounced content edit is still pending, OR when only the viewport moved
-  // since the last save (pan/zoom doesn't trigger an in-session PUT, so this is
-  // what makes a refresh land back at the last camera position).
-  // `sendBeacon` can't be used here: it only issues POST, but the canvas
-  // endpoint is PUT. A `keepalive` fetch lets the request outlive the page and
-  // keeps the correct method + cookie auth.
+  // Persist the final camera position on tab close. When a debounced content
+  // edit is also pending, the application service writes the recovery draft
+  // and delegates one best-effort PUT to the keepalive transport.
   useEffect(() => {
     const handler = () => {
-      const currentViewport = useCanvasStore.getState().currentViewport;
-      // Final, synchronous guarantee for the refresh case: a pending debounced
-      // localStorage write may not have fired yet, so persist the latest
-      // position now (the synchronous browser-storage write completes before unload).
-      canvasSyncStorageGateway.writeViewport(project, canvasId, currentViewport);
-      lastSavedViewportRef.current = currentViewport;
-      const hasUnsettledContentSave =
-        draftTimerRef.current != null ||
-        debounceTimerRef.current != null ||
-        inFlightRef.current != null ||
-        statusRef.current === "saving";
-      if (
-        !hasUnsettledContentSave ||
-        currentDraftSignature() === lastPersistedDraftSignatureRef.current
-      ) {
-        return;
-      }
-      if (draftTimerRef.current != null) {
-        window.clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
-      }
-      writeDraftNow();
-      // The network PUT below is only needed when a content edit is still
-      // pending; pure pan/zoom is already covered by the localStorage write.
-      if (debounceTimerRef.current == null) return;
-      window.clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-      // Hydrate has not completed (no remote revision yet) → skip the unload
-      // PUT. Sending an empty / partial payload at this point would either
-      // get rejected by the dangerous-empty guard or, worse, overwrite the
-      // server's state with a freshly-mounted, never-hydrated store.
-      if (revisionRef.current == null || !hydratedRef.current) {
-        return;
-      }
       const canvasState = useCanvasStore.getState();
       const shot = useShotMetadataStore.getState().shot;
-      const decision = decideSaveAction({
-        hydrated: hydratedRef.current,
-        switching: switchingRef.current,
-        nodeCount: canvasState.nodes.length,
-        edgeCount: canvasState.edges.length,
-        lastRemoteNodeCount: lastRemoteNodeCountRef.current,
-        userEditsSinceHydrate: canvasState.userEditsSinceHydrate,
-        lastMutationSource: canvasState.lastMutationSource,
-        pendingClearIntent: canvasState.pendingClearIntent,
-      });
-      if (decision.kind !== "send") {
-        // `skip` or `block`: nothing safe to PUT at unload time.
-        return;
-      }
-      // Reuse the pending idempotency token if a save was already in flight,
-      // otherwise mint a fresh one so a hypothetical browser-issued retry
-      // after the tab reopens still dedupes.
-      const contentSignature = JSON.stringify({
+      lastSavedViewportRef.current = canvasState.currentViewport;
+      saveCanvasBeforeUnload({
+        project,
+        canvasId,
         nodes: canvasState.nodes,
         edges: canvasState.edges,
-        viewport: currentViewport,
+        viewport: canvasState.currentViewport,
         metadata: buildPersistMetadata(shot),
-      });
-      if (
-        pendingClientSaveIdRef.current == null ||
-        pendingClientSaveIdSignatureRef.current !== contentSignature
-      ) {
-        pendingClientSaveIdRef.current = generateClientSaveId();
-        pendingClientSaveIdSignatureRef.current = contentSignature;
-      }
-      const clientSaveId = pendingClientSaveIdRef.current;
-      const payload = buildSavePayload({
-        canvasId,
-        nodes: canvasState.nodes as unknown[],
-        edges: canvasState.edges as unknown[],
-        viewport: currentViewport,
-        metadata: buildPersistMetadata(shot),
-        baseRevision: revisionRef.current,
-        clientSaveId,
-        decision,
+        revision: revisionRef.current,
         envelope: canvasEnvelopeRef.current,
-      });
-      const url = `/api/v1/projects/${encodeURIComponent(project)}/freezone/canvases/${encodeURIComponent(canvasId)}`;
-      void fetch(url, {
-        method: "PUT",
-        credentials: "include",
-        keepalive: true,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).catch(() => {
-        // Best-effort; nothing actionable during unload.
+        hydrated: hydratedRef.current,
+        switching: switchingRef.current,
+        lastRemoteNodeCount: lastRemoteNodeCountRef.current,
+        mutationState: {
+          userEditsSinceHydrate: canvasState.userEditsSinceHydrate,
+          lastMutationSource: canvasState.lastMutationSource,
+          pendingClearIntent: canvasState.pendingClearIntent,
+        },
+        pendingClientSaveIdRef,
+        pendingClientSaveIdSignatureRef,
+        hasUnsettledContentSave:
+          draftTimerRef.current != null ||
+          debounceTimerRef.current != null ||
+          inFlightRef.current != null ||
+          statusRef.current === "saving",
+        hasPendingContentSave: debounceTimerRef.current != null,
+        lastPersistedDraftSignature:
+          lastPersistedDraftSignatureRef.current,
+        cancelPendingDraft: () => {
+          if (draftTimerRef.current != null) {
+            window.clearTimeout(draftTimerRef.current);
+            draftTimerRef.current = null;
+          }
+        },
+        persistDraft: writeDraftNow,
+        cancelPendingContentSave: () => {
+          if (debounceTimerRef.current != null) {
+            window.clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+          }
+        },
       });
     };
     window.addEventListener("beforeunload", handler);

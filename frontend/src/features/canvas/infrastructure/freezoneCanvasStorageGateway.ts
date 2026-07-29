@@ -2,6 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type {
+  FreezoneCanvasKeepaliveGateway,
   FreezoneCanvasStorageGateway,
 } from "../application/freezoneCanvasStorage";
 import type {
@@ -12,7 +13,8 @@ import type {
   FreezonePresetCanvasResponse,
 } from "@/features/freezone/public";
 
-export const freezoneCanvasStorageGateway: FreezoneCanvasStorageGateway = {
+export const freezoneCanvasStorageGateway: FreezoneCanvasStorageGateway &
+  FreezoneCanvasKeepaliveGateway = {
   async listCanvases(params) {
     return await apiCall<FreezoneCanvasSummary[]>(
       `projects/${encodeURIComponent(params.projectId)}/freezone/canvases`,
@@ -32,6 +34,17 @@ export const freezoneCanvasStorageGateway: FreezoneCanvasStorageGateway = {
       `projects/${encodeURIComponent(params.projectId)}/freezone/canvases/${encodeURIComponent(params.canvasId)}`,
       { method: "PUT", json: params.payload },
     );
+  },
+
+  saveCanvasKeepalive(params) {
+    const url = `/api/v1/projects/${encodeURIComponent(params.projectId)}/freezone/canvases/${encodeURIComponent(params.canvasId)}`;
+    void fetch(url, {
+      method: "PUT",
+      credentials: "include",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params.payload),
+    }).catch(() => undefined);
   },
 
   async createFromPreset(params) {

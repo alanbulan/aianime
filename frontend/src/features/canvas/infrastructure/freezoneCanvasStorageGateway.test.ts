@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
 import { freezoneCanvasStorageGateway } from "./freezoneCanvasStorageGateway";
@@ -11,6 +11,10 @@ vi.mock("@/shared/api/client", () => ({
 describe("freezoneCanvasStorageGateway", () => {
   beforeEach(() => {
     vi.mocked(apiCall).mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("lists canvases and forwards cancellation", async () => {
@@ -87,6 +91,34 @@ describe("freezoneCanvasStorageGateway", () => {
     expect(apiCall).toHaveBeenCalledWith(
       "projects/project-a/freezone/canvases/user_eric",
       { method: "PUT", json: payload },
+    );
+  });
+
+  it("sends unload saves through the encoded keepalive endpoint", () => {
+    const fetchMock = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("fetch", fetchMock);
+    const payload = {
+      nodes: [{ id: "n1" }],
+      edges: [],
+      base_revision: 7,
+      client_save_id: "save-1",
+    };
+
+    freezoneCanvasStorageGateway.saveCanvasKeepalive({
+      projectId: "project/a",
+      canvasId: "user eric",
+      payload,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/projects/project%2Fa/freezone/canvases/user%20eric",
+      {
+        method: "PUT",
+        credentials: "include",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
     );
   });
 

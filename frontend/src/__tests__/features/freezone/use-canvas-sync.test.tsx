@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getFreezoneCanvas,
   putFreezoneCanvas,
+  putFreezoneCanvasKeepalive,
 } from "@/features/canvas/composition";
 import { ApiError } from "@/shared/api/errors";
 import {
@@ -36,6 +37,7 @@ vi.mock("@/features/canvas/composition", () => ({
   generateClientSaveId: vi.fn(() => "save-test-id"),
   getFreezoneCanvas: vi.fn(),
   putFreezoneCanvas: vi.fn(),
+  putFreezoneCanvasKeepalive: vi.fn(),
 }));
 
 vi.mock("@xyflow/react", () => ({
@@ -53,6 +55,7 @@ describe("useCanvasSync hydrate lifecycle", () => {
       saved: true,
       revision: 2,
     });
+    vi.mocked(putFreezoneCanvasKeepalive).mockReset();
     vi.unstubAllGlobals();
     window.localStorage.clear();
     useCanvasStore.getState().setCanvasData([], []);
@@ -584,10 +587,8 @@ describe("useCanvasSync hydrate lifecycle", () => {
     hook.unmount();
   });
 
-  it("writes a draft and keepalive PUT on beforeunload when an edit is pending", async () => {
+  it("writes a draft and delegates keepalive save on beforeunload when an edit is pending", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
     vi.mocked(getFreezoneCanvas).mockResolvedValue({
       nodes: [],
       edges: [],
@@ -613,15 +614,8 @@ describe("useCanvasSync hydrate lifecycle", () => {
     expect(draft?.nodes).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: CANVAS_NODE_TYPES.upload })]),
     );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/projects/project-a/freezone/canvases/unload_user_eric");
-    expect(options).toMatchObject({
-      method: "PUT",
-      credentials: "include",
-      keepalive: true,
-    });
-    expect(JSON.parse(String(options.body))).toMatchObject({
+    expect(putFreezoneCanvasKeepalive).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(putFreezoneCanvasKeepalive).mock.calls[0][2]).toMatchObject({
       base_revision: 7,
       save_source: "autosave",
       nodes: expect.arrayContaining([expect.objectContaining({ type: CANVAS_NODE_TYPES.upload })]),
@@ -632,8 +626,6 @@ describe("useCanvasSync hydrate lifecycle", () => {
 
   it("preserves manual-clear intent on the beforeunload keepalive PUT", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
     vi.mocked(getFreezoneCanvas).mockResolvedValue({
       nodes: [
         {
@@ -660,8 +652,8 @@ describe("useCanvasSync hydrate lifecycle", () => {
       window.dispatchEvent(new Event("beforeunload"));
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    expect(putFreezoneCanvasKeepalive).toHaveBeenCalledTimes(1);
+    const payload = vi.mocked(putFreezoneCanvasKeepalive).mock.calls[0][2];
     expect(payload).toMatchObject({
       save_source: "manual_clear",
       allow_empty_overwrite: true,

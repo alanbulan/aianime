@@ -2036,6 +2036,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十二批已将常规画布保存的决策读取、幂等 ID 生命周期、payload 组装与体积检查、PUT 调用、锁占用重试、响应消费和错误状态机从 `useCanvasSync` 迁入唯一 application `canvasSave.ts`，并由 `canvasSaveComposition.ts` 注入 Canvas Store 快照、ID 生成、保存 gateway、草稿清理、clear intent 确认、浏览器 timer 与 warning sink；hook 只收集当前画布快照、React refs 和 UI 回调后调用 `scheduleCanvasSave`，beforeunload keepalive 与冲突副本保存仍留在原边界，未纳入本批。旧 `SaveArgs` 及四段本地保存函数直接删除，错误分类中从无生产者的 `ok` 分支同步清理，不保留转发或第二套实现；`useCanvasSync` 由 1,368 行降至 1,033 行。新 application 与同步核心、hook、画布列表回归 4 个文件 95 项及完整前端架构门禁 225 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十三批已将 beforeunload 的最终视口落盘、未完成内容识别、草稿签名去重、待执行 timer 消费、hydrate/revision/危险空画布门禁、payload 组装及 keepalive 提交迁入唯一 application `canvasUnloadSave.ts`，常规保存与卸载保存统一复用 `canvasSave.ts` 的幂等 ID 解析；`canvasUnloadSaveComposition.ts` 注入既有视口存储和 Canvas composition，Canvas application 新增最小 keepalive port，原 `freezoneCanvasStorageGateway` 继续作为画布端点唯一 transport 并持有 URL 编码、cookie、PUT 与 `keepalive` 选项。hook 只订阅浏览器事件、采集 refs/Store 快照和提供 timer 回调，不再直接依赖 `fetch`、keepalive 选项、保存决策或 payload builder；始终同步保存视口、待保存内容先写恢复草稿、仅尚有 debounce PUT 时发新请求而不重复在途保存、manual-clear 明确允许空覆盖的语义保持不变，旧实现直接删除。`useCanvasSync` 由 1,033 行降至 980 行；application、Canvas 存储用例/网关与 hook 集成回归 5 个文件 46 项、完整前端架构门禁 226 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

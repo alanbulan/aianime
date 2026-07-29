@@ -27,18 +27,21 @@ import type { CanvasSyncStatus } from "./canvasSyncStorage";
 
 const LOCK_BUSY_MAX_RETRIES = 1;
 
-export interface CanvasSaveArgs {
-  project: string;
-  canvasId: string;
+export interface CanvasSaveIdentityArgs {
   nodes: unknown[];
   edges: unknown[];
   viewport?: ViewportBookmark;
   metadata?: Record<string, unknown> | null;
+  pendingClientSaveIdRef: { current: string | null };
+  pendingClientSaveIdSignatureRef: { current: string | null };
+}
+
+export interface CanvasSaveArgs extends CanvasSaveIdentityArgs {
+  project: string;
+  canvasId: string;
   forcedDecision?: Extract<SaveDecision, { kind: "send" }>;
   revisionRef: { current: number | null };
   canvasEnvelopeRef: { current: Partial<FreezoneCanvasPayload> };
-  pendingClientSaveIdRef: { current: string | null };
-  pendingClientSaveIdSignatureRef: { current: string | null };
   hydratedRef: { current: boolean };
   switchingRef: { current: boolean };
   lastRemoteNodeCountRef: { current: number };
@@ -72,6 +75,28 @@ export interface CanvasSaveDependencies {
   acknowledgePendingClear(): void;
   sleep(delayMs: number): Promise<void>;
   warn(message: string): void;
+}
+
+export function resolveCanvasClientSaveId(
+  args: CanvasSaveIdentityArgs,
+  generateClientSaveId: () => string,
+): string {
+  const contentSignature = JSON.stringify({
+    nodes: args.nodes,
+    edges: args.edges,
+    viewport: args.viewport ?? null,
+    metadata: args.metadata ?? null,
+  });
+  if (
+    args.pendingClientSaveIdRef.current != null &&
+    args.pendingClientSaveIdSignatureRef.current === contentSignature
+  ) {
+    return args.pendingClientSaveIdRef.current;
+  }
+  const clientSaveId = generateClientSaveId();
+  args.pendingClientSaveIdRef.current = clientSaveId;
+  args.pendingClientSaveIdSignatureRef.current = contentSignature;
+  return clientSaveId;
 }
 
 export function createCanvasSaveScheduler(
@@ -265,21 +290,10 @@ export function createCanvasSaveScheduler(
       return false;
     }
 
-    const contentSignature = JSON.stringify({
-      nodes: args.nodes,
-      edges: args.edges,
-      viewport: args.viewport ?? null,
-      metadata: args.metadata ?? null,
-    });
-    if (
-      args.pendingClientSaveIdRef.current == null ||
-      args.pendingClientSaveIdSignatureRef.current !== contentSignature
-    ) {
-      args.pendingClientSaveIdRef.current =
-        dependencies.generateClientSaveId();
-      args.pendingClientSaveIdSignatureRef.current = contentSignature;
-    }
-    const clientSaveId = args.pendingClientSaveIdRef.current;
+    const clientSaveId = resolveCanvasClientSaveId(
+      args,
+      dependencies.generateClientSaveId,
+    );
 
     args.setStatus("saving");
     const job = (async () => {

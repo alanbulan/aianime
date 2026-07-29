@@ -5069,6 +5069,73 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("LOCK_BUSY_MAX_RETRIES");
   });
 
+  it("keeps canvas unload saves behind application and transport ports", () => {
+    const unloadPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasUnloadSave.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasUnloadSaveComposition.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const unloadSource = readFileSync(unloadPath, "utf8");
+    const gatewaySource = readFileSync(gatewayPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const declaration = [
+      "export function",
+      "createCanvasUnloadSaver(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(
+      importSpecifiers(unloadPath).filter(
+        (specifier) =>
+          specifier === "react" ||
+          specifier.startsWith("react/") ||
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/features/freezone/infrastructure/") ||
+          specifier === "@/features/canvas/composition" ||
+          specifier.startsWith("@/shared/api/"),
+      ),
+    ).toEqual([]);
+    expect(unloadSource).not.toContain("window.");
+    expect(unloadSource).not.toContain("document.");
+    expect(unloadSource).not.toContain("fetch(");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasUnloadSave.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/composition",
+        "./application/canvasUnloadSave",
+        "./canvasSyncComposition",
+      ]),
+    );
+    expect(gatewaySource).toContain("saveCanvasKeepalive(params)");
+    expect(gatewaySource).toContain("keepalive: true");
+    expect(importSpecifiers(hookPath)).toContain(
+      "../canvasUnloadSaveComposition",
+    );
+    expect(hookSource).not.toContain("fetch(");
+    expect(hookSource).not.toContain("keepalive: true");
+    expect(hookSource).not.toContain("buildSavePayload(");
+    expect(hookSource).not.toContain("decideSaveAction(");
+  });
+
   it("keeps canvas hydration reconciliation in Freezone application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,

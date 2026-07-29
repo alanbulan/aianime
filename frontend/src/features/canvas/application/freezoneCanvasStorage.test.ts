@@ -9,7 +9,9 @@ import {
   listFreezoneCanvasHistory,
   listFreezoneCanvases,
   putFreezoneCanvas,
+  putFreezoneCanvasKeepalive,
   restoreFreezoneCanvasVersion,
+  type FreezoneCanvasKeepaliveGateway,
   type FreezoneCanvasStorageGateway,
 } from "./freezoneCanvasStorage";
 
@@ -121,5 +123,20 @@ describe("freezoneCanvasStorage", () => {
       ...target,
       payload: { history_id: "rev-2" },
     });
+  });
+
+  it("delegates unload saves through the keepalive port", () => {
+    const gateway: FreezoneCanvasKeepaliveGateway = {
+      saveCanvasKeepalive: vi.fn(),
+    };
+    const params = {
+      projectId: "project-a",
+      canvasId: "story-lab",
+      payload: { nodes: [], edges: [] },
+    };
+
+    putFreezoneCanvasKeepalive(params, gateway);
+
+    expect(gateway.saveCanvasKeepalive).toHaveBeenCalledWith(params);
   });
 });

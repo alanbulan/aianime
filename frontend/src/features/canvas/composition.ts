@@ -35,6 +35,7 @@ import {
   listFreezoneCanvasHistory as listFreezoneCanvasHistoryUseCase,
   listFreezoneCanvases as listFreezoneCanvasesUseCase,
   putFreezoneCanvas as putFreezoneCanvasUseCase,
+  putFreezoneCanvasKeepalive as putFreezoneCanvasKeepaliveUseCase,
   restoreFreezoneCanvasVersion as restoreFreezoneCanvasVersionUseCase,
 } from './application/freezoneCanvasStorage';
 import { createFreezoneCanvasQueryHooks } from './hooks/freezoneCanvasQueryHooks';
@@ -640,6 +641,17 @@ export function putFreezoneCanvas(
   payload: FreezoneCanvasPayload,
 ) {
   return putFreezoneCanvasUseCase(
+    { projectId, canvasId, payload },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function putFreezoneCanvasKeepalive(
+  projectId: string,
+  canvasId: string,
+  payload: FreezoneCanvasPayload,
+) {
+  return putFreezoneCanvasKeepaliveUseCase(
     { projectId, canvasId, payload },
     freezoneCanvasStorageGateway,
   );

@@ -70,6 +70,10 @@ export interface FreezoneCanvasStorageGateway {
   ): Promise<FreezoneCanvasSaveResult>;
 }
 
+export interface FreezoneCanvasKeepaliveGateway {
+  saveCanvasKeepalive(params: SaveFreezoneCanvasParams): void;
+}
+
 export function listFreezoneCanvases(
   params: ListFreezoneCanvasesParams,
   gateway: Pick<FreezoneCanvasStorageGateway, "listCanvases">,
@@ -96,6 +100,13 @@ export function putFreezoneCanvas(
   gateway: FreezoneCanvasStorageGateway,
 ): Promise<FreezoneCanvasSaveResult> {
   return gateway.saveCanvas(params);
+}
+
+export function putFreezoneCanvasKeepalive(
+  params: SaveFreezoneCanvasParams,
+  gateway: FreezoneCanvasKeepaliveGateway,
+): void {
+  gateway.saveCanvasKeepalive(params);
 }
 
 export function generateClientSaveId(idGenerator: IdGenerator): string {
