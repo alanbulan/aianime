@@ -38,11 +38,42 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/freezone/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/features/freezone/public")>()),
-  listFreezoneBeatContext: (...args: unknown[]) =>
-    listFreezoneBeatContext(...args),
-}));
+vi.mock("@/features/freezone/public", async () => {
+  const mainlineContext = await vi.importActual<
+    typeof import("@/features/freezone/domain/mainlineContext")
+  >("@/features/freezone/domain/mainlineContext");
+  const currentBeatContext = await vi.importActual<
+    typeof import("@/features/freezone/domain/currentBeatContext")
+  >("@/features/freezone/domain/currentBeatContext");
+  const pushTarget = await vi.importActual<
+    typeof import("@/features/freezone/domain/pushTarget")
+  >("@/features/freezone/domain/pushTarget");
+  const skillContract = await vi.importActual<
+    typeof import("@/features/freezone/domain/skillContract")
+  >("@/features/freezone/domain/skillContract");
+  const canvasPreset = await vi.importActual<
+    typeof import("@/features/freezone/application/canvasPreset")
+  >("@/features/freezone/application/canvasPreset");
+  const canvasMetadata = await vi.importActual<
+    typeof import("@/features/freezone/application/canvasMetadataState")
+  >("@/features/freezone/application/canvasMetadataState");
+  return {
+    applyRemoteFreezoneCanvas: () => false,
+    extractMainlineContextsFromNode:
+      mainlineContext.extractMainlineContextsFromNode,
+    flushFreezoneCanvasRuntime: async () => true,
+    getFreezoneCanvasMetadata: canvasMetadata.getFreezoneCanvasMetadata,
+    isCanonicalPushTarget: pushTarget.isCanonicalPushTarget,
+    listFreezoneBeatContext: (...args: unknown[]) =>
+      listFreezoneBeatContext(...args),
+    NodeContextBadges: () => null,
+    openPresetProjectionInMyCanvas: vi.fn(),
+    parseBeatContextVisualMarkers:
+      currentBeatContext.parseBeatContextVisualMarkers,
+    presetRequestFromMetadata: canvasPreset.presetRequestFromMetadata,
+    SKILL_SCHEMA_VERSION: skillContract.SKILL_SCHEMA_VERSION,
+  };
+});
 
 vi.mock("@/features/canvas/composition", () => ({
   createCanvasFromPreset: (...args: unknown[]) =>

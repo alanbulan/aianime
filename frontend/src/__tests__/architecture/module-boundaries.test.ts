@@ -1785,6 +1785,110 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './ImageEditNodeView'");
   });
 
+  it("separates the Canvas Beat Context model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatContextNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatContextNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useBeatContextNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useBeatContextNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNodeView.test.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "BeatContextNode", "=", "memo("].join(" "),
+      ["export function", "resolveBeatContextSnapshot("].join(" "),
+      ["export function", "useBeatContextNodeController("].join(" "),
+      ["export function", "BeatContextNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useBeatContextNodeController",
+        "./BeatContextNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/BeatContextNode.tsx"],
+      ["features/canvas/application/beatContextNodeModel.ts"],
+      ["features/canvas/hooks/useBeatContextNodeController.ts"],
+      ["features/canvas/nodes/BeatContextNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(registrySource).toContain(
+      "import { BeatContextNode } from './BeatContextNode'",
+    );
+    expect(registrySource).toContain("beatContextNode: BeatContextNode");
+    expect(entrySource).toContain("useBeatContextNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(BeatContextNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useEpisodeDetail(");
+    expect(controllerSource).toContain("updateBeat(");
+    expect(controllerSource).toContain(
+      "restoreCurrentMainlinePresetCanvas(projectId)",
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<NodeHeader");
+    expect(viewSource).toContain("<UiSelect");
+    expect(viewSource).toContain("<SelectableTokenGroup");
+    expect(viewSource).toContain("<ContextColorPalette");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("updateBeat(");
+    expect(modelTestSource).toContain("from './beatContextNodeModel'");
+    expect(controllerTestSource).toContain(
+      "from './useBeatContextNodeController'",
+    );
+    expect(viewTestSource).toContain("from './BeatContextNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -2628,7 +2732,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     );
     const declaration = [
       "export function",
@@ -2678,7 +2782,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     );
     const declaration = [
       "export function",
@@ -3071,7 +3175,7 @@ describe("frontend architecture boundaries", () => {
     );
     const readerPaths = [
       "features/canvas/infrastructure/freezoneAiGateway.ts",
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/hooks/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -3384,7 +3488,7 @@ describe("frontend architecture boundaries", () => {
     );
     const beatContextNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     );
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const apiProjectsPath = resolve(SRC_ROOT, "api/projects.ts");
@@ -4059,7 +4163,7 @@ describe("frontend architecture boundaries", () => {
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const canvasConsumerPaths = [
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
       "features/canvas/ui/NodeActionToolbar.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -9893,7 +9997,7 @@ describe("frontend architecture boundaries", () => {
     );
     const beatNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const parserSource = readFileSync(parserPath, "utf8");
@@ -10231,7 +10335,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const canvasConsumerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     );
     const stateSource = readFileSync(statePath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
