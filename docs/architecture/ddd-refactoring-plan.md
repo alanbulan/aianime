@@ -2098,6 +2098,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十三批已将提交弹窗的目标类型文案与可选范围、全局/Beat/场景槽位分类、导演世界模型来源到可提交槽位的判定、身份与场景选项投影、媒体/来源标签、完整目标构造及目标摘要从 `CommitDialog` 迁入唯一纯 presentation view model `commit/commitDialogViewModel.ts`；弹窗继续唯一持有浏览器文件名解析、异步目录加载、提交副作用和 DOM。隐藏 deprecated/派生槽位、空导演世界不提供文件槽位、pano 与 SOG 分流、legacy identity 回显、场景/道具 ID trim、目标文案和导演世界来源名称语义保持不变，并将两组等价的字符串与来源 URL helper 合并为单一实现；原常量和函数从弹窗直接删除，目标与 Director bundle 静态测试改为读取真实所有者，不保留 facade、旧导出或第二套投影。`CommitDialog` 由 1,199 行降至 866 行，纯 view model 为 340 行；目标规则、提交、Director bundle 与 Viewer 合同回归 4 个文件 52 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 295 项（其中 module boundaries 255 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十四批已将提交弹窗的目标类型与剧集、Beat、角色、身份、场景、道具状态，角色/身份/剧集/Beat/场景目录加载，模型槽位与完整目标派生，全局槽位影响预览、过期标记及相关错误状态从 `CommitDialog` 迁入唯一 presentation controller `hooks/useCommitDialogTargetController.ts`；弹窗只装配 controller，并继续唯一持有提交 busy、提交请求和 DOM。默认目标初始化、目录首项回退、Beat 编号兼容与去重、内嵌身份优先、legacy 身份回显、场景加载失败隔离、模型来源槽位约束、全局影响预览和错误文案语义保持不变；旧状态、effect、目录调用和影响预览从弹窗直接删除，静态行为合同与目录消费者门禁同步改为检查真实 controller 所有者，不保留 facade、旧实现或第二套编排。`CommitDialog` 由 866 行降至 625 行，controller 为 399 行；controller、目标、提交、Director bundle 与 Viewer 合同回归 5 个文件 56 项、新增架构所有权断言 1 项、完整前端架构门禁 3 个文件 296 项（其中 module boundaries 256 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

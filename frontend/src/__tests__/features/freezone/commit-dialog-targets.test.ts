@@ -117,8 +117,15 @@ describe("CommitDialog target kinds", () => {
       resolve(process.cwd(), "src/features/freezone/commit/CommitDialog.tsx"),
       "utf8",
     );
+    const controllerSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useCommitDialogTargetController.ts",
+      ),
+      "utf8",
+    );
 
-    expect(source).toContain("listScenes(project)");
+    expect(controllerSource).toContain("listScenes(project)");
     expect(source).toContain('aria-label="场景"');
     expect(source).toContain("sceneOptionLabel(scene)");
   });
@@ -166,10 +173,17 @@ describe("CommitDialog target kinds", () => {
       resolve(process.cwd(), "src/features/freezone/commit/commitDialogViewModel.ts"),
       "utf8",
     );
+    const controllerSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/freezone/hooks/useCommitDialogTargetController.ts",
+      ),
+      "utf8",
+    );
 
     expect(isUserSelectableCommitKind("scene_3gs_custom_scene")).toBe(true);
     expect(source).toContain('mediaType === "model"');
-    expect(source).toContain("modelCommitKindAllowed");
+    expect(controllerSource).toContain("modelCommitKindAllowed");
     expect(viewModelSource).toContain('"scene_3gs_custom_scene"');
     expect(viewModelSource).toContain("MODEL_WORLD_SLOT_KINDS");
   });

@@ -1954,6 +1954,66 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps CommitDialog target state and catalog loading in one controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
+    );
+    const dialogPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/CommitDialog.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCommitDialogTargetController.test.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const dialogSource = readFileSync(dialogPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCommitDialogTargetController(",
+    ].join(" ");
+    const owners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const catalogCalls = [
+      "listCharacters(project)",
+      "listCharacterIdentities(project, character)",
+      "listScenes(project)",
+      "listEpisodes(project)",
+      "listBeats(project, episode)",
+      "previewAssetImpact(project, target)",
+    ];
+
+    expect(owners).toEqual([
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
+    ]);
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/freezone/domain/assetCommit",
+        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/asset_world/public",
+        "@/modules/narrative_planning/public",
+        "../commit/commitDialogViewModel",
+        "../commit/promoteToAsset",
+      ]),
+    );
+    expect(importSpecifiers(dialogPath)).toContain(
+      "../hooks/useCommitDialogTargetController",
+    );
+    expect(testSource).toContain(
+      'from "./useCommitDialogTargetController"',
+    );
+    for (const call of catalogCalls) {
+      expect(controllerSource).toContain(call);
+      expect(dialogSource).not.toContain(call);
+    }
+    expect(dialogSource).not.toContain("modelCommitKindAllowed");
+  });
+
   it("keeps Freezone canvas commit orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
@@ -2125,6 +2185,7 @@ describe("frontend architecture boundaries", () => {
     const internalConsumerPaths = [
       "features/freezone/FreezoneShell.tsx",
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
       "features/freezone/commit/CommitDialog.tsx",
       "features/freezone/commit/BatchCommitDialog.tsx",
       "features/freezone/commit/directorRenderCommit.ts",
@@ -10860,7 +10921,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
     ];
     const episodeListEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -11089,7 +11150,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
-      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
       "features/freezone/presentation/CreateIdentityDialog.tsx",
     ];
     const characterListEndpointOwners = sourceFiles(SRC_ROOT)
