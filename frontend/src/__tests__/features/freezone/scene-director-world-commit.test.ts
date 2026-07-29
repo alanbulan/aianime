@@ -13,7 +13,8 @@ import {
   nodeDataAfterDirectorWorldSourceSlotCommit,
 } from "@/features/freezone/commit/sceneDirectorWorldCommit";
 
-vi.mock("@/modules/asset_world/public", () => ({
+vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/modules/asset_world/public")>(),
   clearSceneDirectorWorld: vi.fn(async () => ({ active_source_id: "" })),
   loadSceneDirectorStageManifest: vi.fn(async () => ({
     viewer_kind: "three_d_director",

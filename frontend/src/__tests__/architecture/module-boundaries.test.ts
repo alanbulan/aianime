@@ -14803,6 +14803,22 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const sourceIdentityPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/domain/director-world-source.ts",
+    );
+    const sourceIdentityTestPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/domain/director-world-source.test.ts",
+    );
+    const canvasSourcesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/directorWorldSources.ts",
+    );
+    const assetLibraryModelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/assetLibraryModel.ts",
+    );
     const freezoneCommitPath = resolve(
       SRC_ROOT,
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
@@ -14820,6 +14836,8 @@ describe("frontend architecture boundaries", () => {
       canvasCompositionPath,
       "utf8",
     );
+    const sourceIdentitySource = readFileSync(sourceIdentityPath, "utf8");
+    const canvasSourcesSource = readFileSync(canvasSourcesPath, "utf8");
     const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
     const sourceEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -14872,6 +14890,27 @@ describe("frontend architecture boundaries", () => {
     );
     expect(publicSource).toContain("loadSceneDirectorStageManifest,");
     expect(publicSource).toContain("saveSceneDirectorWorldSource,");
+    expect(importSpecifiers(sourceIdentityPath)).toEqual([]);
+    expect(importSpecifiers(sourceIdentityTestPath)).toEqual([
+      "vitest",
+      "./director-world-source",
+    ]);
+    expect(sourceIdentitySource).toContain(
+      "export function directorSourceIdentityUrl(",
+    );
+    expect(publicSource).toContain("directorSourceIdentityUrl");
+    expect(importSpecifiers(canvasSourcesPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(canvasSourcesSource).not.toContain(
+      "export function directorSourceIdentityUrl(",
+    );
+    expect(importSpecifiers(assetLibraryModelPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(importSpecifiers(assetLibraryModelPath)).not.toContain(
+      "@/features/canvas/domain/directorWorldSources",
+    );
     expect(importSpecifiers(canvasCompositionPath)).toContain(
       "@/modules/asset_world/public",
     );
@@ -14883,6 +14922,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(freezoneCommitPath)).not.toContain(
       "@/api/viewerManifests",
+    );
+    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
+      "@/features/canvas/domain/directorWorldSources",
     );
     expect(freezoneCommitSource).toContain(
       "await loadSceneDirectorStageManifest(project, sceneId)",

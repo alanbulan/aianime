@@ -2158,6 +2158,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十三批已将 Freezone `commit/canvasCommitRules.ts` 与 `commit/committedNodePatch.ts` 归入唯一 application 所有者 `application/canvasCommitRules.ts` 和 `application/committedNodePatch.ts`，原规则测试与外置节点 patch 测试同步归位到 application；FreezoneShell、画布提交 controller、提交弹窗 controller 及其 mock 统一使用新路径。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套规则；提交成功文案、导演世界 manifest 选择、来源槽位/普通目标节点 patch、canonical 节点刷新、候选提交标记、PushTarget 归一/等值、角色元数据回退，以及图片/视频/音频/身份/场景主线上下文投影语义保持不变。相关回归 8 个文件 76 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十四批已将 Canvas `domain/directorWorldSources.ts` 中被 Canvas、Freezone 素材库模型与场景导演世界提交共同使用的来源 URL 身份规则迁入唯一 Asset World domain 模块 `domain/director-world-source.ts`，并由 `modules/asset_world/public.ts` 公开；三个生产调用方统一经 Asset World 公共入口使用 `directorSourceIdentityUrl`，Freezone 不再反向依赖 Canvas 领域实现。Canvas 原本地函数直接删除，不保留 facade、re-export 或第二套规则；首尾空白清理、查询参数与片段剥离、空 URL 回退，以及带后端媒体版本的来源身份稳定语义保持不变；场景导演世界提交测试改为保留真实公共导出、仅替换四个持久化副作用函数的部分 mock。相关回归 6 个文件 36 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

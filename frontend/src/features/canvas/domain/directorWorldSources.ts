@@ -14,6 +14,7 @@ import type {
   DirectorStageSourceType,
   DirectorWorldSource,
 } from "@/features/viewer-kit/three-d/directorManifest";
+import { directorSourceIdentityUrl } from "@/modules/asset_world/public";
 
 export function canvasNodeLabel(node: CanvasNode): string {
   const displayName = (node.data as { displayName?: unknown }).displayName;
@@ -70,13 +71,6 @@ export function directorPanoSourceFromCanvasNode(node: CanvasNode): DirectorWorl
     pano_url: url,
     slot_kind: "scene_director_pano_360",
   };
-}
-
-export function directorSourceIdentityUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return "";
-  const withoutHash = trimmed.split("#", 1)[0] ?? "";
-  return withoutHash.split("?", 1)[0] ?? "";
 }
 
 export function directorSourceUrl(source: DirectorWorldSource): string | null {

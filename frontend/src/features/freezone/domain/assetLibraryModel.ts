@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
-import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
+import { directorSourceIdentityUrl } from "@/modules/asset_world/public";
 import type { MainlineContext } from "./mainlineContext";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 

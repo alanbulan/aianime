@@ -2,11 +2,11 @@
 import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
 import {
   clearSceneDirectorWorld,
+  directorSourceIdentityUrl,
   loadSceneDirectorStageManifest,
   saveSceneDirectorWorld,
   saveSceneDirectorWorldSource,
 } from "@/modules/asset_world/public";
-import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 
