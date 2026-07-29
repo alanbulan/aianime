@@ -1136,6 +1136,112 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './UploadNodeView'");
   });
 
+  it("separates the Canvas script-node model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ScriptNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/scriptNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/scriptNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useScriptNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useScriptNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ScriptNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ScriptNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "ScriptNode", "=", "memo("].join(" "),
+      ["export function", "resolveScriptNodeSize("].join(" "),
+      ["export function", "useScriptNodeController("].join(" "),
+      ["export function", "ScriptNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useScriptNodeController",
+        "./ScriptNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/ScriptNode.tsx"],
+      ["features/canvas/application/scriptNodeModel.ts"],
+      ["features/canvas/hooks/useScriptNodeController.ts"],
+      ["features/canvas/nodes/ScriptNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("className=");
+    expect(registrySource).toContain(
+      "import { ScriptNode } from './ScriptNode'",
+    );
+    expect(registrySource).toContain("scriptNode: ScriptNode");
+    expect(entrySource).toContain("useScriptNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(ScriptNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("generateCanvasStoryScript(");
+    expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("useNodeGenerationHistory(");
+    expect(controllerSource).toContain("resolveScriptNodeSpawnPlan({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<OperationPanelShell");
+    expect(viewSource).toContain("<OperationPanelShell");
+    expect(viewSource).toContain("<ScriptResultTable");
+    expect(viewSource).toContain("<NodeGenerationHistory");
+    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("generateCanvasStoryScript(");
+    expect(viewSource).not.toContain("translateCanvasText(");
+    expect(modelTestSource).toContain("from './scriptNodeModel'");
+    expect(controllerTestSource).toContain(
+      "from './useScriptNodeController'",
+    );
+    expect(viewTestSource).toContain("from './ScriptNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -15237,16 +15343,21 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
-    const scriptNodePath = resolve(
+    const scriptModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ScriptNode.tsx",
+      "features/canvas/application/scriptNodeModel.ts",
+    );
+    const scriptControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useScriptNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const portsSource = readFileSync(portsPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const scriptNodeSource = readFileSync(scriptNodePath, "utf8");
+    const scriptModelSource = readFileSync(scriptModelPath, "utf8");
+    const scriptControllerSource = readFileSync(scriptControllerPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -15291,22 +15402,22 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneStoryScriptGenerationGateway",
     );
-    expect(importSpecifiers(scriptNodePath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(scriptNodePath)).not.toContain("@/api/tasks");
-    expect(scriptNodeSource).toContain(
+    expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/tasks");
+    expect(scriptControllerSource).toContain(
       "buildCanvasStoryScriptCommand({",
     );
-    expect(scriptNodeSource).toContain(
+    expect(scriptModelSource).toContain(
       "classifyCanvasStoryScriptReference(node)",
     );
-    expect(scriptNodeSource).toContain(
+    expect(scriptControllerSource).toContain(
       "await generateCanvasStoryScript(",
     );
-    expect(scriptNodeSource).not.toContain("submitFreezoneStoryScript");
-    expect(scriptNodeSource).not.toContain("fetchFreezoneStoryScriptResult");
-    expect(scriptNodeSource).not.toContain("awaitTaskCompletion");
-    expect(scriptNodeSource).not.toContain("FreezoneStoryScriptResult");
-    expect(scriptNodeSource).not.toContain("FreezoneStoryScriptRow");
+    expect(scriptControllerSource).not.toContain("submitFreezoneStoryScript");
+    expect(scriptControllerSource).not.toContain("fetchFreezoneStoryScriptResult");
+    expect(scriptControllerSource).not.toContain("awaitTaskCompletion");
+    expect(scriptControllerSource).not.toContain("FreezoneStoryScriptResult");
+    expect(scriptControllerSource).not.toContain("FreezoneStoryScriptRow");
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
     ]);
@@ -20141,7 +20252,7 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/nodes/AudioOperationsPanel.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
-      "features/canvas/nodes/ScriptNode.tsx",
+      "features/canvas/hooks/useScriptNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -20611,7 +20722,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerPaths = [
       ...hookPaths,
-      resolve(SRC_ROOT, "features/canvas/nodes/ScriptNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNode.tsx"),
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
       resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
