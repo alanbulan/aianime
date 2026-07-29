@@ -38,10 +38,7 @@ import {
   removeProjectionMetadata,
 } from "../projections";
 import { canvasDraftSignature } from "../application/canvasDraft";
-import {
-  canvasDraftStorageGateway,
-  scheduleCanvasDraftPruneOnce,
-} from "../canvasDraftComposition";
+import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { scheduleCanvasSave } from "../canvasSaveComposition";
 import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
@@ -51,9 +48,11 @@ import {
   useCanvasHistoryPersistence,
   useCanvasViewportPersistence,
 } from "./useCanvasLocalPersistence";
+import {
+  useCanvasDraftPersistenceController,
+} from "./useCanvasDraftPersistenceController";
 
 const DEBOUNCE_MS = 800;
-const DRAFT_DEBOUNCE_MS = 300;
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -114,10 +113,8 @@ export function useCanvasSync(
   const lastSignatureRef = useRef<string | null>(null);
   const inFlightRef = useRef<Promise<boolean> | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
-  const draftTimerRef = useRef<number | null>(null);
   const suppressNextCanvasAutosaveRef = useRef(false);
   const revisionRef = useRef<number | null>(null);
-  const lastPersistedDraftSignatureRef = useRef<string | null>(null);
   const statusRef = useRef<CanvasSyncStatus>("loading");
   const metadataRef = useRef<Record<string, unknown> | null>(null);
   const canvasEnvelopeRef = useRef<Partial<FreezoneCanvasPayload>>({});
@@ -156,27 +153,6 @@ export function useCanvasSync(
     setStatus(next);
   };
 
-  const writeDraftNow = () => {
-    if (!hydratedRef.current || switchingRef.current) {
-      return false;
-    }
-    const canvasState = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
-    return canvasDraftStorageGateway.writeDraft(project, canvasId, {
-      baseRevision: revisionRef.current,
-      nodes: canvasState.nodes,
-      edges: canvasState.edges,
-      viewport: canvasState.currentViewport,
-      metadata: buildPersistMetadata(shot),
-      history: canvasState.history,
-      mutation: {
-        userEditsSinceHydrate: canvasState.userEditsSinceHydrate,
-        lastMutationSource: canvasState.lastMutationSource,
-        pendingClearIntent: canvasState.pendingClearIntent,
-      },
-      updatedAt: Date.now(),
-    });
-  };
   // Single source of truth for the persisted metadata blob so every save site
   // (draft write, debounced PUT, flush, beforeunload) carries shotMetadata AND
   // viewportBookmarks. Omitting bookmarks at any PUT site would overwrite the
@@ -186,22 +162,14 @@ export function useCanvasSync(
     shotMetadata: shot,
     viewportBookmarks: useCanvasStore.getState().viewportBookmarks,
   });
-  const scheduleDraftWrite = () => {
-    if (draftTimerRef.current != null) {
-      window.clearTimeout(draftTimerRef.current);
-    }
-    draftTimerRef.current = window.setTimeout(() => {
-      draftTimerRef.current = null;
-      writeDraftNow();
-    }, DRAFT_DEBOUNCE_MS);
-  };
-  const clearDraftTimerAndDraft = () => {
-    if (draftTimerRef.current != null) {
-      window.clearTimeout(draftTimerRef.current);
-      draftTimerRef.current = null;
-    }
-    canvasDraftStorageGateway.clearDraft(project, canvasId);
-  };
+  const draftPersistence = useCanvasDraftPersistenceController({
+    project,
+    canvasId,
+    hydratedRef,
+    switchingRef,
+    revisionRef,
+    buildPersistMetadata,
+  });
 
   // Publish the backend's `backup_status` to React state so FreezoneShell
   // can render the pending / failed indicator.
@@ -219,7 +187,7 @@ export function useCanvasSync(
     const saveProjectionEditNow = () => {
       window.setTimeout(() => {
         if (!hydratedRef.current || switchingRef.current) return;
-        writeDraftNow();
+        draftPersistence.persistNow();
         if (statusRef.current === "conflict" || statusRef.current === "error") {
           return;
         }
@@ -245,10 +213,8 @@ export function useCanvasSync(
           inFlightRef,
           publishBackupStatus,
           publishRevision: setRevision,
-          clearDraftAfterSave: clearDraftTimerAndDraft,
-          markDraftPersisted: (signature) => {
-            lastPersistedDraftSignatureRef.current = signature;
-          },
+          clearDraftAfterSave: draftPersistence.clearAfterSave,
+          markDraftPersisted: draftPersistence.markPersisted,
         });
       }, 0);
     };
@@ -280,7 +246,7 @@ export function useCanvasSync(
       lastRemoteNodeCountRef.current = remoteNodes.length;
       pendingClientSaveIdRef.current = null;
       pendingClientSaveIdSignatureRef.current = null;
-      canvasDraftStorageGateway.clearDraft(project, canvasId);
+      draftPersistence.clearStored();
       const meta = (remote.metadata ?? null) as
         | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
         | null;
@@ -322,10 +288,8 @@ export function useCanvasSync(
             inFlightRef,
             publishBackupStatus,
             publishRevision: setRevision,
-            clearDraftAfterSave: clearDraftTimerAndDraft,
-            markDraftPersisted: (signature) => {
-              lastPersistedDraftSignatureRef.current = signature;
-            },
+            clearDraftAfterSave: draftPersistence.clearAfterSave,
+            markDraftPersisted: draftPersistence.markPersisted,
           });
         }, 0);
       }
@@ -392,7 +356,7 @@ export function useCanvasSync(
     setRevision(null);
     setHydratedCanvasId(null);
     canvasEnvelopeRef.current = {};
-    lastPersistedDraftSignatureRef.current = null;
+    draftPersistence.resetPersistedSignature();
     hydratedRef.current = false;
     switchingRef.current = true;
     lastRemoteNodeCountRef.current = 0;
@@ -415,8 +379,8 @@ export function useCanvasSync(
           | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
           | null;
         const remoteSignature = canvasDraftSignature(nodes, edges, meta);
-        lastPersistedDraftSignatureRef.current = remoteSignature;
-        const draft = canvasDraftStorageGateway.readDraft(project, canvasId);
+        draftPersistence.markPersisted(remoteSignature);
+        const draft = draftPersistence.readStored();
         const draftDecision = decideHydrateDraft(
           draft,
           remoteRevision,
@@ -481,7 +445,7 @@ export function useCanvasSync(
             timestamp: new Date(draftDecision.draft.updatedAt).toISOString(),
           });
         } else if (draft) {
-          canvasDraftStorageGateway.clearDraft(project, canvasId);
+          draftPersistence.clearStored();
         }
 
         setCanvasData(nodes, edges);
@@ -585,7 +549,7 @@ export function useCanvasSync(
   useEffect(() => {
     const triggerSave = () => {
       if (!hydratedRef.current || switchingRef.current) return;
-      scheduleDraftWrite();
+      draftPersistence.scheduleWrite();
       if (statusRef.current === "conflict" || statusRef.current === "error") {
         return;
       }
@@ -615,10 +579,8 @@ export function useCanvasSync(
           inFlightRef,
           publishBackupStatus,
           publishRevision: setRevision,
-          clearDraftAfterSave: clearDraftTimerAndDraft,
-          markDraftPersisted: (signature) => {
-            lastPersistedDraftSignatureRef.current = signature;
-          },
+          clearDraftAfterSave: draftPersistence.clearAfterSave,
+          markDraftPersisted: draftPersistence.markPersisted,
         });
       }, DEBOUNCE_MS);
     };
@@ -654,11 +616,7 @@ export function useCanvasSync(
     return () => {
       unsubscribeCanvas();
       unsubscribeShot();
-      if (draftTimerRef.current != null) {
-        window.clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
-        writeDraftNow();
-      }
+      draftPersistence.flushPendingWrite();
       if (debounceTimerRef.current != null) {
         window.clearTimeout(debounceTimerRef.current);
       }
@@ -699,10 +657,8 @@ export function useCanvasSync(
       inFlightRef,
       publishBackupStatus,
       publishRevision: setRevision,
-      clearDraftAfterSave: clearDraftTimerAndDraft,
-      markDraftPersisted: (signature) => {
-        lastPersistedDraftSignatureRef.current = signature;
-      },
+      clearDraftAfterSave: draftPersistence.clearAfterSave,
+      markDraftPersisted: draftPersistence.markPersisted,
     });
   };
 
@@ -734,20 +690,15 @@ export function useCanvasSync(
         pendingClientSaveIdRef,
         pendingClientSaveIdSignatureRef,
         hasUnsettledContentSave:
-          draftTimerRef.current != null ||
+          draftPersistence.hasPendingWrite() ||
           debounceTimerRef.current != null ||
           inFlightRef.current != null ||
           statusRef.current === "saving",
         hasPendingContentSave: debounceTimerRef.current != null,
         lastPersistedDraftSignature:
-          lastPersistedDraftSignatureRef.current,
-        cancelPendingDraft: () => {
-          if (draftTimerRef.current != null) {
-            window.clearTimeout(draftTimerRef.current);
-            draftTimerRef.current = null;
-          }
-        },
-        persistDraft: writeDraftNow,
+          draftPersistence.lastPersistedSignature(),
+        cancelPendingDraft: draftPersistence.cancelPendingWrite,
+        persistDraft: draftPersistence.persistNow,
         cancelPendingContentSave: () => {
           if (debounceTimerRef.current != null) {
             window.clearTimeout(debounceTimerRef.current);

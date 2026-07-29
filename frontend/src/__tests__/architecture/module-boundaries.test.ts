@@ -5633,6 +5633,52 @@ describe("frontend architecture boundaries", () => {
     ).toBeGreaterThan(syncHookSource.indexOf("const triggerSave = () =>"));
   });
 
+  it("keeps canvas draft persistence lifecycle in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasDraftPersistenceController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/canvasStore",
+        "../application/canvasDraft",
+        "../canvasDraftComposition",
+        "../shotMetadataStore",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasDraftPersistenceController",
+    );
+    expect(controllerSource).toContain("const DRAFT_DEBOUNCE_MS = 300");
+    expect(controllerSource).toContain("canvasDraftStorageGateway.writeDraft(");
+    expect(controllerSource).toContain("canvasDraftStorageGateway.readDraft(");
+    expect(controllerSource).toContain("canvasDraftStorageGateway.clearDraft(");
+    expect(syncHookSource).not.toContain("const draftTimerRef");
+    expect(syncHookSource).not.toContain("const writeDraftNow");
+    expect(syncHookSource).not.toContain("const scheduleDraftWrite");
+    expect(syncHookSource).not.toContain("lastPersistedDraftSignatureRef");
+    expect(syncHookSource).not.toContain("canvasDraftStorageGateway.");
+  });
+
   it("keeps browser canvas drafts behind one application port", () => {
     const legacyPath = resolve(
       SRC_ROOT,

@@ -2044,6 +2044,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十六批已将跨刷新 undo/redo history mirror 与 camera viewport mirror 的 React 生命周期从 `useCanvasSync` 迁入唯一 presentation 模块 `hooks/useCanvasLocalPersistence.ts`，分别由 `useCanvasHistoryPersistence` 和 `useCanvasViewportPersistence` 持有，并在总 hook 原有位置调用以保持 effect 注册顺序；两者继续只消费 `canvasSyncStorageGateway` composition，不新增浏览器存储实现或 facade。history 仅在 hydrate 完成、非 switching 且已有用户编辑时写入，保留 400 ms 防抖、history 引用过滤和 beforeunload 同步兜底；viewport 仅在 ready 后订阅，保留三字段相等过滤、300 ms 防抖和最后保存 ref 更新。总 hook 不再持有两段 Store subscription、timer 或对应 storage write。`useCanvasSync` 由 881 行降至 823 行；独立持久化 hook 与同步 hook 回归 2 个文件 34 项、完整前端架构门禁 229 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十七批已将 Freezone 恢复草稿的 React 生命周期迁入唯一 presentation controller `hooks/useCanvasDraftPersistenceController.ts`，由明确命令和查询封装 timer、即时写入、保存后清理、hydrate 基线签名及卸载状态，不向总同步 hook 暴露裸 ref。草稿仍仅在 hydrate 完成且非 switching 时写入，保留 300 ms 防抖以及 revision、nodes、edges、viewport、metadata、history、mutation 和时间戳完整内容；保存成功继续取消待执行 timer、清除草稿并记录持久签名，effect cleanup 继续立即写入未落盘草稿，beforeunload 继续使用 pending 查询、取消命令、同步写入和最后持久签名。`useCanvasSync` 不再直接读写草稿 gateway，也不持有草稿 timer 或签名 ref，由 823 行降至 774 行；controller 与同步 hook 回归 2 个文件 34 项、完整前端架构门禁 3 个文件 270 项（其中 module boundaries 230 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
