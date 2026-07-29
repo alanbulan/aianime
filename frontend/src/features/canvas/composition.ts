@@ -8,7 +8,6 @@ import {
 import type {
   CreateBlankFreezoneCanvasRequest,
   FreezoneCanvasPayload,
-  FreezoneCanvasRestoreRequest,
   FreezonePresetCanvasRequest,
 } from '@/features/freezone/public';
 
@@ -32,11 +31,9 @@ import {
   deleteFreezoneCanvas as deleteFreezoneCanvasUseCase,
   generateClientSaveId as generateClientSaveIdUseCase,
   getFreezoneCanvas as getFreezoneCanvasUseCase,
-  listFreezoneCanvasHistory as listFreezoneCanvasHistoryUseCase,
   listFreezoneCanvases as listFreezoneCanvasesUseCase,
   putFreezoneCanvas as putFreezoneCanvasUseCase,
   putFreezoneCanvasKeepalive as putFreezoneCanvasKeepaliveUseCase,
-  restoreFreezoneCanvasVersion as restoreFreezoneCanvasVersionUseCase,
 } from './application/freezoneCanvasStorage';
 import { createFreezoneCanvasQueryHooks } from './hooks/freezoneCanvasQueryHooks';
 import {
@@ -676,27 +673,6 @@ export function createBlankFreezoneCanvas(
 export function deleteFreezoneCanvas(projectId: string, canvasId: string) {
   return deleteFreezoneCanvasUseCase(
     { projectId, canvasId },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function listFreezoneCanvasHistory(
-  projectId: string,
-  canvasId: string,
-) {
-  return listFreezoneCanvasHistoryUseCase(
-    { projectId, canvasId },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function restoreFreezoneCanvasVersion(
-  projectId: string,
-  canvasId: string,
-  payload: FreezoneCanvasRestoreRequest,
-) {
-  return restoreFreezoneCanvasVersionUseCase(
-    { projectId, canvasId, payload },
     freezoneCanvasStorageGateway,
   );
 }

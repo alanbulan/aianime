@@ -6,11 +6,9 @@ import {
   createBlankFreezoneCanvas,
   deleteFreezoneCanvas,
   getFreezoneCanvas,
-  listFreezoneCanvasHistory,
   listFreezoneCanvases,
   putFreezoneCanvas,
   putFreezoneCanvasKeepalive,
-  restoreFreezoneCanvasVersion,
   type FreezoneCanvasKeepaliveGateway,
   type FreezoneCanvasStorageGateway,
 } from "./freezoneCanvasStorage";
@@ -26,8 +24,6 @@ function createGateway(): FreezoneCanvasStorageGateway {
       url: "/freezone/?canvas=default",
     }),
     deleteCanvas: vi.fn().mockResolvedValue({ deleted: true }),
-    listHistory: vi.fn().mockResolvedValue([]),
-    restoreVersion: vi.fn().mockResolvedValue({ saved: true, revision: 2 }),
   };
 }
 
@@ -99,7 +95,7 @@ describe("freezoneCanvasStorage", () => {
     expect(gateway.createFromPreset).toHaveBeenCalledWith(params);
   });
 
-  it("delegates list, save, delete and history operations", async () => {
+  it("delegates list, save and delete operations", async () => {
     const gateway = createGateway();
     const target = { projectId: "project-a", canvasId: "story-lab" };
     const payload = { nodes: [], edges: [] };
@@ -107,22 +103,12 @@ describe("freezoneCanvasStorage", () => {
     await listFreezoneCanvases({ projectId: "project-a" }, gateway);
     await putFreezoneCanvas({ ...target, payload }, gateway);
     await deleteFreezoneCanvas(target, gateway);
-    await listFreezoneCanvasHistory(target, gateway);
-    await restoreFreezoneCanvasVersion(
-      { ...target, payload: { history_id: "rev-2" } },
-      gateway,
-    );
 
     expect(gateway.listCanvases).toHaveBeenCalledWith({
       projectId: "project-a",
     });
     expect(gateway.saveCanvas).toHaveBeenCalledWith({ ...target, payload });
     expect(gateway.deleteCanvas).toHaveBeenCalledWith(target);
-    expect(gateway.listHistory).toHaveBeenCalledWith(target);
-    expect(gateway.restoreVersion).toHaveBeenCalledWith({
-      ...target,
-      payload: { history_id: "rev-2" },
-    });
   });
 
   it("delegates unload saves through the keepalive port", () => {

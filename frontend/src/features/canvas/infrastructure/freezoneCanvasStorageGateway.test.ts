@@ -122,39 +122,16 @@ describe("freezoneCanvasStorageGateway", () => {
     );
   });
 
-  it("owns canvas deletion and history transport", async () => {
-    vi.mocked(apiCall)
-      .mockResolvedValueOnce({ deleted: true })
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce({ saved: true, revision: 9 });
+  it("owns canvas deletion transport", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({ deleted: true });
 
     await freezoneCanvasStorageGateway.deleteCanvas({
       projectId: "project-a",
       canvasId: "story-lab",
     });
-    await freezoneCanvasStorageGateway.listHistory({
-      projectId: "project-a",
-      canvasId: "story-lab",
-    });
-    await freezoneCanvasStorageGateway.restoreVersion({
-      projectId: "project-a",
-      canvasId: "story-lab",
-      payload: { history_id: "rev-8", base_revision: 8 },
-    });
-
-    expect(vi.mocked(apiCall).mock.calls).toEqual([
-      [
-        "projects/project-a/freezone/canvases/story-lab",
-        { method: "DELETE" },
-      ],
-      ["projects/project-a/freezone/canvases/story-lab/history"],
-      [
-        "projects/project-a/freezone/canvases/story-lab/restore",
-        {
-          method: "POST",
-          json: { history_id: "rev-8", base_revision: 8 },
-        },
-      ],
-    ]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project-a/freezone/canvases/story-lab",
+      { method: "DELETE" },
+    );
   });
 });

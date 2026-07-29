@@ -6,7 +6,6 @@ import type {
   FreezoneCanvasStorageGateway,
 } from "../application/freezoneCanvasStorage";
 import type {
-  FreezoneCanvasHistoryEntry,
   FreezoneCanvasPayload,
   FreezoneCanvasSaveResult,
   FreezoneCanvasSummary,
@@ -58,19 +57,6 @@ export const freezoneCanvasStorageGateway: FreezoneCanvasStorageGateway &
     return await apiCall<{ deleted: boolean }>(
       `projects/${encodeURIComponent(params.projectId)}/freezone/canvases/${encodeURIComponent(params.canvasId)}`,
       { method: "DELETE" },
-    );
-  },
-
-  async listHistory(params) {
-    return await apiCall<FreezoneCanvasHistoryEntry[]>(
-      `projects/${encodeURIComponent(params.projectId)}/freezone/canvases/${encodeURIComponent(params.canvasId)}/history`,
-    );
-  },
-
-  async restoreVersion(params) {
-    return await apiCall<FreezoneCanvasSaveResult>(
-      `projects/${encodeURIComponent(params.projectId)}/freezone/canvases/${encodeURIComponent(params.canvasId)}/restore`,
-      { method: "POST", json: params.payload },
     );
   },
 };

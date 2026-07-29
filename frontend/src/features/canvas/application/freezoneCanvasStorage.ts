@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type {
   CreateBlankFreezoneCanvasRequest,
-  FreezoneCanvasHistoryEntry,
   FreezoneCanvasPayload,
-  FreezoneCanvasRestoreRequest,
   FreezoneCanvasSaveResult,
   FreezoneCanvasSummary,
   FreezonePresetCanvasRequest,
@@ -38,16 +36,6 @@ export interface DeleteFreezoneCanvasParams {
   canvasId: string;
 }
 
-export interface FreezoneCanvasHistoryParams {
-  projectId: string;
-  canvasId: string;
-}
-
-export interface RestoreFreezoneCanvasVersionParams
-  extends FreezoneCanvasHistoryParams {
-  payload: FreezoneCanvasRestoreRequest;
-}
-
 export interface FreezoneCanvasStorageGateway {
   listCanvases(
     params: ListFreezoneCanvasesParams,
@@ -62,12 +50,6 @@ export interface FreezoneCanvasStorageGateway {
   deleteCanvas(
     params: DeleteFreezoneCanvasParams,
   ): Promise<{ deleted: boolean }>;
-  listHistory(
-    params: FreezoneCanvasHistoryParams,
-  ): Promise<FreezoneCanvasHistoryEntry[]>;
-  restoreVersion(
-    params: RestoreFreezoneCanvasVersionParams,
-  ): Promise<FreezoneCanvasSaveResult>;
 }
 
 export interface FreezoneCanvasKeepaliveGateway {
@@ -146,18 +128,4 @@ export function deleteFreezoneCanvas(
   gateway: FreezoneCanvasStorageGateway,
 ): Promise<{ deleted: boolean }> {
   return gateway.deleteCanvas(params);
-}
-
-export function listFreezoneCanvasHistory(
-  params: FreezoneCanvasHistoryParams,
-  gateway: FreezoneCanvasStorageGateway,
-): Promise<FreezoneCanvasHistoryEntry[]> {
-  return gateway.listHistory(params);
-}
-
-export function restoreFreezoneCanvasVersion(
-  params: RestoreFreezoneCanvasVersionParams,
-  gateway: FreezoneCanvasStorageGateway,
-): Promise<FreezoneCanvasSaveResult> {
-  return gateway.restoreVersion(params);
 }

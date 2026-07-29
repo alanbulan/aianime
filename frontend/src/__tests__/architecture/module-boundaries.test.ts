@@ -1412,6 +1412,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/domain/canvasStorage.ts",
     );
+    const removedDebugPanelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasDebugPanel.tsx",
+    );
     const canvasApplicationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/freezoneCanvasStorage.ts",
@@ -1425,6 +1429,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/composition.ts",
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasContractSource = readFileSync(canvasContractPath, "utf8");
     const canvasApplicationSource = readFileSync(canvasApplicationPath, "utf8");
     const canvasInfrastructureSource = readFileSync(
       canvasInfrastructurePath,
@@ -1437,17 +1442,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => importSpecifiers(path).includes("@/api/canvas"))
       .map(relativeSource)
       .sort();
-    const extractHistoryIdOwners = sourceFiles(SRC_ROOT)
-      .filter((path) => !path.includes(".test."))
-      .filter((path) =>
-        readFileSync(path, "utf8").includes(
-          ["export function", "extractHistoryId("].join(" "),
-        ),
-      )
-      .map(relativeSource)
-      .sort();
     const migratedConsumerPaths = [
-      "features/freezone/CanvasDebugPanel.tsx",
       "features/freezone/hooks/useCanvasBrowserController.ts",
     ];
     const canvasesTabPath = resolve(
@@ -1471,12 +1466,17 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCanvasPresetRefreshController.ts",
     );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const removedHistoryClientSymbols = [
+      "FreezoneCanvasHistoryEntry",
+      "FreezoneCanvasRestoreRequest",
+      "extractHistoryId",
+      "listFreezoneCanvasHistory",
+      "restoreFreezoneCanvasVersion",
+    ];
 
     expect(existsSync(apiCanvasPath)).toBe(false);
+    expect(existsSync(removedDebugPanelPath)).toBe(false);
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
-    expect(extractHistoryIdOwners).toEqual([
-      "features/freezone/domain/canvasStorage.ts",
-    ]);
     expect(directCanvasApiConsumers).toEqual([]);
     for (const consumerPath of migratedConsumerPaths) {
       const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
@@ -1513,12 +1513,22 @@ describe("frontend architecture boundaries", () => {
     expect(canvasApplicationSource).not.toContain("@/shared/api/");
     expect(canvasInfrastructureSource).toContain('method: "PUT"');
     expect(canvasInfrastructureSource).toContain('method: "DELETE"');
-    expect(canvasInfrastructureSource).toContain("/history");
-    expect(canvasInfrastructureSource).toContain("/restore");
     expect(canvasCompositionSource).toContain(
       "generateClientSaveIdUseCase(uuidGenerator)",
     );
-    expect(publicSource).toContain("extractHistoryId");
+    for (const source of [
+      canvasContractSource,
+      canvasApplicationSource,
+      canvasInfrastructureSource,
+      canvasCompositionSource,
+      publicSource,
+    ]) {
+      for (const symbol of removedHistoryClientSymbols) {
+        expect(source).not.toContain(symbol);
+      }
+    }
+    expect(canvasInfrastructureSource).not.toContain("/history");
+    expect(canvasInfrastructureSource).not.toContain("/restore");
   });
 
   it("keeps Freezone canvas projection behind one application gateway", () => {

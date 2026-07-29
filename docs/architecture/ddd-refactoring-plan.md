@@ -2106,6 +2106,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百一十七批经全仓生产引用、导出、路由、界面文案和测试审计确认 `commit/BatchCommitDialog.tsx` 仅剩文件自身，`BatchCommitDialog` 与 `BatchCommitItem` 均无任何调用方；现已删除该 270 行不可达组件及其中独立维护的批量提交队列状态、全局槽位集合、目标标签投影和完整 DOM，不再为未接入的第二套提交路径继续分层。唯一架构清单同步移除伪消费者，并新增旧文件路径必须不存在的合同；删除后全仓仅保留该门禁路径字符串。完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）、前端 TypeScript 全量检查与 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百一十八批经可达性审计确认 `CanvasDebugPanel` 的唯一 JSX 入口被常量 `false` 永久短路，且其 Canvas history 列表/恢复命令没有其他生产调用方；现已删除 355 行调试面板、Shell 中对应 import/open state/关闭动作与不可达 JSX，并整链移除前端 `listFreezoneCanvasHistory`、`restoreFreezoneCanvasVersion`、storage port/gateway/composition 方法、history DTO、restore request、legacy history ID 解析、public 导出及仅验证这些失效能力的测试。`FreezoneShell` 由 300 行降至 283 行，Canvas storage application 与 HTTP gateway 分别收敛至 131 行和 62 行；服务端保存时的历史快照与后端接口未改动，常规画布列表、读取、保存、删除、preset 和 keepalive 行为保持不变。Canvas storage 用例/网关、M06 合同、Director bundle 与 Viewer 回归 5 个文件 51 项、完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -88,34 +88,3 @@ export interface FreezonePresetCanvasResponse {
   reused: boolean;
   url: string;
 }
-
-export interface FreezoneCanvasHistoryEntry {
-  id?: string;
-  history_id?: string;
-  filename?: string;
-  name?: string;
-  revision?: number | null;
-  size?: number | null;
-  modified_at?: string | null;
-  save_source?: string | null;
-  updated_by?: string | null;
-  [key: string]: unknown;
-}
-
-export interface FreezoneCanvasRestoreRequest {
-  history_id: string;
-  /** Current revision for optimistic locking; null or omitted forces replace. */
-  base_revision?: number | null;
-}
-
-export function extractHistoryId(
-  entry: FreezoneCanvasHistoryEntry,
-): string | null {
-  for (const key of ["history_id", "id", "filename", "name"] as const) {
-    const value = entry[key];
-    if (typeof value === "string" && value.length > 0) {
-      return value;
-    }
-  }
-  return null;
-}

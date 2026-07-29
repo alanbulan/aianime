@@ -24,7 +24,6 @@ import {
   FreezoneToast,
 } from "./presentation/FreezoneCanvasFeedback";
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
-import { CanvasDebugPanel } from "./CanvasDebugPanel";
 import type {
   PushTarget,
   PushTargetKind,
@@ -73,7 +72,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const [toast, setToast] = useState<string | null>(null);
   const [assetLibraryReloadToken, setAssetLibraryReloadToken] = useState(0);
   const [assetPanelCollapsed, setAssetPanelCollapsed] = useState(true);
-  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const showChatDock = !isCeRuntime();
   const handleAssetsChanged = useCallback(() => {
@@ -83,7 +81,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
 
   const handleBlankPaneClick = useCallback(() => {
     setAssetPanelCollapsed(true);
-    setDebugPanelOpen(false);
     setChatOpen(false);
   }, []);
 
@@ -199,20 +196,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
             />
           )}
           <BackupStatusIndicator status={sync.backupStatus} />
-          {/* 调试面板暂时隐藏，恢复时去掉 `false &&` 即可 */}
-          {false && import.meta.env.DEV && (
-            <CanvasDebugPanel
-              project={projectId}
-              canvasId={canvasId}
-              open={debugPanelOpen}
-              onOpenChange={setDebugPanelOpen}
-              placement="top-right"
-              status={sync.status}
-              backupStatus={sync.backupStatus}
-              error={sync.error}
-              onRehydrate={sync.retry}
-            />
-          )}
           <AssetLibraryPanel
             project={projectId}
             metadata={sync.metadata}
