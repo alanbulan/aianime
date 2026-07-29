@@ -25,6 +25,7 @@ export {
   getCurrentBeatContextFromNode,
   parseBeatContextVisualMarkers,
 } from "@/features/freezone/domain/currentBeatContext";
+export { inferSkillConnectionRole } from "@/features/freezone/domain/inferSkillConnectionRole";
 export type {
   MainlineContext,
   MainlineContextEdgeLike,

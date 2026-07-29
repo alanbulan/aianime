@@ -831,6 +831,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
         "@/features/freezone/domain/currentBeatContext",
+        "@/features/freezone/domain/inferSkillConnectionRole",
         "@/features/freezone/domain/mainlineContext",
         "@/features/freezone/domain/referenceRoles",
         "@/features/freezone/domain/skillContract",
@@ -971,6 +972,59 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(testPath)).toEqual(["vitest", "./currentBeatContext"]);
     expect(canvasBypasses).toEqual([]);
+  });
+
+  it("owns Skill connection role inference in the Freezone domain", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/inferSkillConnectionRole.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/inferSkillConnectionRole.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/inferSkillConnectionRole.test.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasConsumerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/skillConnectionEdges.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const declaration = [
+      "export function",
+      "inferSkillConnectionRole(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const canvasImports = importSpecifiers(canvasConsumerPath);
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./skillContract"]);
+    expect(declarationOwners).toEqual([
+      "features/freezone/domain/inferSkillConnectionRole.ts",
+    ]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("window.");
+    expect(domainSource).not.toContain("document.");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/domain/inferSkillConnectionRole",
+    );
+    expect(canvasImports).toContain("@/features/freezone/public");
+    expect(canvasImports).not.toContain(
+      "../../freezone/context/inferSkillConnectionRole.ts",
+    );
+    expect(canvasImports).not.toContain(
+      "@/features/freezone/domain/inferSkillConnectionRole",
+    );
+    expect(importSpecifiers(testPath)).toEqual([
+      "vitest",
+      "./inferSkillConnectionRole",
+    ]);
   });
 
   it("separates shot metadata rules, state, and cross-context composition", () => {

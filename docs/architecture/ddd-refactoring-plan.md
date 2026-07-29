@@ -2130,6 +2130,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十九批已将 Freezone `context/currentBeatContext.ts` 中只依赖 mainline domain 的当前 Beat 读取、视觉 marker 解析与 MainlineContext 投影规则整体迁入唯一 `domain/currentBeatContext.ts`，原 3 项行为测试同步归位到 domain；Freezone Skill 输入解析直连 domain，Canvas 的 Skill 连线 domain、SkillNode、BeatContextNode 与提示词色板统一经 `freezone/public.ts` 使用 3 个纯函数，不公开未被跨域消费的内部类型。旧 context 源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套解析；standalone 上下文优先级、主线 provenance 防泄漏、`{{身份}}`/`[[道具]]` marker 去重、选中项按 marker 过滤、snake/camel 历史字段兼容、本地编辑覆盖 snapshot、身份/道具稳定去重、颜色映射合并及 mainline 字段投影语义保持不变。Current Beat、Skill 输入/连线、提示词色板、Beat 节点与 Skill 导演世界回归 6 个文件 61 项，完整前端架构门禁 3 个文件 307 项（其中 module boundaries 267 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十批已将 Freezone `context/inferSkillConnectionRole.ts` 中只依赖 Skill Contract 的画布连线输入角色推导规则迁入唯一 `domain/inferSkillConnectionRole.ts`，原 6 项行为测试同步从 Canvas 外置测试目录归位到 domain；Canvas `skillConnectionEdges` 通过既有 `freezone/public.ts` 使用唯一推导函数，不再以相对路径穿透 Freezone context。旧源文件与旧测试路径直接删除，不保留 facade、re-export 或第二套映射；显式非通用 target handle 优先、BeatContextNode 映射 `beat_context`、设置当前背景技能的图片特例、source role 优先于 slot kind、scene/background/sketch/frame/identity/prop/director/source_image token 映射以及无法分类返回 `null` 的保守语义保持不变。角色推导与完整 Skill 连线回归 2 个文件 17 项，完整前端架构门禁 3 个文件 308 项（其中 module boundaries 268 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

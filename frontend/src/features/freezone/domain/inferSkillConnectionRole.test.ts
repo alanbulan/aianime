@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { inferSkillConnectionRole } from "@/features/freezone/context/inferSkillConnectionRole";
+import { inferSkillConnectionRole } from "./inferSkillConnectionRole";
 
 function sceneNode(role: string) {
   return {

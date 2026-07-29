@@ -4,9 +4,9 @@ import type { Connection } from '@xyflow/react';
 import type { CanvasEdge, CanvasNode } from './canvasNodes';
 import { isPresetManagedEdge } from './mainlineNodeFlags';
 import { inputAcceptsNode } from '../../freezone/context/skillNodeInputs.ts';
-import { inferSkillConnectionRole } from '../../freezone/context/inferSkillConnectionRole.ts';
 import {
   getCurrentBeatContextFromNode,
+  inferSkillConnectionRole,
   type SkillDefinition,
   type SkillInputRole,
 } from '@/features/freezone/public';
