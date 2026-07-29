@@ -53,6 +53,7 @@ function dependencies(
     acknowledgePendingClear: vi.fn(),
     sleep: async () => undefined,
     warn: vi.fn(),
+    captureConflict: vi.fn(),
     ...overrides,
   };
 }
@@ -141,5 +142,32 @@ describe("canvas save scheduler", () => {
     expect(saveCanvas).toHaveBeenCalledTimes(2);
     expect(saveCanvas.mock.calls[0]?.[2].client_save_id).toBe("save-a");
     expect(saveCanvas.mock.calls[1]?.[2].client_save_id).toBe("save-a");
+  });
+
+  it("captures a revision conflict through the application port", async () => {
+    const captureConflict = vi.fn();
+    const input = args({
+      viewport: { x: 10, y: 20, zoom: 1.5 },
+      metadata: { shotMetadata: {} },
+    });
+    const schedule = createCanvasSaveScheduler(
+      dependencies({
+        saveCanvas: async () => {
+          throw { status: 409, body: {} };
+        },
+        captureConflict,
+      }),
+    );
+
+    await expect(schedule(input)).resolves.toBe(false);
+
+    expect(captureConflict).toHaveBeenCalledWith({
+      canvasId: "canvas-a",
+      nodes: input.nodes,
+      edges: input.edges,
+      viewport: input.viewport,
+      metadata: input.metadata,
+    });
+    expect(input.setStatus).toHaveBeenLastCalledWith("conflict");
   });
 });

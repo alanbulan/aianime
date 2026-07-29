@@ -12,6 +12,7 @@ import type {
 } from "@/features/freezone/domain/canvasStorage";
 
 import { canvasDraftSignature } from "./canvasDraft";
+import type { CanvasConflictCaptureArgs } from "./canvasConflictRecovery";
 import {
   buildSavePayload,
   checkPayloadLimits,
@@ -48,7 +49,6 @@ export interface CanvasSaveArgs extends CanvasSaveIdentityArgs {
   setStatus(status: CanvasSyncStatus): void;
   setError(error: string | null): void;
   inFlightRef: { current: Promise<boolean> | null };
-  snapshotConflict?(args: CanvasSaveArgs): void;
   publishBackupStatus?(status: CanvasBackupStatus | null): void;
   publishRevision?(revision: number | null): void;
   clearDraftAfterSave?(): void;
@@ -75,6 +75,7 @@ export interface CanvasSaveDependencies {
   acknowledgePendingClear(): void;
   sleep(delayMs: number): Promise<void>;
   warn(message: string): void;
+  captureConflict(args: CanvasConflictCaptureArgs): void;
 }
 
 export function resolveCanvasClientSaveId(
@@ -221,7 +222,13 @@ export function createCanvasSaveScheduler(
     switch (outcome.kind) {
       case "conflict":
         dropPendingId();
-        args.snapshotConflict?.(args);
+        dependencies.captureConflict({
+          canvasId: args.canvasId,
+          nodes: args.nodes,
+          edges: args.edges,
+          viewport: args.viewport,
+          metadata: args.metadata,
+        });
         args.setError(outcome.message);
         args.setStatus("conflict");
         return false;

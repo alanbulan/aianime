@@ -6,6 +6,7 @@ import {
 } from "@/features/canvas/composition";
 
 import { createCanvasSaveScheduler } from "./application/canvasSave";
+import { canvasConflictRecovery } from "./canvasConflictRecoveryComposition";
 import { canvasDraftStorageGateway } from "./canvasDraftComposition";
 
 export const scheduleCanvasSave = createCanvasSaveScheduler({
@@ -30,4 +31,5 @@ export const scheduleCanvasSave = createCanvasSaveScheduler({
       window.setTimeout(resolve, delayMs);
     }),
   warn: (message) => console.warn(message),
+  captureConflict: (args) => canvasConflictRecovery.capture(args),
 });

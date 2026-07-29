@@ -2038,6 +2038,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十三批已将 beforeunload 的最终视口落盘、未完成内容识别、草稿签名去重、待执行 timer 消费、hydrate/revision/危险空画布门禁、payload 组装及 keepalive 提交迁入唯一 application `canvasUnloadSave.ts`，常规保存与卸载保存统一复用 `canvasSave.ts` 的幂等 ID 解析；`canvasUnloadSaveComposition.ts` 注入既有视口存储和 Canvas composition，Canvas application 新增最小 keepalive port，原 `freezoneCanvasStorageGateway` 继续作为画布端点唯一 transport 并持有 URL 编码、cookie、PUT 与 `keepalive` 选项。hook 只订阅浏览器事件、采集 refs/Store 快照和提供 timer 回调，不再直接依赖 `fetch`、keepalive 选项、保存决策或 payload builder；始终同步保存视口、待保存内容先写恢复草稿、仅尚有 debounce PUT 时发新请求而不重复在途保存、manual-clear 明确允许空覆盖的语义保持不变，旧实现直接删除。`useCanvasSync` 由 1,033 行降至 980 行；application、Canvas 存储用例/网关与 hook 集成回归 5 个文件 46 项、完整前端架构门禁 226 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十四批已将 409 保存冲突与草稿 hydrate 冲突的快照捕获，以及快照读取、单独清除、丢弃恢复数据和保存冲突副本迁入唯一 application `canvasConflictRecovery.ts`；`canvasConflictRecoveryComposition.ts` 注入既有冲突/草稿存储、Canvas PUT、幂等 ID、冲突副本 ID 和时钟，常规保存 composition 直接调用同一服务捕获 409，不再把存储回调塞回 hook。草稿冲突沿用原 `updatedAt` 时间戳，网络冲突使用当前时间；保存副本继续清除 server-owned revision、标记 `canvas_origin=conflict_copy`、透传 shot metadata、空节点时显式允许覆盖，并且只在 PUT 成功后清除快照与草稿，缺失快照或保存失败均保留恢复数据。hook 只投影 revision/backup/status、清空运行时待保存 ID 和触发 reload，不再持有快照存储、冲突副本 payload、PUT 或 ID 生成；旧实现直接删除。`useCanvasSync` 由 980 行降至 933 行；冲突 application、常规保存与 hook 集成回归 3 个文件 37 项、完整前端架构门禁 227 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -6,11 +6,7 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from "@/features/canvas/canvasStore";
-import {
-  createCanvasFromPreset,
-  generateClientSaveId,
-  putFreezoneCanvas,
-} from "@/features/canvas/composition";
+import { createCanvasFromPreset } from "@/features/canvas/composition";
 import type {
   CanvasBackupStatus,
   FreezoneCanvasPayload,
@@ -19,7 +15,6 @@ import {
   canvasEnvelopeFromRemote,
   saveErrorStatusAndBody,
 } from "../application/canvasSyncCore";
-import type { CanvasSaveArgs } from "../application/canvasSave";
 import {
   canvasContentSignature,
   decideHydrateDraft,
@@ -29,8 +24,6 @@ import {
 } from "../application/canvasSyncHydration";
 import { presetRequestFromMetadata } from "../application/canvasPreset";
 import {
-  buildConflictCopyCanvasId,
-  buildConflictCopyMetadata,
   isCanvasSyncViewport,
   type CanvasSyncStatus,
   type ConflictSnapshot,
@@ -62,6 +55,7 @@ import {
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { scheduleCanvasSave } from "../canvasSaveComposition";
 import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
+import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
@@ -217,18 +211,6 @@ export function useCanvasSync(
     canvasDraftStorageGateway.clearDraft(project, canvasId);
   };
 
-  // Stash local edits to localStorage so the user can grab them via the
-  // conflict overlay's "下载本地 JSON" button even after they refresh.
-  const snapshotConflict = (args: CanvasSaveArgs) => {
-    canvasSyncStorageGateway.writeConflictSnapshot({
-      canvas_id: args.canvasId,
-      nodes: args.nodes,
-      edges: args.edges,
-      viewport: args.viewport ?? null,
-      metadata: args.metadata ?? null,
-      timestamp: new Date().toISOString(),
-    });
-  };
   // Publish the backend's `backup_status` to React state so FreezoneShell
   // can render the pending / failed indicator.
   const publishBackupStatus = (next: CanvasBackupStatus | null) => {
@@ -269,7 +251,6 @@ export function useCanvasSync(
           setStatus: setSyncStatus,
           setError,
           inFlightRef,
-          snapshotConflict,
           publishBackupStatus,
           publishRevision: setRevision,
           clearDraftAfterSave: clearDraftTimerAndDraft,
@@ -347,7 +328,6 @@ export function useCanvasSync(
             setStatus: setSyncStatus,
             setError,
             inFlightRef,
-            snapshotConflict,
             publishBackupStatus,
             publishRevision: setRevision,
             clearDraftAfterSave: clearDraftTimerAndDraft,
@@ -500,8 +480,8 @@ export function useCanvasSync(
         }
 
         if (draftDecision.kind === "conflict") {
-          canvasSyncStorageGateway.writeConflictSnapshot({
-            canvas_id: canvasId,
+          canvasConflictRecovery.capture({
+            canvasId,
             nodes: draftDecision.draft.nodes,
             edges: draftDecision.draft.edges,
             viewport: draftDecision.draft.viewport ?? null,
@@ -680,7 +660,6 @@ export function useCanvasSync(
           setStatus: setSyncStatus,
           setError,
           inFlightRef,
-          snapshotConflict,
           publishBackupStatus,
           publishRevision: setRevision,
           clearDraftAfterSave: clearDraftTimerAndDraft,
@@ -785,7 +764,6 @@ export function useCanvasSync(
       setStatus: setSyncStatus,
       setError,
       inFlightRef,
-      snapshotConflict,
       publishBackupStatus,
       publishRevision: setRevision,
       clearDraftAfterSave: clearDraftTimerAndDraft,
@@ -853,45 +831,26 @@ export function useCanvasSync(
     // The user picked "refresh" on the conflict overlay — discard the local
     // snapshot so a future 409 starts fresh. If they wanted to keep it, they
     // would have clicked the "下载本地 JSON" button first.
-    canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
-    canvasDraftStorageGateway.clearDraft(project, canvasId);
+    canvasConflictRecovery.discard(project, canvasId);
     setReloadKey((k) => k + 1);
   };
   const saveCopy = async () => {
-    const snapshot = canvasSyncStorageGateway.readConflictSnapshot(canvasId);
-    if (!snapshot) {
-      throw new Error("No local conflict snapshot is available to save.");
-    }
-    const copyCanvasId = buildConflictCopyCanvasId(canvasId);
     const shot = useShotMetadataStore.getState().shot;
-    const response = await putFreezoneCanvas(project, copyCanvasId, {
-      ...canvasEnvelopeRef.current,
-      canvas_id: copyCanvasId,
-      revision: undefined,
-      base_revision: undefined,
-      nodes: snapshot.nodes,
-      edges: snapshot.edges,
-      viewport: snapshot.viewport,
-      metadata: buildConflictCopyMetadata({
-        sourceCanvasId: canvasId,
-        metadata: { ...(snapshot.metadata ?? {}), shotMetadata: shot },
-      }),
-      client_save_id: generateClientSaveId(),
-      save_source: "manual_save",
-      allow_empty_overwrite: snapshot.nodes.length === 0,
+    const result = await canvasConflictRecovery.saveCopy({
+      project,
+      sourceCanvasId: canvasId,
+      envelope: canvasEnvelopeRef.current,
+      shotMetadata: shot,
     });
-    revisionRef.current = response.revision ?? 1;
+    revisionRef.current = result.revision;
     setRevision(revisionRef.current);
-    setBackupStatus(response.backup_status ?? null);
+    setBackupStatus(result.backupStatus);
     // Conflict copy is its own fresh save attempt; clear any stale pending id.
     pendingClientSaveIdRef.current = null;
     pendingClientSaveIdSignatureRef.current = null;
-    // The local edits are now durable in the copy canvas — drop the snapshot.
-    canvasSyncStorageGateway.clearConflictSnapshot(canvasId);
-    canvasDraftStorageGateway.clearDraft(project, canvasId);
     setSyncStatus("ready");
     setError(null);
-    return copyCanvasId;
+    return result.canvasId;
   };
 
   // Free workflow copies are no longer a separate canvas mode. Keep the
@@ -967,8 +926,8 @@ export function useCanvasSync(
     saveCopy,
     restoreMainlineDefault,
     readConflictSnapshot: () =>
-      canvasSyncStorageGateway.readConflictSnapshot(canvasId),
+      canvasConflictRecovery.readSnapshot(canvasId),
     clearConflictSnapshot: () =>
-      canvasSyncStorageGateway.clearConflictSnapshot(canvasId),
+      canvasConflictRecovery.clearSnapshot(canvasId),
   };
 }

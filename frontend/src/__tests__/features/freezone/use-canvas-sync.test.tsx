@@ -587,6 +587,72 @@ describe("useCanvasSync hydrate lifecycle", () => {
     hook.unmount();
   });
 
+  it("saves a conflict snapshot as a copy and clears recovery data", async () => {
+    vi.useFakeTimers();
+    vi.mocked(getFreezoneCanvas).mockResolvedValue({
+      nodes: [
+        {
+          id: "server-node",
+          type: CANVAS_NODE_TYPES.upload,
+          position: { x: 0, y: 0 },
+          data: { imageUrl: "/static/server.png" },
+        },
+      ],
+      edges: [],
+      revision: 7,
+    });
+    vi.mocked(putFreezoneCanvas)
+      .mockRejectedValueOnce(new ApiError("conflict", 409, {}))
+      .mockResolvedValueOnce({
+        saved: true,
+        revision: 3,
+        backup_status: "synced",
+      });
+    const hook = renderHook(() =>
+      useCanvasSync("project-a", "copy_conflict_user_eric"),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    useCanvasStore
+      .getState()
+      .addNode(CANVAS_NODE_TYPES.upload, { x: 100, y: 100 }, {});
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await Promise.resolve();
+    });
+    expect(hook.result.current.status).toBe("conflict");
+
+    let copyCanvasId = "";
+    await act(async () => {
+      copyCanvasId = await hook.result.current.saveCopy();
+    });
+
+    expect(copyCanvasId).toMatch(/^copy_/);
+    expect(putFreezoneCanvas).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(putFreezoneCanvas).mock.calls[1]).toEqual([
+      "project-a",
+      copyCanvasId,
+      expect.objectContaining({
+        canvas_id: copyCanvasId,
+        client_save_id: "save-test-id",
+        save_source: "manual_save",
+        metadata: expect.objectContaining({
+          canvas_origin: "conflict_copy",
+          source_canvas_id: "copy_conflict_user_eric",
+        }),
+      }),
+    ]);
+    expect(hook.result.current.readConflictSnapshot()).toBeNull();
+    expect(readCanvasDraft("project-a", "copy_conflict_user_eric")).toBeNull();
+    expect(hook.result.current.status).toBe("ready");
+    expect(hook.result.current.revision).toBe(3);
+    expect(hook.result.current.backupStatus).toBe("synced");
+
+    hook.unmount();
+  });
+
   it("writes a draft and delegates keepalive save on beforeunload when an edit is pending", async () => {
     vi.useFakeTimers();
     vi.mocked(getFreezoneCanvas).mockResolvedValue({

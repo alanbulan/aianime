@@ -5058,6 +5058,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
         "./application/canvasSave",
+        "./canvasConflictRecoveryComposition",
         "./canvasDraftComposition",
       ]),
     );
@@ -5134,6 +5135,83 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("keepalive: true");
     expect(hookSource).not.toContain("buildSavePayload(");
     expect(hookSource).not.toContain("decideSaveAction(");
+  });
+
+  it("keeps canvas conflict recovery in one Freezone application service", () => {
+    const recoveryPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasConflictRecovery.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasConflictRecoveryComposition.ts",
+    );
+    const saveCompositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasSaveComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const recoverySource = readFileSync(recoveryPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const declaration = [
+      "export function",
+      "createCanvasConflictRecovery(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(
+      importSpecifiers(recoveryPath).filter(
+        (specifier) =>
+          specifier === "react" ||
+          specifier.startsWith("react/") ||
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/features/freezone/infrastructure/") ||
+          specifier === "@/features/canvas/composition" ||
+          specifier.startsWith("@/shared/api/"),
+      ),
+    ).toEqual([]);
+    expect(recoverySource).not.toContain("window.");
+    expect(recoverySource).not.toContain("document.");
+    expect(recoverySource).not.toContain("localStorage");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasConflictRecovery.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/composition",
+        "./application/canvasConflictRecovery",
+        "./application/canvasSyncStorage",
+        "./canvasDraftComposition",
+        "./canvasSyncComposition",
+      ]),
+    );
+    expect(importSpecifiers(saveCompositionPath)).toContain(
+      "./canvasConflictRecoveryComposition",
+    );
+    expect(importSpecifiers(hookPath)).toContain(
+      "../canvasConflictRecoveryComposition",
+    );
+    expect(hookSource).not.toContain("snapshotConflict");
+    expect(hookSource).not.toContain("buildConflictCopyCanvasId");
+    expect(hookSource).not.toContain("buildConflictCopyMetadata");
+    expect(hookSource).not.toContain(
+      "canvasSyncStorageGateway.readConflictSnapshot",
+    );
+    expect(hookSource).not.toContain(
+      "canvasSyncStorageGateway.writeConflictSnapshot",
+    );
+    expect(hookSource).not.toContain(
+      "canvasSyncStorageGateway.clearConflictSnapshot",
+    );
   });
 
   it("keeps canvas hydration reconciliation in Freezone application", () => {
