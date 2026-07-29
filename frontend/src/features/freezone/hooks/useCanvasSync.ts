@@ -13,7 +13,6 @@ import {
 import {
   type ShotMetadata,
 } from "../shotMetadataStore";
-import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
 import {
   useCanvasHistoryPersistence,
   useCanvasViewportPersistence,
@@ -23,6 +22,7 @@ import {
 } from "./useCanvasDraftPersistenceController";
 import { useCanvasSaveController } from "./useCanvasSaveController";
 import { useCanvasConflictController } from "./useCanvasConflictController";
+import { useCanvasPresetRefreshController } from "./useCanvasPresetRefreshController";
 import { useCanvasRuntimeBridge } from "./useCanvasRuntimeBridge";
 import { useCanvasHydrationLifecycle } from "./useCanvasHydrationLifecycle";
 
@@ -248,23 +248,18 @@ export function useCanvasSync(
     setError,
   });
 
-  const restoreMainlineDefault = async (options?: { bestEffort?: boolean }) => {
-    return await refreshCanvasPreset({
-      project,
-      canvasId,
-      preset: metadata?.preset,
-      revision,
-      hydratedCanvasId,
-      userEditsSinceHydrate:
-        useCanvasStore.getState().userEditsSinceHydrate,
-      bestEffort: options?.bestEffort,
-      readRevision: () => revisionRef.current,
-      flush,
-      reload: () => setReloadKey((key) => key + 1),
-      setStatus: setSyncStatus,
-      setError,
-    });
-  };
+  const presetRefreshController = useCanvasPresetRefreshController({
+    project,
+    canvasId,
+    metadata,
+    revision,
+    hydratedCanvasId,
+    revisionRef,
+    flush,
+    reload: () => setReloadKey((key) => key + 1),
+    setStatus: setSyncStatus,
+    setError,
+  });
 
   return {
     status,
@@ -276,7 +271,7 @@ export function useCanvasSync(
     flush,
     retry: conflictController.retry,
     saveCopy: conflictController.saveCopy,
-    restoreMainlineDefault,
+    restoreMainlineDefault: presetRefreshController.restoreMainlineDefault,
     readConflictSnapshot: conflictController.readConflictSnapshot,
     clearConflictSnapshot: conflictController.clearConflictSnapshot,
   };

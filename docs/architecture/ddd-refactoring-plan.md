@@ -2068,6 +2068,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十八批已将冲突刷新前恢复数据丢弃、冲突副本保存、shot metadata 与 server envelope 装配、保存后 revision/backup/status/error 发布、保存身份重置以及冲突快照读取/清除从同步聚合 Hook 迁入唯一 presentation controller `hooks/useCanvasConflictController.ts`；`useCanvasSync` 只注入 refs、状态输出和 reload 命令，并继续通过原 `CanvasSyncResult` 暴露相同接口。retry 仍先同时清除冲突快照与草稿再触发 hydrate，副本仍读取当前 shot、沿用 server-owned envelope、仅在保存成功后更新 revision/backup 并清除保存身份，快照命令仍按当前 canvas id 隔离；application recovery service 与 composition 保持唯一，旧 Hook 中的直接 composition 和 shot Store 依赖直接删除，不保留转发或第二套恢复流程。`useCanvasSync` 由 298 行降至 283 行；controller 专属测试 2 项、冲突与同步集成回归 2 个文件 32 项、相关架构断言 2 项、完整前端架构门禁 3 个文件 281 项（其中 module boundaries 241 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第四百九十九批已将主线 preset 恢复命令的 metadata/revision/hydrate 状态、当前 Store 编辑计数、动态 revision ref、flush/reload 与状态输出装配从同步聚合 Hook 迁入唯一 presentation controller `hooks/useCanvasPresetRefreshController.ts`；application `canvasPresetRefresh.ts` 继续唯一持有 preset 校验、best-effort 延迟、保存门禁、远端重建以及 409/503 错误策略，`useCanvasSync` 只注入现有状态并透出 controller 命令。当前编辑计数仍在命令执行时读取，`base_revision` 仍在 flush 后经 ref 读取最新值，显式恢复与 best-effort 的行为和错误文案均未改变；旧 Hook 对 preset refresh composition 和 Store 编辑计数的直接依赖删除，三处静态架构契约同步改为检查新实际所有者，不保留 facade 或第二套实现。`useCanvasSync` 由 283 行降至 278 行；controller 与同步集成回归 2 个文件 31 项、相关架构断言 4 项、完整前端架构门禁 3 个文件 282 项（其中 module boundaries 242 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
