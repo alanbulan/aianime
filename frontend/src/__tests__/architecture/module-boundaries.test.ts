@@ -1432,8 +1432,12 @@ describe("frontend architecture boundaries", () => {
     const migratedConsumerPaths = [
       "features/freezone/CanvasDebugPanel.tsx",
       "features/freezone/CanvasesTab.tsx",
-      "features/freezone/hooks/useCanvasSync.ts",
     ];
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
 
     expect(existsSync(apiCanvasPath)).toBe(false);
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
@@ -1446,6 +1450,15 @@ describe("frontend architecture boundaries", () => {
       expect(source).not.toContain("@/api/canvas");
       expect(source).toContain("@/features/canvas/composition");
     }
+    expect(syncHookSource).not.toContain("@/api/canvas");
+    expect(syncHookSource).not.toContain("@/features/canvas/composition");
+    expect(importSpecifiers(syncHookPath)).toContain("../canvasSaveComposition");
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "../canvasHydrationComposition",
+    );
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "../canvasPresetRefreshComposition",
+    );
     expect(canvasApplicationSource).toContain("idGenerator.next()");
     expect(canvasApplicationSource).not.toContain("@/shared/api/");
     expect(canvasInfrastructureSource).toContain('method: "PUT"');
@@ -5214,6 +5227,77 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps mainline preset refresh orchestration in Freezone application", () => {
+    const refreshPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasPresetRefresh.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasPresetRefreshComposition.ts",
+    );
+    const hydrationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasSyncHydration.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const refreshSource = readFileSync(refreshPath, "utf8");
+    const hydrationSource = readFileSync(hydrationPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const declaration = [
+      "export function",
+      "createCanvasPresetRefresher(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(
+      importSpecifiers(refreshPath).filter(
+        (specifier) =>
+          specifier === "react" ||
+          specifier.startsWith("react/") ||
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/features/freezone/infrastructure/") ||
+          specifier === "@/features/canvas/composition" ||
+          specifier.startsWith("@/shared/api/"),
+      ),
+    ).toEqual([]);
+    expect(refreshSource).not.toContain("window.");
+    expect(refreshSource).not.toContain("document.");
+    expect(refreshSource).not.toContain("localStorage");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasPresetRefresh.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/composition",
+        "./application/canvasPresetRefresh",
+      ]),
+    );
+    expect(importSpecifiers(hookPath)).toContain(
+      "../canvasPresetRefreshComposition",
+    );
+    for (const legacyName of [
+      "shouldAbortBestEffortPresetRefresh",
+      "shouldDeferPresetRefreshUntilReady",
+      "shouldFlushBeforePresetRefresh",
+    ]) {
+      expect(hydrationSource).not.toContain(legacyName);
+      expect(hookSource).not.toContain(legacyName);
+    }
+    expect(hookSource).not.toContain("presetRequestFromMetadata");
+    expect(hookSource).not.toContain("createCanvasFromPreset");
+    expect(hookSource).not.toContain("saveErrorStatusAndBody");
+  });
+
   it("keeps canvas hydration reconciliation in Freezone application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,
@@ -5322,6 +5406,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/application/canvasPreset.ts",
     );
+    const refreshPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasPresetRefresh.ts",
+    );
     const hookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
@@ -5332,6 +5420,7 @@ describe("frontend architecture boundaries", () => {
     );
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const parserSource = readFileSync(parserPath, "utf8");
+    const refreshSource = readFileSync(refreshPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
     const beatNodeSource = readFileSync(beatNodePath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
@@ -5349,8 +5438,12 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "features/freezone/application/canvasPreset.ts",
     ]);
-    expect(importSpecifiers(hookPath)).toContain("../application/canvasPreset");
+    expect(importSpecifiers(refreshPath)).toContain("./canvasPreset");
+    expect(importSpecifiers(hookPath)).toContain(
+      "../canvasPresetRefreshComposition",
+    );
     expect(importSpecifiers(beatNodePath)).toContain("@/features/freezone/public");
+    expect(refreshSource).not.toContain(declaration);
     expect(hookSource).not.toContain(declaration);
     expect(beatNodeSource).not.toContain(declaration);
     expect(publicSource).toContain("presetRequestFromMetadata");

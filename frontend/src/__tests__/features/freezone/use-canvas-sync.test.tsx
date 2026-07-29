@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createCanvasFromPreset,
   getFreezoneCanvas,
   putFreezoneCanvas,
   putFreezoneCanvasKeepalive,
@@ -50,6 +51,12 @@ describe("useCanvasSync hydrate lifecycle", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.mocked(getFreezoneCanvas).mockReset();
+    vi.mocked(createCanvasFromPreset).mockReset();
+    vi.mocked(createCanvasFromPreset).mockResolvedValue({
+      canvas_id: "canvas-a",
+      reused: false,
+      url: "/freezone/?canvas=canvas-a",
+    });
     vi.mocked(putFreezoneCanvas).mockReset();
     vi.mocked(putFreezoneCanvas).mockResolvedValue({
       saved: true,
@@ -145,6 +152,45 @@ describe("useCanvasSync hydrate lifecycle", () => {
     await waitFor(() => expect(second.result.current.revision).toBe(1));
 
     second.unmount();
+  });
+
+  it("refreshes a hydrated preset through the application composition", async () => {
+    vi.mocked(getFreezoneCanvas).mockResolvedValue({
+      nodes: [],
+      edges: [],
+      revision: 7,
+      metadata: {
+        preset: { scope: "beat", episode: 1, beat: 4 },
+      },
+    });
+    const hook = renderHook(() =>
+      useCanvasSync("project-a", "preset_user_eric"),
+    );
+
+    await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+    let refreshedCanvasId = "";
+    await act(async () => {
+      refreshedCanvasId = await hook.result.current.restoreMainlineDefault({
+        bestEffort: true,
+      });
+    });
+
+    expect(refreshedCanvasId).toBe("preset_user_eric");
+    expect(createCanvasFromPreset).toHaveBeenCalledWith("project-a", {
+      scope: "beat",
+      episode: 1,
+      beat: 4,
+      primary_slot: "render",
+      asset_kind: null,
+      character: null,
+      identity_id: null,
+      asset_id: null,
+      canvas_id: "preset_user_eric",
+      overwrite_existing: true,
+      base_revision: 7,
+    });
+
+    hook.unmount();
   });
 
   it("does not reuse a settled hydrate snapshot after the settled reuse window", async () => {

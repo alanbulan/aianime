@@ -112,29 +112,3 @@ export function decideHydrateDraft(
       "本地有未同步的画布草稿，但服务器版本已经变化。请保存副本或丢弃本地草稿后继续。",
   };
 }
-
-export function shouldAbortBestEffortPresetRefresh(
-  bestEffort: boolean | undefined,
-  flushed: boolean,
-): boolean {
-  return Boolean(bestEffort) && !flushed;
-}
-
-export function shouldFlushBeforePresetRefresh(
-  bestEffort: boolean | undefined,
-  userEditsSinceHydrate: number,
-): boolean {
-  return !bestEffort || userEditsSinceHydrate > 0;
-}
-
-export function shouldDeferPresetRefreshUntilReady(
-  bestEffort: boolean | undefined,
-  revision: number | null,
-  hydratedCanvasId: string | null,
-  canvasId: string,
-): boolean {
-  return (
-    Boolean(bestEffort) &&
-    (revision == null || hydratedCanvasId !== canvasId)
-  );
-}

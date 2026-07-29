@@ -6,23 +6,15 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from "@/features/canvas/canvasStore";
-import { createCanvasFromPreset } from "@/features/canvas/composition";
 import type {
   CanvasBackupStatus,
   FreezoneCanvasPayload,
 } from "@/features/freezone/domain/canvasStorage";
-import {
-  canvasEnvelopeFromRemote,
-  saveErrorStatusAndBody,
-} from "../application/canvasSyncCore";
+import { canvasEnvelopeFromRemote } from "../application/canvasSyncCore";
 import {
   canvasContentSignature,
   decideHydrateDraft,
-  shouldAbortBestEffortPresetRefresh,
-  shouldDeferPresetRefreshUntilReady,
-  shouldFlushBeforePresetRefresh,
 } from "../application/canvasSyncHydration";
-import { presetRequestFromMetadata } from "../application/canvasPreset";
 import {
   isCanvasSyncViewport,
   type CanvasSyncStatus,
@@ -45,9 +37,7 @@ import {
   removeProjectionFromLocalCanvas,
   removeProjectionMetadata,
 } from "../projections";
-import {
-  canvasDraftSignature,
-} from "../application/canvasDraft";
+import { canvasDraftSignature } from "../application/canvasDraft";
 import {
   canvasDraftStorageGateway,
   scheduleCanvasDraftPruneOnce,
@@ -56,6 +46,7 @@ import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
 import { scheduleCanvasSave } from "../canvasSaveComposition";
 import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
+import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
@@ -853,65 +844,22 @@ export function useCanvasSync(
     return result.canvasId;
   };
 
-  // Free workflow copies are no longer a separate canvas mode. Keep the
-  // metadata envelope pass-through, but do not read/write dedicated fields.
-
   const restoreMainlineDefault = async (options?: { bestEffort?: boolean }) => {
-    const preset = metadata?.preset as Record<string, unknown> | undefined;
-    const request = presetRequestFromMetadata(preset);
-    if (!request) {
-      throw new Error("当前画布不是可恢复的主线 preset");
-    }
-    if (
-      shouldDeferPresetRefreshUntilReady(
-        options?.bestEffort,
-        revision,
-        hydratedCanvasId,
-        canvasId,
-      )
-    ) {
-      return canvasId;
-    }
-    setSyncStatus("saving");
-    setError(null);
-    try {
-      const userEditsSinceHydrate = useCanvasStore.getState().userEditsSinceHydrate;
-      if (shouldFlushBeforePresetRefresh(options?.bestEffort, userEditsSinceHydrate)) {
-        const flushed = await flush();
-        if (!flushed) {
-          if (shouldAbortBestEffortPresetRefresh(options?.bestEffort, flushed)) {
-            setError(null);
-            setSyncStatus("ready");
-            return canvasId;
-          }
-          throw new Error("当前画布还有未保存冲突，处理后再同步主线视图");
-        }
-      }
-      await createCanvasFromPreset(project, {
-        ...request,
-        canvas_id: canvasId,
-        overwrite_existing: true,
-        base_revision: revisionRef.current ?? undefined,
-      });
-      setReloadKey((k) => k + 1);
-      return canvasId;
-    } catch (err) {
-      const status = saveErrorStatusAndBody(err).status;
-      if (options?.bestEffort && (status === 409 || status === 503)) {
-        setError(null);
-        setSyncStatus("ready");
-        return canvasId;
-      }
-      const message =
-        status === 409
-          ? "主线视图已被其他窗口更新,请刷新后重试"
-          : err instanceof Error
-            ? err.message
-            : String(err);
-      setError(message);
-      setSyncStatus("error");
-      throw new Error(message);
-    }
+    return await refreshCanvasPreset({
+      project,
+      canvasId,
+      preset: metadata?.preset,
+      revision,
+      hydratedCanvasId,
+      userEditsSinceHydrate:
+        useCanvasStore.getState().userEditsSinceHydrate,
+      bestEffort: options?.bestEffort,
+      readRevision: () => revisionRef.current,
+      flush,
+      reload: () => setReloadKey((key) => key + 1),
+      setStatus: setSyncStatus,
+      setError,
+    });
   };
 
   return {

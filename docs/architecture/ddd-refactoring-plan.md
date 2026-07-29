@@ -2040,6 +2040,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十四批已将 409 保存冲突与草稿 hydrate 冲突的快照捕获，以及快照读取、单独清除、丢弃恢复数据和保存冲突副本迁入唯一 application `canvasConflictRecovery.ts`；`canvasConflictRecoveryComposition.ts` 注入既有冲突/草稿存储、Canvas PUT、幂等 ID、冲突副本 ID 和时钟，常规保存 composition 直接调用同一服务捕获 409，不再把存储回调塞回 hook。草稿冲突沿用原 `updatedAt` 时间戳，网络冲突使用当前时间；保存副本继续清除 server-owned revision、标记 `canvas_origin=conflict_copy`、透传 shot metadata、空节点时显式允许覆盖，并且只在 PUT 成功后清除快照与草稿，缺失快照或保存失败均保留恢复数据。hook 只投影 revision/backup/status、清空运行时待保存 ID 和触发 reload，不再持有快照存储、冲突副本 payload、PUT 或 ID 生成；旧实现直接删除。`useCanvasSync` 由 980 行降至 933 行；冲突 application、常规保存与 hook 集成回归 3 个文件 37 项、完整前端架构门禁 227 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十五批已将主线 preset metadata 解析、best-effort hydrate/revision 延迟、clean refresh 免 flush、dirty/required refresh 预保存、flush 阻断处理、重建请求和 409/503 错误策略迁入唯一 application `canvasPresetRefresh.ts`，由 `canvasPresetRefreshComposition.ts` 注入 Canvas preset gateway；重建的 `base_revision` 继续在 flush 完成后读取最新 ref，避免用旧 revision 覆盖刚保存的本地编辑。hook 只传入当前 metadata/React 状态、Store 编辑计数、flush/reload 和 UI 输出端口，不再直接依赖 Canvas composition、preset parser、错误归一化或三段布尔决策；`canvasSyncHydration.ts` 中仅供旧 hook 使用的三个 helper、原画布列表 helper 测试及失去对应实现的旧说明同步删除，不保留第二套规则。无效 preset 不改变同步状态、未就绪的 best-effort 静默延迟、clean best-effort 不触发冗余 PUT、dirty best-effort 阻断后恢复 ready、required 409 显示原文案的行为保持不变。`useCanvasSync` 由 933 行降至 881 行；preset application、hook 与画布列表回归 3 个文件 61 项、完整前端架构门禁 228 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

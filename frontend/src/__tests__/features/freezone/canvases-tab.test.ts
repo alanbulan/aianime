@@ -24,11 +24,6 @@ import {
   buildConflictCopyCanvasId,
   buildConflictCopyMetadata,
 } from "@/features/freezone/application/canvasSyncStorage";
-import {
-  shouldAbortBestEffortPresetRefresh,
-  shouldDeferPresetRefreshUntilReady,
-  shouldFlushBeforePresetRefresh,
-} from "@/features/freezone/application/canvasSyncHydration";
 
 function canvas(
   id: string,
@@ -205,27 +200,7 @@ describe("freezone canvas browser sections", () => {
   });
 });
 
-describe("freezone preset auto refresh guard", () => {
-  it("silently aborts best-effort refresh when the local canvas cannot flush", () => {
-    expect(shouldAbortBestEffortPresetRefresh(true, false)).toBe(true);
-    expect(shouldAbortBestEffortPresetRefresh(false, false)).toBe(false);
-    expect(shouldAbortBestEffortPresetRefresh(true, true)).toBe(false);
-  });
-
-  it("skips pre-flush for clean best-effort refreshes", () => {
-    expect(shouldFlushBeforePresetRefresh(true, 0)).toBe(false);
-    expect(shouldFlushBeforePresetRefresh(true, 1)).toBe(true);
-    expect(shouldFlushBeforePresetRefresh(false, 0)).toBe(true);
-  });
-
-  it("defers best-effort refresh until the current canvas is hydrated with a revision", () => {
-    expect(shouldDeferPresetRefreshUntilReady(true, null, "old", "new")).toBe(true);
-    expect(shouldDeferPresetRefreshUntilReady(true, 3, "old", "new")).toBe(true);
-    expect(shouldDeferPresetRefreshUntilReady(true, null, "new", "new")).toBe(true);
-    expect(shouldDeferPresetRefreshUntilReady(true, 3, "new", "new")).toBe(false);
-    expect(shouldDeferPresetRefreshUntilReady(false, null, null, "new")).toBe(false);
-  });
-
+describe("freezone preset projection guards", () => {
   it("does not treat projection canvases as legacy preset canvases", () => {
     expect(hasLegacyPresetCanvasMetadata({ preset: { scope: "beat" } })).toBe(true);
     expect(
