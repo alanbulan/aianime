@@ -14,20 +14,14 @@ import {
 import type {
   CanvasBackupStatus,
   FreezoneCanvasPayload,
-  FreezoneCanvasSaveResult,
 } from "@/features/freezone/domain/canvasStorage";
 import {
   buildSavePayload,
   canvasEnvelopeFromRemote,
-  checkPayloadLimits,
-  classifySaveError,
   decideSaveAction,
-  describePayloadViolation,
-  MAX_BODY_BYTES,
   saveErrorStatusAndBody,
-  type SaveDecision,
-  type SaveResponseOutcome,
 } from "../application/canvasSyncCore";
+import type { CanvasSaveArgs } from "../application/canvasSave";
 import {
   canvasContentSignature,
   decideHydrateDraft,
@@ -68,12 +62,10 @@ import {
   scheduleCanvasDraftPruneOnce,
 } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
+import { scheduleCanvasSave } from "../canvasSaveComposition";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
-/** Extra app-level retry attempts when ky surfaces a 503 canvas_lock_busy. */
-const LOCK_BUSY_MAX_RETRIES = 1;
-
 function viewportsEqual(a: Viewport, b: Viewport): boolean {
   return a.x === b.x && a.y === b.y && a.zoom === b.zoom;
 }
@@ -238,7 +230,7 @@ export function useCanvasSync(
 
   // Stash local edits to localStorage so the user can grab them via the
   // conflict overlay's "下载本地 JSON" button even after they refresh.
-  const snapshotConflict = (args: SaveArgs) => {
+  const snapshotConflict = (args: CanvasSaveArgs) => {
     canvasSyncStorageGateway.writeConflictSnapshot({
       canvas_id: args.canvasId,
       nodes: args.nodes,
@@ -271,7 +263,7 @@ export function useCanvasSync(
         const canvasState = useCanvasStore.getState();
         const shot = useShotMetadataStore.getState().shot;
         lastSavedViewportRef.current = canvasState.currentViewport;
-        void scheduleSave({
+        void scheduleCanvasSave({
           project,
           canvasId,
           nodes: canvasState.nodes,
@@ -349,7 +341,7 @@ export function useCanvasSync(
           const canvasState = useCanvasStore.getState();
           const shot = useShotMetadataStore.getState().shot;
           lastSavedViewportRef.current = canvasState.currentViewport;
-          void scheduleSave({
+          void scheduleCanvasSave({
             project,
             canvasId,
             nodes: canvasState.nodes,
@@ -682,7 +674,7 @@ export function useCanvasSync(
         const canvasState = useCanvasStore.getState();
         const shot = useShotMetadataStore.getState().shot;
         lastSavedViewportRef.current = canvasState.currentViewport;
-        void scheduleSave({
+        void scheduleCanvasSave({
           project,
           canvasId,
           nodes: canvasState.nodes,
@@ -787,7 +779,7 @@ export function useCanvasSync(
     const { nodes, edges, currentViewport } = useCanvasStore.getState();
     const shot = useShotMetadataStore.getState().shot;
     lastSavedViewportRef.current = currentViewport;
-    return await scheduleSave({
+    return await scheduleCanvasSave({
       project,
       canvasId,
       nodes,
@@ -1038,331 +1030,4 @@ export function useCanvasSync(
     clearConflictSnapshot: () =>
       canvasSyncStorageGateway.clearConflictSnapshot(canvasId),
   };
-}
-
-interface SaveArgs {
-  project: string;
-  canvasId: string;
-  nodes: unknown[];
-  edges: unknown[];
-  viewport?: Viewport;
-  metadata?: Record<string, unknown> | null;
-  /**
-   * Optional explicit override. When omitted, `scheduleSave` builds the
-   * snapshot from `useCanvasStore.getState()` + the refs and lets
-   * `decideSaveAction` choose the source/allow-empty bits — the normal
-   * autosave path. Explicit overrides are used by saveCopy / manual flows
-   * that already know what they are.
-   */
-  forcedDecision?: Extract<SaveDecision, { kind: "send" }>;
-  revisionRef: { current: number | null };
-  canvasEnvelopeRef: { current: Partial<FreezoneCanvasPayload> };
-  pendingClientSaveIdRef: { current: string | null };
-  pendingClientSaveIdSignatureRef: { current: string | null };
-  hydratedRef: { current: boolean };
-  switchingRef: { current: boolean };
-  lastRemoteNodeCountRef: { current: number };
-  setStatus: (s: CanvasSyncStatus) => void;
-  setError: (e: string | null) => void;
-  inFlightRef: { current: Promise<boolean> | null };
-  /**
-   * Persist a snapshot of the local edits to `localStorage` so the user can
-   * recover them after a 409. Implementation lives in the hook so the keys
-   * stay in one place; this is just a hook into the error handler.
-   */
-  snapshotConflict?: (args: SaveArgs) => void;
-  /**
-   * Surface the backend's `backup_status` to the UI when it is something
-   * other than the default `"synced"` / `"disabled"`. Used by the
-   * canvas_backup_pending branch and by `consumeSaveResponse`.
-   */
-  publishBackupStatus?: (status: CanvasBackupStatus | null) => void;
-  publishRevision?: (revision: number | null) => void;
-  clearDraftAfterSave?: () => void;
-  markDraftPersisted?: (signature: string) => void;
-}
-
-async function scheduleSave(args: SaveArgs): Promise<boolean> {
-  // Coalesce overlapping saves.
-  if (args.inFlightRef.current) {
-    await args.inFlightRef.current;
-  }
-
-  // ---- Decision gate ---- //
-  // Ask the pure state-machine whether this content state should produce a
-  // PUT at all. `skip` means "the hook is mid-hydrate / mid-switch — wait
-  // and try again later" (signature-based subscription will retrigger).
-  // `block` means "local is empty but the server still has nodes and the
-  // user did not ask for that" — surface as a soft conflict so the user can
-  // refresh, without burning a real PUT to get a 400 back.
-  const canvasState = useCanvasStore.getState();
-  const decision: SaveDecision = args.forcedDecision ?? decideSaveAction({
-    hydrated: args.hydratedRef.current,
-    switching: args.switchingRef.current,
-    nodeCount: canvasState.nodes.length,
-    edgeCount: canvasState.edges.length,
-    lastRemoteNodeCount: args.lastRemoteNodeCountRef.current,
-    userEditsSinceHydrate: canvasState.userEditsSinceHydrate,
-    lastMutationSource: canvasState.lastMutationSource,
-    pendingClearIntent: canvasState.pendingClearIntent,
-  });
-
-  if (decision.kind === "skip") {
-    return false;
-  }
-  if (decision.kind === "block") {
-    args.pendingClientSaveIdRef.current = null;
-    args.pendingClientSaveIdSignatureRef.current = null;
-    args.setError(
-      "本地画布为空但服务器还有节点，已暂停自动保存以避免覆盖。请刷新后再编辑。",
-    );
-    args.setStatus("conflict");
-    return false;
-  }
-
-  // Identity for this save attempt. If the previous attempt failed with a
-  // retryable code (503 canvas_lock_busy), the ref still holds the same id and
-  // we reuse it so the backend can dedupe. If the content shape changed since
-  // the last attempt, mint a fresh id instead.
-  const contentSignature = JSON.stringify({
-    nodes: args.nodes,
-    edges: args.edges,
-    viewport: args.viewport ?? null,
-    metadata: args.metadata ?? null,
-  });
-  if (
-    args.pendingClientSaveIdRef.current == null ||
-    args.pendingClientSaveIdSignatureRef.current !== contentSignature
-  ) {
-    args.pendingClientSaveIdRef.current = generateClientSaveId();
-    args.pendingClientSaveIdSignatureRef.current = contentSignature;
-  }
-  const clientSaveId = args.pendingClientSaveIdRef.current;
-
-  args.setStatus("saving");
-  const job = (async () => {
-    try {
-      return await performSave(args, decision, clientSaveId, 0);
-    } finally {
-      args.inFlightRef.current = null;
-    }
-  })();
-  args.inFlightRef.current = job;
-  return await job;
-}
-
-async function performSave(
-  args: SaveArgs,
-  decision: Extract<SaveDecision, { kind: "send" }>,
-  clientSaveId: string,
-  attempt: number,
-): Promise<boolean> {
-  const payload = buildSavePayload({
-    canvasId: args.canvasId,
-    nodes: args.nodes,
-    edges: args.edges,
-    viewport: args.viewport,
-    metadata: args.metadata,
-    baseRevision: args.revisionRef.current,
-    clientSaveId,
-    decision,
-    envelope: args.canvasEnvelopeRef.current,
-  });
-
-  // Pre-flight size check.
-  //
-  // Node/edge **counts** are hard caps: the backend's Pydantic validator
-  // rejects them with 422, and the only realistic way to hit 50k+ nodes is
-  // a runaway loop in client code — we want to stop autosave loudly when
-  // that happens. So count violations block the PUT and surface as an
-  // error overlay.
-  //
-  // The 5 MB **body** cap is advisory on the client. Real freezone
-  // canvases routinely cross 5 MB once image preview data URLs and per-
-  // node metadata pile up, and the backend middleware that would enforce
-  // the limit is not deployed everywhere yet. Logging a console warning
-  // gives operators a signal without blocking real edits; if the backend
-  // actually rejects with 413 once it ships, `classifySaveError` already
-  // routes that to a fatal-error overlay (see the `fatal` branch above).
-  const countViolation = checkPayloadLimits(
-    args.nodes.length,
-    args.edges.length,
-    null,
-  );
-  if (countViolation) {
-    args.pendingClientSaveIdRef.current = null;
-    args.pendingClientSaveIdSignatureRef.current = null;
-    args.setError(describePayloadViolation(countViolation));
-    args.setStatus("error");
-    return false;
-  }
-  const bodySize = JSON.stringify(payload).length;
-  if (bodySize > MAX_BODY_BYTES) {
-    console.warn(
-      `[freezone] canvas PUT body ~${Math.round(bodySize / 1024)} KB ` +
-        `exceeds ${Math.round(MAX_BODY_BYTES / 1024)} KB advisory cap ` +
-        "(canvas_id=" +
-        args.canvasId +
-        "); proceeding anyway, backend may reject with 413",
-    );
-  }
-
-  try {
-    const response = await putFreezoneCanvas(args.project, args.canvasId, payload);
-    consumeSaveResponse(args, response, decision);
-    args.setStatus("ready");
-    args.setError(null);
-    return true;
-  } catch (err) {
-    return await handleSaveError(args, err, decision, clientSaveId, attempt);
-  }
-}
-
-function consumeSaveResponse(
-  args: SaveArgs,
-  response: FreezoneCanvasSaveResult,
-  decision: Extract<SaveDecision, { kind: "send" }>,
-): void {
-  if (typeof response.revision === "number") {
-    args.revisionRef.current = response.revision;
-    args.publishRevision?.(response.revision);
-    args.canvasEnvelopeRef.current = {
-      ...args.canvasEnvelopeRef.current,
-      revision: response.revision,
-      ...(response.updated_at ? { updated_at: response.updated_at } : {}),
-    };
-  }
-  // Record what the server now sees so the next dangerous-empty check has
-  // an up-to-date baseline.
-  args.lastRemoteNodeCountRef.current = args.nodes.length;
-  args.markDraftPersisted?.(
-    canvasDraftSignature(
-      args.nodes as CanvasNode[],
-      args.edges as CanvasEdge[],
-      args.metadata ?? null,
-    ),
-  );
-  // Drop the pending idempotency token — next content change mints a new one.
-  args.pendingClientSaveIdRef.current = null;
-  args.pendingClientSaveIdSignatureRef.current = null;
-  if (args.clearDraftAfterSave) {
-    args.clearDraftAfterSave();
-  } else {
-    canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
-  }
-  if (decision.saveSource === "manual_clear") {
-    // One-shot intent has been honored by the server. Clear the flag so a
-    // subsequent autosave with empty nodes does not auto-promote a second
-    // time after the user immediately adds content back.
-    useCanvasStore.getState().acknowledgePendingClear();
-  }
-  const backupStatus: CanvasBackupStatus | undefined = response.backup_status;
-  // Always publish the latest server-reported backup_status so the UI can
-  // surface or clear "备份中" / "备份失败" indicators in lock-step with the
-  // wire response. Treat undefined as "no information" (legacy backend);
-  // "synced" / "disabled" are silent in the UI.
-  args.publishBackupStatus?.(backupStatus ?? null);
-  if (backupStatus === "failed") {
-    // Local save succeeded, but the async OSS backup failed. Surface a soft
-    // warning without flipping into the hard error path — the user's edits
-    // are durable on the server, just not yet replicated. The dedicated
-    // backupStatus channel above also picks this up for the UI indicator.
-    args.setError("云端备份失败，请稍后再试");
-  }
-}
-
-async function handleSaveError(
-  args: SaveArgs,
-  err: unknown,
-  decision: Extract<SaveDecision, { kind: "send" }>,
-  clientSaveId: string,
-  attempt: number,
-): Promise<boolean> {
-  const { status, body } = saveErrorStatusAndBody(err);
-  const fallback = err instanceof Error ? err.message : String(err);
-  const outcome: SaveResponseOutcome = classifySaveError(status, body, fallback);
-
-  // Local helpers — every "terminal" branch drops the pending idempotency
-  // token so the next fresh content change mints a new one. Retry branches
-  // (only 503 canvas_lock_busy today) keep the token alive.
-  const dropPendingId = () => {
-    args.pendingClientSaveIdRef.current = null;
-    args.pendingClientSaveIdSignatureRef.current = null;
-  };
-
-  switch (outcome.kind) {
-    case "conflict": {
-      // Optimistic-lock conflict: stash the local edits to localStorage so
-      // the user can recover them, then surface the overlay.
-      dropPendingId();
-      args.snapshotConflict?.(args);
-      args.setError(outcome.message);
-      args.setStatus("conflict");
-      return false;
-    }
-    case "dangerous_empty": {
-      // Backend rejected an empty overwrite. Treat as soft conflict so the
-      // user refreshes; never auto-retry with an empty payload.
-      dropPendingId();
-      args.setError(outcome.message);
-      args.setStatus("conflict");
-      return false;
-    }
-    case "retry": {
-      // 503 canvas_lock_busy: another writer is mid-save. Keep the same
-      // client_save_id so the backend's idempotency record dedupes.
-      if (attempt < LOCK_BUSY_MAX_RETRIES) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, outcome.afterMs),
-        );
-        return await performSave(args, decision, clientSaveId, attempt + 1);
-      }
-      // Retry budget exhausted — surface as a generic error so the user
-      // knows the save did not stick.
-      dropPendingId();
-      args.setError("画布写入被锁占用，请稍后重试");
-      args.setStatus("error");
-      return false;
-    }
-    case "ok_with_warning": {
-      // 503 canvas_backup_pending: backend persisted locally; OSS backup
-      // is in flight. Treat as success; the backupStatus side-channel
-      // exposes the "pending" state to the UI.
-      dropPendingId();
-      if (args.clearDraftAfterSave) {
-        args.clearDraftAfterSave();
-      } else {
-        canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
-      }
-      args.publishBackupStatus?.(outcome.backupStatus);
-      args.setError(null);
-      args.setStatus("ready");
-      return true;
-    }
-    case "fatal": {
-      // 422 / 413 (payload too large), 500 (canvas_needs_migration /
-      // canvas_backup_failed): the data on the server may be inconsistent.
-      // Stop autosaving and surface a visible error so the user can take
-      // action (delete nodes, contact admin, etc.).
-      dropPendingId();
-      args.setError(outcome.message);
-      args.setStatus("error");
-      return false;
-    }
-    case "ok": {
-      dropPendingId();
-      canvasDraftStorageGateway.clearDraft(args.project, args.canvasId);
-      args.publishBackupStatus?.(outcome.backupStatus ?? null);
-      args.setError(null);
-      args.setStatus("ready");
-      return true;
-    }
-    case "error":
-    default: {
-      dropPendingId();
-      args.setError(outcome.message);
-      args.setStatus("error");
-      return false;
-    }
-  }
 }

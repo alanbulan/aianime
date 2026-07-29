@@ -4,17 +4,16 @@
  * Extracted from `useCanvasSync` so it can be exercised in isolation by
  * `canvasSyncCore.test.ts` without spinning up React / ReactFlow / a backend.
  *
- * The hook collects a `SaveSnapshot` from the React refs + zustand stores, asks
- * `decideSaveAction` what to do, and — if the action is `"send"` — feeds the
- * decision into `buildSavePayload` to assemble the PUT body. Every branch the
- * hook can take is therefore expressible as a data-in / data-out test case.
+ * The canvas-save scheduler collects an explicit snapshot through its ports,
+ * asks `decideSaveAction` what to do, and — if the action is `"send"` — feeds
+ * the decision into `buildSavePayload` to assemble the PUT body. Every branch
+ * remains expressible as a data-in / data-out test case.
  *
  * The split intentionally avoids hidden coupling to React state: every input is
  * passed in explicitly and every output is a plain object.
  */
 
 import type {
-  CanvasBackupStatus,
   CanvasSaveSource,
   FreezoneCanvasPayload,
 } from "@/features/freezone/domain/canvasStorage";
@@ -32,7 +31,7 @@ import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutati
  * - `MAX_BODY_BYTES` is **advisory** on the client. Real freezone canvases
  *   (with image preview data URLs / per-node metadata) routinely cross 5 MB,
  *   and the backend's 5 MB middleware is not deployed everywhere yet. The
- *   hook logs a `console.warn` but still issues the PUT; if the backend
+ *   save scheduler logs a warning but still issues the PUT; if the backend
  *   actually rejects with 413, `classifySaveError` already routes that to
  *   a fatal-error overlay.
  *
@@ -327,7 +326,7 @@ export interface PayloadLimitViolation {
  *
  * `serializedSize` is optional because computing `JSON.stringify` twice (once
  * here, once inside ky) is wasteful when nodes/edges already short-circuit.
- * `useCanvasSync` calls this with the count-only check first and only falls
+ * The canvas-save scheduler calls this with the count-only check first and falls
  * back to the body-size check when counts pass.
  */
 export function checkPayloadLimits(
@@ -348,9 +347,9 @@ export function checkPayloadLimits(
 }
 
 /**
- * Human-readable message for a payload-limit violation, used by the hook to
+ * Human-readable message for a payload-limit violation, used by the scheduler to
  * set the conflict / error string. Kept here so the test asserts the wording
- * once instead of testing the hook indirectly.
+ * once instead of testing the integration hook indirectly.
  */
 export function describePayloadViolation(v: PayloadLimitViolation): string {
   if (v.field === "nodes") {
@@ -382,7 +381,6 @@ export function saveErrorStatusAndBody(err: unknown): {
 }
 
 export type SaveResponseOutcome =
-  | { kind: "ok"; revision: number; backupStatus: CanvasBackupStatus | undefined }
   | {
       kind: "ok_with_warning";
       revision: number | null;
@@ -397,11 +395,11 @@ export type SaveResponseOutcome =
 
 /**
  * Map a save response (success or thrown ApiError-equivalent) to the
- * UX action the hook should take. Keeping this pure makes the per-code
+ * UX action the save scheduler should take. Keeping this pure makes the per-code
  * behavior auditable in tests without faking the ky/HTTP stack.
  *
- * The hook stays responsible for actually applying the outcome (setStatus,
- * setError, retry timer); this function only decides which outcome applies.
+ * `canvasSave` applies the outcome through injected status, error, and timer
+ * ports; this function only decides which outcome applies.
  */
 export function classifySaveError(
   status: number | null,

@@ -4924,7 +4924,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("Math.max(currentZoom, 0.6)");
   });
 
-  it("keeps Canvas persistence owned by useCanvasSync", () => {
+  it("keeps Canvas persistence triggered by useCanvasSync", () => {
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -4941,7 +4941,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSync).toContain(
       "const unsubscribeCanvas = useCanvasStore.subscribe((state, prev) =>",
     );
-    expect(canvasSync).toContain("void scheduleSave({");
+    expect(canvasSync).toContain(
+      'import { scheduleCanvasSave } from "../canvasSaveComposition";',
+    );
+    expect(canvasSync).toContain("void scheduleCanvasSave({");
   });
 
   it("separates Freezone canvas sync decisions from its presentation hook", () => {
@@ -5004,6 +5007,66 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("function canvasEnvelopeFromRemote(");
     expect(hookSource).not.toContain("function saveErrorStatusAndBody(");
     expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
+  });
+
+  it("keeps canvas save orchestration in Freezone application", () => {
+    const savePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasSave.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasSaveComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const saveSource = readFileSync(savePath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const declaration = [
+      "export function",
+      "createCanvasSaveScheduler(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(
+      importSpecifiers(savePath).filter(
+        (specifier) =>
+          specifier === "react" ||
+          specifier.startsWith("react/") ||
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/features/freezone/infrastructure/") ||
+          specifier.startsWith("@/features/freezone/composition") ||
+          specifier.startsWith("@/shared/api/"),
+      ),
+    ).toEqual([]);
+    expect(saveSource).not.toContain("window.");
+    expect(saveSource).not.toContain("document.");
+    expect(saveSource).not.toContain("localStorage");
+    expect(declarationOwners).toEqual([
+      "features/freezone/application/canvasSave.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "./application/canvasSave",
+        "./canvasDraftComposition",
+      ]),
+    );
+    expect(importSpecifiers(hookPath)).toContain("../canvasSaveComposition");
+    expect(hookSource).not.toContain("async function scheduleSave(");
+    expect(hookSource).not.toContain("async function performSave(");
+    expect(hookSource).not.toContain("function consumeSaveResponse(");
+    expect(hookSource).not.toContain("async function handleSaveError(");
+    expect(hookSource).not.toContain("LOCK_BUSY_MAX_RETRIES");
   });
 
   it("keeps canvas hydration reconciliation in Freezone application", () => {

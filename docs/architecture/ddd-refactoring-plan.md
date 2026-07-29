@@ -2034,6 +2034,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十一批已将旧草稿/历史/冲突数据的一次性空闲清理调度从 `useCanvasSync` 迁入现有 `canvasDraftComposition.ts`，hook 仅在 hydrate effect 调用 `scheduleCanvasDraftPruneOnce`；composition 持有页面生命周期 once 状态和浏览器 idle/timer，browser adapter 继续唯一持有 localStorage 遍历与 TTL 清理算法。`requestIdleCallback` 的 2 秒 timeout、无 idle API 时 300 ms fallback、任务排入后不因组件卸载取消及整页只调度一次的语义保持不变，旧 `prunePending` 与本地函数直接删除；`useCanvasSync` 由 1,381 行降至 1,368 行。草稿存储与同步 hook 回归 42 项、相关架构门禁 1 项和完整前端架构门禁 224 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十二批已将常规画布保存的决策读取、幂等 ID 生命周期、payload 组装与体积检查、PUT 调用、锁占用重试、响应消费和错误状态机从 `useCanvasSync` 迁入唯一 application `canvasSave.ts`，并由 `canvasSaveComposition.ts` 注入 Canvas Store 快照、ID 生成、保存 gateway、草稿清理、clear intent 确认、浏览器 timer 与 warning sink；hook 只收集当前画布快照、React refs 和 UI 回调后调用 `scheduleCanvasSave`，beforeunload keepalive 与冲突副本保存仍留在原边界，未纳入本批。旧 `SaveArgs` 及四段本地保存函数直接删除，错误分类中从无生产者的 `ok` 分支同步清理，不保留转发或第二套实现；`useCanvasSync` 由 1,368 行降至 1,033 行。新 application 与同步核心、hook、画布列表回归 4 个文件 95 项及完整前端架构门禁 225 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
