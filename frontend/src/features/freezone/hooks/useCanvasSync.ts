@@ -40,8 +40,6 @@ import {
 import { canvasDraftSignature } from "../application/canvasDraft";
 import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
-import { scheduleCanvasSave } from "../canvasSaveComposition";
-import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
 import {
@@ -51,8 +49,7 @@ import {
 import {
   useCanvasDraftPersistenceController,
 } from "./useCanvasDraftPersistenceController";
-
-const DEBOUNCE_MS = 800;
+import { useCanvasSaveController } from "./useCanvasSaveController";
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -111,19 +108,11 @@ export function useCanvasSync(
   // is how we ignore pure view-state churn. Seeded on hydrate so the initial
   // measure/select pass after load doesn't fire a redundant save.
   const lastSignatureRef = useRef<string | null>(null);
-  const inFlightRef = useRef<Promise<boolean> | null>(null);
-  const debounceTimerRef = useRef<number | null>(null);
   const suppressNextCanvasAutosaveRef = useRef(false);
   const revisionRef = useRef<number | null>(null);
   const statusRef = useRef<CanvasSyncStatus>("loading");
   const metadataRef = useRef<Record<string, unknown> | null>(null);
   const canvasEnvelopeRef = useRef<Partial<FreezoneCanvasPayload>>({});
-  // The idempotency token for the currently pending save attempt. We keep it
-  // stable across in-flight retries (network blip, 503 canvas_lock_busy) so the
-  // backend can dedupe. A new value is minted when fresh local content needs to
-  // be sent (next debounce after a successful save / new edits after failure).
-  const pendingClientSaveIdRef = useRef<string | null>(null);
-  const pendingClientSaveIdSignatureRef = useRef<string | null>(null);
   // True only after the initial GET hydrate has populated the store. Until
   // then, every store mutation we observe is part of the hydrate, not a user
   // edit, and must not produce a PUT.
@@ -191,39 +180,12 @@ export function useCanvasSync(
         if (statusRef.current === "conflict" || statusRef.current === "error") {
           return;
         }
-        const canvasState = useCanvasStore.getState();
-        const shot = useShotMetadataStore.getState().shot;
-        lastSavedViewportRef.current = canvasState.currentViewport;
-        void scheduleCanvasSave({
-          project,
-          canvasId,
-          nodes: canvasState.nodes,
-          edges: canvasState.edges,
-          viewport: canvasState.currentViewport,
-          metadata: buildPersistMetadata(shot),
-          revisionRef,
-          canvasEnvelopeRef,
-          pendingClientSaveIdRef,
-          pendingClientSaveIdSignatureRef,
-          hydratedRef,
-          switchingRef,
-          lastRemoteNodeCountRef,
-          setStatus: setSyncStatus,
-          setError,
-          inFlightRef,
-          publishBackupStatus,
-          publishRevision: setRevision,
-          clearDraftAfterSave: draftPersistence.clearAfterSave,
-          markDraftPersisted: draftPersistence.markPersisted,
-        });
+        void saveController.saveCurrent();
       }, 0);
     };
 
     return registerFreezoneCanvasRuntime(project, canvasId, (remote, merge) => {
-      if (debounceTimerRef.current != null) {
-        window.clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
+      saveController.cancelPendingSave();
       // Treat this as a brief "switching" window — the same guard the hydrate
       // path uses to suppress in-flight save callbacks from clobbering the
       // freshly-applied remote content.
@@ -244,8 +206,7 @@ export function useCanvasSync(
       canvasEnvelopeRef.current = canvasEnvelopeFromRemote(remote);
       lastSignatureRef.current = nextSignature;
       lastRemoteNodeCountRef.current = remoteNodes.length;
-      pendingClientSaveIdRef.current = null;
-      pendingClientSaveIdSignatureRef.current = null;
+      saveController.resetIdentity();
       draftPersistence.clearStored();
       const meta = (remote.metadata ?? null) as
         | (Record<string, unknown> & { shotMetadata?: ShotMetadata })
@@ -266,31 +227,7 @@ export function useCanvasSync(
       if (mergedLocalWork) {
         window.setTimeout(() => {
           if (!hydratedRef.current || switchingRef.current) return;
-          const canvasState = useCanvasStore.getState();
-          const shot = useShotMetadataStore.getState().shot;
-          lastSavedViewportRef.current = canvasState.currentViewport;
-          void scheduleCanvasSave({
-            project,
-            canvasId,
-            nodes: canvasState.nodes,
-            edges: canvasState.edges,
-            viewport: canvasState.currentViewport,
-            metadata: buildPersistMetadata(shot),
-            revisionRef,
-            canvasEnvelopeRef,
-            pendingClientSaveIdRef,
-            pendingClientSaveIdSignatureRef,
-            hydratedRef,
-            switchingRef,
-            lastRemoteNodeCountRef,
-            setStatus: setSyncStatus,
-            setError,
-            inFlightRef,
-            publishBackupStatus,
-            publishRevision: setRevision,
-            clearDraftAfterSave: draftPersistence.clearAfterSave,
-            markDraftPersisted: draftPersistence.markPersisted,
-          });
+          void saveController.saveCurrent();
         }, 0);
       }
     }, flush, (projection) => {
@@ -360,8 +297,7 @@ export function useCanvasSync(
     hydratedRef.current = false;
     switchingRef.current = true;
     lastRemoteNodeCountRef.current = 0;
-    pendingClientSaveIdRef.current = null;
-    pendingClientSaveIdSignatureRef.current = null;
+    saveController.resetIdentity();
     setBackupStatus(null);
 
     (async () => {
@@ -543,85 +479,26 @@ export function useCanvasSync(
     switchingRef,
   });
 
-  // ---- 2. Debounced save on content changes ---- //
-  // Save fires when the persisted canvas shape (nodes/edges) or the
-  // shotMetadata changes — never on pure view-state churn.
-  useEffect(() => {
-    const triggerSave = () => {
-      if (!hydratedRef.current || switchingRef.current) return;
-      draftPersistence.scheduleWrite();
-      if (statusRef.current === "conflict" || statusRef.current === "error") {
-        return;
-      }
-      if (debounceTimerRef.current != null) {
-        window.clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = window.setTimeout(() => {
-        const canvasState = useCanvasStore.getState();
-        const shot = useShotMetadataStore.getState().shot;
-        lastSavedViewportRef.current = canvasState.currentViewport;
-        void scheduleCanvasSave({
-          project,
-          canvasId,
-          nodes: canvasState.nodes,
-          edges: canvasState.edges,
-          viewport: canvasState.currentViewport,
-          metadata: buildPersistMetadata(shot),
-          revisionRef,
-          canvasEnvelopeRef,
-          pendingClientSaveIdRef,
-          pendingClientSaveIdSignatureRef,
-          hydratedRef,
-          switchingRef,
-          lastRemoteNodeCountRef,
-          setStatus: setSyncStatus,
-          setError,
-          inFlightRef,
-          publishBackupStatus,
-          publishRevision: setRevision,
-          clearDraftAfterSave: draftPersistence.clearAfterSave,
-          markDraftPersisted: draftPersistence.markPersisted,
-        });
-      }, DEBOUNCE_MS);
-    };
-    // Only react to changes that alter the persisted nodes/edges shape. View
-    // state (viewport, selection, dialogs, image viewer) lives in the same
-    // store but is filtered out by the content-signature comparison.
-    const unsubscribeCanvas = useCanvasStore.subscribe((state, prev) => {
-      if (state.viewportBookmarks !== prev.viewportBookmarks) {
-        triggerSave();
-      }
-      // store 里还住着视口、选中、弹窗等纯视图状态，它们的变更不可能改到 nodes/edges。
-      // 数组引用没变就直接放行，连签名都不用算 —— 切页时这里是热点。
-      if (state.nodes === prev.nodes && state.edges === prev.edges) {
-        // 抑制标志总是紧挨着 applyCanvasDataEdit 设的（同步，中间插不进别的变更），
-        // 所以这里必须顺手消费掉：万一那次程序化改写产出的数组原样未变，标志留到
-        // 下一次就会把用户真正的编辑连保存带草稿一起吞了。
-        suppressNextCanvasAutosaveRef.current = false;
-        return;
-      }
-      const nextSignature = canvasContentSignature(state.nodes, state.edges);
-      if (suppressNextCanvasAutosaveRef.current) {
-        suppressNextCanvasAutosaveRef.current = false;
-        lastSignatureRef.current = nextSignature;
-        return;
-      }
-      if (nextSignature === lastSignatureRef.current) return;
-      lastSignatureRef.current = nextSignature;
-      triggerSave();
-    });
-    // shotMetadataStore holds only persisted business metadata, so any change
-    // there is save-worthy.
-    const unsubscribeShot = useShotMetadataStore.subscribe(triggerSave);
-    return () => {
-      unsubscribeCanvas();
-      unsubscribeShot();
-      draftPersistence.flushPendingWrite();
-      if (debounceTimerRef.current != null) {
-        window.clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [project, canvasId]);
+  const saveController = useCanvasSaveController({
+    project,
+    canvasId,
+    revisionRef,
+    canvasEnvelopeRef,
+    hydratedRef,
+    switchingRef,
+    lastRemoteNodeCountRef,
+    statusRef,
+    lastSignatureRef,
+    suppressNextCanvasAutosaveRef,
+    lastSavedViewportRef,
+    draftPersistence,
+    buildPersistMetadata,
+    setStatus: setSyncStatus,
+    setError,
+    publishBackupStatus,
+    publishRevision: setRevision,
+  });
+  const flush = saveController.flush;
 
   useCanvasViewportPersistence({
     project,
@@ -630,83 +507,11 @@ export function useCanvasSync(
     lastSavedViewportRef,
   });
 
-  const flush = async (): Promise<boolean> => {
-    if (debounceTimerRef.current != null) {
-      window.clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-    const { nodes, edges, currentViewport } = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
-    lastSavedViewportRef.current = currentViewport;
-    return await scheduleCanvasSave({
-      project,
-      canvasId,
-      nodes,
-      edges,
-      viewport: currentViewport,
-      metadata: buildPersistMetadata(shot),
-      revisionRef,
-      canvasEnvelopeRef,
-      pendingClientSaveIdRef,
-      pendingClientSaveIdSignatureRef,
-      hydratedRef,
-      switchingRef,
-      lastRemoteNodeCountRef,
-      setStatus: setSyncStatus,
-      setError,
-      inFlightRef,
-      publishBackupStatus,
-      publishRevision: setRevision,
-      clearDraftAfterSave: draftPersistence.clearAfterSave,
-      markDraftPersisted: draftPersistence.markPersisted,
-    });
-  };
-
   // Persist the final camera position on tab close. When a debounced content
   // edit is also pending, the application service writes the recovery draft
   // and delegates one best-effort PUT to the keepalive transport.
   useEffect(() => {
-    const handler = () => {
-      const canvasState = useCanvasStore.getState();
-      const shot = useShotMetadataStore.getState().shot;
-      lastSavedViewportRef.current = canvasState.currentViewport;
-      saveCanvasBeforeUnload({
-        project,
-        canvasId,
-        nodes: canvasState.nodes,
-        edges: canvasState.edges,
-        viewport: canvasState.currentViewport,
-        metadata: buildPersistMetadata(shot),
-        revision: revisionRef.current,
-        envelope: canvasEnvelopeRef.current,
-        hydrated: hydratedRef.current,
-        switching: switchingRef.current,
-        lastRemoteNodeCount: lastRemoteNodeCountRef.current,
-        mutationState: {
-          userEditsSinceHydrate: canvasState.userEditsSinceHydrate,
-          lastMutationSource: canvasState.lastMutationSource,
-          pendingClearIntent: canvasState.pendingClearIntent,
-        },
-        pendingClientSaveIdRef,
-        pendingClientSaveIdSignatureRef,
-        hasUnsettledContentSave:
-          draftPersistence.hasPendingWrite() ||
-          debounceTimerRef.current != null ||
-          inFlightRef.current != null ||
-          statusRef.current === "saving",
-        hasPendingContentSave: debounceTimerRef.current != null,
-        lastPersistedDraftSignature:
-          draftPersistence.lastPersistedSignature(),
-        cancelPendingDraft: draftPersistence.cancelPendingWrite,
-        persistDraft: draftPersistence.persistNow,
-        cancelPendingContentSave: () => {
-          if (debounceTimerRef.current != null) {
-            window.clearTimeout(debounceTimerRef.current);
-            debounceTimerRef.current = null;
-          }
-        },
-      });
-    };
+    const handler = () => saveController.saveBeforeUnload();
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [project, canvasId, metadata]);
@@ -730,8 +535,7 @@ export function useCanvasSync(
     setRevision(revisionRef.current);
     setBackupStatus(result.backupStatus);
     // Conflict copy is its own fresh save attempt; clear any stale pending id.
-    pendingClientSaveIdRef.current = null;
-    pendingClientSaveIdSignatureRef.current = null;
+    saveController.resetIdentity();
     setSyncStatus("ready");
     setError(null);
     return result.canvasId;

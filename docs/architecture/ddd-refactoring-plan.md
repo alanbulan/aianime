@@ -2046,6 +2046,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十七批已将 Freezone 恢复草稿的 React 生命周期迁入唯一 presentation controller `hooks/useCanvasDraftPersistenceController.ts`，由明确命令和查询封装 timer、即时写入、保存后清理、hydrate 基线签名及卸载状态，不向总同步 hook 暴露裸 ref。草稿仍仅在 hydrate 完成且非 switching 时写入，保留 300 ms 防抖以及 revision、nodes、edges、viewport、metadata、history、mutation 和时间戳完整内容；保存成功继续取消待执行 timer、清除草稿并记录持久签名，effect cleanup 继续立即写入未落盘草稿，beforeunload 继续使用 pending 查询、取消命令、同步写入和最后持久签名。`useCanvasSync` 不再直接读写草稿 gateway，也不持有草稿 timer 或签名 ref，由 823 行降至 774 行；controller 与同步 hook 回归 2 个文件 34 项、完整前端架构门禁 3 个文件 270 项（其中 module boundaries 230 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十八批已将 Freezone 常规保存的 React 生命周期迁入唯一 presentation controller `hooks/useCanvasSaveController.ts`，统一持有 800 ms 自动保存 timer、在途 Promise、幂等 client save ID、画布/shot metadata 订阅、立即保存、flush、远端刷新取消和 beforeunload 参数组装；application `canvasSave.ts` 与 `canvasUnloadSave.ts` 继续唯一持有保存判定、payload、重试、冲突和 keepalive 规则。节点/边引用热点过滤、程序化投影抑制消费、conflict/error 时只落恢复草稿、保存成功草稿回调、effect cleanup 草稿兜底以及卸载 pending/in-flight 判定均保持原时序。总同步 hook 不再直接依赖两个保存 composition，也不持有保存 timer、在途请求或幂等 ID ref，由 774 行降至 578 行；保存/草稿 controller 与同步 hook 回归 3 个文件 39 项、完整前端架构门禁 3 个文件 271 项（其中 module boundaries 231 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

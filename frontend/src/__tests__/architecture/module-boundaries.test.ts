@@ -1437,6 +1437,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const saveControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSaveController.ts",
+    );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
 
     expect(existsSync(apiCanvasPath)).toBe(false);
@@ -1452,7 +1456,12 @@ describe("frontend architecture boundaries", () => {
     }
     expect(syncHookSource).not.toContain("@/api/canvas");
     expect(syncHookSource).not.toContain("@/features/canvas/composition");
-    expect(importSpecifiers(syncHookPath)).toContain("../canvasSaveComposition");
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasSaveController",
+    );
+    expect(importSpecifiers(saveControllerPath)).toContain(
+      "../canvasSaveComposition",
+    );
     expect(importSpecifiers(syncHookPath)).toContain(
       "../canvasHydrationComposition",
     );
@@ -4946,18 +4955,24 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
       "utf8",
     );
+    const saveController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/hooks/useCanvasSaveController.ts",
+      ),
+      "utf8",
+    );
 
     expect(canvasView).not.toContain("persistCanvasSnapshot");
     expect(canvasView).not.toContain("scheduleCanvasPersist");
     expect(canvasView).not.toContain("saveTimerRef");
     expect(canvasView).not.toContain("isRestoringCanvasRef");
-    expect(canvasSync).toContain(
-      "const unsubscribeCanvas = useCanvasStore.subscribe((state, prev) =>",
+    expect(canvasSync).toContain("useCanvasSaveController({");
+    expect(canvasSync).not.toContain("useCanvasStore.subscribe(");
+    expect(saveController).toContain(
+      "const unsubscribeCanvas = useCanvasStore.subscribe((state, previous) =>",
     );
-    expect(canvasSync).toContain(
-      'import { scheduleCanvasSave } from "../canvasSaveComposition";',
-    );
-    expect(canvasSync).toContain("void scheduleCanvasSave({");
+    expect(saveController).toContain("void saveCurrent();");
   });
 
   it("separates Freezone canvas sync decisions from its presentation hook", () => {
@@ -5031,12 +5046,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/canvasSaveComposition.ts",
     );
-    const hookPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasSaveController.ts",
     );
     const saveSource = readFileSync(savePath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const declaration = [
       "export function",
       "createCanvasSaveScheduler(",
@@ -5075,12 +5090,14 @@ describe("frontend architecture boundaries", () => {
         "./canvasDraftComposition",
       ]),
     );
-    expect(importSpecifiers(hookPath)).toContain("../canvasSaveComposition");
-    expect(hookSource).not.toContain("async function scheduleSave(");
-    expect(hookSource).not.toContain("async function performSave(");
-    expect(hookSource).not.toContain("function consumeSaveResponse(");
-    expect(hookSource).not.toContain("async function handleSaveError(");
-    expect(hookSource).not.toContain("LOCK_BUSY_MAX_RETRIES");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "../canvasSaveComposition",
+    );
+    expect(controllerSource).not.toContain("async function scheduleSave(");
+    expect(controllerSource).not.toContain("async function performSave(");
+    expect(controllerSource).not.toContain("function consumeSaveResponse(");
+    expect(controllerSource).not.toContain("async function handleSaveError(");
+    expect(controllerSource).not.toContain("LOCK_BUSY_MAX_RETRIES");
   });
 
   it("keeps canvas unload saves behind application and transport ports", () => {
@@ -5096,13 +5113,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
     );
-    const hookPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasSaveController.ts",
     );
     const unloadSource = readFileSync(unloadPath, "utf8");
     const gatewaySource = readFileSync(gatewayPath, "utf8");
-    const hookSource = readFileSync(hookPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const declaration = [
       "export function",
       "createCanvasUnloadSaver(",
@@ -5141,13 +5158,13 @@ describe("frontend architecture boundaries", () => {
     );
     expect(gatewaySource).toContain("saveCanvasKeepalive(params)");
     expect(gatewaySource).toContain("keepalive: true");
-    expect(importSpecifiers(hookPath)).toContain(
+    expect(importSpecifiers(controllerPath)).toContain(
       "../canvasUnloadSaveComposition",
     );
-    expect(hookSource).not.toContain("fetch(");
-    expect(hookSource).not.toContain("keepalive: true");
-    expect(hookSource).not.toContain("buildSavePayload(");
-    expect(hookSource).not.toContain("decideSaveAction(");
+    expect(controllerSource).not.toContain("fetch(");
+    expect(controllerSource).not.toContain("keepalive: true");
+    expect(controllerSource).not.toContain("buildSavePayload(");
+    expect(controllerSource).not.toContain("decideSaveAction(");
   });
 
   it("keeps canvas conflict recovery in one Freezone application service", () => {
@@ -5627,10 +5644,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(
       syncHookSource.indexOf("useCanvasHistoryPersistence({"),
-    ).toBeLessThan(syncHookSource.indexOf("const triggerSave = () =>"));
+    ).toBeLessThan(syncHookSource.indexOf("useCanvasSaveController({"));
     expect(
       syncHookSource.indexOf("useCanvasViewportPersistence({"),
-    ).toBeGreaterThan(syncHookSource.indexOf("const triggerSave = () =>"));
+    ).toBeGreaterThan(syncHookSource.indexOf("useCanvasSaveController({"));
   });
 
   it("keeps canvas draft persistence lifecycle in one presentation controller", () => {
@@ -5677,6 +5694,61 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("const scheduleDraftWrite");
     expect(syncHookSource).not.toContain("lastPersistedDraftSignatureRef");
     expect(syncHookSource).not.toContain("canvasDraftStorageGateway.");
+  });
+
+  it("keeps canvas save lifecycle in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSaveController.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasSaveController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/canvasStore",
+        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasSyncHydration",
+        "../application/canvasSyncStorage",
+        "../canvasSaveComposition",
+        "../canvasUnloadSaveComposition",
+        "../shotMetadataStore",
+        "./useCanvasDraftPersistenceController",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasSaveController.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasSaveController",
+    );
+    expect(controllerSource).toContain("const SAVE_DEBOUNCE_MS = 800");
+    expect(controllerSource).toContain("const inFlightRef = useRef<");
+    expect(controllerSource).toContain(
+      "const pendingClientSaveIdRef = useRef<",
+    );
+    expect(controllerSource).toContain("useCanvasStore.subscribe(");
+    expect(controllerSource).toContain("scheduleCanvasSave({");
+    expect(controllerSource).toContain("saveCanvasBeforeUnload({");
+    expect(syncHookSource).not.toContain("debounceTimerRef");
+    expect(syncHookSource).not.toContain("inFlightRef");
+    expect(syncHookSource).not.toContain("pendingClientSaveIdRef");
+    expect(syncHookSource).not.toContain("scheduleCanvasSave({");
+    expect(syncHookSource).not.toContain("saveCanvasBeforeUnload({");
   });
 
   it("keeps browser canvas drafts behind one application port", () => {
