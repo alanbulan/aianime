@@ -20,6 +20,7 @@ import type {
 } from "@/features/freezone/domain/assetCommit";
 import { queryKeys } from "@/lib/query-keys";
 
+import { commitFreezoneAsset as promoteToAsset } from "../composition";
 import {
   inferCanonicalRefreshTarget,
   nodeDataPatchAfterCommittedTarget,
@@ -30,7 +31,6 @@ import {
   shouldRefreshCommittedTargetNodes,
 } from "../commit/canvasCommitRules";
 import { commitDirectorRenderFromCanvasSource } from "../commit/directorRenderCommit";
-import { promoteToAsset } from "../commit/promoteToAsset";
 import {
   assetToPushTarget,
   isPlyOrGlbPushTargetKind,

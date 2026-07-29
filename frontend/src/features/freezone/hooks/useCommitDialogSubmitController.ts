@@ -11,10 +11,10 @@ import type {
   PushTargetKind,
 } from "@/features/freezone/domain/assetCommit";
 
+import { commitFreezoneAsset as promoteToAsset } from "../composition";
 import { renderCommitSuccessMessage } from "../commit/canvasCommitRules";
 import { nodeDataAfterCommittedSlot } from "../commit/committedNodePatch";
 import { commitDirectorRenderFromCanvasSource } from "../commit/directorRenderCommit";
-import { promoteToAsset } from "../commit/promoteToAsset";
 import {
   commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,

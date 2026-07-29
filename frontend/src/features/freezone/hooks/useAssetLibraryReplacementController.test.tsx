@@ -17,8 +17,9 @@ vi.mock("../commit/directorRenderCommit", () => ({
     mocks.commitDirectorRenderFromCanvasSource,
 }));
 
-vi.mock("../commit/promoteToAsset", () => ({
-  promoteToAsset: mocks.promoteToAsset,
+vi.mock("../composition", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../composition")>()),
+  commitFreezoneAsset: mocks.promoteToAsset,
 }));
 
 function asset(

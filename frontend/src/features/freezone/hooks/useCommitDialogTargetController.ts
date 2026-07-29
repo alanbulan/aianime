@@ -21,6 +21,7 @@ import {
   type Episode,
 } from "@/modules/narrative_planning/public";
 
+import { getFreezoneAssetImpact as previewAssetImpact } from "../composition";
 import {
   GLOBAL_SLOT_KINDS,
   KIND_LABELS,
@@ -34,7 +35,6 @@ import {
   renderCommitTargetLabel,
   sceneOptionValue,
 } from "../commit/commitDialogViewModel";
-import { previewAssetImpact } from "../commit/promoteToAsset";
 
 export interface CommitDialogTargetControllerOptions {
   project: string;

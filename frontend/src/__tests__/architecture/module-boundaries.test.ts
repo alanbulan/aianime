@@ -2968,8 +2968,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/assetDropInfo",
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
+        "../composition",
         "../commit/commitDialogViewModel",
-        "../commit/promoteToAsset",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
@@ -3026,10 +3026,10 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/assetDropInfo",
         "@/features/freezone/domain/assetCommit",
+        "../composition",
         "../commit/canvasCommitRules",
         "../commit/committedNodePatch",
         "../commit/directorRenderCommit",
-        "../commit/promoteToAsset",
         "../commit/sceneDirectorWorldCommit",
       ]),
     );
@@ -3154,9 +3154,9 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/public",
         "@/features/freezone/domain/assetCommit",
         "@/lib/query-keys",
+        "../composition",
         "../commit/canvasCommitRules",
         "../commit/directorRenderCommit",
-        "../commit/promoteToAsset",
         "../commit/pushTarget",
         "../commit/sceneDirectorWorldCommit",
       ]),
@@ -3259,7 +3259,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
-    const promotePath = resolve(
+    const legacyPromotePath = resolve(
       SRC_ROOT,
       "features/freezone/commit/promoteToAsset.ts",
     );
@@ -3308,6 +3308,7 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(existsSync(legacyApiPath)).toBe(false);
+    expect(existsSync(legacyPromotePath)).toBe(false);
     expect(existsSync(unusedBatchDialogPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(applicationPath)).toEqual([
@@ -3338,9 +3339,11 @@ describe("frontend architecture boundaries", () => {
       expect(imports).toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
-    expect(importSpecifiers(promotePath)).toContain("../composition");
-    expect(importSpecifiers(promotePath)).not.toContain("@/api/push");
+    expect(applicationSource).toContain("validateCommitTarget(params.target)");
+    expect(applicationSource).toContain('target.kind === "scene_director_world"');
     expect(applicationSource).not.toContain("@/shared/api/");
+    expect(compositionSource).toContain("commitFreezoneAssetUseCase(");
+    expect(compositionSource).toContain("getFreezoneAssetImpactUseCase(");
     expect(compositionSource).toContain("httpFreezoneAssetCommitGateway");
   });
 
@@ -7919,8 +7922,8 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/assetDropStore",
         "@/features/freezone/domain/assetCommit",
+        "../composition",
         "../commit/directorRenderCommit",
-        "../commit/promoteToAsset",
         "../commit/pushTarget",
         "../domain/assetLibraryModel",
       ]),

@@ -480,7 +480,7 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps freezone 3GS commit roles for generated PLY source kinds", () => {
-    const commit = read("src/features/freezone/commit/promoteToAsset.ts");
+    const commit = read("src/features/freezone/application/assetCommit.ts");
 
     expect(commit).toContain("scene_3gs_master_ply");
     expect(commit).toContain("scene_3gs_reverse_ply");

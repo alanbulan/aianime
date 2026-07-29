@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PushTarget } from "@/features/freezone/public";
 import { CommitDialog } from "@/features/freezone/commit/CommitDialog";
-import { promoteToAsset, previewAssetImpact } from "@/features/freezone/commit/promoteToAsset";
+import {
+  commitFreezoneAsset as promoteToAsset,
+  getFreezoneAssetImpact as previewAssetImpact,
+} from "@/features/freezone/composition";
 
 vi.mock("@/modules/asset_world/public", () => ({
   listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
@@ -17,10 +20,10 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   listBeats: vi.fn(async () => []),
 }));
 
-vi.mock("@/features/freezone/commit/promoteToAsset", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/features/freezone/commit/promoteToAsset")>()),
-  promoteToAsset: vi.fn(),
-  previewAssetImpact: vi.fn(async () => ({
+vi.mock("@/features/freezone/composition", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/freezone/composition")>()),
+  commitFreezoneAsset: vi.fn(),
+  getFreezoneAssetImpact: vi.fn(async () => ({
     target: { kind: "scene_3gs_reverse_ply", scene_id: "公寓楼电梯间" },
     affected_beats: [],
     affected_count: 0,

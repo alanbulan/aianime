@@ -25,8 +25,9 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   listBeats: (...args: unknown[]) => mocks.listBeats(...args),
 }));
 
-vi.mock("../commit/promoteToAsset", () => ({
-  previewAssetImpact: (...args: unknown[]) =>
+vi.mock("../composition", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../composition")>()),
+  getFreezoneAssetImpact: (...args: unknown[]) =>
     mocks.previewAssetImpact(...args),
 }));
 

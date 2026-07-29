@@ -2148,6 +2148,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百三十八批已将 Freezone `commit/commitEligibility.ts` 中依赖 Canvas slot target 的提交候选资格规则迁入唯一 Canvas domain 模块 `domain/canvasCommitEligibility.ts`，并补齐七类媒体源接受与五类拒绝形态的直接领域测试；唯一生产调用方 `useCanvasCommitController` 改经 `canvas/public.ts` 使用 `isCommitCandidateData`，不再穿透旧 Freezone commit 路径。旧源文件直接删除，未被外部使用的 URL 提取 helper 收为模块私有，不保留 facade、re-export 或第二套规则；preset 管理节点拒绝、仅用户生成节点、合法 slot target、图片/视频/音频/文件/模型/PLY/通用 URL 回退及已提交节点拒绝语义均保持不变。相关回归 4 个文件 54 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百三十九批已删除 Freezone `commit/promoteToAsset.ts` 冗余 facade，将素材提交与影响预览共用的目标资格校验收口到唯一 application 用例 `application/assetCommit.ts`；素材库替换、画布提交、提交弹窗提交与目标预览四个 controller 统一直连 `composition.ts`，由 composition 继续负责绑定 `httpFreezoneAssetCommitGateway`。旧 facade 直接删除，不保留 re-export、别名入口或第二套校验；合法提交与影响查询转发、导演世界必须走 Canvas 状态提交、Beat/Identity/Portrait/Scene 坐标错误文本、gateway 调用前拒绝及 `mark_stale` 适配语义保持不变。相关回归 8 个文件 64 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

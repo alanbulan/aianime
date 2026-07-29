@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { useAssetDropStore } from "@/features/canvas/assetDropStore";
 import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
 
+import { commitFreezoneAsset as promoteToAsset } from "../composition";
 import { commitDirectorRenderFromCanvasSource } from "../commit/directorRenderCommit";
-import { promoteToAsset } from "../commit/promoteToAsset";
 import { assetToPushTarget } from "../commit/pushTarget";
 import type { LibraryAsset } from "../domain/assetLibraryModel";
 

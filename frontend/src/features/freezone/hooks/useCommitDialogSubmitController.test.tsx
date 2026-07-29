@@ -19,8 +19,9 @@ const mocks = vi.hoisted(() => ({
   renderCommitSuccessMessage: vi.fn(),
 }));
 
-vi.mock("../commit/promoteToAsset", () => ({
-  promoteToAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
+vi.mock("../composition", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../composition")>()),
+  commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
 }));
 
 vi.mock("../commit/directorRenderCommit", () => ({

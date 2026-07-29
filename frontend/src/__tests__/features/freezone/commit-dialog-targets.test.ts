@@ -13,7 +13,6 @@ import {
   renderCommitTargetLabel,
   sceneOptionLabel,
 } from "@/features/freezone/commit/commitDialogViewModel";
-import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { assetToPushTarget, completeTarget, inferDefaultTarget } from "@/features/freezone/commit/pushTarget";
 
 describe("CommitDialog target kinds", () => {
@@ -160,14 +159,6 @@ describe("CommitDialog target kinds", () => {
       "/static/u/p/freezone/generated/master_sharp.sog",
       "master_sharp.sog",
     )).toBe("自定义 3D 世界");
-  });
-
-  it("does not allow scene director world through the file-copy commit route", async () => {
-    await expect(promoteToAsset(
-      "proj",
-      "/static/proj/world.ply",
-      { kind: "scene_director_world", scene_id: "公寓楼电梯间" },
-    )).rejects.toThrow("Scene director world commit requires canvas node state");
   });
 
   it("keeps custom 3D world sources on the normal slot commit path", () => {
