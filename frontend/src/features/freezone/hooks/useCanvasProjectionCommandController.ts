@@ -15,7 +15,7 @@ import {
   requestFromProjectionMetadata,
 } from "../domain/canvasProjectionMetadata";
 import { projectionTargetForCanvasPanel } from "../domain/canvasProjectionRequest";
-import { markCanvasProjectionFresh } from "../projectionStatusStore";
+import { markCanvasProjectionFresh } from "../application/canvasProjectionStatusState";
 
 export interface CanvasProjectionCommandMessages {
   syncMissingRequest: string;

@@ -6,7 +6,7 @@ import { getProjectionStatuses } from "../composition";
 import {
   clearCanvasProjectionStatuses,
   setCanvasProjectionStatuses,
-} from "../projectionStatusStore";
+} from "../application/canvasProjectionStatusState";
 
 const PROJECTION_STATUS_REFRESH_MS = 30_000;
 

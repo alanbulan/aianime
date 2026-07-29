@@ -6,9 +6,9 @@ import {
   getCanvasProjectionStatus,
   markCanvasProjectionFresh,
   setCanvasProjectionStatuses,
-} from "./projectionStatusStore";
+} from "./canvasProjectionStatusState";
 
-describe("freezone projection status store", () => {
+describe("freezone projection status state", () => {
   afterEach(() => {
     clearCanvasProjectionStatuses();
   });

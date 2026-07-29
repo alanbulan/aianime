@@ -833,6 +833,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
+        "@/features/freezone/hooks/useCanvasProjectionStatus",
       ]),
     );
     expect(externalContractImportFailures).toEqual([]);
@@ -1827,8 +1828,11 @@ describe("frontend architecture boundaries", () => {
     const openProjectionImports = importSpecifiers(
       resolve(SRC_ROOT, "features/freezone/openPresetProjection.ts"),
     );
-    const statusStoreImports = importSpecifiers(
-      resolve(SRC_ROOT, "features/freezone/projectionStatusStore.ts"),
+    const statusStateImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/application/canvasProjectionStatusState.ts",
+      ),
     );
     expect(commandControllerImports).toContain("../composition");
     expect(projectionRequestImports).toEqual(["./canvasStorage"]);
@@ -1852,9 +1856,7 @@ describe("frontend architecture boundaries", () => {
     expect(openProjectionImports).toContain(
       "@/features/freezone/domain/canvasStorage",
     );
-    expect(statusStoreImports).toContain(
-      "@/features/freezone/domain/canvasProjection",
-    );
+    expect(statusStateImports).toEqual(["../domain/canvasProjection"]);
     for (const imports of [
       commandControllerImports,
       projectionRequestImports,
@@ -1862,7 +1864,7 @@ describe("frontend architecture boundaries", () => {
       projectionGraphImports,
       projectionGraphIdImports,
       openProjectionImports,
-      statusStoreImports,
+      statusStateImports,
     ]) {
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/canvas");
@@ -1871,6 +1873,50 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "httpFreezoneCanvasProjectionGateway",
     );
+  });
+
+  it("separates projection status state from its React hook", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/projectionStatusStore.ts",
+    );
+    const statePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasProjectionStatusState.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionStatus.ts",
+    );
+    const canvasConsumerPaths = [
+      "features/canvas/nodes/GroupNode.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const stateSource = readFileSync(statePath, "utf8");
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(statePath)).toEqual([
+      "../domain/canvasProjection",
+    ]);
+    expect(new Set(importSpecifiers(hookPath))).toEqual(
+      new Set([
+        "react",
+        "../application/canvasProjectionStatusState",
+        "../domain/canvasProjection",
+      ]),
+    );
+    expect(stateSource).not.toContain("react");
+    expect(stateSource).not.toContain("useSyncExternalStore");
+    for (const consumerPath of canvasConsumerPaths) {
+      const imports = importSpecifiers(consumerPath);
+      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).not.toContain(
+        "@/features/freezone/projectionStatusStore",
+      );
+      expect(imports).not.toContain(
+        "@/features/freezone/hooks/useCanvasProjectionStatus",
+      );
+    }
   });
 
   it("keeps canvas projection status polling in one presentation hook", () => {
@@ -1896,9 +1942,9 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
       new Set([
         "react",
+        "../application/canvasProjectionStatusState",
         "../application/canvasSyncStorage",
         "../composition",
-        "../projectionStatusStore",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -1953,9 +1999,9 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "../canvasSyncRuntime",
         "../composition",
+        "../application/canvasProjectionStatusState",
         "../domain/canvasProjectionMetadata",
         "../domain/canvasProjectionRequest",
-        "../projectionStatusStore",
       ]),
     );
     expect(declarationOwners).toEqual([

@@ -27,7 +27,7 @@ vi.mock("../canvasSyncRuntime", () => ({
   removeLocalFreezoneProjection: mocks.removeLocalFreezoneProjection,
 }));
 
-vi.mock("../projectionStatusStore", () => ({
+vi.mock("../application/canvasProjectionStatusState", () => ({
   markCanvasProjectionFresh: mocks.markCanvasProjectionFresh,
 }));
 

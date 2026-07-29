@@ -13,6 +13,7 @@ export {
 export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetadataComposition";
 export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenceRoles";
+export { useCanvasProjectionStatus } from "@/features/freezone/hooks/useCanvasProjectionStatus";
 export { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/canvasDraftComposition";
 export { presetRequestFromMetadata } from "@/features/freezone/application/canvasPreset";
 export { getFreezoneCanvasMetadata } from "@/features/freezone/application/canvasMetadataState";

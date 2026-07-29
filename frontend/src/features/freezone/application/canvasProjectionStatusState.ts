@@ -1,7 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useSyncExternalStore } from "react";
-
-import type { FreezoneProjectionStatusItem } from "@/features/freezone/domain/canvasProjection";
+import type { FreezoneProjectionStatusItem } from "../domain/canvasProjection";
 
 let currentProjectionStatuses = new Map<string, FreezoneProjectionStatusItem>();
 const listeners = new Set<() => void>();
@@ -12,7 +10,9 @@ function emitProjectionStatusChange(): void {
   }
 }
 
-function subscribeProjectionStatus(listener: () => void): () => void {
+export function subscribeCanvasProjectionStatus(
+  listener: () => void,
+): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
@@ -58,14 +58,4 @@ export function getCanvasProjectionStatus(
     return null;
   }
   return currentProjectionStatuses.get(projectionKey) ?? null;
-}
-
-export function useCanvasProjectionStatus(
-  projectionKey: string | null | undefined,
-): FreezoneProjectionStatusItem | null {
-  return useSyncExternalStore(
-    subscribeProjectionStatus,
-    () => getCanvasProjectionStatus(projectionKey),
-    () => null,
-  );
 }

@@ -2120,6 +2120,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十四批已将 Freezone 根级 `capabilities` 目录整体迁入 `domain/capabilities`，把原 `capabilityRegistry.ts` 同时持有的类型/参数格式化规则与注册编排拆为唯一 `contracts.ts` 和 `registry.ts`；Candidate、Portrait/MultiView 与 Real Scene Repair 三个实现文件统一改为只依赖 contracts，registry 单向注册实现，消除“registry 导入实现、实现反向导入 registry”的循环依赖。旧目录四个文件直接删除，不保留 facade、旧文件名或转发导出；`freezone/public.ts` 统一公开稳定 contracts/registry 能力，Canvas AI gateway 与 ImageEditNode 不再穿透 Freezone 内部路径。8 个能力 ID 与顺序、参数默认值推导、值格式化、能力查找、未知 ID 空结果、实际 compose prompt/reference/model/output 语义保持不变。Capability registry、AI gateway 与提交目标回归 3 个文件 20 项、完整前端架构门禁 3 个文件 302 项（其中 module boundaries 262 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十五批已将 Freezone 根级 `projectionStatusStore.ts` 中混合的投影状态与 React 订阅职责拆为唯一 application 状态 `application/canvasProjectionStatusState.ts` 和 presentation Hook `hooks/useCanvasProjectionStatus.ts`；application 仅持有投影状态 Map、订阅端口及读写命令，不再依赖 React，Hook 通过 `useSyncExternalStore` 适配组件订阅。状态轮询生命周期与投影同步命令直接写入 application 状态，GroupNode 与节点操作栏两个 Canvas 跨领域消费者统一经 `freezone/public.ts` 使用 Hook；旧根文件直接删除，不保留 facade、re-export 或第二套状态。空投影键过滤、按 projection key 查询、空状态清理短路、同步后乐观标记 fresh、轮询刷新和组件实时更新语义保持不变；新增状态与 React Hook 分层门禁及订阅行为测试。相关回归 5 个文件 36 项通过，其中新增 Hook 测试复验 1 项无 React 警告；完整前端架构门禁 3 个文件 303 项（其中 module boundaries 263 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

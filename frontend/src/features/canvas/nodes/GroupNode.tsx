@@ -47,7 +47,7 @@ import {
   getStoryboardCellPreview,
   type StoryboardCellKind,
 } from '@/features/canvas/domain/storyboardCellPreview';
-import { useCanvasProjectionStatus } from '@/features/freezone/projectionStatusStore';
+import { useCanvasProjectionStatus } from '@/features/freezone/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 

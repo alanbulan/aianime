@@ -20,7 +20,7 @@ vi.mock("../composition", () => ({
   getProjectionStatuses: mocks.getProjectionStatuses,
 }));
 
-vi.mock("../projectionStatusStore", () => ({
+vi.mock("../application/canvasProjectionStatusState", () => ({
   clearCanvasProjectionStatuses: mocks.clearCanvasProjectionStatuses,
   setCanvasProjectionStatuses: mocks.setCanvasProjectionStatuses,
 }));
