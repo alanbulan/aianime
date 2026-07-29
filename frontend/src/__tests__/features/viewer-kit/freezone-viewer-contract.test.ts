@@ -419,7 +419,7 @@ describe("freezone viewer contracts", () => {
 
   it("commits scene director worlds only through the explicit structured commit path", () => {
     const push = read("src/features/freezone/domain/assetCommit.ts");
-    const target = read("src/features/freezone/commit/pushTarget.ts");
+    const target = read("src/features/freezone/domain/pushTarget.ts");
     const submitController = read(
       "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
     );

@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { PushTarget, PushTargetKind } from "@/features/freezone/domain/assetCommit";
-import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
+import type { PushTarget, PushTargetKind } from "./assetCommit";
 
 /** 来自 `__freezone_source` / 资产 source 的来源描述。 */
 export type FreezoneSource = {
@@ -8,6 +7,57 @@ export type FreezoneSource = {
   role?: string;
   meta?: Record<string, unknown>;
 };
+
+const CANONICAL_PUSH_TARGET_KINDS: ReadonlySet<PushTargetKind> =
+  new Set<PushTargetKind>([
+    "frame",
+    "sketch",
+    "director_render",
+    "selected_background",
+    "identity",
+    "identity_costume",
+    "identity_portrait",
+    "portrait",
+    "scene_master",
+    "scene_reverse_master",
+    "scene_spatial_layout",
+    "scene_director_world",
+    "scene_director_pano_360",
+    "scene_3gs_master_ply",
+    "scene_3gs_reverse_ply",
+    "scene_3gs_pano_ply",
+    "scene_3gs_custom_scene",
+    "prop_ref",
+    "video",
+    "beat_audio",
+  ]);
+
+const LEGACY_PUSH_TARGET_KIND_MAP: Readonly<Record<string, PushTargetKind>> = {
+  scene_360: "scene_director_pano_360",
+  scene_3gs_uploaded_ply: "scene_3gs_custom_scene",
+};
+
+export function isCanonicalPushTarget(value: unknown): value is PushTarget {
+  if (!value || typeof value !== "object") return false;
+  const kind = (value as { kind?: unknown }).kind;
+  return (
+    typeof kind === "string" &&
+    CANONICAL_PUSH_TARGET_KINDS.has(kind as PushTargetKind)
+  );
+}
+
+/**
+ * 读取持久化或接口返回的 target，先迁移已废弃 kind，再校验 canonical kind。
+ * 字段完整性仍由具体应用用例与后端 discriminator 校验。
+ */
+export function coercePushTarget(value: unknown): PushTarget | null {
+  if (!value || typeof value !== "object") return null;
+  const kind = (value as { kind?: unknown }).kind;
+  if (typeof kind !== "string") return null;
+  const mapped = LEGACY_PUSH_TARGET_KIND_MAP[kind];
+  const normalized = mapped ? { ...(value as object), kind: mapped } : value;
+  return isCanonicalPushTarget(normalized) ? normalized : null;
+}
 
 export function isScenePushTargetKind(kind: PushTargetKind): boolean {
   return normalizeScenePushTargetKind(kind) !== null;
@@ -60,8 +110,8 @@ export function inferDefaultTarget(
       };
     }
   }
-  // 音频节点 → beat_audio(后端 canonical kind)。源 kind 是媒体类型 "audio"
-  // 或资产 role 是 "current_audio",都映射到 beat 的音频 slot。
+  // 音频节点 -> beat_audio（后端 canonical kind）。源 kind 是媒体类型 "audio"
+  // 或资产 role 是 "current_audio"，都映射到 beat 的音频 slot。
   if (kind === "audio" || kind === "beat_audio" || role === "current_audio") {
     if (typeof meta.episode === "number" && typeof meta.beat === "number") {
       return {
@@ -86,7 +136,7 @@ export function inferDefaultTarget(
           identity_id: identityId,
         };
       }
-      // 后端把角色 portrait 标成 kind=identity / role=character_portrait,但没有
+      // 后端把角色 portrait 标成 kind=identity / role=character_portrait，但没有
       // 具体 identity_id。这种情况下提交目标其实是角色 portrait。
       if (!identityId && role.includes("portrait")) {
         return { kind: "portrait", character: meta.character };
@@ -121,14 +171,12 @@ export function inferDefaultTarget(
     if (sceneId && role === "scene_director_world") {
       return { kind: "scene_director_world", scene_id: sceneId };
     }
-    // 关键: 先做精确匹配 (isScenePushTargetKind),不然 role.includes("master")
-    // 这种 catch-all 会把 "scene_3gs_master_ply" 错误归到 "scene_master"
-    // (image slot) — 用户 commit PLY 默认到 master.png,这是 bug。
+    // 先做精确匹配，否则 role.includes("master") 会把
+    // scene_3gs_master_ply 错误归到 scene_master。
     const roleSceneKind = normalizeScenePushTargetKind(role);
     if (sceneId && roleSceneKind) {
       return { kind: roleSceneKind, scene_id: sceneId };
     }
-    // 模糊匹配 fallback (role 不是标准 PushTargetKind 名时兜底)。
     if (sceneId && role.includes("director_pano_360")) {
       return { kind: "scene_director_pano_360", scene_id: sceneId };
     }
@@ -138,8 +186,6 @@ export function inferDefaultTarget(
     if (sceneId && role === "scene_spatial_layout") {
       return { kind: "scene_spatial_layout", scene_id: sceneId };
     }
-    // role 单独包含 "master" 时只可能是 scene_master (其他 master 角色
-    // 例如 scene_3gs_master_ply 上面已精确匹配掉了)。
     if (sceneId && role.includes("master")) {
       return { kind: "scene_master", scene_id: sceneId };
     }
@@ -162,7 +208,7 @@ export function inferDefaultTarget(
   return undefined;
 }
 
-/** 把推断出的(部分)目标补全为可推送的完整目标;不完整则返回 null。 */
+/** 把推断出的(部分)目标补全为可推送的完整目标；不完整则返回 null。 */
 export function completeTarget(
   partial: (Partial<PushTarget> & { kind: PushTargetKind }) | undefined,
 ): PushTarget | null {
@@ -223,14 +269,13 @@ export function completeTarget(
 
 /**
  * 把侧栏资产的 source 解析为可推送的完整目标。
- * 优先用后端直接给出的 `slot_target`(canonical,免去前端按 kind/role 猜),
- * 校验通过即用;缺失或非法时再回退到本地 role/kind 推断。
+ * 优先使用后端 canonical `slot_target`，非法时再回退到本地来源推断。
  */
 export function assetToPushTarget(
   source: Record<string, unknown> | undefined,
 ): PushTarget | null {
   const backendTarget = (source as { slot_target?: unknown } | undefined)?.slot_target;
-  const coerced = coerceSlotTarget(backendTarget);
+  const coerced = coercePushTarget(backendTarget);
   if (coerced) {
     return coerced;
   }

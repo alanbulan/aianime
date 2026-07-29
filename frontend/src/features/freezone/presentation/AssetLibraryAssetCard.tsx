@@ -6,7 +6,7 @@ import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { CANVAS_ASSET_DRAG_MIME } from "@/features/canvas/domain/assetDrag";
 
 import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
-import { assetToPushTarget } from "../commit/pushTarget";
+import { assetToPushTarget } from "../domain/pushTarget";
 import {
   assetDropMediaType,
   isThreeDAsset,

@@ -14,6 +14,10 @@ export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetPr
 export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetadataComposition";
 export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenceRoles";
 export {
+  coercePushTarget,
+  isCanonicalPushTarget,
+} from "@/features/freezone/domain/pushTarget";
+export {
   collectCandidateBindingsForNode,
   collectNodeMainlineContexts,
   extractMainlineContextsFromNode,

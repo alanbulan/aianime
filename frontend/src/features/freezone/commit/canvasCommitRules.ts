@@ -10,7 +10,7 @@ import {
   inferDefaultTarget,
   isScenePushTargetKind,
   type FreezoneSource,
-} from "./pushTarget";
+} from "../domain/pushTarget";
 import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,

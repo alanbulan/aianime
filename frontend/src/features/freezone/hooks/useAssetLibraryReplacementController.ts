@@ -8,7 +8,7 @@ import {
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
 } from "../composition";
-import { assetToPushTarget } from "../commit/pushTarget";
+import { assetToPushTarget } from "../domain/pushTarget";
 import type { LibraryAsset } from "../domain/assetLibraryModel";
 
 export type AssetLibraryReplacementHandler = (

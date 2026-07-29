@@ -22,7 +22,7 @@
  */
 
 import type { CanvasEdge, CanvasNode } from "./canvasNodes.ts";
-import { isSlotTarget } from "./mainlineNodeTypes.ts";
+import { isCanonicalPushTarget } from "@/features/freezone/public";
 
 export interface MainlineNodeFlags {
   isPresetManaged: boolean;
@@ -105,7 +105,7 @@ export function nodeMainlineFlags(node: CanvasNode): MainlineNodeFlags {
     isUserSpawned: data.user_spawned === true,
     hasMainlineContext:
       Array.isArray(data.mainline_context) && data.mainline_context.length > 0,
-    hasSlotTarget: isSlotTarget(data.slot_target),
+    hasSlotTarget: isCanonicalPushTarget(data.slot_target),
     hasCommittedSlot:
       typeof data.committed_slot_url === "string" &&
       data.committed_slot_url.length > 0,

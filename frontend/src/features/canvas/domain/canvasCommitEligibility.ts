@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { isSlotTarget } from "./mainlineNodeTypes";
+import { isCanonicalPushTarget } from "@/features/freezone/public";
 
 /**
  * 从节点 data 里取出「可提交的媒体源 URL」,按媒体类型回退:
@@ -36,7 +36,7 @@ export function isCommitCandidateData(data: unknown): boolean {
   return (
     value.preset_managed !== true &&
     value.user_spawned === true &&
-    isSlotTarget(value.slot_target) &&
+    isCanonicalPushTarget(value.slot_target) &&
     getCommitSourceUrl(data) !== null &&
     !(
       typeof value.committed_at === "string" &&

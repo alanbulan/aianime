@@ -2152,6 +2152,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百四十批已将 Freezone `commit/directorRenderCommit.ts` 中混合的导演合成提交编排、浏览器文件读取与 Viewer Kit 写入拆为纯 application 用例 `application/directorRenderCommit.ts`、浏览器适配器 `infrastructure/browserDirectorRenderCommitGateway.ts` 和唯一 `composition.ts` 装配；素材库替换、画布提交与提交弹窗三个 controller 统一经 composition 使用该用例。旧 commit 文件直接删除，不保留 facade、re-export 或第二套提交路径；普通画布图手工 frame meta、完整 bundle 元数据与双图层读取、`no-store` 请求、PNG data URL 转换、frame aspect/source 回退、既有相对路径回退、Viewer Kit public API 写入和目标路径缺失错误语义保持不变。相关回归 8 个文件 56 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百四十一批已将 Freezone `commit/pushTarget.ts` 中的提交目标来源推断、补全与类型分类迁入唯一 domain 模块 `domain/pushTarget.ts`，并将 Canvas `domain/mainlineNodeTypes.ts` 中重复的 canonical kind 白名单与 legacy coercion 一并归还该领域；Canvas 提交资格、主线标志、素材拖拽与图片编辑节点统一经 `freezone/public.ts` 使用 `isCanonicalPushTarget` / `coercePushTarget`，Freezone 内部调用方直连 domain。旧 commit 文件和 Canvas 旧 validator 直接删除，不保留 facade、re-export 或第二套白名单；20 类 canonical 可写目标、`scene_360` / `scene_3gs_uploaded_ply` 两类历史映射、后端 `slot_target` 优先、Beat 音频、身份肖像、精确 3GS role、Scene fallback 与不完整目标拒绝语义保持不变，原有未使用的 Canvas `slotTargetsEqual` 未在本批扩范围删除。相关回归 10 个文件 95 项，完整前端架构门禁 3 个文件 313 项（其中 module boundaries 273 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

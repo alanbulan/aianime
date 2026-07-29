@@ -11,7 +11,6 @@ import {
   type DropMediaType,
 } from "@/features/canvas/domain/assetDropInfo";
 import { saveOpenDirectorWorldScene } from "@/features/canvas/domain/directorWorldSceneSaveRegistry";
-import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
 import { isCommitCandidateData } from "@/features/canvas/public";
 import type {
   PushResult,
@@ -35,9 +34,10 @@ import {
 } from "../commit/canvasCommitRules";
 import {
   assetToPushTarget,
+  coercePushTarget,
   isPlyOrGlbPushTargetKind,
   isScenePushTargetKind,
-} from "../commit/pushTarget";
+} from "../domain/pushTarget";
 import {
   commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,
@@ -102,7 +102,7 @@ function refreshCommittedTargetNodes(
       | { kind?: string; role?: string; meta?: Record<string, unknown> }
       | undefined;
     const nodeTarget =
-      coerceSlotTarget(data.slot_target) ??
+      coercePushTarget(data.slot_target) ??
       inferCanonicalRefreshTarget(sourceMeta);
     if (!nodeTarget || !pushTargetsEqual(nodeTarget, target)) continue;
 
@@ -130,7 +130,7 @@ function markCommitCandidatePushed(
   const node = store.nodes.find((candidate) => candidate.id === nodeId);
   const data = (node?.data ?? {}) as Record<string, unknown>;
   if (!isCommitCandidateData(data)) return;
-  const slot = coerceSlotTarget(data.slot_target);
+  const slot = coercePushTarget(data.slot_target);
   if (!slot || !pushTargetsEqual(slot, target)) return;
 
   const update: Record<string, unknown> = {
@@ -192,8 +192,8 @@ export function useCanvasCommitController({
           : null;
     const sourceMeta = data.__freezone_source as Record<string, unknown> | undefined;
     const defaultTarget =
-      coerceSlotTarget(data.slot_target) ??
-      coerceSlotTarget(data.capabilityDefaultPushTarget) ??
+      coercePushTarget(data.slot_target) ??
+      coercePushTarget(data.capabilityDefaultPushTarget) ??
       assetToPushTarget(sourceMeta) ??
       undefined;
 
@@ -235,8 +235,8 @@ export function useCanvasCommitController({
             previewUrl: latestPreview,
             mediaType: latestInfo.mediaType,
             defaultTarget:
-              coerceSlotTarget(latestData.slot_target) ??
-              coerceSlotTarget(latestData.capabilityDefaultPushTarget) ??
+              coercePushTarget(latestData.slot_target) ??
+              coercePushTarget(latestData.capabilityDefaultPushTarget) ??
               assetToPushTarget(latestSourceMeta) ??
               defaultTarget,
             sourceLabel: latestInfo.label,

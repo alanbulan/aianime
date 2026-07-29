@@ -22,7 +22,7 @@ export interface FreezoneProjectAsset {
   director_control_bundle?: Record<string, unknown> | null;
   /** Whether the backend considers this asset eligible for mainline commit. */
   pushable?: boolean;
-  /** Canonical backend target; validate it with coerceSlotTarget before use. */
+  /** Canonical backend target; validate it with coercePushTarget before use. */
   slot_target?: PushTarget | null;
 }
 

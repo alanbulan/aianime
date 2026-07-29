@@ -9,7 +9,7 @@
  * mirror).
  *
  * Naming reminder — do not confuse the two layers:
- *   - `PushTargetKind` (this file's domain, 19 values): slot 落点 kind.
+ *   - `PushTargetKind` (Freezone domain; 20 canonical writable values): slot 落点 kind.
  *     e.g. "sketch" / "frame" / "identity" / "scene_master" — these are the
  *     short verbs the Push route writes against.
  *   - `PresetRef.role` (preset emit domain, ~22 values): asset discovery role.
@@ -20,73 +20,12 @@
  * a role string.
  */
 
-import type { PushTarget, PushTargetKind } from "@/features/freezone/public";
+import type { PushTarget } from "@/features/freezone/public";
 
 export type { PushTargetKind } from "@/features/freezone/public";
 
 /** Alias for `PushTarget` expressing node intent: "this node's Push default target". */
 export type SlotTarget = PushTarget;
-
-/** Structural validator for node data and restored canvas JSON. */
-export function isSlotTarget(value: unknown): value is SlotTarget {
-  if (!value || typeof value !== "object") return false;
-  const kind = (value as { kind?: unknown }).kind;
-  if (typeof kind !== "string") return false;
-  // Cheapest correctness check: kind must be one of the known PushTargetKind values.
-  // We rely on the runtime kind check rather than re-encoding required fields per
-  // kind (that's the backend Pydantic discriminator's job — frontend errors here
-  // surface as 4xx from the Push route, not silent corruption).
-  return SLOT_TARGET_KINDS.has(kind as PushTargetKind);
-}
-
-/**
- * 已废弃 / 改名的旧 slot kind → 当前 canonical kind 的迁移表。
- * 旧画布 JSON 或旧 client 持久化的节点可能仍带这些 kind。
- */
-const LEGACY_SLOT_TARGET_KIND_MAP: Readonly<Record<string, PushTargetKind>> = {
-  // 旧 2:1 panorama slot 已被 Director Pano 360 取代。
-  scene_360: "scene_director_pano_360",
-  // 后端把 3GS「上传」slot 改名为「自定义场景」(同为 scene_id 作用域)。
-  scene_3gs_uploaded_ply: "scene_3gs_custom_scene",
-};
-
-/**
- * 读取(可能来自旧画布的)slot_target:先把已废弃的 legacy kind 迁移到当前
- * canonical kind,再做合法性校验,返回归一化后的 SlotTarget;非法返回 null。
- * 所有「读 node.data.slot_target / 资产 slot_target」的入口都应走这里,
- * 避免旧数据因 kind 改名而静默失去 commit 能力。
- */
-export function coerceSlotTarget(value: unknown): SlotTarget | null {
-  if (!value || typeof value !== "object") return null;
-  const kind = (value as { kind?: unknown }).kind;
-  if (typeof kind !== "string") return null;
-  const mapped = LEGACY_SLOT_TARGET_KIND_MAP[kind];
-  const normalized = mapped ? { ...(value as object), kind: mapped } : value;
-  return isSlotTarget(normalized) ? normalized : null;
-}
-
-const SLOT_TARGET_KINDS: ReadonlySet<PushTargetKind> = new Set<PushTargetKind>([
-  "frame",
-  "sketch",
-  "director_render",
-  "selected_background",
-  "identity",
-  "identity_costume",
-  "identity_portrait",
-  "portrait",
-  "scene_master",
-  "scene_reverse_master",
-  "scene_spatial_layout",
-  "scene_director_world",
-  "scene_director_pano_360",
-  "scene_3gs_master_ply",
-  "scene_3gs_reverse_ply",
-  "scene_3gs_pano_ply",
-  "scene_3gs_custom_scene",
-  "prop_ref",
-  "video",
-  "beat_audio",
-]);
 
 /**
  * Canonical equality for two slot targets. Same kind + same scoping fields.

@@ -4,7 +4,7 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from "./canvasNodes";
-import { coerceSlotTarget } from "./mainlineNodeTypes";
+import { coercePushTarget } from "@/features/freezone/public";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 
@@ -80,7 +80,7 @@ export function spawnAssetNode(
       ? { mainline_context: payload.mainlineContext }
       : {};
   const sourceMeta = { ...payload.source };
-  const slotTarget = coerceSlotTarget(sourceMeta.slot_target);
+  const slotTarget = coercePushTarget(sourceMeta.slot_target);
   const slotData = slotTarget
     ? { slot_target: slotTarget, committed_slot_url: payload.url }
     : {};

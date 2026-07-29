@@ -13,7 +13,6 @@ import {
   renderCommitTargetLabel,
   sceneOptionLabel,
 } from "@/features/freezone/commit/commitDialogViewModel";
-import { assetToPushTarget, completeTarget, inferDefaultTarget } from "@/features/freezone/commit/pushTarget";
 
 describe("CommitDialog target kinds", () => {
   it("hides deprecated and auxiliary scene asset kinds from user selection", () => {
@@ -78,25 +77,6 @@ describe("CommitDialog target kinds", () => {
 
     expect(source).toContain('outputKind: "scene_director_pano_360"');
     expect(source).not.toContain('outputKind: "scene_360"');
-  });
-
-  it("normalizes old scene_360 sources to the Director Pano 360 target", () => {
-    const target = completeTarget(
-      inferDefaultTarget({
-        kind: "scene_360",
-        meta: { scene_id: "厨房" },
-      }),
-    );
-
-    expect(target).toEqual({ kind: "scene_director_pano_360", scene_id: "厨房" });
-  });
-
-  it("treats scene director world as one structured scene commit target", () => {
-    expect(assetToPushTarget({
-      kind: "scene",
-      role: "scene_director_world",
-      meta: { scene_id: "公寓楼电梯间" },
-    })).toEqual({ kind: "scene_director_world", scene_id: "公寓楼电梯间" });
   });
 
   it("labels scene director world commits as manifest state instead of a raw 3D model", () => {

@@ -23,7 +23,7 @@ import {
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { coerceSlotTarget } from '@/features/canvas/domain/mainlineNodeTypes';
+import { coercePushTarget } from '@/features/freezone/public';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
@@ -275,10 +275,10 @@ function collectInputSlotTarget(
   for (const sourceId of sourceIds) {
     const sourceNode = nodeById.get(sourceId);
     const data = sourceNode?.data as Record<string, unknown> | undefined;
-    const slotTarget = coerceSlotTarget(data?.slot_target);
+    const slotTarget = coercePushTarget(data?.slot_target);
     if (slotTarget) return slotTarget;
     const source = data?.__freezone_source as FreezoneSourceMeta | undefined;
-    const sourceSlotTarget = coerceSlotTarget(source?.slot_target);
+    const sourceSlotTarget = coercePushTarget(source?.slot_target);
     if (sourceSlotTarget) return sourceSlotTarget;
   }
   return null;
@@ -647,7 +647,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
       data.capabilityOutputKind
     );
     const candidateSlotTarget =
-      coerceSlotTarget(data.capabilityDefaultPushTarget) ??
+      coercePushTarget(data.capabilityDefaultPushTarget) ??
       originSlotTarget;
     setError(null);
 

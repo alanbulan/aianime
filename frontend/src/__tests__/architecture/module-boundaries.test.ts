@@ -833,6 +833,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/currentBeatContext",
         "@/features/freezone/domain/inferSkillConnectionRole",
         "@/features/freezone/domain/mainlineContext",
+        "@/features/freezone/domain/pushTarget",
         "@/features/freezone/domain/referenceRoles",
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
@@ -1589,7 +1590,9 @@ describe("frontend architecture boundaries", () => {
       "export function withImageCacheBust(",
     );
     expect(existsSync(legacyEligibilityPath)).toBe(false);
-    expect(importSpecifiers(eligibilityPath)).toEqual(["./mainlineNodeTypes"]);
+    expect(importSpecifiers(eligibilityPath)).toEqual([
+      "@/features/freezone/public",
+    ]);
     expect(eligibilityOwners).toEqual([
       "features/canvas/domain/canvasCommitEligibility.ts",
     ]);
@@ -2823,8 +2826,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(rulesPath))).toEqual(
       new Set([
         "@/features/freezone/domain/assetCommit",
+        "../domain/pushTarget",
         "./committedNodePatch",
-        "./pushTarget",
         "./sceneDirectorWorldCommit",
       ]),
     );
@@ -3149,14 +3152,13 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/assetDropInfo",
         "@/features/canvas/domain/directorWorldSceneSaveRegistry",
-        "@/features/canvas/domain/mainlineNodeTypes",
         "@/features/canvas/public",
         "@/features/freezone/domain/assetCommit",
         "@/lib/query-keys",
         "../composition",
         "../commit/canvasCommitRules",
-        "../commit/pushTarget",
         "../commit/sceneDirectorWorldCommit",
+        "../domain/pushTarget",
       ]),
     );
     expect(importSpecifiers(shellPath)).toContain(
@@ -3257,6 +3259,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
+    const pushTargetPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/pushTarget.ts",
+    );
+    const legacyPushTargetPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/pushTarget.ts",
+    );
     const legacyPromotePath = resolve(
       SRC_ROOT,
       "features/freezone/commit/promoteToAsset.ts",
@@ -3267,6 +3277,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const pushTargetSource = readFileSync(pushTargetPath, "utf8");
     const directLegacyConsumers = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -3297,17 +3308,23 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/presentation/CommitDialogView.tsx",
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
       "features/freezone/commit/committedNodePatch.ts",
-      "features/freezone/commit/pushTarget.ts",
     ];
     const publicConsumerPaths = [
+      "features/canvas/domain/assetDrag.ts",
+      "features/canvas/domain/canvasCommitEligibility.ts",
       "features/canvas/domain/mainlineNodeTypes.ts",
+      "features/canvas/domain/mainlineNodeFlags.ts",
+      "features/canvas/nodes/ImageEditNode.tsx",
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     ];
 
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(existsSync(legacyPromotePath)).toBe(false);
+    expect(existsSync(legacyPushTargetPath)).toBe(false);
     expect(existsSync(unusedBatchDialogPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(pushTargetPath)).toEqual(["./assetCommit"]);
+    expect(pushTargetSource).not.toContain("@/features/canvas/");
     expect(importSpecifiers(applicationPath)).toEqual([
       "../domain/assetCommit",
     ]);
@@ -7849,8 +7866,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/imageData",
         "@/features/canvas/domain/assetDrag",
         "../application/assetLibraryCanvasInsertion",
-        "../commit/pushTarget",
         "../domain/assetLibraryModel",
+        "../domain/pushTarget",
         "./assetLibraryViewModel",
       ]),
     );
@@ -7920,8 +7937,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/assetDropStore",
         "@/features/freezone/domain/assetCommit",
         "../composition",
-        "../commit/pushTarget",
         "../domain/assetLibraryModel",
+        "../domain/pushTarget",
       ]),
     );
     expect(controllerSource).toContain(
