@@ -517,6 +517,109 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain('from \'./VideoStoryNodeView\'');
   });
 
+  it("separates the Canvas audio-node domain, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioNode.tsx",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/audioFileTypes.ts",
+    );
+    const domainTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/audioFileTypes.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const domainTestSource = readFileSync(domainTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "AudioNode", "=", "memo("].join(" "),
+      ["export function", "isAudioFile("].join(" "),
+      ["export function", "useAudioNodeController("].join(" "),
+      ["export function", "AudioNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useAudioNodeController",
+        "./AudioNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/AudioNode.tsx"],
+      ["features/canvas/domain/audioFileTypes.ts"],
+      ["features/canvas/hooks/useAudioNodeController.ts"],
+      ["features/canvas/nodes/AudioNodeView.tsx"],
+    ]);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("@/api/");
+    expect(registrySource).toContain("import { AudioNode } from './AudioNode'");
+    expect(registrySource).toContain("audioNode: AudioNode");
+    expect(entrySource).toContain("useAudioNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(AudioNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useIsBoxSelecting()");
+    expect(controllerSource).toContain(
+      "canvasEventBus.subscribe(\n    'audio-node/external-file'",
+    );
+    expect(controllerSource).toContain("uploadCanvasAsset(projectId");
+    expect(controllerSource).toContain(
+      "loadCanvasAudioReferences(project)",
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<Handle");
+    expect(viewSource).toContain("<AudioWaveformPlayer");
+    expect(viewSource).toContain("<AudioOperationsPanel");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("uploadCanvasAsset(");
+    expect(viewSource).not.toContain("loadCanvasAudioReferences(");
+    expect(domainTestSource).toContain("from './audioFileTypes'");
+    expect(controllerTestSource).toContain(
+      "from './useAudioNodeController'",
+    );
+    expect(viewTestSource).toContain("from './AudioNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -14396,9 +14499,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/audioComposition.ts",
     );
-    const audioNodePath = resolve(
+    const audioControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/AudioNode.tsx",
+      "features/canvas/hooks/useAudioNodeController.ts",
     );
     const voiceModalPath = resolve(
       SRC_ROOT,
@@ -14408,7 +14511,7 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const audioNodeSource = readFileSync(audioNodePath, "utf8");
+    const audioControllerSource = readFileSync(audioControllerPath, "utf8");
     const voiceModalSource = readFileSync(voiceModalPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
@@ -14451,17 +14554,19 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "freezoneAudioVoiceCatalogGateway.createVoice(projectId, file, name)",
     );
-    expect(importSpecifiers(audioNodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(audioControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(voiceModalPath)).not.toContain("@/api/ops");
-    expect(audioNodeSource).toContain("loadCanvasAudioReferences(project)");
+    expect(audioControllerSource).toContain(
+      "loadCanvasAudioReferences(project)",
+    );
     expect(voiceModalSource).toContain(
       "loadCanvasAudioReferences(project)",
     );
     expect(voiceModalSource).toContain(
       "createCanvasAudioVoice(project, file, stem || undefined)",
     );
-    expect(audioNodeSource).not.toContain("character_name");
-    expect(audioNodeSource).not.toContain("voice_id");
+    expect(audioControllerSource).not.toContain("character_name");
+    expect(audioControllerSource).not.toContain("voice_id");
     expect(voiceModalSource).not.toContain("character_name");
     expect(voiceModalSource).not.toContain("voice_id");
     expect(voiceModalSource).not.toContain("function readGender(");
@@ -19757,7 +19862,7 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/compose/CoverEditor.tsx",
       "features/canvas/compose/VideoComposeModal.tsx",
-      "features/canvas/nodes/AudioNode.tsx",
+      "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/nodes/GroupNode.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
@@ -20500,7 +20605,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const consumerPaths = [
-      "features/canvas/nodes/AudioNode.tsx",
+      "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/TextAnnotationNode.tsx",
       "features/canvas/nodes/VideoNode.tsx",

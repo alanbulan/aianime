@@ -2172,6 +2172,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百五十批已将 Canvas 359 行混合 `VideoStoryNode.tsx` 拆为唯一状态 controller `hooks/useVideoStoryNodeController.ts`、纯 presentation `nodes/VideoStoryNodeView.tsx` 和保留原注册路径的真实装配根；controller 独占标题投影、宽高下限、React Flow internals 刷新、选中/重命名、分析状态判别、表格单元格去重写回、全屏状态与 Escape 生命周期，View 独占 React Flow Handle、表格/关键帧、加载/失败/空结果、resize、生成遮罩和全屏 portal JSX。原节点内联状态与 JSX 已全部迁出，不保留 facade、re-export 或第二套实现；720x360 默认尺寸、480x240 最小尺寸、1600x1200 最大尺寸、分析优先于错误、原始返回保留、关键帧只读、空单元格占位、仅变化单元格写回、全屏无行禁用、Escape/关闭按钮退出及节点注册映射语义保持不变。新增 controller 4 项与 View 3 项直接回归共 2 个文件 7 项；完整前端架构门禁 3 个文件 316 项（其中 module boundaries 276 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百五十一批已将 Canvas 366 行混合 `AudioNode.tsx` 拆为纯领域文件判定 `domain/audioFileTypes.ts`、唯一状态 controller `hooks/useAudioNodeController.ts`、纯 presentation `nodes/AudioNodeView.tsx` 和保留原注册路径的真实装配根；领域层独占音频 MIME/扩展名白名单，controller 独占标题与尺寸投影、React Flow internals 刷新、选中/重命名/时长写回、任务失败持久化、外部文件事件订阅与上传、项目级音色 Promise 缓存、历史 narrator 兜底初始化、StrictMode 取消语义及裸 narrator 防循环守卫，View 独占 Handle、Header、上下文标记、波形、生成/失败/空状态、resize、重试和操作面板 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名或第二套规则；480x210 默认尺寸、360x190 最小尺寸、900x360 最大尺寸、文件拒绝提示、上传状态写回、失败重试、成功结果优先、框选时隐藏操作区、默认音色共享请求及失败后可重试语义保持不变。新增领域规则 3 项、controller 6 项和 View 3 项测试，连同音频生成参数、音乐设置面板、上传用例和框选投影共回归 7 个文件 22 项；完整前端架构门禁 3 个文件 317 项（其中 module boundaries 277 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
