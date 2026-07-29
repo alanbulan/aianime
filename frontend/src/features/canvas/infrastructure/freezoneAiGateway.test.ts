@@ -15,6 +15,7 @@ vi.mock("@/lib/url-params", () => ({
   readUrl: () => ({ project: "project/1", canvas: "canvas-1" }),
 }));
 vi.mock("@/features/freezone/public", () => ({
+  getFreezoneCanvasMetadata: vi.fn(),
   resolveCurrentShotMetadataPrompt: (prompt: string) => ({
     cleanedPrompt: prompt,
     suffix: "",
@@ -27,9 +28,6 @@ vi.mock("@/features/freezone/public", () => ({
 }));
 vi.mock("@/features/freezone/capabilities/capabilityRegistry", () => ({
   composeCapability: vi.fn(),
-}));
-vi.mock("@/features/freezone/canvasMetadataContext", () => ({
-  getFreezoneCanvasMetadata: vi.fn(),
 }));
 vi.mock("./freezoneAssetGateway", () => ({
   ensureBackendImageUrl: vi.fn(),

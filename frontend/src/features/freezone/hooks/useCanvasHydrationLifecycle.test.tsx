@@ -64,7 +64,7 @@ vi.mock("../canvasHydrationComposition", () => ({
   },
 }));
 
-vi.mock("../canvasMetadataContext", () => ({
+vi.mock("../application/canvasMetadataState", () => ({
   setFreezoneCanvasMetadata: mocks.setFreezoneCanvasMetadata,
 }));
 

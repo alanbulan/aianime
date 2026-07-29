@@ -79,7 +79,7 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
+import { getFreezoneCanvasMetadata } from '@/features/freezone/public';
 import {
   generateCanvasImage,
   getCanvasBeatDirectorManifest,

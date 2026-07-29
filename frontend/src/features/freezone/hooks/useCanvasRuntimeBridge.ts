@@ -11,7 +11,7 @@ import type { FreezoneCanvasPayload } from "@/features/freezone/domain/canvasSto
 import { canvasEnvelopeFromRemote } from "../application/canvasSyncCore";
 import { canvasContentSignature } from "../application/canvasSyncHydration";
 import type { CanvasSyncStatus } from "../application/canvasSyncStorage";
-import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
+import { setFreezoneCanvasMetadata } from "../application/canvasMetadataState";
 import { registerFreezoneCanvasRuntime } from "../canvasSyncRuntime";
 import {
   mergeProjectedCanvasWithLocalCanvas,

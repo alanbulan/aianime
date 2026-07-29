@@ -15,6 +15,7 @@ export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetada
 export { resolvePromptReferenceRoles } from "@/features/freezone/domain/referenceRoles";
 export { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/canvasDraftComposition";
 export { presetRequestFromMetadata } from "@/features/freezone/application/canvasPreset";
+export { getFreezoneCanvasMetadata } from "@/features/freezone/application/canvasMetadataState";
 export type {
   FreezoneAssetUploadOptions,
   FreezoneAssetUploadResult,

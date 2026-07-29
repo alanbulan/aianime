@@ -815,6 +815,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(publicPath))).toEqual(
       new Set([
+        "@/features/freezone/application/canvasMetadataState",
         "@/features/freezone/application/canvasPreset",
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
@@ -935,6 +936,47 @@ describe("frontend architecture boundaries", () => {
     expect(gatewayImports).not.toContain(
       "@/features/freezone/domain/referenceRoles",
     );
+  });
+
+  it("keeps canvas metadata state writable only inside Freezone", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasMetadataContext.ts",
+    );
+    const statePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasMetadataState.ts",
+    );
+    const readerPaths = [
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "features/canvas/nodes/BeatContextNode.tsx",
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/Pano360ViewerNode.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const getterDeclaration = [
+      "export function",
+      "getFreezoneCanvasMetadata(",
+    ].join(" ");
+    const getterOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(getterDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(statePath)).toEqual([]);
+    expect(getterOwners).toEqual([
+      "features/freezone/application/canvasMetadataState.ts",
+    ]);
+    for (const readerPath of readerPaths) {
+      const imports = importSpecifiers(readerPath);
+      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).not.toContain(
+        "@/features/freezone/canvasMetadataContext",
+      );
+      expect(imports).not.toContain(
+        "@/features/freezone/application/canvasMetadataState",
+      );
+    }
   });
 
   it("publishes Canvas media helpers through one public API", () => {
@@ -7771,7 +7813,7 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasSyncHydration",
         "../application/canvasSyncStorage",
         "../application/canvasProjectionGraph",
-        "../canvasMetadataContext",
+        "../application/canvasMetadataState",
         "../canvasSyncRuntime",
         "../domain/canvasProjectionMetadata",
         "../domain/shotMetadata",
@@ -7837,7 +7879,7 @@ describe("frontend architecture boundaries", () => {
         "../canvasConflictRecoveryComposition",
         "../canvasDraftComposition",
         "../canvasHydrationComposition",
-        "../canvasMetadataContext",
+        "../application/canvasMetadataState",
         "../canvasSyncComposition",
         "../canvasSyncRuntime",
         "../domain/shotMetadata",

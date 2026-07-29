@@ -21,7 +21,7 @@ import {
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 import { scheduleCanvasDraftPruneOnce } from "../canvasDraftComposition";
 import { canvasHydrateFlightCoordinator } from "../canvasHydrationComposition";
-import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
+import { setFreezoneCanvasMetadata } from "../application/canvasMetadataState";
 import { canvasSyncStorageGateway } from "../canvasSyncComposition";
 import { consumeQueuedLocalFreezoneProjections } from "../canvasSyncRuntime";
 import {

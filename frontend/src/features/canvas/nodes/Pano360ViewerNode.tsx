@@ -62,7 +62,7 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
 } from '@/features/canvas/composition';
-import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
+import { getFreezoneCanvasMetadata } from '@/features/freezone/public';
 
 type Pano360ViewerNodeProps = NodeProps & {
   id: string;

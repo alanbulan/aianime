@@ -2116,6 +2116,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十二批已将仅由 Canvas AI gateway 成套调用的 Freezone 根级 `referenceRoles.ts` 迁入唯一纯领域模块 `domain/referenceRoles.ts`，并将原公开的 marker 解析、参考图重排和 legend 渲染三个低层 helper 收敛为模块私有协作，只保留单一高层 `resolvePromptReferenceRoles(prompt, references)`；`freezone/public.ts` 暴露结构化 `{cleanedPrompt, references, suffix}` 结果，Canvas gateway 与测试统一改经 public API，旧根路径直接删除，不保留 facade、旧导出或重复流程。`[ref:n=role]` 清理、character → pose → style → generic 稳定排序、重排后索引重映射、无 marker 时的既有 generic legend 以及无参考图时不追加 suffix 的语义保持不变。Reference Roles 领域与 AI gateway 回归 2 个文件 4 项、完整前端架构门禁 3 个文件 300 项（其中 module boundaries 260 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十三批已将 Freezone 根级可变状态 `canvasMetadataContext.ts` 迁入唯一 application owner `application/canvasMetadataState.ts`，由 Freezone 的 hydrate/runtime bridge 两个生命周期 hook 保留写入与清空职责；`freezone/public.ts` 只向跨上下文消费者公开 getter，Canvas AI gateway、BeatContext、ImageGen 与 Pano360 Viewer 四个生产读取方统一改经 public API，旧根路径直接删除，不保留 facade、别名或第二份 metadata 快照。hydrate 草稿/远端画布、投影合并/移除和画布卸载时的 metadata 发布时机保持不变，getter 继续返回当前对象引用或 `null`；外部 BeatContext 测试仅直连 application setter 建立模块内状态夹具，不扩大 public 写权限。状态、AI gateway、BeatContext、ImageGen、Viewer 合同与两个生命周期 hook 回归 7 个文件 55 项、完整前端架构门禁 3 个文件 301 项（其中 module boundaries 261 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

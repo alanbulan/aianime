@@ -46,7 +46,7 @@ vi.mock("../canvasSyncRuntime", () => ({
   registerFreezoneCanvasRuntime: mocks.registerRuntime,
 }));
 
-vi.mock("../canvasMetadataContext", () => ({
+vi.mock("../application/canvasMetadataState", () => ({
   setFreezoneCanvasMetadata: mocks.setFreezoneCanvasMetadata,
 }));
 
