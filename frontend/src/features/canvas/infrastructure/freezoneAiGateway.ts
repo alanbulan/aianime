@@ -17,12 +17,10 @@
 
 import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
-import { resolveCurrentShotMetadataPrompt } from "@/features/freezone/public";
 import {
-  parseReferenceRoles,
-  renderReferenceRolesForPrompt,
-  reorderReferencesByRole,
-} from "@/features/freezone/referenceRoles";
+  resolveCurrentShotMetadataPrompt,
+  resolvePromptReferenceRoles,
+} from "@/features/freezone/public";
 import { composeCapability } from "@/features/freezone/capabilities/capabilityRegistry";
 import { getFreezoneCanvasMetadata } from "@/features/freezone/canvasMetadataContext";
 import type {
@@ -190,12 +188,12 @@ async function submitJob(
   //   1. Parse any `[ref:N=role]` markers from the prompt (after shot block).
   //   2. Reorder references so character > pose > style > generic.
   //   3. Append a "reference roles" legend so the model uses each ref correctly.
-  const { roles, cleaned: cleanedPrompt } = parseReferenceRoles(
-    afterShotClean,
-  );
   const rawRefs = effectiveRefs.filter(Boolean);
-  const { reordered: refs, rolesAfter } = reorderReferencesByRole(rawRefs, roles);
-  const roleSuffix = renderReferenceRolesForPrompt(rolesAfter, refs.length);
+  const {
+    cleanedPrompt,
+    references: refs,
+    suffix: roleSuffix,
+  } = resolvePromptReferenceRoles(afterShotClean, rawRefs);
 
   const finalPrompt = `${cleanedPrompt}${shotSuffix}${roleSuffix}`;
 

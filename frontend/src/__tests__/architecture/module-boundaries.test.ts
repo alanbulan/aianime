@@ -782,6 +782,7 @@ describe("frontend architecture boundaries", () => {
               specifier.includes("features/freezone/domain/beatContext") ||
               specifier.includes("features/freezone/domain/canvasProjection") ||
               specifier.includes("features/freezone/domain/canvasStorage") ||
+              specifier.includes("features/freezone/domain/referenceRoles") ||
               specifier.includes("features/freezone/domain/shotMetadata") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
@@ -824,6 +825,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/beatContext",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
+        "@/features/freezone/domain/referenceRoles",
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
@@ -893,6 +895,45 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(domainPath, "utf8")).not.toContain("react");
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "resolveCurrentShotMetadataPrompt(",
+    );
+  });
+
+  it("publishes one high-level reference role prompt rule", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/referenceRoles.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/referenceRoles.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const gatewayImports = importSpecifiers(gatewayPath);
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export function resolvePromptReferenceRoles(",
+    );
+    expect(domainSource).not.toContain(
+      "export function parseReferenceRoles(",
+    );
+    expect(domainSource).not.toContain(
+      "export function reorderReferencesByRole(",
+    );
+    expect(domainSource).not.toContain(
+      "export function renderReferenceRolesForPrompt(",
+    );
+    expect(gatewayImports).toContain("@/features/freezone/public");
+    expect(gatewayImports).not.toContain(
+      "@/features/freezone/referenceRoles",
+    );
+    expect(gatewayImports).not.toContain(
+      "@/features/freezone/domain/referenceRoles",
     );
   });
 

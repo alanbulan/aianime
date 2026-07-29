@@ -18,17 +18,11 @@
  *   [ref:3=pose]
  *   ```
  *
- * `parseReferenceRoles` strips those markers and returns:
- *   - `cleaned` prompt without the marker block
- *   - `roles` map keyed by 1-based reference index
- *
- * Then `renderReferenceRolesForPrompt` appends a single human-readable line
- * the model can use ("reference 1 = character anchor, ..."). The frontend
- * also reorders references so character anchors come first (most providers
- * weight earlier references higher).
+ * `resolvePromptReferenceRoles` strips the markers, reorders references so
+ * character anchors come first, and renders a role legend for the model.
  */
 
-export type ReferenceRole = "character" | "style" | "pose" | "generic";
+type ReferenceRole = "character" | "style" | "pose" | "generic";
 
 const VALID_ROLES = new Set<ReferenceRole>([
   "character",
@@ -39,14 +33,14 @@ const VALID_ROLES = new Set<ReferenceRole>([
 
 const MARKER_RE = /\[ref:(\d+)=([a-z]+)\]/gi;
 
-export interface ParsedRoles {
+interface ParsedRoles {
   /** Map from 1-based reference index → role. */
   roles: Map<number, ReferenceRole>;
   /** Prompt with all `[ref:n=role]` markers stripped. */
   cleaned: string;
 }
 
-export function parseReferenceRoles(prompt: string): ParsedRoles {
+function parseReferenceRoles(prompt: string): ParsedRoles {
   const roles = new Map<number, ReferenceRole>();
   let match: RegExpExecArray | null;
   while ((match = MARKER_RE.exec(prompt)) !== null) {
@@ -67,7 +61,7 @@ export function parseReferenceRoles(prompt: string): ParsedRoles {
 /**
  * Render a one-line role legend for the model. Empty when no roles tagged.
  */
-export function renderReferenceRolesForPrompt(
+function renderReferenceRolesForPrompt(
   roles: Map<number, ReferenceRole>,
   refCount: number,
 ): string {
@@ -93,7 +87,7 @@ export function renderReferenceRolesForPrompt(
  *
  * Returns reordered URLs + a remapped role table aligned to the new order.
  */
-export function reorderReferencesByRole(
+function reorderReferencesByRole(
   refs: string[],
   roles: Map<number, ReferenceRole>,
 ): { reordered: string[]; rolesAfter: Map<number, ReferenceRole> } {
@@ -111,4 +105,26 @@ export function reorderReferencesByRole(
   const rolesAfter = new Map<number, ReferenceRole>();
   items.forEach((it, idx) => rolesAfter.set(idx + 1, it.role));
   return { reordered, rolesAfter };
+}
+
+export interface ResolvedPromptReferenceRoles {
+  cleanedPrompt: string;
+  references: string[];
+  suffix: string;
+}
+
+export function resolvePromptReferenceRoles(
+  prompt: string,
+  references: string[],
+): ResolvedPromptReferenceRoles {
+  const { roles, cleaned } = parseReferenceRoles(prompt);
+  const { reordered, rolesAfter } = reorderReferencesByRole(
+    references,
+    roles,
+  );
+  return {
+    cleanedPrompt: cleaned,
+    references: reordered,
+    suffix: renderReferenceRolesForPrompt(rolesAfter, reordered.length),
+  };
 }

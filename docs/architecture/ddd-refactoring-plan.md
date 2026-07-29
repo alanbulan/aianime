@@ -2114,6 +2114,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十一批已将 Freezone 根级 `shotMetadataStore.ts` 中混合的 Shot Metadata 类型、活跃判定、inline block 解析、覆盖合并、提示词渲染和 Zustand 状态实现拆入唯一 `domain/shotMetadata.ts`、application port `application/shotMetadataState.ts` 与 adapter `infrastructure/zustandShotMetadataStore.ts`；唯一 `shotMetadataComposition.ts` 负责装配状态端口，并通过 `freezone/public.ts` 向 Canvas 暴露结构化的当前 Shot prompt 解析结果，旧根文件直接删除，不保留 facade 或第二套状态。Freezone presentation hooks 不再穿透 infrastructure，Canvas AI gateway 不再读取 Freezone Store 或导入其领域规则；canvas hydrate、草稿/冲突副本/常规保存/beforeunload 的 Shot 状态读写与订阅行为保持不变，生成 prompt 继续按“清理 inline Shot block、解析 reference roles、追加 Shot suffix、追加 reference suffix”的原顺序组合，避免空 prompt trim 或 metadata marker 被误解析。Shot 领域、组合、AI gateway 与五个画布生命周期控制器回归 9 个文件 56 项、完整前端架构门禁 3 个文件 299 项（其中 module boundaries 259 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十二批已将仅由 Canvas AI gateway 成套调用的 Freezone 根级 `referenceRoles.ts` 迁入唯一纯领域模块 `domain/referenceRoles.ts`，并将原公开的 marker 解析、参考图重排和 legend 渲染三个低层 helper 收敛为模块私有协作，只保留单一高层 `resolvePromptReferenceRoles(prompt, references)`；`freezone/public.ts` 暴露结构化 `{cleanedPrompt, references, suffix}` 结果，Canvas gateway 与测试统一改经 public API，旧根路径直接删除，不保留 facade、旧导出或重复流程。`[ref:n=role]` 清理、character → pose → style → generic 稳定排序、重排后索引重映射、无 marker 时的既有 generic legend 以及无参考图时不追加 suffix 的语义保持不变。Reference Roles 领域与 AI gateway 回归 2 个文件 4 项、完整前端架构门禁 3 个文件 300 项（其中 module boundaries 260 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

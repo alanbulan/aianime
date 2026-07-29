@@ -19,13 +19,10 @@ vi.mock("@/features/freezone/public", () => ({
     cleanedPrompt: prompt,
     suffix: "",
   }),
-}));
-vi.mock("@/features/freezone/referenceRoles", () => ({
-  parseReferenceRoles: (prompt: string) => ({ cleaned: prompt, roles: [] }),
-  renderReferenceRolesForPrompt: () => "",
-  reorderReferencesByRole: (references: string[]) => ({
-    reordered: references,
-    rolesAfter: [],
+  resolvePromptReferenceRoles: (prompt: string, references: string[]) => ({
+    cleanedPrompt: prompt,
+    references,
+    suffix: "",
   }),
 }));
 vi.mock("@/features/freezone/capabilities/capabilityRegistry", () => ({
