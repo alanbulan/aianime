@@ -514,7 +514,12 @@ describe("freezone viewer contracts", () => {
       "src/features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
     );
     const ports = read("src/features/canvas/application/ports.ts");
-    const groupNode = read("src/features/canvas/nodes/GroupNode.tsx");
+    const groupNodeController = read(
+      "src/features/canvas/hooks/useGroupNodeController.ts",
+    );
+    const groupNodeView = read(
+      "src/features/canvas/nodes/GroupNodeView.tsx",
+    );
 
     expect(toolbar).toContain("isProtectedProjectionGroupNode(node)");
     expect(toolbar).toContain('"freezone/projection-sync"');
@@ -529,10 +534,12 @@ describe("freezone viewer contracts", () => {
     expect(shell).toContain("useCanvasProjectionStatusLifecycle({");
     expect(statusLifecycle).toContain("setCanvasProjectionStatuses(result.projections)");
     expect(statusLifecycle).toContain("clearCanvasProjectionStatuses()");
-    expect(groupNode).toContain("useCanvasProjectionStatus(projectionKey)");
-    expect(groupNode).toContain("projection-stale-frame");
-    expect(groupNode).toContain("projection-stale-banner");
-    expect(groupNode).toContain("freezone.projections.staleBadge");
+    expect(groupNodeController).toContain(
+      "useCanvasProjectionStatus(projectionKey)",
+    );
+    expect(groupNodeView).toContain("projection-stale-frame");
+    expect(groupNodeView).toContain("projection-stale-banner");
+    expect(groupNodeView).toContain("freezone.projections.staleBadge");
     expect(ports).toContain("'freezone/projection-sync'");
     expect(ports).toContain("'freezone/projection-remove'");
   });

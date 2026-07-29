@@ -823,6 +823,99 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './VideoComposeNodeView'");
   });
 
+  it("separates the Canvas group-node controller and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/GroupNode.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useGroupNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useGroupNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/GroupNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/GroupNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "GroupNode", "=", "memo("].join(" "),
+      ["export function", "useGroupNodeController("].join(" "),
+      ["export function", "GroupNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useGroupNodeController",
+        "./GroupNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/GroupNode.tsx"],
+      ["features/canvas/hooks/useGroupNodeController.ts"],
+      ["features/canvas/nodes/GroupNodeView.tsx"],
+    ]);
+    expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
+    expect(registrySource).toContain("groupNode: GroupNode");
+    expect(entrySource).toContain("useGroupNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(GroupNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("uploadCanvasAsset(projectId");
+    expect(controllerSource).toContain("useReactFlow()");
+    expect(controllerSource).toContain("computeSnapAlign(");
+    expect(controllerSource).toContain("fitGroupToChildren(id)");
+    expect(controllerSource).toContain(
+      "useCanvasProjectionStatus(projectionKey)",
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<Handle");
+    expect(viewSource).toContain("<CanvasHistoryAssetsModal");
+    expect(viewSource).toContain("projection-stale-frame");
+    expect(viewSource).toContain("projection-stale-banner");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).toContain("<Handle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("uploadCanvasAsset(");
+    expect(viewSource).not.toContain("useCanvasProjectionStatus(");
+    expect(viewSource).not.toContain("storyboardSlotRect(");
+    expect(controllerTestSource).toContain(
+      "from './useGroupNodeController'",
+    );
+    expect(viewTestSource).toContain("from './GroupNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -3173,7 +3266,7 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCanvasProjectionStatus.ts",
     );
     const canvasConsumerPaths = [
-      "features/canvas/nodes/GroupNode.tsx",
+      "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/ui/NodeActionToolbar.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const stateSource = readFileSync(statePath, "utf8");
@@ -20066,7 +20159,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/compose/CoverEditor.tsx",
       "features/canvas/compose/VideoComposeModal.tsx",
       "features/canvas/hooks/useAudioNodeController.ts",
-      "features/canvas/nodes/GroupNode.tsx",
+      "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/SkillNode.tsx",
       "features/canvas/nodes/ThreeDWorldNode.tsx",
