@@ -2064,6 +2064,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十六批已将 `freezone/commit-node` 与 `freezone/assets-updated` 事件订阅、手动提交前开放 Director World 落盘、自动提交 flush 门禁、普通/导演合成/导演世界三路提交编排、source-slot 清单同步、Canvas Store 节点刷新与候选标记、场景 Query 失效和提交 Dialog 状态从 `FreezoneShell` 迁入唯一 presentation controller `hooks/useCanvasCommitController.ts`；`AssetLibraryPanel` 替换完成也复用 controller 的同一刷新命令，Shell 只装配同步端口、素材变更回调并渲染 `CommitDialog`。最新节点二次读取、仅开放场景变更时预 flush、自动提交成功后再次 flush、用户节点不被 canonical 刷新覆盖、3D source-slot 同步后追加状态文案、专用导演提交 gateway 和卸载退订行为均保持不变；旧事件 effect、Query Client、提交服务调用、Store helper、`PushPrompt` 及废弃导入直接删除，相关静态契约测试改为检查新的实际所有者，不保留 facade 或第二套实现。`FreezoneShell` 由 607 行降至 335 行；controller 专属测试 6 项、受影响回归 6 个文件 66 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 279 项（其中 module boundaries 239 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第四百九十七批已将项目进入时的图像/视频模型、相机、风格与视频相机模板预取，最近画布记忆、非默认画布 URL 对齐、最后已渲染画布运行时缓存以及 blocking/overlay loading 判定从 `FreezoneShell` 迁入唯一 presentation hook `hooks/useFreezoneCanvasEntryLifecycle.ts`；Shell 只传 project/canvas、hydrate 标识和同步状态并消费两个加载态。首次进入继续阻塞显示 loading，同一画布 ready 后重进且 Store 仍有节点时继续直接显示旧内容并叠加轻量 loading，默认画布或 URL 已一致时继续禁止冗余导航，五类预取仍仅随 project 变化触发；旧模块状态、三个 effect、预取和 URL 读取导入直接删除，不保留转发或第二套生命周期。`FreezoneShell` 由 335 行降至 300 行；Hook 专属测试 2 项、相关回归 2 个文件 26 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 280 项（其中 module boundaries 240 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

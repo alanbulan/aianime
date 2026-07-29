@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import type { ProjectSummary } from "@/modules/project_workspace/public";
-import { currentCanvasParam } from "@/lib/app-router";
-import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
+import { writeUrl } from "@/lib/url-params";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { CommitDialog } from "./commit/CommitDialog";
 import {
@@ -34,14 +33,10 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   useCanvasSync,
 } from "./hooks/useCanvasSync";
-import { prefetchFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
-import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
-import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
-import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
-import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
 import { useCanvasCommitController } from "./hooks/useCanvasCommitController";
 import { useCanvasProjectionCommandController } from "./hooks/useCanvasProjectionCommandController";
 import { useCanvasProjectionStatusLifecycle } from "./hooks/useCanvasProjectionStatusLifecycle";
+import { useFreezoneCanvasEntryLifecycle } from "./hooks/useFreezoneCanvasEntryLifecycle";
 
 interface FreezoneShellProps {
   project: ProjectSummary;
@@ -59,10 +54,6 @@ interface FreezoneShellProps {
  * so this shell omits the back button, project picker, import/extract/
  * video-ref/3GS triggers, and the top-right Beat Workbench task entry.
  */
-const canvasKey = (projectId: string, canvasId: string) => `${projectId}::${canvasId}`;
-/** 上一次真正画出来的画布；跨挂载保留，用来判断重进时能否直接复用 store 里的内容。 */
-let lastRenderedCanvasKey: string | null = null;
-
 export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const { t } = useTranslation();
   const projectId = project.id;
@@ -88,15 +79,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const handleAssetsChanged = useCallback(() => {
     setAssetLibraryReloadToken((token) => token + 1);
   }, []);
-  // 顶栏在「AI anime 画布 / AI anime 工作台」之间切换会整体卸载再挂载本组件，但画布数据留在全局 store 里。
-  // 如果这里从 false 起步，回到AI anime 画布就会先把画面换成「正在加载画布…」，等 hydrate 回来
-  // 才重新画出来 —— 看着就是卡。同一个画布重进时直接渲染 store 里的既有内容，
-  // hydrate 期间只叠一层轻量 overlay。
-  const [hasRenderedCanvas, setHasRenderedCanvas] = useState(
-    () =>
-      lastRenderedCanvasKey === canvasKey(projectId, canvasId) &&
-      useCanvasStore.getState().nodes.length > 0,
-  );
   const sync = useCanvasSync(projectId, canvasId);
 
   const handleBlankPaneClick = useCallback(() => {
@@ -105,35 +87,21 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     setChatOpen(false);
   }, []);
 
-  // Warm the shared image-model store the moment we enter a project, so the
-  // request is in-flight before any picker / panel mounts.
   useEffect(() => {
     if (!showChatDock) {
       setChatOpen(false);
     }
   }, [showChatDock]);
 
-  useEffect(() => {
-    prefetchFreezoneImageModels(projectId);
-    prefetchFreezoneVideoModels(projectId);
-    prefetchFreezoneCameraOptions(projectId);
-    prefetchFreezoneStyleTemplates(projectId);
-    prefetchFreezoneVideoCameraTemplates(projectId);
-  }, [projectId]);
-
-  useEffect(() => {
-    rememberLastCanvas(projectId, canvasId);
-    if (canvasId !== "default" && currentCanvasParam() !== canvasId) {
-      writeUrl({ canvas: canvasId }, { replace: true, notify: false });
-    }
-  }, [canvasId, projectId]);
-
-  useEffect(() => {
-    if (sync.status === "ready" && sync.hydratedCanvasId === canvasId) {
-      lastRenderedCanvasKey = canvasKey(projectId, canvasId);
-      setHasRenderedCanvas(true);
-    }
-  }, [canvasId, projectId, sync.hydratedCanvasId, sync.status]);
+  const {
+    showBlockingLoading,
+    showLoadingOverlay,
+  } = useFreezoneCanvasEntryLifecycle({
+    projectId,
+    canvasId,
+    hydratedCanvasId: sync.hydratedCanvasId,
+    syncStatus: sync.status,
+  });
 
   useCanvasProjectionStatusLifecycle({
     projectId,
@@ -200,9 +168,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     setToast(`Mask edit 完成 — 新图已入画布`);
     void DEFAULT_NODE_WIDTH; // unused but keep import alive
   };
-
-  const showBlockingLoading = sync.status === "loading" && !hasRenderedCanvas;
-  const showLoadingOverlay = sync.status === "loading" && hasRenderedCanvas;
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">

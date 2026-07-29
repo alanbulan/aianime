@@ -1917,6 +1917,64 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("CommitDialog");
   });
 
+  it("keeps Freezone canvas entry side effects in one lifecycle hook", () => {
+    const lifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.test.tsx",
+    );
+    const lifecycleSource = readFileSync(lifecyclePath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declaration = [
+      "export function",
+      "useFreezoneCanvasEntryLifecycle(",
+    ].join(" ");
+    const owners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/hooks/useFreezoneCameraOptions",
+        "@/features/canvas/hooks/useFreezoneImageModels",
+        "@/features/canvas/hooks/useFreezoneStyleTemplates",
+        "@/features/canvas/hooks/useFreezoneVideoCameraTemplates",
+        "@/features/canvas/hooks/useFreezoneVideoModels",
+        "@/lib/app-router",
+        "@/lib/url-params",
+        "../application/canvasSyncStorage",
+      ]),
+    );
+    expect(owners).toEqual([
+      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
+    ]);
+    expect(importSpecifiers(shellPath)).toContain(
+      "./hooks/useFreezoneCanvasEntryLifecycle",
+    );
+    expect(testSource).toContain('from "./useFreezoneCanvasEntryLifecycle"');
+    expect(shellSource).not.toContain("prefetchFreezoneImageModels");
+    expect(shellSource).not.toContain("prefetchFreezoneVideoModels");
+    expect(shellSource).not.toContain("prefetchFreezoneCameraOptions");
+    expect(shellSource).not.toContain("prefetchFreezoneStyleTemplates");
+    expect(shellSource).not.toContain("prefetchFreezoneVideoCameraTemplates");
+    expect(shellSource).not.toContain("rememberLastCanvas");
+    expect(shellSource).not.toContain("currentCanvasParam");
+    expect(shellSource).not.toContain("lastRenderedCanvasKey");
+    expect(lifecycleSource).not.toContain("CanvasLoadingScreen");
+    expect(lifecycleSource).not.toContain("CanvasLoadingOverlay");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(
