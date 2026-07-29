@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { StoredCanvasDraft } from "../application/canvasDraft";
-import type { ShotMetadata } from "../shotMetadataStore";
+import type { ShotMetadata } from "../domain/shotMetadata";
 import { useCanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 
 const mocks = vi.hoisted(() => ({
@@ -36,9 +36,9 @@ vi.mock("@/features/canvas/canvasStore", () => ({
   },
 }));
 
-vi.mock("../shotMetadataStore", () => ({
-  useShotMetadataStore: {
-    getState: () => ({ shot: mocks.shot }),
+vi.mock("../shotMetadataComposition", () => ({
+  shotMetadataState: {
+    getShot: () => mocks.shot,
   },
 }));
 

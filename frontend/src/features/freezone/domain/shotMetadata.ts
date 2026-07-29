@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { create } from "zustand";
 
 export interface ShotMetadata {
   shot_type?: string;
@@ -17,17 +16,7 @@ export interface ShotMetadata {
 
 export const EMPTY_SHOT_METADATA: ShotMetadata = {};
 
-interface ShotMetadataState {
-  shot: ShotMetadata;
-  /** True if any field is non-empty — drives the toolbar chip styling. */
-  isActive: boolean;
-  setShot: (shot: ShotMetadata) => void;
-  clearShot: () => void;
-  /** Replace from canvas hydrate (suppresses dirty save while loading). */
-  hydrate: (shot: ShotMetadata) => void;
-}
-
-function deriveActive(shot: ShotMetadata): boolean {
+export function hasActiveShotMetadata(shot: ShotMetadata): boolean {
   if (Object.values(shot).some((v) => typeof v === "string" && v.trim().length > 0)) {
     return true;
   }
@@ -36,14 +25,6 @@ function deriveActive(shot: ShotMetadata): boolean {
   }
   return false;
 }
-
-export const useShotMetadataStore = create<ShotMetadataState>((set) => ({
-  shot: EMPTY_SHOT_METADATA,
-  isActive: false,
-  setShot: (shot) => set({ shot, isActive: deriveActive(shot) }),
-  clearShot: () => set({ shot: EMPTY_SHOT_METADATA, isActive: false }),
-  hydrate: (shot) => set({ shot, isActive: deriveActive(shot) }),
-}));
 
 /**
  * Render the current shot metadata into a single string ready to be appended

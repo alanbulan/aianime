@@ -26,7 +26,7 @@ import {
   queueLocalFreezoneProjection,
   removeLocalFreezoneProjection,
 } from "@/features/freezone/canvasSyncRuntime";
-import { useShotMetadataStore } from "@/features/freezone/shotMetadataStore";
+import { shotMetadataState } from "@/features/freezone/shotMetadataComposition";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
@@ -66,7 +66,7 @@ describe("useCanvasSync hydrate lifecycle", () => {
     vi.unstubAllGlobals();
     window.localStorage.clear();
     useCanvasStore.getState().setCanvasData([], []);
-    useShotMetadataStore.getState().hydrate({});
+    shotMetadataState.hydrate({});
   });
 
   it("aborts the in-flight hydrate request after the release grace when unmounted", async () => {
@@ -862,7 +862,7 @@ describe("useCanvasSync hydrate lifecycle", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    useShotMetadataStore.getState().setShot({ angle: "low angle" });
+    shotMetadataState.setShot({ angle: "low angle" });
 
     await act(async () => {
       vi.advanceTimersByTime(300);

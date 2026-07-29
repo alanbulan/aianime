@@ -24,9 +24,9 @@ vi.mock("../canvasConflictRecoveryComposition", () => ({
   },
 }));
 
-vi.mock("../shotMetadataStore", () => ({
-  useShotMetadataStore: {
-    getState: () => ({ shot: mocks.shot }),
+vi.mock("../shotMetadataComposition", () => ({
+  shotMetadataState: {
+    getShot: () => mocks.shot,
   },
 }));
 

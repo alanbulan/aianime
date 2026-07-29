@@ -10,9 +10,7 @@ import {
   type CanvasSyncStatus,
   type ConflictSnapshot,
 } from "../application/canvasSyncStorage";
-import {
-  type ShotMetadata,
-} from "../shotMetadataStore";
+import type { ShotMetadata } from "../domain/shotMetadata";
 import {
   useCanvasHistoryPersistence,
   useCanvasViewportPersistence,

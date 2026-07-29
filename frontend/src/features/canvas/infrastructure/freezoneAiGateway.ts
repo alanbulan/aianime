@@ -17,12 +17,7 @@
 
 import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
-import {
-  mergeShotMetadata,
-  parseInlineShotBlock,
-  renderShotMetadataForPrompt,
-  useShotMetadataStore,
-} from "@/features/freezone/shotMetadataStore";
+import { resolveCurrentShotMetadataPrompt } from "@/features/freezone/public";
 import {
   parseReferenceRoles,
   renderReferenceRolesForPrompt,
@@ -188,26 +183,16 @@ async function submitJob(
   const { provider, model } = splitProviderModel(effectiveModel);
   const quality = readQuality(payload) ?? capabilityJob?.quality;
 
-  // Shot metadata composition (v1.6η):
-  //   1. Parse any inline `[shot]...[/shot]` block from the user's prompt — this
-  //      is the per-node override.
-  //   2. Merge with canvas-level shot metadata (per-node wins on conflict).
-  //   3. Strip the inline block from the prompt body, then append rendered
-  //      metadata so the model sees a single uniform "[镜头参数]" block.
-  const { cleaned: afterShotClean, override: nodeShot } = parseInlineShotBlock(
-    effectivePrompt,
-  );
-  const merged = mergeShotMetadata(
-    useShotMetadataStore.getState().shot,
-    nodeShot,
-  );
-  const shotSuffix = renderShotMetadataForPrompt(merged);
+  const { cleanedPrompt: afterShotClean, suffix: shotSuffix } =
+    resolveCurrentShotMetadataPrompt(effectivePrompt);
 
   // Reference roles (v1.6ζ):
   //   1. Parse any `[ref:N=role]` markers from the prompt (after shot block).
   //   2. Reorder references so character > pose > style > generic.
   //   3. Append a "reference roles" legend so the model uses each ref correctly.
-  const { roles, cleaned: cleanedPrompt } = parseReferenceRoles(afterShotClean);
+  const { roles, cleaned: cleanedPrompt } = parseReferenceRoles(
+    afterShotClean,
+  );
   const rawRefs = effectiveRefs.filter(Boolean);
   const { reordered: refs, rolesAfter } = reorderReferencesByRole(rawRefs, roles);
   const roleSuffix = renderReferenceRolesForPrompt(rolesAfter, refs.length);

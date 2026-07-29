@@ -11,6 +11,7 @@ export {
   useFreezoneProjectAssets,
 } from "@/features/freezone/composition";
 export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+export { resolveCurrentShotMetadataPrompt } from "@/features/freezone/shotMetadataComposition";
 export { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/canvasDraftComposition";
 export { presetRequestFromMetadata } from "@/features/freezone/application/canvasPreset";
 export type {

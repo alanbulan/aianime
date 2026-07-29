@@ -80,10 +80,9 @@ vi.mock("../canvasSyncRuntime", () => ({
   consumeQueuedLocalFreezoneProjections: mocks.consumeQueuedProjections,
 }));
 
-vi.mock("../shotMetadataStore", () => ({
-  EMPTY_SHOT_METADATA: {},
-  useShotMetadataStore: {
-    getState: () => ({ hydrate: mocks.hydrateShotMetadata }),
+vi.mock("../shotMetadataComposition", () => ({
+  shotMetadataState: {
+    hydrate: mocks.hydrateShotMetadata,
   },
 }));
 

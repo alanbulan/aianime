@@ -12,10 +12,8 @@ import { canvasContentSignature } from "../application/canvasSyncHydration";
 import type { CanvasSyncStatus } from "../application/canvasSyncStorage";
 import { scheduleCanvasSave } from "../canvasSaveComposition";
 import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
-import {
-  useShotMetadataStore,
-  type ShotMetadata,
-} from "../shotMetadataStore";
+import type { ShotMetadata } from "../domain/shotMetadata";
+import { shotMetadataState } from "../shotMetadataComposition";
 import type { CanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 
 const SAVE_DEBOUNCE_MS = 800;
@@ -89,7 +87,7 @@ export function useCanvasSaveController({
 
   const saveCurrent = async (): Promise<boolean> => {
     const canvasState = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
+    const shot = shotMetadataState.getShot();
     lastSavedViewportRef.current = canvasState.currentViewport;
     return await scheduleCanvasSave({
       project,
@@ -152,7 +150,7 @@ export function useCanvasSaveController({
       lastSignatureRef.current = nextSignature;
       triggerSave();
     });
-    const unsubscribeShot = useShotMetadataStore.subscribe(triggerSave);
+    const unsubscribeShot = shotMetadataState.subscribe(triggerSave);
     return () => {
       unsubscribeCanvas();
       unsubscribeShot();
@@ -165,7 +163,7 @@ export function useCanvasSaveController({
 
   const saveBeforeUnload = () => {
     const canvasState = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
+    const shot = shotMetadataState.getShot();
     lastSavedViewportRef.current = canvasState.currentViewport;
     saveCanvasBeforeUnload({
       project,

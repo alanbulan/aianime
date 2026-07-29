@@ -60,10 +60,9 @@ vi.mock("../domain/canvasProjectionMetadata", () => ({
   removeProjectionMetadata: mocks.removeProjectionMetadata,
 }));
 
-vi.mock("../shotMetadataStore", () => ({
-  EMPTY_SHOT_METADATA: {},
-  useShotMetadataStore: {
-    getState: () => ({ hydrate: mocks.hydrateShotMetadata }),
+vi.mock("../shotMetadataComposition", () => ({
+  shotMetadataState: {
+    hydrate: mocks.hydrateShotMetadata,
   },
 }));
 

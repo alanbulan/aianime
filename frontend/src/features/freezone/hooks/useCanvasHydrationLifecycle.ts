@@ -26,9 +26,9 @@ import { canvasSyncStorageGateway } from "../canvasSyncComposition";
 import { consumeQueuedLocalFreezoneProjections } from "../canvasSyncRuntime";
 import {
   EMPTY_SHOT_METADATA,
-  useShotMetadataStore,
   type ShotMetadata,
-} from "../shotMetadataStore";
+} from "../domain/shotMetadata";
+import { shotMetadataState } from "../shotMetadataComposition";
 import type { CanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 import type { CanvasSaveController } from "./useCanvasSaveController";
 
@@ -156,9 +156,9 @@ export function useCanvasHydrationLifecycle({
           metadataRef.current = draftMetadata;
           setMetadata(draftMetadata);
           setFreezoneCanvasMetadata(draftMetadata);
-          useShotMetadataStore
-            .getState()
-            .hydrate(draftMetadata?.shotMetadata ?? EMPTY_SHOT_METADATA);
+          shotMetadataState.hydrate(
+            draftMetadata?.shotMetadata ?? EMPTY_SHOT_METADATA,
+          );
           lastSignatureRef.current = canvasContentSignature(nodes, edges);
           hydratedRef.current = true;
           switchingRef.current = false;
@@ -243,9 +243,9 @@ export function useCanvasHydrationLifecycle({
         useCanvasStore
           .getState()
           .hydrateViewportBookmarks(metadata?.viewportBookmarks);
-        useShotMetadataStore
-          .getState()
-          .hydrate(metadata?.shotMetadata ?? EMPTY_SHOT_METADATA);
+        shotMetadataState.hydrate(
+          metadata?.shotMetadata ?? EMPTY_SHOT_METADATA,
+        );
         hydratedRef.current = true;
         switchingRef.current = false;
         setHydratedCanvasId(canvasId);

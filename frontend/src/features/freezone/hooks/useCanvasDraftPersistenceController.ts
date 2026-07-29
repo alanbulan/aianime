@@ -5,10 +5,8 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 import type { StoredCanvasDraft } from "../application/canvasDraft";
 import { canvasDraftStorageGateway } from "../canvasDraftComposition";
-import {
-  useShotMetadataStore,
-  type ShotMetadata,
-} from "../shotMetadataStore";
+import type { ShotMetadata } from "../domain/shotMetadata";
+import { shotMetadataState } from "../shotMetadataComposition";
 
 const DRAFT_DEBOUNCE_MS = 300;
 
@@ -55,7 +53,7 @@ export function useCanvasDraftPersistenceController({
       return false;
     }
     const canvasState = useCanvasStore.getState();
-    const shot = useShotMetadataStore.getState().shot;
+    const shot = shotMetadataState.getShot();
     return canvasDraftStorageGateway.writeDraft(project, canvasId, {
       baseRevision: revisionRef.current,
       nodes: canvasState.nodes,

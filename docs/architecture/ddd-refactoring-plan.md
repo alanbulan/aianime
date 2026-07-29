@@ -2112,6 +2112,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百二十批已将 Freezone 根级 584 行 `projections.ts` 中混合的个人画布身份、preset 投影请求、持久化 metadata 与 Canvas 图合并/移除规则分别迁入唯一 `domain/canvasIdentity.ts`、`domain/canvasProjectionRequest.ts`、`domain/canvasProjectionMetadata.ts` 和 `application/canvasProjectionGraph.ts`；旧文件直接删除，全部生产调用方、测试 mock 和架构合同改为依赖真实所有者，不保留 facade、re-export 或第二套实现。Canvas 数据归一化共用的投影图 ID 规则同时从 Freezone 根目录迁入唯一 `features/canvas/domain/projectionGraphIds.ts`，消除 Canvas application 对 Freezone 内部模块的反向依赖；稳定个人画布 ID、Beat render 槽位规范化、legacy metadata 恢复、投影 metadata 合并、远端子图 ID 隔离、本地布局保留、父子顺序和移除语义保持不变。原混合测试按身份、请求、metadata、状态 store 与图合并所有者拆分；相关回归 12 个文件 65 项、完整前端架构门禁 3 个文件 298 项（其中 module boundaries 258 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百二十一批已将 Freezone 根级 `shotMetadataStore.ts` 中混合的 Shot Metadata 类型、活跃判定、inline block 解析、覆盖合并、提示词渲染和 Zustand 状态实现拆入唯一 `domain/shotMetadata.ts`、application port `application/shotMetadataState.ts` 与 adapter `infrastructure/zustandShotMetadataStore.ts`；唯一 `shotMetadataComposition.ts` 负责装配状态端口，并通过 `freezone/public.ts` 向 Canvas 暴露结构化的当前 Shot prompt 解析结果，旧根文件直接删除，不保留 facade 或第二套状态。Freezone presentation hooks 不再穿透 infrastructure，Canvas AI gateway 不再读取 Freezone Store 或导入其领域规则；canvas hydrate、草稿/冲突副本/常规保存/beforeunload 的 Shot 状态读写与订阅行为保持不变，生成 prompt 继续按“清理 inline Shot block、解析 reference roles、追加 Shot suffix、追加 reference suffix”的原顺序组合，避免空 prompt trim 或 metadata marker 被误解析。Shot 领域、组合、AI gateway 与五个画布生命周期控制器回归 9 个文件 56 项、完整前端架构门禁 3 个文件 299 项（其中 module boundaries 259 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

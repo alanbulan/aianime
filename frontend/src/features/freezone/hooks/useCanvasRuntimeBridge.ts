@@ -23,9 +23,9 @@ import {
 } from "../domain/canvasProjectionMetadata";
 import {
   EMPTY_SHOT_METADATA,
-  useShotMetadataStore,
   type ShotMetadata,
-} from "../shotMetadataStore";
+} from "../domain/shotMetadata";
+import { shotMetadataState } from "../shotMetadataComposition";
 import type { CanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 import type { CanvasSaveController } from "./useCanvasSaveController";
 
@@ -130,9 +130,9 @@ export function useCanvasRuntimeBridge({
         useCanvasStore
           .getState()
           .hydrateViewportBookmarks(metadata?.viewportBookmarks);
-        useShotMetadataStore
-          .getState()
-          .hydrate(metadata?.shotMetadata ?? EMPTY_SHOT_METADATA);
+        shotMetadataState.hydrate(
+          metadata?.shotMetadata ?? EMPTY_SHOT_METADATA,
+        );
         setCanvasData(next.nodes, next.edges);
         setStatus("ready");
         setError(null);

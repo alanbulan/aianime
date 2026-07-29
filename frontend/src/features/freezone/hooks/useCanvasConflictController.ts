@@ -11,7 +11,7 @@ import type {
   ConflictSnapshot,
 } from "../application/canvasSyncStorage";
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
-import { useShotMetadataStore } from "../shotMetadataStore";
+import { shotMetadataState } from "../shotMetadataComposition";
 import type { CanvasSaveController } from "./useCanvasSaveController";
 
 interface ValueRef<T> {
@@ -56,7 +56,7 @@ export function useCanvasConflictController({
   }, [canvasId, project, reload]);
 
   const saveCopy = useCallback(async () => {
-    const shot = useShotMetadataStore.getState().shot;
+    const shot = shotMetadataState.getShot();
     const result = await canvasConflictRecovery.saveCopy({
       project,
       sourceCanvasId: canvasId,

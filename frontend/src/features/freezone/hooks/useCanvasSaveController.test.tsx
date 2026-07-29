@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CanvasSyncStatus } from "../application/canvasSyncStorage";
-import type { ShotMetadata } from "../shotMetadataStore";
+import type { ShotMetadata } from "../domain/shotMetadata";
 import type { CanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 import { useCanvasSaveController } from "./useCanvasSaveController";
 
@@ -42,9 +42,9 @@ vi.mock("@/features/canvas/canvasStore", () => ({
   },
 }));
 
-vi.mock("../shotMetadataStore", () => ({
-  useShotMetadataStore: {
-    getState: () => ({ shot: mocks.shot }),
+vi.mock("../shotMetadataComposition", () => ({
+  shotMetadataState: {
+    getShot: () => mocks.shot,
     subscribe: mocks.subscribeShot,
   },
 }));

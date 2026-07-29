@@ -14,14 +14,11 @@ vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 vi.mock("@/lib/url-params", () => ({
   readUrl: () => ({ project: "project/1", canvas: "canvas-1" }),
 }));
-vi.mock("@/features/freezone/shotMetadataStore", () => ({
-  mergeShotMetadata: () => null,
-  parseInlineShotBlock: (prompt: string) => ({
-    cleaned: prompt,
-    override: null,
+vi.mock("@/features/freezone/public", () => ({
+  resolveCurrentShotMetadataPrompt: (prompt: string) => ({
+    cleanedPrompt: prompt,
+    suffix: "",
   }),
-  renderShotMetadataForPrompt: () => "",
-  useShotMetadataStore: { getState: () => ({ shot: null }) },
 }));
 vi.mock("@/features/freezone/referenceRoles", () => ({
   parseReferenceRoles: (prompt: string) => ({ cleaned: prompt, roles: [] }),

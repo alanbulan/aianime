@@ -782,6 +782,7 @@ describe("frontend architecture boundaries", () => {
               specifier.includes("features/freezone/domain/beatContext") ||
               specifier.includes("features/freezone/domain/canvasProjection") ||
               specifier.includes("features/freezone/domain/canvasStorage") ||
+              specifier.includes("features/freezone/domain/shotMetadata") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
           )
@@ -817,6 +818,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/composition",
         "@/features/freezone/openPresetProjection",
         "@/features/freezone/canvasDraftComposition",
+        "@/features/freezone/shotMetadataComposition",
         "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
@@ -832,6 +834,65 @@ describe("frontend architecture boundaries", () => {
     expect(modulePublicBypasses).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
       "@/features/freezone/public",
+    );
+  });
+
+  it("separates shot metadata rules, state, and cross-context composition", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/shotMetadataStore.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/shotMetadata.ts",
+    );
+    const statePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/shotMetadataState.ts",
+    );
+    const storePath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/zustandShotMetadataStore.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/shotMetadataComposition.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+    );
+    const gatewayImports = importSpecifiers(gatewayPath);
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(statePath)).toEqual([
+      "../domain/shotMetadata",
+    ]);
+    expect(new Set(importSpecifiers(storePath))).toEqual(
+      new Set([
+        "zustand",
+        "../application/shotMetadataState",
+        "../domain/shotMetadata",
+      ]),
+    );
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./domain/shotMetadata",
+        "./infrastructure/zustandShotMetadataStore",
+      ]),
+    );
+    expect(gatewayImports).toContain("@/features/freezone/public");
+    expect(gatewayImports).not.toContain(
+      "@/features/freezone/domain/shotMetadata",
+    );
+    expect(gatewayImports).not.toContain(
+      "@/features/freezone/infrastructure/zustandShotMetadataStore",
+    );
+    expect(readFileSync(domainPath, "utf8")).not.toContain("zustand");
+    expect(readFileSync(domainPath, "utf8")).not.toContain("react");
+    expect(readFileSync(compositionPath, "utf8")).toContain(
+      "resolveCurrentShotMetadataPrompt(",
     );
   });
 
@@ -6135,7 +6196,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/canvasStorage",
         "../application/canvasSyncStorage",
         "../canvasConflictRecoveryComposition",
-        "../shotMetadataStore",
+        "../shotMetadataComposition",
         "./useCanvasSaveController",
       ]),
     );
@@ -7563,7 +7624,8 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "../application/canvasDraft",
         "../canvasDraftComposition",
-        "../shotMetadataStore",
+        "../domain/shotMetadata",
+        "../shotMetadataComposition",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -7613,7 +7675,8 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasSyncStorage",
         "../canvasSaveComposition",
         "../canvasUnloadSaveComposition",
-        "../shotMetadataStore",
+        "../domain/shotMetadata",
+        "../shotMetadataComposition",
         "./useCanvasDraftPersistenceController",
       ]),
     );
@@ -7670,7 +7733,8 @@ describe("frontend architecture boundaries", () => {
         "../canvasMetadataContext",
         "../canvasSyncRuntime",
         "../domain/canvasProjectionMetadata",
-        "../shotMetadataStore",
+        "../domain/shotMetadata",
+        "../shotMetadataComposition",
         "./useCanvasDraftPersistenceController",
         "./useCanvasSaveController",
       ]),
@@ -7735,7 +7799,8 @@ describe("frontend architecture boundaries", () => {
         "../canvasMetadataContext",
         "../canvasSyncComposition",
         "../canvasSyncRuntime",
-        "../shotMetadataStore",
+        "../domain/shotMetadata",
+        "../shotMetadataComposition",
         "./useCanvasDraftPersistenceController",
         "./useCanvasSaveController",
       ]),
