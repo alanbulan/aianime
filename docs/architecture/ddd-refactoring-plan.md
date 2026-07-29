@@ -2042,6 +2042,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百八十五批已将主线 preset metadata 解析、best-effort hydrate/revision 延迟、clean refresh 免 flush、dirty/required refresh 预保存、flush 阻断处理、重建请求和 409/503 错误策略迁入唯一 application `canvasPresetRefresh.ts`，由 `canvasPresetRefreshComposition.ts` 注入 Canvas preset gateway；重建的 `base_revision` 继续在 flush 完成后读取最新 ref，避免用旧 revision 覆盖刚保存的本地编辑。hook 只传入当前 metadata/React 状态、Store 编辑计数、flush/reload 和 UI 输出端口，不再直接依赖 Canvas composition、preset parser、错误归一化或三段布尔决策；`canvasSyncHydration.ts` 中仅供旧 hook 使用的三个 helper、原画布列表 helper 测试及失去对应实现的旧说明同步删除，不保留第二套规则。无效 preset 不改变同步状态、未就绪的 best-effort 静默延迟、clean best-effort 不触发冗余 PUT、dirty best-effort 阻断后恢复 ready、required 409 显示原文案的行为保持不变。`useCanvasSync` 由 933 行降至 881 行；preset application、hook 与画布列表回归 3 个文件 61 项、完整前端架构门禁 228 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百八十六批已将跨刷新 undo/redo history mirror 与 camera viewport mirror 的 React 生命周期从 `useCanvasSync` 迁入唯一 presentation 模块 `hooks/useCanvasLocalPersistence.ts`，分别由 `useCanvasHistoryPersistence` 和 `useCanvasViewportPersistence` 持有，并在总 hook 原有位置调用以保持 effect 注册顺序；两者继续只消费 `canvasSyncStorageGateway` composition，不新增浏览器存储实现或 facade。history 仅在 hydrate 完成、非 switching 且已有用户编辑时写入，保留 400 ms 防抖、history 引用过滤和 beforeunload 同步兜底；viewport 仅在 ready 后订阅，保留三字段相等过滤、300 ms 防抖和最后保存 ref 更新。总 hook 不再持有两段 Store subscription、timer 或对应 storage write。`useCanvasSync` 由 881 行降至 823 行；独立持久化 hook 与同步 hook 回归 2 个文件 34 项、完整前端架构门禁 229 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

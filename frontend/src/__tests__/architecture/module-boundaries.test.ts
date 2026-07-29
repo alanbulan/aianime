@@ -5566,6 +5566,73 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates canvas history and viewport persistence effects", () => {
+    const persistencePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+    );
+    const syncHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const persistenceSource = readFileSync(persistencePath, "utf8");
+    const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const historyDeclaration = [
+      "export function",
+      "useCanvasHistoryPersistence(",
+    ].join(" ");
+    const viewportDeclaration = [
+      "export function",
+      "useCanvasViewportPersistence(",
+    ].join(" ");
+    const owners = (declaration: string) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort();
+
+    expect(new Set(importSpecifiers(persistencePath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/viewportBookmarks",
+        "../application/canvasSyncHydration",
+        "../application/canvasSyncStorage",
+        "../canvasSyncComposition",
+      ]),
+    );
+    expect(persistenceSource).not.toContain("localStorage");
+    expect(persistenceSource).not.toContain(
+      "../infrastructure/browserCanvasSyncStorageGateway",
+    );
+    expect(owners(historyDeclaration)).toEqual([
+      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+    ]);
+    expect(owners(viewportDeclaration)).toEqual([
+      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+    ]);
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "./useCanvasLocalPersistence",
+    );
+    expect(syncHookSource).not.toContain(
+      "canvasSyncStorageGateway.writeHistory",
+    );
+    expect(syncHookSource).not.toContain(
+      "canvasSyncStorageGateway.writeViewport",
+    );
+    expect(persistenceSource).toContain("window.setTimeout(writeNow, 400)");
+    expect(persistenceSource).toContain("}, 300)");
+    expect(persistenceSource).toContain(
+      'window.addEventListener("beforeunload", handleUnload)',
+    );
+    expect(
+      syncHookSource.indexOf("useCanvasHistoryPersistence({"),
+    ).toBeLessThan(syncHookSource.indexOf("const triggerSave = () =>"));
+    expect(
+      syncHookSource.indexOf("useCanvasViewportPersistence({"),
+    ).toBeGreaterThan(syncHookSource.indexOf("const triggerSave = () =>"));
+  });
+
   it("keeps browser canvas drafts behind one application port", () => {
     const legacyPath = resolve(
       SRC_ROOT,

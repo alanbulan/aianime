@@ -47,12 +47,13 @@ import { scheduleCanvasSave } from "../canvasSaveComposition";
 import { saveCanvasBeforeUnload } from "../canvasUnloadSaveComposition";
 import { canvasConflictRecovery } from "../canvasConflictRecoveryComposition";
 import { refreshCanvasPreset } from "../canvasPresetRefreshComposition";
+import {
+  useCanvasHistoryPersistence,
+  useCanvasViewportPersistence,
+} from "./useCanvasLocalPersistence";
 
 const DEBOUNCE_MS = 800;
 const DRAFT_DEBOUNCE_MS = 300;
-function viewportsEqual(a: Viewport, b: Viewport): boolean {
-  return a.x === b.x && a.y === b.y && a.zoom === b.zoom;
-}
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -571,51 +572,12 @@ export function useCanvasSync(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, canvasId, reloadKey]);
 
-  // ---- 1b. Mirror the undo/redo history to localStorage ---- //
-  // The in-memory history stacks vanish on refresh; mirror them (per canvas)
-  // on a short debounce plus a synchronous beforeunload write, the same as the
-  // viewport. The hydrate effect above restores them when the loaded content
-  // still matches. Only `history` changes are mirrored; writes are gated to
-  // post-hydrate so a switch/hydrate never persists a half-loaded state, and
-  // to `userEditsSinceHydrate > 0` so a pure hydrate-restore (which re-sets the
-  // history) does not immediately re-persist the mirror we just cleared — only
-  // a real edit since load re-creates it.
-  useEffect(() => {
-    let timer: number | null = null;
-    const writeNow = () => {
-      if (!hydratedRef.current || switchingRef.current) {
-        return;
-      }
-      const state = useCanvasStore.getState();
-      if (state.userEditsSinceHydrate <= 0) {
-        return;
-      }
-      canvasSyncStorageGateway.writeHistory(
-        project,
-        canvasId,
-        canvasContentSignature(state.nodes, state.edges),
-        state.history,
-      );
-    };
-    const unsubscribe = useCanvasStore.subscribe((state, prev) => {
-      if (state.history === prev.history) {
-        return;
-      }
-      if (timer != null) {
-        window.clearTimeout(timer);
-      }
-      timer = window.setTimeout(writeNow, 400);
-    });
-    const handleUnload = () => writeNow();
-    window.addEventListener("beforeunload", handleUnload);
-    return () => {
-      unsubscribe();
-      window.removeEventListener("beforeunload", handleUnload);
-      if (timer != null) {
-        window.clearTimeout(timer);
-      }
-    };
-  }, [project, canvasId]);
+  useCanvasHistoryPersistence({
+    project,
+    canvasId,
+    hydratedRef,
+    switchingRef,
+  });
 
   // ---- 2. Debounced save on content changes ---- //
   // Save fires when the persisted canvas shape (nodes/edges) or the
@@ -703,32 +665,12 @@ export function useCanvasSync(
     };
   }, [project, canvasId]);
 
-  // ---- 2b. Persist the camera position (pan/zoom) to localStorage ---- //
-  // Pan/zoom never triggers the content PUT above, so we mirror the live
-  // viewport into localStorage (cheap, synchronous) on a short debounce. This
-  // is the source of truth that survives a refresh, no backend required.
-  useEffect(() => {
-    if (status !== "ready") return;
-    let timer: number | null = null;
-    const unsubscribe = useCanvasStore.subscribe((state) => {
-      const viewport = state.currentViewport;
-      if (
-        lastSavedViewportRef.current != null &&
-        viewportsEqual(lastSavedViewportRef.current, viewport)
-      ) {
-        return;
-      }
-      if (timer != null) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        lastSavedViewportRef.current = viewport;
-        canvasSyncStorageGateway.writeViewport(project, canvasId, viewport);
-      }, 300);
-    });
-    return () => {
-      unsubscribe();
-      if (timer != null) window.clearTimeout(timer);
-    };
-  }, [project, canvasId, status]);
+  useCanvasViewportPersistence({
+    project,
+    canvasId,
+    status,
+    lastSavedViewportRef,
+  });
 
   const flush = async (): Promise<boolean> => {
     if (debounceTimerRef.current != null) {
