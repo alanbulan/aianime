@@ -1,7 +1,22 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { resolveResizeMinConstraintsByAspect } from "@/features/canvas/application/imageNodeSizing";
+import {
+  resolveImageNodeDimension,
+  resolveResizeMinConstraintsByAspect,
+} from "@/features/canvas/application/imageNodeSizing";
+
+describe("resolveImageNodeDimension", () => {
+  it("rounds a valid persisted dimension", () => {
+    expect(resolveImageNodeDimension(480.6, 300)).toBe(481);
+  });
+
+  it("uses the projected fallback for invalid dimensions", () => {
+    expect(resolveImageNodeDimension(undefined, 300)).toBe(300);
+    expect(resolveImageNodeDimension(Number.NaN, 300)).toBe(300);
+    expect(resolveImageNodeDimension(1, 300)).toBe(300);
+  });
+});
 
 /**
  * 缩放下限必须随图片比例换算成互相自洽的最小宽高，配合 keepAspectRatio 时短边为

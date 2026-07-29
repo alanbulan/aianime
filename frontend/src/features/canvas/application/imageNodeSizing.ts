@@ -11,6 +11,16 @@ export interface ImageNodeMinSize {
   minHeight: number;
 }
 
+export function resolveImageNodeDimension(
+  value: number | undefined,
+  fallback: number,
+): number {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 1) {
+    return Math.round(value);
+  }
+  return fallback;
+}
+
 function roundPositive(value: number): number {
   if (!Number.isFinite(value)) {
     return 1;

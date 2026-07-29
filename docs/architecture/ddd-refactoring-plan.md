@@ -2174,6 +2174,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百五十一批已将 Canvas 366 行混合 `AudioNode.tsx` 拆为纯领域文件判定 `domain/audioFileTypes.ts`、唯一状态 controller `hooks/useAudioNodeController.ts`、纯 presentation `nodes/AudioNodeView.tsx` 和保留原注册路径的真实装配根；领域层独占音频 MIME/扩展名白名单，controller 独占标题与尺寸投影、React Flow internals 刷新、选中/重命名/时长写回、任务失败持久化、外部文件事件订阅与上传、项目级音色 Promise 缓存、历史 narrator 兜底初始化、StrictMode 取消语义及裸 narrator 防循环守卫，View 独占 Handle、Header、上下文标记、波形、生成/失败/空状态、resize、重试和操作面板 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名或第二套规则；480x210 默认尺寸、360x190 最小尺寸、900x360 最大尺寸、文件拒绝提示、上传状态写回、失败重试、成功结果优先、框选时隐藏操作区、默认音色共享请求及失败后可重试语义保持不变。新增领域规则 3 项、controller 6 项和 View 3 项测试，连同音频生成参数、音乐设置面板、上传用例和框选投影共回归 7 个文件 22 项；完整前端架构门禁 3 个文件 317 项（其中 module boundaries 277 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百五十二批已将 Canvas 约 360 行混合 `ImageNode.tsx` 拆为应用层尺寸回退规则 `application/imageNodeSizing.ts`、唯一状态 controller `hooks/useImageNodeController.ts`、纯 presentation `nodes/ImageNodeView.tsx` 和保留原注册路径的真实装配根；应用层独占持久化宽高合法性与回退，controller 独占 React Flow zoom/internals、关联边与候选绑定投影、标题/尺寸/原图和预览图选择、生成计时与延迟文案、自然分辨率状态、宽高比写回、手工尺寸保护及失败重试编排，View 独占 Header、图片、分辨率标记、生成/失败/空状态、Handle、resize 与重试 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名或第二套尺寸规则；预览图低缩放优先、原图高缩放优先、缓存版本、300 短边紧凑尺寸、140 短边缩放下限、1600 最大尺寸、生成遮罩、请求 ID、可重试判断、自然尺寸强制场景及 `exportImageNode: ImageNode` 注册语义保持不变。新增尺寸规则 2 项、controller 6 项和 View 4 项测试，连同原尺寸下限、图像缓存刷新与导出图重试共回归 5 个文件 21 项；新增架构合同首次因把真实 `exportImageNode` 注册键误写为 `imageNode` 失败，修正合同后最终通过，产品代码无失败。完整前端架构门禁 3 个文件 318 项（其中 module boundaries 278 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

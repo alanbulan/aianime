@@ -620,6 +620,106 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './AudioNodeView'");
   });
 
+  it("separates the Canvas image-node sizing, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageNode.tsx",
+    );
+    const sizingPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeSizing.ts",
+    );
+    const sizingTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/canvas/image-node-resize-min.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const sizingSource = readFileSync(sizingPath, "utf8");
+    const sizingTestSource = readFileSync(sizingTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "ImageNode", "=", "memo("].join(" "),
+      ["export function", "resolveImageNodeDimension("].join(" "),
+      ["export function", "useImageNodeController("].join(" "),
+      ["export function", "ImageNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useImageNodeController",
+        "./ImageNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/ImageNode.tsx"],
+      ["features/canvas/application/imageNodeSizing.ts"],
+      ["features/canvas/hooks/useImageNodeController.ts"],
+      ["features/canvas/nodes/ImageNodeView.tsx"],
+    ]);
+    expect(registrySource).toContain("import { ImageNode } from './ImageNode'");
+    expect(registrySource).toContain("exportImageNode: ImageNode");
+    expect(registrySource).toContain("imageNode: ImageEditNode");
+    expect(entrySource).toContain("useImageNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(ImageNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(sizingSource).not.toContain("react");
+    expect(sizingSource).not.toContain("useCanvasStore");
+    expect(sizingTestSource).toContain("resolveImageNodeDimension");
+    expect(controllerSource).toContain("useUpdateNodeInternals()");
+    expect(controllerSource).toContain("useStore((state)");
+    expect(controllerSource).toContain("collectCandidateBindingsForNode(");
+    expect(controllerSource).toContain("updateNodeSize(id, nextSize, {");
+    expect(controllerSource).toContain("regenerateExportImageNode({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<CanvasNodeImage");
+    expect(viewSource).toContain("<CanvasNodeImage");
+    expect(viewSource).toContain("<RegenerateButton");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("useStore(");
+    expect(viewSource).not.toContain("regenerateExportImageNode(");
+    expect(controllerTestSource).toContain(
+      "from './useImageNodeController'",
+    );
+    expect(viewTestSource).toContain("from './ImageNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
