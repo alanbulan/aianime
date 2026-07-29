@@ -27,6 +27,11 @@ export {
 } from "@/features/freezone/domain/currentBeatContext";
 export { inferSkillConnectionRole } from "@/features/freezone/domain/inferSkillConnectionRole";
 export {
+  inputAcceptsNode,
+  isSkillReadyToSubmit,
+  resolveInputsForSkill,
+} from "@/features/freezone/domain/skillInputResolution";
+export {
   translateSkillCardinality,
   translateSkillDescription,
   translateSkillInputLabel,

@@ -47,7 +47,6 @@ import type {
   DirectorStageManifest,
   DirectorWorldSource,
 } from '@/features/viewer-kit/three-d/directorManifest';
-import { isSkillReadyToSubmit, resolveInputsForSkill } from '@/features/freezone/context/skillNodeInputs';
 import {
   nodeDataForOutput,
   nodeTypeForOutput,
@@ -57,6 +56,8 @@ import {
 import {
   getCurrentBeatContextFromNode,
   isSkillRunFailureStatus,
+  isSkillReadyToSubmit,
+  resolveInputsForSkill,
   skillRunErrorMessage,
   translateSkillCardinality,
   translateSkillDescription,

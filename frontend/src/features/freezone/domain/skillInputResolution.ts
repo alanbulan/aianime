@@ -5,8 +5,8 @@ import type {
   SkillInputRole,
   SkillInputSpec,
   ResolvedSkillInput,
-} from "../domain/skillContract";
-import { getCurrentBeatContextFromNode } from "../domain/currentBeatContext";
+} from "./skillContract";
+import { getCurrentBeatContextFromNode } from "./currentBeatContext";
 
 export interface SkillInputEdge {
   id?: string;

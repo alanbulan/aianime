@@ -837,6 +837,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
+        "@/features/freezone/domain/skillInputResolution",
         "@/features/freezone/hooks/useCanvasProjectionStatus",
         "@/features/freezone/presentation/NodeContextBadges",
         "@/features/freezone/presentation/skillI18n",
@@ -928,7 +929,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const skillInputsPath = resolve(
       SRC_ROOT,
-      "features/freezone/context/skillNodeInputs.ts",
+      "features/freezone/domain/skillInputResolution.ts",
     );
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -970,9 +971,67 @@ describe("frontend architecture boundaries", () => {
       "@/features/freezone/domain/currentBeatContext",
     );
     expect(importSpecifiers(skillInputsPath)).toContain(
-      "../domain/currentBeatContext",
+      "./currentBeatContext",
     );
     expect(importSpecifiers(testPath)).toEqual(["vitest", "./currentBeatContext"]);
+    expect(canvasBypasses).toEqual([]);
+  });
+
+  it("owns Skill input resolution in the Freezone domain", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/skillNodeInputs.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/skillInputResolution.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/skillInputResolution.test.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
+    const declarations = [
+      "inputAcceptsNode(",
+      "isSkillReadyToSubmit(",
+      "resolveInputsForSkill(",
+    ].map((name) => ["export function", name].join(" "));
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const canvasBypasses = sourceFiles(canvasRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/freezone/context/skillNodeInputs" ||
+              specifier === "@/features/freezone/domain/skillInputResolution" ||
+              specifier.endsWith("freezone/context/skillNodeInputs.ts") ||
+              specifier.endsWith("freezone/domain/skillInputResolution.ts"),
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(new Set(importSpecifiers(domainPath))).toEqual(
+      new Set(["./currentBeatContext", "./skillContract"]),
+    );
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/domain/skillInputResolution.ts",
+      ]),
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/features/freezone/domain/skillInputResolution",
+    );
+    expect(new Set(importSpecifiers(testPath))).toEqual(
+      new Set(["vitest", "./skillInputResolution", "./skillContract"]),
+    );
     expect(canvasBypasses).toEqual([]);
   });
 

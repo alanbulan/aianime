@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { resolveInputsForSkill } from "@/features/freezone/context/skillNodeInputs";
-import type { SkillDefinition } from "@/features/freezone/public";
+import { resolveInputsForSkill } from "./skillInputResolution";
+import type { SkillDefinition } from "./skillContract";
 
 const beatContextSkill: SkillDefinition = {
   id: "freezone.frame_from_context",
