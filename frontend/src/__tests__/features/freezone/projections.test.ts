@@ -8,6 +8,7 @@ import {
   projectionLabelForPresetRequest,
   projectionMetadataWithRequest,
   projectionTargetForCanvasPanel,
+  requestFromProjectionMetadata,
   mergeProjectedCanvasWithLocalCanvas,
   normalizePresetProjectionRequest,
   shouldProjectPresetIntoPersonalCanvas,
@@ -49,6 +50,31 @@ describe("freezone projection helpers", () => {
       episode: 1,
       beat: 4,
       primary_slot: "render",
+    });
+  });
+
+  it("recovers a normalized sync request from legacy projection metadata", () => {
+    expect(
+      requestFromProjectionMetadata(
+        {
+          projections: {
+            "beat:1:4": {
+              projection_key: "beat:1:4",
+              facts_signature: "old",
+            },
+          },
+        },
+        "beat:1:4",
+      ),
+    ).toEqual({
+      scope: "beat",
+      episode: 1,
+      beat: 4,
+      primary_slot: "render",
+      asset_kind: undefined,
+      character: undefined,
+      identity_id: undefined,
+      asset_id: undefined,
     });
   });
 

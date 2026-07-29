@@ -54,6 +54,129 @@ export function normalizePresetProjectionRequest<T extends FreezonePresetCanvasR
   };
 }
 
+export function requestFromProjectionMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+  projectionKey: string,
+): Omit<
+  FreezonePresetCanvasRequest,
+  "canvas_id" | "overwrite_existing" | "base_revision"
+> | null {
+  const projections = metadata?.projections;
+  if (!projections || typeof projections !== "object") return null;
+  const projection = (projections as Record<string, unknown>)[projectionKey];
+  if (!projection || typeof projection !== "object") return null;
+  const projectionRecord = projection as Record<string, unknown>;
+  const request = projectionRecord.request && typeof projectionRecord.request === "object"
+    ? projectionRecord.request as Record<string, unknown>
+    : fallbackProjectionRequest(projectionRecord, projectionKey);
+  if (!request) return null;
+  const scope = request.scope;
+  if (scope !== "episode" && scope !== "beat" && scope !== "asset" && scope !== "blank") {
+    return null;
+  }
+  return normalizePresetProjectionRequest({
+    scope,
+    episode: typeof request.episode === "number" ? request.episode : undefined,
+    beat: typeof request.beat === "number" ? request.beat : undefined,
+    primary_slot: typeof request.primary_slot === "string"
+      ? request.primary_slot
+      : undefined,
+    asset_kind: typeof request.asset_kind === "string"
+      ? request.asset_kind
+      : undefined,
+    character: typeof request.character === "string"
+      ? request.character
+      : undefined,
+    identity_id: typeof request.identity_id === "string"
+      ? request.identity_id
+      : undefined,
+    asset_id: typeof request.asset_id === "string"
+      ? request.asset_id
+      : undefined,
+  });
+}
+
+function fallbackProjectionRequest(
+  projection: Record<string, unknown>,
+  projectionKey: string,
+): Record<string, unknown> | null {
+  const scope = typeof projection.scope === "string"
+    ? projection.scope
+    : scopeFromProjectionKey(projectionKey);
+  if (scope === "beat") {
+    const parsed = parseBeatProjectionKey(projectionKey);
+    return {
+      scope,
+      episode: numberOrUndefined(projection.episode) ?? parsed?.episode,
+      beat: numberOrUndefined(projection.beat) ?? parsed?.beat,
+      primary_slot: typeof projection.primary_slot === "string"
+        ? projection.primary_slot
+        : "render",
+    };
+  }
+  if (scope === "episode") {
+    return {
+      scope,
+      episode: numberOrUndefined(projection.episode) ?? parseEpisodeProjectionKey(projectionKey),
+    };
+  }
+  if (scope === "asset") {
+    const parsed = parseAssetProjectionKey(projectionKey);
+    return {
+      scope,
+      asset_kind: stringOrUndefined(projection.asset_kind) ?? parsed?.asset_kind,
+      asset_id: stringOrUndefined(projection.asset_id) ?? parsed?.asset_id,
+      character: stringOrUndefined(projection.character),
+      identity_id: stringOrUndefined(projection.identity_id),
+    };
+  }
+  if (scope === "blank") {
+    return { scope };
+  }
+  return null;
+}
+
+function scopeFromProjectionKey(projectionKey: string): string | null {
+  if (projectionKey.startsWith("beat:")) return "beat";
+  if (projectionKey.startsWith("episode:")) return "episode";
+  if (projectionKey.startsWith("asset:")) return "asset";
+  if (projectionKey.startsWith("blank:")) return "blank";
+  return null;
+}
+
+function parseBeatProjectionKey(
+  projectionKey: string,
+): { episode: number; beat: number } | null {
+  const [, episodeRaw, beatRaw] = projectionKey.split(":");
+  const episode = Number(episodeRaw);
+  const beat = Number(beatRaw);
+  if (!Number.isFinite(episode) || !Number.isFinite(beat)) return null;
+  return { episode, beat };
+}
+
+function parseEpisodeProjectionKey(projectionKey: string): number | undefined {
+  const [, episodeRaw] = projectionKey.split(":");
+  const episode = Number(episodeRaw);
+  return Number.isFinite(episode) ? episode : undefined;
+}
+
+function parseAssetProjectionKey(
+  projectionKey: string,
+): { asset_kind: string; asset_id: string } | null {
+  const [, assetKind, ...assetParts] = projectionKey.split(":");
+  const assetId = assetParts.join(":");
+  if (!assetKind || !assetId) return null;
+  return { asset_kind: assetKind, asset_id: assetId };
+}
+
+function numberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 export function projectionLabelForPresetRequest(
   request: Pick<
     FreezonePresetCanvasRequest,

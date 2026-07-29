@@ -13,7 +13,6 @@ import {
   hasLegacyPresetCanvasMetadata,
   nodeDataPatchAfterCommittedTarget,
   nodeDataPatchAfterCommittedSourceSlot,
-  requestFromProjectionMetadata,
   resolveSubmitNodeData,
   shouldRefreshCommittedTargetNodes,
 } from "@/features/freezone/FreezoneShell";
@@ -206,31 +205,6 @@ describe("freezone preset projection guards", () => {
         projections: { "beat:1:4": { projection_key: "beat:1:4" } },
       }),
     ).toBe(false);
-  });
-
-  it("recovers a sync request from legacy projection metadata without request", () => {
-    expect(
-      requestFromProjectionMetadata(
-        {
-          projections: {
-            "beat:1:4": {
-              projection_key: "beat:1:4",
-              facts_signature: "old",
-            },
-          },
-        },
-        "beat:1:4",
-      ),
-    ).toEqual({
-      scope: "beat",
-      episode: 1,
-      beat: 4,
-      primary_slot: "render",
-      asset_kind: undefined,
-      character: undefined,
-      identity_id: undefined,
-      asset_id: undefined,
-    });
   });
 
   it("does not refresh canvas node urls after scene director world manifest commits", () => {

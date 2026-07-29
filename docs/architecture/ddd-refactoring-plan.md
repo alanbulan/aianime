@@ -2054,6 +2054,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十一批已将 Freezone projection 状态键投影、可查询条件、persisted revision 去重、焦点/页面可见性/30 秒定时刷新、请求取消和状态仓发布从 `FreezoneShell` 迁入唯一 presentation hook `hooks/useCanvasProjectionStatusLifecycle.ts`；Shell 只传入 project/canvas 标识和同步快照，projection 同步与移除命令仍留在原交互边界，本批未触碰资产库。画布未 hydrate 或没有 projection 时继续清空旧状态，saving/conflict/error 和空 revision 继续禁止查询，同一 revision 继续只查询一次，显式刷新仍允许重查，请求失败和过期请求的处理语义保持不变；原先挂在画布列表测试中的三段状态规则测试迁入 Hook 专属测试，并新增实际请求、状态发布、焦点刷新、不可查询清理和失败清理覆盖，旧 Shell 规则与轮询实现直接删除。`FreezoneShell` 由 1,554 行降至 1,400 行；Hook、画布列表与 Viewer 合同回归 3 个文件 48 项、完整前端架构门禁 3 个文件 274 项（其中 module boundaries 234 项）通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百九十二批已将 projection metadata 的显式请求读取、legacy scope/key 恢复、字段校验与 beat 请求归一化从 `FreezoneShell` 迁入既有纯规则模块 `projections.ts`，并将 projection 同步/移除的事件订阅、在途门禁、远端构建、本地入队、状态更新和消息投影迁入唯一 presentation controller `hooks/useCanvasProjectionCommandController.ts`；Shell 只传 project/canvas、metadata、翻译后的消息和 toast 输出，资产提交与布局未改。同步继续固定 `base_revision=0` 和 `force_refresh=true`，继续在构建成功后入队并立即消费、乐观标记 fresh，缺失 legacy 请求、构建失败、移除阻断和卸载退订语义保持不变；移动中发现并纠正了一处尚未进入提交的空字符串/非有限 number 语义收紧，最终规则与旧判断一致。旧 helper、refs、handlers、事件 effect 和废弃导入直接删除，不保留 Shell 转发导出；`FreezoneShell` 由 1,400 行降至 1,197 行。Controller、projection 纯规则、画布列表与 Viewer 合同回归 4 个文件 66 项、本批 3 项架构断言、完整前端架构门禁 3 个文件 275 项（其中 module boundaries 235 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；完整门禁首次运行仅有 4 项后半段全仓扫描超过默认 5 秒，无代码断言失败，改用 15 秒单项超时后全量通过，进程未崩溃。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

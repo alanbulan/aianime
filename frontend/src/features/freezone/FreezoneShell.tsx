@@ -5,11 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import type { ProjectSummary } from "@/modules/project_workspace/public";
-import { buildProjectionFromPreset } from "@/features/freezone/composition";
-import type {
-  CanvasBackupStatus,
-  FreezonePresetCanvasRequest,
-} from "@/features/freezone/domain/canvasStorage";
+import type { CanvasBackupStatus } from "@/features/freezone/domain/canvasStorage";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -70,20 +66,7 @@ import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezone
 import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
 import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
 import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
-import {
-  normalizePresetProjectionRequest,
-  projectionMetadataWithRequest,
-  projectionTargetForCanvasPanel,
-} from "@/features/freezone/projections";
-import {
-  markCanvasProjectionFresh,
-} from "@/features/freezone/projectionStatusStore";
-import {
-  consumeQueuedLocalFreezoneProjections,
-  queueLocalFreezoneProjection,
-  removeLocalFreezoneProjection,
-} from "@/features/freezone/canvasSyncRuntime";
-import type { CanvasEdge, CanvasNode } from "@/features/canvas/canvasStore";
+import { useCanvasProjectionCommandController } from "./hooks/useCanvasProjectionCommandController";
 import { useCanvasProjectionStatusLifecycle } from "./hooks/useCanvasProjectionStatusLifecycle";
 
 export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
@@ -156,128 +139,6 @@ export function shouldRefreshCommittedTargetNodes(target: PushTarget): boolean {
   return target.kind !== "scene_director_world";
 }
 
-export function requestFromProjectionMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  projectionKey: string,
-): Omit<FreezonePresetCanvasRequest, "canvas_id" | "overwrite_existing" | "base_revision"> | null {
-  const projections = metadata?.projections;
-  if (!projections || typeof projections !== "object") return null;
-  const projection = (projections as Record<string, unknown>)[projectionKey];
-  if (!projection || typeof projection !== "object") return null;
-  const projectionRecord = projection as Record<string, unknown>;
-  const request = projectionRecord.request && typeof projectionRecord.request === "object"
-    ? projectionRecord.request as Record<string, unknown>
-    : fallbackProjectionRequest(projectionRecord, projectionKey);
-  if (!request) return null;
-  const scope = (request as { scope?: unknown }).scope;
-  if (scope !== "episode" && scope !== "beat" && scope !== "asset" && scope !== "blank") {
-    return null;
-  }
-  return normalizePresetProjectionRequest({
-    scope,
-    episode: typeof (request as { episode?: unknown }).episode === "number"
-      ? (request as { episode: number }).episode
-      : undefined,
-    beat: typeof (request as { beat?: unknown }).beat === "number"
-      ? (request as { beat: number }).beat
-      : undefined,
-    primary_slot: typeof (request as { primary_slot?: unknown }).primary_slot === "string"
-      ? (request as { primary_slot: string }).primary_slot
-      : undefined,
-    asset_kind: typeof (request as { asset_kind?: unknown }).asset_kind === "string"
-      ? (request as { asset_kind: string }).asset_kind
-      : undefined,
-    character: typeof (request as { character?: unknown }).character === "string"
-      ? (request as { character: string }).character
-      : undefined,
-    identity_id: typeof (request as { identity_id?: unknown }).identity_id === "string"
-      ? (request as { identity_id: string }).identity_id
-      : undefined,
-    asset_id: typeof (request as { asset_id?: unknown }).asset_id === "string"
-      ? (request as { asset_id: string }).asset_id
-      : undefined,
-  });
-}
-
-function fallbackProjectionRequest(
-  projection: Record<string, unknown>,
-  projectionKey: string,
-): Record<string, unknown> | null {
-  const scope = typeof projection.scope === "string"
-    ? projection.scope
-    : scopeFromProjectionKey(projectionKey);
-  if (scope === "beat") {
-    const parsed = parseBeatProjectionKey(projectionKey);
-    return {
-      scope,
-      episode: numberOrUndefined(projection.episode) ?? parsed?.episode,
-      beat: numberOrUndefined(projection.beat) ?? parsed?.beat,
-      primary_slot: typeof projection.primary_slot === "string"
-        ? projection.primary_slot
-        : "render",
-    };
-  }
-  if (scope === "episode") {
-    return {
-      scope,
-      episode: numberOrUndefined(projection.episode) ?? parseEpisodeProjectionKey(projectionKey),
-    };
-  }
-  if (scope === "asset") {
-    const parsed = parseAssetProjectionKey(projectionKey);
-    return {
-      scope,
-      asset_kind: stringOrUndefined(projection.asset_kind) ?? parsed?.asset_kind,
-      asset_id: stringOrUndefined(projection.asset_id) ?? parsed?.asset_id,
-      character: stringOrUndefined(projection.character),
-      identity_id: stringOrUndefined(projection.identity_id),
-    };
-  }
-  if (scope === "blank") {
-    return { scope };
-  }
-  return null;
-}
-
-function scopeFromProjectionKey(projectionKey: string): string | null {
-  if (projectionKey.startsWith("beat:")) return "beat";
-  if (projectionKey.startsWith("episode:")) return "episode";
-  if (projectionKey.startsWith("asset:")) return "asset";
-  if (projectionKey.startsWith("blank:")) return "blank";
-  return null;
-}
-
-function parseBeatProjectionKey(projectionKey: string): { episode: number; beat: number } | null {
-  const [, episodeRaw, beatRaw] = projectionKey.split(":");
-  const episode = Number(episodeRaw);
-  const beat = Number(beatRaw);
-  if (!Number.isFinite(episode) || !Number.isFinite(beat)) return null;
-  return { episode, beat };
-}
-
-function parseEpisodeProjectionKey(projectionKey: string): number | undefined {
-  const [, episodeRaw] = projectionKey.split(":");
-  const episode = Number(episodeRaw);
-  return Number.isFinite(episode) ? episode : undefined;
-}
-
-function parseAssetProjectionKey(
-  projectionKey: string,
-): { asset_kind: string; asset_id: string } | null {
-  const [, assetKind, ...assetParts] = projectionKey.split(":");
-  const assetId = assetParts.join(":");
-  if (!assetKind || !assetId) return null;
-  return { asset_kind: assetKind, asset_id: assetId };
-}
-
-function numberOrUndefined(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function stringOrUndefined(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value : undefined;
-}
-
 /**
  * Mounts the shared xyflow canvas inside the AI anime Beat Workbench shell.
  * Canvas switching lives inside the left AssetLibraryPanel (主线资产 / 画布 tabs).
@@ -317,10 +178,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const showChatDock = !isCeRuntime();
-  // Re-entrancy guard for in-flight projection sync/remove lives in the refs;
-  // there is no UI bound to a syncing/removing value, so no state is kept.
-  const syncingProjectionRef = useRef<string | null>(null);
-  const removingProjectionRef = useRef<string | null>(null);
   // 顶栏在「AI anime 画布 / AI anime 工作台」之间切换会整体卸载再挂载本组件，但画布数据留在全局 store 里。
   // 如果这里从 false 起步，回到AI anime 画布就会先把画面换成「正在加载画布…」，等 hydrate 回来
   // 才重新画出来 —— 看着就是卡。同一个画布重进时直接渲染 store 里的既有内容，
@@ -389,59 +246,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     revision: sync.revision,
     syncStatus: sync.status,
   });
-
-  const handleSyncProjection = useCallback(async (projectionKey: string) => {
-    if (syncingProjectionRef.current) return;
-    const request = requestFromProjectionMetadata(sync.metadata, projectionKey);
-    if (!request) {
-      setToast(t("freezone.projections.syncMissingRequest"));
-      return;
-    }
-    syncingProjectionRef.current = projectionKey;
-    try {
-      const target = projectionTargetForCanvasPanel({ currentCanvasId: canvasId, request });
-      const projection = await buildProjectionFromPreset(projectId, {
-        ...request,
-        projection_key: target.projectionKey,
-        base_revision: 0,
-        force_refresh: true,
-      });
-      queueLocalFreezoneProjection(projectId, target.targetCanvasId, {
-        projectionKey: target.projectionKey,
-        nodes: (projection.nodes ?? []) as CanvasNode[],
-        edges: (projection.edges ?? []) as CanvasEdge[],
-        metadata: projectionMetadataWithRequest(
-          projection.metadata ?? null,
-          target.projectionKey,
-          request,
-          projection.facts_signature,
-        ),
-      });
-      consumeQueuedLocalFreezoneProjections(projectId, target.targetCanvasId);
-      markCanvasProjectionFresh(target.projectionKey);
-      setToast(t("freezone.projections.syncSuccess"));
-    } catch (error) {
-      setToast(error instanceof Error ? error.message : String(error));
-    } finally {
-      syncingProjectionRef.current = null;
-    }
-  }, [canvasId, projectId, sync.metadata, t]);
-
-  const handleRemoveProjection = useCallback(async (projectionKey: string) => {
-    if (removingProjectionRef.current) return;
-    removingProjectionRef.current = projectionKey;
-    try {
-      const removed = removeLocalFreezoneProjection(projectId, canvasId, projectionKey);
-      if (!removed) {
-        throw new Error(t("freezone.projections.removeBlocked"));
-      }
-      setToast(t("freezone.projections.removeSuccess"));
-    } catch (error) {
-      setToast(error instanceof Error ? error.message : String(error));
-    } finally {
-      removingProjectionRef.current = null;
-    }
-  }, [canvasId, projectId, sync, t]);
 
   // 节点 toolbar 上的 Commit 按钮通过 canvasEventBus 触发；这里订阅、查节点、
   // 推 CommitDialog。比 AssetLibraryPanel 的 Commit 宽松：任何带 imageUrl 的
@@ -582,25 +386,18 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
     });
   }, [projectId, sync]);
 
-  useEffect(() => {
-    const unsubscribeSync = canvasEventBus.subscribe(
-      "freezone/projection-sync",
-      ({ projectionKey }) => {
-        void handleSyncProjection(projectionKey);
-      },
-    );
-    const unsubscribeRemove = canvasEventBus.subscribe(
-      "freezone/projection-remove",
-      ({ projectionKey }) => {
-        void handleRemoveProjection(projectionKey);
-      },
-    );
-
-    return () => {
-      unsubscribeSync();
-      unsubscribeRemove();
-    };
-  }, [handleRemoveProjection, handleSyncProjection]);
+  useCanvasProjectionCommandController({
+    projectId,
+    canvasId,
+    metadata: sync.metadata,
+    messages: {
+      syncMissingRequest: t("freezone.projections.syncMissingRequest"),
+      syncSuccess: t("freezone.projections.syncSuccess"),
+      removeBlocked: t("freezone.projections.removeBlocked"),
+      removeSuccess: t("freezone.projections.removeSuccess"),
+    },
+    onMessage: setToast,
+  });
 
   useEffect(() => {
     return canvasEventBus.subscribe("freezone/assets-updated", () => {

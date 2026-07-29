@@ -1542,8 +1542,14 @@ describe("frontend architecture boundaries", () => {
     expect(statusEndpointOwners).toEqual([
       "features/freezone/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
     ]);
-    const shellImports = importSpecifiers(
-      resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx"),
+    const commandControllerImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+      ),
+    );
+    const projectionRuleImports = importSpecifiers(
+      resolve(SRC_ROOT, "features/freezone/projections.ts"),
     );
     const openProjectionImports = importSpecifiers(
       resolve(SRC_ROOT, "features/freezone/openPresetProjection.ts"),
@@ -1551,8 +1557,10 @@ describe("frontend architecture boundaries", () => {
     const statusStoreImports = importSpecifiers(
       resolve(SRC_ROOT, "features/freezone/projectionStatusStore.ts"),
     );
-    expect(shellImports).toContain("@/features/freezone/composition");
-    expect(shellImports).toContain("@/features/freezone/domain/canvasStorage");
+    expect(commandControllerImports).toContain("../composition");
+    expect(projectionRuleImports).toContain(
+      "@/features/freezone/domain/canvasStorage",
+    );
     expect(openProjectionImports).toContain("@/features/freezone/composition");
     expect(openProjectionImports).toContain(
       "@/features/freezone/domain/canvasStorage",
@@ -1560,7 +1568,12 @@ describe("frontend architecture boundaries", () => {
     expect(statusStoreImports).toContain(
       "@/features/freezone/domain/canvasProjection",
     );
-    for (const imports of [shellImports, openProjectionImports, statusStoreImports]) {
+    for (const imports of [
+      commandControllerImports,
+      projectionRuleImports,
+      openProjectionImports,
+      statusStoreImports,
+    ]) {
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/canvas");
     }
@@ -1613,6 +1626,65 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain("setCanvasProjectionStatuses(");
     expect(shellSource).not.toContain("clearCanvasProjectionStatuses()");
     expect(shellSource).not.toContain("PROJECTION_STATUS_REFRESH_MS");
+  });
+
+  it("keeps canvas projection event commands in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+    );
+    const projectionRulesPath = resolve(
+      SRC_ROOT,
+      "features/freezone/projections.ts",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const projectionRulesSource = readFileSync(projectionRulesPath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const declaration = [
+      "export function",
+      "useCanvasProjectionCommandController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/canvasStore",
+        "../canvasSyncRuntime",
+        "../composition",
+        "../projections",
+        "../projectionStatusStore",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+    ]);
+    expect(importSpecifiers(shellPath)).toContain(
+      "./hooks/useCanvasProjectionCommandController",
+    );
+    expect(projectionRulesSource).toContain(
+      "export function requestFromProjectionMetadata(",
+    );
+    expect(controllerSource).toContain("buildProjectionFromPreset(");
+    expect(controllerSource).toContain("queueLocalFreezoneProjection(");
+    expect(controllerSource).toContain("removeLocalFreezoneProjection(");
+    expect(controllerSource).toContain('"freezone/projection-sync"');
+    expect(controllerSource).toContain('"freezone/projection-remove"');
+    expect(shellSource).toContain("useCanvasProjectionCommandController({");
+    expect(shellSource).not.toContain("requestFromProjectionMetadata(");
+    expect(shellSource).not.toContain("buildProjectionFromPreset(");
+    expect(shellSource).not.toContain("queueLocalFreezoneProjection(");
+    expect(shellSource).not.toContain("removeLocalFreezoneProjection(");
+    expect(shellSource).not.toContain('"freezone/projection-sync"');
+    expect(shellSource).not.toContain('"freezone/projection-remove"');
   });
 
   it("keeps Freezone asset commits behind one application gateway", () => {

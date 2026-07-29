@@ -468,6 +468,9 @@ describe("freezone viewer contracts", () => {
   it("routes projection group toolbar actions through projection sync and remove events", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const shell = read("src/features/freezone/FreezoneShell.tsx");
+    const commandController = read(
+      "src/features/freezone/hooks/useCanvasProjectionCommandController.ts",
+    );
     const statusLifecycle = read(
       "src/features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
     );
@@ -478,11 +481,12 @@ describe("freezone viewer contracts", () => {
     expect(toolbar).toContain('"freezone/projection-sync"');
     expect(toolbar).toContain('"freezone/projection-remove"');
     expect(toolbar).toContain("useCanvasProjectionStatus(protectedProjectionKey)");
-    expect(shell).toContain('"freezone/projection-sync"');
-    expect(shell).toContain("handleSyncProjection(projectionKey)");
-    expect(shell).toContain('"freezone/projection-remove"');
-    expect(shell).toContain("handleRemoveProjection(projectionKey)");
+    expect(commandController).toContain('"freezone/projection-sync"');
+    expect(commandController).toContain("handleSyncProjection(projectionKey)");
+    expect(commandController).toContain('"freezone/projection-remove"');
+    expect(commandController).toContain("handleRemoveProjection(projectionKey)");
     expect(shell).not.toContain("<ProjectionPanel");
+    expect(shell).toContain("useCanvasProjectionCommandController({");
     expect(shell).toContain("useCanvasProjectionStatusLifecycle({");
     expect(statusLifecycle).toContain("setCanvasProjectionStatuses(result.projections)");
     expect(statusLifecycle).toContain("clearCanvasProjectionStatuses()");
