@@ -137,7 +137,45 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "routes/_app/projects.$project/freezone.lazy.tsx",
     );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/routeComposition.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneProjectPageController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneProjectPageController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneProjectPageView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneProjectPageView.test.tsx",
+    );
+    const legacyPagePath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneProjectPage.tsx",
+    );
     const route = readFileSync(routePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const pageOwners = sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export function FreezoneProjectPage(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(routePath)).toContain(
       "@/features/freezone/routeComposition",
@@ -148,6 +186,61 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useQuery(");
     expect(route).not.toContain("useRouterState(");
     expect(route).not.toContain("FreezoneShell");
+    expect(existsSync(legacyPagePath)).toBe(false);
+    expect(pageOwners).toEqual([
+      "features/freezone/routeComposition.ts",
+    ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "react",
+        "./hooks/useFreezoneProjectPageController",
+        "./presentation/FreezoneProjectPageView",
+      ]),
+    );
+    expect(compositionSource).toContain(
+      "useFreezoneProjectPageController(projectId)",
+    );
+    expect(compositionSource).toContain(
+      "createElement(FreezoneProjectPageView, { controller })",
+    );
+    expect(compositionSource).not.toContain("export {");
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@tanstack/react-router",
+        "@/features/app/errorDialogEvents",
+        "@/lib/url-params",
+        "@/modules/identity_access/public",
+        "@/modules/project_workspace/public",
+        "../domain/canvasIdentity",
+      ]),
+    );
+    expect(controllerSource).not.toContain("<FreezoneShell");
+    expect(controllerSource).not.toContain("<GlobalErrorDialog\n");
+    expect(controllerSource).not.toContain("className=");
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
+      new Set([
+        "@xyflow/react",
+        "@/components/GlobalErrorDialog",
+        "../hooks/useFreezoneProjectPageController",
+        "../FreezoneShell",
+      ]),
+    );
+    for (const controllerOwner of [
+      "useRouterState(",
+      "useAllProjectSummaries(",
+      "useAuthStore(",
+      "readLastCanvas(",
+      "subscribeOpenGlobalErrorDialog(",
+    ]) {
+      expect(viewSource).not.toContain(controllerOwner);
+    }
+    expect(controllerTestSource).toContain(
+      'from "./useFreezoneProjectPageController"',
+    );
+    expect(viewTestSource).toContain(
+      'from "./FreezoneProjectPageView"',
+    );
   });
 
   it("keeps the Beat state read model in Production", () => {
