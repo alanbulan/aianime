@@ -2060,6 +2060,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百九十四批已将 Freezone toast、首次 loading、重进 loading 遮罩、同步错误、409 冲突恢复和云端备份状态角标从 `FreezoneShell` 迁入唯一 presentation 模块 `presentation/FreezoneCanvasFeedback.tsx`；Shell 只按同步状态装配组件并传入 retry/save-copy/snapshot 回调，不再直接依赖 `ConflictSnapshot`、`CanvasBackupStatus`、`useMemo`、Blob 下载或反馈局部状态。冲突快照继续在 overlay 挂载时固定读取，下载文件名与对象 URL 生命周期、保存中/失败状态、无快照禁用、pending/failed 角标语义、hydrate 指针拦截和错误重试均保持不变；浏览器同步存储端口门禁同步改为检查新的实际类型消费者，不保留 Shell 类型转发。旧 6 个内部组件和废弃导入直接删除，`FreezoneShell` 由 902 行降至 710 行；反馈组件 4 项特征测试、受影响架构门禁、完整前端架构门禁 3 个文件 277 项（其中 module boundaries 237 项）、前端 TypeScript 全量检查与 `git diff --check` 通过，未启动 Electron/Vite、未构建、未做界面验证。
 
+第四百九十五批已将 Freezone 提交成功文案、导演世界清单数据选择、source-slot/普通目标节点 patch 分流、提交数据回退、刷新排除、目标归一化/推断/同一性比较和默认角色读取从 `FreezoneShell` 迁入唯一纯规则模块 `commit/canvasCommitRules.ts`；Shell 只保留 Store 读取、已提交节点刷新/标记与自动提交副作用。`CommitDialog` 原有的重复成功文案实现同步删除并改用同一规则，普通提交的 backup/stale 详情继续保留；`hasLegacyPresetCanvasMetadata` 不再经 Shell 转发，测试直接依赖实际 `projections.ts` 所有者，不保留 facade、旧导出或第二套逻辑。原画布列表中的提交规则回归迁入同目录专属测试，并补齐身份 ID、canonical target 推断和导演世界清单有效/无效状态覆盖；`FreezoneShell` 由 710 行降至 607 行。相关回归 3 个文件 45 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 278 项（其中 module boundaries 238 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

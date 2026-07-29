@@ -1787,6 +1787,71 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain("URL.createObjectURL(");
   });
 
+  it("keeps Freezone canvas commit decisions in one pure rules module", () => {
+    const rulesPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/canvasCommitRules.ts",
+    );
+    const shellPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const dialogPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/CommitDialog.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/canvasCommitRules.test.ts",
+    );
+    const rulesSource = readFileSync(rulesPath, "utf8");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const dialogSource = readFileSync(dialogPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      "renderCommitSuccessMessage",
+      "sceneDirectorWorldDataForManifest",
+      "nodeDataPatchAfterCommittedSourceSlot",
+      "nodeDataPatchAfterCommittedTarget",
+      "resolveSubmitNodeData",
+      "shouldRefreshCommittedTargetNodes",
+      "normalizePushTarget",
+      "inferCanonicalRefreshTarget",
+      "pushTargetsEqual",
+      "defaultCharacterFromMetadata",
+    ];
+
+    expect(new Set(importSpecifiers(rulesPath))).toEqual(
+      new Set([
+        "@/features/freezone/domain/assetCommit",
+        "./committedNodePatch",
+        "./pushTarget",
+        "./sceneDirectorWorldCommit",
+      ]),
+    );
+    expect(importSpecifiers(shellPath)).toContain(
+      "./commit/canvasCommitRules",
+    );
+    expect(importSpecifiers(dialogPath)).toContain("./canvasCommitRules");
+    expect(dialogSource).not.toContain("function renderCommitSuccessMessage(");
+    expect(testSource).toContain('from "./canvasCommitRules"');
+    for (const name of declarations) {
+      const declaration = ["export function", `${name}(`].join(" ");
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/freezone/commit/canvasCommitRules.ts",
+      ]);
+      expect(shellSource).not.toContain(`function ${name}(`);
+    }
+    expect(rulesSource).not.toContain('from "react"');
+    expect(rulesSource).not.toContain("window.");
+    expect(rulesSource).not.toContain("document.");
+    expect(rulesSource).not.toContain("useCanvasStore");
+  });
+
   it("keeps Freezone asset commits behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const domainPath = resolve(

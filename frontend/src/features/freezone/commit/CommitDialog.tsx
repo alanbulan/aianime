@@ -39,6 +39,7 @@ import {
   isDirectorWorldSourceSlotTarget,
 } from "./sceneDirectorWorldCommit";
 import { nodeDataAfterCommittedSlot } from "./committedNodePatch";
+import { renderCommitSuccessMessage } from "./canvasCommitRules";
 
 // CommitDialog 显示给用户的 slot 选项。已隐藏:
 // - scene_360       — 已 deprecate (presets.py:703-710 注释),被 scene_director_pano_360 取代
@@ -117,18 +118,6 @@ const COMMIT_FIELD_BORDER_CLASS =
   "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";
 const COMMIT_SELECT_MENU_CLASS =
   "!z-[260] !border-border !bg-popover text-popover-foreground shadow-2xl";
-
-function renderCommitSuccessMessage(target: PushTarget, result: PushResult): string {
-  if (target.kind === "director_render") {
-    return `已提交导演合成资产：${result.target_path}（含纯背景和元数据）`;
-  }
-  if (target.kind === "scene_director_world") {
-    return `已提交导演世界：${result.target_path}`;
-  }
-  return `已提交到 ${result.target_path}` +
-    (result.backup ? `(旧文件 backup 至 ${result.backup})` : "") +
-    (result.stale_marked ? `；已标记 ${result.stale_marked} 个镜头需重生` : "");
-}
 
 const SCENE_SLOT_KINDS = new Set<PushTargetKind>([
   "scene_master",

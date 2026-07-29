@@ -16,8 +16,18 @@ import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
 } from "./commit/sceneDirectorWorldCommit";
-import { nodeDataAfterCommittedSlot } from "./commit/committedNodePatch";
 import { isCommitCandidateData } from "./commit/commitEligibility";
+import {
+  defaultCharacterFromMetadata,
+  inferCanonicalRefreshTarget,
+  nodeDataPatchAfterCommittedTarget,
+  normalizePushTarget,
+  pushTargetsEqual,
+  renderCommitSuccessMessage,
+  resolveSubmitNodeData,
+  sceneDirectorWorldDataForManifest,
+  shouldRefreshCommittedTargetNodes,
+} from "./commit/canvasCommitRules";
 import { CreateIdentityDialog } from "./presentation/CreateIdentityDialog";
 import { CompareDialog } from "./presentation/CompareDialog";
 import { MaskEditor } from "./presentation/MaskEditor";
@@ -42,7 +52,6 @@ import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { saveOpenDirectorWorldScene } from "@/features/canvas/domain/directorWorldSceneSaveRegistry";
 import {
   assetToPushTarget,
-  inferDefaultTarget,
   isPlyOrGlbPushTargetKind,
   isScenePushTargetKind,
 } from "@/features/freezone/commit/pushTarget";
@@ -65,51 +74,9 @@ import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/us
 import { useCanvasProjectionCommandController } from "./hooks/useCanvasProjectionCommandController";
 import { useCanvasProjectionStatusLifecycle } from "./hooks/useCanvasProjectionStatusLifecycle";
 
-export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
-
 interface FreezoneShellProps {
   project: ProjectSummary;
   canvasId: string;
-}
-
-function renderCommitSuccessMessage(target: PushTarget, result: PushResult): string {
-  if (target.kind === "director_render") {
-    return `已提交导演合成资产：${result.target_path}（含纯背景和元数据）`;
-  }
-  if (target.kind === "scene_director_world") {
-    return `已提交导演世界：${result.target_path}`;
-  }
-  return `已提交到 ${result.target_path}`;
-}
-
-function sceneDirectorWorldDataForManifest(
-  nodeData: Record<string, unknown>,
-  target: PushTarget,
-  result: PushResult,
-  projectId?: string,
-): Record<string, unknown> | null {
-  const manifestNodeData = nodeDataPatchAfterCommittedSourceSlot(nodeData, target, result, projectId);
-  return hasDirectorWorldSceneState(manifestNodeData) ? manifestNodeData : null;
-}
-
-export function nodeDataPatchAfterCommittedSourceSlot(
-  nodeData: Record<string, unknown>,
-  target: PushTarget,
-  result: PushResult,
-  projectId?: string,
-): Record<string, unknown> | null {
-  if (!isDirectorWorldSourceSlotTarget(target)) return null;
-  return nodeDataAfterCommittedSlot(nodeData, target, result, projectId);
-}
-
-export function nodeDataPatchAfterCommittedTarget(
-  nodeData: Record<string, unknown>,
-  target: PushTarget,
-  result: PushResult,
-  projectId?: string,
-): Record<string, unknown> | null {
-  if (isDirectorWorldSourceSlotTarget(target)) return null;
-  return nodeDataAfterCommittedSlot(nodeData, target, result, projectId);
 }
 
 function latestCanvasNodeData(nodeId: string): Record<string, unknown> | null {
@@ -117,20 +84,6 @@ function latestCanvasNodeData(nodeId: string): Record<string, unknown> | null {
   return node?.data && typeof node.data === "object"
     ? node.data as Record<string, unknown>
     : null;
-}
-
-export function resolveSubmitNodeData(
-  latest: Record<string, unknown> | null | undefined,
-  fallback: Record<string, unknown> | null | undefined,
-): Record<string, unknown> | null {
-  return latest ?? fallback ?? null;
-}
-
-export function shouldRefreshCommittedTargetNodes(target: PushTarget): boolean {
-  // scene_director_world is a structured manifest/state commit, not a media file
-  // replacement. Refreshing canvas node URLs with its result corrupts the visual
-  // node into a broken image/manifest preview.
-  return target.kind !== "scene_director_world";
 }
 
 /**
@@ -577,13 +530,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   );
 }
 
-function normalizePushTarget(
-  target: (Partial<PushTarget> & { kind?: PushTargetKind }) | null,
-): (Partial<PushTarget> & { kind: PushTargetKind }) | null {
-  if (!target?.kind) return null;
-  return target as Partial<PushTarget> & { kind: PushTargetKind };
-}
-
 function refreshCommittedTargetNodes(
   target: PushTarget,
   result: PushResult,
@@ -639,55 +585,6 @@ function markCommitCandidatePushed(
     update.committed_slot_url = result.target_url;
   }
   store.updateNodeData(nodeId, update);
-}
-
-function inferCanonicalRefreshTarget(
-  source:
-    | { kind?: string; role?: string; meta?: Record<string, unknown> }
-    | undefined,
-): (Partial<PushTarget> & { kind: PushTargetKind }) | undefined {
-  if (!source?.kind) return undefined;
-  return inferDefaultTarget(source);
-}
-
-function pushTargetsEqual(
-  a: Partial<PushTarget> & { kind: PushTargetKind },
-  b: PushTarget,
-): boolean {
-  if (a.kind !== b.kind) return false;
-  const av = a as Record<string, unknown>;
-  if (
-    b.kind === "frame" ||
-    b.kind === "sketch" ||
-    b.kind === "director_render" ||
-    b.kind === "selected_background" ||
-    b.kind === "video" ||
-    b.kind === "beat_audio"
-  ) {
-    return av.episode === b.episode && av.beat === b.beat;
-  }
-  if (
-    b.kind === "identity" ||
-    b.kind === "identity_costume" ||
-    b.kind === "identity_portrait"
-  ) {
-    return av.character === b.character && av.identity_id === b.identity_id;
-  }
-  if (b.kind === "portrait") {
-    return av.character === b.character;
-  }
-  if (isScenePushTargetKind(b.kind)) {
-    return av.scene_id === (b as unknown as Record<string, unknown>).scene_id;
-  }
-  if (b.kind === "prop_ref") {
-    return av.prop_id === b.prop_id;
-  }
-  return false;
-}
-
-function defaultCharacterFromMetadata(metadata: Record<string, unknown> | null): string | null {
-  const preset = metadata?.preset as { character?: unknown } | undefined;
-  return typeof preset?.character === "string" && preset.character ? preset.character : null;
 }
 
 interface PushPrompt {
