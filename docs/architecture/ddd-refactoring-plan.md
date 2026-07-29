@@ -2078,6 +2078,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零三批已将资产到 Canvas drag payload 的媒体/Director World 投影、视口中心落点与节点避碰、manifest hydrate、节点创建和聚焦从 `AssetLibraryPanel` 迁入唯一 application 用例 `application/assetLibraryCanvasInsertion.ts`，并由 `assetLibraryCanvasInsertionComposition.ts` 绑定 Canvas Store 与既有 hydrate composition；面板只序列化拖拽事件并调用插入命令，不再直接读取 Canvas Store、生成节点或处理 hydrate 失败。3D active source 与 pano/SOG URL 选择、图片/视频/音频映射、不可渲染文件拒绝、无视口回退网格、最多十圈避碰、hydrate 失败后沿用原 payload 以及创建后聚焦语义均保持不变；旧 helper 和 Canvas 依赖直接删除，不保留 facade 或第二套实现，Viewer 静态合同同步改为验证真实 composition/use case 链路。`AssetLibraryPanel` 由 1,164 行降至 1,038 行；插入用例、面板、Viewer、拖拽 hydrate 与 Director bundle 回归 5 个文件 50 项、本批架构断言 1 项、完整前端架构门禁 3 个文件 286 项（其中 module boundaries 246 项）及前端 TypeScript 全量检查通过，`git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零四批已将资产库 Beat 缩略卡、剧集/Beat 折叠、默认画布上下文、preset 分组及入口分派从 `AssetLibraryPanel` 迁入唯一 presentation 组件 `presentation/AssetLibraryBeatPanels.tsx`；组件通过 `onAddAsset(asset, index)` 接收画布插入命令，不直接依赖 Canvas/Freezone composition，并继续复用 application 拖拽 payload 与纯展示模型。默认画布仍使用全部 Beat 资产中的全局索引，preset 分组仍使用当前资产集合中的局部索引，音视频/3D 缩略图、空状态、折叠初始状态、分组顺序和点击、右键、拖拽行为保持不变；旧组件实现从面板直接删除，不保留 facade、旧导出或第二套实现。`AssetLibraryPanel` 由 1,038 行降至 661 行；直接组件与面板回归 2 个文件 8 项、本批及关联架构断言 2 项、完整前端架构门禁 3 个文件 287 项（其中 module boundaries 247 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

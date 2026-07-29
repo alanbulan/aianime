@@ -1183,9 +1183,6 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(assetLibraryPath)).toContain(
       "@/features/freezone/composition",
     );
-    expect(importSpecifiers(assetLibraryPath)).toContain(
-      "@/features/freezone/domain/beatContext",
-    );
     expect(importSpecifiers(assetLibraryPath)).not.toContain(
       "@/features/freezone/public",
     );
@@ -6082,6 +6079,72 @@ describe("frontend architecture boundaries", () => {
     expect(panelSource).not.toContain("ROLE_LABELS");
     expect(panelSource).not.toContain("ROLE_ORDER");
     expect(testSource).toContain('from "./assetLibraryViewModel"');
+  });
+
+  it("keeps asset library Beat presentation in one component module", () => {
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/AssetLibraryBeatPanels.test.tsx",
+    );
+    const presentationSource = readFileSync(presentationPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
+    const declarations = [
+      ["function", "MiniThumb("].join(" "),
+      ["function", "BeatSectionHeader("].join(" "),
+      ["function", "BeatRow("].join(" "),
+      ["function", "EpisodeSection("].join(" "),
+      ["function", "DefaultCanvasBeatPanel("].join(" "),
+      ["function", "PresetBeatPanel("].join(" "),
+      ["export function", "BeatContextPanel("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+      ]),
+    );
+    expect(new Set(importSpecifiers(presentationPath))).toEqual(
+      new Set([
+        "react",
+        "lucide-react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/domain/assetDrag",
+        "../application/assetLibraryCanvasInsertion",
+        "../domain/beatContext",
+        "../domain/assetLibraryModel",
+        "./assetLibraryViewModel",
+      ]),
+    );
+    expect(presentationSource).not.toContain("zustand");
+    expect(presentationSource).not.toContain("@/features/canvas/canvasStore");
+    expect(presentationSource).not.toContain("@/features/canvas/composition");
+    expect(presentationSource).not.toContain("@/features/freezone/composition");
+    expect(presentationSource).not.toContain("@/shared/api/");
+    expect(presentationSource).not.toContain("addAssetToCanvas");
+    expect(presentationSource).toContain("onAddAsset(asset, index)");
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/freezone/presentation/AssetLibraryBeatPanels",
+    );
+    expect(panelSource).toContain("onAddAsset={addAssetToCanvas}");
+    for (const legacyDeclaration of declarations) {
+      expect(panelSource).not.toContain(legacyDeclaration);
+    }
+    expect(testSource).toContain('from "./AssetLibraryBeatPanels"');
   });
 
   it("keeps asset library canvas insertion behind one application use case", () => {
