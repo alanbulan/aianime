@@ -1,6 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { readUrl } from '@/lib/url-params';
-import { embedStoryboardImageMetadata } from '@/commands/image';
+import {
+  embedStoryboardImageMetadata,
+  mergeStoryboardImages,
+  saveImageSourceToDirectory,
+} from '@/commands/image';
 import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,
@@ -136,6 +140,11 @@ import {
   pollExportImageGeneration as pollExportImageGenerationUseCase,
   type PollExportImageGenerationParams,
 } from './application/pollExportImageGeneration';
+import {
+  exportStoryboardGrid as exportStoryboardGridUseCase,
+  packStoryboardFrames as packStoryboardFramesUseCase,
+  type ExportStoryboardGridCommand,
+} from './application/storyboardExport';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
@@ -177,6 +186,10 @@ import { browserAudioMetadataGateway } from './infrastructure/browserAudioMetada
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
+import {
+  applyStoryboardTextOverlay,
+  getStoryboardReferenceFrameHeight,
+} from './infrastructure/browserStoryboardExportRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
@@ -322,6 +335,31 @@ export function uploadLocalImageToBackend(
     readUrl().project,
     localImageUrl,
     filename,
+  );
+}
+
+export function exportStoryboardGrid(command: ExportStoryboardGridCommand) {
+  return exportStoryboardGridUseCase(command, {
+    timestamp: Date.now,
+    now: () => performance.now(),
+    getReferenceFrameHeight: getStoryboardReferenceFrameHeight,
+    mergeImages: mergeStoryboardImages,
+    applyTextOverlay: applyStoryboardTextOverlay,
+    persistImage: browserImageRuntimeGateway.persist,
+    embedMetadata: embedStoryboardImageMetadata,
+    uploadImage: uploadLocalImageToBackend,
+    info: (message, context) => console.info(message, context),
+    warn: (message, error) => console.warn(message, error),
+  });
+}
+
+export function packStoryboardFrames(
+  frames: ExportStoryboardGridCommand['frames'],
+) {
+  return packStoryboardFramesUseCase(
+    frames,
+    readUrl().project ?? '',
+    { saveImage: saveImageSourceToDirectory },
   );
 }
 

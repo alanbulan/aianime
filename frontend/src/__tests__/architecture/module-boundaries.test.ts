@@ -1380,6 +1380,148 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates the Canvas storyboard model, export use case, runtime, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeModel.test.ts",
+    );
+    const exportPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardExport.ts",
+    );
+    const exportTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardExport.test.ts",
+    );
+    const runtimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserStoryboardExportRuntime.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useStoryboardNodeController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useStoryboardNodeController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardNodeView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/StoryboardNodeView.test.tsx",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/index.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const exportSource = readFileSync(exportPath, "utf8");
+    const exportTestSource = readFileSync(exportTestPath, "utf8");
+    const runtimeSource = readFileSync(runtimePath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const declarations = [
+      ["export const", "StoryboardNode", "=", "memo("].join(" "),
+      ["export function", "resolveStoryboardNodeProjection("].join(" "),
+      ["export async function", "exportStoryboardGrid("].join(" "),
+      ["export async function", "applyStoryboardTextOverlay("].join(" "),
+      ["export function", "useStoryboardNodeController("].join(" "),
+      ["export function", "StoryboardNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useStoryboardNodeController",
+        "./StoryboardNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/StoryboardNode.tsx"],
+      ["features/canvas/application/storyboardNodeModel.ts"],
+      ["features/canvas/application/storyboardExport.ts"],
+      ["features/canvas/infrastructure/browserStoryboardExportRuntime.ts"],
+      ["features/canvas/hooks/useStoryboardNodeController.ts"],
+      ["features/canvas/nodes/StoryboardNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("className=");
+    expect(exportSource).not.toContain("document.");
+    expect(exportSource).not.toContain("useCanvasStore");
+    expect(exportSource).not.toContain("className=");
+    expect(runtimeSource).toContain("document.createElement('canvas')");
+    expect(runtimeSource).not.toContain("useCanvasStore");
+    expect(registrySource).toContain(
+      "import { StoryboardNode } from './StoryboardNode'",
+    );
+    expect(registrySource).toContain("storyboardNode: StoryboardNode");
+    expect(entrySource).toContain("useStoryboardNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(StoryboardNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("exportStoryboardGrid({");
+    expect(controllerSource).toContain("packStoryboardFrames(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<NodeHeader");
+    expect(viewSource).toContain("<FrameCard");
+    expect(viewSource).toContain("<ExportSettingsPanel");
+    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("exportStoryboardGrid(");
+    expect(compositionSource).toContain(
+      "exportStoryboardGridUseCase(command, {",
+    );
+    expect(compositionSource).toContain(
+      "applyTextOverlay: applyStoryboardTextOverlay",
+    );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeLayout.ts",
+    ))).toBe(false);
+    expect(modelTestSource).toContain("from './storyboardNodeModel'");
+    expect(exportTestSource).toContain("from './storyboardExport'");
+    expect(controllerTestSource).toContain(
+      "from './useStoryboardNodeController'",
+    );
+    expect(viewTestSource).toContain("from './StoryboardNodeView'");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -10386,8 +10528,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/canvasDataNormalization.ts",
     );
+    const storyboardModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeModel.ts",
+    );
     const hydrationModel = readFileSync(hydrationPath, "utf8");
     const normalizationModel = readFileSync(normalizationPath, "utf8");
+    const storyboardModel = readFileSync(storyboardModelPath, "utf8");
     const documentLifecycleSlice = readFileSync(
       resolve(
         SRC_ROOT,
@@ -10443,7 +10590,11 @@ describe("frontend architecture boundaries", () => {
     expect(normalizationModel).toContain(
       "normalizeEdgesWithNodes(scoped.edges, nodes)",
     );
-    expect(hydrationModel).toContain(
+    expect(storyboardModel).toContain(
+      "export function createDefaultStoryboardExportOptions(",
+    );
+    expect(hydrationModel).toContain("from './storyboardNodeModel'");
+    expect(hydrationModel).not.toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
     expect(documentLifecycleSlice).toContain(
@@ -10985,23 +11136,26 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("cursorX += item.size.width + GAP");
   });
 
-  it("keeps Canvas storyboard node layout out of the Zustand store", () => {
-    const layoutPath = resolve(
+  it("keeps Canvas storyboard node model out of the Zustand store", () => {
+    const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardNodeLayout.ts",
+      "features/canvas/application/storyboardNodeModel.ts",
     );
     const derivedCreationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasDerivedNodeCreation.ts",
     );
-    const layoutModel = readFileSync(layoutPath, "utf8");
+    const nodeModel = readFileSync(modelPath, "utf8");
     const derivedCreationModel = readFileSync(derivedCreationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(layoutPath).filter(
+    const forbiddenImports = importSpecifiers(modelPath).filter(
       (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -11009,18 +11163,22 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
-    expect(layoutModel).toContain(
+    expect(nodeModel).toContain(
       "export function resolveStoryboardSplitNodeDimensions(",
     );
-    expect(layoutModel).toContain(
+    expect(nodeModel).toContain(
       "export function resolveDerivedAspectRatio(",
     );
     expect(derivedCreationModel).toContain(
-      "from './storyboardNodeLayout'",
+      "from './storyboardNodeModel'",
     );
     expect(canvasStore).not.toContain(
-      "@/features/canvas/application/storyboardNodeLayout",
+      "@/features/canvas/application/storyboardNodeModel",
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeLayout.ts",
+    ))).toBe(false);
     expect(canvasStore).not.toContain("function parseAspectRatioValue(");
     expect(canvasStore).not.toContain(
       "function resolveStoryboardSplitNodeDimensions(",

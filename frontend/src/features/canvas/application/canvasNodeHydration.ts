@@ -11,24 +11,10 @@ import {
 import { nodeCatalog } from './nodeCatalog';
 import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import type { CanvasNodeDefaultDataGateway } from './ports';
+import { createDefaultStoryboardExportOptions } from './storyboardNodeModel';
 
 export const SKILL_NODE_DEFAULT_MEASURED = { width: 380, height: 520 };
 export const BEAT_CONTEXT_NODE_DEFAULT_MEASURED = { width: 420, height: 560 };
-
-export function createDefaultStoryboardExportOptions(): StoryboardExportOptions {
-  return {
-    showFrameIndex: false,
-    showFrameNote: false,
-    notePlacement: 'overlay',
-    imageFit: 'cover',
-    frameIndexPrefix: 'S',
-    cellGap: 8,
-    outerPadding: 0,
-    fontSize: 4,
-    backgroundColor: '#0f1115',
-    textColor: '#f8fafc',
-  };
-}
 
 function isNoReferenceNode(node: CanvasNode): boolean {
   const data = node.data as {

@@ -16,16 +16,16 @@ import {
   type CanvasNodeSize,
 } from '../domain/canvasGeometry';
 import { EXPORT_RESULT_DISPLAY_NAME } from '../domain/nodeDisplay';
-import { createDefaultStoryboardExportOptions } from './canvasNodeHydration';
 import {
   resolveAutoImageNodeDimensions,
   resolveGeneratedImageNodeDimensions,
 } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
 import {
+  createDefaultStoryboardExportOptions,
   resolveDerivedAspectRatio,
   resolveStoryboardSplitNodeDimensions,
-} from './storyboardNodeLayout';
+} from './storyboardNodeModel';
 
 export interface CanvasDerivedExportNodeOptions {
   defaultTitle?: string;

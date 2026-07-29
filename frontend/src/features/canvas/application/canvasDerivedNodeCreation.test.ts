@@ -12,10 +12,12 @@ import {
   createCanvasDerivedUploadNode,
   createCanvasStoryboardSplitNode,
 } from './canvasDerivedNodeCreation';
-import { createDefaultStoryboardExportOptions } from './canvasNodeHydration';
 import { resolveGeneratedImageNodeDimensions } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
-import { resolveStoryboardSplitNodeDimensions } from './storyboardNodeLayout';
+import {
+  createDefaultStoryboardExportOptions,
+  resolveStoryboardSplitNodeDimensions,
+} from './storyboardNodeModel';
 
 function node(
   id: string,
