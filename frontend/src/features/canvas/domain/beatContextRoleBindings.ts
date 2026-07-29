@@ -3,7 +3,7 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
   type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
+} from "./canvasNodes";
 
 const NO_CHARACTER_MARKER = "__NO_CHARACTER__";
 const NO_PROP_MARKER = "__NO_PROP__";

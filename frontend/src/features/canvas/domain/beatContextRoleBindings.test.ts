@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
-import type { CanvasEdge, CanvasNode } from "@/features/canvas/domain/canvasNodes";
+import { syncBeatContextMainlineEdges } from "./beatContextRoleBindings";
+import type { CanvasEdge, CanvasNode } from "./canvasNodes";
 
 const nodes = [
   {

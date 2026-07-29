@@ -1027,6 +1027,53 @@ describe("frontend architecture boundaries", () => {
     expect(legacyConsumers).toEqual([]);
   });
 
+  it("owns Beat Context role bindings in the Canvas domain", () => {
+    const legacyPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/beatContextProjection.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/beatContextRoleBindings.ts",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/beatContextRoleBindings.test.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const declaration = [
+      "export function",
+      "syncBeatContextMainlineEdges(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const legacyConsumers = sourceFiles(SRC_ROOT)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => specifier.includes("beatContextProjection"))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(declarationOwners).toEqual([
+      "features/canvas/domain/beatContextRoleBindings.ts",
+    ]);
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/domain/beatContextRoleBindings",
+    );
+    expect(new Set(importSpecifiers(testPath))).toEqual(
+      new Set(["vitest", "./beatContextRoleBindings", "./canvasNodes"]),
+    );
+    expect(legacyConsumers).toEqual([]);
+  });
+
   it("owns Skill input resolution in the Freezone domain", () => {
     const legacyPath = resolve(
       SRC_ROOT,
