@@ -2086,6 +2086,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百零七批已将项目资产与 Beat Context 的 React Query 调用、画布 scope 判定、内外 reload token 监听与显式 refetch、查询错误归一、目录资产投影和缩略图缓存 token 从 `AssetLibraryPanel` 迁入唯一 presentation controller `hooks/useAssetLibraryCatalogController.ts`；面板只传 project、metadata、canvas kind 与刷新计数并消费 `{assets, beatContext, error, assetImageCacheToken}`，不再直接依赖 Freezone query composition 或 application 投影。首次挂载不额外 refetch、同项目查询共享、reload 同时刷新两类数据、asset 画布禁用 Beat 请求、episode/beat 缺失时保持禁用、项目错误优先于 Beat 错误及成功刷新后清除错误的语义保持不变；旧 query/ref/error/projection 代码从面板直接删除，不保留 facade 或第二套生命周期。`AssetLibraryPanel` 由 330 行降至 270 行；控制器、面板与外部提交刷新合同回归 3 个文件 20 项、本批及关联架构断言 3 项、完整前端架构门禁 3 个文件 290 项（其中 module boundaries 250 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百零八批已将画布类型到 Beat tab 文案的映射、四类固定资产 tab 装配、各 tab 计数以及按 tab/搜索词过滤资产的规则从 `AssetLibraryPanel` 迁入现有唯一纯 presentation view model `presentation/assetLibraryViewModel.ts`；面板只用 `useMemo` 调用 `buildAssetLibraryTabs` 与 `filterAssetLibraryAssets` 并渲染结果，不再内联展示分支。默认/空白画布“全部Beat”、剧集画布“本集Beat”、其余画布“当前Beat”的文案，Beat 仅包含 `from_beat_context` 资产，其他 tab 按资产分类过滤，以及 label/sublabel/kind/role 的 trim + 不区分大小写搜索语义均保持不变；原内联逻辑直接删除，不保留第二套投影。`AssetLibraryPanel` 由 270 行降至 247 行；view model 与面板回归 2 个文件 11 项、关联架构断言 1 项、完整前端架构门禁 3 个文件 290 项（其中 module boundaries 250 项）及前端 TypeScript 全量检查通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -6135,6 +6135,8 @@ describe("frontend architecture boundaries", () => {
       ["export function", "groupBeatAssets("].join(" "),
       ["function", "beatGroupForAsset("].join(" "),
       ["export function", "countAssetsForTab("].join(" "),
+      ["export function", "buildAssetLibraryTabs("].join(" "),
+      ["export function", "filterAssetLibraryAssets("].join(" "),
       ["export function", "resolveCanvasKind("].join(" "),
       ["export function", "resolveCurrentEpisode("].join(" "),
       ["export function", "resolveCurrentBeat("].join(" "),
@@ -6164,11 +6166,18 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).toContain(
       "@/features/freezone/presentation/assetLibraryViewModel",
     );
+    expect(panelSource).toContain("buildAssetLibraryTabs(canvasKind, assets)");
+    expect(panelSource).toContain(
+      "filterAssetLibraryAssets(assets, tab, query)",
+    );
     for (const legacyDeclaration of declarations) {
       expect(panelSource).not.toContain(legacyDeclaration);
     }
     expect(panelSource).not.toContain("ROLE_LABELS");
     expect(panelSource).not.toContain("ROLE_ORDER");
+    expect(panelSource).not.toContain("beatTabLabel");
+    expect(panelSource).not.toContain("source.from_beat_context");
+    expect(panelSource).not.toContain("countAssetsForTab(");
     expect(testSource).toContain('from "./assetLibraryViewModel"');
   });
 

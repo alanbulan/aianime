@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   beatAssetItems,
+  buildAssetLibraryTabs,
   countAssetsForTab,
+  filterAssetLibraryAssets,
   groupBeatAssets,
   resolveCanvasKind,
   resolveCurrentBeat,
@@ -109,6 +111,58 @@ describe("assetLibraryViewModel", () => {
       className: "border-secondary bg-secondary text-secondary-foreground",
     });
     expect(sceneAssetTypeBadge(beat)).toBeNull();
+  });
+
+  it("builds stable library tabs with canvas-specific Beat labels", () => {
+    const beat = libraryAsset("beat", {
+      source: { from_beat_context: true },
+    });
+    const scene = libraryAsset("scene", { tab: "scenes" });
+
+    expect(buildAssetLibraryTabs("default", [beat, scene])).toEqual([
+      { id: "beat", label: "全部Beat", count: 1 },
+      { id: "characters", label: "人物", count: 0 },
+      { id: "scenes", label: "场景", count: 1 },
+      { id: "props", label: "道具", count: 0 },
+    ]);
+    expect(buildAssetLibraryTabs("episode", [])).toEqual(
+      expect.arrayContaining([
+        { id: "beat", label: "本集Beat", count: 0 },
+      ]),
+    );
+    expect(buildAssetLibraryTabs("beat", [beat])[0]).toEqual({
+      id: "beat",
+      label: "当前Beat",
+      count: 1,
+    });
+  });
+
+  it("filters the selected tab by normalized asset search text", () => {
+    const beat = libraryAsset("beat", {
+      label: "当前分镜",
+      source: { from_beat_context: true },
+    });
+    const hiddenBeat = libraryAsset("hidden-beat", {
+      label: "旧分镜",
+      source: { from_beat_context: false },
+    });
+    const scene = libraryAsset("scene", {
+      tab: "scenes",
+      label: "Kitchen",
+      sublabel: "Night Interior",
+      kind: "scene",
+      role: "scene_master",
+    });
+    const assets = [beat, hiddenBeat, scene];
+
+    expect(filterAssetLibraryAssets(assets, "beat", "")).toEqual([beat]);
+    expect(filterAssetLibraryAssets(assets, "scenes", " night ")).toEqual([
+      scene,
+    ]);
+    expect(filterAssetLibraryAssets(assets, "scenes", "MASTER")).toEqual([
+      scene,
+    ]);
+    expect(filterAssetLibraryAssets(assets, "characters", "")).toEqual([]);
   });
 
   it("resolves canvas scope and target coordinates from preset metadata", () => {

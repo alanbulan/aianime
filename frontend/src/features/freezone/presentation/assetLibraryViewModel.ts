@@ -179,6 +179,47 @@ export function countAssetsForTab(
   return assets.filter((asset) => asset.tab === tab).length;
 }
 
+export function buildAssetLibraryTabs(
+  canvasKind: CanvasKind,
+  assets: LibraryAsset[],
+): Array<{ id: AssetTab; label: string; count: number }> {
+  const beatLabel =
+    canvasKind === "default" || canvasKind === "blank"
+      ? "全部Beat"
+      : canvasKind === "episode"
+        ? "本集Beat"
+        : "当前Beat";
+  const tabs: Array<{ id: AssetTab; label: string }> = [
+    { id: "beat", label: beatLabel },
+    { id: "characters", label: "人物" },
+    { id: "scenes", label: "场景" },
+    { id: "props", label: "道具" },
+  ];
+  return tabs.map((tab) => ({
+    ...tab,
+    count: countAssetsForTab(assets, tab.id),
+  }));
+}
+
+export function filterAssetLibraryAssets(
+  assets: LibraryAsset[],
+  tab: AssetTab,
+  query: string,
+): LibraryAsset[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  return assets.filter((asset) => {
+    if (tab === "beat") {
+      if (!asset.source.from_beat_context) return false;
+    } else if (asset.tab !== tab) {
+      return false;
+    }
+    if (!normalizedQuery) return true;
+    return `${asset.label} ${asset.sublabel ?? ""} ${asset.kind} ${asset.role}`
+      .toLowerCase()
+      .includes(normalizedQuery);
+  });
+}
+
 export function resolveCanvasKind(
   metadata: Record<string, unknown> | null,
 ): CanvasKind {

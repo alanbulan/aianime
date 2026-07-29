@@ -8,7 +8,8 @@ import { CanvasesTab } from "./CanvasesTab";
 import { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 import { addAssetToCanvas } from "@/features/freezone/assetLibraryCanvasInsertionComposition";
 import {
-  countAssetsForTab,
+  buildAssetLibraryTabs,
+  filterAssetLibraryAssets,
   resolveCanvasKind,
 } from "@/features/freezone/presentation/assetLibraryViewModel";
 import { BeatContextPanel } from "@/features/freezone/presentation/AssetLibraryBeatPanels";
@@ -50,19 +51,6 @@ export function AssetLibraryPanel({
   reloadToken,
 }: AssetLibraryPanelProps) {
   const canvasKind = resolveCanvasKind(metadata);
-  const beatTabLabel =
-    canvasKind === "default" || canvasKind === "blank"
-      ? "全部Beat"
-      : canvasKind === "episode"
-        ? "本集Beat"
-        : "当前Beat";
-  const tabs: Array<{ id: AssetTab; label: string }> = [
-    { id: "beat", label: beatTabLabel },
-    { id: "characters", label: "人物" },
-    { id: "scenes", label: "场景" },
-    { id: "props", label: "道具" },
-  ];
-
   const [panelTab, setPanelTab] = useState<PanelTab>("canvases");
   const [tab, setTab] = useState<AssetTab>("beat");
   const [query, setQuery] = useState("");
@@ -94,24 +82,13 @@ export function AssetLibraryPanel({
     }
   };
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return assets.filter((asset) => {
-      if (tab === "beat") {
-        if (!asset.source.from_beat_context) return false;
-      } else if (asset.tab !== tab) {
-        return false;
-      }
-      if (!q) return true;
-      return `${asset.label} ${asset.sublabel ?? ""} ${asset.kind} ${asset.role}`
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [assets, query, tab]);
-
-  const tabCounts = useMemo(
-    () => tabs.map((t) => ({ ...t, count: countAssetsForTab(assets, t.id) })),
-    [assets],
+  const filtered = useMemo(
+    () => filterAssetLibraryAssets(assets, tab, query),
+    [assets, query, tab],
+  );
+  const tabs = useMemo(
+    () => buildAssetLibraryTabs(canvasKind, assets),
+    [assets, canvasKind],
   );
 
   return (
@@ -187,7 +164,7 @@ export function AssetLibraryPanel({
               {/* ── 分类标签 + 搜索（固定头部） ── */}
               <div className="sticky top-0 z-10">
                 <div className="ui-scrollbar-hidden flex items-center gap-1 overflow-x-auto px-3 pt-2.5 pb-2">
-                  {tabCounts.map((item) => (
+                  {tabs.map((item) => (
                     <button
                       key={item.id}
                       type="button"
