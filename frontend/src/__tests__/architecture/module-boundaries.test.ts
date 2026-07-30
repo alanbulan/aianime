@@ -21765,6 +21765,62 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose track media synchronization in one hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTrackMediaSync.ts",
+    );
+    const hookTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTrackMediaSync.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const hookSource = readFileSync(hookPath, "utf8");
+    const hookTestSource = readFileSync(hookTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declaration = [
+      "export function",
+      "useVideoComposeTrackMediaSync<",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(hookPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/domain/videoComposeTimeline",
+      ]),
+    );
+    expect(hookSource).toContain("activeClipAt(track, playheadMs)");
+    expect(hookSource).toContain("element.dataset.clipId = activeClipId");
+    expect(hookSource).toContain("element.playbackRate =");
+    expect(hookSource).toContain("desiredSourceSecondsRef");
+    expect(hookSource).toContain("element.addEventListener('seeked'");
+    expect(hookSource).not.toContain("useCanvasStore");
+    expect(hookSource).not.toContain("@/features/canvas/composition");
+    expect(hookSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeTrackMediaSync",
+    );
+    expect(
+      modalSource.match(/useVideoComposeTrackMediaSync\(/g)?.length,
+    ).toBe(2);
+    expect(modalSource).not.toContain("function useTrackMediaSync(");
+    expect(modalSource).not.toContain("desiredSourceSecRef");
+    expect(declarationOwners).toEqual([
+      "features/canvas/hooks/useVideoComposeTrackMediaSync.ts",
+    ]);
+    expect(hookTestSource).toContain(
+      "from './useVideoComposeTrackMediaSync'",
+    );
+  });
+
   it("keeps single-video clip composition in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,

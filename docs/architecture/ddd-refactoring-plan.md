@@ -2216,6 +2216,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百七十二批已将视频合成 307 行纯时间线状态与请求投影从 `compose/timelineModel.ts` 直接迁入唯一 domain 模块 `domain/videoComposeTimeline.ts`，并将上游节点到初始视频/音频轨、非空草稿恢复、断开来源清除、外部片段保留、缺失来源补入及主视频轨补位迁入唯一纯 application 模块 `application/videoComposeTimelineSession.ts`，浏览器 `<video>/<audio>` 元数据探测迁入注入 URL 解析器的 `infrastructure/browserVideoComposeMediaRuntime.ts`；旧 `compose/timelineModel.ts` 直接删除，不保留 facade、re-export、兼容别名或第二套规则。`VideoComposeModal` 改为从 VideoCompose node controller/View 显式接收当前上游节点快照并调用新所有者，删除内部 Canvas Store 读取和三组私有实现，由 2,776 行降至 2,640 行；种子顺序、视频/音频独立连续排布、未知时长 5 秒兜底、空音频轨省略、草稿分辨率/封面/裁剪/音量保留、外部素材保留、断开素材移除、缺失素材追加、主视频轨无缝补位、媒体 URL 解析、毫秒四舍五入及加载失败回退语义保持不变。新增会话投影 5 项和浏览器 runtime 3 项测试，连同时间线 domain、VideoCompose node controller 与 View 共定向回归 5 个文件 31 项；完整前端架构门禁 3 个文件 336 项（其中 module boundaries 296 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百七十三批已将视频合成轨道的激活片段投影、媒体换源、`data-clip-id` 对齐、metadata 后定位与续播、播放/暂停、音量/静音/倍速镜像、暂停 scrub seek 合并及 `seeked` 追赶生命周期从 `compose/VideoComposeModal.tsx` 迁入唯一 Hook `hooks/useVideoComposeTrackMediaSync.ts`；Modal 只对视频轨和音频轨各装配一次 Hook，旧私有 `useTrackMediaSync` 直接删除，不保留 facade、re-export、兼容别名或第二套媒体同步逻辑，由 2,640 行降至 2,533 行。片段边界换源、媒体主时钟所需 clip 标记、无激活片段时清空媒体、音频存在时预览视频强制静音、无效倍速回退 1、播放前 metadata 定位、快速拖动期间只追最新 seek 目标、50ms 误差门槛和卸载监听清理语义保持不变。新增 Hook 4 项定向测试；完整前端架构门禁 3 个文件 337 项（其中 module boundaries 297 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

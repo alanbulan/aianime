@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -76,6 +75,7 @@ import {
   type ComposeTrackKind,
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
+import { useVideoComposeTrackMediaSync } from "@/features/canvas/hooks/useVideoComposeTrackMediaSync";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import {
   getCachedAudioPeaks,
@@ -148,125 +148,6 @@ function formatTimecode(ms: number, fps = 30): string {
   const f = Math.min(fps - 1, Math.floor(((totalMs % 1000) / 1000) * fps));
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
-}
-
-/**
- * Drive a single <video>/<audio> element off the master playhead. The clock in
- * {@link useComposePlayback} owns progress — this only swaps src at clip
- * boundaries, seeks while scrubbing, mirrors play/pause/volume, and applies the
- * per-clip playback rate (变速).
- */
-function useTrackMediaSync<T extends HTMLMediaElement>(
-  ref: RefObject<T | null>,
-  track: ComposeTrack | null,
-  playheadMs: number,
-  isPlaying: boolean,
-  forceMuted: boolean,
-): void {
-  const active = useMemo(
-    () => (track ? activeClipAt(track, playheadMs) : null),
-    [track, playheadMs],
-  );
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  const isPlayingRef = useRef(isPlaying);
-  isPlayingRef.current = isPlaying;
-
-  const activeClipId = active?.laid.clip.id ?? null;
-  const sourceUrl = active?.laid.clip.sourceUrl ?? null;
-  const speed = active?.laid.clip.speed ?? 1;
-
-  // (1) swap source when the active clip changes, then seek once metadata loads.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!sourceUrl) {
-      el.pause();
-      el.removeAttribute("src");
-      delete el.dataset.clipId;
-      try {
-        el.load();
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-    // 标记元素当前真正装载的是哪个片段 —— 媒体主时钟据此校验「映射用的片段」与
-    // 「元素实际在放的片段」是否一致，避免边界换源瞬间用错映射把竖线算回上一段。
-    el.dataset.clipId = activeClipId ?? "";
-    el.src = resolveImageDisplayUrl(sourceUrl);
-    try {
-      el.load();
-    } catch {
-      /* ignore */
-    }
-    const onReady = () => {
-      const a = activeRef.current;
-      try {
-        el.currentTime = (a ? a.sourceMs : 0) / 1000;
-      } catch {
-        /* ignore */
-      }
-      if (isPlayingRef.current) void el.play().catch(() => {});
-    };
-    el.addEventListener("loadedmetadata", onReady, { once: true });
-    return () => el.removeEventListener("loadedmetadata", onReady);
-  }, [activeClipId, sourceUrl, ref]);
-
-  // (2) play / pause + per-clip volume + playback rate.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const a = activeRef.current;
-    el.volume = a ? a.laid.clip.volume : 1;
-    el.muted = forceMuted || (a ? a.laid.clip.muted : false);
-    el.playbackRate = speed > 0 ? speed : 1;
-    if (isPlaying && activeClipId) void el.play().catch(() => {});
-    else el.pause();
-  }, [isPlaying, activeClipId, forceMuted, speed, ref]);
-
-  // (3) scrub：暂停态把播放头镜像进媒体元素。关键是「合并 seek」——快速拖动时不要
-  // 每次都直接写 currentTime，否则一连串 seek 塞满解码器、互相挤压，预览画面卡顿。
-  // 做法：始终记录最新目标时间 desiredSourceSecRef；当前正在 seek 时只更新目标、不
-  // 发新 seek；seek 完成（见下方 seeked 监听）后若目标已变再追一次。这样画面以解码
-  // 能跑到的最快速度跟手，不堆积。
-  const desiredSourceSecRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (isPlaying) return;
-    const el = ref.current;
-    const a = activeRef.current;
-    if (!el || !a) return;
-    const target = a.sourceMs / 1000;
-    desiredSourceSecRef.current = target;
-    if (el.seeking || el.readyState < 1) return;
-    try {
-      el.currentTime = target;
-    } catch {
-      /* ignore */
-    }
-    // 依赖含 active：片段在播放头不动的情况下被拖到别的轨道（sourceMs 变了但 playheadMs
-    // 没变）时也要重新对齐 currentTime，否则预览停在旧位置。
-  }, [playheadMs, isPlaying, ref, active]);
-
-  // seek 完成时，如果拖动中目标已经移动到别处，立刻追到最新目标。这把「拖动期间
-  // 堆积的中间 seek」压成「永远只追最后一个」，是 scrub 不卡的核心。
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onSeeked = () => {
-      if (isPlayingRef.current) return;
-      const want = desiredSourceSecRef.current;
-      if (want != null && Math.abs(el.currentTime - want) > 0.05) {
-        try {
-          el.currentTime = want;
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-    el.addEventListener("seeked", onSeeked);
-    return () => el.removeEventListener("seeked", onSeeked);
-  }, [ref]);
 }
 
 export function VideoComposeModal({
@@ -496,8 +377,20 @@ export function VideoComposeModal({
     [timeline],
   );
 
-  useTrackMediaSync(videoRef, videoTrack, playheadMs, isPlaying, hasAudioTrack);
-  useTrackMediaSync(audioRef, audioTrack, playheadMs, isPlaying, false);
+  useVideoComposeTrackMediaSync(
+    videoRef,
+    videoTrack,
+    playheadMs,
+    isPlaying,
+    hasAudioTrack,
+  );
+  useVideoComposeTrackMediaSync(
+    audioRef,
+    audioTrack,
+    playheadMs,
+    isPlaying,
+    false,
+  );
 
   // ── history (undo / redo) ────────────────────────────────────────────────
   const pushHistory = useCallback(() => {
