@@ -1,40 +1,9 @@
 // Copyright (c) 2026 AI anime
-import {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  ChevronDown,
-  Copy,
-  Download,
-  Film,
-  Gauge,
-  Image as ImageIcon,
-  LayoutGrid,
-  Loader2,
-  Magnet,
-  Maximize,
-  Pause,
-  Play,
-  Redo2,
-  RotateCcw,
-  Split,
-  Trash2,
-  Undo2,
-  Volume2,
-  VolumeX,
-  X,
-} from "lucide-react";
 
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
@@ -47,16 +16,13 @@ import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVi
 import { useVideoComposeTimelineEditorController } from "@/features/canvas/hooks/useVideoComposeTimelineEditorController";
 import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
 import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
-import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
 import {
-  VideoComposeSpeedPopover,
-  VideoComposeToolButton,
-  VideoComposeToolDivider,
-  VideoComposeVolumePopover,
-  VideoComposeZoomInGlyph,
-  VideoComposeZoomOutGlyph,
-} from "@/features/canvas/ui/VideoComposeTimelineControls";
+  VideoComposeModalView,
+  type VideoComposeExportDialogState,
+  type VideoComposeExportLocation,
+} from "@/features/canvas/ui/VideoComposeModalView";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
+
 import { CoverEditor } from "./CoverEditor";
 
 export interface VideoComposeModalProps {
@@ -79,7 +45,7 @@ const DEFAULT_PX_PER_SEC = 80;
 const MIN_PX_PER_SEC = 20;
 const MAX_PX_PER_SEC = 240;
 const ZOOM_STEP = 1.5;
-const RULER_MIN_SECONDS = 10;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -90,13 +56,6 @@ function makeClipId(): string {
 
 function makeTrackId(): string {
   return `track_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function formatTime(ms: number): string {
-  const total = Math.max(0, Math.round(ms / 1000));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export function VideoComposeModal({
@@ -110,9 +69,9 @@ export function VideoComposeModal({
   onPersistDraft,
 }: VideoComposeModalProps) {
   const { t } = useTranslation();
-  // 合成弹窗打开期间标记为「沉浸式」：画布的全局快捷键（Delete 删节点、⌘C/⌘V、⌘Z…）
-  // 整体让位，避免弹窗内按 Delete 删片段却把画布上的视频合成节点也删了、并弹回画布。
+  // 弹窗内快捷键接管期间，让画布全局删除、复制和撤销快捷键整体让位。
   useViewerImmersiveBody(true);
+
   const {
     timeline,
     timelineRef,
@@ -147,17 +106,20 @@ export function VideoComposeModal({
       overlapErrorMessage: t("videoCompose.error.overlap"),
       missingUrlErrorMessage: t("videoCompose.error.noUrl"),
     });
+
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportDialog, setExportDialog] = useState<{
-    open: boolean;
-    location: "local" | "canvas";
-    resolution: CanvasVideoComposeResolution;
-  }>({ open: false, location: "local", resolution: "1080p" });
+  const [exportDialog, setExportDialog] =
+    useState<VideoComposeExportDialogState>({
+      open: false,
+      location: "local",
+      resolution: "1080p",
+    });
   const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+
   const applyCover = useCallback(
     (cover: ComposeCover) => {
       applyTimelineCover(cover);
@@ -165,6 +127,33 @@ export function VideoComposeModal({
     },
     [applyTimelineCover],
   );
+  const openExportDialog = useCallback(
+    (location: VideoComposeExportLocation) => {
+      setExportMenuOpen(false);
+      setExportDialog({ open: true, location, resolution: "1080p" });
+    },
+    [],
+  );
+  const setExportLocation = useCallback(
+    (location: VideoComposeExportLocation) => {
+      setExportDialog((current) => ({ ...current, location }));
+    },
+    [],
+  );
+  const setExportResolution = useCallback(
+    (resolution: VideoComposeExportDialogState["resolution"]) => {
+      setExportDialog((current) => ({ ...current, resolution }));
+    },
+    [],
+  );
+  const closeExportDialog = useCallback(() => {
+    setExportDialog((current) => ({ ...current, open: false }));
+  }, []);
+  const confirmExport = useCallback(() => {
+    const { location, resolution } = exportDialog;
+    setExportDialog((current) => ({ ...current, open: false }));
+    void runExport(location, resolution);
+  }, [exportDialog, runExport]);
 
   const {
     videoRef,
@@ -262,452 +251,128 @@ export function VideoComposeModal({
     seek,
   });
 
-  // ── zoom ───────────────────────────────────────────────────────────────────
   const zoomIn = useCallback(
-    () => setPxPerSec((v) => clamp(v * ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC)),
+    () =>
+      setPxPerSec((value) =>
+        clamp(value * ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC),
+      ),
     [],
   );
   const zoomOut = useCallback(
-    () => setPxPerSec((v) => clamp(v / ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC)),
+    () =>
+      setPxPerSec((value) =>
+        clamp(value / ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC),
+      ),
     [],
   );
 
-  const rulerSeconds = Math.max(RULER_MIN_SECONDS, Math.ceil(durationMs / 1000));
-  const timelineWidthPx = rulerSeconds * pxPerSec;
-  const canExport = hasExportableClips(timeline) && !isExporting;
-  // 时间轴上重叠的视频片段 id —— 用于把冲突片段高亮（红框）提示用户。
-  const overlapClipIds = useMemo(() => overlappingVideoClipIds(timeline), [timeline]);
+  const hasClips = hasExportableClips(timeline);
+  const canExport = hasClips && !isExporting;
+  const overlapClipIds = useMemo(
+    () => overlappingVideoClipIds(timeline),
+    [timeline],
+  );
 
-  return createPortal(
-    <div className="fixed inset-0 z-[120] flex flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-border-dark px-5 py-3">
-        <div className="flex items-center gap-2 text-text-dark">
-          <Film className="h-5 w-5 text-text-muted" />
-          <span className="text-sm font-semibold">{t("videoCompose.title")}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* 设置封面：独立入口，点开封面编辑器（选帧 / 上传）。已设封面时左侧带缩略图。 */}
-          <button
-            type="button"
-            onClick={() => setCoverEditorOpen(true)}
-            disabled={!hasExportableClips(timeline)}
-            className="flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-sm text-foreground transition-colors hover:border-foreground/25 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {timeline.cover?.url ? (
-              <img
-                src={resolveImageDisplayUrl(timeline.cover.url)}
-                alt=""
-                className="h-5 w-[34px] rounded-[4px] object-cover"
-              />
-            ) : (
-              <ImageIcon className="h-4 w-4" />
-            )}
-            {t("videoCompose.cover.button")}
-          </button>
-          {/* 不再提供 720p/1080p 切换：导出沿用源视频画质（默认 1080p，不降采样）。 */}
-          {/* 导出下拉：自建轻量 popover —— 共享的 Base UI DropdownMenu 把菜单 portal 到
-              body 且 Positioner 固定 z-50，会被本弹窗的 z-[120] 整层盖住（点了像没反应）。
-              这里跟 VideoComposeSpeedPopover 一样用模态内的相对定位浮层，避开 z 冲突。 */}
-          {/* hover 即展开（不是点击）。onMouseLeave 在指针离开按钮+菜单整体时才关闭：
-              菜单是 wrapper 的 DOM 子节点，且用 pt-2 桥接视觉间隙，避免移到菜单途中关掉。 */}
-          <div
-            className="relative"
-            onMouseEnter={() =>
-              canExport && !exportDialog.open && setExportMenuOpen(true)
-            }
-            onMouseLeave={() => setExportMenuOpen(false)}
-          >
-            <button
-              type="button"
-              disabled={!canExport}
-              className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Film className="h-4 w-4" />
-              )}
-              {isExporting
-                ? t("videoCompose.exporting")
-                : t("videoCompose.export")}
-              <ChevronDown className="h-3.5 w-3.5 opacity-80" />
-            </button>
-            {exportMenuOpen && canExport && !exportDialog.open && (
-              <div className="absolute right-0 top-full z-30 pt-2">
-                <div className="min-w-[180px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-2xl">
-                  <div className="px-2 py-1 text-xs text-text-muted">
-                    {t("videoCompose.exportLocation")}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      setExportDialog({ open: true, location: "local", resolution: "1080p" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
-                  >
-                    <Download className="h-4 w-4" />
-                    {t("videoCompose.exportToLocal")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      setExportDialog({ open: true, location: "canvas", resolution: "1080p" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    {t("videoCompose.exportToCanvas")}
-                  </button>
-                </div>
-              </div>
-            )}
-            {/* 导出设置弹窗：锚定在「导出」按钮正下方（参考 libtv），非屏幕居中。 */}
-            {exportDialog.open && (
-              <>
-                <div
-                  className="fixed inset-0 z-[135]"
-                  onClick={() =>
-                    !isExporting && setExportDialog((d) => ({ ...d, open: false }))
-                  }
-                />
-                <div className="absolute right-0 top-full z-[140] mt-2 w-[360px] rounded-xl border border-border bg-popover p-5 text-left text-popover-foreground shadow-2xl">
-                  <h3 className="mb-4 text-sm font-semibold text-text-dark">
-                    {t("videoCompose.exportDialog.title")}
-                  </h3>
-                  <div className="space-y-3">
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-text-muted">
-                        {t("videoCompose.exportDialog.location")}
-                      </span>
-                      <select
-                        value={exportDialog.location}
-                        onChange={(e) =>
-                          setExportDialog((d) => ({
-                            ...d,
-                            location: e.target.value as "local" | "canvas",
-                          }))
-                        }
-                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
-                      >
-                        <option value="local">{t("videoCompose.exportToLocal")}</option>
-                        <option value="canvas">{t("videoCompose.exportToCanvas")}</option>
-                      </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-text-muted">
-                        {t("videoCompose.exportDialog.resolution")}
-                      </span>
-                      <select
-                        value={exportDialog.resolution}
-                        onChange={(e) =>
-                          setExportDialog((d) => ({
-                            ...d,
-                            resolution: e.target.value as CanvasVideoComposeResolution,
-                          }))
-                        }
-                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
-                      >
-                        <option value="720p">720P</option>
-                        <option value="1080p">1080P</option>
-                      </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-text-muted">
-                        {t("videoCompose.exportDialog.format")}
-                      </span>
-                      <select
-                        value="mp4"
-                        disabled
-                        className="min-w-[160px] cursor-not-allowed rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-muted-foreground opacity-70 outline-none"
-                      >
-                        <option value="mp4">MP4</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div className="mt-5 flex justify-end gap-2">
-                    <button
-                      type="button"
-                      disabled={isExporting}
-                      onClick={() => setExportDialog((d) => ({ ...d, open: false }))}
-                      className="rounded-md border border-border bg-muted px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                    >
-                      {t("common.cancel")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isExporting}
-                      onClick={() => {
-                        const { location, resolution } = exportDialog;
-                        setExportDialog((d) => ({ ...d, open: false }));
-                        void runExport(location, resolution);
-                      }}
-                      className="rounded-md bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {t("common.confirm")}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isExporting}
-            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-            aria-label={t("common.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
-
-      {exportError && (
-        <div className="border-b border-destructive/30 bg-destructive/10 px-5 py-2 text-xs text-destructive">
-          {t("videoCompose.error.prefix")}: {exportError}
-        </div>
-      )}
-
-      {/* Preview stage */}
-      <div
-        ref={previewStageRef}
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-media/60 p-4"
-      >
-        <video
-          ref={videoRef}
-          className="max-h-full max-w-full rounded-lg bg-media"
-          playsInline
-          style={{ display: videoSource ? "block" : "none" }}
-        />
-        {!videoSource && (
-          <div className="text-sm text-media-foreground/70">
-            {t("videoCompose.emptyPreview")}
-          </div>
-        )}
-        <audio ref={audioRef} className="hidden" />
-      </div>
-
-      {/* Toolbar */}
-      <div className="relative flex items-center justify-between gap-4 border-t border-border-dark px-4 py-2">
-        {/* Left: edit actions */}
-        <div className="flex items-center gap-0.5">
-          <VideoComposeToolButton icon={Undo2} label={t("videoCompose.undo")} disabled={!canUndo} onClick={undo} />
-          <VideoComposeToolButton icon={Redo2} label={t("videoCompose.redo")} disabled={!canRedo} onClick={redo} />
-          <VideoComposeToolDivider />
-          <VideoComposeToolButton icon={Split} label={t("videoCompose.split")} disabled={!canSplitInside} onClick={splitSelected} />
-          <VideoComposeToolButton
-            icon={ArrowLeftToLine}
-            label={t("videoCompose.splitLeft")}
-            disabled={!canSplitInside}
-            onClick={() => trimSelectedToPlayhead("left")}
+  return (
+    <VideoComposeModalView
+      timeline={timeline}
+      header={{
+        coverDisplayUrl: timeline.cover?.url
+          ? resolveImageDisplayUrl(timeline.cover.url)
+          : null,
+        canSetCover: hasClips,
+        onOpenCoverEditor: () => setCoverEditorOpen(true),
+        onClose,
+      }}
+      exportPanel={{
+        canExport,
+        isExporting,
+        error: exportError,
+        menuOpen: exportMenuOpen,
+        dialog: exportDialog,
+        onMenuOpenChange: setExportMenuOpen,
+        onOpenDialog: openExportDialog,
+        onDialogLocationChange: setExportLocation,
+        onDialogResolutionChange: setExportResolution,
+        onCloseDialog: closeExportDialog,
+        onConfirmDialog: confirmExport,
+      }}
+      preview={{
+        videoRef,
+        audioRef,
+        stageRef: previewStageRef,
+        videoSource,
+      }}
+      toolbar={{
+        canUndo,
+        canRedo,
+        hasSelectedClip: selectedClip !== null,
+        canSplitInside,
+        speedOpen,
+        selectedSpeed,
+        selectedSourceSpanMs,
+        volumeOpen,
+        selectedVolume,
+        selectedMuted,
+        playheadMs,
+        durationMs,
+        isPlaying,
+        snapEnabled,
+        pxPerSec,
+        minPxPerSec: MIN_PX_PER_SEC,
+        maxPxPerSec: MAX_PX_PER_SEC,
+        onUndo: undo,
+        onRedo: redo,
+        onSplit: splitSelected,
+        onTrimToPlayhead: trimSelectedToPlayhead,
+        onSpeedOpenChange: setSpeedOpen,
+        onSpeedChange: setSelectedSpeed,
+        onVolumeOpenChange: setVolumeOpen,
+        onVolumeChange: setSelectedVolume,
+        onVolumeGestureStart: pushHistory,
+        onToggleMute: toggleSelectedMute,
+        onDuplicate: duplicateSelected,
+        onRemoveSelected: removeSelected,
+        onTogglePlayback: toggle,
+        onResetToUpstream: resetToUpstream,
+        onSnapEnabledChange: setSnapEnabled,
+        onZoomChange: setPxPerSec,
+        onZoomOut: zoomOut,
+        onZoomIn: zoomIn,
+        onFullscreenPlay: handleFullscreenPlay,
+      }}
+      timelineSurface={{
+        pxPerSec,
+        pxPerMs,
+        durationMs,
+        selected,
+        selectedIds,
+        overlapClipIds,
+        dragGhost,
+        trimEdit,
+        trackScrollRef,
+        playheadElRef,
+        onStartScrub: startScrub,
+        onClearSelection: clearSelection,
+        onStartClipMove: startClipMove,
+        onTrim: startTrim,
+        onMoveToNewTrack: moveToNewTrack,
+        onRemoveClip: removeClip,
+        onSetClipMuted: setClipMuted,
+      }}
+      coverEditor={
+        coverEditorOpen ? (
+          <CoverEditor
+            project={project}
+            timeline={timeline}
+            durationMs={durationMs}
+            defaultFrameMs={playheadMs}
+            cover={timeline.cover ?? null}
+            onCancel={() => setCoverEditorOpen(false)}
+            onApply={applyCover}
           />
-          <VideoComposeToolButton
-            icon={ArrowRightToLine}
-            label={t("videoCompose.splitRight")}
-            disabled={!canSplitInside}
-            onClick={() => trimSelectedToPlayhead("right")}
-          />
-          <div className="relative">
-            <VideoComposeToolButton
-              icon={Gauge}
-              label={t("videoCompose.speed")}
-              disabled={!selectedClip}
-              active={speedOpen}
-              onClick={() => setSpeedOpen((open) => !open)}
-            />
-            {speedOpen && selectedClip && (
-              <VideoComposeSpeedPopover
-                speed={selectedSpeed}
-                sourceSpanMs={selectedSourceSpanMs}
-                onChange={setSelectedSpeed}
-                onClose={() => setSpeedOpen(false)}
-              />
-            )}
-          </div>
-          <div className="relative">
-            <VideoComposeToolButton
-              icon={selectedMuted || selectedVolume <= 0 ? VolumeX : Volume2}
-              label={t("videoCompose.volume")}
-              disabled={!selectedClip}
-              active={volumeOpen}
-              onClick={() => setVolumeOpen((open) => !open)}
-            />
-            {volumeOpen && selectedClip && (
-              <VideoComposeVolumePopover
-                volume={selectedVolume}
-                muted={selectedMuted}
-                onChange={setSelectedVolume}
-                onGestureStart={pushHistory}
-                onToggleMute={toggleSelectedMute}
-                onClose={() => setVolumeOpen(false)}
-              />
-            )}
-          </div>
-          <VideoComposeToolButton
-            icon={Copy}
-            label={t("videoCompose.duplicate")}
-            disabled={!selectedClip}
-            onClick={duplicateSelected}
-          />
-          <VideoComposeToolButton
-            icon={Trash2}
-            label={t("videoCompose.removeClip")}
-            disabled={!selectedClip}
-            onClick={removeSelected}
-          />
-        </div>
-
-        {/* Center: transport + snap */}
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs tabular-nums text-text-muted">
-            {formatTime(playheadMs)}
-          </span>
-          <button
-            type="button"
-            onClick={toggle}
-            disabled={durationMs <= 0}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent disabled:opacity-40"
-            aria-label={isPlaying ? t("videoCompose.pause") : t("videoCompose.play")}
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </button>
-          <span className="font-mono text-xs tabular-nums text-text-muted">
-            {formatTime(durationMs)}
-          </span>
-        </div>
-
-        {/* Right: reset + snap + zoom + fullscreen */}
-        <div className="flex items-center gap-1">
-          <VideoComposeToolButton
-            icon={RotateCcw}
-            label={t("videoCompose.resetToUpstream")}
-            onClick={resetToUpstream}
-          />
-          <VideoComposeToolDivider />
-          <VideoComposeToolButton
-            icon={Magnet}
-            label={t("videoCompose.snap")}
-            active={snapEnabled}
-            onClick={() => setSnapEnabled((v) => !v)}
-          />
-          <VideoComposeToolDivider />
-          <VideoComposeToolButton icon={VideoComposeZoomOutGlyph} label={t("videoCompose.zoomOut")} disabled={pxPerSec <= MIN_PX_PER_SEC} onClick={zoomOut} />
-          <input
-            type="range"
-            min={MIN_PX_PER_SEC}
-            max={MAX_PX_PER_SEC}
-            step={1}
-            value={pxPerSec}
-            onChange={(e) => setPxPerSec(Number(e.target.value))}
-            className="h-1 w-24 cursor-pointer accent-primary"
-            aria-label={t("videoCompose.zoom")}
-          />
-          <VideoComposeToolButton icon={VideoComposeZoomInGlyph} label={t("videoCompose.zoomIn")} disabled={pxPerSec >= MAX_PX_PER_SEC} onClick={zoomIn} />
-          <VideoComposeToolDivider />
-          <VideoComposeToolButton
-            icon={Maximize}
-            label={t("videoCompose.fullscreenPlay")}
-            disabled={durationMs <= 0}
-            onClick={handleFullscreenPlay}
-          />
-        </div>
-      </div>
-
-      {/* Timeline */}
-      <div className="h-[260px] shrink-0 overflow-hidden border-t border-border bg-card">
-        <div ref={trackScrollRef} className="ui-scrollbar-vertical h-full overflow-auto">
-          <div className="relative min-h-full" style={{ width: timelineWidthPx, minWidth: "100%" }}>
-            {/* Ruler */}
-            <div
-              className="relative h-7 cursor-pointer select-none border-b border-border-dark"
-              onPointerDown={startScrub}
-            >
-              {Array.from({ length: rulerSeconds + 1 }, (_, sec) => (
-                <div
-                  key={sec}
-                  className="absolute top-0 flex h-full flex-col justify-center"
-                  style={{ left: sec * pxPerSec }}
-                >
-                  <div className="h-2 w-px bg-border-dark" />
-                  <span className="ml-1 text-[10px] tabular-nums text-text-muted">
-                    {formatTime(sec * 1000)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Tracks */}
-            <div className="space-y-2 p-2" onPointerDown={() => clearSelection()}>
-              {timeline.tracks.map((track) => (
-                <VideoComposeTrackRow
-                  key={track.id}
-                  track={track}
-                  pxPerMs={pxPerMs}
-                  selectedClipId={selected?.clipId ?? null}
-                  selectedIds={selectedIds}
-                  overlapClipIds={overlapClipIds}
-                  draggingClipId={dragGhost?.clipId ?? null}
-                  ghostLeftPx={
-                    dragGhost && dragGhost.trackId === track.id
-                      ? dragGhost.ghostLeftPx
-                      : null
-                  }
-                  trimmingClipId={trimEdit?.clipId ?? null}
-                  trimEdge={trimEdit?.edge ?? null}
-                  onStartClipMove={startClipMove}
-                  onTrim={startTrim}
-                  onMoveToNewTrack={moveToNewTrack}
-                  onRemove={removeClip}
-                  onToggleMute={(clipId, muted) =>
-                    setClipMuted(track.id, clipId, muted)
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Playhead (draggable) —— 位置由 playback controller 命令式写 transform，
-                不绑 React state，避免播放时被整树重渲染拖卡。translateX 走合成层，
-                不触发 layout。 */}
-            <div
-              ref={playheadElRef}
-              className="pointer-events-none absolute top-0 bottom-0 left-0 z-20"
-              // transform 不放进 JSX style：否则播放时被节流的 state 重渲染会把竖线
-              // 拽回旧位置再被 onFrame 拉回，产生抖动。位置一律命令式设置。
-              style={{ willChange: "transform" }}
-            >
-              {/* 可见的细竖线 */}
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-primary" />
-              {/* 加宽的透明抓取条（触发块）：覆盖整条高度，居中对齐竖线，任意高度都能
-                  抓住拖动。仅 ~11px 宽，落在竖线上随它移动，对片段点击的影响极小。 */}
-              <div
-                className="pointer-events-auto absolute inset-y-0 -left-[5px] w-[11px] cursor-ew-resize"
-                onPointerDown={startScrub}
-              />
-              {/* 顶部圆点把手 */}
-              <div
-                className="pointer-events-auto absolute -left-[5px] -top-1 h-3 w-3 cursor-ew-resize rounded-full bg-primary shadow"
-                onPointerDown={startScrub}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {coverEditorOpen && (
-        <CoverEditor
-          project={project}
-          timeline={timeline}
-          durationMs={durationMs}
-          defaultFrameMs={playheadMs}
-          cover={timeline.cover ?? null}
-          onCancel={() => setCoverEditorOpen(false)}
-          onApply={applyCover}
-        />
-      )}
-    </div>,
-    document.body,
+        ) : null
+      }
+    />
   );
 }

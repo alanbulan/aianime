@@ -21806,9 +21806,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const modalViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoComposeModalView.tsx",
+    );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
+    const modalViewSource = readFileSync(modalViewPath, "utf8");
     const declaration = [
       "export function",
       "useVideoComposeTimelineSessionController(",
@@ -21850,8 +21855,10 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("setSelectedIds(");
     expect(modalSource).not.toContain("onPersistDraftRef");
     expect(modalSource).not.toContain("HISTORY_LIMIT");
-    expect(modalSource).toContain("disabled={!canUndo}");
-    expect(modalSource).toContain("disabled={!canRedo}");
+    expect(modalSource).not.toContain("disabled={!canUndo}");
+    expect(modalSource).not.toContain("disabled={!canRedo}");
+    expect(modalViewSource).toContain("disabled={!toolbar.canUndo}");
+    expect(modalViewSource).toContain("disabled={!toolbar.canRedo}");
     expect(declarationOwners).toEqual([
       "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
     ]);
@@ -22213,6 +22220,62 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose modal composition and presentation in separate owners", () => {
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoComposeModalView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoComposeModalView.test.tsx",
+    );
+    const modalSource = readFileSync(modalPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const declaration = [
+      "export function",
+      "VideoComposeModalView(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const portalOwners = [modalPath, viewPath]
+      .filter((path) => readFileSync(path, "utf8").includes("createPortal("))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/ui/VideoComposeModalView",
+    );
+    expect(modalSource.match(/<VideoComposeModalView/g)?.length).toBe(1);
+    expect(modalSource).not.toContain("className=");
+    expect(modalSource).not.toContain("createPortal(");
+    expect(modalSource).not.toContain("<VideoComposeTrackRow");
+    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).toContain("document.body");
+    expect(viewSource).toContain("<VideoComposeTrackRow");
+    expect(viewSource).toContain("coverEditor: ReactNode");
+    expect(viewSource).not.toContain("useCanvasStore");
+    expect(viewSource).not.toContain("@/api/");
+    expect(viewSource).not.toContain("@/stores/");
+    expect(viewSource).not.toContain("@/features/canvas/composition");
+    expect(viewSource).not.toContain("compose/CoverEditor");
+    expect(declarationOwners).toEqual([
+      "features/canvas/ui/VideoComposeModalView.tsx",
+    ]);
+    expect(portalOwners).toEqual([
+      "features/canvas/ui/VideoComposeModalView.tsx",
+    ]);
+    expect(viewTestSource).toContain(
+      'from "./VideoComposeModalView"',
+    );
+  });
+
   it("keeps video-compose controls and track media in presentation leaves", () => {
     const controlsPath = resolve(
       SRC_ROOT,
@@ -22234,11 +22297,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const modalViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoComposeModalView.tsx",
+    );
     const controlsSource = readFileSync(controlsPath, "utf8");
     const controlsTestSource = readFileSync(controlsTestPath, "utf8");
     const trackRowSource = readFileSync(trackRowPath, "utf8");
     const trackRowTestSource = readFileSync(trackRowTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
+    const modalViewSource = readFileSync(modalViewPath, "utf8");
     const declarations = [
       ["export function", "VideoComposeToolButton("].join(" "),
       ["export function", "VideoComposeSpeedPopover("].join(" "),
@@ -22274,23 +22342,32 @@ describe("frontend architecture boundaries", () => {
     expect(controlsSource).not.toContain("@/api/");
     expect(trackRowSource).not.toContain("useCanvasStore");
     expect(trackRowSource).not.toContain("@/api/");
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(modalViewPath)).toContain(
+      "./VideoComposeTimelineControls",
+    );
+    expect(importSpecifiers(modalViewPath)).toContain(
+      "./VideoComposeTrackRow",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/ui/VideoComposeTimelineControls",
     );
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/ui/VideoComposeTrackRow",
     );
     expect(importSpecifiers(modalPath)).not.toContain("./audioPeaks");
     expect(importSpecifiers(modalPath)).not.toContain("./filmstrip");
-    expect(modalSource).toContain("<VideoComposeSpeedPopover");
-    expect(modalSource).toContain("<VideoComposeVolumePopover");
-    expect(modalSource).toContain("<VideoComposeTrackRow");
-    expect(modalSource).not.toContain("function VideoComposeToolButton(");
-    expect(modalSource).not.toContain("function VideoComposeSpeedPopover(");
-    expect(modalSource).not.toContain("function VideoComposeVolumePopover(");
-    expect(modalSource).not.toContain("function VideoComposeTrackRow(");
-    expect(modalSource).not.toContain("function ClipFilmstrip(");
-    expect(modalSource).not.toContain("function ClipWaveform(");
+    expect(modalViewSource).toContain("<VideoComposeSpeedPopover");
+    expect(modalViewSource).toContain("<VideoComposeVolumePopover");
+    expect(modalViewSource).toContain("<VideoComposeTrackRow");
+    expect(modalViewSource).not.toContain("function VideoComposeToolButton(");
+    expect(modalViewSource).not.toContain("function VideoComposeSpeedPopover(");
+    expect(modalViewSource).not.toContain("function VideoComposeVolumePopover(");
+    expect(modalViewSource).not.toContain("function VideoComposeTrackRow(");
+    expect(modalViewSource).not.toContain("function ClipFilmstrip(");
+    expect(modalViewSource).not.toContain("function ClipWaveform(");
+    expect(modalSource).not.toContain("<VideoComposeSpeedPopover");
+    expect(modalSource).not.toContain("<VideoComposeVolumePopover");
+    expect(modalSource).not.toContain("<VideoComposeTrackRow");
     expect(declarationOwners).toEqual([
       ["features/canvas/ui/VideoComposeTimelineControls.tsx"],
       ["features/canvas/ui/VideoComposeTimelineControls.tsx"],

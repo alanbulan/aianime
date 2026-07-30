@@ -2236,6 +2236,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十二批已将视频合成的播放头相对选中片段投影、分割门禁与新 ID 装配、左右裁剪、倍速、音量、选中静音、轨道行静音、移入新轨、单片段删除、内存剪贴板、复制/粘贴/副本、批量删除及选中片段展示值从 `compose/VideoComposeModal.tsx` 迁入唯一 270 行 editor controller `hooks/useVideoComposeTimelineEditorController.ts`；controller 只构造既有 domain edit DTO 并调用 session 注入的唯一 `applyTimelineEdit`，不直接执行 reducer 或持有时间线 state，视频/音频预览轨仅作为粘贴目标注入。原内联 edit callbacks、`clipboardRef`、选择投影、四项展示值及轨道行静音匿名 edit 全部删除，不保留 facade、re-export、兼容别名或第二套命令路径，由 879 行降至 713 行。移轨前校验源轨与片段、分割后选中左片段、左右裁剪沿用当前播放头、倍速/裁剪/静音各记录一次历史、音量连续变化仍只由弹层手势开始记录一次历史、复制保存片段快照、粘贴按媒体类型选择当前预览轨且同轨选中时紧随其后、视频与音频副本继续复用同一 domain 命令、批量删除合并主选中与多选集合后清空选择语义保持不变。新增 controller 5 项行为测试；完整前端架构门禁 3 个文件 346 项（其中 module boundaries 306 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十三批已将视频合成的 portal、Header、封面入口、导出菜单与设置浮层、错误条、预览舞台、编辑/播放/缩放工具栏、时间标尺、多轨布局、播放头命中层及封面覆盖层插槽从 `compose/VideoComposeModal.tsx` 迁入唯一 presentation owner `ui/VideoComposeModalView.tsx`；Modal 只保留时间线、导出、播放、编辑、指针与键盘 controller 装配，局部 UI 状态及语义回调投影，封面编辑器以 `ReactNode` 从 composition root 注入，View 不反向依赖 `compose/CoverEditor`、store、API 或 Canvas composition。原 Modal 中全部 portal、图标、`className`、轨道行和控件 JSX 直接删除，不保留 facade、re-export、兼容别名或第二套展示实现，由 713 行降至 378 行；时间标尺宽度与时间格式化随布局迁入 View，封面 URL 解析、导出执行、领域重叠投影和所有命令仍留在原职责层。导出 hover 与确认流程、导出中关闭禁用、空预览、撤销/重做禁用、倍速/音量弹层、磁吸与缩放、轨道事件映射、播放头命令式 transform 及封面覆盖层语义保持不变。新增 View 3 项组件合同和唯一所有权架构门禁；完整前端架构门禁 3 个文件 347 项（其中 module boundaries 307 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -38,6 +38,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/application/uploadNodeModel.ts": 1,
   "features/canvas/Canvas.tsx": 1,
   "features/canvas/compose/VideoComposeModal.tsx": 0,
+  "features/canvas/ui/VideoComposeModalView.tsx": 0,
   "features/canvas/domain/groupColors.ts": 9,
   "features/canvas/domain/nodeRegistry.ts": 2,
   "features/canvas/edges/DisconnectableEdge.tsx": 13,
