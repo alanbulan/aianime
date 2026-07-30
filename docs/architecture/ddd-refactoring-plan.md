@@ -2226,6 +2226,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百七十七批已将视频合成的工具按钮、分隔线、缩放图标、倍速/时长双向步进、音量/静音弹层迁入唯一 265 行 presentation 叶子 `ui/VideoComposeTimelineControls.tsx`，并将轨道行、空轨提示、片段卡、胶片帧异步缓存消费、音频峰值异步加载与 Canvas 绘制、选择/重叠/拖动投影、幽灵副本、时间气泡、裁剪气泡及片段静音/移轨/删除按钮迁入唯一 455 行媒体叶子 `ui/VideoComposeTrackRow.tsx`；Modal 只传递状态、集合和命令回调，删除文件尾部全部旧组件定义，不保留 facade、re-export、兼容别名或第二套 presentation，实现由 2,200 行降至 1,505 行。按钮禁用/激活与 tooltip、0.25x 至 4x 倍速、源时长反算、音量手势只推一次历史、视频加载斜纹、72px 胶片帧、音频解码失败渐变兜底、2 倍 DPR 波形、轨道 DOM drop 数据属性、选中/重叠描边、静音/移轨/删除事件隔离、左右裁剪命中区、拖动落点和裁剪时长时间码语义保持不变；原 Modal 的 5 个媒体渲染颜色字面量原值迁到轨道叶子并同步颜色门禁，没有新增颜色。新增控件 3 项和轨道行 2 项组件合同；完整前端架构门禁 3 个文件 341 项（其中 module boundaries 301 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百七十八批已将视频合成的最上层激活轨选择、激活视频片段主时钟契约及媒体时间到时间线位置映射迁入唯一纯 application 模块 `application/videoComposePreview.ts`，并将原 `compose/useComposePlayback.ts` 直接迁移并重命名为唯一播放时钟 `hooks/useVideoComposePlaybackClock.ts`；旧路径直接删除，不保留 facade、re-export、兼容别名或第二套时钟。视频、音频、时间线滚动容器、播放头与预览舞台引用，像素/毫秒投影，播放头 DOM 直驱与边缘滚动跟随，Ctrl+滚轮横向滚动，媒体主时钟，全屏从头播放，视频/音频预览轨选择，两次媒体同步 Hook 装配及视频源投影统一迁入唯一浏览器 controller `hooks/useVideoComposePlaybackController.ts`；Modal 只消费 controller 输出，原内联播放实现全部删除，由 1,505 行降至 1,366 行。播放时优先跟随已加载且匹配当前片段的视频解码时钟、片段切换/缓冲/越界时回落墙钟、暂停态与缩放态重新定位播放头、多轨预览优先播放头处最上层轨、音频轨存在时视频静音、隐藏横向滚动条后的 Ctrl+滚轮操作、播放期间仅在播放头接近视口边缘时跟随滚动以及全屏请求失败不阻断从头播放语义保持不变。新增纯投影、播放时钟和 controller 测试，连同既有媒体同步 Hook 共定向回归 4 个文件 12 项；完整前端架构门禁 3 个文件 342 项（其中 module boundaries 302 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

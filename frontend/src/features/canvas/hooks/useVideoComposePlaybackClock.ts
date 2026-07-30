@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * 时钟独立推进（不读 video.currentTime），所以跨片段切换时画面 src 交换造成的轻微
  * 抖动不会拖累整体进度，符合「预览非像素级精确、后端渲染才是最终结果」的取舍。
  */
-export interface ComposePlayback {
+export interface VideoComposePlaybackClock {
   playheadMs: number;
   isPlaying: boolean;
   play: () => void;
@@ -26,7 +26,7 @@ export interface ComposePlayback {
  */
 const STATE_THROTTLE_MS = 200;
 
-export function useComposePlayback(
+export function useVideoComposePlaybackClock(
   durationMs: number,
   /** 每帧（及 seek/play）以最新播放头位置回调，供消费方命令式更新竖线 DOM。 */
   onFrame?: (ms: number) => void,
@@ -36,7 +36,7 @@ export function useComposePlayback(
    * 与画面严丝合缝（libtv 效果）；返回 null 时回落到 performance.now 墙钟，保证连续。
    */
   clockMs?: () => number | null,
-): ComposePlayback {
+): VideoComposePlaybackClock {
   const [playheadMs, setPlayheadMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 

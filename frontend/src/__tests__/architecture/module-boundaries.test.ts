@@ -21991,6 +21991,114 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose preview projection, clock, and browser playback in their layers", () => {
+    const previewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoComposePreview.ts",
+    );
+    const previewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoComposePreview.test.ts",
+    );
+    const clockPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposePlaybackClock.ts",
+    );
+    const clockTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposePlaybackClock.test.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposePlaybackController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposePlaybackController.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const oldClockPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/useComposePlayback.ts",
+    );
+    const previewSource = readFileSync(previewPath, "utf8");
+    const previewTestSource = readFileSync(previewTestPath, "utf8");
+    const clockSource = readFileSync(clockPath, "utf8");
+    const clockTestSource = readFileSync(clockTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declarations = [
+      ["export function", "resolveVideoComposePreviewTrack("].join(" "),
+      ["export function", "projectVideoComposeActiveMediaClock("].join(" "),
+      ["export function", "resolveVideoComposeMediaClockMs("].join(" "),
+      ["export function", "useVideoComposePlaybackClock("].join(" "),
+      ["export function", "useVideoComposePlaybackController("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(previewPath)).toEqual([
+      "@/features/canvas/domain/videoComposeTimeline",
+    ]);
+    expect(previewSource).not.toContain("react");
+    expect(previewSource).not.toContain("document.");
+    expect(previewSource).not.toContain("HTMLVideoElement");
+    expect(previewSource).not.toContain("@/api/");
+    expect(previewSource).not.toContain("@/stores/");
+    expect(importSpecifiers(clockPath)).toEqual(["react"]);
+    expect(clockSource).not.toContain("document.");
+    expect(clockSource).not.toContain("HTMLVideoElement");
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/application/videoComposePreview",
+        "@/features/canvas/domain/videoComposeTimeline",
+        "./useVideoComposePlaybackClock",
+        "./useVideoComposeTrackMediaSync",
+      ]),
+    );
+    expect(controllerSource).toContain("video.dataset.clipId ?? null");
+    expect(controllerSource).toContain("stage.requestFullscreen()");
+    expect(controllerSource).toContain('addEventListener("wheel"');
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposePlaybackController",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
+      "./useComposePlayback",
+    );
+    expect(modalSource).not.toContain("const activeVideoRef = useRef");
+    expect(modalSource).not.toContain("const mediaClockMs = useCallback");
+    expect(modalSource).not.toContain("const positionPlayhead = useCallback");
+    expect(modalSource).not.toContain("requestFullscreen");
+    expect(existsSync(oldClockPath)).toBe(false);
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/videoComposePreview.ts"],
+      ["features/canvas/application/videoComposePreview.ts"],
+      ["features/canvas/application/videoComposePreview.ts"],
+      ["features/canvas/hooks/useVideoComposePlaybackClock.ts"],
+      ["features/canvas/hooks/useVideoComposePlaybackController.ts"],
+    ]);
+    expect(previewTestSource).toContain('from "./videoComposePreview"');
+    expect(clockTestSource).toContain(
+      'from "./useVideoComposePlaybackClock"',
+    );
+    expect(controllerTestSource).toContain(
+      'from "./useVideoComposePlaybackController"',
+    );
+  });
+
   it("keeps video-compose track media synchronization in one hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -22004,9 +22112,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const playbackControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposePlaybackController.ts",
+    );
     const hookSource = readFileSync(hookPath, "utf8");
     const hookTestSource = readFileSync(hookTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
+    const playbackControllerSource = readFileSync(
+      playbackControllerPath,
+      "utf8",
+    );
     const declaration = [
       "export function",
       "useVideoComposeTrackMediaSync<",
@@ -22031,12 +22147,16 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("useCanvasStore");
     expect(hookSource).not.toContain("@/features/canvas/composition");
     expect(hookSource).not.toContain("className=");
-    expect(importSpecifiers(modalPath)).toContain(
-      "@/features/canvas/hooks/useVideoComposeTrackMediaSync",
+    expect(importSpecifiers(playbackControllerPath)).toContain(
+      "./useVideoComposeTrackMediaSync",
     );
     expect(
-      modalSource.match(/useVideoComposeTrackMediaSync\(/g)?.length,
+      playbackControllerSource.match(/useVideoComposeTrackMediaSync\(/g)
+        ?.length,
     ).toBe(2);
+    expect(importSpecifiers(modalPath)).not.toContain(
+      "@/features/canvas/hooks/useVideoComposeTrackMediaSync",
+    );
     expect(modalSource).not.toContain("function useTrackMediaSync(");
     expect(modalSource).not.toContain("desiredSourceSecRef");
     expect(declarationOwners).toEqual([

@@ -55,11 +55,9 @@ import {
   snapVideoComposePlayhead,
 } from "@/features/canvas/domain/videoComposeTimelineGestures";
 import {
-  activeClipAt,
   hasExportableClips,
   overlappingVideoClipIds,
   sourceSpanMs,
-  timelineDurationMs,
   type ComposeClip,
   type ComposeCover,
   type ComposeTimelineState,
@@ -68,7 +66,7 @@ import {
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
-import { useVideoComposeTrackMediaSync } from "@/features/canvas/hooks/useVideoComposeTrackMediaSync";
+import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
 import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
 import {
   VideoComposeSpeedPopover,
@@ -80,7 +78,6 @@ import {
 } from "@/features/canvas/ui/VideoComposeTimelineControls";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import { CoverEditor } from "./CoverEditor";
-import { useComposePlayback } from "./useComposePlayback";
 
 export interface VideoComposeModalProps {
   project: string;
@@ -188,9 +185,25 @@ export function VideoComposeModal({
   }>({ open: false, location: "local", resolution: "1080p" });
   const [coverEditorOpen, setCoverEditorOpen] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const trackScrollRef = useRef<HTMLDivElement | null>(null);
+  const {
+    videoRef,
+    audioRef,
+    trackScrollRef,
+    playheadElRef,
+    playheadRef,
+    previewStageRef,
+    pxPerMs,
+    pxPerMsRef,
+    durationMs,
+    playheadMs,
+    isPlaying,
+    toggle,
+    seek,
+    handleFullscreenPlay,
+    videoTrack,
+    audioTrack,
+    videoSource,
+  } = useVideoComposePlaybackController(timeline, pxPerSec);
   // 当前正在进行的拖动（clip 移动 / trim / scrub）的清理函数。用于：① 同一时刻只允许
   // 一个拖动（多指/多触点防重复挂监听）；② 组件卸载（关弹窗）时清掉残留的 window 监听，
   // 避免对已卸载组件 setState。
@@ -233,145 +246,12 @@ export function VideoComposeModal({
     [selectedIds],
   );
 
-  const pxPerMs = pxPerSec / 1000;
-  const pxPerMsRef = useRef(pxPerMs);
-  pxPerMsRef.current = pxPerMs;
   const snapRef = useRef(snapEnabled);
   snapRef.current = snapEnabled;
   const timelineRef = useRef(timeline);
   timelineRef.current = timeline;
   // ⌘C 复制的片段快照（⌘V 时插入其副本）。
   const clipboardRef = useRef<ComposeClip | null>(null);
-
-  const durationMs = useMemo(() => timelineDurationMs(timeline), [timeline]);
-
-  // 竖线 DOM 直驱：rAF 时钟每帧通过这个 ref 改 transform，绕开 React 重渲染，
-  // 整条时间轴（filmstrip 等）便不再被播放头每帧带着重渲染。
-  const playheadElRef = useRef<HTMLDivElement>(null);
-  const playingRef = useRef(false);
-  const positionPlayhead = useCallback((ms: number) => {
-    const x = ms * pxPerMsRef.current;
-    const el = playheadElRef.current;
-    if (el) el.style.transform = `translateX(${x}px)`;
-    // 播放时让时间轴平滑跟随播放头：命令式改 scrollLeft（不触发 React 重渲染），
-    // 播放头逼近视口左右边缘时才滚动，保持其始终在 margin 内 —— 连续播放时即表现
-    // 为时间轴匀速跟随。手动 scrub / 暂停态不跟随（playingRef 为 false）。
-    if (playingRef.current) {
-      const cont = trackScrollRef.current;
-      if (cont) {
-        const view = cont.clientWidth;
-        const margin = Math.min(96, view * 0.2);
-        const left = cont.scrollLeft;
-        if (x > left + view - margin) cont.scrollLeft = x - view + margin;
-        else if (x < left + margin) cont.scrollLeft = Math.max(0, x - margin);
-      }
-    }
-  }, []);
-
-  // 横向滚动条已隐藏（ui-scrollbar-vertical），改用 Ctrl + 滚轮做横向滚动。
-  // 必须挂原生非 passive 监听才能 preventDefault 掉浏览器默认的 Ctrl+滚轮缩放
-  // —— React 合成 onWheel 在 root 上是 passive，preventDefault 无效。
-  useEffect(() => {
-    const cont = trackScrollRef.current;
-    if (!cont) return;
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey) return;
-      event.preventDefault();
-      cont.scrollLeft += event.deltaY !== 0 ? event.deltaY : event.deltaX;
-    };
-    cont.addEventListener("wheel", onWheel, { passive: false });
-    return () => cont.removeEventListener("wheel", onWheel);
-  }, []);
-
-  // 播放态媒体主时钟：把正在播放的视频元素的 currentTime 反算回时间线 ms，让竖线
-  // 跟真实解码帧走，画面与竖线严丝合缝（libtv 效果）。边界 / 缓冲 / 无视频时返回
-  // null，交回墙钟推进。activeVideoRef 在下方随激活片段更新。
-  const activeVideoRef = useRef<{
-    clipId: string;
-    timelineStartMs: number;
-    timelineEndMs: number;
-    trimStartMs: number;
-    speed: number;
-  } | null>(null);
-  const mediaClockMs = useCallback((): number | null => {
-    const el = videoRef.current;
-    const a = activeVideoRef.current;
-    if (!el || !a) return null;
-    if (el.paused || el.seeking || el.readyState < 2) return null;
-    // 元素当前装载的片段必须与映射所用片段一致；换源瞬间不一致时交回墙钟推进，
-    // 否则会用错片段的时间线偏移，把竖线算回上一段（画面已是下一段）。
-    if (el.dataset.clipId !== a.clipId) return null;
-    const speed = a.speed > 0 ? a.speed : 1;
-    const ms = a.timelineStartMs + (el.currentTime * 1000 - a.trimStartMs) / speed;
-    if (ms < a.timelineStartMs - 60 || ms > a.timelineEndMs + 60) return null;
-    return ms;
-  }, []);
-
-  const { playheadMs, isPlaying, play, toggle, seek } = useComposePlayback(
-    durationMs,
-    positionPlayhead,
-    mediaClockMs,
-  );
-  // 播放头当前值的 ref —— 给快捷键（←/→ 微移）读最新值，免得把 playheadMs 列进
-  // keydown effect 依赖、播放时每帧重挂监听。
-  const playheadRef = useRef(playheadMs);
-  playheadRef.current = playheadMs;
-
-  // 全屏播放：对预览舞台容器（非 <video> 本身）请求全屏，避免片段换源时退出全屏；
-  // 从头播放整条时间线。
-  const previewStageRef = useRef<HTMLDivElement>(null);
-  const handleFullscreenPlay = useCallback(() => {
-    const el = previewStageRef.current;
-    if (el?.requestFullscreen) void el.requestFullscreen().catch(() => {});
-    seek(0);
-    play();
-  }, [play, seek]);
-  playingRef.current = isPlaying;
-
-  // 非播放态（seek / 暂停 / 缩放）由 React state 兜底定位；播放态交给 onFrame
-  // 每帧直驱，避免被节流后的 state 拽回造成跳动。
-  useEffect(() => {
-    if (!isPlaying) positionPlayhead(playheadMs);
-  }, [playheadMs, pxPerSec, isPlaying, positionPlayhead]);
-
-  // 多轨预览：单个 <video>/<audio> 无法合成多轨，预览取「播放头处有片段」的最上层
-  // （数组靠后）轨道；无则取第一条该种类轨道。最终导出由后端按全部轨道合成。
-  const videoTrack = useMemo(() => {
-    const vids = timeline.tracks.filter((track) => track.kind === "video");
-    for (let i = vids.length - 1; i >= 0; i -= 1) {
-      if (activeClipAt(vids[i], playheadMs)) return vids[i];
-    }
-    return vids[0] ?? null;
-  }, [timeline, playheadMs]);
-  const audioTrack = useMemo(() => {
-    const auds = timeline.tracks.filter((track) => track.kind === "audio");
-    for (let i = auds.length - 1; i >= 0; i -= 1) {
-      if (activeClipAt(auds[i], playheadMs)) return auds[i];
-    }
-    return auds[0] ?? null;
-  }, [timeline, playheadMs]);
-  const hasAudioTrack = useMemo(
-    () =>
-      timeline.tracks.some(
-        (track) => track.kind === "audio" && track.clips.length > 0,
-      ),
-    [timeline],
-  );
-
-  useVideoComposeTrackMediaSync(
-    videoRef,
-    videoTrack,
-    playheadMs,
-    isPlaying,
-    hasAudioTrack,
-  );
-  useVideoComposeTrackMediaSync(
-    audioRef,
-    audioTrack,
-    playheadMs,
-    isPlaying,
-    false,
-  );
 
   // ── history (undo / redo) ────────────────────────────────────────────────
   const pushHistory = useCallback(() => {
@@ -1041,25 +921,6 @@ export function VideoComposeModal({
   // 时间轴上重叠的视频片段 id —— 用于把冲突片段高亮（红框）提示用户。
   const overlapClipIds = useMemo(() => overlappingVideoClipIds(timeline), [timeline]);
 
-  const videoActive = useMemo(
-    () => (videoTrack ? activeClipAt(videoTrack, playheadMs) : null),
-    [videoTrack, playheadMs],
-  );
-  // 媒体主时钟用：把当前激活视频片段的时间线/裁剪/变速映射喂给 mediaClockMs。
-  activeVideoRef.current = videoActive
-    ? {
-        clipId: videoActive.laid.clip.id,
-        timelineStartMs: videoActive.laid.timelineStartMs,
-        timelineEndMs: videoActive.laid.timelineEndMs,
-        trimStartMs: videoActive.laid.clip.trimStartMs,
-        speed: videoActive.laid.clip.speed > 0 ? videoActive.laid.clip.speed : 1,
-      }
-    : null;
-  const videoSource = useMemo(
-    () => (videoActive ? resolveImageDisplayUrl(videoActive.laid.clip.sourceUrl) : null),
-    [videoActive],
-  );
-
   const selectedSpeed = selectedClip?.clip.speed ?? 1;
   const selectedSourceSpanMs = selectedClip ? sourceSpanMs(selectedClip.clip) : 0;
   const selectedVolume = selectedClip?.clip.volume ?? 1;
@@ -1460,7 +1321,7 @@ export function VideoComposeModal({
               ))}
             </div>
 
-            {/* Playhead (draggable) —— 位置由 positionPlayhead 命令式写 transform，
+            {/* Playhead (draggable) —— 位置由 playback controller 命令式写 transform，
                 不绑 React state，避免播放时被整树重渲染拖卡。translateX 走合成层，
                 不触发 layout。 */}
             <div
