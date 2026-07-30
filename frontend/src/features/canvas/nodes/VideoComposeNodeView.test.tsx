@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/features/canvas/compose/timelineModel';
+import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
 import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
 
 import { VideoComposeNodeView } from './VideoComposeNodeView';
@@ -32,6 +32,7 @@ vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
     project,
     canvasId,
     seedNodeIds,
+    sourceNodes,
     onPersistDraft,
     onClose,
     onComposed,
@@ -39,12 +40,15 @@ vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
     project: string;
     canvasId: string;
     seedNodeIds: string[];
+    sourceNodes: unknown[];
     onPersistDraft(timeline: ComposeTimelineState): void;
     onClose(): void;
     onComposed(url: string, coverUrl: string | null): void;
   }) => (
     <div>
-      <span>modal:{project}:{canvasId}:{seedNodeIds.join(',')}</span>
+      <span>
+        modal:{project}:{canvasId}:{seedNodeIds.join(',')}:{sourceNodes.length}
+      </span>
       <button type="button" onClick={() => onPersistDraft({
         tracks: [],
         resolution: '720p',
@@ -66,6 +70,7 @@ function createController(): VideoComposeNodeController {
     title: '视频合成',
     size: { width: 240, height: 136 },
     seedNodeIds: ['video-a', 'video-b'],
+    sourceNodes: [],
     videoCount: 2,
     canOpen: true,
     isEditorOpen: false,
@@ -116,7 +121,7 @@ describe('VideoComposeNodeView', () => {
     render(<VideoComposeNodeView controller={controller} />);
 
     expect(screen.getByText(
-      'modal:project-a:canvas-a:video-a,video-b',
+      'modal:project-a:canvas-a:video-a,video-b:0',
     )).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'persist' }));
     fireEvent.click(screen.getByRole('button', { name: 'close' }));

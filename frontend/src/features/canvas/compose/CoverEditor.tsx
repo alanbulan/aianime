@@ -22,7 +22,10 @@ import {
   hasCoverableVideo,
   waitForVideoFrameReady,
 } from "./coverCapture";
-import type { ComposeCover, ComposeTimelineState } from "./timelineModel";
+import type {
+  ComposeCover,
+  ComposeTimelineState,
+} from "@/features/canvas/domain/videoComposeTimeline";
 
 export interface CoverEditorProps {
   project: string;

@@ -75,6 +75,7 @@ export function VideoComposeNodeView({
           project={controller.project}
           canvasId={controller.canvasId}
           seedNodeIds={controller.seedNodeIds}
+          sourceNodes={controller.sourceNodes}
           initialTimeline={controller.initialTimeline}
           onPersistDraft={controller.persistDraft}
           onClose={controller.closeEditor}

@@ -1,5 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { activeClipAt, type ComposeTimelineState } from "./timelineModel";
+import {
+  activeClipAt,
+  type ComposeTimelineState,
+} from "@/features/canvas/domain/videoComposeTimeline";
 
 /**
  * 封面选帧的纯逻辑工具（无 React）。把「时间线某 ms」解析成可截帧的源地址 + 源内

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import type { ComposeTimelineState } from '@/features/canvas/compose/timelineModel';
+import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
@@ -89,6 +89,7 @@ export function useVideoComposeNodeController({
     title,
     size: { width: NODE_WIDTH, height: NODE_HEIGHT },
     seedNodeIds: inputProjection.seedNodeIds,
+    sourceNodes: upstreamNodes,
     videoCount: inputProjection.videoCount,
     canOpen: inputProjection.canOpen,
     isEditorOpen,

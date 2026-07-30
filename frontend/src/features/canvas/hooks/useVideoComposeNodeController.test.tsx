@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/features/canvas/compose/timelineModel';
+import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
@@ -126,6 +126,7 @@ describe('useVideoComposeNodeController', () => {
       title: '视频合成',
       size: { width: 240, height: 136 },
       seedNodeIds: ['audio-a', 'video-a', 'video-b'],
+      sourceNodes: mocks.upstreamNodes,
       videoCount: 2,
       canOpen: true,
       project: 'project-a',

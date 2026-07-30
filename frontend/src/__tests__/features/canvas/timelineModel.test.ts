@@ -17,7 +17,7 @@ import {
   type ComposeClip,
   type ComposeTimelineState,
   type ComposeTrack,
-} from "@/features/canvas/compose/timelineModel";
+} from "@/features/canvas/domain/videoComposeTimeline";
 
 function clip(overrides: Partial<ComposeClip> = {}): ComposeClip {
   return {

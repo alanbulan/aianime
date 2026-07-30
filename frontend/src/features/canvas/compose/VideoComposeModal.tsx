@@ -41,24 +41,18 @@ import {
   X,
 } from "lucide-react";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
-  isAudioNode,
-  isVideoNode,
-} from "@/features/canvas/domain/canvasNodes";
+  buildVideoComposeInitialTimeline,
+  resolveVideoComposeInitialTimeline,
+} from "@/features/canvas/application/videoComposeTimelineSession";
+import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
 import {
   composeCanvasVideo,
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
 import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
-import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
-import {
-  getCachedAudioPeaks,
-  loadAudioPeaks,
-  PEAK_BUCKETS_PER_SEC,
-} from "./audioPeaks";
 import {
   activeClipAt,
   buildComposePayload,
@@ -80,7 +74,14 @@ import {
   type ComposeTimelineState,
   type ComposeTrack,
   type ComposeTrackKind,
-} from "./timelineModel";
+} from "@/features/canvas/domain/videoComposeTimeline";
+import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
+import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
+import {
+  getCachedAudioPeaks,
+  loadAudioPeaks,
+  PEAK_BUCKETS_PER_SEC,
+} from "./audioPeaks";
 import { CoverEditor } from "./CoverEditor";
 import { useComposePlayback } from "./useComposePlayback";
 import { getFilmstrip, pickFrame, type FilmstripFrame } from "./filmstrip";
@@ -90,6 +91,8 @@ export interface VideoComposeModalProps {
   canvasId: string;
   /** 画布上被选中、用于初始化时间线的节点 id（按选择顺序）。 */
   seedNodeIds: string[];
+  /** 当前连接的上游节点快照，用于初始化时间线并校正已有草稿。 */
+  sourceNodes: CanvasNode[];
   onClose: () => void;
   /** 合成成功后回调，参数为最终视频 url + 封面 url（未设封面时为 null）。 */
   onComposed: (url: string, coverUrl: string | null) => void;
@@ -145,157 +148,6 @@ function formatTimecode(ms: number, fps = 30): string {
   const f = Math.min(fps - 1, Math.floor(((totalMs % 1000) / 1000) * fps));
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
-}
-
-/** Probe a media file's intrinsic duration (ms) via an offscreen element. */
-function probeMediaDuration(
-  url: string,
-  kind: ComposeTrackKind,
-): Promise<number | null> {
-  return new Promise((resolve) => {
-    const el = document.createElement(kind === "audio" ? "audio" : "video");
-    el.preload = "metadata";
-    el.muted = true;
-    const done = (value: number | null) => {
-      el.removeAttribute("src");
-      try {
-        el.load();
-      } catch {
-        /* ignore */
-      }
-      resolve(value);
-    };
-    el.addEventListener(
-      "loadedmetadata",
-      () => {
-        const d = el.duration;
-        done(Number.isFinite(d) && d > 0 ? Math.round(d * 1000) : null);
-      },
-      { once: true },
-    );
-    el.addEventListener("error", () => done(null), { once: true });
-    el.src = resolveImageDisplayUrl(url);
-    try {
-      el.load();
-    } catch {
-      done(null);
-    }
-  });
-}
-
-/** Seed an initial timeline from the selected video/audio canvas nodes. */
-function buildInitialTimeline(seedNodeIds: string[]): ComposeTimelineState {
-  const nodes = useCanvasStore.getState().nodes;
-  const byId = new Map(nodes.map((node) => [node.id, node] as const));
-  const videoClips: ComposeClip[] = [];
-  const audioClips: ComposeClip[] = [];
-  // 初始把同种类片段顺序首尾相接摆放（与旧行为一致）；之后可自由拖动。
-  let videoCursor = 0;
-  let audioCursor = 0;
-
-  for (const nodeId of seedNodeIds) {
-    const node = byId.get(nodeId);
-    if (!node) continue;
-    if (isVideoNode(node) && node.data.videoUrl) {
-      const durationMs =
-        typeof node.data.durationMs === "number" ? node.data.durationMs : null;
-      const len = durationMs ?? FALLBACK_CLIP_MS;
-      videoClips.push({
-        id: makeClipId(),
-        nodeId,
-        kind: "video",
-        sourceUrl: node.data.videoUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: node.data.previewImageUrl ?? null,
-        durationMs,
-        timelineStartMs: videoCursor,
-        trimStartMs: 0,
-        trimEndMs: len,
-        volume: 1,
-        muted: false,
-        speed: 1,
-      });
-      videoCursor += len;
-    } else if (isAudioNode(node) && node.data.audioUrl) {
-      const durationMs =
-        typeof node.data.durationMs === "number" ? node.data.durationMs : null;
-      const len = durationMs ?? FALLBACK_CLIP_MS;
-      audioClips.push({
-        id: makeClipId(),
-        nodeId,
-        kind: "audio",
-        sourceUrl: node.data.audioUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: null,
-        durationMs,
-        timelineStartMs: audioCursor,
-        trimStartMs: 0,
-        trimEndMs: len,
-        volume: 1,
-        muted: false,
-        speed: 1,
-      });
-      audioCursor += len;
-    }
-  }
-
-  const tracks: ComposeTrack[] = [
-    { id: VIDEO_TRACK_ID, kind: "video", clips: videoClips },
-  ];
-  if (audioClips.length > 0) {
-    tracks.push({ id: AUDIO_TRACK_ID, kind: "audio", clips: audioClips });
-  }
-  return { tracks, resolution: "1080p" };
-}
-
-/**
- * 用「当前连着的上游」校正草稿时间线：
- *  - 上游已断开（nodeId 不再连着）的片段 → 丢弃；
- *  - 当前连着、但草稿里没有对应片段的上游（新接入 / 之前删掉又重连）→ 补回来；
- *  - 仍连着的片段保留草稿里的全部编辑（裁剪 / 排序 / 音量 / 分割）。
- * 这样合成节点的输入永远 = 画布上当前连着的素材，不会出现「连了却不显示」。
- * 代价：删掉某个仍连着的片段，重开会被补回来——要彻底移除请在画布上断开该节点。
- */
-function reconcileDraftWithUpstream(
-  draft: ComposeTimelineState,
-  seedNodeIds: string[],
-): ComposeTimelineState {
-  const connected = new Set(seedNodeIds);
-  // 1) 丢弃上游已断开的片段（外部素材 nodeId 为空时保留）。
-  const tracks: ComposeTrack[] = draft.tracks.map((track) => ({
-    ...track,
-    clips: track.clips.filter(
-      (clip) => clip.nodeId == null || connected.has(clip.nodeId),
-    ),
-  }));
-  // 2) 已连接但草稿里没有片段的上游 → 用初始摆放生成并追加到对应种类轨道末尾。
-  const present = new Set(
-    tracks
-      .flatMap((track) => track.clips.map((clip) => clip.nodeId))
-      .filter((id): id is string => Boolean(id)),
-  );
-  const missing = seedNodeIds.filter((id) => !present.has(id));
-  if (missing.length > 0) {
-    const fresh = buildInitialTimeline(missing);
-    for (const freshTrack of fresh.tracks) {
-      if (freshTrack.clips.length === 0) continue;
-      const target = tracks.find((track) => track.kind === freshTrack.kind);
-      if (!target) {
-        tracks.push(freshTrack);
-        continue;
-      }
-      let cursor = layoutTrack(target).reduce(
-        (max, laid) => Math.max(max, laid.timelineEndMs),
-        0,
-      );
-      for (const clip of freshTrack.clips) {
-        target.clips.push({ ...clip, timelineStartMs: Math.round(cursor) });
-        cursor += clipLengthMs(clip);
-      }
-    }
-  }
-  // 视频轨补位，保持无缝。
-  return compactVideoTracks({ ...draft, tracks });
 }
 
 /**
@@ -421,6 +273,7 @@ export function VideoComposeModal({
   project,
   canvasId,
   seedNodeIds,
+  sourceNodes,
   onClose,
   onComposed,
   initialTimeline,
@@ -431,11 +284,12 @@ export function VideoComposeModal({
   // 整体让位，避免弹窗内按 Delete 删片段却把画布上的视频合成节点也删了、并弹回画布。
   useViewerImmersiveBody(true);
   const [timeline, setTimeline] = useState<ComposeTimelineState>(() =>
-    // 有草稿则恢复草稿，但用「当前连着的上游」对账（断开的丢弃、新连的补回）；
-    // 没草稿就按上游素材首次摆放。
-    initialTimeline && initialTimeline.tracks?.length
-      ? reconcileDraftWithUpstream(initialTimeline, seedNodeIds)
-      : buildInitialTimeline(seedNodeIds),
+    resolveVideoComposeInitialTimeline({
+      initialTimeline,
+      nodes: sourceNodes,
+      seedNodeIds,
+      createClipId: makeClipId,
+    }),
   );
   const [past, setPast] = useState<ComposeTimelineState[]>([]);
   const [future, setFuture] = useState<ComposeTimelineState[]>([]);
@@ -682,7 +536,11 @@ export function VideoComposeModal({
     if (pending.length === 0) return;
     void Promise.all(
       pending.map(async ({ trackId, clip, kind }) => {
-        const probed = await probeMediaDuration(clip.sourceUrl, kind);
+        const probed = await probeVideoComposeMediaDuration(
+          clip.sourceUrl,
+          kind,
+          resolveImageDisplayUrl,
+        );
         if (cancelled || probed == null) return;
         setTimeline((prev) => ({
           ...prev,
@@ -764,9 +622,15 @@ export function VideoComposeModal({
   // 重新从上游素材摆放（丢弃当前草稿编辑）—— 上游新增/变更素材后用它重置。
   const resetToUpstream = useCallback(() => {
     pushHistory();
-    setTimeline(buildInitialTimeline(seedNodeIds));
+    setTimeline(
+      buildVideoComposeInitialTimeline(
+        sourceNodes,
+        seedNodeIds,
+        makeClipId,
+      ),
+    );
     clearSelection();
-  }, [clearSelection, pushHistory, seedNodeIds]);
+  }, [clearSelection, pushHistory, seedNodeIds, sourceNodes]);
 
   // 拖动定位时把片段左/右边缘磁吸到其它片段边界或 0（排除自身），不吸时原值。
   const snapClipStart = useCallback(
