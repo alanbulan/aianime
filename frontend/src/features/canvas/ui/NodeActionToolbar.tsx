@@ -35,7 +35,6 @@ import {
   Link2,
   Lightbulb,
   Package,
-  Palette,
   PenLine,
   RefreshCw,
   Rewind,
@@ -43,7 +42,6 @@ import {
   Scissors,
   Send,
   Trash2,
-  Unlink2,
   User,
   Users,
   Wand2,
@@ -74,12 +72,12 @@ import {
   type GroupNodeData,
   type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
-import { GROUP_COLOR_PRESETS } from "@/features/canvas/domain/groupColors";
 import type {
   GridActionKey,
   GridActionRequest,
 } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
+import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
@@ -264,10 +262,6 @@ export const NodeActionToolbar = memo(
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
-    const ungroupNode = useCanvasStore((state) => state.ungroupNode);
-    const arrangeGroupChildren = useCanvasStore(
-      (state) => state.arrangeGroupChildren,
-    );
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const ignoreAtTagWhenCopyingAndGenerating = useSettingsStore(
@@ -1071,119 +1065,12 @@ export const NodeActionToolbar = memo(
             {isAudioNode(node) && (
               <AudioNodeToolbarActions nodeId={node.id} data={node.data} />
             )}
-            {!isImageEdit && isUngroupableGroup && (() => {
-              const groupColor = groupBackgroundColor;
-              return (
-                <>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <UiChipButton
-                        key="group-color"
-                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                        title="组背景色"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {groupColor ? (
-                          <span
-                            className="h-3.5 w-3.5 rounded-full border border-border"
-                            style={{ backgroundColor: groupColor }}
-                          />
-                        ) : (
-                          <Palette className="h-3.5 w-3.5" />
-                        )}
-                        背景色
-                        <ChevronDown className="h-3 w-3" />
-                      </UiChipButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      sideOffset={6}
-                      className={NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <div className="grid grid-cols-5 gap-1.5 p-1.5">
-                        <button
-                          type="button"
-                          title="无"
-                          onClick={() => updateNodeData(nodeId, { backgroundColor: null })}
-                          className={`relative flex h-6 w-6 items-center justify-center rounded-full border bg-transparent transition-transform hover:scale-110 ${
-                            groupColor ? 'border-border' : 'border-primary ring-1 ring-primary/50'
-                          }`}
-                        >
-                          <span className="absolute h-[1.5px] w-4 rotate-45 rounded bg-destructive/80" />
-                        </button>
-                        {GROUP_COLOR_PRESETS.map((preset) => (
-                          <button
-                            key={preset.key}
-                            type="button"
-                            title={preset.label}
-                            onClick={() =>
-                              updateNodeData(nodeId, { backgroundColor: preset.value })
-                            }
-                            className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                              groupColor === preset.value
-                                ? 'border-primary ring-1 ring-primary/50'
-                                : 'border-border'
-                            }`}
-                            style={{ backgroundColor: preset.value }}
-                          />
-                        ))}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <UiChipButton
-                        key="group-arrange"
-                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                        title="排列方式"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <LayoutGrid className="h-3.5 w-3.5" />
-                        排列
-                        <ChevronDown className="h-3 w-3" />
-                      </UiChipButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      sideOffset={6}
-                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[120px]`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <DropdownMenuItem
-                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-                        onSelect={() => arrangeGroupChildren(nodeId, 'grid')}
-                      >
-                        网格
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-                        onSelect={() => arrangeGroupChildren(nodeId, 'horizontal')}
-                      >
-                        横向排列
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-                        onSelect={() => arrangeGroupChildren(nodeId, 'vertical')}
-                      >
-                        纵向排列
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <UiChipButton
-                    key="group-ungroup"
-                    className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      ungroupNode(nodeId);
-                    }}
-                  >
-                    <Unlink2 className="h-3.5 w-3.5" />
-                    {t("nodeToolbar.ungroup")}
-                  </UiChipButton>
-                </>
-              );
-            })()}
+            {!isImageEdit && isUngroupableGroup && (
+              <GroupNodeToolbarActions
+                nodeId={nodeId}
+                backgroundColor={groupBackgroundColor}
+              />
+            )}
             {protectedProjectionKey && (
               <UiChipButton
                 key="projection-refresh"

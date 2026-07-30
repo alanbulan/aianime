@@ -18908,6 +18908,102 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates ordinary group toolbar commands from its view", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useGroupNodeToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useGroupNodeToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/GroupNodeToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/GroupNodeToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "useGroupNodeToolbarController("].join(" "),
+      ["export function", "GroupNodeToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasGroupArrangement",
+        "@/features/canvas/domain/groupColors",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    expect(controllerSource).toContain("colorPresets: GROUP_COLOR_PRESETS");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "arrangeGroupChildren",
+      "ungroupNode",
+      "updateNodeData",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(viewSource).toContain("style={{ backgroundColor }}");
+    expect(viewSource).toContain(
+      "style={{ backgroundColor: preset.value }}",
+    );
+    expect(componentSource).toContain("useGroupNodeToolbarController({");
+    expect(componentSource).toContain(
+      "<GroupNodeToolbarActionsView controller={controller} />",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/GroupNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useGroupNodeToolbarController",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/domain/groupColors",
+    );
+    expect(toolbarSource).toContain("<GroupNodeToolbarActions");
+    for (const legacyInlineLogic of [
+      "GROUP_COLOR_PRESETS",
+      "arrangeGroupChildren",
+      "ungroupNode",
+      'title="组背景色"',
+      'title="排列方式"',
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual([
+      ["features/canvas/hooks/useGroupNodeToolbarController.ts"],
+      ["features/canvas/ui/GroupNodeToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useGroupNodeToolbarController"',
+    );
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,
