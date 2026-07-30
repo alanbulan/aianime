@@ -16230,16 +16230,63 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useAudioNodeController.ts",
     );
-    const voiceModalPath = resolve(
+    const voiceModalEntryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/VoiceSelectionModal.tsx",
+    );
+    const voiceModalModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/voiceSelectionModel.ts",
+    );
+    const voiceModalModelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/voiceSelectionModel.test.ts",
+    );
+    const voiceModalControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVoiceSelectionModalController.ts",
+    );
+    const voiceModalControllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVoiceSelectionModalController.test.tsx",
+    );
+    const voiceModalViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VoiceSelectionModalView.tsx",
+    );
+    const voiceModalViewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VoiceSelectionModalView.test.tsx",
+    );
+    const audioOperationsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioOperationsPanel.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const audioControllerSource = readFileSync(audioControllerPath, "utf8");
-    const voiceModalSource = readFileSync(voiceModalPath, "utf8");
+    const voiceModalEntrySource = readFileSync(voiceModalEntryPath, "utf8");
+    const voiceModalModelSource = readFileSync(voiceModalModelPath, "utf8");
+    const voiceModalModelTestSource = readFileSync(
+      voiceModalModelTestPath,
+      "utf8",
+    );
+    const voiceModalControllerSource = readFileSync(
+      voiceModalControllerPath,
+      "utf8",
+    );
+    const voiceModalControllerTestSource = readFileSync(
+      voiceModalControllerTestPath,
+      "utf8",
+    );
+    const voiceModalViewSource = readFileSync(voiceModalViewPath, "utf8");
+    const voiceModalViewTestSource = readFileSync(
+      voiceModalViewTestPath,
+      "utf8",
+    );
+    const audioOperationsSource = readFileSync(audioOperationsPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -16250,6 +16297,44 @@ describe("frontend architecture boundaries", () => {
           source.includes("}/freezone/audio/voices`")
         );
       })
+      .map(relativeSource)
+      .sort();
+    const voiceModalDeclarations = [
+      ["export function", "VoiceSelectionModal("].join(" "),
+      ["export function", "voiceCloneFileValidationError("].join(" "),
+      ["export function", "useVoiceSelectionModalController("].join(" "),
+      ["export function", "VoiceSelectionModalView("].join(" "),
+    ];
+    const voiceModalDeclarationOwners = voiceModalDeclarations.map(
+      (declaration) =>
+        sourceFiles(SRC_ROOT)
+          .filter((path) => readFileSync(path, "utf8").includes(declaration))
+          .map(relativeSource)
+          .sort(),
+    );
+    const voiceModalAsyncOwners = [
+      voiceModalEntryPath,
+      voiceModalModelPath,
+      voiceModalControllerPath,
+      voiceModalViewPath,
+    ]
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("loadCanvasAudioReferences(project)") ||
+          source.includes("createCanvasAudioVoice(")
+        );
+      })
+      .map(relativeSource)
+      .sort();
+    const voiceDescriptionDeclaration = [
+      "export function",
+      "describeAudioVoiceRef(",
+    ].join(" ");
+    const voiceDescriptionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(voiceDescriptionDeclaration),
+      )
       .map(relativeSource)
       .sort();
 
@@ -16282,21 +16367,78 @@ describe("frontend architecture boundaries", () => {
       "freezoneAudioVoiceCatalogGateway.createVoice(projectId, file, name)",
     );
     expect(importSpecifiers(audioControllerPath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(voiceModalPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(voiceModalControllerPath)).not.toContain(
+      "@/api/ops",
+    );
     expect(audioControllerSource).toContain(
       "loadCanvasAudioReferences(project)",
     );
-    expect(voiceModalSource).toContain(
+    expect(voiceModalControllerSource).toContain(
       "loadCanvasAudioReferences(project)",
     );
-    expect(voiceModalSource).toContain(
-      "createCanvasAudioVoice(project, file, stem || undefined)",
-    );
+    expect(voiceModalControllerSource).toContain("createCanvasAudioVoice(");
     expect(audioControllerSource).not.toContain("character_name");
     expect(audioControllerSource).not.toContain("voice_id");
-    expect(voiceModalSource).not.toContain("character_name");
-    expect(voiceModalSource).not.toContain("voice_id");
-    expect(voiceModalSource).not.toContain("function readGender(");
+    expect(voiceModalControllerSource).not.toContain("character_name");
+    expect(voiceModalControllerSource).not.toContain("voice_id");
+    expect(voiceModalControllerSource).not.toContain("function readGender(");
+    expect(new Set(importSpecifiers(voiceModalEntryPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/voiceSelectionModel",
+        "@/features/canvas/hooks/useVoiceSelectionModalController",
+        "./VoiceSelectionModalView",
+      ]),
+    );
+    expect(voiceModalEntrySource).toContain(
+      "useVoiceSelectionModalController(props)",
+    );
+    expect(voiceModalEntrySource).toContain(
+      "createElement(VoiceSelectionModalView, { controller })",
+    );
+    expect(voiceModalEntrySource).not.toContain("useState(");
+    expect(voiceModalEntrySource).not.toContain("className=");
+    expect(voiceModalModelSource).not.toContain("from 'react'");
+    expect(voiceModalModelSource).not.toContain("window.");
+    expect(voiceModalModelSource).not.toContain("document.");
+    expect(voiceModalModelSource).not.toContain("className=");
+    expect(voiceModalControllerSource).not.toContain("className=");
+    expect(voiceModalControllerSource).not.toContain("lucide-react");
+    expect(voiceModalControllerSource).not.toContain("createPortal(");
+    expect(importSpecifiers(voiceModalViewPath)).not.toContain(
+      "@/features/canvas/audioComposition",
+    );
+    expect(importSpecifiers(voiceModalViewPath)).not.toContain(
+      "@/lib/url-params",
+    );
+    expect(voiceModalViewSource).not.toContain("useState(");
+    expect(voiceModalViewSource).not.toContain("useEffect(");
+    expect(voiceModalViewSource).not.toContain("useMemo(");
+    expect(voiceModalViewSource).toContain("createPortal(");
+    expect(voiceModalViewSource).toContain("<FolderOpen");
+    expect(voiceModalDeclarationOwners).toEqual([
+      ["features/canvas/nodes/VoiceSelectionModal.tsx"],
+      ["features/canvas/application/voiceSelectionModel.ts"],
+      ["features/canvas/hooks/useVoiceSelectionModalController.ts"],
+      ["features/canvas/nodes/VoiceSelectionModalView.tsx"],
+    ]);
+    expect(voiceModalAsyncOwners).toEqual([
+      "features/canvas/hooks/useVoiceSelectionModalController.ts",
+    ]);
+    expect(voiceDescriptionOwners).toEqual([
+      "features/canvas/application/audioVoiceCatalog.ts",
+    ]);
+    expect(audioOperationsSource).toContain("describeAudioVoiceRef(currentRef)");
+    expect(audioOperationsSource).not.toContain("function describeVoiceRef(");
+    expect(voiceModalModelTestSource).toContain(
+      "from './voiceSelectionModel'",
+    );
+    expect(voiceModalControllerTestSource).toContain(
+      "from './useVoiceSelectionModalController'",
+    );
+    expect(voiceModalViewTestSource).toContain(
+      "from './VoiceSelectionModalView'",
+    );
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
     ]);

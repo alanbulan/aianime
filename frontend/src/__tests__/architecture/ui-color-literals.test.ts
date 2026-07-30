@@ -79,6 +79,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/nodes/VideoPlayerControls.tsx": 4,
   "features/canvas/nodes/VideoReferenceMedia.tsx": 2,
   "features/canvas/nodes/VoiceSelectionModal.tsx": 0,
+  "features/canvas/nodes/VoiceSelectionModalView.tsx": 0,
   "features/canvas/snap-align/SnapAlignGuides.tsx": 2,
   "features/canvas/tools/annotation/codec.ts": 4,
   "features/canvas/tools/builtInTools.ts": 1,

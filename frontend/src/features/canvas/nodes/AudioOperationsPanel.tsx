@@ -21,6 +21,7 @@ import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { deriveAudioText } from '@/features/canvas/application/generateCanvasAudio';
+import { describeAudioVoiceRef } from '@/features/canvas/application/audioVoiceCatalog';
 import { translateCanvasText } from '@/features/canvas/composition';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import { readUrl } from '@/lib/url-params';
@@ -558,7 +559,7 @@ function AudioVoiceSettingsPanel({ nodeId, data }: AudioVoiceSettingsPanelProps)
       scheduleCopyStateReset();
       return;
     }
-    const id = describeVoiceRef(currentRef);
+    const id = describeAudioVoiceRef(currentRef);
     try {
       await navigator.clipboard.writeText(id);
       setCopyState('success');
@@ -628,23 +629,4 @@ function AudioVoiceSettingsPanel({ nodeId, data }: AudioVoiceSettingsPanelProps)
       />
     </div>
   );
-}
-
-function describeVoiceRef(ref: AudioVoiceRef): string {
-  switch (ref.scope) {
-    case 'project_narrator':
-      return '项目解说人';
-    case 'user_custom':
-      return ref.voiceId ?? '自定义音色';
-    case 'character_default':
-      return `${ref.characterName ?? '角色'}（默认声线）`;
-    case 'character_age_group':
-      return `${ref.characterName ?? '角色'}（${ref.slot ?? '年龄段'}）`;
-    case 'identity':
-      return `${ref.identityId ?? '身份'}（自有声线）`;
-    case 'identity_resolved':
-      return `${ref.identityId ?? '身份'}（解析后）`;
-    default:
-      return ref.scope;
-  }
 }

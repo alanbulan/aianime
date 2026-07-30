@@ -2206,6 +2206,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百六十七批已将 Canvas 768 行混合 `ui/AssetLibraryModal.tsx` 拆为纯应用模型 `application/assetLibraryModalModel.ts`、唯一状态 controller `hooks/useAssetLibraryModalController.ts`、纯 presentation `ui/AssetLibraryModalView.tsx` 和保留原公共导入路径的 16 行真实装配根；应用模型独占图片/场景/视频/音频 Tab、场景与普通图片分类、MIME 接受、上传名称、稳定选择键、按媒介独立配额、确认结果顺序及来源标签，controller 独占打开时加载与主线自动同步、取消保护、240ms 关闭重置、Blob URL 生命周期、本地上传、素材库新增/删除/刷新、拖放、选择与确认状态，View 独占 portal、Tab、计数、上传/错误/空状态、图片/视频/音频卡片、选择/删除和确认 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套 Tab/分类/上传/选择规则；已有库加载失败静默兜底、仅空库自动同步失败时显示错误、关闭后拒绝过期同步结果、非图片上传禁用超时、上传 URL 清理查询参数、失败预览可移除、主线条目不可删除、每类素材独立选择上限及跨类确认顺序语义保持不变。新增应用模型 6 项、controller 6 项和 View 3 项测试，连同素材库网关共定向回归 4 个文件 18 项；完整前端架构门禁 3 个文件 332 项（其中 module boundaries 292 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百六十八批已将 Canvas 810 行混合 `nodes/VoiceSelectionModal.tsx` 拆为纯应用模型 `application/voiceSelectionModel.ts`、唯一状态 controller `hooks/useVoiceSelectionModalController.ts`、纯 presentation `nodes/VoiceSelectionModalView.tsx` 和保留原公共导入路径的 19 行真实装配根；应用模型独占克隆文件校验与错误投影、音色搜索/分页/跳页、当前声线判定及选择行投影，controller 独占打开加载、ESC 关闭、Tab/查询/分页状态、克隆上传与刷新生命周期，View 独占 portal、Tab、搜索、加载/错误/空状态、音色行及分页 JSX。通用声线键与描述规则统一归入 `application/audioVoiceCatalog.ts`，`AudioOperationsPanel` 与选择模型共用唯一实现；原弹窗实现及面板内重复描述函数已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套搜索/分页/上传规则。打开、关闭后重开及 Tab 切换时的局部筛选复位、20 条分页、声线 ID 区分、5MB 前置校验、文件名默认音色名、网络错误文案、上传后刷新和空状态语义保持不变。新增目录/模型 8 项、controller 7 项和 View 3 项测试，连同声线网关共定向回归 5 个文件 21 项；完整前端架构门禁 3 个文件 332 项（其中 module boundaries 292 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
