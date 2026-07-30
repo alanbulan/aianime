@@ -47,19 +47,13 @@ import {
 } from "@/features/canvas/application/videoComposeTimelineSession";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
-import {
-  composeCanvasVideo,
-  uploadCanvasAsset,
-} from "@/features/canvas/composition";
 import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import {
   activeClipAt,
-  buildComposePayload,
   clipLengthMs,
   compactVideoTracks,
   FALLBACK_CLIP_MS,
   hasExportableClips,
-  hasOverlappingVideoClips,
   layoutTrack,
   overlappingVideoClipIds,
   packTrackClips,
@@ -75,6 +69,7 @@ import {
   type ComposeTrackKind,
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
+import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
 import { useVideoComposeTrackMediaSync } from "@/features/canvas/hooks/useVideoComposeTrackMediaSync";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import {
@@ -172,6 +167,15 @@ export function VideoComposeModal({
       createClipId: makeClipId,
     }),
   );
+  const { isExporting, exportError, runExport } =
+    useVideoComposeExportController({
+      project,
+      canvasId,
+      timeline,
+      onComposed,
+      overlapErrorMessage: t("videoCompose.error.overlap"),
+      missingUrlErrorMessage: t("videoCompose.error.noUrl"),
+    });
   const [past, setPast] = useState<ComposeTimelineState[]>([]);
   const [future, setFuture] = useState<ComposeTimelineState[]>([]);
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
@@ -203,8 +207,6 @@ export function VideoComposeModal({
     location: "local" | "canvas";
     resolution: CanvasVideoComposeResolution;
   }>({ open: false, location: "local", resolution: "1080p" });
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [coverEditorOpen, setCoverEditorOpen] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -1223,88 +1225,6 @@ export function VideoComposeModal({
   const zoomOut = useCallback(
     () => setPxPerSec((v) => clamp(v / ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC)),
     [],
-  );
-
-  // ── export ──────────────────────────────────────────────────────────────────
-  // 把合成产物（临时 job URL）取回为 blob，用作下载或重新上传的源。
-  const fetchComposedBlob = useCallback(async (url: string): Promise<Blob> => {
-    const resolved = resolveImageDisplayUrl(url) || url;
-    const res = await fetch(resolved, { credentials: "include" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.blob();
-  }, []);
-
-  const composedFileName = useCallback(
-    (url: string) =>
-      url.split("?")[0]?.split("/").pop() || `compose-${Date.now()}.mp4`,
-    [],
-  );
-
-  // 导出到本地：把剪辑后的视频直接下载到本地。
-  const exportToLocal = useCallback(
-    async (url: string) => {
-      const blob = await fetchComposedBlob(url);
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = composedFileName(url);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(objectUrl);
-    },
-    [composedFileName, fetchComposedBlob],
-  );
-
-  // 导出到画布：先把合成视频经 upload 接口落成稳定素材，再回显到本节点的合成结果上。
-  const exportToCanvas = useCallback(
-    async (url: string) => {
-      const blob = await fetchComposedBlob(url);
-      const uploaded = await uploadCanvasAsset(
-        project,
-        blob,
-        composedFileName(url),
-        { disableTimeout: true },
-      );
-      onComposed(uploaded.url, timelineRef.current.cover?.url ?? null);
-    },
-    [composedFileName, fetchComposedBlob, onComposed, project],
-  );
-
-  const runExport = useCallback(
-    async (
-      target: "local" | "canvas",
-      resolution: CanvasVideoComposeResolution,
-    ) => {
-      if (isExporting || !hasExportableClips(timeline)) return;
-      // MVP 后端不支持视频重叠合成；导出前拦截并给出明确提示，而不是让后端报错。
-      if (hasOverlappingVideoClips(timeline)) {
-        setExportError(t("videoCompose.error.overlap"));
-        return;
-      }
-      setIsExporting(true);
-      setExportError(null);
-      try {
-        const { url } = await composeCanvasVideo({
-          projectId: project,
-          request: buildComposePayload(
-            { ...timeline, resolution },
-            { canvasId, fps: 30 },
-          ),
-        });
-        if (!url) {
-          setExportError(t("videoCompose.error.noUrl"));
-          return;
-        }
-        if (target === "local") await exportToLocal(url);
-        else await exportToCanvas(url);
-      } catch (error) {
-        setExportError(error instanceof Error ? error.message : String(error));
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [canvasId, exportToCanvas, exportToLocal, isExporting, project, t, timeline],
   );
 
   // Close on Escape (unless a popover/export is busy).

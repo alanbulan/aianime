@@ -21821,6 +21821,104 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose export orchestration and browser delivery out of the modal", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeExportController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeExportController.test.tsx",
+    );
+    const runtimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+    );
+    const runtimeTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserVideoComposeExportRuntime.test.ts",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const runtimeSource = readFileSync(runtimePath, "utf8");
+    const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declarations = [
+      ["export async function", "fetchVideoComposeResultBlob("].join(" "),
+      ["export function", "resolveVideoComposeResultFileName("].join(" "),
+      ["export function", "downloadVideoComposeBlob("].join(" "),
+      ["export function", "useVideoComposeExportController("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(runtimePath)).toEqual([]);
+    expect(runtimeSource).toContain("fetch(url, init)");
+    expect(runtimeSource).toContain("document.createElement('a')");
+    expect(runtimeSource).toContain("URL.createObjectURL(blob)");
+    expect(runtimeSource).not.toContain("react");
+    expect(runtimeSource).not.toContain("useCanvasStore");
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/composition",
+        "@/features/canvas/domain/videoCompose",
+        "@/features/canvas/domain/videoComposeTimeline",
+        "@/features/canvas/infrastructure/browserVideoComposeExportRuntime",
+      ]),
+    );
+    expect(controllerSource).toContain("await composeCanvasVideo({");
+    expect(controllerSource).toContain("await uploadCanvasAsset(");
+    expect(controllerSource).toContain("buildComposePayload(");
+    expect(controllerSource).toContain("hasOverlappingVideoClips(timeline)");
+    expect(controllerSource).toContain(
+      "timelineRef.current.cover?.url ?? null",
+    );
+    expect(controllerSource).not.toContain("document.");
+    expect(controllerSource).not.toContain("URL.createObjectURL");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeExportController",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
+    expect(modalSource).toContain("useVideoComposeExportController({");
+    expect(modalSource).not.toContain("composeCanvasVideo(");
+    expect(modalSource).not.toContain("uploadCanvasAsset(");
+    expect(modalSource).not.toContain("fetchComposedBlob");
+    expect(modalSource).not.toContain("document.createElement(\"a\")");
+    expect(modalSource).not.toContain("URL.createObjectURL");
+    expect(modalSource).not.toContain("setIsExporting");
+    expect(declarationOwners).toEqual([
+      [
+        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+      ],
+      [
+        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+      ],
+      [
+        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+      ],
+      ["features/canvas/hooks/useVideoComposeExportController.ts"],
+    ]);
+    expect(controllerTestSource).toContain(
+      "from './useVideoComposeExportController'",
+    );
+    expect(runtimeTestSource).toContain(
+      "from './browserVideoComposeExportRuntime'",
+    );
+  });
+
   it("keeps single-video clip composition in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
@@ -21914,9 +22012,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/videoComposeTimeline.ts",
     );
-    const modalPath = resolve(
+    const exportControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "features/canvas/hooks/useVideoComposeExportController.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -21930,7 +22028,10 @@ describe("frontend architecture boundaries", () => {
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const timelineSource = readFileSync(timelinePath, "utf8");
-    const modalSource = readFileSync(modalPath, "utf8");
+    const exportControllerSource = readFileSync(
+      exportControllerPath,
+      "utf8",
+    );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
     const declaration = ["export async function", "composeCanvasVideo("].join(
@@ -21966,18 +22067,18 @@ describe("frontend architecture boundaries", () => {
     expect(timelineSource).toContain(
       "): CanvasVideoComposeRequest {",
     );
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(exportControllerPath)).toContain(
       "@/features/canvas/composition",
     );
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(exportControllerPath)).toContain(
       "@/features/canvas/domain/videoCompose",
     );
-    expect(importSpecifiers(modalPath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(modalPath)).not.toContain("@/api/tasks");
-    expect(modalSource).toContain("await composeCanvasVideo({");
-    expect(modalSource).not.toContain("submitFreezoneVideoCompose");
-    expect(modalSource).not.toContain("fetchFreezoneJobResult");
-    expect(modalSource).not.toContain("awaitTaskCompletion");
+    expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/tasks");
+    expect(exportControllerSource).toContain("await composeCanvasVideo({");
+    expect(exportControllerSource).not.toContain("submitFreezoneVideoCompose");
+    expect(exportControllerSource).not.toContain("fetchFreezoneJobResult");
+    expect(exportControllerSource).not.toContain("awaitTaskCompletion");
     expect(compositionSource).toContain(
       "composeCanvasVideoUseCase(params, {",
     );
@@ -22354,7 +22455,7 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPaths = [
       "features/canvas/compose/CoverEditor.tsx",
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "features/canvas/hooks/useVideoComposeExportController.ts",
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",

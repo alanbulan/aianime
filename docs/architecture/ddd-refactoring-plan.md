@@ -2218,6 +2218,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百七十三批已将视频合成轨道的激活片段投影、媒体换源、`data-clip-id` 对齐、metadata 后定位与续播、播放/暂停、音量/静音/倍速镜像、暂停 scrub seek 合并及 `seeked` 追赶生命周期从 `compose/VideoComposeModal.tsx` 迁入唯一 Hook `hooks/useVideoComposeTrackMediaSync.ts`；Modal 只对视频轨和音频轨各装配一次 Hook，旧私有 `useTrackMediaSync` 直接删除，不保留 facade、re-export、兼容别名或第二套媒体同步逻辑，由 2,640 行降至 2,533 行。片段边界换源、媒体主时钟所需 clip 标记、无激活片段时清空媒体、音频存在时预览视频强制静音、无效倍速回退 1、播放前 metadata 定位、快速拖动期间只追最新 seek 目标、50ms 误差门槛和卸载监听清理语义保持不变。新增 Hook 4 项定向测试；完整前端架构门禁 3 个文件 337 项（其中 module boundaries 297 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百七十四批已将视频合成导出的空时间线/视频重叠门禁、导出中与错误状态、分辨率请求投影、共享合成用例调用、本地/画布目标分流、稳定素材上传及最新封面回调从 `compose/VideoComposeModal.tsx` 迁入唯一 controller `hooks/useVideoComposeExportController.ts`，并将带会话凭据的结果 Blob 获取、HTTP 状态错误、URL 文件名推断、时间戳兜底、Object URL 与下载锚点生命周期迁入唯一 `infrastructure/browserVideoComposeExportRuntime.ts`；Modal 只消费 `isExporting`、`exportError` 与 `runExport`，不再直接导入 Canvas composition 或调用 `fetch`/`document.createElement("a")`/`URL.createObjectURL`，旧私有导出函数直接删除，不保留 facade、re-export、兼容别名或第二套导出流程，由 2,533 行降至 2,453 行。无可导出片段静默返回、重叠视频前置拦截、30fps payload、720p/1080p 选择、临时结果 URL 查询参数不进入文件名、本地下载后释放 Object URL、画布上传禁用超时、异步期间封面变化以完成时最新值回调、缺失 URL 专用文案和异常文本投影语义保持不变。新增 browser runtime 4 项和 controller 5 项定向测试；完整前端架构门禁 3 个文件 338 项（其中 module boundaries 298 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
