@@ -2238,6 +2238,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十三批已将视频合成的 portal、Header、封面入口、导出菜单与设置浮层、错误条、预览舞台、编辑/播放/缩放工具栏、时间标尺、多轨布局、播放头命中层及封面覆盖层插槽从 `compose/VideoComposeModal.tsx` 迁入唯一 presentation owner `ui/VideoComposeModalView.tsx`；Modal 只保留时间线、导出、播放、编辑、指针与键盘 controller 装配，局部 UI 状态及语义回调投影，封面编辑器以 `ReactNode` 从 composition root 注入，View 不反向依赖 `compose/CoverEditor`、store、API 或 Canvas composition。原 Modal 中全部 portal、图标、`className`、轨道行和控件 JSX 直接删除，不保留 facade、re-export、兼容别名或第二套展示实现，由 713 行降至 378 行；时间标尺宽度与时间格式化随布局迁入 View，封面 URL 解析、导出执行、领域重叠投影和所有命令仍留在原职责层。导出 hover 与确认流程、导出中关闭禁用、空预览、撤销/重做禁用、倍速/音量弹层、磁吸与缩放、轨道事件映射、播放头命令式 transform 及封面覆盖层语义保持不变。新增 View 3 项组件合同和唯一所有权架构门禁；完整前端架构门禁 3 个文件 347 项（其中 module boundaries 307 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十四批已将节点工具栏从任意媒体/投影节点提取可新建主线 Beat 上下文的显式来源优先级、项目 ID 回退、主线上下文筛选、slot 上下文归一、允许来源角色、元数据字段映射、稳定 Beat 身份比较、展示文本及 BeatContext 节点数据投影迁入唯一纯 application 模块 `application/nodeActionBeatContext.ts`；路由项目 ID 由 UI 注入，纯模型不再读取 URL、DOM、store、API 或 composition。工具栏原本重复的 `workbench_target` 解析直接改用既有 `application/beatContextNodeModel.ts` 唯一 `resolveBeatContextWorkbenchTarget`，原 10 个内联辅助函数、两组来源常量和私有上下文类型全部删除，不保留 facade、re-export、兼容别名或第二套规则，`ui/NodeActionToolbar.tsx` 由 2,295 行降至 2,107 行。`__freezone_source.beat_context` 优先于节点字段和传播上下文、直接 Beat 保持原对象、视频/音频/分镜 slot 清除素材 URL 后转为 Beat、仅 Beat 范围来源允许从 meta 补全、已有同项目/剧集/Beat 节点优先聚焦以及新节点位置和 payload 字段语义保持不变。新增纯模型 4 项测试，连同既有 BeatContext 模型共定向回归 2 个文件 10 项；完整前端架构门禁 3 个文件 348 项（其中 module boundaries 308 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

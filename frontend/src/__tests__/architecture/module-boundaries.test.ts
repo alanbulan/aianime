@@ -18469,6 +18469,80 @@ describe("frontend architecture boundaries", () => {
     expect(legacyOpsSource).not.toContain("}/freezone/relight`");
   });
 
+  it("keeps node-action Beat context projection in one pure application module", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionBeatContext.ts",
+    );
+    const applicationTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionBeatContext.test.ts",
+    );
+    const beatContextModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatContextNodeModel.ts",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const applicationTestSource = readFileSync(applicationTestPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "resolveNodeActionBeatContext("].join(" "),
+      ["export function", "isSameNodeActionBeatContext("].join(" "),
+      ["export function", "buildNodeActionBeatContextData("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/freezone/public",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("window");
+    expect(applicationSource).not.toContain("document");
+    expect(applicationSource).not.toContain("readUrl");
+    expect(applicationSource).not.toContain("useCanvasStore");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/application/nodeActionBeatContext",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/application/beatContextNodeModel",
+    );
+    expect(toolbarSource).toContain("resolveNodeActionBeatContext(node,");
+    expect(toolbarSource).toContain("isSameNodeActionBeatContext(");
+    expect(toolbarSource).toContain("buildNodeActionBeatContextData(");
+    expect(toolbarSource).toContain("resolveBeatContextWorkbenchTarget(");
+    expect(toolbarSource).not.toContain("function beatContextFromNode(");
+    expect(toolbarSource).not.toContain("function sameBeatContext(");
+    expect(toolbarSource).not.toContain("function beatContextNodeData(");
+    expect(toolbarSource).not.toContain("type BeatMainlineContext =");
+    expect(toolbarSource).not.toContain("BEAT_CONTEXT_SOURCE_KINDS");
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/application/nodeActionBeatContext.ts",
+      ]),
+    );
+    expect(applicationTestSource).toContain(
+      'from "./nodeActionBeatContext"',
+    );
+    expect(readFileSync(beatContextModelPath, "utf8")).toContain(
+      "export function resolveBeatContextWorkbenchTarget(",
+    );
+  });
+
   it("keeps Canvas grid-action rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,

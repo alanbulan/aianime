@@ -86,6 +86,7 @@ import {
   isUploadNode,
   isVideoNode,
   resolveNodeSourceImageUrl,
+  type BeatContextNodeData,
   type CanvasNode,
   type GroupNodeData,
   type NodeToolType,
@@ -97,10 +98,15 @@ import type {
 } from "@/features/canvas/domain/gridAction";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
+import { resolveBeatContextWorkbenchTarget } from "@/features/canvas/application/beatContextNodeModel";
+import {
+  buildNodeActionBeatContextData,
+  isSameNodeActionBeatContext,
+  resolveNodeActionBeatContext,
+} from "@/features/canvas/application/nodeActionBeatContext";
 import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
-  type MainlineContext,
   useCanvasProjectionStatus,
 } from "@/features/freezone/public";
 import {
@@ -158,197 +164,6 @@ const TOOLBAR_MENU_CONTENT_CLASS =
   "z-[120] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl";
 const TOOLBAR_MENU_ITEM_CLASS =
   "gap-2 rounded-[10px] text-popover-foreground focus:bg-muted focus:text-popover-foreground";
-
-type BeatMainlineContext = MainlineContext & {
-  projectId: string;
-  episode: number;
-  beat: number;
-};
-
-const BEAT_CONTEXT_SOURCE_KINDS = new Set([
-  "beat",
-  "sketch",
-  "frame",
-  "video",
-  "audio",
-  "director_combined",
-  "selected_background",
-]);
-
-function recordOrNull(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function stringOrUndefined(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function numberOrUndefined(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function stringArrayOrUndefined(value: unknown): string[] | undefined {
-  return Array.isArray(value) ? value.map(String).filter(Boolean) : undefined;
-}
-
-function beatContextLabel(episode: number, beat: number): string {
-  return `EP${episode} / Beat ${beat}`;
-}
-
-function beatContextFromRecord(
-  raw: unknown,
-  projectFallback?: string,
-): BeatMainlineContext | null {
-  const record = recordOrNull(raw);
-  if (!record || record.kind !== "beat") return null;
-  const projectId = stringOrUndefined(record.projectId) ?? projectFallback;
-  const episode = numberOrUndefined(record.episode);
-  const beat = numberOrUndefined(record.beat);
-  if (!projectId || episode === undefined || beat === undefined) return null;
-  return {
-    ...(record as MainlineContext),
-    kind: "beat",
-    projectId,
-    episode,
-    beat,
-    role: "beat_context",
-    label: stringOrUndefined(record.label) ?? beatContextLabel(episode, beat),
-  };
-}
-
-function beatContextFromParts(
-  projectId: string | undefined,
-  episode: number | undefined,
-  beat: number | undefined,
-  meta: Record<string, unknown> | null,
-): BeatMainlineContext | null {
-  if (!projectId || episode === undefined || beat === undefined) return null;
-  return {
-    kind: "beat",
-    projectId,
-    episode,
-    beat,
-    role: "beat_context",
-    label: beatContextLabel(episode, beat),
-    visualDescription: stringOrUndefined(meta?.visual_description),
-    narrationSegment: stringOrUndefined(meta?.narration_segment),
-    sceneId: stringOrUndefined(meta?.scene_id),
-    detectedIdentities: stringArrayOrUndefined(meta?.detected_identities),
-    detectedProps: stringArrayOrUndefined(meta?.detected_props),
-    sketchColors:
-      (recordOrNull(meta?.sketch_colors) as Record<string, string> | null) ?? undefined,
-    propMarkerColors:
-      (recordOrNull(meta?.prop_marker_colors) as Record<string, string> | null) ?? undefined,
-  };
-}
-
-function beatContextFromNode(node: CanvasNode): BeatMainlineContext | null {
-  const data = recordOrNull(node.data) ?? {};
-  const source = recordOrNull(data.__freezone_source);
-  const projectFallback =
-    stringOrUndefined(source?.projectId) ??
-    stringOrUndefined(data.projectId) ??
-    readUrl().project ??
-    undefined;
-
-  const explicit =
-    beatContextFromRecord(source?.beat_context, projectFallback) ??
-    beatContextFromRecord(data.beat_context, projectFallback);
-  if (explicit) return explicit;
-
-  const contexts = extractMainlineContextsFromNode(node);
-  const direct = contexts.find(
-    (ctx): ctx is BeatMainlineContext =>
-      ctx.kind === "beat" &&
-      typeof ctx.projectId === "string" &&
-      typeof ctx.episode === "number" &&
-      typeof ctx.beat === "number",
-  );
-  if (direct) return direct;
-
-  const slotContext = contexts.find(
-    (ctx) =>
-      BEAT_CONTEXT_SOURCE_KINDS.has(ctx.kind) &&
-      typeof ctx.projectId === "string" &&
-      typeof ctx.episode === "number" &&
-      typeof ctx.beat === "number",
-  );
-  if (slotContext) {
-    return {
-      ...slotContext,
-      kind: "beat",
-      role: "beat_context",
-      label:
-        stringOrUndefined(slotContext.label) ??
-        beatContextLabel(slotContext.episode as number, slotContext.beat as number),
-      sourceUrl: undefined,
-    } as BeatMainlineContext;
-  }
-
-  const sourceRole = stringOrUndefined(source?.role);
-  const sourceKind = stringOrUndefined(source?.kind);
-  const beatScoped = Boolean(
-    sourceRole &&
-      ["current_sketch", "current_frame", "current_video", "current_audio", "selected_background", "director_combined"].includes(sourceRole),
-  ) || Boolean(sourceKind && ["video", "audio"].includes(sourceKind));
-  if (!beatScoped) return null;
-
-  return beatContextFromParts(
-    projectFallback,
-    numberOrUndefined(source?.episode),
-    numberOrUndefined(source?.beat),
-    recordOrNull(source?.meta),
-  );
-}
-
-function sameBeatContext(a: MainlineContext, b: BeatMainlineContext): boolean {
-  return (
-    a.kind === "beat" &&
-    a.projectId === b.projectId &&
-    a.episode === b.episode &&
-    a.beat === b.beat
-  );
-}
-
-function beatContextText(ctx: BeatMainlineContext): string {
-  return [
-    `Episode: ${ctx.episode}`,
-    `Beat: ${ctx.beat}`,
-    ctx.visualDescription ? `Visual: ${ctx.visualDescription}` : "",
-    ctx.narrationSegment ? `Narration: ${ctx.narrationSegment}` : "",
-  ].filter(Boolean).join("\n");
-}
-
-function beatContextNodeData(ctx: BeatMainlineContext): Record<string, unknown> {
-  return {
-    displayName: `镜头上下文 · EP${ctx.episode}/B${ctx.beat}`,
-    content: beatContextText(ctx),
-    projectId: ctx.projectId,
-    episode: ctx.episode,
-    beat: ctx.beat,
-    context_scope: "mainline",
-    beat_context: undefined,
-    snapshot: {
-      visualDescription: ctx.visualDescription ?? "",
-      narrationSegment: ctx.narrationSegment ?? "",
-      sceneId: ctx.sceneId ?? "",
-      detectedIdentities: ctx.detectedIdentities ?? [],
-      detectedProps: ctx.detectedProps ?? [],
-      sketchColors: ctx.sketchColors ?? {},
-      propMarkerColors: ctx.propMarkerColors ?? {},
-    },
-    mainline_context: [ctx],
-    beat_edit_fields: {
-      visual_description: ctx.visualDescription ?? "",
-      scene_id: ctx.sceneId ?? "",
-      time_of_day: "",
-      detected_identities: ctx.detectedIdentities ?? [],
-      detected_props: ctx.detectedProps ?? [],
-    },
-  };
-}
 
 /** 工具栏内分组之间的竖向分隔线，呼应 libtv 的连续扁平条视觉。 */
 function ToolbarDivider() {
@@ -505,19 +320,13 @@ export const NodeActionToolbar = memo(
       typeof setTimeout
     > | null>(null);
     // mainline canvas readonly state + "打开工作台" 入口需要的本地状态。
-    const workbenchTarget = useMemo(() => {
-      const raw = (node.data as { workbench_target?: unknown }).workbench_target;
-      if (!raw || typeof raw !== "object") return null;
-      const target = raw as { scope?: unknown; episode?: unknown; beat?: unknown };
-      if (
-        target.scope === "beat" &&
-        typeof target.episode === "number" &&
-        typeof target.beat === "number"
-      ) {
-        return { scope: "beat" as const, episode: target.episode, beat: target.beat };
-      }
-      return null;
-    }, [node.data]);
+    const workbenchTarget = useMemo(
+      () =>
+        resolveBeatContextWorkbenchTarget(
+          node.data as BeatContextNodeData,
+        ),
+      [node.data],
+    );
     const [openingWorkbench, setOpeningWorkbench] = useState(false);
     // 用统一 helper 解析节点当前图片源，避免每种图片节点各写一套判断。
     const imageSource = useMemo(() => resolveNodeSourceImageUrl(node), [node]);
@@ -536,7 +345,10 @@ export const NodeActionToolbar = memo(
         : null;
     const projectionStatus = useCanvasProjectionStatus(protectedProjectionKey);
     const projectionIsStale = projectionStatus?.stale === true;
-    const extractableBeatContext = useMemo(() => beatContextFromNode(node), [node]);
+    const extractableBeatContext = useMemo(
+      () => resolveNodeActionBeatContext(node, readUrl().project),
+      [node],
+    );
     const canExposeGenerationError =
       isExportImageNode(node) || isImageGenNode(node);
     const generationError =
@@ -1000,7 +812,7 @@ export const NodeActionToolbar = memo(
         const store = useCanvasStore.getState();
         const existing = store.nodes.find((candidate) =>
           extractMainlineContextsFromNode(candidate).some((ctx) =>
-            sameBeatContext(ctx, extractableBeatContext),
+            isSameNodeActionBeatContext(ctx, extractableBeatContext),
           ),
         );
         if (existing?.id) {
@@ -1018,7 +830,7 @@ export const NodeActionToolbar = memo(
             x: node.position.x + nodeWidth + 80,
             y: node.position.y,
           },
-          beatContextNodeData(extractableBeatContext),
+          buildNodeActionBeatContextData(extractableBeatContext),
         );
         setSelectedNode(contextNodeId);
         requestFocusNode(contextNodeId);
