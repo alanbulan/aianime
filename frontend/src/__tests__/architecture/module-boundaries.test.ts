@@ -6965,8 +6965,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/ui/CanvasQuickActionBar.tsx"),
       "utf8",
     );
-    const historyAssetsView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+    const historyAssetsController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      ),
       "utf8",
     );
     const plannerForbiddenImports = importSpecifiers(plannerPath).filter(
@@ -7028,11 +7031,11 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("Math.min(4, placement.total)");
     expect(canvasView).not.toContain("@/features/canvas/domain/canvasAssets");
     expect(quickActionView).toContain("CanvasHistoryAssetPlacement");
-    expect(historyAssetsView).toContain("CanvasHistoryAssetPlacement");
+    expect(historyAssetsController).toContain("CanvasHistoryAssetPlacement");
     expect(quickActionView).not.toContain(
       "placement?: { index: number; total: number }",
     );
-    expect(historyAssetsView).not.toContain(
+    expect(historyAssetsController).not.toContain(
       "placement?: { index: number; total: number }",
     );
   });
@@ -19023,19 +19026,139 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasAssets.ts",
     );
     const assetSource = readFileSync(assetPath, "utf8");
-    const historyViewSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+    const historyControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      ),
       "utf8",
     );
 
     expect(importSpecifiers(assetPath)).not.toContain("@/lib/media-url");
     expect(assetSource).toContain("resolveMediaUrl: CanvasMediaUrlResolver");
-    expect(historyViewSource).toContain(
+    expect(historyControllerSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
     );
-    expect(historyViewSource).toContain(
+    expect(historyControllerSource).toContain(
       "recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)",
     );
+  });
+
+  it("keeps Canvas history-assets modal split into controller, view, and media leaf", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModalView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModalView.test.tsx",
+    );
+    const cardPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetCard.tsx",
+    );
+    const cardTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetCard.test.tsx",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const cardSource = readFileSync(cardPath, "utf8");
+    const cardTestSource = readFileSync(cardTestPath, "utf8");
+    const declarations = [
+      ["export function", "CanvasHistoryAssetsModal("].join(" "),
+      ["export function", "useCanvasHistoryAssetsModalController("].join(
+        " ",
+      ),
+      ["export function", "CanvasHistoryAssetsModalView("].join(" "),
+      ["export function", "CanvasHistoryAssetCard("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/hooks/useCanvasHistoryAssetsModalController",
+        "./CanvasHistoryAssetsModalView",
+      ]),
+    );
+    expect(entrySource).toContain(
+      "useCanvasHistoryAssetsModalController(props)",
+    );
+    expect(entrySource).toContain(
+      "createElement(CanvasHistoryAssetsModalView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasGenerationHistory(");
+    expect(controllerSource).toContain(
+      "recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)",
+    );
+    expect(controllerSource).toContain(
+      "extractCanvasAssets(nodes, resolveMediaUrl)",
+    );
+    expect(controllerSource).toContain("downloadUrlAsFile(asset.url)");
+    expect(controllerSource).toContain("buildStandaloneWorldManifest({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(controllerSource).not.toContain("<ImageViewerModal");
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/canvasStore",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/hooks/useCanvasGenerationHistory",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain("@/lib/browserDownload");
+    expect(importSpecifiers(viewPath)).not.toContain("@/lib/url-params");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useMemo(");
+    expect(viewSource).not.toContain("useRef(");
+    expect(viewSource).not.toContain("requestAnimationFrame");
+    expect(viewSource).not.toContain("<audio");
+    expect(viewSource).toContain("<CanvasHistoryAssetCard");
+    expect(viewSource).toContain("<ImageViewerModal");
+    expect(viewSource).toContain("<VideoViewerModal");
+    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(cardSource).toContain("<audio");
+    expect(cardSource).toContain("requestAnimationFrame(tick)");
+    expect(cardSource).not.toContain("@/features/canvas/canvasStore");
+    expect(cardSource).not.toContain("useCanvasGenerationHistory(");
+    expect(cardSource).not.toContain("downloadUrlAsFile(");
+    expect(cardSource).not.toContain("readUrl(");
+    expect(declarationOwners).toEqual([
+      ["features/canvas/ui/CanvasHistoryAssetsModal.tsx"],
+      ["features/canvas/hooks/useCanvasHistoryAssetsModalController.ts"],
+      ["features/canvas/ui/CanvasHistoryAssetsModalView.tsx"],
+      ["features/canvas/ui/CanvasHistoryAssetCard.tsx"],
+    ]);
+    expect(controllerTestSource).toContain(
+      "from './useCanvasHistoryAssetsModalController'",
+    );
+    expect(viewTestSource).toContain(
+      "from './CanvasHistoryAssetsModalView'",
+    );
+    expect(cardTestSource).toContain("from './CanvasHistoryAssetCard'");
   });
 
   it("keeps generation-history record parsing and asset projection out of UI", () => {
@@ -19059,9 +19182,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/NodeGenerationHistory.tsx",
     );
-    const historyAssetsViewPath = resolve(
+    const historyAssetsControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
     );
     const imageControllerPath = resolve(
       SRC_ROOT,
@@ -19076,8 +19199,8 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const historyAssetTestSource = readFileSync(historyAssetTestPath, "utf8");
     const historyViewSource = readFileSync(historyViewPath, "utf8");
-    const historyAssetsViewSource = readFileSync(
-      historyAssetsViewPath,
+    const historyAssetsControllerSource = readFileSync(
+      historyAssetsControllerPath,
       "utf8",
     );
     const imageControllerSource = readFileSync(imageControllerPath, "utf8");
@@ -19125,10 +19248,10 @@ describe("frontend architecture boundaries", () => {
     expect(historyViewSource).not.toContain(
       "export function hasCompletedHistoryRecords",
     );
-    expect(historyAssetsViewSource).toContain(
+    expect(historyAssetsControllerSource).toContain(
       "@/features/canvas/application/generationHistoryAssets",
     );
-    expect(historyAssetsViewSource).not.toContain(
+    expect(historyAssetsControllerSource).not.toContain(
       "export function recordsToAssetBuckets",
     );
     expect(imageControllerSource).toContain(
@@ -22438,7 +22561,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      ),
       resolve(SRC_ROOT, "features/canvas/ui/NodeGenerationHistory.tsx"),
     ];
     const applicationSource = readFileSync(applicationPath, "utf8");
