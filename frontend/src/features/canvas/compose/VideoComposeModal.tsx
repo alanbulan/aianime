@@ -56,6 +56,7 @@ import {
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
+import { useVideoComposeKeyboardController } from "@/features/canvas/hooks/useVideoComposeKeyboardController";
 import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
 import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
 import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
@@ -529,6 +530,30 @@ export function VideoComposeModal({
     clearSelection();
   }, [applyTimelineEdit, clearSelection, pushHistory, selected, selectedIds]);
 
+  useVideoComposeKeyboardController({
+    coverEditorOpen,
+    exportMenuOpen,
+    speedOpen,
+    volumeOpen,
+    exportDialogOpen: exportDialog.open,
+    isExporting,
+    setCoverEditorOpen,
+    setExportMenuOpen,
+    setSpeedOpen,
+    setVolumeOpen,
+    onClose,
+    undo,
+    redo,
+    copySelected,
+    pasteClipboard,
+    duplicateSelected,
+    removeSelected,
+    togglePlayback: toggle,
+    playheadRef,
+    durationMs,
+    seek,
+  });
+
   // ── zoom ───────────────────────────────────────────────────────────────────
   const zoomIn = useCallback(
     () => setPxPerSec((v) => clamp(v * ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC)),
@@ -538,103 +563,6 @@ export function VideoComposeModal({
     () => setPxPerSec((v) => clamp(v / ZOOM_STEP, MIN_PX_PER_SEC, MAX_PX_PER_SEC)),
     [],
   );
-
-  // Close on Escape (unless a popover/export is busy).
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (coverEditorOpen) setCoverEditorOpen(false);
-      else if (exportMenuOpen) setExportMenuOpen(false);
-      else if (speedOpen) setSpeedOpen(false);
-      else if (volumeOpen) setVolumeOpen(false);
-      else if (!isExporting) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [coverEditorOpen, exportMenuOpen, isExporting, onClose, speedOpen, volumeOpen]);
-
-  // 编辑快捷键：空格 播放/暂停、Delete 删片段、⌘Z/⇧⌘Z 撤销重做、⌘C/⌘V/⌘D 复制粘贴副本、
-  // ←/→ 微移播放头（按 1 帧，Shift 为 1 秒）。焦点在输入框 / 导出弹窗打开时不拦截。
-  useEffect(() => {
-    const FRAME_MS = 1000 / 30;
-    const isTyping = (el: EventTarget | null) => {
-      const node = el as HTMLElement | null;
-      if (!node) return false;
-      const tag = node.tagName;
-      return (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        node.isContentEditable
-      );
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (isExporting || exportDialog.open || coverEditorOpen || isTyping(event.target))
-        return;
-      const mod = event.metaKey || event.ctrlKey;
-      const key = event.key;
-
-      if (mod && (key === "z" || key === "Z")) {
-        event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if (mod && (key === "y" || key === "Y")) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-      if (mod && (key === "c" || key === "C")) {
-        event.preventDefault();
-        copySelected();
-        return;
-      }
-      if (mod && (key === "v" || key === "V")) {
-        event.preventDefault();
-        pasteClipboard();
-        return;
-      }
-      if (mod && (key === "d" || key === "D")) {
-        event.preventDefault();
-        duplicateSelected();
-        return;
-      }
-      if (mod) return; // 其余带修饰键的组合交给浏览器/系统
-
-      if (key === " " || key === "Spacebar") {
-        event.preventDefault();
-        toggle();
-        return;
-      }
-      if (key === "Delete" || key === "Backspace") {
-        event.preventDefault();
-        removeSelected();
-        return;
-      }
-      if (key === "ArrowLeft" || key === "ArrowRight") {
-        event.preventDefault();
-        const step = (event.shiftKey ? 1000 : FRAME_MS) * (key === "ArrowLeft" ? -1 : 1);
-        seek(clamp(playheadRef.current + step, 0, durationMs));
-        return;
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [
-    copySelected,
-    coverEditorOpen,
-    duplicateSelected,
-    durationMs,
-    exportDialog.open,
-    isExporting,
-    pasteClipboard,
-    redo,
-    removeSelected,
-    seek,
-    toggle,
-    undo,
-  ]);
 
   const rulerSeconds = Math.max(RULER_MIN_SECONDS, Math.ceil(durationMs / 1000));
   const timelineWidthPx = rulerSeconds * pxPerSec;

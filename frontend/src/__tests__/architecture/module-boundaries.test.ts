@@ -21982,6 +21982,57 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose keyboard behavior in one controller hook", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeKeyboardController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeKeyboardController.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declaration = [
+      "export function",
+      "useVideoComposeKeyboardController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(controllerPath)).toEqual(["react"]);
+    expect(
+      controllerSource.match(/window\.addEventListener\("keydown"/g)?.length,
+    ).toBe(2);
+    expect(controllerSource).toContain("isVideoComposeTypingTarget(");
+    expect(controllerSource).toContain("VIDEO_COMPOSE_FRAME_MS");
+    expect(controllerSource).toContain('event.key !== "Escape"');
+    expect(controllerSource).toContain("element.isContentEditable");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeKeyboardController",
+    );
+    expect(modalSource).not.toContain('window.addEventListener("keydown"');
+    expect(modalSource).not.toContain("const isTyping =");
+    expect(modalSource).not.toContain("const FRAME_MS =");
+    expect(declarationOwners).toEqual([
+      "features/canvas/hooks/useVideoComposeKeyboardController.ts",
+    ]);
+    expect(controllerTestSource).toContain(
+      'from "./useVideoComposeKeyboardController"',
+    );
+  });
+
   it("keeps video-compose controls and track media in presentation leaves", () => {
     const controlsPath = resolve(
       SRC_ROOT,

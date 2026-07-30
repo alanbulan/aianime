@@ -2230,6 +2230,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百七十九批已将视频合成的同类轨道 DOM 命中、片段移动会话、4px 拖动门槛、`requestAnimationFrame` 合帧、自动新轨 ID 装配、磁吸幽灵投影、裁剪会话、播放头 scrub、指针捕获及所有 pointer 监听生命周期从 `compose/VideoComposeModal.tsx` 迁入唯一浏览器 controller `hooks/useVideoComposeTimelinePointerController.ts`；拖动幽灵与裁剪气泡状态、并发手势清理引用也由该 hook 唯一持有，Modal 只注入最新时间线/像素/磁吸引用、历史与编辑命令、选择命令、轨道提交端口和 seek，并消费五项输出，原内联 DOM 查询、window/element 指针监听与手势编排全部删除，不保留 facade、re-export、兼容别名或第二套实现，由 1,366 行降至 1,087 行。Shift/Command/Ctrl 点击只切换多选、超过 4px 后才记录一次历史、每帧只处理最新指针坐标、片段跨轨后选择跟随最终轨道、失败投影整帧不落地、成功离开自动轨后清理旧空轨、磁吸时幽灵保持抓取点、裁剪按下即记录历史并在结束或取消后补齐主视频轨、scrub 首次按下立即 seek、高频移动合帧、pointercancel 与卸载均清理监听且结束位置精确对齐语义保持不变。新增 controller 4 项行为测试，连同纯手势规则共定向回归 2 个文件 11 项；完整前端架构门禁 3 个文件 343 项（其中 module boundaries 303 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十批已将视频合成的两条 window `keydown` 监听、Escape 弹层关闭优先级、输入控件/可编辑节点焦点判定、撤销/重做/复制/粘贴/副本/删除/播放快捷键及播放头帧步进从 `compose/VideoComposeModal.tsx` 迁入唯一 170 行浏览器 controller `hooks/useVideoComposeKeyboardController.ts`；Modal 只注入弹层状态与稳定 setter、导出状态、既有编辑命令、播放命令、播放头引用和 seek，原内联键盘 effect、焦点辅助函数与 30fps 步进常量全部删除，不保留 facade、re-export、兼容别名或第二套映射，由 1,087 行降至 1,015 行。Escape 依次关闭封面编辑器、导出菜单、倍速弹层、音量弹层，导出中禁止关闭 Modal；导出中、导出确认框或封面编辑器打开时不接管编辑快捷键，输入框、文本域、下拉框和 contenteditable 焦点保持浏览器默认行为；Command/Ctrl+Z、Shift+Command/Ctrl+Z、Command/Ctrl+Y/C/V/D、空格、Delete/Backspace 与左右方向键语义保持不变，其余带修饰键组合继续交给系统，方向键按 30fps 单帧移动、Shift 按一秒移动并钳制在时间线范围内。新增 controller 3 项行为测试；完整前端架构门禁 3 个文件 344 项（其中 module boundaries 304 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
