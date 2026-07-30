@@ -21845,9 +21845,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const pointerControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+    );
     const gesturesSource = readFileSync(gesturesPath, "utf8");
     const gesturesTestSource = readFileSync(gesturesTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
+    const pointerControllerSource = readFileSync(
+      pointerControllerPath,
+      "utf8",
+    );
     const declarations = [
       ["export function", "createVideoComposeClipDragSession("].join(" "),
       ["export function", "snapVideoComposeClipStart("].join(" "),
@@ -21873,14 +21881,26 @@ describe("frontend architecture boundaries", () => {
     expect(gesturesSource).not.toContain("@/api/");
     expect(gesturesSource).not.toContain("@/stores/");
     expect(gesturesSource).not.toContain("className=");
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(pointerControllerPath)).toContain(
       "@/features/canvas/domain/videoComposeTimelineGestures",
     );
-    expect(modalSource).toContain("createVideoComposeClipDragSession(");
-    expect(modalSource).toContain("projectVideoComposeClipDrag({");
-    expect(modalSource).toContain("createVideoComposeTrimDragSession(");
-    expect(modalSource).toContain("projectVideoComposeTrimDrag(");
-    expect(modalSource).toContain("snapVideoComposePlayhead({");
+    expect(importSpecifiers(modalPath)).not.toContain(
+      "@/features/canvas/domain/videoComposeTimelineGestures",
+    );
+    expect(pointerControllerSource).toContain(
+      "createVideoComposeClipDragSession(",
+    );
+    expect(pointerControllerSource).toContain("projectVideoComposeClipDrag({");
+    expect(pointerControllerSource).toContain(
+      "createVideoComposeTrimDragSession(",
+    );
+    expect(pointerControllerSource).toContain("projectVideoComposeTrimDrag(");
+    expect(pointerControllerSource).toContain("snapVideoComposePlayhead({");
+    expect(modalSource).not.toContain("createVideoComposeClipDragSession(");
+    expect(modalSource).not.toContain("projectVideoComposeClipDrag({");
+    expect(modalSource).not.toContain("createVideoComposeTrimDragSession(");
+    expect(modalSource).not.toContain("projectVideoComposeTrimDrag(");
+    expect(modalSource).not.toContain("snapVideoComposePlayhead({");
     expect(modalSource).not.toContain("const SNAP_GRID_MS =");
     expect(modalSource).not.toContain("const SNAP_PX =");
     expect(modalSource).not.toContain("const snapClipStart = useCallback");
@@ -21896,6 +21916,69 @@ describe("frontend architecture boundaries", () => {
     );
     expect(gesturesTestSource).toContain(
       'from "./videoComposeTimelineGestures"',
+    );
+  });
+
+  it("keeps video-compose browser pointer sessions in one controller hook", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelinePointerController.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declaration = [
+      "export function",
+      "useVideoComposeTimelinePointerController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/videoComposeTimelineEdits",
+        "@/features/canvas/domain/videoComposeTimelineGestures",
+        "@/features/canvas/domain/videoComposeTimeline",
+      ]),
+    );
+    expect(controllerSource).toContain(
+      'document.querySelectorAll<HTMLElement>("[data-compose-track-id]")',
+    );
+    expect(controllerSource).toContain(
+      'window.addEventListener("pointermove"',
+    );
+    expect(controllerSource).toContain(
+      'element.addEventListener("pointermove"',
+    );
+    expect(controllerSource).toContain("requestAnimationFrame(apply)");
+    expect(controllerSource).toContain("requestAnimationFrame(pump)");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeTimelinePointerController",
+    );
+    expect(modalSource).not.toContain("document.querySelectorAll");
+    expect(modalSource).not.toContain('addEventListener("pointermove"');
+    expect(modalSource).not.toContain("setPointerCapture(");
+    expect(modalSource).not.toContain("activeDragCleanupRef");
+    expect(declarationOwners).toEqual([
+      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+    ]);
+    expect(controllerTestSource).toContain(
+      'from "./useVideoComposeTimelinePointerController"',
     );
   });
 

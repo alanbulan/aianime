@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -48,25 +47,17 @@ import {
   type VideoComposeTimelineEdit,
 } from "@/features/canvas/domain/videoComposeTimelineEdits";
 import {
-  createVideoComposeClipDragSession,
-  createVideoComposeTrimDragSession,
-  projectVideoComposeClipDrag,
-  projectVideoComposeTrimDrag,
-  snapVideoComposePlayhead,
-} from "@/features/canvas/domain/videoComposeTimelineGestures";
-import {
   hasExportableClips,
   overlappingVideoClipIds,
   sourceSpanMs,
   type ComposeClip,
   type ComposeCover,
   type ComposeTimelineState,
-  type ComposeTrack,
-  type ComposeTrackKind,
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
 import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
+import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
 import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
 import {
   VideoComposeSpeedPopover,
@@ -162,19 +153,6 @@ export function VideoComposeModal({
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  // 拖动中的「投影轨迹」：被拖片段会在落点槽位留一道半透明投影，同时跟随指针浮起一个
-  // 幽灵副本（libtv / 剪映式）。null = 当前没有片段在拖动。
-  const [dragGhost, setDragGhost] = useState<{
-    clipId: string;
-    trackId: string;
-    /** 跟随指针的幽灵副本左缘（px，相对所在轨道的内容区）。 */
-    ghostLeftPx: number;
-  } | null>(null);
-  // 正在裁剪的片段（用于在其边缘浮一个「裁剪后时长」气泡）。null = 没在裁剪。
-  const [trimEdit, setTrimEdit] = useState<{
-    clipId: string;
-    edge: "start" | "end";
-  } | null>(null);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -204,18 +182,6 @@ export function VideoComposeModal({
     audioTrack,
     videoSource,
   } = useVideoComposePlaybackController(timeline, pxPerSec);
-  // 当前正在进行的拖动（clip 移动 / trim / scrub）的清理函数。用于：① 同一时刻只允许
-  // 一个拖动（多指/多触点防重复挂监听）；② 组件卸载（关弹窗）时清掉残留的 window 监听，
-  // 避免对已卸载组件 setState。
-  const activeDragCleanupRef = useRef<(() => void) | null>(null);
-  useEffect(
-    () => () => {
-      activeDragCleanupRef.current?.();
-      activeDragCleanupRef.current = null;
-    },
-    [],
-  );
-
   // 收敛为单选：主选中 + 高亮集合都设成这一片段（或清空）。
   const selectOnly = useCallback((ref: VideoComposeClipReference | null) => {
     setSelected(ref);
@@ -351,152 +317,26 @@ export function VideoComposeModal({
     clearSelection();
   }, [clearSelection, pushHistory, seedNodeIds, sourceNodes]);
 
-  // 指针 Y 命中目标轨道：落在某条同种类轨道行内 → 该轨；落到所有同种类行下方 →
-  // "new"（拖出一条新行）；行间 / 上方 → null（不改变轨道）。靠 DOM 行 rect 命中。
-  const resolveDropTrack = useCallback(
-    (kind: ComposeTrackKind, clientY: number): { trackId: string } | "new" | null => {
-      const rows = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-compose-track-id]"),
-      )
-        .filter((el) => el.dataset.composeTrackKind === kind)
-        .map((el) => ({
-          id: el.dataset.composeTrackId as string,
-          rect: el.getBoundingClientRect(),
-        }))
-        .sort((a, b) => a.rect.top - b.rect.top);
-      if (rows.length === 0) return null;
-      for (const row of rows) {
-        if (clientY >= row.rect.top && clientY <= row.rect.bottom) {
-          return { trackId: row.id };
-        }
-      }
-      const last = rows[rows.length - 1];
-      return clientY > last.rect.bottom ? "new" : null;
+  const updateTimelineTracks = useCallback(
+    (tracks: ComposeTimelineState["tracks"]) => {
+      setTimeline((previous) => ({ ...previous, tracks }));
     },
     [],
   );
-
-  // 拖动片段本体：横向改时间位置（同轨防重叠 + 磁吸），纵向拖到新行直接新建同种类
-  // 轨道承载；拖回已有轨道则把本次新建、已空的轨道删掉。带 4px 阈值区分点选/拖动。
-  // 用 window 监听（不用 setPointerCapture）—— 片段跨轨道会重新挂载 DOM，捕获会丢失。
-  const startClipMove = useCallback(
-    (event: ReactPointerEvent, track: ComposeTrack, clip: ComposeClip) => {
-      event.stopPropagation();
-      event.preventDefault();
-      // Shift/⌘ 点选：叠加/取消选中该片段，不进入拖动。
-      if (event.shiftKey || event.metaKey || event.ctrlKey) {
-        toggleInSelection({ trackId: track.id, clipId: clip.id });
-        return;
-      }
-      if (activeDragCleanupRef.current) return; // 已有拖动在进行，忽略并发触发
-      const dragSession = createVideoComposeClipDragSession(
-        timelineRef.current,
-        { trackId: track.id, clipId: clip.id },
-      );
-      if (!dragSession) return;
-      selectOnly({ trackId: track.id, clipId: clip.id });
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const { clipId, kind } = dragSession;
-      let currentTrackId = track.id;
-      let autoCreatedTrackId: string | null = null;
-      let moved = false;
-      let rafId = 0;
-      let latest = { x: startX, y: startY };
-
-      const apply = () => {
-        rafId = 0;
-        const { x: clientX, y: clientY } = latest;
-        const dxMs = (clientX - startX) / pxPerMsRef.current;
-        // 以「最新已提交状态」为基准同步计算整帧结果，并在落地前做防御性跳过 ——
-        // 失败就整帧不动（不改 state、不动闭包变量），片段保持上一个合法位置。
-        const snapshot = timelineRef.current;
-        const drop = resolveDropTrack(kind, clientY);
-        const prevAuto = autoCreatedTrackId;
-        const createId = drop === "new" && !prevAuto ? makeTrackId() : null;
-        let destId = currentTrackId;
-        if (drop === "new") {
-          const createdOrExistingId = prevAuto ?? createId;
-          if (!createdOrExistingId) return;
-          destId = createdOrExistingId;
-        } else if (drop) {
-          destId = drop.trackId;
-        }
-
-        const projection = projectVideoComposeClipDrag({
-          state: snapshot,
-          session: dragSession,
-          destinationTrackId: destId,
-          createdTrackId: createId,
-          previousAutoCreatedTrackId: prevAuto,
-          deltaMs: dxMs,
-          pxPerMs: pxPerMsRef.current,
-          snapEnabled: snapRef.current,
-        });
-        if (!projection) return;
-        if (projection.status === "blocked") {
-          setDragGhost(null);
-          return;
-        }
-        setTimeline((previous) => ({
-          ...previous,
-          tracks: projection.timeline.tracks,
-        }));
-        if (projection.magnetic) {
-          // 幽灵副本跟随指针（被抓取点不变）：原片段左缘 + 指针位移。
-          const ghostLeftPx = Math.max(
-            0,
-            dragSession.originalTimelineStartMs * pxPerMsRef.current +
-              (clientX - startX),
-          );
-          setDragGhost({
-            clipId,
-            trackId: projection.targetTrackId,
-            ghostLeftPx,
-          });
-        } else {
-          setDragGhost(null);
-        }
-        // 仅在「成功落地」后维护闭包：新建→记下；片段离开自动轨（被剪枝）→ 清空，
-        // 避免下次拖「新行」复用已删除 id 导致片段丢失。currentTrackId 始终指向有效轨。
-        autoCreatedTrackId = projection.autoCreatedTrackId;
-        currentTrackId = projection.targetTrackId;
-      };
-
-      const onMove = (ev: PointerEvent) => {
-        if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 4) return;
-        if (!moved) {
-          moved = true;
-          pushHistory();
-        }
-        latest = { x: ev.clientX, y: ev.clientY };
-        if (!rafId) rafId = requestAnimationFrame(apply);
-      };
-      const end = () => {
-        if (rafId) cancelAnimationFrame(rafId);
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", end);
-        window.removeEventListener("pointercancel", end);
-        activeDragCleanupRef.current = null;
-        setDragGhost(null); // 收起拖动投影/幽灵
-        if (!moved) return;
-        // 收尾：清掉所有变空的非默认轨道，并把选中跟到片段最终所在轨道。
-        applyTimelineEdit({ type: "cleanupEmptyTracks" });
-        selectOnly({ trackId: currentTrackId, clipId });
-      };
-      activeDragCleanupRef.current = end;
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", end);
-      window.addEventListener("pointercancel", end);
-    },
-    [
+  const { dragGhost, trimEdit, startClipMove, startTrim, startScrub } =
+    useVideoComposeTimelinePointerController({
+      timelineRef,
+      pxPerMsRef,
+      snapEnabledRef: snapRef,
+      trackScrollRef,
+      createTrackId: makeTrackId,
+      updateTimelineTracks,
       applyTimelineEdit,
       pushHistory,
-      resolveDropTrack,
       selectOnly,
       toggleInSelection,
-    ],
-  );
+      seek,
+    });
 
   // 把片段移到「新的一行」：新建同种类轨道承载该片段（保留时间位置），从原轨移除；
   // 清掉因此变空的非默认轨道。
@@ -688,125 +528,6 @@ export function VideoComposeModal({
     applyTimelineEdit({ type: "removeClips", clipIds: ids });
     clearSelection();
   }, [applyTimelineEdit, clearSelection, pushHistory, selected, selectedIds]);
-
-  // ── trim drag ─────────────────────────────────────────────────────────────
-  const startTrim = useCallback(
-    (
-      event: ReactPointerEvent,
-      track: ComposeTrack,
-      clip: ComposeClip,
-      edge: "start" | "end",
-    ) => {
-      event.stopPropagation();
-      event.preventDefault();
-      if (activeDragCleanupRef.current) return; // 已有拖动在进行，忽略并发触发
-      const trimSession = createVideoComposeTrimDragSession(
-        timelineRef.current,
-        { trackId: track.id, clipId: clip.id },
-      );
-      if (!trimSession) return;
-      selectOnly({ trackId: track.id, clipId: clip.id });
-      setTrimEdit({ clipId: clip.id, edge });
-      pushHistory();
-      const startX = event.clientX;
-      const onMove = (ev: PointerEvent) => {
-        const patch = projectVideoComposeTrimDrag(trimSession, {
-          edge,
-          deltaTimelineMs: (ev.clientX - startX) / pxPerMsRef.current,
-          snapEnabled: snapRef.current,
-        });
-        applyTimelineEdit({
-          type: "updateClip",
-          target: trimSession.target,
-          patch,
-        });
-      };
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
-        activeDragCleanupRef.current = null;
-        setTrimEdit(null); // 收起裁剪时长气泡
-        // 裁剪结束后视频轨 ripple 补位，把裁出来的缺口合拢。
-        applyTimelineEdit({ type: "compactMainVideoTrack" });
-      };
-      activeDragCleanupRef.current = onUp;
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
-    },
-    [applyTimelineEdit, pushHistory, selectOnly],
-  );
-
-  // ── playhead seek / drag ──────────────────────────────────────────────────
-  const seekFromClientX = useCallback(
-    (clientX: number) => {
-      const cont = trackScrollRef.current;
-      if (!cont) return;
-      const rect = cont.getBoundingClientRect();
-      const x = clientX - rect.left + cont.scrollLeft;
-      seek(
-        snapVideoComposePlayhead({
-          state: timelineRef.current,
-          playheadMs: x / pxPerMsRef.current,
-          pxPerMs: pxPerMsRef.current,
-          enabled: snapRef.current,
-        }),
-      );
-    },
-    [seek],
-  );
-
-  // 统一的「按下即拖动 scrub」：用 setPointerCapture 把后续 move/up 都锁定到按下的
-  // 元素上，并监听 pointercancel —— 旧实现挂的是 window 监听且只听 pointerup，一旦
-  // pointercancel（触控板手势 / 指针被系统接管等）就漏掉清理，move 监听残留，于是
-  // 鼠标在空白区移动也会带着时间针走。指针捕获 + cancel 兜底彻底消除这个泄漏。
-  const startScrub = useCallback(
-    (event: ReactPointerEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (activeDragCleanupRef.current) return; // 已有拖动在进行，忽略并发触发
-      const el = event.currentTarget as HTMLElement;
-      const pointerId = event.pointerId;
-      try {
-        el.setPointerCapture(pointerId);
-      } catch {
-        /* ignore */
-      }
-      seekFromClientX(event.clientX);
-      // 把高频 pointermove 合并到每帧一次：拖动时只记录最新 X，rAF 里处理一次。
-      // 避免一次拖动甩出几十上百个 seek + setState 把主线程塞满（进而饿死解码/绘制，
-      // 表现为预览画面卡顿）。
-      let latestX = event.clientX;
-      let rafId = 0;
-      const pump = () => {
-        rafId = 0;
-        seekFromClientX(latestX);
-      };
-      const onMove = (ev: PointerEvent) => {
-        latestX = ev.clientX;
-        if (!rafId) rafId = requestAnimationFrame(pump);
-      };
-      const end = () => {
-        if (rafId) cancelAnimationFrame(rafId);
-        el.removeEventListener("pointermove", onMove);
-        el.removeEventListener("pointerup", end);
-        el.removeEventListener("pointercancel", end);
-        try {
-          el.releasePointerCapture(pointerId);
-        } catch {
-          /* ignore */
-        }
-        activeDragCleanupRef.current = null;
-        seekFromClientX(latestX); // 落点精确对齐最后位置
-      };
-      activeDragCleanupRef.current = end;
-      el.addEventListener("pointermove", onMove);
-      el.addEventListener("pointerup", end);
-      el.addEventListener("pointercancel", end);
-    },
-    [seekFromClientX],
-  );
 
   // ── zoom ───────────────────────────────────────────────────────────────────
   const zoomIn = useCallback(
