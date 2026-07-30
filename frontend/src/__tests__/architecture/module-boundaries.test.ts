@@ -18562,13 +18562,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/nodeActionToolbarModel.test.ts",
     );
-    const toolbarPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useNodeOutputToolbarController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const applicationTestSource = readFileSync(applicationTestPath, "utf8");
-    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const declarations = [
       ["export function", "projectNodeActionGenerationError("].join(" "),
       ["export function", "projectNodeActionStoryboardText("].join(" "),
@@ -18603,12 +18603,14 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(applicationSource).not.toContain(forbiddenDependency);
     }
-    expect(importSpecifiers(toolbarPath)).toContain(
+    expect(importSpecifiers(controllerPath)).toContain(
       "@/features/canvas/application/nodeActionToolbarModel",
     );
-    expect(toolbarSource).toContain("projectNodeActionGenerationError(");
-    expect(toolbarSource).toContain("projectNodeActionStoryboardText(");
-    expect(toolbarSource).toContain("resolveNodeActionImageDownloadFilename(");
+    expect(controllerSource).toContain("projectNodeActionGenerationError(");
+    expect(controllerSource).toContain("projectNodeActionStoryboardText(");
+    expect(controllerSource).toContain(
+      "resolveNodeActionImageDownloadFilename(",
+    );
     for (const legacyInlineLogic of [
       "isStoryboardGenNode",
       "isStoryboardSplitNode",
@@ -18618,7 +18620,7 @@ describe("frontend architecture boundaries", () => {
       "(node.data as { generationError?: unknown }).generationError",
       "(node.data as { sourceFileName?: unknown }).sourceFileName",
     ]) {
-      expect(toolbarSource).not.toContain(legacyInlineLogic);
+      expect(controllerSource).not.toContain(legacyInlineLogic);
     }
     expect(declarationOwners).toEqual(
       declarations.map(() => [
@@ -18627,6 +18629,151 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationTestSource).toContain(
       'from "./nodeActionToolbarModel"',
+    );
+  });
+
+  it("separates node output toolbar commands, composition, and view", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeOutputToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeOutputToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeOutputToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "useNodeOutputToolbarController("].join(" "),
+      ["export const", "NodeOutputToolbarActions ="].join(" "),
+      ["export function", "NodeOutputToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const commandOwners = [
+      controllerPath,
+      componentPath,
+      viewPath,
+      toolbarPath,
+    ]
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("navigator.clipboard.writeText(") ||
+          source.includes("downloadUrlAsFile(")
+        );
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/application/nodeActionToolbarModel",
+        "@/features/canvas/domain/canvasNodes",
+        "@/lib/browserDownload",
+        "@/stores/settingsStore",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(new Set(importSpecifiers(componentPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useNodeOutputToolbarController",
+        "./NodeOutputToolbarActionsView",
+      ]),
+    );
+    expect(componentSource).toContain(
+      "useNodeOutputToolbarController(props)",
+    );
+    expect(componentSource).toContain(
+      "<NodeOutputToolbarActionsView controller={controller} />",
+    );
+    for (const forbiddenViewDependency of [
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useRef",
+      "useTranslation",
+      "useSettingsStore",
+      "navigator.clipboard",
+      "downloadUrlAsFile",
+      "projectNodeActionGenerationError",
+      "projectNodeActionStoryboardText",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(viewSource).toContain("<NodeToolbarIconChip");
+    expect(viewSource).toContain("copyStoryboardText()");
+    expect(viewSource).toContain("copyGenerationError()");
+    expect(viewSource).toContain("downloadImage()");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/NodeOutputToolbarActions",
+    );
+    expect(toolbarSource).toContain(
+      "<NodeOutputToolbarActions node={node} />",
+    );
+    for (const forbiddenParentDependency of [
+      "@/features/canvas/application/imageData",
+      "@/features/canvas/application/nodeActionToolbarModel",
+      "@/features/canvas/hooks/useNodeOutputToolbarController",
+      "@/features/canvas/ui/NodeToolbarIconChip",
+      "@/lib/browserDownload",
+      "@/stores/settingsStore",
+    ]) {
+      expect(importSpecifiers(toolbarPath)).not.toContain(
+        forbiddenParentDependency,
+      );
+    }
+    for (const legacyInlineLogic of [
+      "copyTextFeedbackTimerRef",
+      "copyErrorFeedbackTimerRef",
+      "navigator.clipboard",
+      "downloadUrlAsFile",
+      "resolveImageDisplayUrl",
+      "projectNodeActionGenerationError",
+      "projectNodeActionStoryboardText",
+      "resolveNodeActionImageDownloadFilename",
+      "handleCopyStoryboardText",
+      "handleCopyGenerationError",
+      "handleDownloadSaveAs",
+      "nodeToolbar.copyErrorReport",
+      "nodeToolbar.download",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(commandOwners).toEqual([
+      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+    ]);
+    expect(declarationOwners).toEqual([
+      ["features/canvas/hooks/useNodeOutputToolbarController.ts"],
+      ["features/canvas/ui/NodeOutputToolbarActions.tsx"],
+      ["features/canvas/ui/NodeOutputToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useNodeOutputToolbarController"',
     );
   });
 
@@ -19570,7 +19717,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).toContain(
       "@/features/canvas/ui/ImageNodeToolbarActions",
     );
-    expect(importSpecifiers(toolbarPath)).toContain(
+    expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/NodeToolbarIconChip",
     );
     for (const forbiddenParentDependency of [
@@ -19585,7 +19732,7 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(toolbarSource).toContain("<ImageNodeToolbarActions");
-    expect(toolbarSource).toContain("<NodeToolbarIconChip");
+    expect(toolbarSource).not.toContain("<NodeToolbarIconChip");
     for (const legacyInlineLogic of [
       "getNodeToolPlugins",
       "resolveToolLabel",
@@ -19635,7 +19782,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/NodeActionToolbar.tsx",
     );
+    const outputControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+    );
     const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const outputControllerSource = readFileSync(outputControllerPath, "utf8");
 
     for (const deadSymbol of [
       "copyImageSourceToClipboard",
@@ -19654,8 +19806,8 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(toolbarSource).not.toContain(deadSymbol);
     }
-    expect(toolbarSource).toContain("handleCopyStoryboardText");
-    expect(toolbarSource).toContain("handleCopyGenerationError");
+    expect(outputControllerSource).toContain("const copyStoryboardText");
+    expect(outputControllerSource).toContain("const copyGenerationError");
     expect(toolbarSource).toContain(
       'canvasEventBus.publish("freezone/projection-sync"',
     );

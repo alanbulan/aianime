@@ -2,16 +2,12 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
 import {
-  Copy,
-  Download,
   FolderOpen,
   Link2,
   RefreshCw,
@@ -20,7 +16,6 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { downloadUrlAsFile } from "@/lib/browserDownload";
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
@@ -34,7 +29,6 @@ import {
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
   isVideoNode,
-  resolveNodeSourceImageUrl,
   type BeatContextNodeData,
   type CanvasNode,
   type GroupNodeData,
@@ -43,7 +37,7 @@ import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
-import { NodeToolbarIconChip } from "@/features/canvas/ui/NodeToolbarIconChip";
+import { NodeOutputToolbarActions } from "@/features/canvas/ui/NodeOutputToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
@@ -54,19 +48,12 @@ import {
   resolveNodeActionBeatContext,
 } from "@/features/canvas/application/nodeActionBeatContext";
 import {
-  projectNodeActionGenerationError,
-  projectNodeActionStoryboardText,
-  resolveNodeActionImageDownloadFilename,
-} from "@/features/canvas/application/nodeActionToolbarModel";
-import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
   useCanvasProjectionStatus,
 } from "@/features/freezone/public";
 import { UiChipButton, UiPanel } from "@/components/ui";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
-import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { readUrl } from "@/lib/url-params";
 import {
@@ -105,7 +92,7 @@ export const NodeActionToolbar = memo(
     onOpenErase,
     onOpenRotate,
   }: NodeActionToolbarProps) => {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const isImageEdit = isImageEditNode(node);
     // Plain (non-protected) group → eligible for ungroup. Captured up here as a
     // boolean + a plain id while `node` still has its full type: over-broad node
@@ -122,17 +109,6 @@ export const NodeActionToolbar = memo(
     const addNode = useCanvasStore((state) => state.addNode);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
-    const ignoreAtTagWhenCopyingAndGenerating = useSettingsStore(
-      (state) => state.ignoreAtTagWhenCopyingAndGenerating,
-    );
-    const [isCopyTextSuccess, setIsCopyTextSuccess] = useState(false);
-    const [isCopyErrorSuccess, setIsCopyErrorSuccess] = useState(false);
-    const copyTextFeedbackTimerRef = useRef<ReturnType<
-      typeof setTimeout
-    > | null>(null);
-    const copyErrorFeedbackTimerRef = useRef<ReturnType<
-      typeof setTimeout
-    > | null>(null);
     // mainline canvas readonly state + "打开工作台" 入口需要的本地状态。
     const workbenchTarget = useMemo(
       () =>
@@ -142,9 +118,6 @@ export const NodeActionToolbar = memo(
       [node.data],
     );
     const [openingWorkbench, setOpeningWorkbench] = useState(false);
-    // 用统一 helper 解析节点当前图片源，避免每种图片节点各写一套判断。
-    const imageSource = useMemo(() => resolveNodeSourceImageUrl(node), [node]);
-    const canHandleImage = Boolean(imageSource);
     // commit 按钮现在覆盖所有媒体节点(图像/视频/音频/3GS)——只要能从节点推断出
     // 可提交的媒体 url 就显示。具体提交目标在 CommitDialog 里按 mediaType 处理。
     const canCommitNode = useMemo(
@@ -163,105 +136,6 @@ export const NodeActionToolbar = memo(
       () => resolveNodeActionBeatContext(node, readUrl().project),
       [node],
     );
-    const generationErrorFallback = t("ai.error");
-    const generationErrorProjection = useMemo(
-      () =>
-        projectNodeActionGenerationError(node, generationErrorFallback),
-      [generationErrorFallback, node],
-    );
-    const canCopyGenerationError = generationErrorProjection.canCopy;
-    const generationErrorReport = generationErrorProjection.report;
-
-    useEffect(() => {
-      return () => {
-        if (copyTextFeedbackTimerRef.current) {
-          clearTimeout(copyTextFeedbackTimerRef.current);
-        }
-        if (copyErrorFeedbackTimerRef.current) {
-          clearTimeout(copyErrorFeedbackTimerRef.current);
-        }
-      };
-    }, []);
-
-    const storyboardTextProjection = useMemo(
-      () =>
-        projectNodeActionStoryboardText(
-          node,
-          ignoreAtTagWhenCopyingAndGenerating,
-          (index, content) =>
-            t("nodeToolbar.storyboardLine", { index, content }),
-        ),
-      [
-        ignoreAtTagWhenCopyingAndGenerating,
-        node,
-        t,
-        i18n.language,
-      ],
-    );
-    const canCopyStoryboardText = storyboardTextProjection.canCopy;
-    const storyboardText = storyboardTextProjection.text;
-
-    const handleCopyStoryboardText = useCallback(async () => {
-      if (!storyboardText) {
-        return;
-      }
-
-      setIsCopyTextSuccess(true);
-      if (copyTextFeedbackTimerRef.current) {
-        clearTimeout(copyTextFeedbackTimerRef.current);
-      }
-      copyTextFeedbackTimerRef.current = setTimeout(() => {
-        setIsCopyTextSuccess(false);
-        copyTextFeedbackTimerRef.current = null;
-      }, 1100);
-
-      try {
-        await navigator.clipboard.writeText(storyboardText);
-      } catch (error) {
-        console.error("Failed to copy storyboard text", error);
-      }
-    }, [storyboardText]);
-
-    const handleCopyGenerationError = useCallback(async () => {
-      if (!canCopyGenerationError) {
-        return;
-      }
-
-      setIsCopyErrorSuccess(true);
-      if (copyErrorFeedbackTimerRef.current) {
-        clearTimeout(copyErrorFeedbackTimerRef.current);
-      }
-      copyErrorFeedbackTimerRef.current = setTimeout(() => {
-        setIsCopyErrorSuccess(false);
-        copyErrorFeedbackTimerRef.current = null;
-      }, 1100);
-
-      try {
-        await navigator.clipboard.writeText(generationErrorReport);
-      } catch (error) {
-        console.error("Failed to copy generation error report", error);
-      }
-    }, [canCopyGenerationError, generationErrorReport]);
-
-    const imageDownloadFilename = useMemo(
-      () => resolveNodeActionImageDownloadFilename(node),
-      [node],
-    );
-
-    const handleDownloadSaveAs = useCallback(async () => {
-      if (!imageSource) {
-        return;
-      }
-      try {
-        await downloadUrlAsFile(
-          resolveImageDisplayUrl(imageSource),
-          imageDownloadFilename,
-        );
-      } catch (error) {
-        console.error("Failed to download image", error);
-      }
-    }, [imageDownloadFilename, imageSource]);
-
     const handleOpenWorkbench = useCallback(() => {
       if (!workbenchTarget || openingWorkbench) {
         return;
@@ -419,51 +293,7 @@ export const NodeActionToolbar = memo(
               onOpenErase={onOpenErase}
               onOpenRotate={onOpenRotate}
             />
-            {!isImageEdit && canCopyStoryboardText && (
-              <UiChipButton
-                key="storyboard-text-copy"
-                className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${
-                  isCopyTextSuccess
-                    ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
-                    : ""
-                }`}
-                onClick={() => {
-                  void handleCopyStoryboardText();
-                }}
-              >
-                <Copy className="h-3.5 w-3.5" />
-                {t("nodeToolbar.copyText")}
-              </UiChipButton>
-            )}
-            {!isImageEdit && canCopyGenerationError && (
-              <UiChipButton
-                key="generation-error-copy"
-                className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${
-                  isCopyErrorSuccess
-                    ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
-                    : "!border-destructive/45 !bg-destructive/10 !text-destructive hover:!bg-destructive/15"
-                }`}
-                onClick={() => {
-                  void handleCopyGenerationError();
-                }}
-              >
-                <Copy className="h-3.5 w-3.5" />
-                {isCopyErrorSuccess
-                  ? t("nodeToolbar.copied")
-                  : t("nodeToolbar.copyErrorReport")}
-              </UiChipButton>
-            )}
-            {!isImageEdit && canHandleImage && (
-              <NodeToolbarIconChip
-                key="image-download"
-                label={t("nodeToolbar.download")}
-                icon={Download}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void handleDownloadSaveAs();
-                }}
-              />
-            )}
+            <NodeOutputToolbarActions node={node} />
             {isVideoNode(node) && (
               <VideoNodeToolbarActions nodeId={node.id} data={node.data} />
             )}

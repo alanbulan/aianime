@@ -22,7 +22,9 @@ describe("ImageGenNode error notification contract", () => {
     const modelSource = read(
       "src/features/canvas/application/nodeActionToolbarModel.ts",
     );
-    const toolbarSource = read("src/features/canvas/ui/NodeActionToolbar.tsx");
+    const controllerSource = read(
+      "src/features/canvas/hooks/useNodeOutputToolbarController.ts",
+    );
 
     expect(modelSource).toContain(
       "isExportImageNode(node) || isImageGenNode(node)",
@@ -30,7 +32,7 @@ describe("ImageGenNode error notification contract", () => {
     expect(modelSource).toContain(
       "report: generationErrorDetails || generationError",
     );
-    expect(toolbarSource).toContain("projectNodeActionGenerationError(");
+    expect(controllerSource).toContain("projectNodeActionGenerationError(");
   });
 
   it("copies the complete error from the request-id row instead of only the id", () => {
