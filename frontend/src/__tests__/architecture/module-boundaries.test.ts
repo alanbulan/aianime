@@ -21648,7 +21648,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
-      "features/canvas/ui/AssetLibraryModal.tsx",
+      "features/canvas/hooks/useAssetLibraryModalController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
       "features/canvas/ui/NodeActionToolbar.tsx",
       "features/canvas/ui/RedrawOverlay.tsx",
@@ -21745,16 +21745,49 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/assetLibraryComposition.ts",
     );
-    const viewPath = resolve(
+    const modalEntryPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/AssetLibraryModal.tsx",
+    );
+    const modalModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/assetLibraryModalModel.ts",
+    );
+    const modalModelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/assetLibraryModalModel.test.ts",
+    );
+    const modalControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAssetLibraryModalController.ts",
+    );
+    const modalControllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAssetLibraryModalController.test.tsx",
+    );
+    const modalViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/AssetLibraryModalView.tsx",
+    );
+    const modalViewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/AssetLibraryModalView.test.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const viewSource = readFileSync(viewPath, "utf8");
+    const modalEntrySource = readFileSync(modalEntryPath, "utf8");
+    const modalModelSource = readFileSync(modalModelPath, "utf8");
+    const modalModelTestSource = readFileSync(modalModelTestPath, "utf8");
+    const modalControllerSource = readFileSync(modalControllerPath, "utf8");
+    const modalControllerTestSource = readFileSync(
+      modalControllerTestPath,
+      "utf8",
+    );
+    const modalViewSource = readFileSync(modalViewPath, "utf8");
+    const modalViewTestSource = readFileSync(modalViewTestPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const imageEditModelPath = resolve(
       SRC_ROOT,
@@ -21795,6 +21828,18 @@ describe("frontend architecture boundaries", () => {
       })
       .map(relativeSource)
       .sort();
+    const modalDeclarations = [
+      ["export function", "AssetLibraryModal("].join(" "),
+      ["export function", "resolveAssetLibraryTabs("].join(" "),
+      ["export function", "useAssetLibraryModalController("].join(" "),
+      ["export function", "AssetLibraryModalView("].join(" "),
+    ];
+    const modalDeclarationOwners = modalDeclarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -21830,23 +21875,75 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "freezoneAssetLibraryGateway.syncFromMainline(projectId)",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(modalControllerPath)).toContain(
       "@/features/canvas/assetLibraryComposition",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(modalControllerPath)).toContain(
       "@/features/canvas/domain/assetLibrary",
     );
-    expect(importSpecifiers(viewPath)).not.toContain("@/api/ops");
-    expect(viewSource).not.toContain("normalizeLibraryList");
-    expect(viewSource).not.toContain("fetchFreezoneVideoCharacterLibrary");
-    expect(viewSource).not.toContain(
+    expect(importSpecifiers(modalControllerPath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(modalControllerPath)).not.toContain("@/api/ops");
+    expect(modalControllerSource).not.toContain("normalizeLibraryList");
+    expect(modalControllerSource).not.toContain(
+      "fetchFreezoneVideoCharacterLibrary",
+    );
+    expect(modalControllerSource).not.toContain(
       "syncFreezoneAssetLibraryFromMainline",
     );
-    expect(viewSource).not.toContain(
+    expect(modalControllerSource).not.toContain(
       "submitFreezoneAddVideoCharacterLibraryItem",
     );
-    expect(viewSource).not.toContain(
+    expect(modalControllerSource).not.toContain(
       "deleteFreezoneVideoCharacterLibraryItem",
+    );
+    expect(importSpecifiers(modalViewPath)).not.toContain(
+      "@/features/canvas/assetLibraryComposition",
+    );
+    expect(importSpecifiers(modalViewPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(modalViewPath)).not.toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(modalViewSource).not.toContain("useState(");
+    expect(modalViewSource).not.toContain("useEffect(");
+    expect(modalViewSource).toContain("createPortal(");
+    expect(modalViewSource).toContain("<Button");
+    expect(new Set(importSpecifiers(modalEntryPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/hooks/useAssetLibraryModalController",
+        "./AssetLibraryModalView",
+      ]),
+    );
+    expect(modalEntrySource).toContain(
+      "useAssetLibraryModalController(props)",
+    );
+    expect(modalEntrySource).toContain(
+      "createElement(AssetLibraryModalView, { controller })",
+    );
+    expect(modalEntrySource).not.toContain("useState(");
+    expect(modalEntrySource).not.toContain("className=");
+    expect(modalModelSource).not.toContain("react");
+    expect(modalModelSource).not.toContain("window.");
+    expect(modalModelSource).not.toContain("document.");
+    expect(modalModelSource).not.toContain("className=");
+    expect(modalDeclarationOwners).toEqual([
+      ["features/canvas/ui/AssetLibraryModal.tsx"],
+      ["features/canvas/application/assetLibraryModalModel.ts"],
+      ["features/canvas/hooks/useAssetLibraryModalController.ts"],
+      ["features/canvas/ui/AssetLibraryModalView.tsx"],
+    ]);
+    expect(modalModelTestSource).toContain(
+      "from './assetLibraryModalModel'",
+    );
+    expect(modalControllerTestSource).toContain(
+      "from './useAssetLibraryModalController'",
+    );
+    expect(modalViewTestSource).toContain(
+      "from './AssetLibraryModalView'",
     );
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneAssetLibraryGateway.ts",

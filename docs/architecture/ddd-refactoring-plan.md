@@ -2204,6 +2204,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百六十六批已将 Canvas 2,650 行混合 `VideoNode.tsx` 拆为纯应用模型 `application/videoNodeModel.ts`、唯一状态 controller `hooks/useVideoNodeController.ts`、纯 presentation `nodes/VideoNodeView.tsx` 和保留原注册路径的 21 行真实装配根；应用模型独占节点与操作面板尺寸、实时模型回退、比例和数量选项、视频/封面/画册投影、生成错误与提示词合成、视频显示区域、抓帧时点、上游引用分类计数及帧源/素材库派生节点布局，controller 独占 Prompt/IME 草稿、Canvas Store、上游引用与 mention 同步、模型/价格/运镜参数、上传/转码/抓帧、生成提交与任务完成、历史恢复、画册、剪辑、字幕擦除和素材库派生节点生命周期，View 独占节点 DOM、视频与生成状态、播放/画册/剪辑/擦除控件、操作面板、历史面板和素材库 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套尺寸/比例/提示词/引用/派生布局/生成规则；节点尺寸、生成参数、上游引用顺序与容量、首帧/首尾帧布局避让、视频上传与 Web 兼容转码、多任务生成、失败诊断、历史非破坏预览、画册主视频、剪辑、字幕擦除和抓帧语义保持不变。新增应用模型 6 项和分层唯一性架构合同 1 项，连同视频错误通知、生成模型、引用限制、引用媒体、模式选项、元数据与拖拽文件规则共定向回归 8 个文件 32 项；完整前端架构门禁 3 个文件 332 项（其中 module boundaries 292 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百六十七批已将 Canvas 768 行混合 `ui/AssetLibraryModal.tsx` 拆为纯应用模型 `application/assetLibraryModalModel.ts`、唯一状态 controller `hooks/useAssetLibraryModalController.ts`、纯 presentation `ui/AssetLibraryModalView.tsx` 和保留原公共导入路径的 16 行真实装配根；应用模型独占图片/场景/视频/音频 Tab、场景与普通图片分类、MIME 接受、上传名称、稳定选择键、按媒介独立配额、确认结果顺序及来源标签，controller 独占打开时加载与主线自动同步、取消保护、240ms 关闭重置、Blob URL 生命周期、本地上传、素材库新增/删除/刷新、拖放、选择与确认状态，View 独占 portal、Tab、计数、上传/错误/空状态、图片/视频/音频卡片、选择/删除和确认 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套 Tab/分类/上传/选择规则；已有库加载失败静默兜底、仅空库自动同步失败时显示错误、关闭后拒绝过期同步结果、非图片上传禁用超时、上传 URL 清理查询参数、失败预览可移除、主线条目不可删除、每类素材独立选择上限及跨类确认顺序语义保持不变。新增应用模型 6 项、controller 6 项和 View 3 项测试，连同素材库网关共定向回归 4 个文件 18 项；完整前端架构门禁 3 个文件 332 项（其中 module boundaries 292 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
