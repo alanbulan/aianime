@@ -21877,11 +21877,19 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
     );
+    const editorControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+    );
     const editsSource = readFileSync(editsPath, "utf8");
     const editsTestSource = readFileSync(editsTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
     const sessionControllerSource = readFileSync(
       sessionControllerPath,
+      "utf8",
+    );
+    const editorControllerSource = readFileSync(
+      editorControllerPath,
       "utf8",
     );
     const declarations = [
@@ -21907,24 +21915,32 @@ describe("frontend architecture boundaries", () => {
     expect(editsSource).not.toContain("@/api/");
     expect(editsSource).not.toContain("@/stores/");
     expect(editsSource).not.toContain("className=");
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(editorControllerPath)).toContain(
+      "@/features/canvas/domain/videoComposeTimelineEdits",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimelineEdits",
     );
     expect(importSpecifiers(sessionControllerPath)).toContain(
       "@/features/canvas/domain/videoComposeTimelineEdits",
     );
-    expect(modalSource).toContain("resolveVideoComposeClipSelection(");
+    expect(editorControllerSource).toContain(
+      "resolveVideoComposeClipSelection(",
+    );
     expect(sessionControllerSource).toContain(
       "applyVideoComposeTimelineEdit(",
     );
     expect(modalSource).not.toContain("applyVideoComposeTimelineEdit(");
-    expect(modalSource).toContain('type: "splitClip"');
-    expect(modalSource).toContain("leftClipId: leftId");
+    expect(editorControllerSource).toContain('type: "splitClip"');
+    expect(editorControllerSource).toContain("leftClipId,");
+    expect(modalSource).not.toContain('type: "splitClip"');
     expect(modalSource).not.toContain("const SPEED_MIN =");
     expect(modalSource).not.toContain("const SPEED_MAX =");
     expect(modalSource).not.toContain("const updateClip = useCallback");
     expect(modalSource).not.toContain("const compactVideoNow = useCallback");
-    expect(modalSource).not.toContain("const selectedSourceMs = useMemo");
+    expect(editorControllerSource).not.toContain(
+      "const selectedSourceMs = useMemo",
+    );
     expect(modalSource).not.toContain("muted: v <= 0");
     expect(declarationOwners).toEqual(
       declarations.map(() => [
@@ -21933,6 +21949,66 @@ describe("frontend architecture boundaries", () => {
     );
     expect(editsTestSource).toContain(
       'from "./videoComposeTimelineEdits"',
+    );
+  });
+
+  it("keeps video-compose clip edit orchestration in one editor controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineEditorController.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declaration = [
+      "export function",
+      "useVideoComposeTimelineEditorController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/videoComposeTimelineEdits",
+        "@/features/canvas/domain/videoComposeTimeline",
+      ]),
+    );
+    expect(controllerSource).toContain("clipboardRef");
+    expect(controllerSource).toContain("const moveToNewTrack = useCallback");
+    expect(controllerSource).toContain("const setClipMuted = useCallback");
+    expect(controllerSource).toContain("const pasteClipboard = useCallback");
+    expect(controllerSource).toContain("const removeSelected = useCallback");
+    expect(controllerSource).toContain("sourceSpanMs(selectedClip.clip)");
+    expect(controllerSource).not.toContain("applyVideoComposeTimelineEdit(");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeTimelineEditorController",
+    );
+    expect(modalSource).not.toContain("clipboardRef");
+    expect(modalSource).not.toContain("const moveToNewTrack = useCallback");
+    expect(modalSource).not.toContain("const splitSelected = useCallback");
+    expect(modalSource).not.toContain("const insertDuplicate = useCallback");
+    expect(modalSource).not.toContain('type: "insertClipCopy"');
+    expect(modalSource).not.toContain('type: "removeClips"');
+    expect(declarationOwners).toEqual([
+      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+    ]);
+    expect(controllerTestSource).toContain(
+      'from "./useVideoComposeTimelineEditorController"',
     );
   });
 

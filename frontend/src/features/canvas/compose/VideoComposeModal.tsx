@@ -35,18 +35,16 @@ import {
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
-import { resolveVideoComposeClipSelection } from "@/features/canvas/domain/videoComposeTimelineEdits";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
-  sourceSpanMs,
-  type ComposeClip,
   type ComposeCover,
   type ComposeTimelineState,
 } from "@/features/canvas/domain/videoComposeTimeline";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
 import { useVideoComposeKeyboardController } from "@/features/canvas/hooks/useVideoComposeKeyboardController";
 import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
+import { useVideoComposeTimelineEditorController } from "@/features/canvas/hooks/useVideoComposeTimelineEditorController";
 import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
 import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
@@ -187,11 +185,44 @@ export function VideoComposeModal({
     audioTrack,
     videoSource,
   } = useVideoComposePlaybackController(timeline, pxPerSec);
+  const {
+    selectedClip,
+    canSplitInside,
+    selectedSpeed,
+    selectedSourceSpanMs,
+    selectedVolume,
+    selectedMuted,
+    moveToNewTrack,
+    removeClip,
+    splitSelected,
+    trimSelectedToPlayhead,
+    setSelectedSpeed,
+    setSelectedVolume,
+    toggleSelectedMute,
+    setClipMuted,
+    duplicateSelected,
+    copySelected,
+    pasteClipboard,
+    removeSelected,
+  } = useVideoComposeTimelineEditorController({
+    timeline,
+    timelineRef,
+    selected,
+    selectedIds,
+    playheadMs,
+    videoTrack,
+    audioTrack,
+    createClipId: makeClipId,
+    createTrackId: makeTrackId,
+    applyTimelineEdit,
+    pushHistory,
+    selectOnly,
+    clearSelection,
+    removeFromSelection,
+  });
 
   const snapRef = useRef(snapEnabled);
   snapRef.current = snapEnabled;
-  // ⌘C 复制的片段快照（⌘V 时插入其副本）。
-  const clipboardRef = useRef<ComposeClip | null>(null);
   const { dragGhost, trimEdit, startClipMove, startTrim, startScrub } =
     useVideoComposeTimelinePointerController({
       timelineRef,
@@ -206,191 +237,6 @@ export function VideoComposeModal({
       toggleInSelection,
       seek,
     });
-
-  // 把片段移到「新的一行」：新建同种类轨道承载该片段（保留时间位置），从原轨移除；
-  // 清掉因此变空的非默认轨道。
-  const moveToNewTrack = useCallback(
-    (trackId: string, clipId: string) => {
-      const src = timelineRef.current.tracks.find((t) => t.id === trackId);
-      const clip = src?.clips.find((c) => c.id === clipId);
-      if (!src || !clip) return;
-      const newTrackId = makeTrackId();
-      pushHistory();
-      applyTimelineEdit({
-        type: "moveClipToNewTrack",
-        target: { trackId, clipId },
-        newTrackId,
-      });
-      selectOnly({ trackId: newTrackId, clipId });
-    },
-    [applyTimelineEdit, pushHistory, selectOnly],
-  );
-
-  const removeClip = useCallback(
-    (trackId: string, clipId: string) => {
-      pushHistory();
-      applyTimelineEdit({
-        type: "removeClip",
-        target: { trackId, clipId },
-      });
-      removeFromSelection(clipId);
-    },
-    [applyTimelineEdit, pushHistory, removeFromSelection],
-  );
-
-  // ── selected clip + playhead-relative source position ────────────────────
-  const selectedClip = useMemo(
-    () => resolveVideoComposeClipSelection(timeline, selected, playheadMs),
-    [playheadMs, selected, timeline],
-  );
-  const selectedSourceMs = selectedClip?.sourceMsAtPlayhead ?? null;
-  const canSplitInside = selectedClip?.canSplitAtPlayhead ?? false;
-
-  const splitSelected = useCallback(() => {
-    if (!selectedClip || selectedSourceMs == null || !canSplitInside) return;
-    const leftId = makeClipId();
-    const rightId = makeClipId();
-    pushHistory();
-    applyTimelineEdit({
-      type: "splitClip",
-      target: {
-        trackId: selectedClip.track.id,
-        clipId: selectedClip.clip.id,
-      },
-      sourceMs: selectedSourceMs,
-      leftClipId: leftId,
-      rightClipId: rightId,
-    });
-    selectOnly({ trackId: selectedClip.track.id, clipId: leftId });
-  }, [
-    applyTimelineEdit,
-    canSplitInside,
-    pushHistory,
-    selectOnly,
-    selectedClip,
-    selectedSourceMs,
-  ]);
-
-  // 向左分割 / 向右分割 —— 删除选中片段在播放头一侧的部分（裁掉而非留两段）。
-  const trimSelectedToPlayhead = useCallback(
-    (side: "left" | "right") => {
-      if (!selectedClip || !canSplitInside) return;
-      pushHistory();
-      applyTimelineEdit({
-        type: "trimClipToPlayhead",
-        target: {
-          trackId: selectedClip.track.id,
-          clipId: selectedClip.clip.id,
-        },
-        playheadMs,
-        side,
-      });
-    },
-    [
-      applyTimelineEdit,
-      canSplitInside,
-      playheadMs,
-      pushHistory,
-      selectedClip,
-    ],
-  );
-
-  const setSelectedSpeed = useCallback(
-    (speed: number) => {
-      if (!selectedClip) return;
-      pushHistory();
-      applyTimelineEdit({
-        type: "setClipSpeed",
-        target: {
-          trackId: selectedClip.track.id,
-          clipId: selectedClip.clip.id,
-        },
-        speed,
-      });
-    },
-    [applyTimelineEdit, pushHistory, selectedClip],
-  );
-
-  // 音量滑杆 onChange 在一次拖动里触发数十次 —— 历史快照只在手势开始时 push 一次
-  //（见 VideoComposeVolumePopover 的 onGestureStart），否则一次拖动就把整个撤销栈冲掉。
-  const setSelectedVolume = useCallback(
-    (volume: number) => {
-      if (!selectedClip) return;
-      applyTimelineEdit({
-        type: "setClipVolume",
-        target: {
-          trackId: selectedClip.track.id,
-          clipId: selectedClip.clip.id,
-        },
-        volume,
-      });
-    },
-    [applyTimelineEdit, selectedClip],
-  );
-
-  const toggleSelectedMute = useCallback(() => {
-    if (!selectedClip) return;
-    pushHistory();
-    applyTimelineEdit({
-      type: "toggleClipMute",
-      target: {
-        trackId: selectedClip.track.id,
-        clipId: selectedClip.clip.id,
-      },
-    });
-  }, [applyTimelineEdit, pushHistory, selectedClip]);
-
-  // ── 复制 / 粘贴 / 副本 ─────────────────────────────────────────────────────
-  // 把 sourceClip 复制一份（新 id）插进目标轨：视频轨在 afterClipId 之后插入并整体无缝
-  // 重排；音频轨追加到末尾（避免与现有片段重叠）。返回新片段 id 并选中它。
-  const insertDuplicate = useCallback(
-    (sourceClip: ComposeClip, trackId: string, afterClipId: string | null) => {
-      const copyId = makeClipId();
-      pushHistory();
-      applyTimelineEdit({
-        type: "insertClipCopy",
-        sourceClip,
-        targetTrackId: trackId,
-        afterClipId,
-        copyClipId: copyId,
-      });
-      selectOnly({ trackId, clipId: copyId });
-    },
-    [applyTimelineEdit, pushHistory, selectOnly],
-  );
-
-  const duplicateSelected = useCallback(() => {
-    if (!selectedClip) return;
-    insertDuplicate(selectedClip.clip, selectedClip.track.id, selectedClip.clip.id);
-  }, [insertDuplicate, selectedClip]);
-
-  const copySelected = useCallback(() => {
-    if (!selectedClip) return;
-    clipboardRef.current = { ...selectedClip.clip };
-  }, [selectedClip]);
-
-  const pasteClipboard = useCallback(() => {
-    const src = clipboardRef.current;
-    if (!src) return;
-    // 落到同类型的默认轨；当前选中片段也在该轨时紧跟其后插入，否则追加。
-    const targetTrackId = src.kind === "video" ? videoTrack?.id : audioTrack?.id;
-    if (!targetTrackId) return;
-    const afterId =
-      selectedClip && selectedClip.track.id === targetTrackId
-        ? selectedClip.clip.id
-        : null;
-    insertDuplicate(src, targetTrackId, afterId);
-  }, [audioTrack, insertDuplicate, selectedClip, videoTrack]);
-
-  // 批量删除当前所有选中片段（含主选中），删后视频轨补位、清空选择。
-  const removeSelected = useCallback(() => {
-    const ids = new Set(selectedIds);
-    if (selected) ids.add(selected.clipId);
-    if (ids.size === 0) return;
-    pushHistory();
-    applyTimelineEdit({ type: "removeClips", clipIds: ids });
-    clearSelection();
-  }, [applyTimelineEdit, clearSelection, pushHistory, selected, selectedIds]);
 
   useVideoComposeKeyboardController({
     coverEditorOpen,
@@ -431,11 +277,6 @@ export function VideoComposeModal({
   const canExport = hasExportableClips(timeline) && !isExporting;
   // 时间轴上重叠的视频片段 id —— 用于把冲突片段高亮（红框）提示用户。
   const overlapClipIds = useMemo(() => overlappingVideoClipIds(timeline), [timeline]);
-
-  const selectedSpeed = selectedClip?.clip.speed ?? 1;
-  const selectedSourceSpanMs = selectedClip ? sourceSpanMs(selectedClip.clip) : 0;
-  const selectedVolume = selectedClip?.clip.volume ?? 1;
-  const selectedMuted = selectedClip?.clip.muted ?? false;
 
   return createPortal(
     <div className="fixed inset-0 z-[120] flex flex-col bg-background text-foreground">
@@ -820,14 +661,9 @@ export function VideoComposeModal({
                   onTrim={startTrim}
                   onMoveToNewTrack={moveToNewTrack}
                   onRemove={removeClip}
-                  onToggleMute={(clipId, muted) => {
-                    pushHistory();
-                    applyTimelineEdit({
-                      type: "updateClip",
-                      target: { trackId: track.id, clipId },
-                      patch: { muted },
-                    });
-                  }}
+                  onToggleMute={(clipId, muted) =>
+                    setClipMuted(track.id, clipId, muted)
+                  }
                 />
               ))}
             </div>

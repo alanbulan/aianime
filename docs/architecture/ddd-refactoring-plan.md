@@ -2234,6 +2234,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十一批已将视频合成的初始时间线恢复/上游校正、最新时间线引用、50 步撤销/重做历史、主选中与多选集合、选择移除、领域 edit 应用、缺失媒体时长探测、卸载草稿持久化、带历史的封面更新、带历史的上游重置及投影轨道提交从 `compose/VideoComposeModal.tsx` 迁入唯一 227 行会话 controller `hooks/useVideoComposeTimelineSessionController.ts`；controller 复用既有纯 application `videoComposeTimelineSession`、唯一 domain reducer 与浏览器媒体探测适配器，Modal 只消费时间线、引用、选择、`canUndo/canRedo` 和命令，封面成功后的弹层关闭仍由 Modal 负责。原内联 timeline/history/selection state、`setTimeline/setPast/setFuture/setSelected/setSelectedIds`、探测 effect、草稿 ref、重置与轨道提交实现全部删除，不保留 facade、re-export、兼容别名或第二套会话，由 1,015 行降至 879 行。草稿只在卸载时回传最新状态、时长回填不进入历史、卸载后异步媒体探测结果不再回填、每次新编辑清空 redo、历史上限保持 50、撤销/重做按钮禁用态与历史同步、取消主选中仍保留其他多选、单片段删除同步移除选择、封面和上游重置各记录一次历史、重置后清空选择语义保持不变。新增 controller 4 项行为测试；完整前端架构门禁 3 个文件 345 项（其中 module boundaries 305 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十二批已将视频合成的播放头相对选中片段投影、分割门禁与新 ID 装配、左右裁剪、倍速、音量、选中静音、轨道行静音、移入新轨、单片段删除、内存剪贴板、复制/粘贴/副本、批量删除及选中片段展示值从 `compose/VideoComposeModal.tsx` 迁入唯一 270 行 editor controller `hooks/useVideoComposeTimelineEditorController.ts`；controller 只构造既有 domain edit DTO 并调用 session 注入的唯一 `applyTimelineEdit`，不直接执行 reducer 或持有时间线 state，视频/音频预览轨仅作为粘贴目标注入。原内联 edit callbacks、`clipboardRef`、选择投影、四项展示值及轨道行静音匿名 edit 全部删除，不保留 facade、re-export、兼容别名或第二套命令路径，由 879 行降至 713 行。移轨前校验源轨与片段、分割后选中左片段、左右裁剪沿用当前播放头、倍速/裁剪/静音各记录一次历史、音量连续变化仍只由弹层手势开始记录一次历史、复制保存片段快照、粘贴按媒体类型选择当前预览轨且同轨选中时紧随其后、视频与音频副本继续复用同一 domain 命令、批量删除合并主选中与多选集合后清空选择语义保持不变。新增 controller 5 项行为测试；完整前端架构门禁 3 个文件 346 项（其中 module boundaries 306 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
