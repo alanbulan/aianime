@@ -19072,6 +19072,7 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/application/imageGridToolbarModel",
         "@/features/canvas/domain/gridAction",
+        "@/features/canvas/hooks/useHoverMenuController",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -19123,6 +19124,157 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageGridToolbarController"',
+    );
+  });
+
+  it("separates image edit toolbar rules, interaction, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditToolbarModel.test.ts",
+    );
+    const hoverControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useHoverMenuController.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditToolbarController.test.tsx",
+    );
+    const gridControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGridToolbarController.ts",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageEditToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageEditToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const hoverControllerSource = readFileSync(hoverControllerPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const gridControllerSource = readFileSync(gridControllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "projectImageEditToolbar("].join(" "),
+      ["export function", "useHoverMenuController("].join(" "),
+      ["export function", "useImageEditToolbarController("].join(" "),
+      ["export function", "ImageEditToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(modelPath)).toEqual([]);
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "useTranslation",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(importSpecifiers(hoverControllerPath)).toEqual(["react"]);
+    expect(hoverControllerSource).toContain(
+      "HOVER_MENU_CLOSE_DELAY_MS = 160",
+    );
+    expect(hoverControllerSource).not.toContain("className=");
+    expect(hoverControllerSource).not.toContain("<DropdownMenu");
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/imageEditToolbarModel",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useHoverMenuController",
+      ]),
+    );
+    expect(controllerSource).toContain("useHoverMenuController()");
+    expect(gridControllerSource).toContain("useHoverMenuController()");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "canvasEventBus",
+      "projectImageEditToolbar",
+      "onOpenRedraw",
+      "onOpenErase",
+      "onMatteImage",
+      "onOpenUpscale",
+      "onOpenOutpaint",
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(componentSource).toContain("useImageEditToolbarController({");
+    expect(componentSource).toContain(
+      "<ImageEditToolbarActionsView controller={controller} />",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/ImageEditToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useImageEditToolbarController",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/application/imageEditToolbarModel",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useHoverMenuController",
+    );
+    expect(toolbarSource).toContain("<ImageEditToolbarActions");
+    for (const legacyInlineLogic of [
+      "activeEditAction",
+      "setActiveEditAction",
+      "editMenu",
+      "editActions",
+      "function useHoverMenu",
+      "nodeToolbar.repaint",
+      "nodeToolbar.outpaint",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/imageEditToolbarModel.ts"],
+      ["features/canvas/hooks/useHoverMenuController.ts"],
+      ["features/canvas/hooks/useImageEditToolbarController.ts"],
+      ["features/canvas/ui/ImageEditToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./imageEditToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useImageEditToolbarController"',
     );
   });
 

@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import {
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +11,7 @@ import type {
   GridActionKey,
   GridActionRequest,
 } from "@/features/canvas/domain/gridAction";
+import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 
 export interface ImageGridToolbarControllerOptions {
   nodeId: string;
@@ -26,39 +25,11 @@ export function useImageGridToolbarController({
   const { t, i18n } = useTranslation();
   const [activeActionKey, setActiveActionKey] =
     useState<GridActionKey | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menu = useHoverMenuController();
   const actions = useMemo(
     () => projectImageGridToolbarActions(nodeId, (key) => t(key)),
     [i18n.language, nodeId, t],
   );
-
-  const cancelMenuClose = useCallback(() => {
-    if (closeTimerRef.current !== null) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const openMenu = useCallback(() => {
-    cancelMenuClose();
-    setMenuOpen(true);
-  }, [cancelMenuClose]);
-
-  const scheduleMenuClose = useCallback(() => {
-    cancelMenuClose();
-    closeTimerRef.current = setTimeout(() => setMenuOpen(false), 160);
-  }, [cancelMenuClose]);
-
-  const setMenuOpenNow = useCallback(
-    (open: boolean) => {
-      cancelMenuClose();
-      setMenuOpen(open);
-    },
-    [cancelMenuClose],
-  );
-
-  useEffect(() => cancelMenuClose, [cancelMenuClose]);
 
   const selectAction = useCallback(
     (request: GridActionRequest) => {
@@ -72,15 +43,8 @@ export function useImageGridToolbarController({
     t,
     actions,
     activeActionKey,
-    menuRootProps: {
-      open: menuOpen,
-      onOpenChange: setMenuOpenNow,
-      modal: false,
-    } as const,
-    menuHoverProps: {
-      onMouseEnter: openMenu,
-      onMouseLeave: scheduleMenuClose,
-    },
+    menuRootProps: menu.rootProps,
+    menuHoverProps: menu.hoverProps,
     selectAction,
   };
 }

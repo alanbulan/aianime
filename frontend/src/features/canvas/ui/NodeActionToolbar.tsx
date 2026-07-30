@@ -10,22 +10,12 @@ import {
 } from "react";
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu";
-import {
   Boxes,
-  ChevronDown,
   Copy,
   Crop,
   Download,
-  Eraser,
-  Expand,
   FolderOpen,
   Globe2,
-  ImageUpscale,
   Link2,
   Lightbulb,
   PenLine,
@@ -34,7 +24,6 @@ import {
   Scissors,
   Send,
   Trash2,
-  Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -65,6 +54,7 @@ import {
 import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
+import { ImageEditToolbarActions } from "@/features/canvas/ui/ImageEditToolbarActions";
 import { ImageGridToolbarActions } from "@/features/canvas/ui/ImageGridToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
@@ -100,8 +90,6 @@ import { uploadCanvasAsset } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
-  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
-  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
 } from "./nodeActionToolbarStyles";
@@ -139,49 +127,6 @@ function ToolbarDivider() {
     />
   );
 }
-
-/**
- * 让 Radix DropdownMenu 支持鼠标 hover 自动展开/移出延迟收起（Radix 原生只支持
- * 点击）。返回挂到根的受控 props 与挂到「触发器 + 内容」的 hover 事件；点击仍可用。
- */
-function useHoverMenu() {
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<number | null>(null);
-
-  const cancelClose = useCallback(() => {
-    if (closeTimer.current != null) {
-      window.clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  }, []);
-
-  const openNow = useCallback(() => {
-    cancelClose();
-    setOpen(true);
-  }, [cancelClose]);
-
-  const scheduleClose = useCallback(() => {
-    cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 160);
-  }, [cancelClose]);
-
-  const onOpenChange = useCallback(
-    (next: boolean) => {
-      cancelClose();
-      setOpen(next);
-    },
-    [cancelClose],
-  );
-
-  useEffect(() => cancelClose, [cancelClose]);
-
-  return {
-    open,
-    rootProps: { open, onOpenChange, modal: false } as const,
-    hoverProps: { onMouseEnter: openNow, onMouseLeave: scheduleClose },
-  };
-}
-
 
 /**
  * Icon-only toolbar 按钮：方形 32×32 click area + 16px icon，与同行的带文字 chip
@@ -255,9 +200,6 @@ export const NodeActionToolbar = memo(
     const ignoreAtTagWhenCopyingAndGenerating = useSettingsStore(
       (state) => state.ignoreAtTagWhenCopyingAndGenerating,
     );
-    const [activeEditAction, setActiveEditAction] = useState<
-      "repaint" | "erase" | "matting" | "crop" | "hd" | "outpaint"
-    >("matting");
     const [isCopyTextSuccess, setIsCopyTextSuccess] = useState(false);
     const [isCopyErrorSuccess, setIsCopyErrorSuccess] = useState(false);
     const copyTextFeedbackTimerRef = useRef<ReturnType<
@@ -320,9 +262,6 @@ export const NodeActionToolbar = memo(
       },
       [t],
     );
-
-    // hover 即展开的编辑/九宫格下拉。
-    const editMenu = useHoverMenu();
 
     // 选中可抠图的节点时,在浏览器空闲间隙预热抠图管线,把一次性的模型/Worker/
     // WASM 初始化挪到用户点击「抠图」之前,避免点击瞬间主线程卡 2~3s。整段只跑一次。
@@ -717,100 +656,17 @@ export const NodeActionToolbar = memo(
             {!isImageEdit &&
               canHandleImage &&
               tools.some((tool) => tool.type === NODE_TOOL_TYPES.crop) &&
-              (() => {
-                const editActions = [
-                  {
-                    key: "repaint" as const,
-                    icon: Wand2,
-                    label: t("nodeToolbar.repaint"),
-                    run: () => onOpenRedraw(node.id),
-                  },
-                  {
-                    key: "erase" as const,
-                    icon: Eraser,
-                    label: t("nodeToolbar.erase"),
-                    run: () => onOpenErase(node.id),
-                  },
-                  {
-                    key: "matting" as const,
-                    icon: Scissors,
-                    label: t("nodeToolbar.matting"),
-                    run: () => handleMatteImage(),
-                  },
-                  {
-                    key: "crop" as const,
-                    icon: Crop,
-                    label: t("tool.crop"),
-                    run: () =>
-                      canvasEventBus.publish("tool-dialog/open", {
-                        nodeId: node.id,
-                        toolType: NODE_TOOL_TYPES.crop,
-                      }),
-                  },
-                  {
-                    key: "hd" as const,
-                    icon: ImageUpscale,
-                    label: t("nodeToolbar.hd"),
-                    run: () => onOpenUpscale(node.id),
-                  },
-                  {
-                    key: "outpaint" as const,
-                    icon: Expand,
-                    label: t("nodeToolbar.outpaint"),
-                    run: () => onOpenOutpaint(node.id),
-                  },
-                ]
-                  // HD/upscale mutates source in place
-                  // (UpscaleEditorOverlay → updateNodeData(node.id, ...))
-                  // so hide it from the edit-menu on preset_managed nodes.
-                  // Repaint/Erase/Matting/Crop/Outpaint all spawn child
-                  // nodes via inheritMainlineFields, safe to keep.
-                  .filter((a) => !(isPresetLocked && a.key === "hd"));
-                const active =
-                  editActions.find((a) => a.key === activeEditAction) ??
-                  editActions[Math.min(2, editActions.length - 1)];
-                const ActiveIcon = active.icon;
-                return (
-                  <DropdownMenu {...editMenu.rootProps}>
-                    <DropdownMenuTrigger asChild>
-                      <UiChipButton
-                        key="image-edit-menu"
-                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                        onClick={(event) => event.stopPropagation()}
-                        {...editMenu.hoverProps}
-                      >
-                        <ActiveIcon className="h-3.5 w-3.5" />
-                        {active.label}
-                        <ChevronDown className="h-3 w-3" />
-                      </UiChipButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      sideOffset={6}
-                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[180px]`}
-                      onClick={(event) => event.stopPropagation()}
-                      {...editMenu.hoverProps}
-                    >
-                      {editActions.map((action) => {
-                        const Icon = action.icon;
-                        return (
-                          <DropdownMenuItem
-                            key={action.key}
-                            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-                            onSelect={() => {
-                              setActiveEditAction(action.key);
-                              action.run();
-                            }}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {action.label}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              })()}
+              (
+                <ImageEditToolbarActions
+                  nodeId={node.id}
+                  isPresetLocked={isPresetLocked}
+                  onOpenRedraw={onOpenRedraw}
+                  onOpenErase={onOpenErase}
+                  onMatteImage={handleMatteImage}
+                  onOpenUpscale={onOpenUpscale}
+                  onOpenOutpaint={onOpenOutpaint}
+                />
+              )}
             {!isImageEdit && canHandleImage && (
               <ImageGridToolbarActions
                 nodeId={node.id}
