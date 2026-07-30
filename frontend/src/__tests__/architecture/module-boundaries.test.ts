@@ -21671,7 +21671,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
-    const controllerPath = resolve(
+    const sessionControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+    );
+    const nodeControllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useVideoComposeNodeController.ts",
     );
@@ -21690,7 +21694,11 @@ describe("frontend architecture boundaries", () => {
     const runtimeSource = readFileSync(runtimePath, "utf8");
     const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
-    const controllerSource = readFileSync(controllerPath, "utf8");
+    const sessionControllerSource = readFileSync(
+      sessionControllerPath,
+      "utf8",
+    );
+    const nodeControllerSource = readFileSync(nodeControllerPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const declarations = [
       ["export function", "buildComposePayload("].join(" "),
@@ -21730,24 +21738,39 @@ describe("frontend architecture boundaries", () => {
     expect(runtimeSource).toContain("element.src = resolveUrl(url)");
     expect(runtimeSource).not.toContain("resolveImageDisplayUrl");
     expect(runtimeSource).not.toContain("useCanvasStore");
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(sessionControllerPath)).toContain(
       "@/features/canvas/application/videoComposeTimelineSession",
     );
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(importSpecifiers(sessionControllerPath)).toContain(
       "@/features/canvas/domain/videoComposeTimeline",
     );
+    expect(importSpecifiers(sessionControllerPath)).toContain(
+      "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
+    );
     expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeTimelineSessionController",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
+      "@/features/canvas/application/videoComposeTimelineSession",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/canvasStore",
     );
-    expect(modalSource).toContain("resolveVideoComposeInitialTimeline({");
-    expect(modalSource).toContain("probeVideoComposeMediaDuration(");
+    expect(sessionControllerSource).toContain(
+      "resolveVideoComposeInitialTimeline({",
+    );
+    expect(sessionControllerSource).toContain(
+      "probeVideoComposeMediaDuration(",
+    );
+    expect(modalSource).not.toContain("resolveVideoComposeInitialTimeline({");
+    expect(modalSource).not.toContain("probeVideoComposeMediaDuration(");
     expect(modalSource).not.toContain("function buildInitialTimeline(");
     expect(modalSource).not.toContain("function reconcileDraftWithUpstream(");
     expect(modalSource).not.toContain("function probeMediaDuration(");
-    expect(controllerSource).toContain("sourceNodes: upstreamNodes");
+    expect(nodeControllerSource).toContain("sourceNodes: upstreamNodes");
     expect(viewSource).toContain("sourceNodes={controller.sourceNodes}");
     expect(existsSync(oldTimelinePath)).toBe(false);
     expect(declarationOwners).toEqual([
@@ -21770,6 +21793,73 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose timeline history, selection, and draft lifecycle in one session controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineSessionController.test.tsx",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declaration = [
+      "export function",
+      "useVideoComposeTimelineSessionController(",
+    ].join(" ");
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/application/videoComposeTimelineSession",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/domain/videoComposeTimelineEdits",
+        "@/features/canvas/domain/videoComposeTimeline",
+        "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
+      ]),
+    );
+    expect(controllerSource).toContain("VIDEO_COMPOSE_HISTORY_LIMIT = 50");
+    expect(controllerSource).toContain(
+      "useState<ComposeTimelineState[]>([])",
+    );
+    expect(controllerSource).toContain("onPersistDraftRef");
+    expect(controllerSource).toContain("applyVideoComposeTimelineEdit(");
+    expect(controllerSource).toContain("buildVideoComposeInitialTimeline(");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/hooks/useVideoComposeTimelineSessionController",
+    );
+    expect(modalSource).not.toContain("setTimeline(");
+    expect(modalSource).not.toContain("setPast(");
+    expect(modalSource).not.toContain("setFuture(");
+    expect(modalSource).not.toContain("setSelected(");
+    expect(modalSource).not.toContain("setSelectedIds(");
+    expect(modalSource).not.toContain("onPersistDraftRef");
+    expect(modalSource).not.toContain("HISTORY_LIMIT");
+    expect(modalSource).toContain("disabled={!canUndo}");
+    expect(modalSource).toContain("disabled={!canRedo}");
+    expect(declarationOwners).toEqual([
+      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+    ]);
+    expect(controllerTestSource).toContain(
+      'from "./useVideoComposeTimelineSessionController"',
+    );
+  });
+
   it("keeps video-compose selection and editing rules in one pure domain reducer", () => {
     const editsPath = resolve(
       SRC_ROOT,
@@ -21783,9 +21873,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const sessionControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+    );
     const editsSource = readFileSync(editsPath, "utf8");
     const editsTestSource = readFileSync(editsTestPath, "utf8");
     const modalSource = readFileSync(modalPath, "utf8");
+    const sessionControllerSource = readFileSync(
+      sessionControllerPath,
+      "utf8",
+    );
     const declarations = [
       ["export const", "VIDEO_COMPOSE_MIN_SPEED = 0.25"].join(" "),
       ["export const", "VIDEO_COMPOSE_MAX_SPEED = 4"].join(" "),
@@ -21812,8 +21910,14 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(modalPath)).toContain(
       "@/features/canvas/domain/videoComposeTimelineEdits",
     );
+    expect(importSpecifiers(sessionControllerPath)).toContain(
+      "@/features/canvas/domain/videoComposeTimelineEdits",
+    );
     expect(modalSource).toContain("resolveVideoComposeClipSelection(");
-    expect(modalSource).toContain("applyVideoComposeTimelineEdit(");
+    expect(sessionControllerSource).toContain(
+      "applyVideoComposeTimelineEdit(",
+    );
+    expect(modalSource).not.toContain("applyVideoComposeTimelineEdit(");
     expect(modalSource).toContain('type: "splitClip"');
     expect(modalSource).toContain("leftClipId: leftId");
     expect(modalSource).not.toContain("const SPEED_MIN =");

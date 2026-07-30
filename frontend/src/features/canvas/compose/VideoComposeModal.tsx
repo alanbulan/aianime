@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -34,18 +33,9 @@ import {
 } from "lucide-react";
 
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
-import {
-  buildVideoComposeInitialTimeline,
-  resolveVideoComposeInitialTimeline,
-} from "@/features/canvas/application/videoComposeTimelineSession";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
-import {
-  applyVideoComposeTimelineEdit,
-  resolveVideoComposeClipSelection,
-  type VideoComposeClipReference,
-  type VideoComposeTimelineEdit,
-} from "@/features/canvas/domain/videoComposeTimelineEdits";
+import { resolveVideoComposeClipSelection } from "@/features/canvas/domain/videoComposeTimelineEdits";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
@@ -54,11 +44,11 @@ import {
   type ComposeCover,
   type ComposeTimelineState,
 } from "@/features/canvas/domain/videoComposeTimeline";
-import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
 import { useVideoComposeKeyboardController } from "@/features/canvas/hooks/useVideoComposeKeyboardController";
 import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
 import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
+import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
 import {
   VideoComposeSpeedPopover,
@@ -92,7 +82,6 @@ const MIN_PX_PER_SEC = 20;
 const MAX_PX_PER_SEC = 240;
 const ZOOM_STEP = 1.5;
 const RULER_MIN_SECONDS = 10;
-const HISTORY_LIMIT = 50;
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -126,14 +115,31 @@ export function VideoComposeModal({
   // 合成弹窗打开期间标记为「沉浸式」：画布的全局快捷键（Delete 删节点、⌘C/⌘V、⌘Z…）
   // 整体让位，避免弹窗内按 Delete 删片段却把画布上的视频合成节点也删了、并弹回画布。
   useViewerImmersiveBody(true);
-  const [timeline, setTimeline] = useState<ComposeTimelineState>(() =>
-    resolveVideoComposeInitialTimeline({
-      initialTimeline,
-      nodes: sourceNodes,
-      seedNodeIds,
-      createClipId: makeClipId,
-    }),
-  );
+  const {
+    timeline,
+    timelineRef,
+    selected,
+    selectedIds,
+    canUndo,
+    canRedo,
+    selectOnly,
+    clearSelection,
+    toggleInSelection,
+    removeFromSelection,
+    pushHistory,
+    undo,
+    redo,
+    applyTimelineEdit,
+    applyCover: applyTimelineCover,
+    resetToUpstream,
+    updateTimelineTracks,
+  } = useVideoComposeTimelineSessionController({
+    initialTimeline,
+    sourceNodes,
+    seedNodeIds,
+    createClipId: makeClipId,
+    onPersistDraft,
+  });
   const { isExporting, exportError, runExport } =
     useVideoComposeExportController({
       project,
@@ -143,17 +149,8 @@ export function VideoComposeModal({
       overlapErrorMessage: t("videoCompose.error.overlap"),
       missingUrlErrorMessage: t("videoCompose.error.noUrl"),
     });
-  const [past, setPast] = useState<ComposeTimelineState[]>([]);
-  const [future, setFuture] = useState<ComposeTimelineState[]>([]);
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
   const [snapEnabled, setSnapEnabled] = useState(true);
-  // selected = 主选中（驱动变速/音量/分割等编辑面板）；selectedIds = 全部选中片段 id
-  // （高亮 + 批量删除）。Shift/⌘ 点选叠加到 selectedIds，普通点选收敛为单选。
-  const [selected, setSelected] =
-    useState<VideoComposeClipReference | null>(null);
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
   const [speedOpen, setSpeedOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -163,6 +160,13 @@ export function VideoComposeModal({
     resolution: CanvasVideoComposeResolution;
   }>({ open: false, location: "local", resolution: "1080p" });
   const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+  const applyCover = useCallback(
+    (cover: ComposeCover) => {
+      applyTimelineCover(cover);
+      setCoverEditorOpen(false);
+    },
+    [applyTimelineCover],
+  );
 
   const {
     videoRef,
@@ -183,147 +187,11 @@ export function VideoComposeModal({
     audioTrack,
     videoSource,
   } = useVideoComposePlaybackController(timeline, pxPerSec);
-  // 收敛为单选：主选中 + 高亮集合都设成这一片段（或清空）。
-  const selectOnly = useCallback((ref: VideoComposeClipReference | null) => {
-    setSelected(ref);
-    setSelectedIds(ref ? new Set([ref.clipId]) : new Set());
-  }, []);
-  const clearSelection = useCallback(() => {
-    setSelected(null);
-    setSelectedIds(new Set());
-  }, []);
-  // Shift/⌘ 叠加点选：在高亮集合里增删该片段；加入时把它设为主选中。
-  // 取消的若是主选中，必须同步清掉 selected —— 否则它仍是高亮/删除/编辑面板的
-  // 目标，表现为「主选中片段 shift-click 取消不掉」。
-  const toggleInSelection = useCallback(
-    (ref: VideoComposeClipReference) => {
-      const removing = selectedIds.has(ref.clipId);
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (removing) next.delete(ref.clipId);
-        else next.add(ref.clipId);
-        return next;
-      });
-      if (removing) {
-        setSelected((cur) => (cur?.clipId === ref.clipId ? null : cur));
-      } else {
-        setSelected(ref);
-      }
-    },
-    [selectedIds],
-  );
 
   const snapRef = useRef(snapEnabled);
   snapRef.current = snapEnabled;
-  const timelineRef = useRef(timeline);
-  timelineRef.current = timeline;
   // ⌘C 复制的片段快照（⌘V 时插入其副本）。
   const clipboardRef = useRef<ComposeClip | null>(null);
-
-  // ── history (undo / redo) ────────────────────────────────────────────────
-  const pushHistory = useCallback(() => {
-    setPast((prev) => [...prev, timelineRef.current].slice(-HISTORY_LIMIT));
-    setFuture([]);
-  }, []);
-
-  const undo = useCallback(() => {
-    setPast((prev) => {
-      if (prev.length === 0) return prev;
-      const previous = prev[prev.length - 1];
-      setFuture((f) => [timelineRef.current, ...f]);
-      setTimeline(previous);
-      return prev.slice(0, -1);
-    });
-  }, []);
-
-  const redo = useCallback(() => {
-    setFuture((prev) => {
-      if (prev.length === 0) return prev;
-      const next = prev[0];
-      setPast((p) => [...p, timelineRef.current].slice(-HISTORY_LIMIT));
-      setTimeline(next);
-      return prev.slice(1);
-    });
-  }, []);
-
-  const applyTimelineEdit = useCallback((edit: VideoComposeTimelineEdit) => {
-    setTimeline((previous) =>
-      applyVideoComposeTimelineEdit(previous, edit),
-    );
-  }, []);
-
-  // ── duration probing (no history) ────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-    const pending = timeline.tracks.flatMap((track) =>
-      track.clips
-        .filter((clip) => clip.durationMs == null)
-        .map((clip) => ({ trackId: track.id, clip, kind: track.kind })),
-    );
-    if (pending.length === 0) return;
-    void Promise.all(
-      pending.map(async ({ trackId, clip, kind }) => {
-        const probed = await probeVideoComposeMediaDuration(
-          clip.sourceUrl,
-          kind,
-          resolveImageDisplayUrl,
-        );
-        if (cancelled || probed == null) return;
-        applyTimelineEdit({
-          type: "resolveClipDuration",
-          target: { trackId, clipId: clip.id },
-          durationMs: probed,
-        });
-      }),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    applyTimelineEdit,
-    timeline.tracks
-      .flatMap((track) => track.clips.map((c) => `${c.id}:${c.durationMs == null}`))
-      .join(","),
-  ]);
-
-  // 关闭弹窗（卸载）时把当前时间线回传宿主存为草稿，重开/刷新后恢复。
-  const onPersistDraftRef = useRef(onPersistDraft);
-  onPersistDraftRef.current = onPersistDraft;
-  useEffect(() => {
-    return () => {
-      onPersistDraftRef.current?.(timelineRef.current);
-    };
-  }, []);
-
-  // 设置 / 更新封面（history-tracked），关闭封面编辑器。
-  const applyCover = useCallback(
-    (cover: ComposeCover) => {
-      pushHistory();
-      setTimeline((prev) => ({ ...prev, cover }));
-      setCoverEditorOpen(false);
-    },
-    [pushHistory],
-  );
-
-  // 重新从上游素材摆放（丢弃当前草稿编辑）—— 上游新增/变更素材后用它重置。
-  const resetToUpstream = useCallback(() => {
-    pushHistory();
-    setTimeline(
-      buildVideoComposeInitialTimeline(
-        sourceNodes,
-        seedNodeIds,
-        makeClipId,
-      ),
-    );
-    clearSelection();
-  }, [clearSelection, pushHistory, seedNodeIds, sourceNodes]);
-
-  const updateTimelineTracks = useCallback(
-    (tracks: ComposeTimelineState["tracks"]) => {
-      setTimeline((previous) => ({ ...previous, tracks }));
-    },
-    [],
-  );
   const { dragGhost, trimEdit, startClipMove, startTrim, startScrub } =
     useVideoComposeTimelinePointerController({
       timelineRef,
@@ -365,15 +233,9 @@ export function VideoComposeModal({
         type: "removeClip",
         target: { trackId, clipId },
       });
-      setSelected((cur) => (cur?.clipId === clipId ? null : cur));
-      setSelectedIds((prev) => {
-        if (!prev.has(clipId)) return prev;
-        const next = new Set(prev);
-        next.delete(clipId);
-        return next;
-      });
+      removeFromSelection(clipId);
     },
-    [applyTimelineEdit, pushHistory],
+    [applyTimelineEdit, pushHistory, removeFromSelection],
   );
 
   // ── selected clip + playhead-relative source position ────────────────────
@@ -791,8 +653,8 @@ export function VideoComposeModal({
       <div className="relative flex items-center justify-between gap-4 border-t border-border-dark px-4 py-2">
         {/* Left: edit actions */}
         <div className="flex items-center gap-0.5">
-          <VideoComposeToolButton icon={Undo2} label={t("videoCompose.undo")} disabled={past.length === 0} onClick={undo} />
-          <VideoComposeToolButton icon={Redo2} label={t("videoCompose.redo")} disabled={future.length === 0} onClick={redo} />
+          <VideoComposeToolButton icon={Undo2} label={t("videoCompose.undo")} disabled={!canUndo} onClick={undo} />
+          <VideoComposeToolButton icon={Redo2} label={t("videoCompose.redo")} disabled={!canRedo} onClick={redo} />
           <VideoComposeToolDivider />
           <VideoComposeToolButton icon={Split} label={t("videoCompose.split")} disabled={!canSplitInside} onClick={splitSelected} />
           <VideoComposeToolButton

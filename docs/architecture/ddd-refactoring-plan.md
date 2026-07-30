@@ -2232,6 +2232,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十批已将视频合成的两条 window `keydown` 监听、Escape 弹层关闭优先级、输入控件/可编辑节点焦点判定、撤销/重做/复制/粘贴/副本/删除/播放快捷键及播放头帧步进从 `compose/VideoComposeModal.tsx` 迁入唯一 170 行浏览器 controller `hooks/useVideoComposeKeyboardController.ts`；Modal 只注入弹层状态与稳定 setter、导出状态、既有编辑命令、播放命令、播放头引用和 seek，原内联键盘 effect、焦点辅助函数与 30fps 步进常量全部删除，不保留 facade、re-export、兼容别名或第二套映射，由 1,087 行降至 1,015 行。Escape 依次关闭封面编辑器、导出菜单、倍速弹层、音量弹层，导出中禁止关闭 Modal；导出中、导出确认框或封面编辑器打开时不接管编辑快捷键，输入框、文本域、下拉框和 contenteditable 焦点保持浏览器默认行为；Command/Ctrl+Z、Shift+Command/Ctrl+Z、Command/Ctrl+Y/C/V/D、空格、Delete/Backspace 与左右方向键语义保持不变，其余带修饰键组合继续交给系统，方向键按 30fps 单帧移动、Shift 按一秒移动并钳制在时间线范围内。新增 controller 3 项行为测试；完整前端架构门禁 3 个文件 344 项（其中 module boundaries 304 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十一批已将视频合成的初始时间线恢复/上游校正、最新时间线引用、50 步撤销/重做历史、主选中与多选集合、选择移除、领域 edit 应用、缺失媒体时长探测、卸载草稿持久化、带历史的封面更新、带历史的上游重置及投影轨道提交从 `compose/VideoComposeModal.tsx` 迁入唯一 227 行会话 controller `hooks/useVideoComposeTimelineSessionController.ts`；controller 复用既有纯 application `videoComposeTimelineSession`、唯一 domain reducer 与浏览器媒体探测适配器，Modal 只消费时间线、引用、选择、`canUndo/canRedo` 和命令，封面成功后的弹层关闭仍由 Modal 负责。原内联 timeline/history/selection state、`setTimeline/setPast/setFuture/setSelected/setSelectedIds`、探测 effect、草稿 ref、重置与轨道提交实现全部删除，不保留 facade、re-export、兼容别名或第二套会话，由 1,015 行降至 879 行。草稿只在卸载时回传最新状态、时长回填不进入历史、卸载后异步媒体探测结果不再回填、每次新编辑清空 redo、历史上限保持 50、撤销/重做按钮禁用态与历史同步、取消主选中仍保留其他多选、单片段删除同步移除选择、封面和上游重置各记录一次历史、重置后清空选择语义保持不变。新增 controller 4 项行为测试；完整前端架构门禁 3 个文件 345 项（其中 module boundaries 305 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
