@@ -13,7 +13,6 @@ import {
   ArrowLeftToLine,
   ArrowRightToLine,
   ChevronDown,
-  ChevronUp,
   Copy,
   Download,
   Film,
@@ -23,18 +22,13 @@ import {
   Loader2,
   Magnet,
   Maximize,
-  Minus,
-  Music,
   Pause,
   Play,
-  Plus,
   Redo2,
   RotateCcw,
-  Rows3,
   Split,
   Trash2,
   Undo2,
-  Video as VideoIcon,
   Volume2,
   VolumeX,
   X,
@@ -50,8 +44,6 @@ import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/vide
 import {
   applyVideoComposeTimelineEdit,
   resolveVideoComposeClipSelection,
-  VIDEO_COMPOSE_MAX_SPEED,
-  VIDEO_COMPOSE_MIN_SPEED,
   type VideoComposeClipReference,
   type VideoComposeTimelineEdit,
 } from "@/features/canvas/domain/videoComposeTimelineEdits";
@@ -64,9 +56,7 @@ import {
 } from "@/features/canvas/domain/videoComposeTimelineGestures";
 import {
   activeClipAt,
-  clipLengthMs,
   hasExportableClips,
-  layoutTrack,
   overlappingVideoClipIds,
   sourceSpanMs,
   timelineDurationMs,
@@ -79,15 +69,18 @@ import {
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
 import { useVideoComposeTrackMediaSync } from "@/features/canvas/hooks/useVideoComposeTrackMediaSync";
-import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
+import { VideoComposeTrackRow } from "@/features/canvas/ui/VideoComposeTrackRow";
 import {
-  getCachedAudioPeaks,
-  loadAudioPeaks,
-  PEAK_BUCKETS_PER_SEC,
-} from "./audioPeaks";
+  VideoComposeSpeedPopover,
+  VideoComposeToolButton,
+  VideoComposeToolDivider,
+  VideoComposeVolumePopover,
+  VideoComposeZoomInGlyph,
+  VideoComposeZoomOutGlyph,
+} from "@/features/canvas/ui/VideoComposeTimelineControls";
+import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import { CoverEditor } from "./CoverEditor";
 import { useComposePlayback } from "./useComposePlayback";
-import { getFilmstrip, pickFrame, type FilmstripFrame } from "./filmstrip";
 
 export interface VideoComposeModalProps {
   project: string;
@@ -110,7 +103,6 @@ const MIN_PX_PER_SEC = 20;
 const MAX_PX_PER_SEC = 240;
 const ZOOM_STEP = 1.5;
 const RULER_MIN_SECONDS = 10;
-const FILMSTRIP_THUMB_W = 72;
 const HISTORY_LIMIT = 50;
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -129,18 +121,6 @@ function formatTime(ms: number): string {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-/** 片段时长时间码 HH:MM:SS:FF（默认 30fps），用于片段标签。 */
-function formatTimecode(ms: number, fps = 30): string {
-  const totalMs = Math.max(0, Math.round(ms));
-  const totalSec = Math.floor(totalMs / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const f = Math.min(fps - 1, Math.floor(((totalMs % 1000) / 1000) * fps));
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
 }
 
 export function VideoComposeModal({
@@ -749,7 +729,7 @@ export function VideoComposeModal({
   );
 
   // 音量滑杆 onChange 在一次拖动里触发数十次 —— 历史快照只在手势开始时 push 一次
-  //（见 VolumePopover 的 onGestureStart），否则一次拖动就把整个撤销栈冲掉。
+  //（见 VideoComposeVolumePopover 的 onGestureStart），否则一次拖动就把整个撤销栈冲掉。
   const setSelectedVolume = useCallback(
     (volume: number) => {
       if (!selectedClip) return;
@@ -1115,7 +1095,7 @@ export function VideoComposeModal({
           {/* 不再提供 720p/1080p 切换：导出沿用源视频画质（默认 1080p，不降采样）。 */}
           {/* 导出下拉：自建轻量 popover —— 共享的 Base UI DropdownMenu 把菜单 portal 到
               body 且 Positioner 固定 z-50，会被本弹窗的 z-[120] 整层盖住（点了像没反应）。
-              这里跟 SpeedPopover 一样用模态内的相对定位浮层，避开 z 冲突。 */}
+              这里跟 VideoComposeSpeedPopover 一样用模态内的相对定位浮层，避开 z 冲突。 */}
           {/* hover 即展开（不是点击）。onMouseLeave 在指针离开按钮+菜单整体时才关闭：
               菜单是 wrapper 的 DOM 子节点，且用 pt-2 桥接视觉间隙，避免移到菜单途中关掉。 */}
           <div
@@ -1301,24 +1281,24 @@ export function VideoComposeModal({
       <div className="relative flex items-center justify-between gap-4 border-t border-border-dark px-4 py-2">
         {/* Left: edit actions */}
         <div className="flex items-center gap-0.5">
-          <ToolButton icon={Undo2} label={t("videoCompose.undo")} disabled={past.length === 0} onClick={undo} />
-          <ToolButton icon={Redo2} label={t("videoCompose.redo")} disabled={future.length === 0} onClick={redo} />
-          <ToolDivider />
-          <ToolButton icon={Split} label={t("videoCompose.split")} disabled={!canSplitInside} onClick={splitSelected} />
-          <ToolButton
+          <VideoComposeToolButton icon={Undo2} label={t("videoCompose.undo")} disabled={past.length === 0} onClick={undo} />
+          <VideoComposeToolButton icon={Redo2} label={t("videoCompose.redo")} disabled={future.length === 0} onClick={redo} />
+          <VideoComposeToolDivider />
+          <VideoComposeToolButton icon={Split} label={t("videoCompose.split")} disabled={!canSplitInside} onClick={splitSelected} />
+          <VideoComposeToolButton
             icon={ArrowLeftToLine}
             label={t("videoCompose.splitLeft")}
             disabled={!canSplitInside}
             onClick={() => trimSelectedToPlayhead("left")}
           />
-          <ToolButton
+          <VideoComposeToolButton
             icon={ArrowRightToLine}
             label={t("videoCompose.splitRight")}
             disabled={!canSplitInside}
             onClick={() => trimSelectedToPlayhead("right")}
           />
           <div className="relative">
-            <ToolButton
+            <VideoComposeToolButton
               icon={Gauge}
               label={t("videoCompose.speed")}
               disabled={!selectedClip}
@@ -1326,7 +1306,7 @@ export function VideoComposeModal({
               onClick={() => setSpeedOpen((open) => !open)}
             />
             {speedOpen && selectedClip && (
-              <SpeedPopover
+              <VideoComposeSpeedPopover
                 speed={selectedSpeed}
                 sourceSpanMs={selectedSourceSpanMs}
                 onChange={setSelectedSpeed}
@@ -1335,7 +1315,7 @@ export function VideoComposeModal({
             )}
           </div>
           <div className="relative">
-            <ToolButton
+            <VideoComposeToolButton
               icon={selectedMuted || selectedVolume <= 0 ? VolumeX : Volume2}
               label={t("videoCompose.volume")}
               disabled={!selectedClip}
@@ -1343,7 +1323,7 @@ export function VideoComposeModal({
               onClick={() => setVolumeOpen((open) => !open)}
             />
             {volumeOpen && selectedClip && (
-              <VolumePopover
+              <VideoComposeVolumePopover
                 volume={selectedVolume}
                 muted={selectedMuted}
                 onChange={setSelectedVolume}
@@ -1353,13 +1333,13 @@ export function VideoComposeModal({
               />
             )}
           </div>
-          <ToolButton
+          <VideoComposeToolButton
             icon={Copy}
             label={t("videoCompose.duplicate")}
             disabled={!selectedClip}
             onClick={duplicateSelected}
           />
-          <ToolButton
+          <VideoComposeToolButton
             icon={Trash2}
             label={t("videoCompose.removeClip")}
             disabled={!selectedClip}
@@ -1388,20 +1368,20 @@ export function VideoComposeModal({
 
         {/* Right: reset + snap + zoom + fullscreen */}
         <div className="flex items-center gap-1">
-          <ToolButton
+          <VideoComposeToolButton
             icon={RotateCcw}
             label={t("videoCompose.resetToUpstream")}
             onClick={resetToUpstream}
           />
-          <ToolDivider />
-          <ToolButton
+          <VideoComposeToolDivider />
+          <VideoComposeToolButton
             icon={Magnet}
             label={t("videoCompose.snap")}
             active={snapEnabled}
             onClick={() => setSnapEnabled((v) => !v)}
           />
-          <ToolDivider />
-          <ToolButton icon={ZoomOutGlyph} label={t("videoCompose.zoomOut")} disabled={pxPerSec <= MIN_PX_PER_SEC} onClick={zoomOut} />
+          <VideoComposeToolDivider />
+          <VideoComposeToolButton icon={VideoComposeZoomOutGlyph} label={t("videoCompose.zoomOut")} disabled={pxPerSec <= MIN_PX_PER_SEC} onClick={zoomOut} />
           <input
             type="range"
             min={MIN_PX_PER_SEC}
@@ -1412,9 +1392,9 @@ export function VideoComposeModal({
             className="h-1 w-24 cursor-pointer accent-primary"
             aria-label={t("videoCompose.zoom")}
           />
-          <ToolButton icon={ZoomInGlyph} label={t("videoCompose.zoomIn")} disabled={pxPerSec >= MAX_PX_PER_SEC} onClick={zoomIn} />
-          <ToolDivider />
-          <ToolButton
+          <VideoComposeToolButton icon={VideoComposeZoomInGlyph} label={t("videoCompose.zoomIn")} disabled={pxPerSec >= MAX_PX_PER_SEC} onClick={zoomIn} />
+          <VideoComposeToolDivider />
+          <VideoComposeToolButton
             icon={Maximize}
             label={t("videoCompose.fullscreenPlay")}
             disabled={durationMs <= 0}
@@ -1449,7 +1429,7 @@ export function VideoComposeModal({
             {/* Tracks */}
             <div className="space-y-2 p-2" onPointerDown={() => clearSelection()}>
               {timeline.tracks.map((track) => (
-                <TrackRow
+                <VideoComposeTrackRow
                   key={track.id}
                   track={track}
                   pxPerMs={pxPerMs}
@@ -1521,680 +1501,5 @@ export function VideoComposeModal({
       )}
     </div>,
     document.body,
-  );
-}
-
-// Wrap zoom icons so ToolButton's `icon` typing stays a single component type.
-function ZoomInGlyph(props: { className?: string }) {
-  return <Plus {...props} />;
-}
-function ZoomOutGlyph(props: { className?: string }) {
-  return <Minus {...props} />;
-}
-
-function ToolDivider() {
-  return <div className="mx-1 h-5 w-px bg-border-dark" />;
-}
-
-function ToolButton({
-  icon: Icon,
-  label,
-  onClick,
-  disabled,
-  active,
-}: {
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
-        active
-          ? "bg-primary/20 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-}
-
-function Stepper({
-  value,
-  onStep,
-}: {
-  value: string;
-  onStep: (dir: 1 | -1) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1">
-      <span className="min-w-[48px] text-right font-mono text-xs tabular-nums text-text-dark">
-        {value}
-      </span>
-      <div className="flex flex-col">
-        <button
-          type="button"
-          onClick={() => onStep(1)}
-          className="text-text-muted transition-colors hover:text-text-dark"
-          aria-label="+"
-        >
-          <ChevronUp className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onStep(-1)}
-          className="text-text-muted transition-colors hover:text-text-dark"
-          aria-label="−"
-        >
-          <ChevronDown className="h-3 w-3" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * 变速 popover —— 倍数 / 时长 双向联动。倍速是唯一真值,时长 = 源裁剪长度 / 倍速,
- * 反过来调时长则 倍速 = 源长 / 时长。两个值都可拖滑块或点上下步进。
- */
-function SpeedPopover({
-  speed,
-  sourceSpanMs: span,
-  onChange,
-  onClose,
-}: {
-  speed: number;
-  sourceSpanMs: number;
-  onChange: (speed: number) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const safeSpan = span > 0 ? span : 1;
-  const lengthMs = safeSpan / (speed > 0 ? speed : 1);
-  // speed ∈ [MIN,MAX] ⇒ length ∈ [span/MAX, span/MIN].
-  const minLen = safeSpan / VIDEO_COMPOSE_MAX_SPEED;
-  const maxLen = safeSpan / VIDEO_COMPOSE_MIN_SPEED;
-
-  const setSpeed = (next: number) =>
-    onChange(
-      clamp(
-        Math.round(next * 100) / 100,
-        VIDEO_COMPOSE_MIN_SPEED,
-        VIDEO_COMPOSE_MAX_SPEED,
-      ),
-    );
-  const setLength = (nextMs: number) => {
-    const len = clamp(nextMs, minLen, maxLen);
-    onChange(
-      clamp(
-        safeSpan / len,
-        VIDEO_COMPOSE_MIN_SPEED,
-        VIDEO_COMPOSE_MAX_SPEED,
-      ),
-    );
-  };
-
-  return (
-    <div className="absolute bottom-full left-0 z-30 mb-2 w-80 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-text-dark">
-          {t("videoCompose.speed")}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-0.5 text-text-muted hover:text-text-dark"
-          aria-label={t("common.close")}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* 倍数 */}
-      <div className="mb-3">
-        <div className="mb-1 text-xs text-text-muted">
-          {t("videoCompose.speedMultiplier")}
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={VIDEO_COMPOSE_MIN_SPEED}
-            max={VIDEO_COMPOSE_MAX_SPEED}
-            step={0.01}
-            value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-            list="video-compose-speed-ticks"
-            className="h-1 flex-1 cursor-pointer accent-primary"
-          />
-          <datalist id="video-compose-speed-ticks">
-            <option value="0.5" />
-            <option value="1" />
-            <option value="2" />
-            <option value="3" />
-            <option value="4" />
-          </datalist>
-          <Stepper
-            value={`${speed.toFixed(2)}x`}
-            onStep={(dir) => setSpeed(speed + dir * 0.05)}
-          />
-        </div>
-      </div>
-
-      {/* 时长 */}
-      <div>
-        <div className="mb-1 text-xs text-text-muted">
-          {t("videoCompose.duration")}
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={minLen}
-            max={maxLen}
-            step={10}
-            value={lengthMs}
-            onChange={(e) => setLength(Number(e.target.value))}
-            className="h-1 flex-1 cursor-pointer accent-primary"
-          />
-          <Stepper
-            value={`${(lengthMs / 1000).toFixed(1)}s`}
-            onStep={(dir) => setLength(lengthMs + dir * 100)}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * 音量 popover —— 0~100% 滑杆 + 一键静音。音量为 0 即静音；拖动滑杆离开 0 自动取消静音。
- */
-function VolumePopover({
-  volume,
-  muted,
-  onChange,
-  onGestureStart,
-  onToggleMute,
-  onClose,
-}: {
-  volume: number;
-  muted: boolean;
-  onChange: (volume: number) => void;
-  /** 一次调节手势开始（指针按下 / 单次按键）时调用 —— 宿主借此只 push 一次历史。 */
-  onGestureStart: () => void;
-  onToggleMute: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const effective = muted ? 0 : volume;
-  const percent = Math.round(effective * 100);
-  return (
-    <div className="absolute bottom-full left-0 z-30 mb-2 w-72 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-text-dark">
-          {t("videoCompose.volume")}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-0.5 text-text-muted hover:text-text-dark"
-          aria-label={t("common.close")}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onToggleMute}
-          className="shrink-0 rounded p-1 text-text-muted transition-colors hover:text-text-dark"
-          aria-label={muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
-          title={muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
-        >
-          {muted || volume <= 0 ? (
-            <VolumeX className="h-4 w-4" />
-          ) : (
-            <Volume2 className="h-4 w-4" />
-          )}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={effective}
-          onPointerDown={onGestureStart}
-          onKeyDown={(e) => {
-            // 键盘步进：每次独立按键算一个手势（按住连发只记一次）。
-            if (!e.repeat && e.key.startsWith("Arrow")) onGestureStart();
-          }}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="h-1 flex-1 cursor-pointer accent-primary"
-        />
-        <span className="min-w-[40px] text-right font-mono text-xs tabular-nums text-text-dark">
-          {percent}%
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Tile sampled video frames across a clip's displayed width, windowed to its
- * trim range — the libtv-style filmstrip. Frames are captured once per source
- * and cached, so trimming only re-picks frames (no re-capture).
- */
-// libtv 风格「加载中」占位：斜纹底 + 左侧标签。缩略图 / 媒体未就绪时铺在片段上。
-function ClipLoadingStripe({ label }: { label: string }) {
-  return (
-    <div
-      className="absolute inset-0 flex items-center overflow-hidden"
-      style={{
-        backgroundImage:
-          "repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.11) 8px, rgba(255,255,255,0.11) 16px)",
-      }}
-    >
-      <span className="truncate px-2 text-[10px] text-media-foreground/70">{label}</span>
-    </div>
-  );
-}
-
-function ClipFilmstrip({
-  sourceUrl,
-  trimStartMs,
-  trimEndMs,
-  width,
-}: {
-  sourceUrl: string;
-  trimStartMs: number;
-  trimEndMs: number;
-  width: number;
-}) {
-  const { t } = useTranslation();
-  const [frames, setFrames] = useState<FilmstripFrame[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getFilmstrip(sourceUrl)
-      .then((result) => {
-        if (!cancelled) {
-          setFrames(result);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sourceUrl]);
-
-  // 缩略图还在抓取时，铺一层 libtv 风格的斜纹 + 「视频加载中…」占位。
-  if (frames.length === 0) {
-    return loading ? <ClipLoadingStripe label={t("videoCompose.clipLoading")} /> : null;
-  }
-  const len = Math.max(1, trimEndMs - trimStartMs);
-  const slots = Math.max(1, Math.ceil(width / FILMSTRIP_THUMB_W));
-  return (
-    <div className="absolute inset-0 flex overflow-hidden">
-      {Array.from({ length: slots }, (_, i) => {
-        const center = trimStartMs + ((i + 0.5) / slots) * len;
-        const frame = pickFrame(frames, center);
-        return (
-          <div
-            key={i}
-            className="h-full shrink-0 border-r border-media/20 last:border-r-0"
-            style={{ width: FILMSTRIP_THUMB_W }}
-          >
-            {frame && (
-              <img
-                src={frame.url}
-                alt=""
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/**
- * 音频片段波形 —— 解码源音频峰值并按裁剪窗口绘制到 canvas，随片段宽度/裁剪实时重绘。
- * 峰值带模块级缓存，同一 src 只解码一次。解码完成前铺底色（外层渐变）兜底。
- */
-function ClipWaveform({
-  sourceUrl,
-  trimStartMs,
-  trimEndMs,
-  width,
-}: {
-  sourceUrl: string;
-  trimStartMs: number;
-  trimEndMs: number;
-  width: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [peaks, setPeaks] = useState<Float32Array | null>(() =>
-    getCachedAudioPeaks(sourceUrl),
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    const cached = getCachedAudioPeaks(sourceUrl);
-    if (cached) {
-      setPeaks(cached);
-      return;
-    }
-    setPeaks(null);
-    loadAudioPeaks(sourceUrl)
-      .then((p) => {
-        if (!cancelled) setPeaks(p);
-      })
-      .catch(() => {
-        // 解码失败（CORS / 格式不支持）→ 保持底色，不画波形。
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sourceUrl]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !peaks || peaks.length === 0) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const h = canvas.clientHeight || 64;
-    const w = Math.max(1, Math.round(width));
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const startBucket = (trimStartMs / 1000) * PEAK_BUCKETS_PER_SEC;
-    const endBucket = (trimEndMs / 1000) * PEAK_BUCKETS_PER_SEC;
-    const span = Math.max(1, endBucket - startBucket);
-    const mid = h / 2;
-    const maxBar = h * 0.42;
-    ctx.fillStyle = "rgba(56, 189, 248, 0.85)";
-    for (let x = 0; x < w; x += 1) {
-      const b0 = startBucket + (x / w) * span;
-      const b1 = startBucket + ((x + 1) / w) * span;
-      let peak = 0;
-      for (let b = Math.floor(b0); b < Math.max(Math.floor(b0) + 1, Math.ceil(b1)); b += 1) {
-        const v = peaks[b] ?? 0;
-        if (v > peak) peak = v;
-      }
-      const bar = Math.max(1, peak * maxBar);
-      ctx.fillRect(x, mid - bar, 1, bar * 2);
-    }
-  }, [peaks, trimStartMs, trimEndMs, width]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="pointer-events-none absolute inset-0 h-full w-full"
-    />
-  );
-}
-
-function TrackRow({
-  track,
-  pxPerMs,
-  selectedClipId,
-  selectedIds,
-  overlapClipIds,
-  draggingClipId,
-  ghostLeftPx,
-  trimmingClipId,
-  trimEdge,
-  onStartClipMove,
-  onTrim,
-  onMoveToNewTrack,
-  onRemove,
-  onToggleMute,
-}: {
-  track: ComposeTrack;
-  pxPerMs: number;
-  selectedClipId: string | null;
-  /** 全部选中片段 id（高亮用）；多选时含多个。 */
-  selectedIds: ReadonlySet<string>;
-  overlapClipIds: ReadonlySet<string>;
-  /** 正在被拖动的片段 id（用于在落点画半透明投影）。 */
-  draggingClipId: string | null;
-  /** 跟随指针的幽灵副本左缘（px）；仅当被拖片段在本轨时非 null。 */
-  ghostLeftPx: number | null;
-  /** 正在裁剪的片段 id（用于在其边缘浮裁剪后时长气泡）。 */
-  trimmingClipId: string | null;
-  /** 正在裁剪的边（start=左 / end=右），决定气泡贴哪一侧。 */
-  trimEdge: "start" | "end" | null;
-  onStartClipMove: (
-    event: ReactPointerEvent,
-    track: ComposeTrack,
-    clip: ComposeClip,
-  ) => void;
-  onTrim: (
-    event: ReactPointerEvent,
-    track: ComposeTrack,
-    clip: ComposeClip,
-    edge: "start" | "end",
-  ) => void;
-  onMoveToNewTrack: (trackId: string, clipId: string) => void;
-  onRemove: (trackId: string, clipId: string) => void;
-  onToggleMute: (clipId: string, muted: boolean) => void;
-}) {
-  const { t } = useTranslation();
-  const laid = layoutTrack(track);
-  const Icon = track.kind === "video" ? VideoIcon : Music;
-  // 跟随指针浮起的幽灵副本对应的片段（仅当被拖片段落在本轨时）。
-  const ghostClip =
-    ghostLeftPx != null && draggingClipId
-      ? track.clips.find((c) => c.id === draggingClipId) ?? null
-      : null;
-  // 拖动时落点槽位的起点（ms）—— 气泡显示「将落在 mm:ss」。
-  const ghostStartMs = ghostClip
-    ? laid.find((l) => l.clip.id === draggingClipId)?.timelineStartMs ?? 0
-    : 0;
-  // 正在裁剪的片段（在其边缘浮「裁剪后时长」气泡）。
-  const trimLaid = trimmingClipId
-    ? laid.find((l) => l.clip.id === trimmingClipId) ?? null
-    : null;
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex w-6 shrink-0 justify-center text-text-muted">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div
-        className="relative h-16 flex-1"
-        data-compose-track-id={track.id}
-        data-compose-track-kind={track.kind}
-      >
-        {laid.length === 0 && (
-          <div className="flex h-full items-center rounded-md border border-dashed border-border bg-muted px-3 text-[11px] text-muted-foreground">
-            {t("videoCompose.trackEmpty")}
-          </div>
-        )}
-        {laid.map(({ clip, timelineStartMs }) => {
-          const width = Math.max(24, clipLengthMs(clip) * pxPerMs);
-          const isPrimary = clip.id === selectedClipId;
-          const isSelected = isPrimary || selectedIds.has(clip.id);
-          const isOverlapping = overlapClipIds.has(clip.id);
-          // 被拖片段：在它将落入的槽位画一道半透明青色「投影」，幽灵副本另在下方跟指针浮起。
-          const isDragging = clip.id === draggingClipId;
-          return (
-            <div
-              key={clip.id}
-              onPointerDown={(event) => onStartClipMove(event, track, clip)}
-              title={isOverlapping ? t("videoCompose.error.overlap") : undefined}
-              className={`absolute top-0 h-16 cursor-grab overflow-hidden rounded-md border bg-media transition-[opacity] active:cursor-grabbing ${
-                isDragging
-                  ? "border-dashed border-primary/80 bg-primary/10 opacity-40"
-                  : isOverlapping
-                    ? "border-destructive ring-2 ring-destructive/70"
-                    : isSelected
-                      ? // 多选都描白边；主选中（驱动编辑面板）描得更亮一点。
-                        `border-media-foreground ring-2 ${isPrimary ? "ring-media-foreground" : "ring-media-foreground/60"}`
-                      : "border-border-dark"
-              }`}
-              style={{ left: timelineStartMs * pxPerMs, width }}
-            >
-              {/* Background: filmstrip for video clips, gradient fallback. */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/25 to-primary/5" />
-              {track.kind === "video" && (
-                <ClipFilmstrip
-                  sourceUrl={clip.sourceUrl}
-                  trimStartMs={clip.trimStartMs}
-                  trimEndMs={clip.trimEndMs}
-                  width={width}
-                />
-              )}
-              {track.kind === "audio" && (
-                <ClipWaveform
-                  sourceUrl={clip.sourceUrl}
-                  trimStartMs={clip.trimStartMs}
-                  trimEndMs={clip.trimEndMs}
-                  width={width}
-                />
-              )}
-              {/* Scrim so overlaid chips stay legible over bright frames. */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />
-              <div className="absolute inset-0 flex flex-col justify-between p-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate rounded bg-media/50 px-1 text-[10px] text-media-foreground">
-                    {clip.speed !== 1
-                      ? `${t("videoCompose.speedPrefix")} ${clip.speed.toFixed(2)}X `
-                      : ""}
-                    {clip.displayName || t(`videoCompose.kind.${track.kind}`)}
-                    {" "}
-                    {formatTimecode(clipLengthMs(clip))}
-                  </span>
-                  <div className="flex items-center gap-0.5">
-                    {/* 视频和音频片段都可单独静音（视频静的是它自带的声轨）。 */}
-                    <button
-                      type="button"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => onToggleMute(clip.id, !clip.muted)}
-                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-media-foreground"
-                      aria-label={clip.muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
-                    >
-                      {clip.muted ? (
-                        <VolumeX className="h-3 w-3" />
-                      ) : (
-                        <Volume2 className="h-3 w-3" />
-                      )}
-                    </button>
-                    {/* 移到新的一行（新建同种类轨道） */}
-                    <button
-                      type="button"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => onMoveToNewTrack(track.id, clip.id)}
-                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-media-foreground"
-                      aria-label={t("videoCompose.moveToNewTrack")}
-                      title={t("videoCompose.moveToNewTrack")}
-                    >
-                      <Rows3 className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => onRemove(track.id, clip.id)}
-                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-destructive"
-                      aria-label={t("videoCompose.removeClip")}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-1">
-                  <span className="rounded bg-media/50 px-1 text-[10px] tabular-nums text-media-foreground/80">
-                    {(clipLengthMs(clip) / 1000).toFixed(1)}s
-                  </span>
-                </div>
-              </div>
-              {/* Trim handles — invisible hit areas, faint hint on hover only. */}
-              <div
-                className="absolute inset-y-0 left-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-media-foreground/30"
-                onPointerDown={(e) => onTrim(e, track, clip, "start")}
-              />
-              <div
-                className="absolute inset-y-0 right-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-media-foreground/30"
-                onPointerDown={(e) => onTrim(e, track, clip, "end")}
-              />
-            </div>
-          );
-        })}
-
-        {/* 拖动幽灵副本：跟随指针浮起（轻微抬升 + 阴影 + 高亮描边），与落点的青色投影呼应，
-            清晰表达「这段正在被拖动」。纯展示，pointer-events 全关，不参与命中。 */}
-        {ghostClip && ghostLeftPx != null && (
-          <div
-            className="pointer-events-none absolute top-0 z-30 h-16 -translate-y-1.5 overflow-hidden rounded-md border border-media-foreground/90 bg-media opacity-95 shadow-xl ring-2 ring-primary/60"
-            style={{
-              left: ghostLeftPx,
-              width: Math.max(24, clipLengthMs(ghostClip) * pxPerMs),
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/25 to-primary/5" />
-            {track.kind === "video" && (
-              <ClipFilmstrip
-                sourceUrl={ghostClip.sourceUrl}
-                trimStartMs={ghostClip.trimStartMs}
-                trimEndMs={ghostClip.trimEndMs}
-                width={Math.max(24, clipLengthMs(ghostClip) * pxPerMs)}
-              />
-            )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />
-            <div className="absolute inset-x-1 top-1">
-              <span className="truncate rounded bg-media/55 px-1 text-[10px] text-media-foreground">
-                {ghostClip.displayName || t(`videoCompose.kind.${track.kind}`)}
-                {" "}
-                {formatTimecode(clipLengthMs(ghostClip))}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* 拖动时间气泡：落点起始时间码，跟着幽灵副本走。 */}
-        {ghostClip && ghostLeftPx != null && (
-          <div
-            className="pointer-events-none absolute top-0 z-40 -translate-y-[18px] rounded bg-primary px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary-foreground shadow"
-            style={{ left: ghostLeftPx }}
-          >
-            {formatTimecode(ghostStartMs)}
-          </div>
-        )}
-
-        {/* 裁剪时长气泡：贴在被裁边缘，实时显示裁剪后的片段时长。 */}
-        {trimLaid && (
-          <div
-            className="pointer-events-none absolute top-0 z-40 rounded bg-primary px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary-foreground shadow"
-            style={{
-              left:
-                trimEdge === "end"
-                  ? trimLaid.timelineEndMs * pxPerMs
-                  : trimLaid.timelineStartMs * pxPerMs,
-              transform:
-                trimEdge === "end"
-                  ? "translate(-100%, -18px)"
-                  : "translate(0, -18px)",
-            }}
-          >
-            {formatTimecode(clipLengthMs(trimLaid.clip))}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
