@@ -4613,7 +4613,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
     const canvasConsumerPaths = [
       "features/canvas/hooks/useBeatContextNodeController.ts",
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
@@ -4691,7 +4691,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasConsumerPaths = [
       "features/canvas/hooks/useGroupNodeController.ts",
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useNodeManagementToolbarController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const stateSource = readFileSync(statePath, "utf8");
 
@@ -18492,13 +18492,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/beatContextNodeModel.ts",
     );
-    const toolbarPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const applicationTestSource = readFileSync(applicationTestPath, "utf8");
-    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const declarations = [
       ["export function", "resolveNodeActionBeatContext("].join(" "),
       ["export function", "isSameNodeActionBeatContext("].join(" "),
@@ -18525,21 +18525,21 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(applicationSource).not.toContain("@/features/canvas/composition");
-    expect(importSpecifiers(toolbarPath)).toContain(
+    expect(importSpecifiers(controllerPath)).toContain(
       "@/features/canvas/application/nodeActionBeatContext",
     );
-    expect(importSpecifiers(toolbarPath)).toContain(
+    expect(importSpecifiers(controllerPath)).toContain(
       "@/features/canvas/application/beatContextNodeModel",
     );
-    expect(toolbarSource).toContain("resolveNodeActionBeatContext(node,");
-    expect(toolbarSource).toContain("isSameNodeActionBeatContext(");
-    expect(toolbarSource).toContain("buildNodeActionBeatContextData(");
-    expect(toolbarSource).toContain("resolveBeatContextWorkbenchTarget(");
-    expect(toolbarSource).not.toContain("function beatContextFromNode(");
-    expect(toolbarSource).not.toContain("function sameBeatContext(");
-    expect(toolbarSource).not.toContain("function beatContextNodeData(");
-    expect(toolbarSource).not.toContain("type BeatMainlineContext =");
-    expect(toolbarSource).not.toContain("BEAT_CONTEXT_SOURCE_KINDS");
+    expect(controllerSource).toContain("resolveNodeActionBeatContext(node,");
+    expect(controllerSource).toContain("isSameNodeActionBeatContext(");
+    expect(controllerSource).toContain("buildNodeActionBeatContextData(");
+    expect(controllerSource).toContain("resolveBeatContextWorkbenchTarget(");
+    expect(controllerSource).not.toContain("function beatContextFromNode(");
+    expect(controllerSource).not.toContain("function sameBeatContext(");
+    expect(controllerSource).not.toContain("function beatContextNodeData(");
+    expect(controllerSource).not.toContain("type BeatMainlineContext =");
+    expect(controllerSource).not.toContain("BEAT_CONTEXT_SOURCE_KINDS");
     expect(declarationOwners).toEqual(
       declarations.map(() => [
         "features/canvas/application/nodeActionBeatContext.ts",
@@ -18550,6 +18550,144 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(beatContextModelPath, "utf8")).toContain(
       "export function resolveBeatContextWorkbenchTarget(",
+    );
+  });
+
+  it("separates node mainline toolbar commands, composition, and view", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeMainlineToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeMainlineToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeMainlineToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "useNodeMainlineToolbarController("].join(" "),
+      ["export const", "NodeMainlineToolbarActions ="].join(" "),
+      ["export function", "NodeMainlineToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const commandOwners = [controllerPath, componentPath, viewPath, toolbarPath]
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("openPresetProjectionInMyCanvas(") ||
+          source.includes("useCanvasStore.getState()") ||
+          source.includes("buildNodeActionBeatContextData(")
+        );
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/beatContextNodeModel",
+        "@/features/canvas/application/nodeActionBeatContext",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/freezone/public",
+        "@/lib/url-params",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(new Set(importSpecifiers(componentPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useNodeMainlineToolbarController",
+        "./NodeMainlineToolbarActionsView",
+      ]),
+    );
+    expect(componentSource).toContain(
+      "useNodeMainlineToolbarController(props)",
+    );
+    expect(componentSource).toContain(
+      "<NodeMainlineToolbarActionsView controller={controller} />",
+    );
+    for (const forbiddenViewDependency of [
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback",
+      "useCanvasStore",
+      "readUrl",
+      "openPresetProjectionInMyCanvas",
+      "resolveNodeActionBeatContext",
+      "resolveBeatContextWorkbenchTarget",
+      "buildNodeActionBeatContextData",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(viewSource).toContain("openWorkbench()");
+    expect(viewSource).toContain("ensureBeatContextNode()");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/NodeMainlineToolbarActions",
+    );
+    expect(toolbarSource).toContain("<NodeMainlineToolbarActions");
+    for (const forbiddenParentDependency of [
+      "@/features/canvas/application/beatContextNodeModel",
+      "@/features/canvas/application/nodeActionBeatContext",
+      "@/features/canvas/canvasStore",
+      "@/features/canvas/hooks/useNodeMainlineToolbarController",
+      "@/features/freezone/public",
+      "@/lib/url-params",
+    ]) {
+      expect(importSpecifiers(toolbarPath)).not.toContain(
+        forbiddenParentDependency,
+      );
+    }
+    for (const legacyInlineLogic of [
+      "workbenchTarget",
+      "openingWorkbench",
+      "extractableBeatContext",
+      "handleOpenWorkbench",
+      "handleEnsureBeatContextNode",
+      "resolveNodeActionBeatContext",
+      "isSameNodeActionBeatContext",
+      "buildNodeActionBeatContextData",
+      "resolveBeatContextWorkbenchTarget",
+      "openPresetProjectionInMyCanvas",
+      "extractMainlineContextsFromNode",
+      "打开工作台",
+      "镜头上下文",
+      "mainline-lock-pill",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(commandOwners).toEqual([
+      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+    ]);
+    expect(declarationOwners).toEqual([
+      ["features/canvas/hooks/useNodeMainlineToolbarController.ts"],
+      ["features/canvas/ui/NodeMainlineToolbarActions.tsx"],
+      ["features/canvas/ui/NodeMainlineToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useNodeMainlineToolbarController"',
     );
   });
 
@@ -19057,7 +19195,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).toContain(
       "@/features/canvas/ui/VideoNodeToolbarActions",
     );
-    expect(importSpecifiers(toolbarPath)).toContain(
+    expect(importSpecifiers(viewPath)).toContain(
       "./nodeActionToolbarStyles",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(

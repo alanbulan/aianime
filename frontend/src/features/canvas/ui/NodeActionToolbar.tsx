@@ -1,26 +1,16 @@
 // Copyright (c) 2026 AI anime
-import {
-  memo,
-  useCallback,
-  useMemo,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { memo } from "react";
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
-import { FolderOpen, Link2 } from "lucide-react";
 
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
 
 import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   isAudioNode,
   isGroupNode,
   isImageEditNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
   isVideoNode,
-  type BeatContextNodeData,
   type CanvasNode,
   type GroupNodeData,
 } from "@/features/canvas/domain/canvasNodes";
@@ -29,27 +19,12 @@ import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarAc
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
 import { NodeManagementToolbarActions } from "@/features/canvas/ui/NodeManagementToolbarActions";
+import { NodeMainlineToolbarActions } from "@/features/canvas/ui/NodeMainlineToolbarActions";
 import { NodeOutputToolbarActions } from "@/features/canvas/ui/NodeOutputToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
-import { resolveBeatContextWorkbenchTarget } from "@/features/canvas/application/beatContextNodeModel";
-import {
-  buildNodeActionBeatContextData,
-  isSameNodeActionBeatContext,
-  resolveNodeActionBeatContext,
-} from "@/features/canvas/application/nodeActionBeatContext";
-import {
-  extractMainlineContextsFromNode,
-  openPresetProjectionInMyCanvas,
-} from "@/features/freezone/public";
-import { UiChipButton, UiPanel } from "@/components/ui";
+import { UiPanel } from "@/components/ui";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { readUrl } from "@/lib/url-params";
-import {
-  NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
-  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
 import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,
@@ -94,106 +69,7 @@ export const NodeActionToolbar = memo(
     const groupBackgroundColor = isGroupNode(node)
       ? ((node.data as GroupNodeData).backgroundColor ?? null)
       : null;
-    const addNode = useCanvasStore((state) => state.addNode);
-    const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-    const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
-    // mainline canvas readonly state + "打开工作台" 入口需要的本地状态。
-    const workbenchTarget = useMemo(
-      () =>
-        resolveBeatContextWorkbenchTarget(
-          node.data as BeatContextNodeData,
-        ),
-      [node.data],
-    );
-    const [openingWorkbench, setOpeningWorkbench] = useState(false);
-    const extractableBeatContext = useMemo(
-      () => resolveNodeActionBeatContext(node, readUrl().project),
-      [node],
-    );
-    const handleOpenWorkbench = useCallback(() => {
-      if (!workbenchTarget || openingWorkbench) {
-        return;
-      }
-      const projectId = readUrl().project;
-      if (!projectId) {
-        console.warn("[freezone] no project_id in URL (?p=<project_id>)");
-        return;
-      }
-      setOpeningWorkbench(true);
-      void (async () => {
-        try {
-          await openPresetProjectionInMyCanvas(projectId, {
-            scope: workbenchTarget.scope,
-            episode: workbenchTarget.episode,
-            beat: workbenchTarget.beat,
-            primary_slot: "render",
-          });
-        } catch (error) {
-          console.error("[freezone] open workbench failed", error);
-        } finally {
-          setOpeningWorkbench(false);
-        }
-      })();
-    }, [openingWorkbench, workbenchTarget]);
-
-    const handleEnsureBeatContextNode = useCallback(
-      (event: ReactMouseEvent) => {
-        event.stopPropagation();
-        if (!extractableBeatContext) return;
-
-        const store = useCanvasStore.getState();
-        const existing = store.nodes.find((candidate) =>
-          extractMainlineContextsFromNode(candidate).some((ctx) =>
-            isSameNodeActionBeatContext(ctx, extractableBeatContext),
-          ),
-        );
-        if (existing?.id) {
-          setSelectedNode(String(existing.id));
-          requestFocusNode(String(existing.id));
-          return;
-        }
-
-        const nodeWidth =
-          node.measured?.width ??
-          (typeof node.width === "number" ? node.width : DEFAULT_NODE_WIDTH);
-        const contextNodeId = addNode(
-          CANVAS_NODE_TYPES.beatContext,
-          {
-            x: node.position.x + nodeWidth + 80,
-            y: node.position.y,
-          },
-          buildNodeActionBeatContextData(extractableBeatContext),
-        );
-        setSelectedNode(contextNodeId);
-        requestFocusNode(contextNodeId);
-      },
-      [
-        addNode,
-        extractableBeatContext,
-        node.measured?.width,
-        node.position.x,
-        node.position.y,
-        node.width,
-        requestFocusNode,
-        setSelectedNode,
-      ],
-    );
-
-    // Per-node mainline lock decision: only preset-managed nodes are locked.
-    // Ordinary/user-created nodes stay editable even on a mainline preset canvas.
-    //
-    // NB: we deliberately do NOT early-return on locked. preset_managed
-    // nodes still need access to **spawn-style** edit tools (relight /
-    // multi-dim / crop / repaint / outpaint) — those produce new
-    // user_spawned children that carry the inherited slot_target and Push
-    // back to the same canonical. The lock affects only:
-    //   - mutate-in-place tools (Rotate, the HD/upscale entry inside the
-    //     edit-menu dropdown) — they'd violate canonical immutability;
-    // The leading "主线投影 · 锁定" pill (+ optional "打开工作台" button)
-    // signals the state visually so the user knows why some chips are
-    // missing.
-    const _toolbarFlags = nodeMainlineFlags(node);
-    const isPresetLocked = _toolbarFlags.isPresetManaged;
+    const isPresetLocked = nodeMainlineFlags(node).isPresetManaged;
 
     // 分镜组 has its own dedicated toolbar (aspect / grid / index / convert /
     // ungroup) — render it instead of the generic node toolbar.
@@ -215,45 +91,10 @@ export const NodeActionToolbar = memo(
           {/* 节点激活时，顶部菜单从节点上沿淡入+轻微上滑浮现（而非生硬地直接出现），
               与下方操作区的入场动画呼应。motion-reduce 下退化为无动画。 */}
           <UiPanel className="flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4">
-            {/* Mainline lock indicator — shown as a leading pill when the
-                node is preset-managed (or canvas-level fallback applies).
-                The chips below remain visible for spawn-style edits; the
-                mutate-style chips are gated separately so
-                the user can still spawn user_spawned children from a
-                canonical slot but cannot violate its immutability. */}
-            {isPresetLocked && (
-              <span
-                key="mainline-lock-pill"
-                className="rounded-full border border-warning/35 bg-warning/10 px-3 py-1.5 text-sm text-warning"
-              >
-                主线投影 · 锁定
-              </span>
-            )}
-            {isPresetLocked && workbenchTarget && (
-              <UiChipButton
-                key="mainline-open-workbench"
-                className={`h-9 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/45 bg-primary/10 px-3 text-sm text-primary hover:bg-primary/15 disabled:opacity-50`}
-                disabled={openingWorkbench}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleOpenWorkbench();
-                }}
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-                {openingWorkbench ? "打开中..." : "打开工作台"}
-              </UiChipButton>
-            )}
-            {extractableBeatContext && node.type !== CANVAS_NODE_TYPES.beatContext && (
-              <UiChipButton
-                key="extract-beat-context"
-                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                title="创建或定位这个素材对应的镜头上下文节点；不会自动连线"
-                onClick={handleEnsureBeatContextNode}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                镜头上下文
-              </UiChipButton>
-            )}
+            <NodeMainlineToolbarActions
+              node={node}
+              isPresetLocked={isPresetLocked}
+            />
             <ImageNodeToolbarActions
               node={node}
               isPresetLocked={isPresetLocked}
