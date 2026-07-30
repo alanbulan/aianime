@@ -18543,6 +18543,83 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps node-action toolbar projections in one pure application model", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionToolbarModel.ts",
+    );
+    const applicationTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionToolbarModel.test.ts",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const applicationTestSource = readFileSync(applicationTestPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "projectNodeActionGenerationError("].join(" "),
+      ["export function", "projectNodeActionStoryboardText("].join(" "),
+      ["export function", "resolveNodeActionImageDownloadFilename("].join(
+        " ",
+      ),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "./generationErrorReport",
+        "./storyboardText",
+      ]),
+    );
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "useTranslation",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+    ]) {
+      expect(applicationSource).not.toContain(forbiddenDependency);
+    }
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/application/nodeActionToolbarModel",
+    );
+    expect(toolbarSource).toContain("projectNodeActionGenerationError(");
+    expect(toolbarSource).toContain("projectNodeActionStoryboardText(");
+    expect(toolbarSource).toContain("resolveNodeActionImageDownloadFilename(");
+    for (const legacyInlineLogic of [
+      "isStoryboardGenNode",
+      "isStoryboardSplitNode",
+      "sanitizeStoryboardText",
+      "buildGenerationErrorReport",
+      "resolveImageDownloadFilename",
+      "(node.data as { generationError?: unknown }).generationError",
+      "(node.data as { sourceFileName?: unknown }).sourceFileName",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/application/nodeActionToolbarModel.ts",
+      ]),
+    );
+    expect(applicationTestSource).toContain(
+      'from "./nodeActionToolbarModel"',
+    );
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,

@@ -74,14 +74,11 @@ import {
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   isAudioNode,
-  isExportImageNode,
   isGroupNode,
   isImageEditNode,
   isImageGenNode,
   isProtectedProjectionGroupNode,
-  isStoryboardGenNode,
   isStoryboardGroupNode,
-  isStoryboardSplitNode,
   isVideoNode,
   resolveNodeSourceImageUrl,
   type BeatContextNodeData,
@@ -102,6 +99,11 @@ import {
   isSameNodeActionBeatContext,
   resolveNodeActionBeatContext,
 } from "@/features/canvas/application/nodeActionBeatContext";
+import {
+  projectNodeActionGenerationError,
+  projectNodeActionStoryboardText,
+  resolveNodeActionImageDownloadFilename,
+} from "@/features/canvas/application/nodeActionToolbarModel";
 import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
@@ -124,8 +126,6 @@ import {
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
-import { sanitizeStoryboardText } from "@/features/canvas/application/storyboardText";
-import { buildGenerationErrorReport } from "@/features/canvas/application/generationErrorReport";
 import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,
@@ -279,9 +279,6 @@ export const NodeActionToolbar = memo(
     const groupBackgroundColor = isGroupNode(node)
       ? ((node.data as GroupNodeData).backgroundColor ?? null)
       : null;
-    const isStoryboardGen = isStoryboardGenNode(node);
-    const isStoryboardSplit = isStoryboardSplitNode(node);
-    const canCopyStoryboardText = isStoryboardGen || isStoryboardSplit;
     const tools = useMemo(() => getNodeToolPlugins(node), [node]);
     const deleteNode = useCanvasStore((state) => state.deleteNode);
     const addNode = useCanvasStore((state) => state.addNode);
@@ -341,43 +338,14 @@ export const NodeActionToolbar = memo(
       () => resolveNodeActionBeatContext(node, readUrl().project),
       [node],
     );
-    const canExposeGenerationError =
-      isExportImageNode(node) || isImageGenNode(node);
-    const generationError =
-      canExposeGenerationError &&
-      typeof (node.data as { generationError?: unknown }).generationError ===
-        "string"
-        ? (
-            (node.data as { generationError?: string }).generationError ?? ""
-          ).trim()
-        : "";
-    const generationErrorDetails =
-      canExposeGenerationError &&
-      typeof (node.data as { generationErrorDetails?: unknown })
-        .generationErrorDetails === "string"
-        ? (
-            (node.data as { generationErrorDetails?: string })
-              .generationErrorDetails ?? ""
-          ).trim()
-        : "";
-    const canCopyGenerationError =
-      canExposeGenerationError && generationError.length > 0;
-    const generationErrorReport = useMemo(
-      () => {
-        // ImageGen keeps the exact pre-normalization error in details: copy it
-        // verbatim. Export-image nodes retain their richer diagnostic report.
-        if (isImageGenNode(node)) {
-          return generationErrorDetails || generationError;
-        }
-        return buildGenerationErrorReport({
-          errorMessage: generationError || t("ai.error"),
-          errorDetails: generationErrorDetails || undefined,
-          context: (node.data as { generationDebugContext?: unknown })
-            .generationDebugContext,
-        });
-      },
-      [generationError, generationErrorDetails, node, t],
+    const generationErrorFallback = t("ai.error");
+    const generationErrorProjection = useMemo(
+      () =>
+        projectNodeActionGenerationError(node, generationErrorFallback),
+      [generationErrorFallback, node],
     );
+    const canCopyGenerationError = generationErrorProjection.canCopy;
+    const generationErrorReport = generationErrorProjection.report;
 
     const closeDownloadMenu = useCallback(() => {}, []);
 
@@ -438,45 +406,23 @@ export const NodeActionToolbar = memo(
       };
     }, []);
 
-    const storyboardText = useMemo(() => {
-      if (isStoryboardGen) {
-        return node.data.frames
-          .map((frame, index) =>
-            t("nodeToolbar.storyboardLine", {
-              index: String(index + 1).padStart(2, "0"),
-              content: sanitizeStoryboardText(
-                frame.description ?? "",
-                ignoreAtTagWhenCopyingAndGenerating,
-              ),
-            }),
-          )
-          .join("\n");
-      }
-      if (isStoryboardSplit) {
-        const orderedFrames = [...node.data.frames].sort(
-          (a, b) => a.order - b.order,
-        );
-        return orderedFrames
-          .map((frame, index) =>
-            t("nodeToolbar.storyboardLine", {
-              index: String(index + 1).padStart(2, "0"),
-              content: sanitizeStoryboardText(
-                frame.note ?? "",
-                ignoreAtTagWhenCopyingAndGenerating,
-              ),
-            }),
-          )
-          .join("\n");
-      }
-      return "";
-    }, [
-      ignoreAtTagWhenCopyingAndGenerating,
-      isStoryboardGen,
-      isStoryboardSplit,
-      node,
-      t,
-      i18n.language,
-    ]);
+    const storyboardTextProjection = useMemo(
+      () =>
+        projectNodeActionStoryboardText(
+          node,
+          ignoreAtTagWhenCopyingAndGenerating,
+          (index, content) =>
+            t("nodeToolbar.storyboardLine", { index, content }),
+        ),
+      [
+        ignoreAtTagWhenCopyingAndGenerating,
+        node,
+        t,
+        i18n.language,
+      ],
+    );
+    const canCopyStoryboardText = storyboardTextProjection.canCopy;
+    const storyboardText = storyboardTextProjection.text;
 
     const handleCopyStoryboardText = useCallback(async () => {
       if (!storyboardText) {
@@ -520,23 +466,10 @@ export const NodeActionToolbar = memo(
       }
     }, [canCopyGenerationError, generationErrorReport]);
 
-    const resolveImageDownloadFilename = useCallback(() => {
-      const sourceFileName =
-        typeof (node.data as { sourceFileName?: unknown }).sourceFileName === "string"
-          ? ((node.data as { sourceFileName?: string }).sourceFileName ?? "").trim()
-          : "";
-      if (sourceFileName) {
-        return sourceFileName;
-      }
-      const displayName =
-        typeof (node.data as { displayName?: unknown }).displayName === "string"
-          ? ((node.data as { displayName?: string }).displayName ?? "").trim()
-          : "";
-      if (displayName) {
-        return `${displayName}.png`;
-      }
-      return `node-${node.id}.png`;
-    }, [node.data, node.id]);
+    const imageDownloadFilename = useMemo(
+      () => resolveNodeActionImageDownloadFilename(node),
+      [node],
+    );
 
     const handleDownloadSaveAs = useCallback(async () => {
       if (!imageSource) {
@@ -545,13 +478,13 @@ export const NodeActionToolbar = memo(
       try {
         await downloadUrlAsFile(
           resolveImageDisplayUrl(imageSource),
-          resolveImageDownloadFilename(),
+          imageDownloadFilename,
         );
         closeDownloadMenu();
       } catch (error) {
         console.error("Failed to download image", error);
       }
-    }, [closeDownloadMenu, imageSource, resolveImageDownloadFilename]);
+    }, [closeDownloadMenu, imageDownloadFilename, imageSource]);
 
     const handleMatteImage = useCallback(() => {
       if (!imageSource) {

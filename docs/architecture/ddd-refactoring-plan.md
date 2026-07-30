@@ -2242,6 +2242,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十五批已删除 `ui/NodeActionToolbar.tsx` 中三组已整段注释、运行时不可达的 AI 改图、重新上传与复制图片按钮，以及同样无任何调用方的预设改图 helper；对应 `Sparkles`、`isUploadNode`、图片剪贴板命令 import，重新上传资格，复制成功 state/timer/cleanup，图片复制、AI 改图和预设改图 handlers，`void` 编译抑制及三段“等待恢复”注释 JSX 同批清零，不保留注释代码、未来占位、兼容分支或第二套不可达实现，Toolbar 由 2,107 行降至 1,927 行。上述按钮在迁移前已不参与编译后的 JSX 和用户交互，因此没有移除可达功能；当前仍可用的分镜文本复制、生成错误报告复制、图片下载、抠图、投影刷新及其 `Copy`/`RefreshCw` 图标路径保持不变。新增死代码不得回流的架构门禁；Toolbar/Viewer 相关源合同 2 个文件 27 项、完整前端架构门禁 3 个文件 349 项（其中 module boundaries 309 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十六批已将节点工具栏的生成错误可复制资格与报告投影、两类分镜复制文本投影以及图片下载文件名优先级迁入唯一纯 application 模型 `application/nodeActionToolbarModel.ts`；翻译行格式化函数由 UI 注入，模型只依赖 Canvas 节点领域守卫、既有错误报告与分镜文本规则，不读取 React、i18n、DOM、URL、store、API 或 composition。`ui/NodeActionToolbar.tsx` 删除两类分镜守卫状态、错误字段解析、分镜排序/清洗和图片文件名回退三段内联实现及其旧依赖，统一消费模型投影，不保留 facade、兼容别名或第二套逻辑，由 1,927 行降至 1,860 行。仅 ImageGen/ExportImage 暴露错误复制、仅非空 `generationError` 允许复制、ImageGen 优先保留原始 details、ExportImage 继续生成完整诊断报告；StoryboardGen 保持原帧顺序读取 description，StoryboardSplit 保持按 order 排序读取 note，空分镜仍显示复制动作；图片文件名继续按 sourceFileName、displayName 加 `.png`、节点 ID 回退的顺序解析。新增纯模型 5 项测试并迁移 ImageGen 错误通知合同，定向回归 2 个文件 8 项；新增唯一实现、纯依赖与旧逻辑禁入架构门禁，完整前端架构门禁 3 个文件 350 项（其中 module boundaries 310 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -18,11 +18,19 @@ describe("ImageGenNode error notification contract", () => {
     expect(source).toContain("generationErrorRequestId: extractRequestId(rawErrorMessage)");
   });
 
-  it("copies the preserved raw ImageGen error from the node toolbar", () => {
-    const source = read("src/features/canvas/ui/NodeActionToolbar.tsx");
+  it("projects the preserved raw ImageGen error for the node toolbar", () => {
+    const modelSource = read(
+      "src/features/canvas/application/nodeActionToolbarModel.ts",
+    );
+    const toolbarSource = read("src/features/canvas/ui/NodeActionToolbar.tsx");
 
-    expect(source).toContain("isExportImageNode(node) || isImageGenNode(node)");
-    expect(source).toContain("return generationErrorDetails || generationError");
+    expect(modelSource).toContain(
+      "isExportImageNode(node) || isImageGenNode(node)",
+    );
+    expect(modelSource).toContain(
+      "report: generationErrorDetails || generationError",
+    );
+    expect(toolbarSource).toContain("projectNodeActionGenerationError(");
   });
 
   it("copies the complete error from the request-id row instead of only the id", () => {
