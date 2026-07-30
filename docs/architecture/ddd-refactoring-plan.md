@@ -2240,6 +2240,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十四批已将节点工具栏从任意媒体/投影节点提取可新建主线 Beat 上下文的显式来源优先级、项目 ID 回退、主线上下文筛选、slot 上下文归一、允许来源角色、元数据字段映射、稳定 Beat 身份比较、展示文本及 BeatContext 节点数据投影迁入唯一纯 application 模块 `application/nodeActionBeatContext.ts`；路由项目 ID 由 UI 注入，纯模型不再读取 URL、DOM、store、API 或 composition。工具栏原本重复的 `workbench_target` 解析直接改用既有 `application/beatContextNodeModel.ts` 唯一 `resolveBeatContextWorkbenchTarget`，原 10 个内联辅助函数、两组来源常量和私有上下文类型全部删除，不保留 facade、re-export、兼容别名或第二套规则，`ui/NodeActionToolbar.tsx` 由 2,295 行降至 2,107 行。`__freezone_source.beat_context` 优先于节点字段和传播上下文、直接 Beat 保持原对象、视频/音频/分镜 slot 清除素材 URL 后转为 Beat、仅 Beat 范围来源允许从 meta 补全、已有同项目/剧集/Beat 节点优先聚焦以及新节点位置和 payload 字段语义保持不变。新增纯模型 4 项测试，连同既有 BeatContext 模型共定向回归 2 个文件 10 项；完整前端架构门禁 3 个文件 348 项（其中 module boundaries 308 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百八十五批已删除 `ui/NodeActionToolbar.tsx` 中三组已整段注释、运行时不可达的 AI 改图、重新上传与复制图片按钮，以及同样无任何调用方的预设改图 helper；对应 `Sparkles`、`isUploadNode`、图片剪贴板命令 import，重新上传资格，复制成功 state/timer/cleanup，图片复制、AI 改图和预设改图 handlers，`void` 编译抑制及三段“等待恢复”注释 JSX 同批清零，不保留注释代码、未来占位、兼容分支或第二套不可达实现，Toolbar 由 2,107 行降至 1,927 行。上述按钮在迁移前已不参与编译后的 JSX 和用户交互，因此没有移除可达功能；当前仍可用的分镜文本复制、生成错误报告复制、图片下载、抠图、投影刷新及其 `Copy`/`RefreshCw` 图标路径保持不变。新增死代码不得回流的架构门禁；Toolbar/Viewer 相关源合同 2 个文件 27 项、完整前端架构门禁 3 个文件 349 项（其中 module boundaries 309 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -44,7 +44,6 @@ import {
   RotateCw,
   Scissors,
   Send,
-  Sparkles,
   Trash2,
   Unlink2,
   User,
@@ -83,7 +82,6 @@ import {
   isStoryboardGenNode,
   isStoryboardGroupNode,
   isStoryboardSplitNode,
-  isUploadNode,
   isVideoNode,
   resolveNodeSourceImageUrl,
   type BeatContextNodeData,
@@ -117,7 +115,6 @@ import { getNodeToolPlugins } from "@/features/canvas/tools";
 import type { ToolIconKey } from "@/features/canvas/tools";
 import { UiChipButton, UiPanel } from "@/components/ui";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
-import { copyImageSourceToClipboard } from "@/commands/image";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
@@ -298,7 +295,6 @@ export const NodeActionToolbar = memo(
     );
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
-    const canReupload = isUploadNode(node) && Boolean(node.data.imageUrl);
     const ignoreAtTagWhenCopyingAndGenerating = useSettingsStore(
       (state) => state.ignoreAtTagWhenCopyingAndGenerating,
     );
@@ -307,12 +303,8 @@ export const NodeActionToolbar = memo(
     >("matting");
     const [activeGridAction, setActiveGridAction] =
       useState<GridActionKey | null>(null);
-    const [isCopySuccess, setIsCopySuccess] = useState(false);
     const [isCopyTextSuccess, setIsCopyTextSuccess] = useState(false);
     const [isCopyErrorSuccess, setIsCopyErrorSuccess] = useState(false);
-    const copyFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-      null,
-    );
     const copyTextFeedbackTimerRef = useRef<ReturnType<
       typeof setTimeout
     > | null>(null);
@@ -437,9 +429,6 @@ export const NodeActionToolbar = memo(
 
     useEffect(() => {
       return () => {
-        if (copyFeedbackTimerRef.current) {
-          clearTimeout(copyFeedbackTimerRef.current);
-        }
         if (copyTextFeedbackTimerRef.current) {
           clearTimeout(copyTextFeedbackTimerRef.current);
         }
@@ -448,27 +437,6 @@ export const NodeActionToolbar = memo(
         }
       };
     }, []);
-
-    const handleCopyImage = useCallback(async () => {
-      if (!imageSource) {
-        return;
-      }
-
-      setIsCopySuccess(true);
-      if (copyFeedbackTimerRef.current) {
-        clearTimeout(copyFeedbackTimerRef.current);
-      }
-      copyFeedbackTimerRef.current = setTimeout(() => {
-        setIsCopySuccess(false);
-        copyFeedbackTimerRef.current = null;
-      }, 1100);
-
-      try {
-        await copyImageSourceToClipboard(imageSource);
-      } catch (error) {
-        console.error("Failed to copy image to clipboard", error);
-      }
-    }, [imageSource]);
 
     const storyboardText = useMemo(() => {
       if (isStoryboardGen) {
@@ -584,105 +552,6 @@ export const NodeActionToolbar = memo(
         console.error("Failed to download image", error);
       }
     }, [closeDownloadMenu, imageSource, resolveImageDownloadFilename]);
-
-    // 以下符号被暂时隐藏的 toolbar 按钮使用，保留代码不删除：
-    // - Sparkles 图标用于 AI 改图按钮
-    // - Copy 图标用于复制按钮
-    // - RefreshCw 图标 / canReupload 用于"重新上传"按钮
-    // - handleCreateAiEditNode / handleCopyImage / isCopySuccess 同上
-    // 取消注释相关 JSX 后这些 void 也可以一起删掉
-    void Sparkles;
-    void RefreshCw;
-    void canReupload;
-    void handleCopyImage;
-    void isCopySuccess;
-
-    const handleCreateAiEditNode = useCallback(() => {
-      if (!imageSource) {
-        return;
-      }
-      closeDownloadMenu();
-      const nodeWidth =
-        typeof node.measured?.width === "number"
-          ? node.measured.width
-          : typeof node.width === "number"
-            ? node.width
-            : DEFAULT_NODE_WIDTH;
-      const nextNodeId = addNode(
-        CANVAS_NODE_TYPES.imageEdit,
-        {
-          x: node.position.x + nodeWidth + 96,
-          y: node.position.y,
-        },
-        {
-          displayName: t("nodeToolbar.aiEdit"),
-          prompt: "",
-          requestAspectRatio: "auto",
-          generationMode: "image_reference",
-        },
-      );
-      addEdge(node.id, nextNodeId);
-      setSelectedNode(nextNodeId);
-    }, [
-      addEdge,
-      addNode,
-      closeDownloadMenu,
-      imageSource,
-      node,
-      setSelectedNode,
-      t,
-    ]);
-    // 同上：保留 handleCreateAiEditNode 等待恢复 AI 改图按钮
-    void handleCreateAiEditNode;
-
-    const handleCreatePresetEditNode = useCallback(
-      (displayKey: "repaint" | "erase" | "matting", presetPrompt: string) => {
-        if (!imageSource) {
-          return;
-        }
-        closeDownloadMenu();
-        const nodeWidth =
-          typeof node.measured?.width === "number"
-            ? node.measured.width
-            : typeof node.width === "number"
-              ? node.width
-              : DEFAULT_NODE_WIDTH;
-        // preset_managed parent nodes spawn user_spawned imageEdit children
-        // via inheritMainlineFields — they carry slot_target/mainline_context/
-        // committed_slot_url so Push can land back on the original canonical.
-        const initialData = inheritMainlineFields(
-          { data: node.data as Record<string, unknown> },
-          {
-            displayName: t(`nodeToolbar.${displayKey}`),
-            prompt: presetPrompt,
-            requestAspectRatio: "auto",
-            generationMode: "image_reference",
-          },
-        );
-        const nextNodeId = addNode(
-          CANVAS_NODE_TYPES.imageEdit,
-          {
-            x: node.position.x + nodeWidth + 96,
-            y: node.position.y,
-          },
-          initialData as unknown as Parameters<typeof addNode>[2],
-        );
-        addEdge(node.id, nextNodeId);
-        setSelectedNode(nextNodeId);
-      },
-      [
-        addEdge,
-        addNode,
-        closeDownloadMenu,
-        imageSource,
-        node,
-        setSelectedNode,
-        t,
-      ],
-    );
-    // 擦除已改为 EraseOverlay（蒙版 + 重绘接口），不再新建 imageEdit 预设节点；
-    // 保留此 helper 以便将来其它预设改图入口复用。
-    void handleCreatePresetEditNode;
 
     const handleMatteImage = useCallback(() => {
       if (!imageSource) {
@@ -922,21 +791,6 @@ export const NodeActionToolbar = memo(
                 镜头上下文
               </UiChipButton>
             )}
-            {/* AI 改图按钮暂时隐藏（保留代码，等需求恢复时取消注释）
-        {!isImageEdit && canHandleImage && (
-          <UiChipButton
-            key="image-ai-edit"
-            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/55 bg-primary/15 px-3 text-sm text-primary hover:bg-primary/25`}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleCreateAiEditNode();
-            }}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {t('nodeToolbar.aiEdit')}
-          </UiChipButton>
-        )}
-        */}
             {!isImageEdit && canHandleImage && (
               <UiChipButton
                 key="image-panorama"
@@ -1274,40 +1128,6 @@ export const NodeActionToolbar = memo(
                 }}
               />
             )}
-            {/* 重新上传按钮暂时隐藏（保留代码，等需求恢复时取消注释）
-        {!isImageEdit && canReupload && (
-          <UiChipButton
-            key="upload-reupload"
-            className={TOOLBAR_TEXT_BUTTON_CLASS}
-            onClick={() =>
-              canvasEventBus.publish('upload-node/reupload', {
-                nodeId: node.id,
-              })
-            }
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            {t('nodeToolbar.reupload')}
-          </UiChipButton>
-        )}
-        */}
-            {/* 复制图片按钮暂时隐藏（保留代码，等需求恢复时取消注释）
-        {!isImageEdit && canHandleImage && (
-          <UiChipButton
-            key="image-copy"
-            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS} ${
-              isCopySuccess
-                ? '!border-success/45 !bg-success/10 !text-success hover:!bg-success/15'
-                : ''
-            }`}
-            onClick={() => {
-              void handleCopyImage();
-            }}
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {t('nodeToolbar.copy')}
-          </UiChipButton>
-        )}
-        */}
             {!isImageEdit && canCopyStoryboardText && (
               <UiChipButton
                 key="storyboard-text-copy"

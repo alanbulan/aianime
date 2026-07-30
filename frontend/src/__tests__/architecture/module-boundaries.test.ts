@@ -18543,6 +18543,36 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("does not retain commented-out node actions as production dead code", () => {
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+
+    for (const deadSymbol of [
+      "copyImageSourceToClipboard",
+      "isUploadNode",
+      "canReupload",
+      "isCopySuccess",
+      "copyFeedbackTimerRef",
+      "handleCopyImage",
+      "handleCreateAiEditNode",
+      "handleCreatePresetEditNode",
+      "void Sparkles",
+      "AI 改图按钮暂时隐藏",
+      "重新上传按钮暂时隐藏",
+      "复制图片按钮暂时隐藏",
+    ]) {
+      expect(toolbarSource).not.toContain(deadSymbol);
+    }
+    expect(toolbarSource).toContain("handleCopyStoryboardText");
+    expect(toolbarSource).toContain("handleCopyGenerationError");
+    expect(toolbarSource).toContain(
+      'canvasEventBus.publish("freezone/projection-sync"',
+    );
+  });
+
   it("keeps Canvas grid-action rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
