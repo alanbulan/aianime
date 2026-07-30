@@ -19004,6 +19004,128 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates image grid toolbar requests, interaction, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGridToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGridToolbarModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGridToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGridToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageGridToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageGridToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "projectImageGridToolbarActions("].join(" "),
+      ["export function", "useImageGridToolbarController("].join(" "),
+      ["export function", "ImageGridToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(modelPath)).toEqual([
+      "@/features/canvas/domain/gridAction",
+    ]);
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "useTranslation",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/imageGridToolbarModel",
+        "@/features/canvas/domain/gridAction",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "projectImageGridToolbarActions",
+      "onOpenGridAction",
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(componentSource).toContain("useImageGridToolbarController({");
+    expect(componentSource).toContain(
+      "<ImageGridToolbarActionsView controller={controller} />",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/ImageGridToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useImageGridToolbarController",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/application/imageGridToolbarModel",
+    );
+    expect(toolbarSource).toContain("<ImageGridToolbarActions");
+    for (const legacyInlineLogic of [
+      "activeGridAction",
+      "setActiveGridAction",
+      "gridMenu",
+      "gridActions",
+      "multiCameraGridPrompt",
+      "frameProjection5sEarlierPrompt",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/imageGridToolbarModel.ts"],
+      ["features/canvas/hooks/useImageGridToolbarController.ts"],
+      ["features/canvas/ui/ImageGridToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./imageGridToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useImageGridToolbarController"',
+    );
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,

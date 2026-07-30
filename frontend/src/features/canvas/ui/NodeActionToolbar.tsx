@@ -23,27 +23,17 @@ import {
   Download,
   Eraser,
   Expand,
-  FastForward,
-  Film,
   FolderOpen,
   Globe2,
-  Grid2x2,
-  Grid3x3,
   ImageUpscale,
-  LayoutDashboard,
-  LayoutGrid,
   Link2,
   Lightbulb,
-  Package,
   PenLine,
   RefreshCw,
-  Rewind,
   RotateCw,
   Scissors,
   Send,
   Trash2,
-  User,
-  Users,
   Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -72,12 +62,10 @@ import {
   type GroupNodeData,
   type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
-import type {
-  GridActionKey,
-  GridActionRequest,
-} from "@/features/canvas/domain/gridAction";
+import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
+import { ImageGridToolbarActions } from "@/features/canvas/ui/ImageGridToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
@@ -270,8 +258,6 @@ export const NodeActionToolbar = memo(
     const [activeEditAction, setActiveEditAction] = useState<
       "repaint" | "erase" | "matting" | "crop" | "hd" | "outpaint"
     >("matting");
-    const [activeGridAction, setActiveGridAction] =
-      useState<GridActionKey | null>(null);
     const [isCopyTextSuccess, setIsCopyTextSuccess] = useState(false);
     const [isCopyErrorSuccess, setIsCopyErrorSuccess] = useState(false);
     const copyTextFeedbackTimerRef = useRef<ReturnType<
@@ -337,7 +323,6 @@ export const NodeActionToolbar = memo(
 
     // hover 即展开的编辑/九宫格下拉。
     const editMenu = useHoverMenu();
-    const gridMenu = useHoverMenu();
 
     // 选中可抠图的节点时,在浏览器空闲间隙预热抠图管线,把一次性的模型/Worker/
     // WASM 初始化挪到用户点击「抠图」之前,避免点击瞬间主线程卡 2~3s。整段只跑一次。
@@ -826,138 +811,12 @@ export const NodeActionToolbar = memo(
                   </DropdownMenu>
                 );
               })()}
-            {!isImageEdit &&
-              canHandleImage &&
-              (() => {
-                const gridActions: Array<{
-                  key: GridActionKey;
-                  icon: typeof Crop;
-                  label: string;
-                  prompt: string;
-                  cost: number;
-                }> = [
-                  {
-                    key: "multiCameraGrid",
-                    icon: Grid3x3,
-                    label: t("nodeToolbar.gridMenu.multiCameraGrid"),
-                    prompt: t("nodeToolbar.gridMenu.multiCameraGridPrompt"),
-                    cost: 14,
-                  },
-                  {
-                    key: "plotFourGrid",
-                    icon: Grid2x2,
-                    label: t("nodeToolbar.gridMenu.plotFourGrid"),
-                    prompt: t("nodeToolbar.gridMenu.plotFourGridPrompt"),
-                    cost: 8,
-                  },
-                  {
-                    key: "faceThreeView",
-                    icon: User,
-                    label: t("nodeToolbar.gridMenu.faceThreeView"),
-                    prompt: t("nodeToolbar.gridMenu.faceThreeViewPrompt"),
-                    cost: 6,
-                  },
-                  {
-                    key: "productThreeView",
-                    icon: Package,
-                    label: t("nodeToolbar.gridMenu.productThreeView"),
-                    prompt: t("nodeToolbar.gridMenu.productThreeViewPrompt"),
-                    cost: 6,
-                  },
-                  {
-                    key: "serialStoryboard25",
-                    icon: LayoutDashboard,
-                    label: t("nodeToolbar.gridMenu.serialStoryboard25"),
-                    prompt: t("nodeToolbar.gridMenu.serialStoryboard25Prompt"),
-                    cost: 32,
-                  },
-                  {
-                    key: "cinematicLightCorrection",
-                    icon: Film,
-                    label: t("nodeToolbar.gridMenu.cinematicLightCorrection"),
-                    prompt: t(
-                      "nodeToolbar.gridMenu.cinematicLightCorrectionPrompt",
-                    ),
-                    cost: 4,
-                  },
-                  {
-                    key: "characterThreeView",
-                    icon: Users,
-                    label: t("nodeToolbar.gridMenu.characterThreeView"),
-                    prompt: t("nodeToolbar.gridMenu.characterThreeViewPrompt"),
-                    cost: 6,
-                  },
-                  {
-                    key: "frameProjection3sLater",
-                    icon: FastForward,
-                    label: t("nodeToolbar.gridMenu.frameProjection3sLater"),
-                    prompt: t(
-                      "nodeToolbar.gridMenu.frameProjection3sLaterPrompt",
-                    ),
-                    cost: 4,
-                  },
-                  {
-                    key: "frameProjection5sEarlier",
-                    icon: Rewind,
-                    label: t("nodeToolbar.gridMenu.frameProjection5sEarlier"),
-                    prompt: t(
-                      "nodeToolbar.gridMenu.frameProjection5sEarlierPrompt",
-                    ),
-                    cost: 4,
-                  },
-                ];
-                return (
-                  <DropdownMenu {...gridMenu.rootProps}>
-                    <DropdownMenuTrigger asChild>
-                      <UiChipButton
-                        key="image-grid-menu"
-                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                        onClick={(event) => event.stopPropagation()}
-                        {...gridMenu.hoverProps}
-                      >
-                        <LayoutGrid className="h-3.5 w-3.5" />
-                        {t("nodeToolbar.gridMenu.trigger")}
-                        <ChevronDown className="h-3 w-3" />
-                      </UiChipButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      sideOffset={6}
-                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[200px]`}
-                      onClick={(event) => event.stopPropagation()}
-                      {...gridMenu.hoverProps}
-                    >
-                      {gridActions.map((action) => {
-                        const Icon = action.icon;
-                        const isActive = action.key === activeGridAction;
-                        return (
-                          <DropdownMenuItem
-                            key={action.key}
-                            className={
-                              isActive
-                                ? "gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary"
-                                : NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS
-                            }
-                            onSelect={() => {
-                              setActiveGridAction(action.key);
-                              onOpenGridAction({
-                                nodeId: node.id,
-                                key: action.key,
-                                label: action.label,
-                                prompt: action.prompt,
-                                cost: action.cost,
-                              });
-                            }}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {action.label}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              })()}
+            {!isImageEdit && canHandleImage && (
+              <ImageGridToolbarActions
+                nodeId={node.id}
+                onOpenGridAction={onOpenGridAction}
+              />
+            )}
             {!isImageEdit && canHandleImage && <ToolbarDivider />}
             {!isImageEdit &&
               tools

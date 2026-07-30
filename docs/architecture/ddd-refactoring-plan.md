@@ -2250,6 +2250,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百八十九批已将普通组节点工具栏的背景色写入、子节点排列与解组命令迁入独立 53 行 `hooks/useGroupNodeToolbarController.ts`，controller 直接复用唯一领域色板 `domain/groupColors.ts` 和排列模式 `domain/canvasGroupArrangement.ts`；完整背景色菜单、无色选项、九个领域色板 swatch、网格/横向/纵向排列菜单及解组按钮迁入无 Hook 的 `ui/GroupNodeToolbarActionsView.tsx`，23 行 `GroupNodeToolbarActions.tsx` 只装配 controller 与 View。父 `ui/NodeActionToolbar.tsx` 仅保留普通且非受保护组的资格判定及背景色快照，整段删除原 113 行组节点条件 IIFE、色板遍历、三个匿名 Store 命令和 `Palette`/`Unlink2`/领域色板依赖，不保留 facade、旧分支或第二套命令，由 1,258 行降至 1,145 行。当前背景色圆点、无色斜线、选中色 ring、三种排列模式、单次 Store 调用与解组文案语义保持不变；未触碰既有 `useGroupNodeController` 的分镜拖拽、自动贴合、上传或历史素材职责。新增 controller 2 项行为测试，连同组节点及 Viewer/Toolbar 合同共定向回归 4 个文件 33 项；新增 controller/装配/View 与领域色板唯一消费门禁，完整前端架构门禁 3 个文件 353 项（其中 module boundaries 313 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百九十批已将图片节点工具栏九宫格菜单的九项动作顺序、翻译键、提示词键与积分成本迁入唯一纯 application 模型 `application/imageGridToolbarModel.ts`，节点 ID、翻译文本和领域 `GridActionRequest` 在模型中一次投影；hover 展开、160ms 延迟收起、当前选中项和完整请求转发迁入独立 `hooks/useImageGridToolbarController.ts`，图标映射、触发器、激活样式与菜单项迁入无 Hook 的 `ui/ImageGridToolbarActionsView.tsx`，`ui/ImageGridToolbarActions.tsx` 只装配 controller 与 View。父 `ui/NodeActionToolbar.tsx` 仅保留图片可操作资格和装配入口，原九项内联配置、`activeGridAction`、第二个 hover menu、条件 IIFE、请求拼装及十个专用图标依赖全部删除，不保留 facade、旧分支或第二套规则，由 1,145 行降至 1,004 行。九项动作顺序、14/8/6/6/32/4/6/4/4 积分、翻译文案、点击请求、当前项高亮、hover 与点击开关语义保持不变；未触碰下游确认弹层、模板模式领域映射或生成编排。新增纯模型 1 项与 controller 2 项测试，连同网格领域、生成用例及 Viewer/Toolbar 合同共定向回归 6 个文件 32 项；新增模型/controller/装配/View 唯一所有权和父组件旧逻辑禁入门禁，完整前端架构门禁 3 个文件 354 项（其中 module boundaries 314 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
