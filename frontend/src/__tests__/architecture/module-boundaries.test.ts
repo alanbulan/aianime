@@ -21600,6 +21600,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/compose/VideoComposeModal.tsx",
     );
+    const gesturesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeTimelineGestures.ts",
+    );
     const domainSource = readFileSync(domainPath, "utf8");
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const timelineSource = readFileSync(timelinePath, "utf8");
@@ -21631,7 +21635,8 @@ describe("frontend architecture boundaries", () => {
     expect(clipPanelSource).toContain("resolveVideoClipRange({");
     expect(clipPanelSource).not.toContain("const MIN_CLIP_MS = 200");
     expect(timelineSource).not.toContain("export const MIN_CLIP_MS");
-    expect(composeModalSource).toContain(
+    expect(importSpecifiers(gesturesPath)).toContain("./videoClipRange");
+    expect(composeModalSource).not.toContain(
       "@/features/canvas/domain/videoClipRange",
     );
     expect(composeModalSource).not.toContain("MIN_CLIP_MS");
@@ -21824,6 +21829,73 @@ describe("frontend architecture boundaries", () => {
     );
     expect(editsTestSource).toContain(
       'from "./videoComposeTimelineEdits"',
+    );
+  });
+
+  it("keeps video-compose drag, snap, and trim projections in one pure domain module", () => {
+    const gesturesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeTimelineGestures.ts",
+    );
+    const gesturesTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeTimelineGestures.test.ts",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const gesturesSource = readFileSync(gesturesPath, "utf8");
+    const gesturesTestSource = readFileSync(gesturesTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declarations = [
+      ["export function", "createVideoComposeClipDragSession("].join(" "),
+      ["export function", "snapVideoComposeClipStart("].join(" "),
+      ["export function", "snapVideoComposePlayhead("].join(" "),
+      ["export function", "projectVideoComposeClipDrag("].join(" "),
+      ["export function", "createVideoComposeTrimDragSession("].join(" "),
+      ["export function", "projectVideoComposeTrimDrag("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(gesturesPath))).toEqual(
+      new Set(["./videoClipRange", "./videoComposeTimeline"]),
+    );
+    expect(gesturesSource).not.toContain("react");
+    expect(gesturesSource).not.toContain("document.");
+    expect(gesturesSource).not.toContain("Date.now(");
+    expect(gesturesSource).not.toContain("Math.random(");
+    expect(gesturesSource).not.toContain("@/api/");
+    expect(gesturesSource).not.toContain("@/stores/");
+    expect(gesturesSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/domain/videoComposeTimelineGestures",
+    );
+    expect(modalSource).toContain("createVideoComposeClipDragSession(");
+    expect(modalSource).toContain("projectVideoComposeClipDrag({");
+    expect(modalSource).toContain("createVideoComposeTrimDragSession(");
+    expect(modalSource).toContain("projectVideoComposeTrimDrag(");
+    expect(modalSource).toContain("snapVideoComposePlayhead({");
+    expect(modalSource).not.toContain("const SNAP_GRID_MS =");
+    expect(modalSource).not.toContain("const SNAP_PX =");
+    expect(modalSource).not.toContain("const snapClipStart = useCallback");
+    expect(modalSource).not.toContain("const boundaryList = useCallback");
+    expect(modalSource).not.toContain("const snapPlayhead = useCallback");
+    expect(modalSource).not.toContain("reorderIndexForDrag(");
+    expect(modalSource).not.toContain("packTrackClips(");
+    expect(modalSource).not.toContain("const sourceMaxEnd =");
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/domain/videoComposeTimelineGestures.ts",
+      ]),
+    );
+    expect(gesturesTestSource).toContain(
+      'from "./videoComposeTimelineGestures"',
     );
   });
 

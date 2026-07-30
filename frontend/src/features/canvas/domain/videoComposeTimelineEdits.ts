@@ -78,6 +78,7 @@ export type VideoComposeTimelineEdit =
       copyClipId: string;
     }
   | { type: "removeClips"; clipIds: ReadonlySet<string> }
+  | { type: "cleanupEmptyTracks" }
   | { type: "compactMainVideoTrack" };
 
 function clamp(value: number, min: number, max: number): number {
@@ -352,6 +353,13 @@ export function applyVideoComposeTimelineEdit(
         }))
         .filter(isPersistentTrack);
       return compactVideoTracks({ ...state, tracks });
+    }
+
+    case "cleanupEmptyTracks": {
+      const tracks = state.tracks.filter(isPersistentTrack);
+      return tracks.length === state.tracks.length
+        ? state
+        : { ...state, tracks };
     }
 
     case "compactMainVideoTrack":

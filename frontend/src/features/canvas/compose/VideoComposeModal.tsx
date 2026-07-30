@@ -47,7 +47,6 @@ import {
 } from "@/features/canvas/application/videoComposeTimelineSession";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
-import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import {
   applyVideoComposeTimelineEdit,
   resolveVideoComposeClipSelection,
@@ -57,18 +56,20 @@ import {
   type VideoComposeTimelineEdit,
 } from "@/features/canvas/domain/videoComposeTimelineEdits";
 import {
+  createVideoComposeClipDragSession,
+  createVideoComposeTrimDragSession,
+  projectVideoComposeClipDrag,
+  projectVideoComposeTrimDrag,
+  snapVideoComposePlayhead,
+} from "@/features/canvas/domain/videoComposeTimelineGestures";
+import {
   activeClipAt,
   clipLengthMs,
-  FALLBACK_CLIP_MS,
   hasExportableClips,
   layoutTrack,
   overlappingVideoClipIds,
-  packTrackClips,
-  reorderIndexForDrag,
-  AUDIO_TRACK_ID,
   sourceSpanMs,
   timelineDurationMs,
-  VIDEO_TRACK_ID,
   type ComposeClip,
   type ComposeCover,
   type ComposeTimelineState,
@@ -110,8 +111,6 @@ const MAX_PX_PER_SEC = 240;
 const ZOOM_STEP = 1.5;
 const RULER_MIN_SECONDS = 10;
 const FILMSTRIP_THUMB_W = 72;
-const SNAP_GRID_MS = 500;
-const SNAP_PX = 8;
 const HISTORY_LIMIT = 50;
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -492,37 +491,6 @@ export function VideoComposeModal({
     clearSelection();
   }, [clearSelection, pushHistory, seedNodeIds, sourceNodes]);
 
-  // 拖动定位时把片段左/右边缘磁吸到其它片段边界或 0（排除自身），不吸时原值。
-  const snapClipStart = useCallback(
-    (clipId: string, start: number, lengthMs: number): number => {
-      if (!snapRef.current) return Math.max(0, start);
-      const px = pxPerMsRef.current;
-      const targets: number[] = [0];
-      for (const tr of timelineRef.current.tracks) {
-        for (const l of layoutTrack(tr)) {
-          if (l.clip.id === clipId) continue;
-          targets.push(l.timelineStartMs, l.timelineEndMs);
-        }
-      }
-      let best = start;
-      let bestPx = SNAP_PX;
-      for (const b of targets) {
-        const dStart = Math.abs(b - start) * px;
-        if (dStart < bestPx) {
-          bestPx = dStart;
-          best = b;
-        }
-        const dEnd = Math.abs(b - (start + lengthMs)) * px;
-        if (dEnd < bestPx) {
-          bestPx = dEnd;
-          best = b - lengthMs;
-        }
-      }
-      return Math.max(0, best);
-    },
-    [],
-  );
-
   // 指针 Y 命中目标轨道：落在某条同种类轨道行内 → 该轨；落到所有同种类行下方 →
   // "new"（拖出一条新行）；行间 / 上方 → null（不改变轨道）。靠 DOM 行 rect 命中。
   const resolveDropTrack = useCallback(
@@ -561,13 +529,15 @@ export function VideoComposeModal({
         return;
       }
       if (activeDragCleanupRef.current) return; // 已有拖动在进行，忽略并发触发
+      const dragSession = createVideoComposeClipDragSession(
+        timelineRef.current,
+        { trackId: track.id, clipId: clip.id },
+      );
+      if (!dragSession) return;
       selectOnly({ trackId: track.id, clipId: clip.id });
       const startX = event.clientX;
       const startY = event.clientY;
-      const origStart = clip.timelineStartMs;
-      const lengthMs = clipLengthMs(clip);
-      const kind = clip.kind;
-      const clipId = clip.id;
+      const { clipId, kind } = dragSession;
       let currentTrackId = track.id;
       let autoCreatedTrackId: string | null = null;
       let moved = false;
@@ -581,109 +551,56 @@ export function VideoComposeModal({
         // 以「最新已提交状态」为基准同步计算整帧结果，并在落地前做防御性跳过 ——
         // 失败就整帧不动（不改 state、不动闭包变量），片段保持上一个合法位置。
         const snapshot = timelineRef.current;
-        const fromTrack = snapshot.tracks.find((t) =>
-          t.clips.some((c) => c.id === clipId),
-        );
-        const movingClip = fromTrack?.clips.find((c) => c.id === clipId);
-        if (!fromTrack || !movingClip) return;
-
         const drop = resolveDropTrack(kind, clientY);
         const prevAuto = autoCreatedTrackId;
         const createId = drop === "new" && !prevAuto ? makeTrackId() : null;
         let destId = currentTrackId;
-        if (drop === "new") destId = prevAuto ?? (createId as string);
-        else if (drop) destId = drop.trackId;
+        if (drop === "new") {
+          const createdOrExistingId = prevAuto ?? createId;
+          if (!createdOrExistingId) return;
+          destId = createdOrExistingId;
+        } else if (drop) {
+          destId = drop.trackId;
+        }
 
-        // resolveDropTrack 查的是可能滞后的 DOM；命中一条已从 state 删除的轨道时跳过
-        // 此帧，绝不把片段放进不存在的轨道（否则摘除后无处安放 → 片段丢失）。
-        if (!createId && !snapshot.tracks.some((t) => t.id === destId)) return;
-
-        // 仅「主视频轨」走剪映式磁吸换序：拖拽只决定插入次序，整条轨永远无缝紧贴、自动重排。
-        // 附加视频轨（拖出来的第二/第三条）走下面的自由定位分支，可放到任意时间位置，
-        // 否则会被强制吸到 0、只能与同轨片段换序，表现为「拖不动」。
-        if (kind === "video" && destId === VIDEO_TRACK_ID) {
-          let tracks = snapshot.tracks.map((t) => ({
-            ...t,
-            clips: t.clips.filter((c) => c.id !== clipId),
-          }));
-          if (createId) {
-            const srcIdx = tracks.findIndex((t) => t.id === fromTrack.id);
-            tracks.splice(srcIdx + 1, 0, { id: createId, kind, clips: [] });
-          }
-          const destTrack = tracks.find((t) => t.id === destId);
-          if (!destTrack) return;
-          // siblings 取目标轨「当前时间线顺序」，被拖片段按指针落点插入后整体重排。
-          const siblings = [...destTrack.clips].sort(
-            (a, b) => a.timelineStartMs - b.timelineStartMs,
-          );
-          const index = reorderIndexForDrag(siblings, origStart + dxMs, lengthMs);
-          const ordered = [...siblings];
-          ordered.splice(index, 0, movingClip);
-          const packed = packTrackClips(ordered);
-          tracks = tracks.map((t) =>
-            t.id === destId ? { ...t, clips: packed } : t,
-          );
-          if (prevAuto && prevAuto !== destId) {
-            tracks = tracks.filter((t) => t.id !== prevAuto || t.clips.length > 0);
-          }
-          setTimeline((prev) => ({ ...prev, tracks }));
+        const projection = projectVideoComposeClipDrag({
+          state: snapshot,
+          session: dragSession,
+          destinationTrackId: destId,
+          createdTrackId: createId,
+          previousAutoCreatedTrackId: prevAuto,
+          deltaMs: dxMs,
+          pxPerMs: pxPerMsRef.current,
+          snapEnabled: snapRef.current,
+        });
+        if (!projection) return;
+        if (projection.status === "blocked") {
+          setDragGhost(null);
+          return;
+        }
+        setTimeline((previous) => ({
+          ...previous,
+          tracks: projection.timeline.tracks,
+        }));
+        if (projection.magnetic) {
           // 幽灵副本跟随指针（被抓取点不变）：原片段左缘 + 指针位移。
           const ghostLeftPx = Math.max(
             0,
-            origStart * pxPerMsRef.current + (clientX - startX),
+            dragSession.originalTimelineStartMs * pxPerMsRef.current +
+              (clientX - startX),
           );
-          setDragGhost({ clipId, trackId: destId, ghostLeftPx });
-          if (createId) autoCreatedTrackId = createId;
-          else if (destId !== prevAuto) autoCreatedTrackId = null;
-          currentTrackId = destId;
-          return;
+          setDragGhost({
+            clipId,
+            trackId: projection.targetTrackId,
+            ghostLeftPx,
+          });
+        } else {
+          setDragGhost(null);
         }
-
-        // 自由定位分支（音频轨 + 附加视频轨）：目标位置 = 磁吸 + 同轨防重叠夹取。
-        // 只按「本轨」内的片段防重叠，这样附加视频轨可自由摆到任意时间（与主轨/其它轨
-        // 在时间上重叠由 overlappingVideoClipIds 高亮提示、导出前拦截，不在此处卡死拖动）。
-        setDragGhost(null); // 自由定位下片段本体直接跟手，清掉可能残留的磁吸幽灵
-        const blockingLaid = snapshot.tracks
-          .filter((t) => t.id === destId)
-          .flatMap((t) => layoutTrack(t))
-          .filter((l) => l.clip.id !== clipId);
-        let nextStart = snapClipStart(clipId, origStart + dxMs, lengthMs);
-        let lo = 0;
-        let hi = Number.POSITIVE_INFINITY;
-        for (const l of blockingLaid) {
-          if (l.timelineStartMs <= nextStart) lo = Math.max(lo, l.timelineEndMs);
-          else hi = Math.min(hi, l.timelineStartMs - lengthMs);
-        }
-        // 间隙不足以容纳该片段（hi < lo）→ 跳过此帧，保持上个合法位置，绝不重叠。
-        if (hi < lo) return;
-        nextStart = Math.max(0, clamp(nextStart, lo, hi));
-
-        const placed: ComposeClip = {
-          ...movingClip,
-          timelineStartMs: Math.round(nextStart),
-        };
-        let tracks = snapshot.tracks.map((t) => ({
-          ...t,
-          clips: t.clips.filter((c) => c.id !== clipId),
-        }));
-        if (createId) {
-          const srcIdx = tracks.findIndex((t) => t.id === fromTrack.id);
-          tracks.splice(srcIdx + 1, 0, { id: createId, kind, clips: [] });
-        }
-        tracks = tracks.map((t) =>
-          t.id === destId ? { ...t, clips: [...t.clips, placed] } : t,
-        );
-        // 本次新建、片段已离开而变空的轨道，删掉
-        if (prevAuto && prevAuto !== destId) {
-          tracks = tracks.filter((t) => t.id !== prevAuto || t.clips.length > 0);
-        }
-        setTimeline((prev) => ({ ...prev, tracks }));
-
         // 仅在「成功落地」后维护闭包：新建→记下；片段离开自动轨（被剪枝）→ 清空，
         // 避免下次拖「新行」复用已删除 id 导致片段丢失。currentTrackId 始终指向有效轨。
-        if (createId) autoCreatedTrackId = createId;
-        else if (destId !== prevAuto) autoCreatedTrackId = null;
-        currentTrackId = destId;
+        autoCreatedTrackId = projection.autoCreatedTrackId;
+        currentTrackId = projection.targetTrackId;
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -704,15 +621,7 @@ export function VideoComposeModal({
         setDragGhost(null); // 收起拖动投影/幽灵
         if (!moved) return;
         // 收尾：清掉所有变空的非默认轨道，并把选中跟到片段最终所在轨道。
-        setTimeline((prev) => {
-          const tracks = prev.tracks.filter(
-            (t) =>
-              t.clips.length > 0 ||
-              t.id === VIDEO_TRACK_ID ||
-              t.id === AUDIO_TRACK_ID,
-          );
-          return tracks.length === prev.tracks.length ? prev : { ...prev, tracks };
-        });
+        applyTimelineEdit({ type: "cleanupEmptyTracks" });
         selectOnly({ trackId: currentTrackId, clipId });
       };
       activeDragCleanupRef.current = end;
@@ -720,7 +629,13 @@ export function VideoComposeModal({
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
     },
-    [pushHistory, resolveDropTrack, selectOnly, snapClipStart, toggleInSelection],
+    [
+      applyTimelineEdit,
+      pushHistory,
+      resolveDropTrack,
+      selectOnly,
+      toggleInSelection,
+    ],
   );
 
   // 把片段移到「新的一行」：新建同种类轨道承载该片段（保留时间位置），从原轨移除；
@@ -914,37 +829,6 @@ export function VideoComposeModal({
     clearSelection();
   }, [applyTimelineEdit, clearSelection, pushHistory, selected, selectedIds]);
 
-  // ── snapping ──────────────────────────────────────────────────────────────
-  const boundaryList = useCallback((): number[] => {
-    const out: number[] = [0];
-    for (const track of timelineRef.current.tracks) {
-      for (const laid of layoutTrack(track)) {
-        out.push(laid.timelineStartMs, laid.timelineEndMs);
-      }
-    }
-    return out;
-  }, []);
-
-  const snapPlayhead = useCallback(
-    (ms: number) => {
-      if (!snapRef.current) return ms;
-      const px = pxPerMsRef.current;
-      let best: number | null = null;
-      let bestPx = SNAP_PX;
-      for (const boundary of boundaryList()) {
-        const d = Math.abs(boundary - ms) * px;
-        if (d < bestPx) {
-          bestPx = d;
-          best = boundary;
-        }
-      }
-      // 仅在靠近片段边缘时磁吸到边界；否则原样返回 ms，让播放头像素级连续跟手。
-      // 之前这里会把位置取整到 500ms 网格，导致拖动「半秒一跳」、毫不跟手。
-      return best != null ? best : ms;
-    },
-    [boundaryList],
-  );
-
   // ── trim drag ─────────────────────────────────────────────────────────────
   const startTrim = useCallback(
     (
@@ -956,72 +840,26 @@ export function VideoComposeModal({
       event.stopPropagation();
       event.preventDefault();
       if (activeDragCleanupRef.current) return; // 已有拖动在进行，忽略并发触发
+      const trimSession = createVideoComposeTrimDragSession(
+        timelineRef.current,
+        { trackId: track.id, clipId: clip.id },
+      );
+      if (!trimSession) return;
       selectOnly({ trackId: track.id, clipId: clip.id });
       setTrimEdit({ clipId: clip.id, edge });
       pushHistory();
       const startX = event.clientX;
-      const origStart = clip.trimStartMs;
-      const origEnd = clip.trimEndMs;
-      const origTimelineStart = clip.timelineStartMs;
-      const speed = clip.speed > 0 ? clip.speed : 1;
-      const sourceMaxEnd = clip.durationMs ?? Math.max(origEnd, FALLBACK_CLIP_MS);
-      // 向右拉伸时间线上不能压到下一个相邻片段（视频跨所有视频轨道判断，音频本轨内）：
-      // 把源出点上限再夹到「到下一片段起点的距离换算回源时长」。
-      const nextNeighborStartMs = (() => {
-        const blocking = (
-          clip.kind === "video"
-            ? timelineRef.current.tracks.filter((t) => t.kind === "video")
-            : timelineRef.current.tracks.filter((t) => t.id === track.id)
-        )
-          .flatMap((t) => layoutTrack(t))
-          .filter((l) => l.clip.id !== clip.id && l.timelineStartMs >= origTimelineStart);
-        return blocking.reduce(
-          (min, l) => Math.min(min, l.timelineStartMs),
-          Number.POSITIVE_INFINITY,
-        );
-      })();
-      const maxEnd = Number.isFinite(nextNeighborStartMs)
-        ? Math.min(
-            sourceMaxEnd,
-            origStart + (nextNeighborStartMs - origTimelineStart) * speed,
-          )
-        : sourceMaxEnd;
-      const snapSource = (ms: number) =>
-        snapRef.current ? Math.round(ms / SNAP_GRID_MS) * SNAP_GRID_MS : ms;
       const onMove = (ev: PointerEvent) => {
-        // drag is in timeline px → source ms uses the clip's speed.
-        const dms = ((ev.clientX - startX) / pxPerMsRef.current) * speed;
-        if (edge === "start") {
-          const next = clamp(
-            snapSource(origStart + dms),
-            0,
-            origEnd - VIDEO_CLIP_MIN_DURATION_MS,
-          );
-          // 拖左把手：源入点变化，同时把左边缘随之平移，使右边缘保持不动。
-          const nextTimelineStart = Math.max(
-            0,
-            Math.round(origTimelineStart + (next - origStart) / speed),
-          );
-          applyTimelineEdit({
-            type: "updateClip",
-            target: { trackId: track.id, clipId: clip.id },
-            patch: {
-              trimStartMs: Math.round(next),
-              timelineStartMs: nextTimelineStart,
-            },
-          });
-        } else {
-          const next = clamp(
-            snapSource(origEnd + dms),
-            origStart + VIDEO_CLIP_MIN_DURATION_MS,
-            maxEnd,
-          );
-          applyTimelineEdit({
-            type: "updateClip",
-            target: { trackId: track.id, clipId: clip.id },
-            patch: { trimEndMs: Math.round(next) },
-          });
-        }
+        const patch = projectVideoComposeTrimDrag(trimSession, {
+          edge,
+          deltaTimelineMs: (ev.clientX - startX) / pxPerMsRef.current,
+          snapEnabled: snapRef.current,
+        });
+        applyTimelineEdit({
+          type: "updateClip",
+          target: trimSession.target,
+          patch,
+        });
       };
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
@@ -1047,9 +885,16 @@ export function VideoComposeModal({
       if (!cont) return;
       const rect = cont.getBoundingClientRect();
       const x = clientX - rect.left + cont.scrollLeft;
-      seek(snapPlayhead(x / pxPerMsRef.current));
+      seek(
+        snapVideoComposePlayhead({
+          state: timelineRef.current,
+          playheadMs: x / pxPerMsRef.current,
+          pxPerMs: pxPerMsRef.current,
+          enabled: snapRef.current,
+        }),
+      );
     },
-    [seek, snapPlayhead],
+    [seek],
   );
 
   // 统一的「按下即拖动 scrub」：用 setPointerCapture 把后续 move/up 都锁定到按下的

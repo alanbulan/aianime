@@ -338,5 +338,17 @@ describe("videoComposeTimelineEdits", () => {
       { id: VIDEO_TRACK_ID, kind: "video", clips: [] },
       { id: AUDIO_TRACK_ID, kind: "audio", clips: [] },
     ]);
+
+    const withEmptyExtra = timeline([
+      ...emptied.tracks,
+      track("empty-extra", "video", []),
+    ]);
+    const cleaned = applyVideoComposeTimelineEdit(withEmptyExtra, {
+      type: "cleanupEmptyTracks",
+    });
+    expect(cleaned.tracks).toEqual(emptied.tracks);
+    expect(
+      applyVideoComposeTimelineEdit(cleaned, { type: "cleanupEmptyTracks" }),
+    ).toBe(cleaned);
   });
 });
