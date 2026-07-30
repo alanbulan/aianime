@@ -2139,6 +2139,97 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("uploadCanvasAsset(");
   });
 
+  it("separates the Canvas video node model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeController.ts",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeView.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "VideoNode", "=", "memo("].join(" "),
+      ["export function", "resolveVideoNodeModel<"].join(" "),
+      ["export function", "useVideoNodeController("].join(" "),
+      ["export function", "VideoNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useVideoNodeController",
+        "./VideoNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/VideoNode.tsx"],
+      ["features/canvas/application/videoNodeModel.ts"],
+      ["features/canvas/hooks/useVideoNodeController.ts"],
+      ["features/canvas/nodes/VideoNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(modelTestSource).toContain("from './videoNodeModel'");
+    expect(registrySource).toContain(
+      "import { VideoNode } from './VideoNode'",
+    );
+    expect(registrySource).toContain("videoNode: VideoNode");
+    expect(entrySource).toContain("useVideoNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(VideoNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("submitVideoGeneration({");
+    expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("uploadCanvasAsset(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<VideoNodePrimaryVideo");
+    expect(viewSource).toContain("<VideoNodePrimaryVideo");
+    expect(viewSource).toContain("<PromptMentionEditor");
+    expect(viewSource).toContain("<VideoNodeGenerationHistoryPanel");
+    expect(viewSource).toContain("<AssetLibraryModal");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("submitVideoGeneration(");
+    expect(viewSource).not.toContain("translateCanvasText(");
+    expect(viewSource).not.toContain("uploadCanvasAsset(");
+  });
+
   it("separates the Canvas Skill node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
@@ -2595,7 +2686,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const toolProcessor = readFileSync(
@@ -5529,7 +5620,7 @@ describe("frontend architecture boundaries", () => {
     );
     const videoNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
     );
     const canvasStorePath = resolve(SRC_ROOT, "features/canvas/canvasStore.ts");
     const registrySource = readFileSync(registryPath, "utf8");
@@ -20078,7 +20169,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20133,7 +20224,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20181,7 +20272,11 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
+      "utf8",
+    );
+    const videoNodeController = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20226,7 +20321,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/nodes/VideoReferenceMedia",
     );
     expect(videoNode).toContain("<ReferenceMediaRow");
-    expect(videoNode).toContain(
+    expect(videoNodeController).toContain(
       "@/features/canvas/domain/videoReferenceLimits",
     );
     expect(videoNode).toContain(
@@ -20247,7 +20342,7 @@ describe("frontend architecture boundaries", () => {
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const referenceView = readFileSync(
@@ -20297,7 +20392,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20350,7 +20445,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20411,7 +20506,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = [
@@ -20451,7 +20546,11 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
+      "utf8",
+    );
+    const videoNodeController = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20485,7 +20584,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/nodes/VideoNodePrimaryVideo",
     );
     expect(videoNode).toContain("<VideoNodePrimaryVideo");
-    expect(videoNode).toContain("buildVideoMetadataPatch(");
+    expect(videoNodeController).toContain("buildVideoMetadataPatch(");
     expect(videoNode).not.toContain("<video");
     expect(videoNode).not.toContain("onLoadedMetadata={(event)");
   });
@@ -20497,7 +20596,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20544,7 +20643,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20589,7 +20688,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20638,7 +20737,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20683,7 +20782,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/CharacterLibraryChip.tsx",
     );
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20722,7 +20821,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20750,7 +20849,7 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const activeClassOwners = [
       viewPath,
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       resolve(SRC_ROOT, "features/canvas/ui/nodeControlStyles.ts"),
     ]
       .filter((path) => readFileSync(path, "utf8").includes(activeClass))
@@ -20770,7 +20869,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/nodes/VideoCountPicker",
     );
     expect(videoNode).toContain("<VideoCountPicker");
-    expect(videoNode).toContain("options={COUNT_OPTIONS}");
+    expect(videoNode).toContain("options={VIDEO_NODE_COUNT_OPTIONS}");
     expect(videoNode).not.toContain("interface CountPickerProps");
     expect(videoNode).not.toContain("VIDEO_COUNT_OPTION_BASE_CLASS");
   });
@@ -20782,7 +20881,11 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
+      "utf8",
+    );
+    const videoNodeController = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -20815,8 +20918,13 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/nodes/VideoConfigChip",
     );
     expect(videoNode).toContain("<VideoConfigChip");
-    expect(videoNode).toContain("aspectRatioOptions={ASPECT_RATIOS}");
-    expect(videoNode).toContain("clampVideoDuration(value, durationBounds)");
+    expect(videoNode).toContain(
+      "aspectRatioOptions={VIDEO_NODE_ASPECT_RATIOS}",
+    );
+    expect(videoNode).toContain("normalizeDuration={normalizeDuration}");
+    expect(videoNodeController).toContain(
+      "clampVideoDuration(value, durationBounds)",
+    );
     expect(videoNode).not.toContain("function clampVideoDuration(");
     expect(videoNode).not.toContain("interface VideoConfigChipProps");
     expect(videoNode).not.toContain("durationDraft");
@@ -20835,7 +20943,11 @@ describe("frontend architecture boundaries", () => {
     const projectionSource = readFileSync(projectionPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
+      "utf8",
+    );
+    const videoNodeController = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const forbiddenViewImports = importSpecifiers(viewPath).filter(
@@ -20875,13 +20987,15 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("option.disabledReason");
     expect(viewSource).not.toContain("HappyHorse");
     expect(viewSource).not.toContain("上游含视频素材时只能用");
-    expect(videoNode).toContain(
+    expect(videoNodeController).toContain(
       "@/features/canvas/nodes/videoGenerationModeOptions",
     );
     expect(videoNode).toContain(
       "@/features/canvas/nodes/VideoGenerationModeSelect",
     );
-    expect(videoNode).toContain("resolveVideoGenerationModeOptions({");
+    expect(videoNodeController).toContain(
+      "resolveVideoGenerationModeOptions({",
+    );
     expect(videoNode).toContain("<VideoGenerationModeSelect");
     expect(videoNode).not.toContain("interface GenModeSelectProps");
     expect(videoNode).not.toContain("function videoModeDisabledReason(");
@@ -20895,7 +21009,7 @@ describe("frontend architecture boundaries", () => {
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declarations = [
@@ -21010,7 +21124,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = ["export async function", "composeVideoClip("].join(
@@ -21181,7 +21295,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = [
@@ -21268,7 +21382,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useScriptNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const declaration = [
       "export async function",
@@ -21352,7 +21466,7 @@ describe("frontend architecture boundaries", () => {
     );
     const videoNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
     );
     const textNodeControllerPath = resolve(
       SRC_ROOT,
@@ -21465,7 +21579,7 @@ describe("frontend architecture boundaries", () => {
     );
     const videoNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
@@ -21533,7 +21647,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
       "features/canvas/ui/AssetLibraryModal.tsx",
       "features/canvas/ui/EraseOverlay.tsx",
       "features/canvas/ui/NodeActionToolbar.tsx",
@@ -21662,9 +21776,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/ImageGenNodeView.tsx",
     );
-    const combinedConsumerPaths = [
-      "features/canvas/nodes/VideoNode.tsx",
-    ].map((path) => resolve(SRC_ROOT, path));
+    const videoNodeControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeController.ts",
+    );
+    const videoNodeViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeView.tsx",
+    );
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) => {
@@ -21749,11 +21868,18 @@ describe("frontend architecture boundaries", () => {
     expect(legacyOpsSource).not.toContain(
       "freezone/video/asset-library/sync-from-mainline",
     );
-    for (const consumerPath of combinedConsumerPaths) {
-      const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/features/canvas/domain/assetLibrary");
-      expect(imports).toContain("@/features/canvas/ui/AssetLibraryModal");
-    }
+    expect(importSpecifiers(videoNodeControllerPath)).toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(importSpecifiers(videoNodeControllerPath)).not.toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(videoNodeViewPath)).toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(videoNodeViewPath)).not.toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
     expect(importSpecifiers(imageEditModelPath)).toContain(
       "@/features/canvas/domain/assetLibrary",
     );
@@ -21805,7 +21931,7 @@ describe("frontend architecture boundaries", () => {
       ...hookPaths,
       resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
       resolve(SRC_ROOT, "features/canvas/ui/NodeGenerationHistory.tsx"),
     ];
@@ -21896,7 +22022,7 @@ describe("frontend architecture boundaries", () => {
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declarations = [
@@ -21936,7 +22062,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = [
@@ -21981,7 +22107,7 @@ describe("frontend architecture boundaries", () => {
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const probeDeclaration = [
@@ -22047,7 +22173,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = [
@@ -22110,7 +22236,11 @@ describe("frontend architecture boundaries", () => {
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const filmstripSource = readFileSync(filmstripPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
+      "utf8",
+    );
+    const videoNodeView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const declaration = [
@@ -22156,8 +22286,8 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
     );
-    expect(videoNode).toContain(
-      "captureFrameStrip={captureBrowserVideoFrameStrip}",
+    expect(videoNodeView).toContain(
+      "captureFrameStrip={captureFrameStrip}",
     );
   });
 
@@ -22185,7 +22315,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const imageGenNode = readFileSync(
@@ -22239,7 +22369,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
     const declaration = [
@@ -22273,7 +22403,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -22342,7 +22472,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
-      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/hooks/useVideoNodeController.ts",
     ];
 
     expect(implementationOwners).toEqual([

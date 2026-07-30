@@ -9,7 +9,9 @@ function read(relativePath: string): string {
 
 describe("VideoNode error notification contract", () => {
   it("uses preserved diagnostics for policy detection and dialog copy", () => {
-    const source = read("src/features/canvas/nodes/VideoNode.tsx");
+    const source = read(
+      "src/features/canvas/hooks/useVideoNodeController.ts",
+    );
 
     expect(source).toContain(
       'const haystack = `${displayErrorMessage}\\n${diagnostics.details ?? ""}`',
