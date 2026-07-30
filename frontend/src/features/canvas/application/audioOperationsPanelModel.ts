@@ -1,0 +1,76 @@
+// Copyright (c) 2026 AI anime
+import type { UpstreamContent } from '@/features/canvas/application/ports';
+import type {
+  AudioNodeData,
+  AudioVoiceRef,
+} from '@/features/canvas/domain/canvasNodes';
+
+export const DEFAULT_MUSIC_LENGTH_MS = 30_000;
+
+export const MUSIC_LENGTH_PRESETS: ReadonlyArray<{
+  ms: number;
+  label: string;
+}> = [
+  { ms: 30_000, label: '30秒' },
+  { ms: 60_000, label: '1分钟' },
+  { ms: 120_000, label: '2分钟' },
+  { ms: 180_000, label: '3分钟' },
+  { ms: 240_000, label: '4分钟' },
+  { ms: 300_000, label: '5分钟' },
+  { ms: 600_000, label: '10分钟' },
+];
+
+export interface AudioMusicSettings {
+  musicLengthMs: number;
+  forceInstrumental: boolean;
+  respectSectionsDurations: boolean;
+}
+
+export interface AudioVoiceSettings {
+  voiceLabel: string;
+  voiceLanguage: string;
+  currentRef: AudioVoiceRef;
+}
+
+export function musicBillingSecondsFromMs(ms: number): number {
+  return Math.max(Math.ceil(Math.max(ms, 0) / 1000), 1);
+}
+
+export function resolveAudioMusicSettings(
+  data: AudioNodeData,
+): AudioMusicSettings {
+  return {
+    musicLengthMs:
+      typeof data.musicLengthMs === 'number'
+        ? data.musicLengthMs
+        : DEFAULT_MUSIC_LENGTH_MS,
+    forceInstrumental: data.forceInstrumental ?? true,
+    respectSectionsDurations: data.respectSectionsDurations ?? true,
+  };
+}
+
+export function resolveAudioVoiceSettings(
+  data: AudioNodeData,
+): AudioVoiceSettings {
+  return {
+    voiceLabel: data.voiceLabel ?? '加载中…',
+    voiceLanguage: data.voiceLanguage ?? '',
+    currentRef: data.voiceRef ?? { scope: 'project_narrator' },
+  };
+}
+
+export function filterAudioUpstreamTextContents(
+  contents: readonly UpstreamContent[],
+): UpstreamContent[] {
+  return contents.filter(
+    (content) =>
+      typeof content.text === 'string' && content.text.trim().length > 0,
+  );
+}
+
+export function isAudioSubmitDisabled(
+  isGenerating: boolean,
+  effectivePrompt: string,
+): boolean {
+  return isGenerating || effectivePrompt.length === 0;
+}

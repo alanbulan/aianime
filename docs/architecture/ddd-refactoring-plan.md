@@ -2208,6 +2208,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百六十八批已将 Canvas 810 行混合 `nodes/VoiceSelectionModal.tsx` 拆为纯应用模型 `application/voiceSelectionModel.ts`、唯一状态 controller `hooks/useVoiceSelectionModalController.ts`、纯 presentation `nodes/VoiceSelectionModalView.tsx` 和保留原公共导入路径的 19 行真实装配根；应用模型独占克隆文件校验与错误投影、音色搜索/分页/跳页、当前声线判定及选择行投影，controller 独占打开加载、ESC 关闭、Tab/查询/分页状态、克隆上传与刷新生命周期，View 独占 portal、Tab、搜索、加载/错误/空状态、音色行及分页 JSX。通用声线键与描述规则统一归入 `application/audioVoiceCatalog.ts`，`AudioOperationsPanel` 与选择模型共用唯一实现；原弹窗实现及面板内重复描述函数已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套搜索/分页/上传规则。打开、关闭后重开及 Tab 切换时的局部筛选复位、20 条分页、声线 ID 区分、5MB 前置校验、文件名默认音色名、网络错误文案、上传后刷新和空状态语义保持不变。新增目录/模型 8 项、controller 7 项和 View 3 项测试，连同声线网关共定向回归 5 个文件 21 项；完整前端架构门禁 3 个文件 332 项（其中 module boundaries 292 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百六十九批已将 Canvas 632 行混合 `nodes/AudioOperationsPanel.tsx` 拆为纯应用模型 `application/audioOperationsPanelModel.ts`、唯一状态 controller `hooks/useAudioOperationsPanelController.ts`、纯 presentation `nodes/AudioOperationsPanelView.tsx` 和保留原公共导入路径的 16 行真实装配根；应用模型独占音乐默认设置与预设、计费秒数、上游文本过滤、提交可用性及音色/音乐设置投影，controller 独占生成与翻译用例、Credit 查询、Canvas Store 写回、IME 草稿、上游引用、面板展开、音色复制计时和选择弹窗生命周期，View 独占操作面板、文本/语气输入、引用 chip、生成控件、音乐高级设置、音色卡及弹窗 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套生成/翻译/设置规则；语音与音乐模式分流、上游文本只参与最终 prompt 而不回填输入框、IME 组合期间不写 Store、30 秒默认时长与向上取整计费、设置默认值、翻译门禁、复制状态 1.2 秒复位、音色子面板隐藏时销毁局部状态和生成按钮语义保持不变。新增应用模型 4 项、controller 5 项和 View 3 项测试，连同原音乐设置与音频生成用例共定向回归 5 个文件 19 项；完整前端架构门禁 3 个文件 333 项（其中 module boundaries 293 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

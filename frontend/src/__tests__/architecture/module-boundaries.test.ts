@@ -16258,9 +16258,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/VoiceSelectionModalView.test.tsx",
     );
-    const audioOperationsPath = resolve(
+    const audioOperationsControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/AudioOperationsPanel.tsx",
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -16286,7 +16286,10 @@ describe("frontend architecture boundaries", () => {
       voiceModalViewTestPath,
       "utf8",
     );
-    const audioOperationsSource = readFileSync(audioOperationsPath, "utf8");
+    const audioOperationsControllerSource = readFileSync(
+      audioOperationsControllerPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -16428,8 +16431,12 @@ describe("frontend architecture boundaries", () => {
     expect(voiceDescriptionOwners).toEqual([
       "features/canvas/application/audioVoiceCatalog.ts",
     ]);
-    expect(audioOperationsSource).toContain("describeAudioVoiceRef(currentRef)");
-    expect(audioOperationsSource).not.toContain("function describeVoiceRef(");
+    expect(audioOperationsControllerSource).toContain(
+      "describeAudioVoiceRef(voiceSettings.currentRef)",
+    );
+    expect(audioOperationsControllerSource).not.toContain(
+      "function describeVoiceRef(",
+    );
     expect(voiceModalModelTestSource).toContain(
       "from './voiceSelectionModel'",
     );
@@ -16473,15 +16480,15 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/useAudioGeneration.ts",
     );
-    const panelPath = resolve(
+    const panelControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/AudioOperationsPanel.tsx",
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
-    const panelSource = readFileSync(panelPath, "utf8");
+    const panelControllerSource = readFileSync(panelControllerPath, "utf8");
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
@@ -16550,10 +16557,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("submitFreezoneAudioSpeech");
     expect(hookSource).not.toContain("fetchFreezoneJobResult");
     expect(hookSource).not.toContain("awaitTaskCompletion");
-    expect(panelSource).toContain(
+    expect(panelControllerSource).toContain(
       "@/features/canvas/application/generateCanvasAudio",
     );
-    expect(panelSource).not.toContain(
+    expect(panelControllerSource).not.toContain(
       "deriveAudioText, useAudioGeneration",
     );
     expect(endpointOwners).toEqual([
@@ -16571,6 +16578,138 @@ describe("frontend architecture boundaries", () => {
     }
     expect(legacyOpsSource).not.toContain("}/freezone/audio/speech`");
     expect(legacyOpsSource).not.toContain("}/freezone/audio/eleven-music`");
+  });
+
+  it("keeps Canvas audio operations split into model, controller, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioOperationsPanel.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioOperationsPanelModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioOperationsPanelModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioOperationsPanelController.test.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioOperationsPanelView.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioOperationsPanelView.test.tsx",
+    );
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controllerTestSource = readFileSync(controllerTestPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const declarations = [
+      ["export function", "AudioOperationsPanel("].join(" "),
+      ["export function", "musicBillingSecondsFromMs("].join(" "),
+      ["export function", "useAudioOperationsPanelController("].join(" "),
+      ["export function", "AudioOperationsPanelView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const operationCommandOwners = [
+      entryPath,
+      modelPath,
+      controllerPath,
+      viewPath,
+    ]
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("translateCanvasText({") ||
+          source.includes("navigator.clipboard.writeText(") ||
+          source.includes("updateNodeData(nodeId")
+        );
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/hooks/useAudioOperationsPanelController",
+        "./AudioOperationsPanelView",
+      ]),
+    );
+    expect(entrySource).toContain("useAudioOperationsPanelController(props)");
+    expect(entrySource).toContain(
+      "createElement(AudioOperationsPanelView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("className=");
+    expect(new Set(importSpecifiers(modelPath))).toEqual(
+      new Set([
+        "@/features/canvas/application/ports",
+        "@/features/canvas/domain/canvasNodes",
+      ]),
+    );
+    expect(modelSource).not.toContain("from 'react'");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("navigator.");
+    expect(modelSource).not.toContain("className=");
+    expect(controllerSource).toContain("useAudioGeneration(nodeId, data)");
+    expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("useGenerationCreditCost(");
+    expect(controllerSource).toContain("navigator.clipboard.writeText(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(controllerSource).not.toContain("<VoiceSelectionModal");
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/canvasStore",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain("@/lib/url-params");
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/modules/model_usage/public",
+    );
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useMemo(");
+    expect(viewSource).not.toContain("useRef(");
+    expect(viewSource).toContain("<OperationPanelShell");
+    expect(viewSource).toContain("<VoiceSelectionModal");
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/AudioOperationsPanel.tsx"],
+      ["features/canvas/application/audioOperationsPanelModel.ts"],
+      ["features/canvas/hooks/useAudioOperationsPanelController.ts"],
+      ["features/canvas/nodes/AudioOperationsPanelView.tsx"],
+    ]);
+    expect(operationCommandOwners).toEqual([
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
+    ]);
+    expect(modelTestSource).toContain(
+      "from './audioOperationsPanelModel'",
+    );
+    expect(controllerTestSource).toContain(
+      "from './useAudioOperationsPanelController'",
+    );
+    expect(viewTestSource).toContain(
+      "from './AudioOperationsPanelView'",
+    );
   });
 
   it("keeps Canvas story-script generation orchestration in application", () => {
@@ -21520,7 +21659,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
-      "features/canvas/nodes/AudioOperationsPanel.tsx",
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useScriptNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",

@@ -47,6 +47,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/infrastructure/browserStoryboardExportRuntime.ts": 2,
   "features/canvas/infrastructure/browserStoryboardGenRuntime.ts": 2,
   "features/canvas/nodes/AudioOperationsPanel.tsx": 0,
+  "features/canvas/nodes/AudioOperationsPanelView.tsx": 0,
   "features/canvas/nodes/BeatContextNode.tsx": 0,
   "features/canvas/nodes/BeatContextNodeView.tsx": 22,
   "features/canvas/nodes/CameraMovementPickerPopover.tsx": 0,
