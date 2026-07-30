@@ -2220,6 +2220,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百七十四批已将视频合成导出的空时间线/视频重叠门禁、导出中与错误状态、分辨率请求投影、共享合成用例调用、本地/画布目标分流、稳定素材上传及最新封面回调从 `compose/VideoComposeModal.tsx` 迁入唯一 controller `hooks/useVideoComposeExportController.ts`，并将带会话凭据的结果 Blob 获取、HTTP 状态错误、URL 文件名推断、时间戳兜底、Object URL 与下载锚点生命周期迁入唯一 `infrastructure/browserVideoComposeExportRuntime.ts`；Modal 只消费 `isExporting`、`exportError` 与 `runExport`，不再直接导入 Canvas composition 或调用 `fetch`/`document.createElement("a")`/`URL.createObjectURL`，旧私有导出函数直接删除，不保留 facade、re-export、兼容别名或第二套导出流程，由 2,533 行降至 2,453 行。无可导出片段静默返回、重叠视频前置拦截、30fps payload、720p/1080p 选择、临时结果 URL 查询参数不进入文件名、本地下载后释放 Object URL、画布上传禁用超时、异步期间封面变化以完成时最新值回调、缺失 URL 专用文案和异常文本投影语义保持不变。新增 browser runtime 4 项和 controller 5 项定向测试；完整前端架构门禁 3 个文件 338 项（其中 module boundaries 298 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百七十五批已将视频合成的片段选择与播放头源时间投影、200ms 内部分割门禁、元数据时长回填、通用片段更新、移入新轨、单个/批量删除、空附加轨清理、分割、左右裁剪、主视频轨补位、0.25x 至 4x 倍速钳位、0 至 1 音量与静音联动、静音切换以及视频/音频副本插入规则从 `compose/VideoComposeModal.tsx` 迁入唯一纯 domain reducer `domain/videoComposeTimelineEdits.ts`；Modal 只负责历史快照、选中状态、剪贴板、ID 创建和 React/指针事件编排，所有新片段/轨道 ID 均由调用方生成后注入领域命令，领域层不读取 React、DOM、时间或随机源。旧私有选择投影、更新、补位、分割、裁剪、倍速、音量、静音、复制和删除实现直接删除，不保留 facade、re-export、兼容别名或第二套编辑规则，Modal 由 2,453 行降至 2,355 行。播放头必须严格位于片段内部、分割两侧至少保留 200ms、探测结果按完成时最新裁剪回填、左裁剪同步时间线起点、主视频轨在裁剪/变速/删除后无缝补位、附加轨自由定位、视频副本按目标后插入并重排、音频副本追加到轨尾、默认视频/音频轨删空仍保留以及一次音量手势只记录一次历史的语义保持不变。新增纯领域规则 8 项测试；完整前端架构门禁 3 个文件 339 项（其中 module boundaries 299 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

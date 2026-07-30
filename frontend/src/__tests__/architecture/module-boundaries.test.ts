@@ -21765,6 +21765,68 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps video-compose selection and editing rules in one pure domain reducer", () => {
+    const editsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeTimelineEdits.ts",
+    );
+    const editsTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoComposeTimelineEdits.test.ts",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const editsSource = readFileSync(editsPath, "utf8");
+    const editsTestSource = readFileSync(editsTestPath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const declarations = [
+      ["export const", "VIDEO_COMPOSE_MIN_SPEED = 0.25"].join(" "),
+      ["export const", "VIDEO_COMPOSE_MAX_SPEED = 4"].join(" "),
+      ["export function", "resolveVideoComposeClipSelection("].join(" "),
+      ["export function", "applyVideoComposeTimelineEdit("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(editsPath))).toEqual(
+      new Set(["./videoClipRange", "./videoComposeTimeline"]),
+    );
+    expect(editsSource).not.toContain("react");
+    expect(editsSource).not.toContain("document.");
+    expect(editsSource).not.toContain("Date.now(");
+    expect(editsSource).not.toContain("Math.random(");
+    expect(editsSource).not.toContain("@/api/");
+    expect(editsSource).not.toContain("@/stores/");
+    expect(editsSource).not.toContain("className=");
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/domain/videoComposeTimelineEdits",
+    );
+    expect(modalSource).toContain("resolveVideoComposeClipSelection(");
+    expect(modalSource).toContain("applyVideoComposeTimelineEdit(");
+    expect(modalSource).toContain('type: "splitClip"');
+    expect(modalSource).toContain("leftClipId: leftId");
+    expect(modalSource).not.toContain("const SPEED_MIN =");
+    expect(modalSource).not.toContain("const SPEED_MAX =");
+    expect(modalSource).not.toContain("const updateClip = useCallback");
+    expect(modalSource).not.toContain("const compactVideoNow = useCallback");
+    expect(modalSource).not.toContain("const selectedSourceMs = useMemo");
+    expect(modalSource).not.toContain("muted: v <= 0");
+    expect(declarationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/domain/videoComposeTimelineEdits.ts",
+      ]),
+    );
+    expect(editsTestSource).toContain(
+      'from "./videoComposeTimelineEdits"',
+    );
+  });
+
   it("keeps video-compose track media synchronization in one hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

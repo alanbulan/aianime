@@ -49,9 +49,16 @@ import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
 import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import {
+  applyVideoComposeTimelineEdit,
+  resolveVideoComposeClipSelection,
+  VIDEO_COMPOSE_MAX_SPEED,
+  VIDEO_COMPOSE_MIN_SPEED,
+  type VideoComposeClipReference,
+  type VideoComposeTimelineEdit,
+} from "@/features/canvas/domain/videoComposeTimelineEdits";
+import {
   activeClipAt,
   clipLengthMs,
-  compactVideoTracks,
   FALLBACK_CLIP_MS,
   hasExportableClips,
   layoutTrack,
@@ -97,11 +104,6 @@ export interface VideoComposeModalProps {
   onPersistDraft?: (timeline: ComposeTimelineState) => void;
 }
 
-interface SelectedClipRef {
-  trackId: string;
-  clipId: string;
-}
-
 const DEFAULT_PX_PER_SEC = 80;
 const MIN_PX_PER_SEC = 20;
 const MAX_PX_PER_SEC = 240;
@@ -111,9 +113,6 @@ const FILMSTRIP_THUMB_W = 72;
 const SNAP_GRID_MS = 500;
 const SNAP_PX = 8;
 const HISTORY_LIMIT = 50;
-const SPEED_MIN = 0.25;
-const SPEED_MAX = 4;
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -182,7 +181,8 @@ export function VideoComposeModal({
   const [snapEnabled, setSnapEnabled] = useState(true);
   // selected = 主选中（驱动变速/音量/分割等编辑面板）；selectedIds = 全部选中片段 id
   // （高亮 + 批量删除）。Shift/⌘ 点选叠加到 selectedIds，普通点选收敛为单选。
-  const [selected, setSelected] = useState<SelectedClipRef | null>(null);
+  const [selected, setSelected] =
+    useState<VideoComposeClipReference | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -225,7 +225,7 @@ export function VideoComposeModal({
   );
 
   // 收敛为单选：主选中 + 高亮集合都设成这一片段（或清空）。
-  const selectOnly = useCallback((ref: SelectedClipRef | null) => {
+  const selectOnly = useCallback((ref: VideoComposeClipReference | null) => {
     setSelected(ref);
     setSelectedIds(ref ? new Set([ref.clipId]) : new Set());
   }, []);
@@ -237,7 +237,7 @@ export function VideoComposeModal({
   // 取消的若是主选中，必须同步清掉 selected —— 否则它仍是高亮/删除/编辑面板的
   // 目标，表现为「主选中片段 shift-click 取消不掉」。
   const toggleInSelection = useCallback(
-    (ref: SelectedClipRef) => {
+    (ref: VideoComposeClipReference) => {
       const removing = selectedIds.has(ref.clipId);
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -420,6 +420,12 @@ export function VideoComposeModal({
     });
   }, []);
 
+  const applyTimelineEdit = useCallback((edit: VideoComposeTimelineEdit) => {
+    setTimeline((previous) =>
+      applyVideoComposeTimelineEdit(previous, edit),
+    );
+  }, []);
+
   // ── duration probing (no history) ────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -437,63 +443,22 @@ export function VideoComposeModal({
           resolveImageDisplayUrl,
         );
         if (cancelled || probed == null) return;
-        setTimeline((prev) => ({
-          ...prev,
-          tracks: prev.tracks.map((track) =>
-            track.id !== trackId
-              ? track
-              : {
-                  ...track,
-                  clips: track.clips.map((c) =>
-                    c.id !== clip.id
-                      ? c
-                      : {
-                          ...c,
-                          durationMs: probed,
-                          trimEndMs:
-                            c.trimEndMs === FALLBACK_CLIP_MS || c.trimEndMs > probed
-                              ? probed
-                              : c.trimEndMs,
-                        },
-                  ),
-                },
-          ),
-        }));
+        applyTimelineEdit({
+          type: "resolveClipDuration",
+          target: { trackId, clipId: clip.id },
+          durationMs: probed,
+        });
       }),
     );
     return () => {
       cancelled = true;
     };
   }, [
+    applyTimelineEdit,
     timeline.tracks
       .flatMap((track) => track.clips.map((c) => `${c.id}:${c.durationMs == null}`))
       .join(","),
   ]);
-
-  // ── clip mutations (history-tracked) ─────────────────────────────────────
-  const updateClip = useCallback(
-    (trackId: string, clipId: string, patch: Partial<ComposeClip>) => {
-      setTimeline((prev) => ({
-        ...prev,
-        tracks: prev.tracks.map((track) =>
-          track.id !== trackId
-            ? track
-            : {
-                ...track,
-                clips: track.clips.map((clip) =>
-                  clip.id === clipId ? { ...clip, ...patch } : clip,
-                ),
-              },
-        ),
-      }));
-    },
-    [],
-  );
-
-  // 视频轨 ripple 补位：删除 / 裁剪 / 变速后调用，消除空隙（音频轨不动）。
-  const compactVideoNow = useCallback(() => {
-    setTimeline((prev) => compactVideoTracks(prev));
-  }, []);
 
   // 关闭弹窗（卸载）时把当前时间线回传宿主存为草稿，重开/刷新后恢复。
   const onPersistDraftRef = useRef(onPersistDraft);
@@ -767,56 +732,22 @@ export function VideoComposeModal({
       if (!src || !clip) return;
       const newTrackId = makeTrackId();
       pushHistory();
-      setTimeline((prev) => {
-        const source = prev.tracks.find((t) => t.id === trackId);
-        const moving = source?.clips.find((c) => c.id === clipId);
-        if (!source || !moving) return prev;
-        const stripped = prev.tracks.map((t) =>
-          t.id === trackId
-            ? { ...t, clips: t.clips.filter((c) => c.id !== clipId) }
-            : t,
-        );
-        const idx = stripped.findIndex((t) => t.id === trackId);
-        stripped.splice(idx + 1, 0, {
-          id: newTrackId,
-          kind: source.kind,
-          clips: [moving],
-        });
-        const kept = stripped.filter(
-          (t) =>
-            t.clips.length > 0 ||
-            t.id === VIDEO_TRACK_ID ||
-            t.id === AUDIO_TRACK_ID,
-        );
-        return { ...prev, tracks: kept };
+      applyTimelineEdit({
+        type: "moveClipToNewTrack",
+        target: { trackId, clipId },
+        newTrackId,
       });
       selectOnly({ trackId: newTrackId, clipId });
     },
-    [pushHistory, selectOnly],
+    [applyTimelineEdit, pushHistory, selectOnly],
   );
 
   const removeClip = useCallback(
     (trackId: string, clipId: string) => {
       pushHistory();
-      setTimeline((prev) => {
-        const tracks = prev.tracks
-          .map((track) =>
-            track.id !== trackId
-              ? track
-              : {
-                  ...track,
-                  clips: track.clips.filter((clip) => clip.id !== clipId),
-                },
-          )
-          // 删空了的非默认轨道顺手清掉，不留空行；默认视频/音频轨保留。
-          .filter(
-            (track) =>
-              track.clips.length > 0 ||
-              track.id === VIDEO_TRACK_ID ||
-              track.id === AUDIO_TRACK_ID,
-          );
-        // 删除后视频轨 ripple 补位，缺口自动合拢（音频轨保持原位）。
-        return compactVideoTracks({ ...prev, tracks });
+      applyTimelineEdit({
+        type: "removeClip",
+        target: { trackId, clipId },
       });
       setSelected((cur) => (cur?.clipId === clipId ? null : cur));
       setSelectedIds((prev) => {
@@ -826,93 +757,63 @@ export function VideoComposeModal({
         return next;
       });
     },
-    [pushHistory],
+    [applyTimelineEdit, pushHistory],
   );
 
   // ── selected clip + playhead-relative source position ────────────────────
-  const selectedClip = useMemo(() => {
-    if (!selected) return null;
-    const track = timeline.tracks.find((tr) => tr.id === selected.trackId);
-    const clip = track?.clips.find((c) => c.id === selected.clipId);
-    if (!track || !clip) return null;
-    const laid = layoutTrack(track).find((l) => l.clip.id === clip.id);
-    return laid ? { track, clip, laid } : null;
-  }, [selected, timeline]);
-
-  /** Source-time (ms) inside the selected clip at the playhead, or null. */
-  const selectedSourceMs = useMemo(() => {
-    if (!selectedClip) return null;
-    const { clip, laid } = selectedClip;
-    if (playheadMs <= laid.timelineStartMs || playheadMs >= laid.timelineEndMs) {
-      return null;
-    }
-    const speed = clip.speed > 0 ? clip.speed : 1;
-    return clip.trimStartMs + (playheadMs - laid.timelineStartMs) * speed;
-  }, [selectedClip, playheadMs]);
-
-  const canSplitInside =
-    selectedSourceMs != null &&
-    selectedClip != null &&
-    selectedSourceMs >
-      selectedClip.clip.trimStartMs + VIDEO_CLIP_MIN_DURATION_MS &&
-    selectedSourceMs <
-      selectedClip.clip.trimEndMs - VIDEO_CLIP_MIN_DURATION_MS;
+  const selectedClip = useMemo(
+    () => resolveVideoComposeClipSelection(timeline, selected, playheadMs),
+    [playheadMs, selected, timeline],
+  );
+  const selectedSourceMs = selectedClip?.sourceMsAtPlayhead ?? null;
+  const canSplitInside = selectedClip?.canSplitAtPlayhead ?? false;
 
   const splitSelected = useCallback(() => {
     if (!selectedClip || selectedSourceMs == null || !canSplitInside) return;
-    const { track, clip } = selectedClip;
     const leftId = makeClipId();
     const rightId = makeClipId();
     pushHistory();
-    setTimeline((prev) => ({
-      ...prev,
-      tracks: prev.tracks.map((tr) => {
-        if (tr.id !== track.id) return tr;
-        const idx = tr.clips.findIndex((c) => c.id === clip.id);
-        if (idx < 0) return tr;
-        const speed = clip.speed > 0 ? clip.speed : 1;
-        const leftLenMs = (selectedSourceMs - clip.trimStartMs) / speed;
-        const left: ComposeClip = { ...clip, id: leftId, trimEndMs: selectedSourceMs };
-        const right: ComposeClip = {
-          ...clip,
-          id: rightId,
-          trimStartMs: selectedSourceMs,
-          timelineStartMs: clip.timelineStartMs + leftLenMs,
-        };
-        const clips = [...tr.clips];
-        clips.splice(idx, 1, left, right);
-        return { ...tr, clips };
-      }),
-    }));
-    selectOnly({ trackId: track.id, clipId: leftId });
-  }, [canSplitInside, pushHistory, selectOnly, selectedClip, selectedSourceMs]);
+    applyTimelineEdit({
+      type: "splitClip",
+      target: {
+        trackId: selectedClip.track.id,
+        clipId: selectedClip.clip.id,
+      },
+      sourceMs: selectedSourceMs,
+      leftClipId: leftId,
+      rightClipId: rightId,
+    });
+    selectOnly({ trackId: selectedClip.track.id, clipId: leftId });
+  }, [
+    applyTimelineEdit,
+    canSplitInside,
+    pushHistory,
+    selectOnly,
+    selectedClip,
+    selectedSourceMs,
+  ]);
 
   // 向左分割 / 向右分割 —— 删除选中片段在播放头一侧的部分（裁掉而非留两段）。
   const trimSelectedToPlayhead = useCallback(
     (side: "left" | "right") => {
-      if (!selectedClip || selectedSourceMs == null || !canSplitInside) return;
-      const { track, clip } = selectedClip;
+      if (!selectedClip || !canSplitInside) return;
       pushHistory();
-      updateClip(
-        track.id,
-        clip.id,
-        side === "left"
-          ? // 裁掉左半：保留段从播放头开始，左边缘移到播放头时间线位置（右边缘不动）。
-            { trimStartMs: selectedSourceMs, timelineStartMs: playheadMs }
-          : // 裁掉右半：左边缘不动，仅缩短源出点。
-            { trimEndMs: selectedSourceMs },
-      );
-      // 裁掉一侧后视频轨补位。
-      compactVideoNow();
+      applyTimelineEdit({
+        type: "trimClipToPlayhead",
+        target: {
+          trackId: selectedClip.track.id,
+          clipId: selectedClip.clip.id,
+        },
+        playheadMs,
+        side,
+      });
     },
     [
+      applyTimelineEdit,
       canSplitInside,
-      compactVideoNow,
       playheadMs,
       pushHistory,
       selectedClip,
-      selectedSourceMs,
-      updateClip,
     ],
   );
 
@@ -920,13 +821,16 @@ export function VideoComposeModal({
     (speed: number) => {
       if (!selectedClip) return;
       pushHistory();
-      updateClip(selectedClip.track.id, selectedClip.clip.id, {
-        speed: clamp(speed, SPEED_MIN, SPEED_MAX),
+      applyTimelineEdit({
+        type: "setClipSpeed",
+        target: {
+          trackId: selectedClip.track.id,
+          clipId: selectedClip.clip.id,
+        },
+        speed,
       });
-      // 变速改变片段时间线长度 → 视频轨补位，避免出现/留下空隙。
-      compactVideoNow();
     },
-    [compactVideoNow, pushHistory, selectedClip, updateClip],
+    [applyTimelineEdit, pushHistory, selectedClip],
   );
 
   // 音量滑杆 onChange 在一次拖动里触发数十次 —— 历史快照只在手势开始时 push 一次
@@ -934,23 +838,29 @@ export function VideoComposeModal({
   const setSelectedVolume = useCallback(
     (volume: number) => {
       if (!selectedClip) return;
-      const v = clamp(volume, 0, 1);
-      // 拖音量即取消静音（音量为 0 视作静音），与剪映一致。
-      updateClip(selectedClip.track.id, selectedClip.clip.id, {
-        volume: v,
-        muted: v <= 0,
+      applyTimelineEdit({
+        type: "setClipVolume",
+        target: {
+          trackId: selectedClip.track.id,
+          clipId: selectedClip.clip.id,
+        },
+        volume,
       });
     },
-    [selectedClip, updateClip],
+    [applyTimelineEdit, selectedClip],
   );
 
   const toggleSelectedMute = useCallback(() => {
     if (!selectedClip) return;
     pushHistory();
-    updateClip(selectedClip.track.id, selectedClip.clip.id, {
-      muted: !selectedClip.clip.muted,
+    applyTimelineEdit({
+      type: "toggleClipMute",
+      target: {
+        trackId: selectedClip.track.id,
+        clipId: selectedClip.clip.id,
+      },
     });
-  }, [pushHistory, selectedClip, updateClip]);
+  }, [applyTimelineEdit, pushHistory, selectedClip]);
 
   // ── 复制 / 粘贴 / 副本 ─────────────────────────────────────────────────────
   // 把 sourceClip 复制一份（新 id）插进目标轨：视频轨在 afterClipId 之后插入并整体无缝
@@ -959,35 +869,16 @@ export function VideoComposeModal({
     (sourceClip: ComposeClip, trackId: string, afterClipId: string | null) => {
       const copyId = makeClipId();
       pushHistory();
-      setTimeline((prev) => ({
-        ...prev,
-        tracks: prev.tracks.map((tr) => {
-          if (tr.id !== trackId) return tr;
-          const copy: ComposeClip = { ...sourceClip, id: copyId };
-          if (tr.kind === "video") {
-            const ordered = [...tr.clips].sort(
-              (a, b) => a.timelineStartMs - b.timelineStartMs,
-            );
-            const idx = afterClipId
-              ? ordered.findIndex((c) => c.id === afterClipId)
-              : ordered.length - 1;
-            ordered.splice(idx + 1, 0, copy);
-            return { ...tr, clips: packTrackClips(ordered) };
-          }
-          // 音频：追加到轨末尾，不与现有片段重叠。
-          const end = layoutTrack(tr).reduce(
-            (m, l) => Math.max(m, l.timelineEndMs),
-            0,
-          );
-          return {
-            ...tr,
-            clips: [...tr.clips, { ...copy, timelineStartMs: Math.round(end) }],
-          };
-        }),
-      }));
+      applyTimelineEdit({
+        type: "insertClipCopy",
+        sourceClip,
+        targetTrackId: trackId,
+        afterClipId,
+        copyClipId: copyId,
+      });
       selectOnly({ trackId, clipId: copyId });
     },
-    [pushHistory, selectOnly],
+    [applyTimelineEdit, pushHistory, selectOnly],
   );
 
   const duplicateSelected = useCallback(() => {
@@ -1019,22 +910,9 @@ export function VideoComposeModal({
     if (selected) ids.add(selected.clipId);
     if (ids.size === 0) return;
     pushHistory();
-    setTimeline((prev) => {
-      const tracks = prev.tracks
-        .map((track) => ({
-          ...track,
-          clips: track.clips.filter((clip) => !ids.has(clip.id)),
-        }))
-        .filter(
-          (track) =>
-            track.clips.length > 0 ||
-            track.id === VIDEO_TRACK_ID ||
-            track.id === AUDIO_TRACK_ID,
-        );
-      return compactVideoTracks({ ...prev, tracks });
-    });
+    applyTimelineEdit({ type: "removeClips", clipIds: ids });
     clearSelection();
-  }, [clearSelection, pushHistory, selected, selectedIds]);
+  }, [applyTimelineEdit, clearSelection, pushHistory, selected, selectedIds]);
 
   // ── snapping ──────────────────────────────────────────────────────────────
   const boundaryList = useCallback((): number[] => {
@@ -1124,9 +1002,13 @@ export function VideoComposeModal({
             0,
             Math.round(origTimelineStart + (next - origStart) / speed),
           );
-          updateClip(track.id, clip.id, {
-            trimStartMs: Math.round(next),
-            timelineStartMs: nextTimelineStart,
+          applyTimelineEdit({
+            type: "updateClip",
+            target: { trackId: track.id, clipId: clip.id },
+            patch: {
+              trimStartMs: Math.round(next),
+              timelineStartMs: nextTimelineStart,
+            },
           });
         } else {
           const next = clamp(
@@ -1134,7 +1016,11 @@ export function VideoComposeModal({
             origStart + VIDEO_CLIP_MIN_DURATION_MS,
             maxEnd,
           );
-          updateClip(track.id, clip.id, { trimEndMs: Math.round(next) });
+          applyTimelineEdit({
+            type: "updateClip",
+            target: { trackId: track.id, clipId: clip.id },
+            patch: { trimEndMs: Math.round(next) },
+          });
         }
       };
       const onUp = () => {
@@ -1144,14 +1030,14 @@ export function VideoComposeModal({
         activeDragCleanupRef.current = null;
         setTrimEdit(null); // 收起裁剪时长气泡
         // 裁剪结束后视频轨 ripple 补位，把裁出来的缺口合拢。
-        compactVideoNow();
+        applyTimelineEdit({ type: "compactMainVideoTrack" });
       };
       activeDragCleanupRef.current = onUp;
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [compactVideoNow, pushHistory, selectOnly, updateClip],
+    [applyTimelineEdit, pushHistory, selectOnly],
   );
 
   // ── playhead seek / drag ──────────────────────────────────────────────────
@@ -1739,7 +1625,11 @@ export function VideoComposeModal({
                   onRemove={removeClip}
                   onToggleMute={(clipId, muted) => {
                     pushHistory();
-                    updateClip(track.id, clipId, { muted });
+                    applyTimelineEdit({
+                      type: "updateClip",
+                      target: { trackId: track.id, clipId },
+                      patch: { muted },
+                    });
                   }}
                 />
               ))}
@@ -1885,14 +1775,26 @@ function SpeedPopover({
   const safeSpan = span > 0 ? span : 1;
   const lengthMs = safeSpan / (speed > 0 ? speed : 1);
   // speed ∈ [MIN,MAX] ⇒ length ∈ [span/MAX, span/MIN].
-  const minLen = safeSpan / SPEED_MAX;
-  const maxLen = safeSpan / SPEED_MIN;
+  const minLen = safeSpan / VIDEO_COMPOSE_MAX_SPEED;
+  const maxLen = safeSpan / VIDEO_COMPOSE_MIN_SPEED;
 
   const setSpeed = (next: number) =>
-    onChange(clamp(Math.round(next * 100) / 100, SPEED_MIN, SPEED_MAX));
+    onChange(
+      clamp(
+        Math.round(next * 100) / 100,
+        VIDEO_COMPOSE_MIN_SPEED,
+        VIDEO_COMPOSE_MAX_SPEED,
+      ),
+    );
   const setLength = (nextMs: number) => {
     const len = clamp(nextMs, minLen, maxLen);
-    onChange(clamp(safeSpan / len, SPEED_MIN, SPEED_MAX));
+    onChange(
+      clamp(
+        safeSpan / len,
+        VIDEO_COMPOSE_MIN_SPEED,
+        VIDEO_COMPOSE_MAX_SPEED,
+      ),
+    );
   };
 
   return (
@@ -1919,8 +1821,8 @@ function SpeedPopover({
         <div className="flex items-center gap-3">
           <input
             type="range"
-            min={SPEED_MIN}
-            max={SPEED_MAX}
+            min={VIDEO_COMPOSE_MIN_SPEED}
+            max={VIDEO_COMPOSE_MAX_SPEED}
             step={0.01}
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
