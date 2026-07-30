@@ -178,21 +178,7 @@ export function NodeToolDialog() {
     canvasEventBus.publish('tool-dialog/close', undefined);
   }, []);
 
-  const resolveToolLabel = useCallback((toolType: NodeToolType | undefined) => {
-    if (!toolType) {
-      return '';
-    }
-    if (toolType === NODE_TOOL_TYPES.crop) {
-      return t('tool.crop');
-    }
-    if (toolType === NODE_TOOL_TYPES.annotate) {
-      return t('tool.annotate');
-    }
-    if (toolType === NODE_TOOL_TYPES.splitStoryboard) {
-      return t('tool.split');
-    }
-    return '';
-  }, [t]);
+  const activeToolLabel = activePlugin ? t(activePlugin.labelKey) : '';
   const resolveResultNodeTitle = useCallback((toolType: NodeToolType | undefined) => {
     if (toolType === NODE_TOOL_TYPES.crop) {
       return t('toolDialog.cropResultTitle');
@@ -410,12 +396,12 @@ export function NodeToolDialog() {
           className={`${VISUAL_TOOL_MODAL_CLASS} ${visualToolWidthClassName} ${visualToolHeightClassName}`}
           role="dialog"
           aria-modal="true"
-          aria-label={`${resolveToolLabel(activePlugin?.type)}${t('toolDialog.suffix')}`}
+          aria-label={`${activeToolLabel}${t('toolDialog.suffix')}`}
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex h-14 shrink-0 items-center justify-between px-5">
             <h2 className="flex min-w-0 items-baseline gap-2 text-base font-semibold text-popover-foreground">
-              <span className="shrink-0">{`${resolveToolLabel(activePlugin?.type)}${t('toolDialog.suffix')}`}</span>
+              <span className="shrink-0">{`${activeToolLabel}${t('toolDialog.suffix')}`}</span>
               {activePlugin?.editor === 'split' && (
                 <span className="truncate text-xs font-normal text-text-muted">
                   {t('toolDialog.splitDiscardHint')}
@@ -468,7 +454,7 @@ export function NodeToolDialog() {
   return (
     <UiModal
       isOpen={isOpen}
-      title={`${resolveToolLabel(activePlugin?.type)}${t('toolDialog.suffix')}`}
+      title={`${activeToolLabel}${t('toolDialog.suffix')}`}
       onClose={closeDialog}
       widthClassName={widthClassName}
       footer={

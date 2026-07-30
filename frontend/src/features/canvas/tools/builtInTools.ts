@@ -28,7 +28,7 @@ function hasToolableImage(node: CanvasNode): boolean {
 
 export const cropToolPlugin: CanvasToolPlugin = {
   type: NODE_TOOL_TYPES.crop,
-  label: '裁剪',
+  labelKey: 'tool.crop',
   icon: 'crop',
   editor: 'crop',
   supportsNode: (node) => hasToolableImage(node),
@@ -57,7 +57,7 @@ export const cropToolPlugin: CanvasToolPlugin = {
 
 export const annotateToolPlugin: CanvasToolPlugin = {
   type: NODE_TOOL_TYPES.annotate,
-  label: '标注',
+  labelKey: 'tool.annotate',
   icon: 'annotate',
   editor: 'annotate',
   supportsNode: (node) => hasToolableImage(node),
@@ -74,7 +74,7 @@ export const annotateToolPlugin: CanvasToolPlugin = {
 
 export const splitStoryboardToolPlugin: CanvasToolPlugin = {
   type: NODE_TOOL_TYPES.splitStoryboard,
-  label: '分格抽取',
+  labelKey: 'tool.split',
   icon: 'split',
   editor: 'split',
   supportsNode: (node) => hasToolableImage(node),

@@ -10,18 +10,11 @@ import {
 } from "react";
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
 import {
-  Boxes,
   Copy,
-  Crop,
   Download,
   FolderOpen,
-  Globe2,
   Link2,
-  Lightbulb,
-  PenLine,
   RefreshCw,
-  RotateCw,
-  Scissors,
   Send,
   Trash2,
 } from "lucide-react";
@@ -32,7 +25,6 @@ import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 import {
-  NODE_TOOL_TYPES,
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
   isAudioNode,
@@ -46,13 +38,12 @@ import {
   type BeatContextNodeData,
   type CanvasNode,
   type GroupNodeData,
-  type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
 import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
-import { ImageEditToolbarActions } from "@/features/canvas/ui/ImageEditToolbarActions";
-import { ImageGridToolbarActions } from "@/features/canvas/ui/ImageGridToolbarActions";
+import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
+import { NodeToolbarIconChip } from "@/features/canvas/ui/NodeToolbarIconChip";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
@@ -72,8 +63,6 @@ import {
   openPresetProjectionInMyCanvas,
   useCanvasProjectionStatus,
 } from "@/features/freezone/public";
-import { getNodeToolPlugins } from "@/features/canvas/tools";
-import type { ToolIconKey } from "@/features/canvas/tools";
 import { UiChipButton, UiPanel } from "@/components/ui";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
@@ -82,7 +71,6 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { readUrl } from "@/lib/url-params";
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
-  NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
 } from "./nodeActionToolbarStyles";
 import {
@@ -102,57 +90,6 @@ interface NodeActionToolbarProps {
   onOpenRedraw: (nodeId: string) => void;
   onOpenErase: (nodeId: string) => void;
   onOpenRotate: (nodeId: string) => void;
-}
-
-const toolIconMap: Record<ToolIconKey, typeof Crop> = {
-  crop: Crop,
-  annotate: PenLine,
-  split: Scissors,
-};
-
-/** 工具栏内分组之间的竖向分隔线，呼应 libtv 的连续扁平条视觉。 */
-function ToolbarDivider() {
-  return (
-    <span
-      aria-hidden
-      className="mx-1 h-4 w-px shrink-0 self-center bg-border"
-    />
-  );
-}
-
-/**
- * Icon-only toolbar 按钮：方形 32×32 click area + 16px icon，与同行的带文字 chip
- * 等高对齐；hover 时在下方浮出主题化 tooltip（不依赖原生 title 的浏览器实现）。
- */
-function ToolbarIconChip({
-  label,
-  icon: Icon,
-  onClick,
-  extraButtonClass = "",
-}: {
-  label: string;
-  icon: typeof Crop;
-  onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-  extraButtonClass?: string;
-}) {
-  return (
-    <div className="group/iconchip relative">
-      <UiChipButton
-        title={label}
-        aria-label={label}
-        className={`h-9 w-9 justify-center !px-0 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} text-sm ${NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS} ${extraButtonClass}`}
-        onClick={onClick}
-      >
-        <Icon className="h-4 w-4" />
-      </UiChipButton>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-full z-[140] mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] font-medium text-popover-foreground opacity-0 shadow-lg backdrop-blur-sm transition-opacity duration-150 delay-100 group-hover/iconchip:opacity-100"
-      >
-        {label}
-      </span>
-    </div>
-  );
 }
 
 export const NodeActionToolbar = memo(
@@ -181,7 +118,6 @@ export const NodeActionToolbar = memo(
     const groupBackgroundColor = isGroupNode(node)
       ? ((node.data as GroupNodeData).backgroundColor ?? null)
       : null;
-    const tools = useMemo(() => getNodeToolPlugins(node), [node]);
     const deleteNode = useCanvasStore((state) => state.deleteNode);
     const addNode = useCanvasStore((state) => state.addNode);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -235,22 +171,6 @@ export const NodeActionToolbar = memo(
     );
     const canCopyGenerationError = generationErrorProjection.canCopy;
     const generationErrorReport = generationErrorProjection.report;
-
-    const resolveToolLabel = useCallback(
-      (toolType: NodeToolType) => {
-        if (toolType === NODE_TOOL_TYPES.crop) {
-          return t("tool.crop");
-        }
-        if (toolType === NODE_TOOL_TYPES.annotate) {
-          return t("tool.annotate");
-        }
-        if (toolType === NODE_TOOL_TYPES.splitStoryboard) {
-          return t("tool.split");
-        }
-        return "";
-      },
-      [t],
-    );
 
     useEffect(() => {
       return () => {
@@ -486,122 +406,19 @@ export const NodeActionToolbar = memo(
                 镜头上下文
               </UiChipButton>
             )}
-            {!isImageEdit && canHandleImage && (
-              <UiChipButton
-                key="image-panorama"
-                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenScene360(node.id);
-                }}
-              >
-                <Globe2 className="h-3.5 w-3.5" />
-                {t("nodeToolbar.panorama")}
-              </UiChipButton>
-            )}
-            {!isImageEdit && canHandleImage && (
-              <UiChipButton
-                key="image-multi-dimension"
-                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenMultiAngleEditor(node.id);
-                }}
-              >
-                <Boxes className="h-3.5 w-3.5" />
-                {t("nodeToolbar.multiDimension")}
-              </UiChipButton>
-            )}
-            {!isImageEdit && canHandleImage && (
-              <UiChipButton
-                key="image-relight"
-                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenLightEditor(node.id);
-                }}
-              >
-                <Lightbulb className="h-3.5 w-3.5" />
-                {t("nodeToolbar.relight")}
-              </UiChipButton>
-            )}
-            {!isImageEdit &&
-              canHandleImage &&
-              tools.some((tool) => tool.type === NODE_TOOL_TYPES.crop) &&
-              (
-                <ImageEditToolbarActions
-                  nodeId={node.id}
-                  nodeData={node.data}
-                  imageSource={imageSource}
-                  isPresetLocked={isPresetLocked}
-                  onOpenRedraw={onOpenRedraw}
-                  onOpenErase={onOpenErase}
-                  onOpenUpscale={onOpenUpscale}
-                  onOpenOutpaint={onOpenOutpaint}
-                />
-              )}
-            {!isImageEdit && canHandleImage && (
-              <ImageGridToolbarActions
-                nodeId={node.id}
-                onOpenGridAction={onOpenGridAction}
-              />
-            )}
-            {!isImageEdit && canHandleImage && <ToolbarDivider />}
-            {!isImageEdit &&
-              tools
-                .filter((tool) => tool.type !== NODE_TOOL_TYPES.crop)
-                .map((tool) => {
-                  const Icon = toolIconMap[tool.icon] ?? Crop;
-                  const label = resolveToolLabel(tool.type);
-                  const isAnnotate = tool.type === NODE_TOOL_TYPES.annotate;
-
-                  if (isAnnotate) {
-                    return (
-                      <ToolbarIconChip
-                        key={tool.type}
-                        label={label}
-                        icon={Icon}
-                        onClick={() =>
-                          canvasEventBus.publish("tool-dialog/open", {
-                            nodeId: node.id,
-                            toolType: tool.type,
-                          })
-                        }
-                      />
-                    );
-                  }
-
-                  return (
-                    <UiChipButton
-                      key={tool.type}
-                      className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                      onClick={() =>
-                        canvasEventBus.publish("tool-dialog/open", {
-                          nodeId: node.id,
-                          toolType: tool.type,
-                        })
-                      }
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {label}
-                    </UiChipButton>
-                  );
-                })}
-            {!isImageEdit && canHandleImage && !isPresetLocked && (
-              // Hidden on preset_managed nodes — Rotate mutates the source
-              // image in place (RotateEditorOverlay calls updateNodeData(node.id, ...))
-              // which would violate canonical immutability. Same for HD/upscale
-              // below (filtered out of the edit-menu dropdown when locked).
-              <ToolbarIconChip
-                key="image-rotate"
-                label={t("nodeToolbar.rotate")}
-                icon={RotateCw}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenRotate(node.id);
-                }}
-              />
-            )}
+            <ImageNodeToolbarActions
+              node={node}
+              isPresetLocked={isPresetLocked}
+              onOpenMultiAngleEditor={onOpenMultiAngleEditor}
+              onOpenLightEditor={onOpenLightEditor}
+              onOpenScene360={onOpenScene360}
+              onOpenUpscale={onOpenUpscale}
+              onOpenOutpaint={onOpenOutpaint}
+              onOpenGridAction={onOpenGridAction}
+              onOpenRedraw={onOpenRedraw}
+              onOpenErase={onOpenErase}
+              onOpenRotate={onOpenRotate}
+            />
             {!isImageEdit && canCopyStoryboardText && (
               <UiChipButton
                 key="storyboard-text-copy"
@@ -637,7 +454,7 @@ export const NodeActionToolbar = memo(
               </UiChipButton>
             )}
             {!isImageEdit && canHandleImage && (
-              <ToolbarIconChip
+              <NodeToolbarIconChip
                 key="image-download"
                 label={t("nodeToolbar.download")}
                 icon={Download}

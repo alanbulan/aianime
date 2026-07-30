@@ -53,7 +53,7 @@ export type ToolEditorKind = 'form' | 'crop' | 'annotate' | 'split';
 
 export interface CanvasToolPlugin {
   type: NodeToolType;
-  label: string;
+  labelKey: string;
   icon: ToolIconKey;
   editor: ToolEditorKind;
   supportsNode: (node: CanvasNode) => boolean;

@@ -19039,6 +19039,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/ImageGridToolbarActionsView.tsx",
     );
+    const imageToolbarViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+    );
     const toolbarPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/NodeActionToolbar.tsx",
@@ -19047,6 +19051,10 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
+    const imageToolbarViewSource = readFileSync(
+      imageToolbarViewPath,
+      "utf8",
+    );
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const declarations = [
       ["export function", "projectImageGridToolbarActions("].join(" "),
@@ -19104,7 +19112,13 @@ describe("frontend architecture boundaries", () => {
     expect(componentSource).toContain(
       "<ImageGridToolbarActionsView controller={controller} />",
     );
+    expect(importSpecifiers(imageToolbarViewPath)).toContain(
+      "./ImageGridToolbarActions",
+    );
     expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/ImageNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/ImageGridToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
@@ -19113,7 +19127,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/application/imageGridToolbarModel",
     );
-    expect(toolbarSource).toContain("<ImageGridToolbarActions");
+    expect(imageToolbarViewSource).toContain("<ImageGridToolbarActions");
     for (const legacyInlineLogic of [
       "activeGridAction",
       "setActiveGridAction",
@@ -19170,6 +19184,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/ImageEditToolbarActionsView.tsx",
     );
+    const imageToolbarViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+    );
     const toolbarPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/NodeActionToolbar.tsx",
@@ -19180,6 +19198,10 @@ describe("frontend architecture boundaries", () => {
     const gridControllerSource = readFileSync(gridControllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
+    const imageToolbarViewSource = readFileSync(
+      imageToolbarViewPath,
+      "utf8",
+    );
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const declarations = [
       ["export function", "projectImageEditToolbar("].join(" "),
@@ -19252,7 +19274,13 @@ describe("frontend architecture boundaries", () => {
       "<ImageEditToolbarActionsView controller={controller} />",
     );
     expect(componentSource).not.toContain("onMatteImage");
+    expect(importSpecifiers(imageToolbarViewPath)).toContain(
+      "./ImageEditToolbarActions",
+    );
     expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/ImageNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/ImageEditToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
@@ -19264,7 +19292,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/hooks/useHoverMenuController",
     );
-    expect(toolbarSource).toContain("<ImageEditToolbarActions");
+    expect(imageToolbarViewSource).toContain("<ImageEditToolbarActions");
     for (const legacyInlineLogic of [
       "activeEditAction",
       "setActiveEditAction",
@@ -19408,6 +19436,197 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageMatteController"',
+    );
+  });
+
+  it("separates image node toolbar projection, commands, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeToolbarModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageNodeToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageNodeToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageNodeToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+    );
+    const iconChipPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeToolbarIconChip.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const toolTypesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/tools/types.ts",
+    );
+    const builtInToolsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/tools/builtInTools.ts",
+    );
+    const toolDialogPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeToolDialog.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const iconChipSource = readFileSync(iconChipPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const toolTypesSource = readFileSync(toolTypesPath, "utf8");
+    const builtInToolsSource = readFileSync(builtInToolsPath, "utf8");
+    const toolDialogSource = readFileSync(toolDialogPath, "utf8");
+    const declarations = [
+      ["export function", "projectImageNodeToolbar("].join(" "),
+      ["export function", "useImageNodeToolbarController("].join(" "),
+      ["export function", "ImageNodeToolbarActionsView("].join(" "),
+      ["export function", "NodeToolbarIconChip("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(modelPath)).toEqual([
+      "@/features/canvas/domain/canvasNodes",
+    ]);
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "useTranslation",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+      "@/features/canvas/infrastructure",
+      "@/features/canvas/tools",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/application/imageNodeToolbarModel",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/domain/gridAction",
+        "@/features/canvas/tools",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<ImageEditToolbarActions");
+    expect(controllerSource).toContain("t(plugin.labelKey)");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "canvasEventBus",
+      "getNodeToolPlugins",
+      "projectImageNodeToolbar",
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(componentSource).toContain("useImageNodeToolbarController(props)");
+    expect(componentSource).toContain(
+      "<ImageNodeToolbarActionsView controller={controller} />",
+    );
+    expect(viewSource).toContain("<ImageEditToolbarActions");
+    expect(viewSource).toContain("<ImageGridToolbarActions");
+    expect(viewSource).toContain("<NodeToolbarIconChip");
+    expect(importSpecifiers(iconChipPath)).toEqual([
+      "react",
+      "lucide-react",
+      "@/components/ui",
+      "./nodeActionToolbarStyles",
+    ]);
+    expect(iconChipSource).not.toContain("useState");
+    expect(iconChipSource).not.toContain("useEffect");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/ImageNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/NodeToolbarIconChip",
+    );
+    for (const forbiddenParentDependency of [
+      "@/features/canvas/application/imageNodeToolbarModel",
+      "@/features/canvas/hooks/useImageNodeToolbarController",
+      "@/features/canvas/tools",
+      "@/features/canvas/ui/ImageEditToolbarActions",
+      "@/features/canvas/ui/ImageGridToolbarActions",
+    ]) {
+      expect(importSpecifiers(toolbarPath)).not.toContain(
+        forbiddenParentDependency,
+      );
+    }
+    expect(toolbarSource).toContain("<ImageNodeToolbarActions");
+    expect(toolbarSource).toContain("<NodeToolbarIconChip");
+    for (const legacyInlineLogic of [
+      "getNodeToolPlugins",
+      "resolveToolLabel",
+      "toolIconMap",
+      "function ToolbarDivider",
+      "function ToolbarIconChip",
+      "nodeToolbar.panorama",
+      "nodeToolbar.multiDimension",
+      "nodeToolbar.relight",
+      "nodeToolbar.rotate",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    const canvasToolPluginSource = toolTypesSource.match(
+      /export interface CanvasToolPlugin \{([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(canvasToolPluginSource).toContain("labelKey: string");
+    expect(canvasToolPluginSource).not.toContain("label: string");
+    for (const labelKey of ["tool.crop", "tool.annotate", "tool.split"]) {
+      expect(builtInToolsSource).toContain(`labelKey: '${labelKey}'`);
+    }
+    for (const legacyLabel of [
+      "label: '裁剪'",
+      "label: '标注'",
+      "label: '分格抽取'",
+    ]) {
+      expect(builtInToolsSource).not.toContain(legacyLabel);
+    }
+    expect(toolDialogSource).toContain("t(activePlugin.labelKey)");
+    expect(toolDialogSource).not.toContain("resolveToolLabel");
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/imageNodeToolbarModel.ts"],
+      ["features/canvas/hooks/useImageNodeToolbarController.ts"],
+      ["features/canvas/ui/ImageNodeToolbarActionsView.tsx"],
+      ["features/canvas/ui/NodeToolbarIconChip.tsx"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./imageNodeToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useImageNodeToolbarController"',
     );
   });
 
