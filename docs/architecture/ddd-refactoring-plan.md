@@ -2210,6 +2210,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百六十九批已将 Canvas 632 行混合 `nodes/AudioOperationsPanel.tsx` 拆为纯应用模型 `application/audioOperationsPanelModel.ts`、唯一状态 controller `hooks/useAudioOperationsPanelController.ts`、纯 presentation `nodes/AudioOperationsPanelView.tsx` 和保留原公共导入路径的 16 行真实装配根；应用模型独占音乐默认设置与预设、计费秒数、上游文本过滤、提交可用性及音色/音乐设置投影，controller 独占生成与翻译用例、Credit 查询、Canvas Store 写回、IME 草稿、上游引用、面板展开、音色复制计时和选择弹窗生命周期，View 独占操作面板、文本/语气输入、引用 chip、生成控件、音乐高级设置、音色卡及弹窗 JSX。原混合实现已直接移除，不保留 facade、re-export、兼容别名、测试专用生产入口或第二套生成/翻译/设置规则；语音与音乐模式分流、上游文本只参与最终 prompt 而不回填输入框、IME 组合期间不写 Store、30 秒默认时长与向上取整计费、设置默认值、翻译门禁、复制状态 1.2 秒复位、音色子面板隐藏时销毁局部状态和生成按钮语义保持不变。新增应用模型 4 项、controller 5 项和 View 3 项测试，连同原音乐设置与音频生成用例共定向回归 5 个文件 19 项；完整前端架构门禁 3 个文件 333 项（其中 module boundaries 293 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百七十批已将历史记录的通用输出 URL、世界产物深层探测、严格 3GS 判定、输入封面、预览图、嵌套提示词及完成状态规则从 `ui/NodeGenerationHistory.tsx` 迁入唯一纯 domain 模块 `domain/generationHistoryRecord.ts`，并将生成记录到图片/视频/音频/世界资产桶的过滤、去重、时间、模型与生成模式投影从 `ui/CanvasHistoryAssetsModal.tsx` 迁入唯一纯 application 模块 `application/generationHistoryAssets.ts`；`NodeGenerationHistory`、历史资产弹窗、ImageGen/Video controller 及 ImageGen/Script/Video View 全部改依赖真实所有者，旧 UI 导出直接删除，不保留 facade、re-export、兼容别名或第二套解析。通用输出键优先级、四层嵌套探测、SOG 优先于 splat 包和裸 PLY、普通图片不得误判为世界、输入图片封面兜底、记录自身提示词/封面优先、`completed/succeeded` 可见性、按 kind+URL 去重、媒体 URL 注入解析以及模型/生成模式恢复语义保持不变；ImageGen 恢复回调同时改为显式使用完整 `CanvasGenerationHistoryRecord` 契约，不再借 helper 参数类型。新增 domain 4 项，连同原历史规则与资产桶共 3 个文件 20 项、Script/Video 直接消费者 2 个文件 6 项定向回归通过；完整前端架构门禁 3 个文件 334 项（其中 module boundaries 294 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

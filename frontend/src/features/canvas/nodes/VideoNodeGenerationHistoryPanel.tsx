@@ -2,10 +2,10 @@
 import type { ComponentProps } from "react";
 
 import {
-  NodeGenerationHistory,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
-} from "@/features/canvas/ui/NodeGenerationHistory";
+} from "@/features/canvas/domain/generationHistoryRecord";
+import { NodeGenerationHistory } from "@/features/canvas/ui/NodeGenerationHistory";
 import { NODE_OPS_PANEL_ENTER_CLASS } from "@/features/canvas/ui/OperationPanelShell";
 import { CANVAS_NODE_OPS_PANEL_CLASS } from "@/features/canvas/ui/nodeFrameStyles";
 

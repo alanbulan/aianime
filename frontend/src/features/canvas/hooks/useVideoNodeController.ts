@@ -129,7 +129,7 @@ import {
 import { resolveVideoGenerationModeOptions } from '@/features/canvas/nodes/videoGenerationModeOptions';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
-import { historyRecordOutputUrl } from '@/features/canvas/ui/NodeGenerationHistory';
+import { historyRecordOutputUrl } from '@/features/canvas/domain/generationHistoryRecord';
 import { hasMainlineContexts } from '@/features/freezone/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

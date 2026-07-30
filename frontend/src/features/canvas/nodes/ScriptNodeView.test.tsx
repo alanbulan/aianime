@@ -84,7 +84,6 @@ vi.mock('@/features/canvas/ui/PanelExpandButton', () => ({
 }));
 
 vi.mock('@/features/canvas/ui/NodeGenerationHistory', () => ({
-  hasCompletedHistoryRecords: (records: unknown[]) => records.length > 0,
   NodeGenerationHistory: ({
     onRestore,
     records,
@@ -211,7 +210,7 @@ describe('ScriptNodeView', () => {
     controller.references = [videoReference];
     controller.hasUpstream = true;
     controller.historyRecords = [
-      { id: 'history-a', result: { rows: [] } } as never,
+      { id: 'history-a', status: 'completed', result: { rows: [] } } as never,
     ];
     controller.referencePreview = {
       reference: videoReference,

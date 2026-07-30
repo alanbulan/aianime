@@ -26,6 +26,10 @@ import {
   IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
 } from '@/features/canvas/application/imageGenNodeModel';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import {
+  hasCompletedHistoryRecords,
+  historyRecordOutputUrl,
+} from '@/features/canvas/domain/generationHistoryRecord';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
@@ -41,11 +45,7 @@ import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
-import {
-  NodeGenerationHistory,
-  hasCompletedHistoryRecords,
-  historyRecordOutputUrl,
-} from '@/features/canvas/ui/NodeGenerationHistory';
+import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

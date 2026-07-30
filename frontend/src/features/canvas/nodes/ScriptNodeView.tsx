@@ -23,13 +23,11 @@ import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNod
 import type { CanvasStoryScriptReference } from '@/features/canvas/application/generateCanvasStoryScript';
 import type { CanvasStoryScriptRow } from '@/features/canvas/application/ports';
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
+import { hasCompletedHistoryRecords } from '@/features/canvas/domain/generationHistoryRecord';
 import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
-import {
-  NodeGenerationHistory,
-  hasCompletedHistoryRecords,
-} from '@/features/canvas/ui/NodeGenerationHistory';
+import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

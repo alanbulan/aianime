@@ -47,6 +47,7 @@ import {
 } from '@/features/canvas/application/generationTaskArbitration';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
+import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
@@ -58,6 +59,7 @@ import {
   type ImageQuality,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
+import { historyRecordOutputUrl } from '@/features/canvas/domain/generationHistoryRecord';
 import {
   isSystemManagedNodeData,
   mainlineNodeVisualState,
@@ -97,7 +99,6 @@ import type {
 import { orderedReferenceUrlsWithOwnFirst } from '@/features/canvas/nodes/referenceOrdering';
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import { historyRecordOutputUrl } from '@/features/canvas/ui/NodeGenerationHistory';
 import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import {
   collectCandidateBindingsForNode,
@@ -237,7 +238,7 @@ export function useImageGenNodeController({
   const [historyPreviewUrl, setHistoryPreviewUrl] = useState<string | null>(null);
 
   const handleRestoreHistory = useCallback(
-    (record: Parameters<typeof historyRecordOutputUrl>[0]) => {
+    (record: CanvasGenerationHistoryRecord) => {
       const url = historyRecordOutputUrl(record);
       if (!url) return;
       // 生成进行中：仅做非破坏性预览，绝不动 imageUrl，也不打断在途任务。

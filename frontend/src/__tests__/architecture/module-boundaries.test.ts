@@ -19033,6 +19033,134 @@ describe("frontend architecture boundaries", () => {
     expect(historyViewSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
     );
+    expect(historyViewSource).toContain(
+      "recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)",
+    );
+  });
+
+  it("keeps generation-history record parsing and asset projection out of UI", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/generationHistoryRecord.ts",
+    );
+    const domainTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/generationHistoryRecord.test.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generationHistoryAssets.ts",
+    );
+    const historyAssetTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/canvas/history-assets-buckets.test.ts",
+    );
+    const historyViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeGenerationHistory.tsx",
+    );
+    const historyAssetsViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+    );
+    const imageControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGenNodeController.ts",
+    );
+    const videoControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeController.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const domainTestSource = readFileSync(domainTestPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const historyAssetTestSource = readFileSync(historyAssetTestPath, "utf8");
+    const historyViewSource = readFileSync(historyViewPath, "utf8");
+    const historyAssetsViewSource = readFileSync(
+      historyAssetsViewPath,
+      "utf8",
+    );
+    const imageControllerSource = readFileSync(imageControllerPath, "utf8");
+    const videoControllerSource = readFileSync(videoControllerPath, "utf8");
+    const declarations = [
+      ["export function", "historyRecordOutputUrl("].join(" "),
+      ["export function", "historyRecordWorldUrl("].join(" "),
+      ["export function", "historyRecordStrictWorldUrl("].join(" "),
+      ["export function", "historyRecordPreviewImageUrl("].join(" "),
+      ["export function", "historyRecordInputImageUrl("].join(" "),
+      ["export function", "historyRecordPrompt("].join(" "),
+      ["export function", "isCompletedHistoryRecord("].join(" "),
+      ["export function", "hasCompletedHistoryRecords("].join(" "),
+      ["export function", "recordsToAssetBuckets("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("@/features/canvas/application/");
+    expect(domainSource).not.toContain("@/lib/");
+    expect(domainSource).not.toContain("className=");
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/features/canvas/application/generationHistory",
+        "@/features/canvas/domain/canvasAssets",
+        "@/features/canvas/domain/generationHistoryRecord",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/features/canvas/ui/");
+    expect(applicationSource).not.toContain("@/lib/media-url");
+    expect(applicationSource).not.toContain("className=");
+    expect(historyViewSource).toContain(
+      "@/features/canvas/domain/generationHistoryRecord",
+    );
+    expect(historyViewSource).not.toContain(
+      "export function historyRecord",
+    );
+    expect(historyViewSource).not.toContain(
+      "export function hasCompletedHistoryRecords",
+    );
+    expect(historyAssetsViewSource).toContain(
+      "@/features/canvas/application/generationHistoryAssets",
+    );
+    expect(historyAssetsViewSource).not.toContain(
+      "export function recordsToAssetBuckets",
+    );
+    expect(imageControllerSource).toContain(
+      "@/features/canvas/domain/generationHistoryRecord",
+    );
+    expect(videoControllerSource).toContain(
+      "@/features/canvas/domain/generationHistoryRecord",
+    );
+    expect(imageControllerSource).not.toContain(
+      "@/features/canvas/ui/NodeGenerationHistory",
+    );
+    expect(videoControllerSource).not.toContain(
+      "@/features/canvas/ui/NodeGenerationHistory",
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["features/canvas/application/generationHistoryAssets.ts"],
+    ]);
+    expect(domainTestSource).toContain("from './generationHistoryRecord'");
+    expect(historyAssetTestSource).toContain(
+      "@/features/canvas/application/generationHistoryAssets",
+    );
+    expect(historyAssetTestSource).toContain(
+      "@/features/canvas/domain/generationHistoryRecord",
+    );
   });
 
   it("keeps Canvas drag lifecycle orchestration in one presentation controller", () => {

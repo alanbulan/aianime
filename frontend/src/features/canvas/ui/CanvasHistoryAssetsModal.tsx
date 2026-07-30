@@ -22,20 +22,15 @@ import {
   extractCanvasAssets,
   groupAssetsByDate,
   type CanvasAsset,
-  type CanvasAssetBuckets,
   type CanvasAssetKind,
 } from '@/features/canvas/domain/canvasAssets';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import { useCanvasGenerationHistory } from '@/features/canvas/hooks/useCanvasGenerationHistory';
 import {
-  historyRecordOutputUrl,
-  historyRecordPreviewImageUrl,
-  historyRecordPrompt,
-  historyRecordStrictWorldUrl,
-  historyRecordWorldUrl,
-} from './NodeGenerationHistory';
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
+  recordsToAssetBuckets,
+  type HistoryNodeMeta,
+} from '@/features/canvas/application/generationHistoryAssets';
+import { useCanvasGenerationHistory } from '@/features/canvas/hooks/useCanvasGenerationHistory';
 import { resolveMediaUrl } from '@/lib/media-url';
 import { readUrl } from '@/lib/url-params';
 import {
@@ -64,95 +59,6 @@ const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
   CANVAS_NODE_TYPES.script,
   CANVAS_NODE_TYPES.threeDWorld,
 ]);
-
-/**
- * Map backend generation-history records into the asset-card shape the modal
- * already renders. Only completed records that carry a usable output url for an
- * image/video/audio surface; `recorded_at` drives date grouping (fixing the
- * old "未知日期" bucketing that the live-canvas scrape produced). Deduped by
- * (kind,url) so a restored/duplicated output shows once. No per-tab display cap
- * — every record the backend returns (up to its own fetch limit) is shown, so
- * the history browser never silently hides older assets.
- */
-/**
- * 可选的「节点元信息」解析器:用一条记录的 `node_id` 回到 live 画布,取该(世界)节点
- * 的兜底封面与名字。世界记录的 `result` 往往既无预览图也无提示词,但生成它的
- * `threeDWorld` 节点把**输入源图**存在 `previewImageUrl`、并经 `sourceNodeId` 指向上游
- * 图片节点(其 displayName 即如「大学宿舍」)——拿来当封面/名字最贴切。
- */
-export interface HistoryNodeMeta {
-  cover: string | null;
-  name: string | null;
-}
-
-export function recordsToAssetBuckets(
-  records: CanvasGenerationHistoryRecord[],
-  resolveNodeMeta?: (nodeId: string) => HistoryNodeMeta,
-): CanvasAssetBuckets {
-  const buckets: CanvasAssetBuckets = { image: [], video: [], audio: [], model: [] };
-  const seen = new Set<string>();
-  for (const record of records) {
-    if (record.status !== 'completed' && record.status !== 'succeeded') continue;
-    // 世界(3GS / 360→3GS)记录判定:**先看产物结构**(result 里有没有真正的
-    // .sog/.ply/3GS url),再退而看 media_type。image-to-3gs 记录的 media_type 后端
-    // 标得并不可靠(常是 `image` 而非 `3d`),只认 media_type 会漏掉整个世界历史——
-    // 节点侧历史 strip 一向靠嗅探产物 url 判世界,这里与之对齐。
-    const worldUrl = historyRecordStrictWorldUrl(record);
-    const isWorld =
-      worldUrl !== null ||
-      record.media_type === '3d' ||
-      record.media_type === '3gs' ||
-      record.media_type === 'ply';
-    const kind: CanvasAssetKind | null = isWorld
-      ? 'model'
-      : record.media_type === 'image' ||
-          record.media_type === 'video' ||
-          record.media_type === 'audio'
-        ? record.media_type
-        : null;
-    if (!kind) continue;
-    // 世界模型产物 url 可能藏在 sog_url/scene_3gs_ply_fs 等键下,用专用提取器;
-    // 其余类型走通用 output url。
-    const url = resolveMediaUrl(
-      kind === 'model'
-        ? (worldUrl ?? historyRecordWorldUrl(record))
-        : historyRecordOutputUrl(record),
-    );
-    if (!url) continue;
-    const dedupeKey = `${kind}:${url}`;
-    if (seen.has(dedupeKey)) continue;
-    seen.add(dedupeKey);
-    const ts = new Date(record.recorded_at).getTime();
-    // 世界记录用 host 节点兜底封面/名字(见 HistoryNodeMeta);其余类型不兜底,沿用
-    // 各自既有取值。
-    const nodeMeta =
-      kind === 'model' ? resolveNodeMeta?.(record.node_id) : undefined;
-    // Show only the prompt the backend stored on this record, so the prompt
-    // always matches the video. Legacy records that never stored a prompt show
-    // nothing (no node-prompt fallback — it misattributed the node's current
-    // prompt to old versions). 世界记录例外:无提示词时回退到上游源图节点的名字。
-    const prompt = historyRecordPrompt(record);
-    const label = prompt ?? nodeMeta?.name ?? null;
-    buckets[kind].push({
-      id: record.id,
-      kind,
-      url,
-      previewUrl: resolveMediaUrl(
-        historyRecordPreviewImageUrl(record) ?? nodeMeta?.cover ?? null,
-      ),
-      nodeId: record.node_id,
-      label,
-      // 用「使用」建节点时把这条记录原始提示词灌进新节点的提示词框；label 对世界
-      // 记录可能回退成节点名,所以这里单独存 prompt（仅后端存过提示词时才有值）。
-      prompt: prompt ?? null,
-      // 原始生成的注册表模型 id / 生成模式，透传给「使用」还原节点（旧记录为 undefined）。
-      model: record.model,
-      genMode: record.gen_mode,
-      timestamp: Number.isNaN(ts) ? null : ts,
-    });
-  }
-  return buckets;
-}
 
 const TAB_ORDER: CanvasAssetKind[] = ['image', 'video', 'audio', 'model'];
 const TAB_LABEL_KEY: Record<CanvasAssetKind, string> = {
@@ -257,7 +163,7 @@ export function CanvasHistoryAssetsModal({
   const buckets = useMemo(
     () =>
       useHistory
-        ? recordsToAssetBuckets(records, resolveNodeMeta)
+        ? recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)
         : extractCanvasAssets(nodes, resolveMediaUrl),
     [useHistory, records, nodes, resolveNodeMeta],
   );
