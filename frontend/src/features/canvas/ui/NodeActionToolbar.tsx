@@ -35,7 +35,6 @@ import {
   Link2,
   Lightbulb,
   Loader2,
-  Maximize2,
   Package,
   Palette,
   PenLine,
@@ -48,7 +47,6 @@ import {
   Unlink2,
   User,
   Users,
-  Video as VideoIcon,
   Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -92,6 +90,7 @@ import type {
   GridActionRequest,
 } from "@/features/canvas/domain/gridAction";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
+import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { resolveBeatContextWorkbenchTarget } from "@/features/canvas/application/beatContextNodeModel";
 import {
@@ -120,12 +119,15 @@ import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import {
-  analyzeCanvasVideoStory,
-  separateCanvasAudioVideo,
-  uploadCanvasAsset,
-} from "@/features/canvas/composition";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
+import {
+  NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
+  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
+  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
+  NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS,
+  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+} from "./nodeActionToolbarStyles";
 import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,
@@ -151,17 +153,6 @@ const toolIconMap: Record<ToolIconKey, typeof Crop> = {
   split: Scissors,
 };
 
-const TOOLBAR_BUTTON_RADIUS_CLASS = "rounded-[12px]";
-// 扁平菜单项：去掉独立边框与胶囊背景，融入工具栏整条；仅靠 hover 高亮区分。
-const TOOLBAR_NEUTRAL_BUTTON_CLASS =
-  "!border-transparent !bg-transparent text-foreground hover:!bg-muted focus:!border-transparent focus:!bg-transparent focus:!shadow-none focus-visible:!outline-none focus-visible:!ring-0 data-[state=open]:!border-transparent data-[state=open]:!shadow-none";
-const TOOLBAR_TEXT_BUTTON_CLASS =
-  `h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS}`;
-const TOOLBAR_MENU_CONTENT_CLASS =
-  "z-[120] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl";
-const TOOLBAR_MENU_ITEM_CLASS =
-  "gap-2 rounded-[10px] text-popover-foreground focus:bg-muted focus:text-popover-foreground";
-
 /** 工具栏内分组之间的竖向分隔线，呼应 libtv 的连续扁平条视觉。 */
 function ToolbarDivider() {
   return (
@@ -175,9 +166,8 @@ function ToolbarDivider() {
 /**
  * 让 Radix DropdownMenu 支持鼠标 hover 自动展开/移出延迟收起（Radix 原生只支持
  * 点击）。返回挂到根的受控 props 与挂到「触发器 + 内容」的 hover 事件；点击仍可用。
- * `onOpen` 在打开瞬间触发（用来关掉同行的下载浮层等）。
  */
-function useHoverMenu(onOpen?: () => void) {
+function useHoverMenu() {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
 
@@ -190,9 +180,8 @@ function useHoverMenu(onOpen?: () => void) {
 
   const openNow = useCallback(() => {
     cancelClose();
-    onOpen?.();
     setOpen(true);
-  }, [cancelClose, onOpen]);
+  }, [cancelClose]);
 
   const scheduleClose = useCallback(() => {
     cancelClose();
@@ -202,10 +191,9 @@ function useHoverMenu(onOpen?: () => void) {
   const onOpenChange = useCallback(
     (next: boolean) => {
       cancelClose();
-      if (next) onOpen?.();
       setOpen(next);
     },
-    [cancelClose, onOpen],
+    [cancelClose],
   );
 
   useEffect(() => cancelClose, [cancelClose]);
@@ -238,7 +226,7 @@ function ToolbarIconChip({
       <UiChipButton
         title={label}
         aria-label={label}
-        className={`h-9 w-9 justify-center !px-0 ${TOOLBAR_BUTTON_RADIUS_CLASS} text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS} ${extraButtonClass}`}
+        className={`h-9 w-9 justify-center !px-0 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} text-sm ${NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS} ${extraButtonClass}`}
         onClick={onClick}
       >
         <Icon className="h-4 w-4" />
@@ -284,7 +272,6 @@ export const NodeActionToolbar = memo(
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-    const onNodesChange = useCanvasStore((state) => state.onNodesChange);
     const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
     const ungroupNode = useCanvasStore((state) => state.ungroupNode);
     const arrangeGroupChildren = useCanvasStore(
@@ -347,8 +334,6 @@ export const NodeActionToolbar = memo(
     const canCopyGenerationError = generationErrorProjection.canCopy;
     const generationErrorReport = generationErrorProjection.report;
 
-    const closeDownloadMenu = useCallback(() => {}, []);
-
     const resolveToolLabel = useCallback(
       (toolType: NodeToolType) => {
         if (toolType === NODE_TOOL_TYPES.crop) {
@@ -365,9 +350,9 @@ export const NodeActionToolbar = memo(
       [t],
     );
 
-    // hover 即展开的编辑/九宫格下拉（打开时顺手关掉下载浮层）。
-    const editMenu = useHoverMenu(closeDownloadMenu);
-    const gridMenu = useHoverMenu(closeDownloadMenu);
+    // hover 即展开的编辑/九宫格下拉。
+    const editMenu = useHoverMenu();
+    const gridMenu = useHoverMenu();
 
     // 选中可抠图的节点时,在浏览器空闲间隙预热抠图管线,把一次性的模型/Worker/
     // WASM 初始化挪到用户点击「抠图」之前,避免点击瞬间主线程卡 2~3s。整段只跑一次。
@@ -480,11 +465,10 @@ export const NodeActionToolbar = memo(
           resolveImageDisplayUrl(imageSource),
           imageDownloadFilename,
         );
-        closeDownloadMenu();
       } catch (error) {
         console.error("Failed to download image", error);
       }
-    }, [closeDownloadMenu, imageDownloadFilename, imageSource]);
+    }, [imageDownloadFilename, imageSource]);
 
     const handleMatteImage = useCallback(() => {
       if (!imageSource) {
@@ -497,8 +481,6 @@ export const NodeActionToolbar = memo(
         );
         return;
       }
-      closeDownloadMenu();
-
       const sourceAspectRatio =
         typeof (node.data as { aspectRatio?: unknown }).aspectRatio === "string"
           ? ((node.data as { aspectRatio?: string }).aspectRatio ?? "1:1")
@@ -571,7 +553,6 @@ export const NodeActionToolbar = memo(
     }, [
       addEdge,
       addNode,
-      closeDownloadMenu,
       findNodePosition,
       imageSource,
       node,
@@ -702,7 +683,7 @@ export const NodeActionToolbar = memo(
             {isPresetLocked && workbenchTarget && (
               <UiChipButton
                 key="mainline-open-workbench"
-                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/45 bg-primary/10 px-3 text-sm text-primary hover:bg-primary/15 disabled:opacity-50`}
+                className={`h-9 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/45 bg-primary/10 px-3 text-sm text-primary hover:bg-primary/15 disabled:opacity-50`}
                 disabled={openingWorkbench}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -716,7 +697,7 @@ export const NodeActionToolbar = memo(
             {extractableBeatContext && node.type !== CANVAS_NODE_TYPES.beatContext && (
               <UiChipButton
                 key="extract-beat-context"
-                className={TOOLBAR_TEXT_BUTTON_CLASS}
+                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                 title="创建或定位这个素材对应的镜头上下文节点；不会自动连线"
                 onClick={handleEnsureBeatContextNode}
               >
@@ -727,10 +708,9 @@ export const NodeActionToolbar = memo(
             {!isImageEdit && canHandleImage && (
               <UiChipButton
                 key="image-panorama"
-                className={TOOLBAR_TEXT_BUTTON_CLASS}
+                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   onOpenScene360(node.id);
                 }}
               >
@@ -741,10 +721,9 @@ export const NodeActionToolbar = memo(
             {!isImageEdit && canHandleImage && (
               <UiChipButton
                 key="image-multi-dimension"
-                className={TOOLBAR_TEXT_BUTTON_CLASS}
+                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   onOpenMultiAngleEditor(node.id);
                 }}
               >
@@ -755,10 +734,9 @@ export const NodeActionToolbar = memo(
             {!isImageEdit && canHandleImage && (
               <UiChipButton
                 key="image-relight"
-                className={TOOLBAR_TEXT_BUTTON_CLASS}
+                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   onOpenLightEditor(node.id);
                 }}
               >
@@ -781,10 +759,7 @@ export const NodeActionToolbar = memo(
                     key: "erase" as const,
                     icon: Eraser,
                     label: t("nodeToolbar.erase"),
-                    run: () => {
-                      closeDownloadMenu();
-                      onOpenErase(node.id);
-                    },
+                    run: () => onOpenErase(node.id),
                   },
                   {
                     key: "matting" as const,
@@ -806,19 +781,13 @@ export const NodeActionToolbar = memo(
                     key: "hd" as const,
                     icon: ImageUpscale,
                     label: t("nodeToolbar.hd"),
-                    run: () => {
-                      closeDownloadMenu();
-                      onOpenUpscale(node.id);
-                    },
+                    run: () => onOpenUpscale(node.id),
                   },
                   {
                     key: "outpaint" as const,
                     icon: Expand,
                     label: t("nodeToolbar.outpaint"),
-                    run: () => {
-                      closeDownloadMenu();
-                      onOpenOutpaint(node.id);
-                    },
+                    run: () => onOpenOutpaint(node.id),
                   },
                 ]
                   // HD/upscale mutates source in place
@@ -836,7 +805,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuTrigger asChild>
                       <UiChipButton
                         key="image-edit-menu"
-                        className={TOOLBAR_TEXT_BUTTON_CLASS}
+                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                         onClick={(event) => event.stopPropagation()}
                         {...editMenu.hoverProps}
                       >
@@ -848,7 +817,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuContent
                       align="start"
                       sideOffset={6}
-                      className={`${TOOLBAR_MENU_CONTENT_CLASS} min-w-[180px]`}
+                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[180px]`}
                       onClick={(event) => event.stopPropagation()}
                       {...editMenu.hoverProps}
                     >
@@ -857,7 +826,7 @@ export const NodeActionToolbar = memo(
                         return (
                           <DropdownMenuItem
                             key={action.key}
-                            className={TOOLBAR_MENU_ITEM_CLASS}
+                            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
                             onSelect={() => {
                               setActiveEditAction(action.key);
                               action.run();
@@ -957,7 +926,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuTrigger asChild>
                       <UiChipButton
                         key="image-grid-menu"
-                        className={TOOLBAR_TEXT_BUTTON_CLASS}
+                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                         onClick={(event) => event.stopPropagation()}
                         {...gridMenu.hoverProps}
                       >
@@ -969,7 +938,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuContent
                       align="start"
                       sideOffset={6}
-                      className={`${TOOLBAR_MENU_CONTENT_CLASS} min-w-[200px]`}
+                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[200px]`}
                       onClick={(event) => event.stopPropagation()}
                       {...gridMenu.hoverProps}
                     >
@@ -982,7 +951,7 @@ export const NodeActionToolbar = memo(
                             className={
                               isActive
                                 ? "gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary"
-                                : TOOLBAR_MENU_ITEM_CLASS
+                                : NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS
                             }
                             onSelect={() => {
                               setActiveGridAction(action.key);
@@ -1032,7 +1001,7 @@ export const NodeActionToolbar = memo(
                   return (
                     <UiChipButton
                       key={tool.type}
-                      className={TOOLBAR_TEXT_BUTTON_CLASS}
+                      className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                       onClick={() =>
                         canvasEventBus.publish("tool-dialog/open", {
                           nodeId: node.id,
@@ -1056,7 +1025,6 @@ export const NodeActionToolbar = memo(
                 icon={RotateCw}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   onOpenRotate(node.id);
                 }}
               />
@@ -1064,7 +1032,7 @@ export const NodeActionToolbar = memo(
             {!isImageEdit && canCopyStoryboardText && (
               <UiChipButton
                 key="storyboard-text-copy"
-                className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
+                className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyTextSuccess
                     ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
                     : ""
@@ -1080,7 +1048,7 @@ export const NodeActionToolbar = memo(
             {!isImageEdit && canCopyGenerationError && (
               <UiChipButton
                 key="generation-error-copy"
-                className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
+                className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyErrorSuccess
                     ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
                     : "!border-destructive/45 !bg-destructive/10 !text-destructive hover:!bg-destructive/15"
@@ -1106,419 +1074,9 @@ export const NodeActionToolbar = memo(
                 }}
               />
             )}
-            {isVideoNode(node) &&
-              (() => {
-                const videoData = node.data;
-                const videoUrl =
-                  typeof videoData.videoUrl === "string"
-                    ? videoData.videoUrl
-                    : null;
-                const isAnalyzing = Boolean(videoData.isAnalyzing);
-                const hasVideo = Boolean(videoUrl);
-                const stubButtonClass = TOOLBAR_TEXT_BUTTON_CLASS;
-
-                const handleVideoStub = (label: string) => {
-                  console.info(
-                    `[video-toolbar] stub action triggered: ${label}`,
-                  );
-                };
-
-                const handleVideoAnalyze = async () => {
-                  if (!hasVideo || !videoUrl || isAnalyzing) {
-                    return;
-                  }
-                  const projectId = readUrl().project;
-                  if (!projectId) {
-                    console.error("[video-analyze] no project in URL");
-                    return;
-                  }
-                  updateNodeData(node.id, {
-                    isAnalyzing: true,
-                    analysisError: null,
-                  });
-
-                  // 立即在下游建一个 loading 态的视频故事节点 —— 不等后端返回。
-                  // 数据回来后再 updateNodeData 把分镜填进去；失败则把错误写到该节点。
-                  const storyPosition = findNodePosition(node.id, 720, 360);
-                  const storyNodeId = addNode(
-                    CANVAS_NODE_TYPES.videoStory,
-                    storyPosition,
-                    {
-                      sourceVideoUrl: videoUrl,
-                      rows: [],
-                      rawResult: null,
-                      isAnalyzing: true,
-                      analysisStartedAt: Date.now(),
-                      analysisError: null,
-                    },
-                  );
-                  addEdge(node.id, storyNodeId);
-
-                  try {
-                    const { rawResult, rows } = await analyzeCanvasVideoStory({
-                      projectId,
-                      videoUrl,
-                      durationMs: videoData.durationMs,
-                    });
-                    console.info(
-                      "[video-analyze] normalized rows",
-                      rows.length,
-                      rows,
-                    );
-
-                    // 把解析结果回填到先前创建的 loading 故事节点。
-                    updateNodeData(storyNodeId, {
-                      rows,
-                      rawResult,
-                      isAnalyzing: false,
-                      analysisError: null,
-                    });
-                    updateNodeData(node.id, {
-                      isAnalyzing: false,
-                      analysisError: null,
-                    });
-                  } catch (error) {
-                    const message =
-                      error instanceof Error ? error.message : String(error);
-                    console.error("[video-analyze] failed", error);
-                    // 把错误写到下游故事节点,清掉它的 loading 态。
-                    updateNodeData(storyNodeId, {
-                      isAnalyzing: false,
-                      analysisError: message,
-                    });
-                    updateNodeData(node.id, {
-                      isAnalyzing: false,
-                      analysisError: message,
-                    });
-                  }
-                };
-
-                const handleVideoDownload = async () => {
-                  if (!hasVideo || !videoUrl) {
-                    return;
-                  }
-                  try {
-                    const sourceFileName =
-                      typeof videoData.sourceFileName === "string" && videoData.sourceFileName.trim().length > 0
-                        ? videoData.sourceFileName
-                        : typeof videoData.displayName === "string" && videoData.displayName.trim().length > 0
-                          ? `${videoData.displayName}.mp4`
-                          : `video-${node.id}.mp4`;
-                    await downloadUrlAsFile(
-                      resolveImageDisplayUrl(videoUrl),
-                      sourceFileName,
-                    );
-                  } catch (error) {
-                    console.error("[video-download] failed", error);
-                  }
-                };
-
-                const handleVideoFullscreen = () => {
-                  if (!hasVideo || !videoUrl) {
-                    return;
-                  }
-                  canvasEventBus.publish("video-viewer/open", {
-                    videoUrl,
-                    title:
-                      typeof videoData.displayName === "string"
-                        ? videoData.displayName
-                        : undefined,
-                  });
-                };
-
-                // 「高清」：在下游建一个视频节点（复用 video 节点的播放器/角标/尺寸，
-                // 与普通视频节点一致），以本视频为源、打 isUpscaleNode 标记 —— 选中后在
-                // 其下方展开 VideoUpscaleEditorOverlay 配置面板，提交走 /freezone/video/upscale。
-                const handleVideoUpscale = () => {
-                  if (!hasVideo || !videoUrl) {
-                    return;
-                  }
-                  const position = findNodePosition(node.id, 580, 380);
-                  const upscaleNodeId = addNode(
-                    CANVAS_NODE_TYPES.video,
-                    position,
-                    {
-                      displayName: `${t("node.videoUpscale.nodeTitle")}（1080P）`,
-                      videoUrl: null,
-                      previewImageUrl:
-                        typeof videoData.previewImageUrl === "string"
-                          ? videoData.previewImageUrl
-                          : null,
-                      aspectRatio:
-                        typeof videoData.aspectRatio === "string"
-                          ? videoData.aspectRatio
-                          : "16:9",
-                      isUpscaleNode: true,
-                      upscaleSourceUrl: videoUrl,
-                      upscaleResolution: "1080p",
-                      upscaleDenoise: "1x",
-                      isGenerating: false,
-                    } as unknown as Parameters<typeof addNode>[2],
-                  );
-                  addEdge(node.id, upscaleNodeId);
-                  onNodesChange([
-                    { id: node.id, type: "select", selected: false },
-                    { id: upscaleNodeId, type: "select", selected: true },
-                  ]);
-                  setSelectedNode(upscaleNodeId);
-                };
-
-                const isSeparatingAv = Boolean(videoData.isSeparatingAv);
-
-                const handleAudioSeparate = async () => {
-                  if (!hasVideo || !videoUrl || isSeparatingAv) {
-                    return;
-                  }
-                  const projectId = readUrl().project;
-                  if (!projectId) {
-                    console.error("[audio-separate] no project in URL");
-                    return;
-                  }
-                  updateNodeData(node.id, { isSeparatingAv: true });
-                  try {
-                    const {
-                      audioUrl: audioOutputUrl,
-                      silentVideoUrl: silentVideoOutputUrl,
-                      resultFallbackError,
-                    } = await separateCanvasAudioVideo({
-                      projectId,
-                      sourceUrl: videoUrl,
-                    });
-                    if (resultFallbackError) {
-                      console.warn(
-                        "[audio-separate] job result fetch failed",
-                        resultFallbackError,
-                      );
-                    }
-
-                    if (!audioOutputUrl || !silentVideoOutputUrl) {
-                      console.warn(
-                        "[audio-separate] could not resolve audio/video urls",
-                        { audioOutputUrl, silentVideoOutputUrl },
-                      );
-                      return;
-                    }
-                    console.info("[audio-separate] resolved urls", {
-                      audioOutputUrl,
-                      silentVideoOutputUrl,
-                    });
-                    const rawName =
-                      typeof videoData.sourceFileName === "string" &&
-                      videoData.sourceFileName.trim().length > 0
-                        ? videoData.sourceFileName
-                        : typeof videoData.displayName === "string" &&
-                            videoData.displayName.trim().length > 0
-                          ? videoData.displayName
-                          : "video";
-                    const baseName = rawName.replace(/\.[^/.]+$/, "");
-                    const audioTitle = `${baseName}_背景音`;
-                    const silentTitle = `${baseName}_无声`;
-
-                    const audioPos = findNodePosition(node.id, 480, 180);
-                    const audioNodeId = addNode(
-                      CANVAS_NODE_TYPES.audio,
-                      audioPos,
-                      {
-                        audioUrl: audioOutputUrl,
-                        sourceFileName: audioTitle,
-                        displayName: audioTitle,
-                      },
-                    );
-                    addEdge(node.id, audioNodeId);
-
-                    const silentPos = findNodePosition(node.id, 480, 270);
-                    const silentNodeId = addNode(
-                      CANVAS_NODE_TYPES.video,
-                      silentPos,
-                      {
-                        videoUrl: silentVideoOutputUrl,
-                        sourceFileName: `${silentTitle}.mp4`,
-                        displayName: silentTitle,
-                      },
-                    );
-                    addEdge(node.id, silentNodeId);
-                  } catch (error) {
-                    console.error("[audio-separate] failed", error);
-                  } finally {
-                    updateNodeData(node.id, { isSeparatingAv: false });
-                  }
-                };
-
-                return (
-                  <>
-                    <UiChipButton
-                      key="video-clip"
-                      className={`${stubButtonClass} ${!hasVideo ? "opacity-50 cursor-not-allowed" : ""}`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : undefined
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (!hasVideo) return;
-                        updateNodeData(node.id, {
-                          isClipMode: !videoData.isClipMode,
-                        });
-                      }}
-                    >
-                      <Scissors className="h-3.5 w-3.5" />
-                      {t("nodeToolbar.video.clip")}
-                    </UiChipButton>
-                    <UiChipButton
-                      key="video-hd"
-                      className={`${stubButtonClass} ${!hasVideo ? "opacity-50 cursor-not-allowed" : ""}`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : undefined
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleVideoUpscale();
-                      }}
-                    >
-                      <ImageUpscale className="h-3.5 w-3.5" />
-                      {t("nodeToolbar.video.hd")}
-                    </UiChipButton>
-                    <UiChipButton
-                      key="video-analyze"
-                      className={`${stubButtonClass} ${!hasVideo ? "opacity-50 cursor-not-allowed" : ""}`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : undefined
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleVideoAnalyze();
-                      }}
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Wand2 className="h-3.5 w-3.5" />
-                      )}
-                      {t("nodeToolbar.video.analyze")}
-                    </UiChipButton>
-                    <DropdownMenu
-                      onOpenChange={(open) => {
-                        if (open) closeDownloadMenu();
-                      }}
-                    >
-                      <DropdownMenuTrigger asChild>
-                        <UiChipButton
-                          key="video-subtitle-removal"
-                          className={stubButtonClass}
-                          title={t("nodeToolbar.video.subtitleRemovalTip")}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Eraser className="h-3.5 w-3.5" />
-                          {t("nodeToolbar.video.subtitleRemoval")}
-                          <ChevronDown className="h-3 w-3" />
-                        </UiChipButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="start"
-                        sideOffset={6}
-                        className={`${TOOLBAR_MENU_CONTENT_CLASS} min-w-[180px]`}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <DropdownMenuItem
-                          className={TOOLBAR_MENU_ITEM_CLASS}
-                          onSelect={() => {
-                            if (!hasVideo) {
-                              handleVideoStub("subtitle-smart-erase");
-                              return;
-                            }
-                            updateNodeData(node.id, {
-                              subtitleEraseMode: 'smart',
-                              subtitleEraseBox: null,
-                              isClipMode: false,
-                            });
-                            setSelectedNode(node.id);
-                          }}
-                        >
-                          <Wand2 className="h-4 w-4" />
-                          {t("nodeToolbar.video.subtitleRemovalSmart")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className={TOOLBAR_MENU_ITEM_CLASS}
-                          onSelect={() => {
-                            if (!hasVideo) {
-                              handleVideoStub("subtitle-box-erase");
-                              return;
-                            }
-                            updateNodeData(node.id, {
-                              subtitleEraseMode: 'box',
-                              subtitleEraseBox: null,
-                              isClipMode: false,
-                            });
-                            setSelectedNode(node.id);
-                          }}
-                        >
-                          <Crop className="h-4 w-4" />
-                          {t("nodeToolbar.video.subtitleRemovalBox")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <UiChipButton
-                      key="video-separate-av"
-                      className={`${stubButtonClass} ${
-                        !hasVideo || isSeparatingAv
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      }`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : undefined
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleAudioSeparate();
-                      }}
-                    >
-                      {isSeparatingAv ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <VideoIcon className="h-3.5 w-3.5" />
-                      )}
-                      {t("nodeToolbar.video.separateAudioVideo")}
-                    </UiChipButton>
-                    <UiChipButton
-                      key="video-download"
-                      className={`${stubButtonClass} !px-2 ${!hasVideo ? "opacity-50 cursor-not-allowed" : ""}`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : t("nodeToolbar.download")
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleVideoDownload();
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </UiChipButton>
-                    <UiChipButton
-                      key="video-fullscreen"
-                      className={`${stubButtonClass} !px-2 ${!hasVideo ? "opacity-50 cursor-not-allowed" : ""}`}
-                      title={
-                        !hasVideo
-                          ? t("nodeToolbar.video.requiresVideo")
-                          : t("nodeToolbar.video.fullscreen")
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleVideoFullscreen();
-                      }}
-                    >
-                      <Maximize2 className="h-3.5 w-3.5" />
-                    </UiChipButton>
-                  </>
-                );
-              })()}
+            {isVideoNode(node) && (
+              <VideoNodeToolbarActions nodeId={node.id} data={node.data} />
+            )}
             {isAudioNode(node) &&
               (() => {
                 const audioData = node.data;
@@ -1527,7 +1085,7 @@ export const NodeActionToolbar = memo(
                     ? audioData.audioUrl
                     : null;
                 const hasAudio = Boolean(audioUrl);
-                const audioButtonClass = TOOLBAR_TEXT_BUTTON_CLASS;
+                const audioButtonClass = NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS;
                 const sourceExt = audioUrl ? getAudioExtFromUrl(audioUrl) : "";
                 const convertingFormat =
                   typeof audioData.convertingAudioFormat === "string"
@@ -1603,11 +1161,7 @@ export const NodeActionToolbar = memo(
                 };
 
                 return (
-                  <DropdownMenu
-                    onOpenChange={(open) => {
-                      if (open) closeDownloadMenu();
-                    }}
-                  >
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <UiChipButton
                         key="audio-download"
@@ -1633,7 +1187,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuContent
                       align="start"
                       sideOffset={6}
-                      className={`${TOOLBAR_MENU_CONTENT_CLASS} min-w-[170px]`}
+                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[170px]`}
                       onClick={(event) => event.stopPropagation()}
                     >
                       {AUDIO_DOWNLOAD_FORMATS.map((format) => {
@@ -1642,7 +1196,7 @@ export const NodeActionToolbar = memo(
                           <DropdownMenuItem
                             key={format}
                             disabled={!hasAudio || !available || isConverting}
-                            className={TOOLBAR_MENU_ITEM_CLASS}
+                            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
                             onSelect={() => {
                               void handleAudioDownload(format);
                             }}
@@ -1677,7 +1231,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuTrigger asChild>
                       <UiChipButton
                         key="group-color"
-                        className={TOOLBAR_TEXT_BUTTON_CLASS}
+                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                         title="组背景色"
                         onClick={(event) => event.stopPropagation()}
                       >
@@ -1696,7 +1250,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuContent
                       align="start"
                       sideOffset={6}
-                      className={TOOLBAR_MENU_CONTENT_CLASS}
+                      className={NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <div className="grid grid-cols-5 gap-1.5 p-1.5">
@@ -1733,7 +1287,7 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuTrigger asChild>
                       <UiChipButton
                         key="group-arrange"
-                        className={TOOLBAR_TEXT_BUTTON_CLASS}
+                        className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                         title="排列方式"
                         onClick={(event) => event.stopPropagation()}
                       >
@@ -1745,23 +1299,23 @@ export const NodeActionToolbar = memo(
                     <DropdownMenuContent
                       align="start"
                       sideOffset={6}
-                      className={`${TOOLBAR_MENU_CONTENT_CLASS} min-w-[120px]`}
+                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[120px]`}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <DropdownMenuItem
-                        className={TOOLBAR_MENU_ITEM_CLASS}
+                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
                         onSelect={() => arrangeGroupChildren(nodeId, 'grid')}
                       >
                         网格
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className={TOOLBAR_MENU_ITEM_CLASS}
+                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
                         onSelect={() => arrangeGroupChildren(nodeId, 'horizontal')}
                       >
                         横向排列
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className={TOOLBAR_MENU_ITEM_CLASS}
+                        className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
                         onSelect={() => arrangeGroupChildren(nodeId, 'vertical')}
                       >
                         纵向排列
@@ -1770,10 +1324,9 @@ export const NodeActionToolbar = memo(
                   </DropdownMenu>
                   <UiChipButton
                     key="group-ungroup"
-                    className={`${TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
+                    className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
                     onClick={(event) => {
                       event.stopPropagation();
-                      closeDownloadMenu();
                       ungroupNode(nodeId);
                     }}
                   >
@@ -1788,8 +1341,8 @@ export const NodeActionToolbar = memo(
                 key="projection-refresh"
                 className={
                   projectionIsStale
-                    ? `${TOOLBAR_TEXT_BUTTON_CLASS} !border-warning/50 !bg-warning/10 !text-warning hover:!bg-warning/15`
-                    : TOOLBAR_TEXT_BUTTON_CLASS
+                    ? `${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} !border-warning/50 !bg-warning/10 !text-warning hover:!bg-warning/15`
+                    : NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS
                 }
                 title={
                   projectionIsStale
@@ -1798,7 +1351,6 @@ export const NodeActionToolbar = memo(
                 }
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   canvasEventBus.publish("freezone/projection-sync", {
                     projectionKey: protectedProjectionKey,
                   });
@@ -1813,10 +1365,9 @@ export const NodeActionToolbar = memo(
             {!isImageGenNode(node) && !isVideoNode(node) && !isAudioNode(node) && (
               <UiChipButton
                 key="node-delete"
-                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} !border-transparent !bg-transparent px-3 text-sm text-destructive hover:!bg-destructive/10 hover:!text-destructive`}
+                className={`h-9 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} !border-transparent !bg-transparent px-3 text-sm text-destructive hover:!bg-destructive/10 hover:!text-destructive`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   if (protectedProjectionKey) {
                     canvasEventBus.publish("freezone/projection-remove", {
                       projectionKey: protectedProjectionKey,
@@ -1835,10 +1386,9 @@ export const NodeActionToolbar = memo(
             {canCommitNode && (
               <UiChipButton
                 key="node-commit"
-                className={TOOLBAR_TEXT_BUTTON_CLASS}
+                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
                 onClick={(event) => {
                   event.stopPropagation();
-                  closeDownloadMenu();
                   canvasEventBus.publish("freezone/commit-node", {
                     nodeId: node.id,
                   });

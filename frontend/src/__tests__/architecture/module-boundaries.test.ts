@@ -17962,15 +17962,15 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
-    const toolbarPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useVideoNodeToolbarController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -18010,9 +18010,9 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneVideoStoryAnalysisGateway",
     );
-    expect(toolbarSource).toContain("await analyzeCanvasVideoStory({");
-    expect(toolbarSource).not.toContain("submitFreezoneAnalyzeVideoStory");
-    expect(toolbarSource).not.toContain("normalizeVideoStoryRows");
+    expect(controllerSource).toContain("await analyzeCanvasVideoStory({");
+    expect(controllerSource).not.toContain("submitFreezoneAnalyzeVideoStory");
+    expect(controllerSource).not.toContain("normalizeVideoStoryRows");
     for (const legacySymbol of [
       "FreezoneAnalyzeVideoStoryPayload",
       "submitFreezoneAnalyzeVideoStory",
@@ -18041,16 +18041,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
-    const toolbarPath = resolve(
+    const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useVideoNodeToolbarController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const resultSource = readFileSync(resultPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const productionSources = sourceFiles(SRC_ROOT).filter(
       (path) => !path.includes(".test."),
@@ -18117,14 +18117,14 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "audioSeparationGateway: freezoneAudioSeparationGateway",
     );
-    expect(importSpecifiers(toolbarPath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(toolbarPath)).not.toContain("@/api/tasks");
-    expect(toolbarSource).toContain("await separateCanvasAudioVideo({");
-    expect(toolbarSource).not.toContain("submitFreezoneAudioSeparate");
-    expect(toolbarSource).not.toContain("fetchFreezoneAudioSeparateResult");
-    expect(toolbarSource).not.toContain("awaitTaskCompletion");
-    expect(toolbarSource).not.toContain("collectStrings");
-    expect(toolbarSource).not.toContain("toStaticUrl");
+    expect(importSpecifiers(controllerPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(controllerPath)).not.toContain("@/api/tasks");
+    expect(controllerSource).toContain("await separateCanvasAudioVideo({");
+    expect(controllerSource).not.toContain("submitFreezoneAudioSeparate");
+    expect(controllerSource).not.toContain("fetchFreezoneAudioSeparateResult");
+    expect(controllerSource).not.toContain("awaitTaskCompletion");
+    expect(controllerSource).not.toContain("collectStrings");
+    expect(controllerSource).not.toContain("toStaticUrl");
   });
 
   it("keeps Canvas scene-360 generation orchestration in application", () => {
@@ -18620,6 +18620,150 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates video node toolbar model, controller, composition, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeToolbarModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoNodeToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoNodeToolbarActionsView.tsx",
+    );
+    const stylesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/nodeActionToolbarStyles.ts",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "projectVideoNodeToolbar("].join(" "),
+      ["export function", "buildVideoAnalysisStoryNodeData("].join(" "),
+      ["export function", "buildVideoUpscaleNodeData("].join(" "),
+      ["export function", "buildSeparatedVideoNodeData("].join(" "),
+      ["export function", "useVideoNodeToolbarController("].join(" "),
+      ["export function", "VideoNodeToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(modelPath)).toEqual([
+      "@/features/canvas/domain/canvasNodes",
+    ]);
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "readUrl",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/videoNodeToolbarModel",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "@/features/canvas/domain/canvasNodes",
+        "@/lib/browserDownload",
+        "@/lib/url-params",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "readUrl",
+      "analyzeCanvasVideoStory",
+      "separateCanvasAudioVideo",
+      "downloadUrlAsFile",
+      "canvasEventBus",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(importSpecifiers(stylesPath)).toEqual([]);
+    expect(componentSource).toContain("useVideoNodeToolbarController({");
+    expect(componentSource).toContain(
+      "<VideoNodeToolbarActionsView controller={controller} />",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/VideoNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "./nodeActionToolbarStyles",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useVideoNodeToolbarController",
+    );
+    expect(toolbarSource).toContain("<VideoNodeToolbarActions");
+    for (const legacyInlineLogic of [
+      "handleVideoStub",
+      "handleVideoAnalyze",
+      "handleVideoDownload",
+      "handleVideoFullscreen",
+      "handleVideoUpscale",
+      "handleAudioSeparate",
+      "await analyzeCanvasVideoStory({",
+      "await separateCanvasAudioVideo({",
+      "sourceVideoUrl: videoUrl",
+      "isUpscaleNode: true",
+      "closeDownloadMenu",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual([
+      ...declarations.slice(0, 4).map(() => [
+        "features/canvas/application/videoNodeToolbarModel.ts",
+      ]),
+      ["features/canvas/hooks/useVideoNodeToolbarController.ts"],
+      ["features/canvas/ui/VideoNodeToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./videoNodeToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useVideoNodeToolbarController"',
+    );
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -18636,6 +18780,7 @@ describe("frontend architecture boundaries", () => {
       "handleCopyImage",
       "handleCreateAiEditNode",
       "handleCreatePresetEditNode",
+      "closeDownloadMenu",
       "void Sparkles",
       "AI 改图按钮暂时隐藏",
       "重新上传按钮暂时隐藏",
