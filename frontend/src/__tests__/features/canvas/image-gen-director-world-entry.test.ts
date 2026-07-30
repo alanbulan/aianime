@@ -6,24 +6,31 @@ import { describe, expect, it } from "vitest";
 
 describe("ImageGenNode director combined world entry", () => {
   it("passes a combined capture handler so preset director assets can export bundles", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/ImageGenNode.tsx"),
+    const controllerSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/canvas/hooks/useImageGenNodeController.ts",
+      ),
+      "utf8",
+    );
+    const viewSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/nodes/ImageGenNodeView.tsx"),
       "utf8",
     );
 
-    expect(source).toContain("handleDirectorCaptureCombined");
-    expect(source).toContain("onSubmitDirectorCombined={handleDirectorCaptureCombined}");
-    expect(source).not.toContain("onCaptureCanvasNode={handleDirectorCaptureCombined}");
-    expect(source).toContain("controlFrameBundle");
+    expect(controllerSource).toContain("handleDirectorCaptureCombined");
+    expect(viewSource).toContain("onSubmitDirectorCombined={handleDirectorCaptureCombined}");
+    expect(viewSource).not.toContain("onCaptureCanvasNode={handleDirectorCaptureCombined}");
+    expect(controllerSource).toContain("controlFrameBundle");
   });
 
   it("does not expose selected-background capture from the director-combined entry", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/ImageGenNode.tsx"),
+    const viewSource = readFileSync(
+      resolve(process.cwd(), "src/features/canvas/nodes/ImageGenNodeView.tsx"),
       "utf8",
     );
 
-    expect(source).not.toContain("onCaptureSelectedBackground={handleDirectorCaptureSelectedBackground}");
+    expect(viewSource).not.toContain("onCaptureSelectedBackground={handleDirectorCaptureSelectedBackground}");
   });
 
   it("lets dragged director bundle upload nodes open Director World", () => {

@@ -541,11 +541,13 @@ describe("freezone viewer contracts", () => {
   });
 
   it("auto-commits present image generation nodes when requested by the preset", () => {
-    const imageGenNode = read("src/features/canvas/nodes/ImageGenNode.tsx");
+    const imageGenController = read(
+      "src/features/canvas/hooks/useImageGenNodeController.ts",
+    );
 
-    expect(imageGenNode).toContain("autoCommitOnGenerate");
-    expect(imageGenNode).toContain("canvasEventBus.publish('freezone/commit-node'");
-    expect(imageGenNode).toContain("auto: true");
+    expect(imageGenController).toContain("autoCommitOnGenerate");
+    expect(imageGenController).toContain("canvasEventBus.publish('freezone/commit-node'");
+    expect(imageGenController).toContain("auto: true");
   });
 
   it("routes projection group toolbar actions through projection sync and remove events", () => {

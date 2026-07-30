@@ -2037,6 +2037,108 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain("from './ThreeDWorldNodeView'");
   });
 
+  it("separates the Canvas image-generation model, controller, controls, and view", () => {
+    const entryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNode.tsx",
+    );
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGenNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGenNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGenNodeController.ts",
+    );
+    const controlsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNodeControls.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+    );
+    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const entrySource = readFileSync(entryPath, "utf8");
+    const modelSource = readFileSync(modelPath, "utf8");
+    const modelTestSource = readFileSync(modelTestPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const controlsSource = readFileSync(controlsPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const declarations = [
+      ["export const", "ImageGenNode", "=", "memo("].join(" "),
+      ["export function", "isImage2Model("].join(" "),
+      ["export function", "useImageGenNodeController("].join(" "),
+      ["export function", "AspectSizeChip("].join(" "),
+      ["export function", "ImageGenNodeView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(entryPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useImageGenNodeController",
+        "./ImageGenNodeView",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/nodes/ImageGenNode.tsx"],
+      ["features/canvas/application/imageGenNodeModel.ts"],
+      ["features/canvas/hooks/useImageGenNodeController.ts"],
+      ["features/canvas/nodes/ImageGenNodeControls.tsx"],
+      ["features/canvas/nodes/ImageGenNodeView.tsx"],
+    ]);
+    expect(modelSource).not.toContain("react");
+    expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("window.");
+    expect(modelSource).not.toContain("document.");
+    expect(modelSource).not.toContain("className=");
+    expect(modelTestSource).toContain("from './imageGenNodeModel'");
+    expect(registrySource).toContain(
+      "import { ImageGenNode } from './ImageGenNode'",
+    );
+    expect(registrySource).toContain("imageGenNode: ImageGenNode");
+    expect(entrySource).toContain("useImageGenNodeController(props)");
+    expect(entrySource).toContain(
+      "createElement(ImageGenNodeView, { controller })",
+    );
+    expect(entrySource).not.toContain("useState(");
+    expect(entrySource).not.toContain("useEffect(");
+    expect(entrySource).not.toContain("className=");
+    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("await generateCanvasImage(");
+    expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("getCanvasBeatDirectorManifest({");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
+    expect(controlsSource).toContain("useState(");
+    expect(controlsSource).toContain("createPortal(");
+    expect(controlsSource).not.toContain("useCanvasStore(");
+    expect(viewSource).toContain("<PromptMentionEditor");
+    expect(viewSource).toContain("<NodeGenerationHistory");
+    expect(viewSource).toContain("<BackgroundCropperDialog");
+    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<AssetLibraryModal");
+    expect(viewSource).not.toContain("useState(");
+    expect(viewSource).not.toContain("useEffect(");
+    expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).not.toContain("generateCanvasImage(");
+    expect(viewSource).not.toContain("translateCanvasText(");
+    expect(viewSource).not.toContain("uploadCanvasAsset(");
+  });
+
   it("separates the Canvas Skill node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
@@ -3422,7 +3524,7 @@ describe("frontend architecture boundaries", () => {
     const readerPaths = [
       "features/canvas/infrastructure/freezoneAiGateway.ts",
       "features/canvas/hooks/useBeatContextNodeController.ts",
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const getterDeclaration = [
@@ -16671,7 +16773,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/infrastructure/freezoneBeatDirectorManifestGateway.ts",
     );
     const nodePaths = [
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
@@ -17300,7 +17402,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -21163,7 +21265,7 @@ describe("frontend architecture boundaries", () => {
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
       "features/canvas/nodes/AudioOperationsPanel.tsx",
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useScriptNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
@@ -21427,7 +21529,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/compose/VideoComposeModal.tsx",
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.ts",
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
@@ -21552,8 +21654,15 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/ImageEditNodeView.tsx",
     );
+    const imageGenControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGenNodeController.ts",
+    );
+    const imageGenViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+    );
     const combinedConsumerPaths = [
-      "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/VideoNode.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const endpointOwners = sourceFiles(SRC_ROOT)
@@ -21658,6 +21767,18 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/ui/AssetLibraryModal",
     );
     expect(importSpecifiers(imageEditViewPath)).not.toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(importSpecifiers(imageGenControllerPath)).toContain(
+      "@/features/canvas/domain/assetLibrary",
+    );
+    expect(importSpecifiers(imageGenControllerPath)).not.toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(imageGenViewPath)).toContain(
+      "@/features/canvas/ui/AssetLibraryModal",
+    );
+    expect(importSpecifiers(imageGenViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
   });
@@ -22068,7 +22189,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const imageGenNode = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/ImageGenNode.tsx"),
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useImageGenNodeController.ts",
+      ),
       "utf8",
     );
     const declaration = [
@@ -22216,7 +22340,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const consumerPaths = [
       "features/canvas/hooks/useAudioNodeController.ts",
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/nodes/VideoNode.tsx",
     ];
