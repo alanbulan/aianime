@@ -4,6 +4,7 @@ import {
   AUDIO_DOWNLOAD_FORMATS,
   canProduceFormat,
   getAudioExtFromUrl,
+  isAudioFormatPassthrough,
 } from "@/lib/audioTranscode";
 
 describe("getAudioExtFromUrl", () => {
@@ -48,5 +49,20 @@ describe("canProduceFormat", () => {
 describe("AUDIO_DOWNLOAD_FORMATS", () => {
   it("exposes mp3/m4a/wav in order", () => {
     expect([...AUDIO_DOWNLOAD_FORMATS]).toEqual(["mp3", "m4a", "wav"]);
+  });
+});
+
+describe("isAudioFormatPassthrough", () => {
+  it("reuses matching source containers and AAC-family M4A sources", () => {
+    expect(isAudioFormatPassthrough("mp3", "mp3")).toBe(true);
+    expect(isAudioFormatPassthrough("wav", "wav")).toBe(true);
+    expect(isAudioFormatPassthrough("m4a", "aac")).toBe(true);
+    expect(isAudioFormatPassthrough("m4a", "mp4")).toBe(true);
+  });
+
+  it("requires transcoding for other supported pairs", () => {
+    expect(isAudioFormatPassthrough("mp3", "wav")).toBe(false);
+    expect(isAudioFormatPassthrough("wav", "m4a")).toBe(false);
+    expect(isAudioFormatPassthrough("m4a", "mp3")).toBe(false);
   });
 });

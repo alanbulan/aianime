@@ -34,7 +34,6 @@ import {
   LayoutGrid,
   Link2,
   Lightbulb,
-  Loader2,
   Package,
   Palette,
   PenLine,
@@ -51,16 +50,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { toast } from "sonner";
-
-import { downloadBlobAsFile, downloadUrlAsFile } from "@/lib/browserDownload";
-import {
-  AUDIO_DOWNLOAD_FORMATS,
-  canProduceFormat,
-  getAudioExtFromUrl,
-  transcodeAudio,
-  type AudioDownloadFormat,
-} from "@/lib/audioTranscode";
+import { downloadUrlAsFile } from "@/lib/browserDownload";
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
 import { inheritMainlineFields } from "@/features/canvas/domain/inheritMainlineFields";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
@@ -89,6 +79,7 @@ import type {
   GridActionKey,
   GridActionRequest,
 } from "@/features/canvas/domain/gridAction";
+import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
@@ -1077,152 +1068,9 @@ export const NodeActionToolbar = memo(
             {isVideoNode(node) && (
               <VideoNodeToolbarActions nodeId={node.id} data={node.data} />
             )}
-            {isAudioNode(node) &&
-              (() => {
-                const audioData = node.data;
-                const audioUrl =
-                  typeof audioData.audioUrl === "string"
-                    ? audioData.audioUrl
-                    : null;
-                const hasAudio = Boolean(audioUrl);
-                const audioButtonClass = NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS;
-                const sourceExt = audioUrl ? getAudioExtFromUrl(audioUrl) : "";
-                const convertingFormat =
-                  typeof audioData.convertingAudioFormat === "string"
-                    ? (audioData.convertingAudioFormat as AudioDownloadFormat)
-                    : null;
-                const isConverting = Boolean(convertingFormat);
-
-                // The separated-audio node stores `sourceFileName` WITHOUT an
-                // extension (e.g. `xxx_背景音`), which previously produced an
-                // extensionless download the OS couldn't open. Strip any trailing
-                // audio extension and re-append the chosen format below.
-                const baseFileName = (() => {
-                  const raw =
-                    typeof audioData.sourceFileName === "string" &&
-                    audioData.sourceFileName.trim().length > 0
-                      ? audioData.sourceFileName.trim()
-                      : typeof audioData.displayName === "string" &&
-                          audioData.displayName.trim().length > 0
-                        ? audioData.displayName.trim()
-                        : `audio-${node.id}`;
-                  return raw.replace(
-                    /\.(mp3|m4a|aac|wav|flac|ogg|opus|mp4|m4b)$/i,
-                    "",
-                  );
-                })();
-
-                const handleAudioDownload = async (
-                  format: AudioDownloadFormat,
-                ) => {
-                  if (!hasAudio || !audioUrl || isConverting) {
-                    return;
-                  }
-                  if (!canProduceFormat(format, sourceExt)) {
-                    toast.error(t("nodeToolbar.audio.m4aSourceOnly"));
-                    return;
-                  }
-                  const filename = `${baseFileName}.${format}`;
-                  const resolvedUrl = resolveImageDisplayUrl(audioUrl);
-                  // Passthrough (target container == source): download original
-                  // bytes via downloadUrlAsFile (robust cross-origin fallback +
-                  // correct extension), no lossy re-encode.
-                  const passthrough =
-                    format === sourceExt ||
-                    (format === "m4a" && canProduceFormat("m4a", sourceExt));
-                  if (passthrough) {
-                    try {
-                      await downloadUrlAsFile(resolvedUrl, filename);
-                    } catch (error) {
-                      console.error("[audio-download] passthrough failed", error);
-                      toast.error(t("nodeToolbar.audio.downloadFailed"));
-                    }
-                    return;
-                  }
-                  updateNodeData(node.id, { convertingAudioFormat: format });
-                  try {
-                    const resp = await fetch(resolvedUrl);
-                    if (!resp.ok) {
-                      throw new Error(`fetch failed: ${resp.status}`);
-                    }
-                    const srcBlob = await resp.blob();
-                    const outBlob = await transcodeAudio(
-                      srcBlob,
-                      sourceExt,
-                      format,
-                    );
-                    downloadBlobAsFile(outBlob, filename);
-                  } catch (error) {
-                    console.error("[audio-download] transcode failed", error);
-                    toast.error(t("nodeToolbar.audio.downloadFailed"));
-                  } finally {
-                    updateNodeData(node.id, { convertingAudioFormat: null });
-                  }
-                };
-
-                return (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <UiChipButton
-                        key="audio-download"
-                        className={`${audioButtonClass} ${
-                          !hasAudio ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        title={
-                          !hasAudio
-                            ? t("nodeToolbar.audio.requiresAudio")
-                            : t("nodeToolbar.download")
-                        }
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {isConverting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5" />
-                        )}
-                        {t("nodeToolbar.download")}
-                        <ChevronDown className="h-3 w-3" />
-                      </UiChipButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      sideOffset={6}
-                      className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[170px]`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      {AUDIO_DOWNLOAD_FORMATS.map((format) => {
-                        const available = canProduceFormat(format, sourceExt);
-                        return (
-                          <DropdownMenuItem
-                            key={format}
-                            disabled={!hasAudio || !available || isConverting}
-                            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-                            onSelect={() => {
-                              void handleAudioDownload(format);
-                            }}
-                          >
-                            {convertingFormat === format ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                            <span className="flex-1">
-                              {t("nodeToolbar.audio.downloadAs", {
-                                format: format.toUpperCase(),
-                              })}
-                            </span>
-                            {!available ? (
-                              <span className="text-[10px] opacity-60">
-                                {t("nodeToolbar.audio.m4aSourceOnlyHint")}
-                              </span>
-                            ) : null}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              })()}
+            {isAudioNode(node) && (
+              <AudioNodeToolbarActions nodeId={node.id} data={node.data} />
+            )}
             {!isImageEdit && isUngroupableGroup && (() => {
               const groupColor = groupBackgroundColor;
               return (

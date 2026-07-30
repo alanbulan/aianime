@@ -59,8 +59,11 @@ export function canProduceFormat(
   return true;
 }
 
-/** True when the target equals the source container, so no re-encode is needed. */
-function isPassthrough(target: AudioDownloadFormat, sourceExt: string): boolean {
+/** True when the target can reuse the source bytes without re-encoding. */
+export function isAudioFormatPassthrough(
+  target: AudioDownloadFormat,
+  sourceExt: string,
+): boolean {
   if (target === "m4a") return M4A_SOURCE_EXTS.has(sourceExt);
   return target === sourceExt;
 }
@@ -178,7 +181,7 @@ export async function transcodeAudio(
   sourceExt: string,
   target: AudioDownloadFormat,
 ): Promise<Blob> {
-  if (isPassthrough(target, sourceExt)) return blob;
+  if (isAudioFormatPassthrough(target, sourceExt)) return blob;
   if (target === "m4a") {
     throw new Error("m4a cannot be encoded in-browser");
   }

@@ -18764,6 +18764,150 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates audio node toolbar model, browser controller, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioNodeToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioNodeToolbarModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioNodeToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useAudioNodeToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/AudioNodeToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/AudioNodeToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const transcodePath = resolve(SRC_ROOT, "lib/audioTranscode.ts");
+    const transcodeTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/lib/audioTranscode.test.ts",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const transcodeSource = readFileSync(transcodePath, "utf8");
+    const declarations = [
+      ["export function", "projectAudioNodeToolbar("].join(" "),
+      ["export function", "resolveAudioNodeDownloadFilename("].join(" "),
+      ["export function", "useAudioNodeToolbarController("].join(" "),
+      ["export function", "AudioNodeToolbarActionsView("].join(" "),
+      ["export function", "isAudioFormatPassthrough("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(modelPath)).toEqual([
+      "@/features/canvas/domain/canvasNodes",
+    ]);
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "fetch(",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/lib/",
+      "@/features/canvas/composition",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "sonner",
+        "@/features/canvas/application/audioNodeToolbarModel",
+        "@/features/canvas/application/imageData",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasNodes",
+        "@/lib/browserDownload",
+        "@/lib/audioTranscode",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    for (const forbiddenViewDependency of [
+      "useCanvasStore",
+      "useTranslation",
+      "fetch(",
+      "toast.",
+      "downloadBlobAsFile",
+      "downloadUrlAsFile",
+      "transcodeAudio",
+      "useMemo",
+      "useCallback",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(componentSource).toContain("useAudioNodeToolbarController({");
+    expect(componentSource).toContain(
+      "<AudioNodeToolbarActionsView controller={controller} />",
+    );
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/AudioNodeToolbarActions",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain("@/lib/audioTranscode");
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useAudioNodeToolbarController",
+    );
+    expect(toolbarSource).toContain("<AudioNodeToolbarActions");
+    for (const legacyInlineLogic of [
+      "handleAudioDownload",
+      "AUDIO_DOWNLOAD_FORMATS",
+      "canProduceFormat",
+      "getAudioExtFromUrl",
+      "transcodeAudio",
+      "convertingAudioFormat",
+      "m4aSourceOnly",
+      "baseFileName",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(controllerSource).toContain("isAudioFormatPassthrough(");
+    expect(transcodeSource).toContain("isAudioFormatPassthrough(");
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/audioNodeToolbarModel.ts"],
+      ["features/canvas/application/audioNodeToolbarModel.ts"],
+      ["features/canvas/hooks/useAudioNodeToolbarController.ts"],
+      ["features/canvas/ui/AudioNodeToolbarActionsView.tsx"],
+      ["lib/audioTranscode.ts"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./audioNodeToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useAudioNodeToolbarController"',
+    );
+    expect(readFileSync(transcodeTestPath, "utf8")).toContain(
+      "isAudioFormatPassthrough",
+    );
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,
