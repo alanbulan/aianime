@@ -2678,6 +2678,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbar.tsx"),
       "utf8",
     );
+    const imageMatteController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useImageMatteController.ts",
+      ),
+      "utf8",
+    );
     const videoTranscode = readFileSync(
       resolve(
         SRC_ROOT,
@@ -2835,7 +2842,10 @@ describe("frontend architecture boundaries", () => {
     expect(generationRuntimeGateway).toContain("navigator.userAgent");
     expect(generationRuntimeGateway).toContain("runtimeSessionId:");
     expect(matteClient).toContain('new URL("./matteWorker.ts"');
-    expect(nodeActionToolbar).toContain(
+    expect(imageMatteController).toContain(
+      "@/features/canvas/infrastructure/matteClient",
+    );
+    expect(nodeActionToolbar).not.toContain(
       "@/features/canvas/infrastructure/matteClient",
     );
     expect(videoTranscode).toContain(
@@ -19212,6 +19222,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useHoverMenuController",
+        "@/features/canvas/hooks/useImageMatteController",
       ]),
     );
     expect(controllerSource).toContain("useHoverMenuController()");
@@ -19240,6 +19251,7 @@ describe("frontend architecture boundaries", () => {
     expect(componentSource).toContain(
       "<ImageEditToolbarActionsView controller={controller} />",
     );
+    expect(componentSource).not.toContain("onMatteImage");
     expect(importSpecifiers(toolbarPath)).toContain(
       "@/features/canvas/ui/ImageEditToolbarActions",
     );
@@ -19275,6 +19287,127 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageEditToolbarController"',
+    );
+  });
+
+  it("separates image matting projections from browser orchestration", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageMatteNodeModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageMatteNodeModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageMatteController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageMatteController.test.tsx",
+    );
+    const editControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageEditToolbarController.ts",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageEditToolbarActions.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const editControllerSource = readFileSync(editControllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "buildImageMatteInitialData("].join(" "),
+      ["export function", "buildImageMatteSuccessPatch("].join(" "),
+      ["export function", "buildImageMatteFailurePatch("].join(" "),
+      ["export function", "resolveImageMatteUploadFilename("].join(" "),
+      ["export function", "useImageMatteController("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(modelPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/domain/inheritMainlineFields",
+      ]),
+    );
+    for (const forbiddenDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "fetch(",
+      "Date.now",
+      "useCanvasStore",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+      "@/features/canvas/infrastructure",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/application/imageMatteNodeModel",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/infrastructure/matteClient",
+        "@/lib/url-params",
+      ]),
+    );
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("<UiChipButton");
+    expect(controllerSource).not.toContain("<DropdownMenu");
+    expect(editControllerSource).toContain("useImageMatteController({");
+    expect(componentSource).toContain("nodeData,");
+    expect(componentSource).toContain("imageSource,");
+    expect(componentSource).not.toContain("onMatteImage");
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/application/imageMatteNodeModel",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/hooks/useImageMatteController",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "@/features/canvas/infrastructure/matteClient",
+    );
+    for (const legacyInlineLogic of [
+      "handleMatteImage",
+      "preloadMatteWorker",
+      "matteInWorker",
+      "matteInitialData",
+      "fetch source failed",
+      "matte-${node.id}",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/imageMatteNodeModel.ts"],
+      ["features/canvas/application/imageMatteNodeModel.ts"],
+      ["features/canvas/application/imageMatteNodeModel.ts"],
+      ["features/canvas/application/imageMatteNodeModel.ts"],
+      ["features/canvas/hooks/useImageMatteController.ts"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./imageMatteNodeModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useImageMatteController"',
     );
   });
 
@@ -24042,7 +24175,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useVideoNodeController.ts",
       "features/canvas/hooks/useAssetLibraryModalController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/hooks/useImageMatteController.ts",
       "features/canvas/ui/RedrawOverlay.tsx",
       "features/canvas/ui/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));

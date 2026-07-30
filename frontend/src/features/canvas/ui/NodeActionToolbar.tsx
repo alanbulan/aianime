@@ -29,15 +29,12 @@ import { useTranslation } from "react-i18next";
 
 import { downloadUrlAsFile } from "@/lib/browserDownload";
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
-import { inheritMainlineFields } from "@/features/canvas/domain/inheritMainlineFields";
 import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 import {
   NODE_TOOL_TYPES,
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   isAudioNode,
   isGroupNode,
   isImageEditNode,
@@ -75,10 +72,6 @@ import {
   openPresetProjectionInMyCanvas,
   useCanvasProjectionStatus,
 } from "@/features/freezone/public";
-import {
-  matteInWorker,
-  preloadMatteWorker,
-} from "@/features/canvas/infrastructure/matteClient";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 import type { ToolIconKey } from "@/features/canvas/tools";
 import { UiChipButton, UiPanel } from "@/components/ui";
@@ -86,7 +79,6 @@ import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { uploadCanvasAsset } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
@@ -192,11 +184,8 @@ export const NodeActionToolbar = memo(
     const tools = useMemo(() => getNodeToolPlugins(node), [node]);
     const deleteNode = useCanvasStore((state) => state.deleteNode);
     const addNode = useCanvasStore((state) => state.addNode);
-    const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
-    const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-    const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const ignoreAtTagWhenCopyingAndGenerating = useSettingsStore(
       (state) => state.ignoreAtTagWhenCopyingAndGenerating,
     );
@@ -262,32 +251,6 @@ export const NodeActionToolbar = memo(
       },
       [t],
     );
-
-    // 选中可抠图的节点时,在浏览器空闲间隙预热抠图管线,把一次性的模型/Worker/
-    // WASM 初始化挪到用户点击「抠图」之前,避免点击瞬间主线程卡 2~3s。整段只跑一次。
-    useEffect(() => {
-      if (!canHandleImage) {
-        return;
-      }
-      const win = window as unknown as {
-        requestIdleCallback?: (cb: () => void) => number;
-        cancelIdleCallback?: (handle: number) => void;
-      };
-      if (typeof win.requestIdleCallback === "function") {
-        const handle = win.requestIdleCallback(() => {
-          preloadMatteWorker();
-        });
-        return () => {
-          win.cancelIdleCallback?.(handle);
-        };
-      }
-      const timer = setTimeout(() => {
-        preloadMatteWorker();
-      }, 1200);
-      return () => {
-        clearTimeout(timer);
-      };
-    }, [canHandleImage]);
 
     useEffect(() => {
       return () => {
@@ -378,97 +341,6 @@ export const NodeActionToolbar = memo(
         console.error("Failed to download image", error);
       }
     }, [imageDownloadFilename, imageSource]);
-
-    const handleMatteImage = useCallback(() => {
-      if (!imageSource) {
-        return;
-      }
-      const projectId = readUrl().project;
-      if (!projectId) {
-        console.warn(
-          "[matte] no project_id in URL (?p=<project_id>) — cannot persist matted PNG",
-        );
-        return;
-      }
-      const sourceAspectRatio =
-        typeof (node.data as { aspectRatio?: unknown }).aspectRatio === "string"
-          ? ((node.data as { aspectRatio?: string }).aspectRatio ?? "1:1")
-          : "1:1";
-      const position = findNodePosition(
-        node.id,
-        EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-        EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-      );
-      // Same inheritance contract as the spawn-style overlays — matting
-      // produces a user_spawned exportImage child that still represents
-      // the same canonical slot at Push time.
-      const matteInitialData = inheritMainlineFields(
-        { data: node.data as Record<string, unknown> },
-        {
-          displayName: t("nodeToolbar.matting"),
-          imageUrl: null,
-          previewImageUrl: null,
-          aspectRatio: sourceAspectRatio,
-          resultKind: "matte",
-          isGenerating: true,
-          generationStartedAt: Date.now(),
-        },
-      );
-      const nextNodeId = addNode(
-        CANVAS_NODE_TYPES.exportImage,
-        position,
-        matteInitialData as unknown as Parameters<typeof addNode>[2],
-      );
-      addEdge(node.id, nextNodeId);
-      setSelectedNode(nextNodeId);
-
-      const sourceUrl = imageSource;
-      void (async () => {
-        try {
-          const sourceResp = await fetch(sourceUrl);
-          if (!sourceResp.ok) {
-            throw new Error(`fetch source failed: ${sourceResp.status}`);
-          }
-          const sourceBlob = await sourceResp.blob();
-          // 整段去背在自建 Worker 内执行(见 matteClient / matteWorker):无论 WebGPU
-          // 是否可用,主线程都不阻塞,点击抠图后画布保持流畅。
-          const mattedBlob = await matteInWorker(sourceBlob);
-          const filename = `matte-${node.id}-${Date.now()}.png`;
-          const uploaded = await uploadCanvasAsset(
-            projectId,
-            mattedBlob,
-            filename,
-          );
-          updateNodeData(nextNodeId, {
-            imageUrl: uploaded.url,
-            previewImageUrl: uploaded.url,
-            isGenerating: false,
-            generationStartedAt: null,
-            generationError: null,
-            generationErrorDetails: null,
-          });
-        } catch (error) {
-          console.error("[matte] failed", error);
-          const message =
-            error instanceof Error ? error.message : String(error);
-          updateNodeData(nextNodeId, {
-            isGenerating: false,
-            generationStartedAt: null,
-            generationError: message,
-            generationErrorDetails: message,
-          });
-        }
-      })();
-    }, [
-      addEdge,
-      addNode,
-      findNodePosition,
-      imageSource,
-      node,
-      setSelectedNode,
-      t,
-      updateNodeData,
-    ]);
 
     const handleOpenWorkbench = useCallback(() => {
       if (!workbenchTarget || openingWorkbench) {
@@ -659,10 +531,11 @@ export const NodeActionToolbar = memo(
               (
                 <ImageEditToolbarActions
                   nodeId={node.id}
+                  nodeData={node.data}
+                  imageSource={imageSource}
                   isPresetLocked={isPresetLocked}
                   onOpenRedraw={onOpenRedraw}
                   onOpenErase={onOpenErase}
-                  onMatteImage={handleMatteImage}
                   onOpenUpscale={onOpenUpscale}
                   onOpenOutpaint={onOpenOutpaint}
                 />

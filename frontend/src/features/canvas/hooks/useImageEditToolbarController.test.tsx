@@ -2,10 +2,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { CanvasNodeData } from "@/features/canvas/domain/canvasNodes";
+
 import { useImageEditToolbarController } from "./useImageEditToolbarController";
 
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
+  matte: vi.fn(),
   t: vi.fn((key: string) => `translated:${key}`),
 }));
 
@@ -20,9 +23,14 @@ vi.mock("@/features/canvas/application/canvasServices", () => ({
   canvasEventBus: { publish: mocks.publish },
 }));
 
+vi.mock("@/features/canvas/hooks/useImageMatteController", () => ({
+  useImageMatteController: () => ({ matte: mocks.matte }),
+}));
+
 describe("useImageEditToolbarController", () => {
   beforeEach(() => {
     mocks.publish.mockReset();
+    mocks.matte.mockReset();
     mocks.t
       .mockReset()
       .mockImplementation((key: string) => `translated:${key}`);
@@ -31,16 +39,16 @@ describe("useImageEditToolbarController", () => {
   it("projects labels and routes every edit action through its existing owner", () => {
     const onOpenRedraw = vi.fn();
     const onOpenErase = vi.fn();
-    const onMatteImage = vi.fn();
     const onOpenUpscale = vi.fn();
     const onOpenOutpaint = vi.fn();
     const { result } = renderHook(() =>
       useImageEditToolbarController({
         nodeId: "image-a",
+        nodeData: {} as CanvasNodeData,
+        imageSource: "/source.png",
         isPresetLocked: false,
         onOpenRedraw,
         onOpenErase,
-        onMatteImage,
         onOpenUpscale,
         onOpenOutpaint,
       }),
@@ -57,7 +65,7 @@ describe("useImageEditToolbarController", () => {
 
     expect(onOpenRedraw).toHaveBeenCalledWith("image-a");
     expect(onOpenErase).toHaveBeenCalledWith("image-a");
-    expect(onMatteImage).toHaveBeenCalledOnce();
+    expect(mocks.matte).toHaveBeenCalledOnce();
     expect(onOpenUpscale).toHaveBeenCalledWith("image-a");
     expect(onOpenOutpaint).toHaveBeenCalledWith("image-a");
     expect(mocks.publish).toHaveBeenCalledWith("tool-dialog/open", {
@@ -70,10 +78,11 @@ describe("useImageEditToolbarController", () => {
   it("removes HD and projects matting when a selected node becomes locked", () => {
     const options = {
       nodeId: "image-a",
+      nodeData: {} as CanvasNodeData,
+      imageSource: "/source.png",
       isPresetLocked: false,
       onOpenRedraw: vi.fn(),
       onOpenErase: vi.fn(),
-      onMatteImage: vi.fn(),
       onOpenUpscale: vi.fn(),
       onOpenOutpaint: vi.fn(),
     };

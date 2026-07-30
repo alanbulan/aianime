@@ -7,25 +7,31 @@ import {
   type ImageEditToolbarActionKey,
 } from "@/features/canvas/application/imageEditToolbarModel";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
-import { NODE_TOOL_TYPES } from "@/features/canvas/domain/canvasNodes";
+import {
+  NODE_TOOL_TYPES,
+  type CanvasNodeData,
+} from "@/features/canvas/domain/canvasNodes";
 import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
+import { useImageMatteController } from "@/features/canvas/hooks/useImageMatteController";
 
 export interface ImageEditToolbarControllerOptions {
   nodeId: string;
+  nodeData: CanvasNodeData;
+  imageSource: string | null;
   isPresetLocked: boolean;
   onOpenRedraw: (nodeId: string) => void;
   onOpenErase: (nodeId: string) => void;
-  onMatteImage: () => void;
   onOpenUpscale: (nodeId: string) => void;
   onOpenOutpaint: (nodeId: string) => void;
 }
 
 export function useImageEditToolbarController({
   nodeId,
+  nodeData,
+  imageSource,
   isPresetLocked,
   onOpenRedraw,
   onOpenErase,
-  onMatteImage,
   onOpenUpscale,
   onOpenOutpaint,
 }: ImageEditToolbarControllerOptions) {
@@ -33,6 +39,12 @@ export function useImageEditToolbarController({
   const [selectedActionKey, setSelectedActionKey] =
     useState<ImageEditToolbarActionKey>("matting");
   const menu = useHoverMenuController();
+  const { matte } = useImageMatteController({
+    nodeId,
+    nodeData,
+    imageSource,
+    displayName: t("nodeToolbar.matting"),
+  });
   const projection = useMemo(
     () => projectImageEditToolbar(isPresetLocked, selectedActionKey),
     [isPresetLocked, selectedActionKey],
@@ -58,7 +70,7 @@ export function useImageEditToolbarController({
           onOpenErase(nodeId);
           return;
         case "matting":
-          onMatteImage();
+          matte();
           return;
         case "crop":
           canvasEventBus.publish("tool-dialog/open", {
@@ -75,7 +87,7 @@ export function useImageEditToolbarController({
     },
     [
       nodeId,
-      onMatteImage,
+      matte,
       onOpenErase,
       onOpenOutpaint,
       onOpenRedraw,
