@@ -7,17 +7,9 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
-import {
-  FolderOpen,
-  Link2,
-  RefreshCw,
-  Send,
-  Trash2,
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { FolderOpen, Link2 } from "lucide-react";
 
 import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
-import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 import {
   CANVAS_NODE_TYPES,
@@ -25,7 +17,6 @@ import {
   isAudioNode,
   isGroupNode,
   isImageEditNode,
-  isImageGenNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
   isVideoNode,
@@ -37,10 +28,10 @@ import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
+import { NodeManagementToolbarActions } from "@/features/canvas/ui/NodeManagementToolbarActions";
 import { NodeOutputToolbarActions } from "@/features/canvas/ui/NodeOutputToolbarActions";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
-import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { resolveBeatContextWorkbenchTarget } from "@/features/canvas/application/beatContextNodeModel";
 import {
   buildNodeActionBeatContextData,
@@ -50,7 +41,6 @@ import {
 import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
-  useCanvasProjectionStatus,
 } from "@/features/freezone/public";
 import { UiChipButton, UiPanel } from "@/components/ui";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
@@ -92,7 +82,6 @@ export const NodeActionToolbar = memo(
     onOpenErase,
     onOpenRotate,
   }: NodeActionToolbarProps) => {
-    const { t } = useTranslation();
     const isImageEdit = isImageEditNode(node);
     // Plain (non-protected) group → eligible for ungroup. Captured up here as a
     // boolean + a plain id while `node` still has its full type: over-broad node
@@ -105,7 +94,6 @@ export const NodeActionToolbar = memo(
     const groupBackgroundColor = isGroupNode(node)
       ? ((node.data as GroupNodeData).backgroundColor ?? null)
       : null;
-    const deleteNode = useCanvasStore((state) => state.deleteNode);
     const addNode = useCanvasStore((state) => state.addNode);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
@@ -118,20 +106,6 @@ export const NodeActionToolbar = memo(
       [node.data],
     );
     const [openingWorkbench, setOpeningWorkbench] = useState(false);
-    // commit 按钮现在覆盖所有媒体节点(图像/视频/音频/3GS)——只要能从节点推断出
-    // 可提交的媒体 url 就显示。具体提交目标在 CommitDialog 里按 mediaType 处理。
-    const canCommitNode = useMemo(
-      () => Boolean(deriveNodeDropInfo(node)?.sourceUrl),
-      [node],
-    );
-    const protectedProjectionKey =
-      isProtectedProjectionGroupNode(node) &&
-      typeof node.data.projection_key === "string" &&
-      node.data.projection_key.trim()
-        ? node.data.projection_key.trim()
-        : null;
-    const projectionStatus = useCanvasProjectionStatus(protectedProjectionKey);
-    const projectionIsStale = projectionStatus?.stale === true;
     const extractableBeatContext = useMemo(
       () => resolveNodeActionBeatContext(node, readUrl().project),
       [node],
@@ -306,69 +280,7 @@ export const NodeActionToolbar = memo(
                 backgroundColor={groupBackgroundColor}
               />
             )}
-            {protectedProjectionKey && (
-              <UiChipButton
-                key="projection-refresh"
-                className={
-                  projectionIsStale
-                    ? `${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} !border-warning/50 !bg-warning/10 !text-warning hover:!bg-warning/15`
-                    : NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS
-                }
-                title={
-                  projectionIsStale
-                    ? t("freezone.projections.staleBadge")
-                    : undefined
-                }
-                onClick={(event) => {
-                  event.stopPropagation();
-                  canvasEventBus.publish("freezone/projection-sync", {
-                    projectionKey: protectedProjectionKey,
-                  });
-                }}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                {projectionIsStale
-                  ? t("freezone.projections.syncStale")
-                  : t("freezone.projections.sync")}
-              </UiChipButton>
-            )}
-            {!isImageGenNode(node) && !isVideoNode(node) && !isAudioNode(node) && (
-              <UiChipButton
-                key="node-delete"
-                className={`h-9 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} !border-transparent !bg-transparent px-3 text-sm text-destructive hover:!bg-destructive/10 hover:!text-destructive`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (protectedProjectionKey) {
-                    canvasEventBus.publish("freezone/projection-remove", {
-                      projectionKey: protectedProjectionKey,
-                    });
-                    return;
-                  }
-                  deleteNode(node.id);
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                {protectedProjectionKey
-                  ? t("freezone.projections.remove")
-                  : t("common.delete")}
-              </UiChipButton>
-            )}
-            {canCommitNode && (
-              <UiChipButton
-                key="node-commit"
-                className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  canvasEventBus.publish("freezone/commit-node", {
-                    nodeId: node.id,
-                  });
-                }}
-                title="把当前节点的内容写回主流程资产"
-              >
-                <Send className="h-3.5 w-3.5" />
-                提交
-              </UiChipButton>
-            )}
+            <NodeManagementToolbarActions node={node} />
           </UiPanel>
           </ZoomScaledToolbar>
         </ReactFlowNodeToolbar>

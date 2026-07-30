@@ -18777,6 +18777,179 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("separates node management toolbar projection, commands, and view", () => {
+    const modelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeManagementToolbarModel.ts",
+    );
+    const modelTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeManagementToolbarModel.test.ts",
+    );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeManagementToolbarController.test.tsx",
+    );
+    const componentPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeManagementToolbarActions.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeManagementToolbarActionsView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const modelSource = readFileSync(modelPath, "utf8");
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const componentSource = readFileSync(componentPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "projectNodeManagementToolbar("].join(" "),
+      ["export function", "useNodeManagementToolbarController("].join(" "),
+      ["export const", "NodeManagementToolbarActions ="].join(" "),
+      ["export function", "NodeManagementToolbarActionsView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const commandOwners = [controllerPath, componentPath, viewPath, toolbarPath]
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes('publish("freezone/projection-sync"') ||
+          source.includes('publish("freezone/projection-remove"') ||
+          source.includes('publish("freezone/commit-node"') ||
+          source.includes("deleteNode(node.id)")
+        );
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(modelPath))).toEqual(
+      new Set([
+        "@/features/canvas/domain/assetDropInfo",
+        "@/features/canvas/domain/canvasNodes",
+      ]),
+    );
+    for (const forbiddenModelDependency of [
+      "react",
+      "window",
+      "document",
+      "navigator",
+      "useTranslation",
+      "useCanvasStore",
+      "canvasEventBus",
+      "@/api/",
+      "@/stores/",
+      "@/features/canvas/composition",
+      "@/features/canvas/infrastructure",
+      "@/features/freezone",
+    ]) {
+      expect(modelSource).not.toContain(forbiddenModelDependency);
+    }
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "react-i18next",
+        "@/features/canvas/application/canvasServices",
+        "@/features/canvas/application/nodeManagementToolbarModel",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/freezone/public",
+      ]),
+    );
+    expect(controllerSource).toContain("useCanvasProjectionStatus(");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).not.toContain("lucide-react");
+    expect(new Set(importSpecifiers(componentPath))).toEqual(
+      new Set([
+        "react",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useNodeManagementToolbarController",
+        "./NodeManagementToolbarActionsView",
+      ]),
+    );
+    expect(componentSource).toContain(
+      "useNodeManagementToolbarController(props)",
+    );
+    expect(componentSource).toContain(
+      "<NodeManagementToolbarActionsView controller={controller} />",
+    );
+    for (const forbiddenViewDependency of [
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback",
+      "useTranslation",
+      "useCanvasStore",
+      "useCanvasProjectionStatus",
+      "canvasEventBus",
+      "projectNodeManagementToolbar",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(viewSource).toContain("syncProjection()");
+    expect(viewSource).toContain("remove()");
+    expect(viewSource).toContain("commit()");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/NodeManagementToolbarActions",
+    );
+    expect(toolbarSource).toContain(
+      "<NodeManagementToolbarActions node={node} />",
+    );
+    for (const forbiddenParentDependency of [
+      "@/features/canvas/application/canvasServices",
+      "@/features/canvas/application/nodeManagementToolbarModel",
+      "@/features/canvas/domain/assetDropInfo",
+      "@/features/canvas/hooks/useNodeManagementToolbarController",
+    ]) {
+      expect(importSpecifiers(toolbarPath)).not.toContain(
+        forbiddenParentDependency,
+      );
+    }
+    for (const legacyInlineLogic of [
+      "protectedProjectionKey",
+      "projectionStatus",
+      "projectionIsStale",
+      "canCommitNode",
+      "useCanvasProjectionStatus",
+      'canvasEventBus.publish("freezone/projection-sync"',
+      'canvasEventBus.publish("freezone/projection-remove"',
+      'canvasEventBus.publish("freezone/commit-node"',
+      "deleteNode(node.id)",
+      "freezone.projections.syncStale",
+      "freezone.projections.remove",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyInlineLogic);
+    }
+    expect(commandOwners).toEqual([
+      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+    ]);
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/nodeManagementToolbarModel.ts"],
+      ["features/canvas/hooks/useNodeManagementToolbarController.ts"],
+      ["features/canvas/ui/NodeManagementToolbarActions.tsx"],
+      ["features/canvas/ui/NodeManagementToolbarActionsView.tsx"],
+    ]);
+    expect(readFileSync(modelTestPath, "utf8")).toContain(
+      'from "./nodeManagementToolbarModel"',
+    );
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      'from "./useNodeManagementToolbarController"',
+    );
+  });
+
   it("separates video node toolbar model, controller, composition, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
@@ -19786,8 +19959,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useNodeOutputToolbarController.ts",
     );
+    const managementControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+    );
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const outputControllerSource = readFileSync(outputControllerPath, "utf8");
+    const managementControllerSource = readFileSync(
+      managementControllerPath,
+      "utf8",
+    );
 
     for (const deadSymbol of [
       "copyImageSourceToClipboard",
@@ -19808,7 +19989,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(outputControllerSource).toContain("const copyStoryboardText");
     expect(outputControllerSource).toContain("const copyGenerationError");
-    expect(toolbarSource).toContain(
+    expect(managementControllerSource).toContain(
       'canvasEventBus.publish("freezone/projection-sync"',
     );
   });
