@@ -107,6 +107,10 @@ vi.mock("@/modules/model_usage/public", () => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  clearSceneDirectorWorld: vi.fn(),
+  loadSceneDirectorStageManifest: vi.fn(),
+  saveSceneDirectorWorld: vi.fn(),
+  saveSceneDirectorWorldSource: vi.fn(),
   useBeatDirectorStageManifest: (
     project: string,
     episode: number,

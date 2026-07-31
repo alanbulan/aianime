@@ -3504,11 +3504,11 @@ describe("frontend architecture boundaries", () => {
       new Set(["@testing-library/react", "vitest", "./NodeContextBadges"]),
     );
     expect(canvasBypasses).toEqual([]);
-    expect(colorTestSource).toContain(
-      '"features/freezone/presentation/NodeContextBadges.tsx": 0',
+    expect(colorTestSource).not.toContain(
+      '"features/freezone/presentation/NodeContextBadges.tsx"',
     );
     expect(colorTestSource).not.toContain(
-      '"features/freezone/context/NodeContextBadges.tsx": 0',
+      '"features/freezone/context/NodeContextBadges.tsx"',
     );
     expect(assetDragTestSource).toContain(
       "src/features/freezone/presentation/NodeContextBadges.tsx",

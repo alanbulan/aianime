@@ -115,14 +115,9 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
         assert kwargs["required_role"] == "viewer"
         return ctx
 
-    class FakeProjectAccess:
-        async def count_project_task_eligible_users(self, **kwargs):
-            assert kwargs == {
-                "project_id": "proj_123",
-                "owner_type": "user",
-                "owner_id": "user_owner",
-            }
-            return 2
+    async def fake_count_project_task_eligible_users(context):
+        assert context is ctx
+        return 2
 
     monkeypatch.setenv("AI_ANIME_PROJECT_MIN_ACTIVE_DEFAULT_TASKS", "3")
     monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_DEFAULT_TASKS", "12")
@@ -131,9 +126,11 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
     monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_VIDEO_TASKS", "4")
     monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_VIDEO_TASKS", "1")
     monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
-    from ai_anime.ports.registry import register_port
-
-    register_port("project_access", FakeProjectAccess())
+    monkeypatch.setattr(
+        tasks_route,
+        "count_project_task_eligible_users",
+        fake_count_project_task_eligible_users,
+    )
     monkeypatch.setattr(tasks_route, "get_task_manager", lambda: manager)
 
     response = await tasks_route.get_project_task_limits("proj_123", user={"username": "bob"})

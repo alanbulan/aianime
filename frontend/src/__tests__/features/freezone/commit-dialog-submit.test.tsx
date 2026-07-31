@@ -10,6 +10,11 @@ import {
 } from "@/features/freezone/composition";
 
 vi.mock("@/modules/asset_world/public", () => ({
+  clearSceneDirectorWorld: vi.fn(),
+  directorSourceIdentityUrl: (url: string) => url,
+  loadSceneDirectorStageManifest: vi.fn(),
+  saveSceneDirectorWorld: vi.fn(),
+  saveSceneDirectorWorldSource: vi.fn(),
   listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
   listCharacters: vi.fn(async () => []),
   listCharacterIdentities: vi.fn(async () => []),

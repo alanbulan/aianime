@@ -13,32 +13,16 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "app/styles/tokens.css": 9,
   "commands/image.ts": 2,
   "components/credits/credit-visual.tsx": 6,
-  "modules/narrative_planning/beat-card-grid-composition.ts": 0,
-  "modules/production/grid-gallery-composition.ts": 0,
-  "modules/production/presentation/media-styles.ts": 0,
-  "modules/production/render-section-composition.ts": 0,
-  "modules/production/sketch-section-composition.ts": 0,
-  "modules/production/video-pane-composition.ts": 0,
-  "modules/narrative_planning/text-pane-composition.ts": 0,
-  "modules/narrative_planning/action-panel-composition.ts": 0,
   "modules/production/presentation/Seedance2AssetCropDialog.tsx": 1,
   "modules/production/presentation/RenderSectionView.tsx": 1,
   "modules/production/presentation/SketchCropDialogView.tsx": 1,
   "modules/production/presentation/SketchPoseEditorDialogView.tsx": 9,
-  "components/layout/header.tsx": 0,
-  "components/login-page.tsx": 0,
-  "components/notifications/notification-drawer.tsx": 0,
   "modules/project_workspace/presentation/components/project-folder.module.css": 3,
   "modules/project_workspace/presentation/components/project-folder.tsx": 3,
-  "components/ui/primitives.tsx": 0,
-  "features/canvas/application/canvasNodeHydration.ts": 0,
   "features/canvas/application/storyboardNodeModel.ts": 2,
-  "features/canvas/application/storyboardGenNodeModel.ts": 0,
   "features/canvas/application/toolProcessor.ts": 2,
   "features/canvas/application/uploadNodeModel.ts": 1,
   "features/canvas/Canvas.tsx": 1,
-  "features/canvas/compose/VideoComposeModal.tsx": 0,
-  "features/canvas/ui/VideoComposeModalView.tsx": 0,
   "features/canvas/domain/groupColors.ts": 9,
   "features/canvas/domain/nodeRegistry.ts": 2,
   "features/canvas/edges/DisconnectableEdge.tsx": 13,
@@ -47,96 +31,58 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/infrastructure/freezoneVideoComposeGateway.ts": 1,
   "features/canvas/infrastructure/browserStoryboardExportRuntime.ts": 2,
   "features/canvas/infrastructure/browserStoryboardGenRuntime.ts": 2,
-  "features/canvas/nodes/AudioOperationsPanel.tsx": 0,
-  "features/canvas/nodes/AudioOperationsPanelView.tsx": 0,
-  "features/canvas/nodes/BeatContextNode.tsx": 0,
   "features/canvas/nodes/BeatContextNodeView.tsx": 22,
-  "features/canvas/nodes/CameraMovementPickerPopover.tsx": 0,
   "features/canvas/nodes/contextPromptPalette.ts": 22,
-  "features/canvas/nodes/ContextPromptPaletteButton.tsx": 0,
-  "features/canvas/nodes/GroupNode.tsx": 0,
-  "features/canvas/nodes/ImageEditNode.tsx": 0,
-  "features/canvas/nodes/ImageEditNodeView.tsx": 0,
-  "features/canvas/nodes/ImageGenNode.tsx": 0,
-  "features/canvas/nodes/ImageGenNodeControls.tsx": 0,
-  "features/canvas/nodes/ImageGenNodeView.tsx": 0,
-  "features/canvas/nodes/ImageNode.tsx": 0,
-  "features/canvas/nodes/Pano360ViewerNodeView.tsx": 0,
-  "features/canvas/nodes/ScriptNode.tsx": 0,
-  "features/canvas/nodes/SkillNode.tsx": 0,
-  "features/canvas/nodes/SkillNodeView.tsx": 0,
-  "features/canvas/nodes/shared/ReferenceTextChip.tsx": 0,
-  "features/canvas/nodes/StoryboardGenNode.tsx": 0,
-  "features/canvas/nodes/StoryboardGenNodeView.tsx": 0,
-  "features/canvas/nodes/StoryboardNode.tsx": 0,
-  "features/canvas/nodes/StoryboardNodeView.tsx": 0,
-  "features/canvas/nodes/StylePickerPopover.tsx": 0,
-  "features/canvas/nodes/ThreeDWorldNode.tsx": 0,
-  "features/canvas/nodes/ThreeDWorldNodeView.tsx": 0,
-  "features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx": 0,
-  "features/canvas/nodes/UploadNode.tsx": 0,
-  "features/canvas/nodes/VideoClipPanel.tsx": 0,
-  "features/canvas/nodes/VideoNode.tsx": 0,
   "features/canvas/nodes/VideoNodeView.tsx": 6,
   "features/canvas/nodes/VideoPlayerControls.tsx": 4,
   "features/canvas/nodes/VideoReferenceMedia.tsx": 2,
-  "features/canvas/nodes/VoiceSelectionModal.tsx": 0,
-  "features/canvas/nodes/VoiceSelectionModalView.tsx": 0,
   "features/canvas/snap-align/SnapAlignGuides.tsx": 2,
   "features/canvas/tools/annotation/codec.ts": 4,
   "features/canvas/tools/builtInTools.ts": 1,
   "features/canvas/ui/AudioWaveformPlayer.tsx": 2,
   "features/canvas/ui/BackgroundCropperDialog.tsx": 2,
-  "features/canvas/ui/CanvasHistoryAssetsModal.tsx": 0,
-  "features/canvas/ui/DirectorControlBundleBadge.tsx": 0,
   "features/canvas/ui/EraseOverlay.tsx": 10,
-  "features/canvas/ui/ImageViewerModal.tsx": 0,
   "features/canvas/ui/LightEditorPanel.tsx": 19,
   "features/canvas/ui/ModelParamsControls.tsx": 6,
   "features/canvas/ui/multi-angle-sphere.css": 17,
-  "features/canvas/ui/MultiSelectionConnectButton.tsx": 0,
-  "features/canvas/ui/NodeActionToolbar.tsx": 0,
-  "features/canvas/ui/NodeGenerationHistory.tsx": 0,
   "features/canvas/ui/NodeHeader.tsx": 4,
-  "features/canvas/ui/NodePriceBadge.tsx": 0,
   "features/canvas/ui/VideoComposeTrackRow.tsx": 5,
-  "features/canvas/ui/NodeReplaceDragPreview.tsx": 0,
-  "features/canvas/ui/NodeSpawnPlusOverlay.tsx": 0,
   "features/canvas/ui/OutpaintEditorOverlay.tsx": 1,
   "features/canvas/ui/pan-shortcut-icons.tsx": 14,
   "features/canvas/ui/RedrawOverlay.tsx": 9,
   "features/canvas/ui/tool-editors/AnnotateToolEditor.tsx": 4,
-  "features/canvas/ui/tool-editors/CropToolEditor.tsx": 0,
   "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx": 4,
   "features/canvas/ui/VideoViewerModal.tsx": 4,
-  "features/freezone/presentation/AssetLibraryPanel.tsx": 0,
-  "features/freezone/presentation/CommitDialogView.tsx": 0,
-  "features/freezone/presentation/NodeContextBadges.tsx": 0,
-  "features/freezone/presentation/FreezoneShellView.tsx": 0,
-  "features/freezone/FreezoneShell.tsx": 0,
-  "features/superchat/superchat-panel.tsx": 0,
-  "modules/platform_release/presentation/VersionUpdateDialog.tsx": 0,
   "features/viewer-kit/pano/PanoCaptureSurface.tsx": 1,
   "features/viewer-kit/three-d/engine/viewerApp.ts": 9,
   "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx": 26,
-  "features/viewer-kit/three-d/ThreeDStageCanvas.tsx": 0,
-  "lib/dom-reconciliation-guard.ts": 1,
   "lib/project-cover.ts": 24,
   "lib/sketch-colors.ts": 1,
   "features/freezone/presentation/CompareDialog.tsx": 1,
   "features/freezone/presentation/MaskEditor.tsx": 4,
-  "routes/_app/index.tsx": 0,
   "features/canvas/canvasStore.ts": 2,
   "stores/settingsStore.ts": 2,
 };
 
 const DOMAIN_COLOR_DATA = new Set([
   "commands/image.ts",
+  "features/canvas/application/storyboardNodeModel.ts",
+  "features/canvas/application/toolProcessor.ts",
+  "features/canvas/application/uploadNodeModel.ts",
+  "features/canvas/canvasStore.ts",
   "features/canvas/domain/groupColors.ts",
   "features/canvas/domain/nodeRegistry.ts",
+  "features/canvas/hooks/useCanvasNodeMenuStateController.ts",
   "features/canvas/nodes/contextPromptPalette.ts",
   "lib/project-cover.ts",
   "lib/sketch-colors.ts",
+  "stores/settingsStore.ts",
+]);
+
+const DOMAIN_VISUALIZATIONS = new Set([
+  "components/credits/credit-visual.tsx",
+  "modules/project_workspace/presentation/components/project-folder.module.css",
+  "modules/project_workspace/presentation/components/project-folder.tsx",
 ]);
 
 function sourceFiles(root: string): string[] {
@@ -155,20 +101,22 @@ function sourceFiles(root: string): string[] {
   });
 }
 
-function category(path: string): string {
-  if (path === "app/styles/themes.css" || path === "app/styles/tokens.css") {
+function category(path: string): string | null {
+  if (path.startsWith("app/styles/")) {
     return "theme-source";
   }
   if (DOMAIN_COLOR_DATA.has(path)) return "domain-color-data";
+  if (DOMAIN_VISUALIZATIONS.has(path)) return "domain-visualization";
   if (
+    path.startsWith("modules/production/presentation/") ||
+    path.startsWith("features/canvas/") ||
+    path.startsWith("features/freezone/presentation/") ||
     path.startsWith("features/viewer-kit/") ||
-    path.startsWith("features/canvas/tools/") ||
-    path.endsWith("Overlay.tsx") ||
-    path.endsWith("engine/viewerApp.ts")
+    path.endsWith("Overlay.tsx")
   ) {
     return "media-renderer";
   }
-  return "legacy-ui-chrome";
+  return null;
 }
 
 describe("UI color literal boundary", () => {
@@ -180,10 +128,11 @@ describe("UI color literal boundary", () => {
       if (count === 0) continue;
 
       const allowed = COLOR_LITERAL_MAX[path];
-      if (allowed === undefined) {
+      const colorCategory = category(path);
+      if (allowed === undefined || colorCategory === null) {
         violations.push(`${path}: ${count} unclassified color literal(s)`);
       } else if (count > allowed) {
-        violations.push(`${path} [${category(path)}]: ${count} > ${allowed}`);
+        violations.push(`${path} [${colorCategory}]: ${count} > ${allowed}`);
       }
     }
 

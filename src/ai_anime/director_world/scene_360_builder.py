@@ -19,6 +19,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from ai_anime.config import (
     HUIMENG_IMAGE_MODEL,
+    IMAGE_DEFAULT_STYLE,
     NEWAPI_IMAGE_MODEL,
     OPENAI_IMAGE_MODEL,
     OPENROUTER_GPT_IMAGE2_MODEL,
@@ -1123,7 +1124,7 @@ def main() -> int:
     parser.add_argument("--text-only", action="store_true")
     parser.add_argument("--quality", default="")
     parser.add_argument("--image-size", default="")
-    parser.add_argument("--style", default="spider_verse_mixed_media")
+    parser.add_argument("--style", default=IMAGE_DEFAULT_STYLE)
     parser.add_argument("--layer-mode", default="full", choices=("full", "shell_only"))
     args = parser.parse_args()
     return asyncio.run(run(args))

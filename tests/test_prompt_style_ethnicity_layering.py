@@ -69,15 +69,13 @@ def test_style_presets_do_not_use_hard_negative_content_constraints():
 
 
 def test_removed_spider_verse_style_is_not_used_as_code_default():
-    files = [
-        Path("src/ai_anime/generators/voxel_restyle.py"),
-        Path("src/ai_anime/stage_asset_tasks.py"),
-        Path("src/ai_anime/services/style_service.py"),
+    references = [
+        path
+        for path in Path("src/ai_anime").rglob("*.py")
+        if "spider_verse_mixed_media" in path.read_text(encoding="utf-8")
     ]
 
-    for path in files:
-        source = path.read_text()
-        assert "spider_verse_mixed_media" not in source, f"{path} still references removed style id"
+    assert references == []
 
 
 def test_style_tags_do_not_encode_era_content():

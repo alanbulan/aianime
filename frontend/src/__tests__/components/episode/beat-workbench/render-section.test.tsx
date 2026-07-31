@@ -87,6 +87,10 @@ const invalidateQueriesMock: Mock = vi.fn();
 const markSeenMock: Mock = vi.fn();
 
 vi.mock("@/modules/asset_world/public", () => ({
+  clearSceneDirectorWorld: vi.fn(),
+  loadSceneDirectorStageManifest: vi.fn(),
+  saveSceneDirectorWorld: vi.fn(),
+  saveSceneDirectorWorldSource: vi.fn(),
   useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
   useBeatDirectorStageManifest: (
     project: string,

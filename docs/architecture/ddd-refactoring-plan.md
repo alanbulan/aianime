@@ -1,6 +1,6 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：执行中（阶段 9 已完成，阶段 10 最终收敛已启动）
+> 状态：已完成（阶段 0-10 与最终质量门禁均已完成）
 >
 > 制定日期：2026-07-23
 >
@@ -1084,7 +1084,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 这是风险最高的阶段，必须在前述样板稳定后执行。
 
-当前进度：进行中。第一批已建立前端 Canvas feature composition root，将 UUID、Freezone AI 和浏览器切图基础设施适配器从 application 移出；导出节点重试改为显式接收 `AiGateway`，架构门禁禁止 application 反向依赖 infrastructure 或 composition。
+当前进度：已完成。第一批已建立前端 Canvas feature composition root，将 UUID、Freezone AI 和浏览器切图基础设施适配器从 application 移出；导出节点重试改为显式接收 `AiGateway`，架构门禁禁止 application 反向依赖 infrastructure 或 composition。
 
 第二批已建立通用 Canvas 资产上传端口与 Freezone infrastructure adapter，跨项目粘贴资产迁移改经 composition 使用唯一上传实现；application 直接依赖旧 `api/ops` 的文件由 5 个降至 4 个。
 
@@ -1900,7 +1900,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 ### 阶段 10：兼容层清理与最终收敛
 
-当前进度：进行中。第四百一十五批已删除无生产调用方的前端旧查询文件 `lib/queries/sketches.ts`，其中 Beat pano background manifest 与缺失手工分镜草图派发两个未使用 hook 不再保留第二套直连 HTTP 实现；架构门禁改为直接锁定该文件不得恢复，Beat sketch/render 合同同步从对旧文件内容的恒真字符串检查收敛为文件不存在检查。仓库内除两处删除门禁外已无旧路径、类型或 hook 引用；前端架构与 Beat sketch/render 合同 2 个文件 221 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
+当前进度：已完成。第四百一十五批已删除无生产调用方的前端旧查询文件 `lib/queries/sketches.ts`，其中 Beat pano background manifest 与缺失手工分镜草图派发两个未使用 hook 不再保留第二套直连 HTTP 实现；架构门禁改为直接锁定该文件不得恢复，Beat sketch/render 合同同步从对旧文件内容的恒真字符串检查收敛为文件不存在检查。仓库内除两处删除门禁外已无旧路径、类型或 hook 引用；前端架构与 Beat sketch/render 合同 2 个文件 221 项、全量 TypeScript typecheck 与 `git diff --check` 均通过。
 
 第四百一十六批已删除无生产调用方的 `lib/queries/sketch-image-usage.ts` 及仅验证该死实现的 3 项自测，移除 `useSketchImageUsage`、图片生成 guard/password 两个 mutation、对应 DTO 和三条旧直连 HTTP 路径；由于仓库内已无该查询的观察者，同批删除孤立 `sketchImageUsage` query key，以及 BatchPanel、Beats sketch plan 和 episode image task invalidation 中三处无效果缓存失效，不保留文件壳、测试壳或废弃 key。Production 架构门禁改为直接锁定旧文件不得恢复；受影响 controller/hook 2 个测试文件 7 项、Production 定向边界门禁 1 项、全量 TypeScript typecheck 与 `git diff --check` 均通过，定向边界运行中其余 209 项明确跳过。
 
@@ -2266,6 +2266,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五百九十七批已将通用节点工具栏的分镜组早退、图片编辑分支、视频/音频类型安全数据、普通组解组资格与背景色、预设锁定标志迁入唯一纯 application 模型 `application/nodeActionToolbarShellModel.ts`；shell 模型与既有输出投影 `nodeActionToolbarModel.ts` 保持分离，避免输出 controller 因主线标志而间接加载 Freezone composition。完整 React Flow Toolbar、缩放外壳、面板和七类子动作顺序迁入无 Hook 的 `ui/NodeActionToolbarView.tsx`；保留原注册路径的 `ui/NodeActionToolbar.tsx` 只调用 shell 投影并装配 View，由 133 行降至 21 行，不保留 facade、旧 JSX、类型断言或第二套分支逻辑。分镜组独立工具栏、主线/图片/输出/视频/音频/普通组/管理动作顺序、视频与音频 data 类型收窄、受保护投影组不解组、组背景色、锁定节点图片动作限制、React Flow 位置/偏移及反缩放语义保持不变。新增 shell 纯模型 2 项测试，连同输出模型、主线/管理/输出/图片 controller 及 Viewer/Toolbar 合同共定向回归 7 个文件 44 项；既有子工具栏装配合同统一改指真实根 View，新增 shell 模型/入口/View 唯一所有权、纯依赖、无 Hook View、装配顺序和入口禁入门禁，完整前端架构门禁 3 个文件 361 项（其中 module boundaries 321 项）、前端 TypeScript 全量检查及 `git diff --check` 通过；未启动 Electron/Vite、未构建、未做界面验证。
 
+第五百九十八批完成阶段 10 最终收敛。新增 `tests/architecture/openapi_contract.py`、桌面/浏览器双模式快照及自动门禁，规范化比较每个 method/path 的参数、请求体、响应、安全与回调合同；阶段 0 检查点到当前桌面 295 个操作的逐操作指纹非计划差异为 0，浏览器保留 293 个操作，仅按 ADR-010 隐藏 `POST /api/v1/auth/login` 与 `POST /api/v1/auth/authorize`。新增 light/dark 对比度门禁，文本 token 最低 4.5:1、关键控件边界最低 3:1；调整两套主题的 border/input/sidebar border 与深色 destructive foreground，删除 65 条无信息量的零颜色预算，剩余 55 条均归入主题源、领域颜色、领域可视化或媒体渲染 ADR-006 预算。README 已按 10 个有界上下文、前后端依赖方向、Electron 直接开发模式、认证/发布/云任务边界和数据兼容规则重写。全量门禁同时发现并清理测试与运行边界遗留：4 个前端全模块 mock 补齐 Asset World 公共合同，BatchBar 测试按 Base UI 菜单关闭语义等待；格式上传测试改用真实 `ProjectContext`/`ProjectResolution`，任务限额 route 测试改从 Project Workspace 公开应用入口注入；`scene_360_builder` 的已删除 Spider-Verse 默认值改为唯一 `IMAGE_DEFAULT_STYLE` 并由全源码扫描锁定；删除唯一依赖已不存在 `examples.seedance2_fast_demo` 的 283 行孤立测试，不恢复实验 demo 或跳过壳。最终前端 781 个测试文件、3,774 项用例通过，后端默认测试集 346 个文件、2,586 项通过、14 项按用例条件跳过、1 项按项目 marker 配置过滤；前端 365 项与后端 155 项架构门禁、前端与桌面 TypeScript、Ruff 全仓检查均通过。遵循发布边界，未启动 Electron/Vite、未执行生产构建、未做界面验证。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
@@ -2312,13 +2314,13 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | --- | --- | --- |
 | 非 API 业务模块反向依赖 `ai_anime.api.*` | 0 处（阶段 0：28 处） | 0 |
 | route 互相导入私有实现 | 0 | 0 |
-| 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
+| 后端超 1,000 逻辑行 route 模块 | 0 个（阶段 0：4 个） | 0；兼容 facade 不含实现 |
 | 前端 route 超 500 逻辑行 | 0/19 | 0；route 仅做适配 |
-| module 跨内部路径导入 | 尚无门禁 | 0；只允许 `public.ts` |
-| application 实例化 infrastructure | Canvas 已存在 | 0；仅 composition root 装配 |
-| 新增 UI chrome 颜色字面量 | 无门禁 | 0；业务颜色例外需 allowlist |
-| 单一全局 CSS 承载 feature 规则 | `index.css` 已存在 | 0；全局只保留 token/base/portal |
-| API method/path 非计划变化 | 未自动比较 | 0 |
+| module 跨内部路径导入 | 0；已有公共入口与依赖边界门禁 | 0；只允许 `public.ts` |
+| application 实例化 infrastructure | 0；已有 composition/application 边界门禁 | 0；仅 composition root 装配 |
+| 新增 UI chrome 颜色字面量 | 0；剩余 55 条均为 ADR-006 分类预算 | 0；业务颜色例外需 allowlist |
+| 单一全局 CSS 承载 feature 规则 | 0；`index.css` 仅保留 Tailwind 与样式入口导入 | 0；全局只保留 token/base/portal |
+| API method/path 非计划变化 | 0；桌面/浏览器 OpenAPI 快照自动比较 | 0 |
 
 行数指标是迁移完成信号，不是日常代码评审的机械上限；更重要的门禁仍是职责和依赖方向。
 
@@ -2368,3 +2370,5 @@ GOAL 只有在阶段 0-10 完成、全量门禁通过且兼容层清理完毕后
 | ADR-006 | 颜色使用语义 token，业务颜色显式例外 | 同时解决主题一致性和画布真实颜色需求 |
 | ADR-007 | 渐进迁移并保留短期 facade | 当前规模和契约数量不适合 big-bang 重写 |
 | ADR-008 | 行为兼容优先于目录纯度 | 企业级重构必须可发布、可回滚、可验证 |
+| ADR-009 | 历史数据读取兼容可以保留，但禁止双写和新增调用入口 | 保证既有项目可读取，同时阻止兼容路径继续扩散或形成双轨数据源 |
+| ADR-010 | 浏览器模式隐藏桌面本地登录接口属于明确的安全差异 | `POST /api/v1/auth/login` 与 `POST /api/v1/auth/authorize` 仅服务受信任桌面边界，不应暴露给浏览器部署 |

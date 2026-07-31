@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import io
-from types import SimpleNamespace
 
 import pytest
 from fastapi import UploadFile
 
+from ai_anime.api.deps import ProjectResolution
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.utils.screenplay_quality import build_import_format_check
 
 
@@ -160,21 +161,37 @@ def test_time_detection_requires_delimiters():
     assert "missing_interior_exterior" not in _codes(false_time_result)
 
 
-def _legacy_resolution(project_dir):
-    return SimpleNamespace(
-        ctx=None,
-        username="admin",
+def _project_resolution(project_dir):
+    ctx = ProjectContext(
+        project_id="demo",
         project_name="demo",
-        project_dir=project_dir,
-        output_dir=str(project_dir / "output"),
-        state_dir=str(project_dir / "state"),
-        runtime_dir=str(project_dir / "runtime"),
+        owner_type="user",
+        owner_id="admin",
+        owner_username="admin",
+        requester_user_id="admin",
+        requester_username="admin",
+        requester_principals=(("user", "admin"),),
+        effective_role="owner",
+        home_node_id="local",
+        output_dir=project_dir / "output",
+        state_dir=project_dir / "state",
+        runtime_dir=project_dir / "runtime",
+        is_home_node=True,
+    )
+    return ProjectResolution(
+        ctx=ctx,
+        username=ctx.owner_username,
+        project_name=ctx.project_name,
+        project_dir=ctx.output_dir,
+        output_dir=str(ctx.output_dir),
+        state_dir=str(ctx.state_dir),
+        runtime_dir=str(ctx.runtime_dir),
     )
 
 
 def _project_scope_resolver(project_dir):
     async def resolve(*args, **kwargs):
-        return _legacy_resolution(project_dir)
+        return _project_resolution(project_dir)
 
     return resolve
 

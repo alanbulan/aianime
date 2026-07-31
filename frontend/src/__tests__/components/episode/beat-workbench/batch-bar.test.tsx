@@ -306,8 +306,15 @@ describe("BatchBar", () => {
 
     await user.click(screen.getByRole("combobox", { name: "草图模型" }));
     await user.click(screen.getByRole("option", { name: "Sketch Model B" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("option", { name: "Sketch Model B" }),
+      ).not.toBeInTheDocument();
+    });
     await user.click(screen.getByRole("combobox", { name: "模型" }));
-    await user.click(screen.getByRole("option", { name: "Render Model B" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Render Model B" }),
+    );
     await waitFor(() => {
       expect(
         screen.queryByRole("option", { name: "Render Model B" }),

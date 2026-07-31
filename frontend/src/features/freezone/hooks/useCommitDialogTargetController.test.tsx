@@ -14,6 +14,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  clearSceneDirectorWorld: vi.fn(),
+  directorSourceIdentityUrl: (url: string) => url,
+  loadSceneDirectorStageManifest: vi.fn(),
+  saveSceneDirectorWorld: vi.fn(),
+  saveSceneDirectorWorldSource: vi.fn(),
   listCharacters: (...args: unknown[]) => mocks.listCharacters(...args),
   listCharacterIdentities: (...args: unknown[]) =>
     mocks.listCharacterIdentities(...args),
