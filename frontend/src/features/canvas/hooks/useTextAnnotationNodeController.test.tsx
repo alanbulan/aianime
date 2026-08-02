@@ -81,6 +81,10 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   ) => mocks.generateCanvasReversePrompt(command, onTaskSubmitted),
   translateCanvasText: (command: unknown) =>
     mocks.translateCanvasText(command),
+  submitVideoGeneration: (command: unknown) =>
+    mocks.submitVideoGeneration(command),
+  resolveGenerationOutputUrl: (result: unknown, kind: string) =>
+    mocks.outputUrl(result, kind),
   useCanvasVideoModels: () => ({ models: mocks.videoModels }),
 }));
 
@@ -110,19 +114,12 @@ vi.mock('@/features/canvas/application/resumeGeneration', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/application/generationOutputUrl', () => ({
-  resolveGenerationOutputUrl: (result: unknown, kind: string) =>
-    mocks.outputUrl(result, kind),
-}));
-
 const NODE_CONTEXT = {
   projectId: 'project-a',
   canvasId: 'canvas-a',
 } as const;
 
 vi.mock('@/features/canvas/composition', () => ({
-  submitVideoGeneration: (command: unknown) =>
-    mocks.submitVideoGeneration(command),
   awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>
     mocks.awaitCanvasGenerationTaskCompletion(taskKey, project),
 }));

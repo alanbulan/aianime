@@ -267,6 +267,24 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneVideoStoryAnalysisGateway.ts",
       "freezoneVideoStoryAnalysisGateway.test.ts",
     ];
+    const videoGenerationApplicationFiles = [
+      "completeVideoGenerationTask.ts",
+      "completeVideoGenerationTask.test.ts",
+      "generationOutputUrl.ts",
+      "generationOutputUrl.test.ts",
+      "submitVideoGeneration.ts",
+      "submitVideoGeneration.test.ts",
+    ];
+    const videoGenerationDomainFiles = [
+      "videoGenerationModel.ts",
+      "videoGenerationModel.test.ts",
+      "videoReferenceLimits.ts",
+      "videoReferenceLimits.test.ts",
+    ];
+    const videoGenerationInfrastructureFiles = [
+      "freezoneVideoGenerationSubmissionGateway.ts",
+      "freezoneVideoGenerationSubmissionGateway.test.ts",
+    ];
     const generationCatalogDomainFiles = [
       "cameraMovementPresets.ts",
       "imageModelCapability.ts",
@@ -580,6 +598,38 @@ describe("round 2 residual architecture boundaries", () => {
     ).toBe(true);
     expect(
       existsSync(resolve(moduleRoot, "videoStoryAnalysisComposition.test.ts")),
+    ).toBe(true);
+    for (const file of videoGenerationApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of videoGenerationDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of videoGenerationInfrastructureFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "infrastructure", file)),
+        file,
+      ).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(resolve(moduleRoot, "videoGenerationComposition.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "videoGenerationComposition.test.ts")),
     ).toBe(true);
     for (const file of generationCatalogDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
@@ -1418,7 +1468,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 778],
+      ["features/canvas", 766],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

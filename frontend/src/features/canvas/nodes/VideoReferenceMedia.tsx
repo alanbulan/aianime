@@ -14,7 +14,7 @@ import type {
   VideoReferenceCapEntry,
   VideoReferenceCaps,
   VideoReferenceItem,
-} from "@/features/canvas/domain/videoReferenceLimits";
+} from "@/modules/creative_canvas/public";
 import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import {
   NODE_REFERENCE_MEDIA_CHIP_CLASS,

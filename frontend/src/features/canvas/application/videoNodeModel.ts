@@ -22,8 +22,10 @@ import {
   referenceImageUrl,
   referenceVideoUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
-import type { VideoReferenceItem } from '@/features/canvas/domain/videoReferenceLimits';
-import type { VideoGenerationAspectRatio } from '@/features/canvas/application/submitVideoGeneration';
+import type {
+  VideoGenerationAspectRatio,
+  VideoReferenceItem,
+} from '@/modules/creative_canvas/public';
 
 export const VIDEO_NODE_DEFAULT_WIDTH = 580;
 export const VIDEO_NODE_DEFAULT_HEIGHT = 380;

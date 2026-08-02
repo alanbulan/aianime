@@ -31,6 +31,36 @@ export {
 } from "@/modules/creative_canvas/domain/cameraMovementPresets";
 export type { CameraMovementPreset } from "@/modules/creative_canvas/domain/cameraMovementPresets";
 export type { VideoGenMode } from "@/modules/creative_canvas/domain/videoGenerationMode";
+export {
+  DEFAULT_VIDEO_DURATION_SEC,
+  clampVideoDuration,
+  defaultSceneOptimizeForModel,
+  isVideoModeSupportedByModel,
+  normalizeSceneOptimize,
+  normalizeVideoQuality,
+  qualityToResolution,
+  sceneOptimizeOptionsForModel,
+  supportedVideoModesForModel,
+  videoDurationBoundsForModel,
+  videoModelReferenceDisabledReason,
+  videoModelUsesTypedReferenceModes,
+  videoQualityOptionsForModel,
+} from "@/modules/creative_canvas/domain/videoGenerationModel";
+export type {
+  Seedance2SceneOptimize,
+  VideoDurationBounds,
+  VideoGenQuality,
+  VideoModelCapabilityDescriptor,
+} from "@/modules/creative_canvas/domain/videoGenerationModel";
+export {
+  classifyVideoReferenceItems,
+  videoReferenceCapsForMode,
+} from "@/modules/creative_canvas/domain/videoReferenceLimits";
+export type {
+  VideoReferenceCapEntry,
+  VideoReferenceCaps,
+  VideoReferenceItem,
+} from "@/modules/creative_canvas/domain/videoReferenceLimits";
 export type {
   CanvasCameraIdLabel,
   CanvasCameraOptions,
@@ -747,6 +777,27 @@ export type {
   CanvasVideoStoryAnalysisSubmissionGateway,
 } from "@/modules/creative_canvas/application/analyzeCanvasVideoStory";
 export type { VideoStoryRow } from "@/modules/creative_canvas/domain/videoStory";
+export {
+  completeVideoGenerationTask,
+  submitVideoGeneration,
+} from "@/modules/creative_canvas/videoGenerationComposition";
+export { resolveGenerationOutputUrl } from "@/modules/creative_canvas/application/generationOutputUrl";
+export type { GenerationOutputMedia } from "@/modules/creative_canvas/application/generationOutputUrl";
+export type {
+  CompleteVideoGenerationTaskDependencies,
+  CompleteVideoGenerationTaskParams,
+  CompleteVideoGenerationTaskResult,
+} from "@/modules/creative_canvas/application/completeVideoGenerationTask";
+export type {
+  SubmitVideoGenerationDependencies,
+  SubmitVideoGenerationParams,
+  VideoGenerationAspectRatio,
+  VideoGenerationReference,
+  VideoGenerationResolution,
+  VideoGenerationSubmission,
+  VideoGenerationSubmissionGateway,
+  VideoGenerationTaskRef,
+} from "@/modules/creative_canvas/application/submitVideoGeneration";
 export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";

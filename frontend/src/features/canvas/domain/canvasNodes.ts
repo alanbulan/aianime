@@ -7,6 +7,8 @@ import type {
 } from '@/features/viewer-kit/three-d/directorManifest';
 import type {
   AudioVoiceRef,
+  Seedance2SceneOptimize,
+  VideoGenQuality,
   VideoGenMode,
   VideoStoryRow,
 } from '@/modules/creative_canvas/public';
@@ -85,9 +87,7 @@ export interface UploadImageNodeData extends NodeImageData {
   imageOnly?: boolean;
 }
 
-export type VideoGenQuality = '480P' | '720P' | '1080P';
 export type VideoGenCount = 1 | 2 | 4;
-export type Seedance2SceneOptimize = 'anime' | 'realistic';
 
 export interface VideoNodeData extends NodeDisplayData {
   videoUrl: string | null;

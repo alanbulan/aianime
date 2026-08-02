@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { VideoGenQuality } from "../domain/canvasNodes";
+import type { VideoGenQuality } from "@/modules/creative_canvas/public";
 import {
   composeCanvasVideo,
   type ComposeCanvasVideoDependencies,

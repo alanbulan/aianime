@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { VideoReferenceCapEntry } from "@/features/canvas/domain/videoReferenceLimits";
+import type { VideoReferenceCapEntry } from "@/modules/creative_canvas/public";
 import { ReferenceMediaRow } from "./VideoReferenceMedia";
 
 const resolveUrl = (url: string) => url;

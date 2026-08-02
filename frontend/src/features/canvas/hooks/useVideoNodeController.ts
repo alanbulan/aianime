@@ -52,19 +52,16 @@ import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData'
 import { resolveDroppedVideoFile } from '@/features/canvas/application/resolveDroppedVideoFile';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
-import type { VideoGenerationReference } from '@/features/canvas/application/submitVideoGeneration';
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureBrowserVideoFrameStrip,
   captureVideoFrameBlob,
-  completeVideoGenerationTask,
   composeVideoClip,
   ensureWebSafeVideo,
   eraseVideoSubtitles,
   rememberLastVideoModel,
   showErrorDialog,
-  submitVideoGeneration,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
@@ -76,30 +73,10 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
-  DEFAULT_VIDEO_DURATION_SEC,
-  clampVideoDuration,
-  defaultSceneOptimizeForModel,
-  isVideoModeSupportedByModel,
-  normalizeSceneOptimize,
-  normalizeVideoQuality,
-  qualityToResolution,
-  sceneOptimizeOptionsForModel,
-  supportedVideoModesForModel,
-  videoDurationBoundsForModel,
-  videoModelReferenceDisabledReason,
-  videoModelUsesTypedReferenceModes,
-  videoQualityOptionsForModel,
-} from '@/features/canvas/domain/videoGenerationModel';
-import {
   referenceImageUrl,
   referenceVideoUrl,
   submittableImageUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
-import {
-  classifyVideoReferenceItems,
-  videoReferenceCapsForMode,
-  type VideoReferenceCapEntry,
-} from '@/features/canvas/domain/videoReferenceLimits';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -125,13 +102,32 @@ import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMen
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
 import {
   CAMERA_MOVEMENT_PRESETS,
+  DEFAULT_VIDEO_DURATION_SEC,
+  clampVideoDuration,
+  classifyVideoReferenceItems,
+  completeVideoGenerationTask,
+  defaultSceneOptimizeForModel,
   findCameraMovementPreset,
   hasMainlineContexts,
   historyRecordOutputUrl,
+  isVideoModeSupportedByModel,
+  normalizeSceneOptimize,
+  normalizeVideoQuality,
+  qualityToResolution,
+  sceneOptimizeOptionsForModel,
+  submitVideoGeneration,
+  supportedVideoModesForModel,
   useCanvasVideoCameraTemplates,
   useCanvasVideoModels,
+  videoDurationBoundsForModel,
+  videoModelReferenceDisabledReason,
+  videoModelUsesTypedReferenceModes,
+  videoQualityOptionsForModel,
+  videoReferenceCapsForMode,
   type CameraMovementPreset,
   type VideoGenMode,
+  type VideoGenerationReference,
+  type VideoReferenceCapEntry,
 } from '@/modules/creative_canvas/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

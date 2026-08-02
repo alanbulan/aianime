@@ -11,7 +11,7 @@
 import type { CanvasNode, CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
-import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
+import { resolveGenerationOutputUrl } from '@/modules/creative_canvas/public';
 import { providerErrorMessage } from '@/shared/api/errors';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import {

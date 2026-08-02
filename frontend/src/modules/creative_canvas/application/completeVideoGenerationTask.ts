@@ -3,7 +3,7 @@ import { resolveGenerationOutputUrl } from "./generationOutputUrl";
 import type {
   CanvasGenerationTaskCompletion,
   CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
 import type { VideoGenerationTaskRef } from "./submitVideoGeneration";
 
 export interface CompleteVideoGenerationTaskParams {

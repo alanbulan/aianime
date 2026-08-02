@@ -4,10 +4,12 @@ import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type {
-  Seedance2SceneOptimize,
-  VideoGenQuality,
   VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
+import type {
+  Seedance2SceneOptimize,
+  VideoGenQuality,
+} from "@/modules/creative_canvas/public";
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,

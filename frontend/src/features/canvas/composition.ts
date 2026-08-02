@@ -28,10 +28,6 @@ import {
   type GetCanvasDirectorStagePaletteParams,
 } from './application/directorStagePalette';
 import {
-  completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
-  type CompleteVideoGenerationTaskParams,
-} from './application/completeVideoGenerationTask';
-import {
   composeCanvasVideo as composeCanvasVideoUseCase,
   type ComposeCanvasVideoParams,
 } from './application/composeCanvasVideo';
@@ -43,10 +39,6 @@ import {
   eraseVideoSubtitles as eraseVideoSubtitlesUseCase,
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
-import {
-  submitVideoGeneration as submitVideoGenerationUseCase,
-  type SubmitVideoGenerationParams,
-} from './application/submitVideoGeneration';
 import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
@@ -126,7 +118,6 @@ import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGener
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
-import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
@@ -418,20 +409,6 @@ export function awaitCanvasSkillRunResult(
       new Promise<void>((resolve) => {
         window.setTimeout(resolve, delayMs);
       }),
-  });
-}
-
-export function submitVideoGeneration(params: SubmitVideoGenerationParams) {
-  return submitVideoGenerationUseCase(params, {
-    submissionGateway: freezoneVideoGenerationSubmissionGateway,
-  });
-}
-
-export function completeVideoGenerationTask(
-  params: CompleteVideoGenerationTaskParams,
-) {
-  return completeVideoGenerationTaskUseCase(params, {
-    taskGateway: freezoneGenerationTaskGateway,
   });
 }
 

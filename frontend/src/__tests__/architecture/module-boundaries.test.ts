@@ -24819,7 +24819,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode).toContain("<ReferenceMediaRow");
     expect(videoNodeController).toContain(
-      "@/features/canvas/domain/videoReferenceLimits",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain(
       "caps={referenceMediaCaps}",
@@ -24834,6 +24834,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps video reference limits in one pure domain module", () => {
     const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/videoReferenceLimits.ts",
+    );
+    const legacyDomainPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/videoReferenceLimits.ts",
     );
@@ -24857,18 +24861,17 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(domainPath)).toEqual([
-      "@/modules/creative_canvas/public",
-    ]);
+    expect(importSpecifiers(domainPath)).toEqual(["./videoGenerationMode"]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window");
     expect(domainSource).not.toContain("@/api/");
     expect(domainSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/domain/videoReferenceLimits.ts",
+        "modules/creative_canvas/domain/videoReferenceLimits.ts",
       ]),
     );
+    expect(existsSync(legacyDomainPath)).toBe(false);
     expect(domainSource).toContain(
       "allReference: { image: 9, video: 3, audio: 3 }",
     );
@@ -24876,10 +24879,10 @@ describe("frontend architecture boundaries", () => {
       "firstLastFrame: { image: 2, video: 0, audio: 0 }",
     );
     expect(videoNode).toContain(
-      "@/features/canvas/domain/videoReferenceLimits",
+      "@/modules/creative_canvas/public",
     );
     expect(referenceView).toContain(
-      "@/features/canvas/domain/videoReferenceLimits",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
   });
@@ -25504,6 +25507,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps video model generation rules in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/videoGenerationModel.ts",
+    );
+    const legacyDomainPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/videoGenerationModel.ts",
     );
     const domainSource = readFileSync(domainPath, "utf8");
@@ -25525,25 +25532,24 @@ describe("frontend architecture boundaries", () => {
       ["export function", "normalizeSceneOptimize("].join(" "),
     ];
     const implementationOwners = declarations.map((declaration) =>
-      sourceFiles(resolve(SRC_ROOT, "features/canvas"))
+      sourceFiles(resolve(SRC_ROOT, "modules/creative_canvas"))
         .filter((path) => readFileSync(path, "utf8").includes(declaration))
         .map(relativeSource)
         .sort(),
     );
 
-    expect(new Set(importSpecifiers(domainPath))).toEqual(
-      new Set(["./canvasNodes", "@/modules/creative_canvas/public"]),
-    );
+    expect(importSpecifiers(domainPath)).toEqual(["./videoGenerationMode"]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("@/api/");
     expect(domainSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/domain/videoGenerationModel.ts",
+        "modules/creative_canvas/domain/videoGenerationModel.ts",
       ]),
     );
+    expect(existsSync(legacyDomainPath)).toBe(false);
     expect(videoNode).toContain(
-      "@/features/canvas/domain/videoGenerationModel",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).not.toContain("const DEFAULT_DURATION_MIN");
     expect(videoNode).not.toContain("function resolutionToQuality(");
@@ -26669,7 +26675,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["../domain/canvasNodes", "./composeCanvasVideo"]),
+      new Set(["@/modules/creative_canvas/public", "./composeCanvasVideo"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -27045,16 +27051,21 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas video generation submission in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/submitVideoGeneration.ts",
+      "modules/creative_canvas/application/submitVideoGeneration.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/videoGenerationComposition.ts",
+    );
+    const legacyCompositionPath = resolve(
+      SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const videoNodePath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useVideoNodeController.ts",
@@ -27066,6 +27077,11 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
+    const publicSource = readFileSync(publicPath, "utf8");
     const videoNode = readFileSync(videoNodePath, "utf8");
     const textNodeController = readFileSync(
       textNodeControllerPath,
@@ -27099,12 +27115,18 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const legacyPaths = [
+      "features/canvas/application/submitVideoGeneration.ts",
+      "features/canvas/application/submitVideoGeneration.test.ts",
+      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/canvasNodes",
+        "./completeCanvasMediaGenerationTask",
         "../domain/videoGenerationModel",
-        "@/modules/creative_canvas/public",
+        "../domain/videoGenerationMode",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -27112,7 +27134,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/stores/");
     expect(applicationSource).toContain("qualityToResolution(params.quality)");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/submitVideoGeneration.ts",
+      "modules/creative_canvas/application/submitVideoGeneration.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
@@ -27125,12 +27147,26 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneVideoGenerationSubmissionGateway",
     );
+    expect(publicSource).toContain("submitVideoGeneration,");
+    expect(legacyCompositionSource).not.toContain(
+      "submitVideoGenerationUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoGenerationSubmissionGateway",
+    );
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(importSpecifiers(videoNodePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(textNodeControllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(videoNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(5);
     expect(
       textNodeController.match(/submitVideoGeneration\(\{/g),
     ).toHaveLength(1);
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
     ]);
     for (const endpointName of endpointNames) {
       expect(adapterSource).toContain(
@@ -27162,9 +27198,13 @@ describe("frontend architecture boundaries", () => {
   it("keeps active video task completion in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/completeVideoGenerationTask.ts",
+      "modules/creative_canvas/application/completeVideoGenerationTask.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoGenerationComposition.ts",
+    );
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -27174,6 +27214,10 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const videoNode = readFileSync(videoNodePath, "utf8");
     const declaration = [
       "export async function",
@@ -27188,7 +27232,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "./generationOutputUrl",
         "./submitVideoGeneration",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -27201,11 +27245,22 @@ describe("frontend architecture boundaries", () => {
       "dependencies.taskGateway.fetchResultUrl(",
     );
     expect(implementationOwners).toEqual([
-      "features/canvas/application/completeVideoGenerationTask.ts",
+      "modules/creative_canvas/application/completeVideoGenerationTask.ts",
     ]);
     expect(compositionSource).toContain(
-      "taskGateway: freezoneGenerationTaskGateway",
+      "fetchResultUrl: fetchCanvasGenerationResultUrl",
     );
+    expect(legacyCompositionSource).not.toContain(
+      "completeVideoGenerationTaskUseCase",
+    );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/completeVideoGenerationTask.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(videoNode).toContain("completeVideoGenerationTask({");
     expect(videoNode).not.toContain("fetchFreezoneJobResult");
     expect(videoNode).not.toContain("awaitTaskCompletion");
@@ -28002,7 +28057,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps generation output URL projection in one application module", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generationOutputUrl.ts",
+      "modules/creative_canvas/application/generationOutputUrl.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const consumerPaths = [
@@ -28018,7 +28073,7 @@ describe("frontend architecture boundaries", () => {
     const completionSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/application/completeVideoGenerationTask.ts",
+        "modules/creative_canvas/application/completeVideoGenerationTask.ts",
       ),
       "utf8",
     );
@@ -28048,14 +28103,22 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/generationOutputUrl.ts",
+      "modules/creative_canvas/application/generationOutputUrl.ts",
     ]);
     for (const source of Object.values(consumerSources)) {
       expect(source).toContain(
-        "@/features/canvas/application/generationOutputUrl",
+        "@/modules/creative_canvas/public",
       );
     }
     expect(completionSource).toContain('./generationOutputUrl');
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/generationOutputUrl.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(imageGenNode).not.toContain(
       "@/features/canvas/application/generationOutputUrl",
     );

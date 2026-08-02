@@ -3,22 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import type { VideoGenerationAspectRatio } from '@/features/canvas/application/submitVideoGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  awaitCanvasGenerationTaskCompletion,
-  submitVideoGeneration,
-} from '@/features/canvas/composition';
+import { awaitCanvasGenerationTaskCompletion } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type TextAnnotationNodeData,
   type TextNodeMode,
   type UploadImageNodeData,
   type VideoGenCount,
-  type VideoGenQuality,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
@@ -42,8 +36,12 @@ import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
+  resolveGenerationOutputUrl,
+  submitVideoGeneration,
   translateCanvasText,
   useCanvasVideoModels,
+  type VideoGenerationAspectRatio,
+  type VideoGenQuality,
 } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

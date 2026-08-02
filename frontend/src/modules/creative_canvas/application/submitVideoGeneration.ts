@@ -1,13 +1,13 @@
 // Copyright (c) 2026 AI anime
+import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
+import {
+  qualityToResolution,
+  type Seedance2SceneOptimize,
+  type VideoGenQuality,
+} from "../domain/videoGenerationModel";
 import type {
-  Seedance2SceneOptimize,
-  VideoGenQuality,
-} from "../domain/canvasNodes";
-import type {
-  CanvasGenerationTaskRef,
   VideoGenMode,
-} from "@/modules/creative_canvas/public";
-import { qualityToResolution } from "../domain/videoGenerationModel";
+} from "../domain/videoGenerationMode";
 
 export type VideoGenerationAspectRatio =
   | "auto"
