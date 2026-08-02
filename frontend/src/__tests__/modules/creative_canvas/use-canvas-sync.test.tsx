@@ -1,9 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useReactFlow } from "@xyflow/react";
 
 import {
   createCanvasFromPreset,
+  createCanvasSyncHook,
   getFreezoneCanvas,
   putFreezoneCanvas,
   putFreezoneCanvasKeepalive,
@@ -13,14 +15,11 @@ import {
   HISTORY_PERSIST_MAX_STEPS,
   trimHistoryForStorage,
 } from "@/modules/creative_canvas/public";
-import {
-  canvasDraftStorageGateway,
-} from "@/modules/creative_canvas/public";
+import { canvasDraftStorageGateway } from "@/modules/creative_canvas/public";
 import {
   FREEZONE_HYDRATE_RELEASE_GRACE_MS,
   FREEZONE_HYDRATE_SETTLED_REUSE_MS,
 } from "@/modules/creative_canvas/application/canvasHydrateFlights";
-import { useCanvasSync } from "@/features/freezone/hooks/useCanvasSync";
 import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
@@ -28,7 +27,11 @@ import {
 } from "@/modules/creative_canvas/public";
 import { shotMetadataState } from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+import {
+  useCanvasStore,
+  type CanvasEdge,
+  type CanvasNode,
+} from "@/features/canvas/canvasStore";
 
 const { readDraft: readCanvasDraft, writeDraft: writeCanvasDraft } =
   canvasDraftStorageGateway;
@@ -36,9 +39,10 @@ const { readDraft: readCanvasDraft, writeDraft: writeCanvasDraft } =
 vi.mock(
   "@/modules/creative_canvas/canvasStorageComposition",
   async (importOriginal) => {
-    const actual = await importOriginal<
-      typeof import("@/modules/creative_canvas/canvasStorageComposition")
-    >();
+    const actual =
+      await importOriginal<
+        typeof import("@/modules/creative_canvas/canvasStorageComposition")
+      >();
     return {
       ...actual,
       createCanvasFromPreset: vi.fn(),
@@ -55,6 +59,14 @@ vi.mock("@xyflow/react", () => ({
     setViewport: vi.fn(),
   }),
 }));
+
+const useCanvasSync = createCanvasSyncHook<CanvasNode, CanvasEdge>({
+  useCanvasState: (selector) => useCanvasStore((state) => selector(state)),
+  readCanvasState: useCanvasStore.getState,
+  subscribeCanvasState: (listener) =>
+    useCanvasStore.subscribe((state, previous) => listener(state, previous)),
+  useViewportPort: useReactFlow,
+});
 
 describe("useCanvasSync hydrate lifecycle", () => {
   beforeEach(() => {
@@ -132,8 +144,11 @@ describe("useCanvasSync hydrate lifecycle", () => {
   });
 
   it("reuses a just-settled hydrate snapshot across the settled reuse window", async () => {
-    let resolveRemote: (value: { nodes: []; edges: []; revision: number }) => void =
-      () => undefined;
+    let resolveRemote: (value: {
+      nodes: [];
+      edges: [];
+      revision: number;
+    }) => void = () => undefined;
     vi.mocked(getFreezoneCanvas).mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -476,7 +491,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
     await waitFor(() => expect(hook.result.current.status).toBe("ready"));
     expect(hook.result.current.error).toBeNull();
     expect(putFreezoneCanvas).not.toHaveBeenCalled();
-    expect(readCanvasDraft("project-a", "saved_projection_user_eric")).toBeNull();
+    expect(
+      readCanvasDraft("project-a", "saved_projection_user_eric"),
+    ).toBeNull();
 
     hook.unmount();
   });
@@ -625,9 +642,13 @@ describe("useCanvasSync hydrate lifecycle", () => {
     expect(hook.result.current.status).toBe("conflict");
     expect(hook.result.current.readConflictSnapshot()).toMatchObject({
       canvas_id: "save_conflict_user_eric",
-      nodes: expect.arrayContaining([expect.objectContaining({ id: "server-node" })]),
+      nodes: expect.arrayContaining([
+        expect.objectContaining({ id: "server-node" }),
+      ]),
     });
-    expect(readCanvasDraft("project-a", "save_conflict_user_eric")).not.toBeNull();
+    expect(
+      readCanvasDraft("project-a", "save_conflict_user_eric"),
+    ).not.toBeNull();
 
     useCanvasStore
       .getState()
@@ -733,13 +754,19 @@ describe("useCanvasSync hydrate lifecycle", () => {
 
     const draft = readCanvasDraft("project-a", "unload_user_eric");
     expect(draft?.nodes).toEqual(
-      expect.arrayContaining([expect.objectContaining({ type: CANVAS_NODE_TYPES.upload })]),
+      expect.arrayContaining([
+        expect.objectContaining({ type: CANVAS_NODE_TYPES.upload }),
+      ]),
     );
     expect(putFreezoneCanvasKeepalive).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(putFreezoneCanvasKeepalive).mock.calls[0][2]).toMatchObject({
+    expect(
+      vi.mocked(putFreezoneCanvasKeepalive).mock.calls[0][2],
+    ).toMatchObject({
       base_revision: 7,
       save_source: "autosave",
-      nodes: expect.arrayContaining([expect.objectContaining({ type: CANVAS_NODE_TYPES.upload })]),
+      nodes: expect.arrayContaining([
+        expect.objectContaining({ type: CANVAS_NODE_TYPES.upload }),
+      ]),
     });
 
     hook.unmount();
@@ -780,7 +807,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       allow_empty_overwrite: true,
       nodes: [],
     });
-    expect(readCanvasDraft("project-a", "unload_clear_user_eric")?.mutation).toMatchObject({
+    expect(
+      readCanvasDraft("project-a", "unload_clear_user_eric")?.mutation,
+    ).toMatchObject({
       lastMutationSource: "manual_clear",
       pendingClearIntent: true,
     });
@@ -809,7 +838,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       vi.advanceTimersByTime(300);
       await Promise.resolve();
     });
-    expect(readCanvasDraft("project-a", "save_result_user_eric")).not.toBeNull();
+    expect(
+      readCanvasDraft("project-a", "save_result_user_eric"),
+    ).not.toBeNull();
     await act(async () => {
       vi.advanceTimersByTime(500);
       await Promise.resolve();
@@ -828,7 +859,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       vi.advanceTimersByTime(300);
       await Promise.resolve();
     });
-    expect(readCanvasDraft("project-a", "save_result_user_eric")).not.toBeNull();
+    expect(
+      readCanvasDraft("project-a", "save_result_user_eric"),
+    ).not.toBeNull();
     await act(async () => {
       vi.advanceTimersByTime(500);
       await Promise.resolve();
@@ -845,12 +878,16 @@ describe("useCanvasSync hydrate lifecycle", () => {
       vi.advanceTimersByTime(300);
       await Promise.resolve();
     });
-    expect(readCanvasDraft("project-a", "save_result_user_eric")).not.toBeNull();
+    expect(
+      readCanvasDraft("project-a", "save_result_user_eric"),
+    ).not.toBeNull();
     await act(async () => {
       vi.advanceTimersByTime(500);
       await Promise.resolve();
     });
-    expect(readCanvasDraft("project-a", "save_result_user_eric")).not.toBeNull();
+    expect(
+      readCanvasDraft("project-a", "save_result_user_eric"),
+    ).not.toBeNull();
 
     hook.unmount();
   });
@@ -877,7 +914,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       vi.advanceTimersByTime(300);
       await Promise.resolve();
     });
-    expect(readCanvasDraft("project-a", "metadata_user_eric")?.metadata).toMatchObject({
+    expect(
+      readCanvasDraft("project-a", "metadata_user_eric")?.metadata,
+    ).toMatchObject({
       preset: { scope: "blank" },
       shotMetadata: { angle: "low angle" },
     });
@@ -1089,7 +1128,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
     });
 
     expect(putFreezoneCanvas).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata).toMatchObject({
+    expect(
+      vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata,
+    ).toMatchObject({
       projections: {
         "beat:1:4": {
           projection_key: "beat:1:4",
@@ -1150,7 +1191,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
 
     expect(hook.result.current.status).toBe("ready");
     expect(putFreezoneCanvas).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata).toMatchObject({
+    expect(
+      vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata,
+    ).toMatchObject({
       projections: {
         "beat:1:4": {
           facts_signature: "new",
@@ -1176,7 +1219,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       metadata: {},
     });
 
-    const hook = renderHook(() => useCanvasSync("project-a", "live_projection_user_eric"));
+    const hook = renderHook(() =>
+      useCanvasSync("project-a", "live_projection_user_eric"),
+    );
 
     await act(async () => {
       await Promise.resolve();
@@ -1209,7 +1254,10 @@ describe("useCanvasSync hydrate lifecycle", () => {
 
     act(() => {
       expect(
-        consumeQueuedLocalFreezoneProjections("project-a", "live_projection_user_eric"),
+        consumeQueuedLocalFreezoneProjections(
+          "project-a",
+          "live_projection_user_eric",
+        ),
       ).toBe(true);
     });
 
@@ -1312,7 +1360,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
       await Promise.resolve();
     });
     expect(putFreezoneCanvas).toHaveBeenCalledTimes(1);
-    expect(readCanvasDraft("project-a", "projection_refresh_user_eric")).toBeNull();
+    expect(
+      readCanvasDraft("project-a", "projection_refresh_user_eric"),
+    ).toBeNull();
 
     first.unmount();
 
@@ -1382,26 +1432,30 @@ describe("useCanvasSync hydrate lifecycle", () => {
       await Promise.resolve();
     });
 
-    queueLocalFreezoneProjection("project-a", "projection_beforeunload_user_eric", {
-      projectionKey: "beat:1:4",
-      nodes: [
-        {
-          id: "projection_group_beat_1_4",
-          type: "groupNode",
-          position: { x: 0, y: 0 },
-          data: { projection_key: "beat:1:4" },
-        } as any,
-      ],
-      edges: [],
-      metadata: {
-        projections: {
-          "beat:1:4": {
-            projection_key: "beat:1:4",
-            facts_signature: "sig",
+    queueLocalFreezoneProjection(
+      "project-a",
+      "projection_beforeunload_user_eric",
+      {
+        projectionKey: "beat:1:4",
+        nodes: [
+          {
+            id: "projection_group_beat_1_4",
+            type: "groupNode",
+            position: { x: 0, y: 0 },
+            data: { projection_key: "beat:1:4" },
+          } as any,
+        ],
+        edges: [],
+        metadata: {
+          projections: {
+            "beat:1:4": {
+              projection_key: "beat:1:4",
+              facts_signature: "sig",
+            },
           },
         },
       },
-    });
+    );
 
     act(() => {
       expect(
@@ -1418,12 +1472,16 @@ describe("useCanvasSync hydrate lifecycle", () => {
       await Promise.resolve();
     });
     expect(putFreezoneCanvas).toHaveBeenCalledTimes(1);
-    expect(readCanvasDraft("project-a", "projection_beforeunload_user_eric")).toBeNull();
+    expect(
+      readCanvasDraft("project-a", "projection_beforeunload_user_eric"),
+    ).toBeNull();
 
     act(() => {
       window.dispatchEvent(new Event("beforeunload"));
     });
-    expect(readCanvasDraft("project-a", "projection_beforeunload_user_eric")).toBeNull();
+    expect(
+      readCanvasDraft("project-a", "projection_beforeunload_user_eric"),
+    ).toBeNull();
 
     first.unmount();
 
@@ -1445,12 +1503,13 @@ describe("useCanvasSync hydrate lifecycle", () => {
 
   it("does not conflict after moving a saved projection group and refreshing", async () => {
     vi.useFakeTimers();
-    const projectionNode = (x: number, y: number) => ({
-      id: "projection_beat_1_4__projection_group_beat_1_4",
-      type: "groupNode",
-      position: { x, y },
-      data: { projection_key: "beat:1:4" },
-    } as any);
+    const projectionNode = (x: number, y: number) =>
+      ({
+        id: "projection_beat_1_4__projection_group_beat_1_4",
+        type: "groupNode",
+        position: { x, y },
+        data: { projection_key: "beat:1:4" },
+      }) as any;
     vi.mocked(getFreezoneCanvas)
       .mockResolvedValueOnce({
         nodes: [],
@@ -1485,26 +1544,30 @@ describe("useCanvasSync hydrate lifecycle", () => {
       await Promise.resolve();
     });
 
-    queueLocalFreezoneProjection("project-a", "projection_move_refresh_user_eric", {
-      projectionKey: "beat:1:4",
-      nodes: [
-        {
-          id: "projection_group_beat_1_4",
-          type: "groupNode",
-          position: { x: 0, y: 0 },
-          data: { projection_key: "beat:1:4" },
-        } as any,
-      ],
-      edges: [],
-      metadata: {
-        projections: {
-          "beat:1:4": {
-            projection_key: "beat:1:4",
-            facts_signature: "sig",
+    queueLocalFreezoneProjection(
+      "project-a",
+      "projection_move_refresh_user_eric",
+      {
+        projectionKey: "beat:1:4",
+        nodes: [
+          {
+            id: "projection_group_beat_1_4",
+            type: "groupNode",
+            position: { x: 0, y: 0 },
+            data: { projection_key: "beat:1:4" },
+          } as any,
+        ],
+        edges: [],
+        metadata: {
+          projections: {
+            "beat:1:4": {
+              projection_key: "beat:1:4",
+              facts_signature: "sig",
+            },
           },
         },
       },
-    });
+    );
 
     act(() => {
       expect(
@@ -1524,10 +1587,10 @@ describe("useCanvasSync hydrate lifecycle", () => {
     act(() => {
       useCanvasStore
         .getState()
-        .updateNodePosition(
-          "projection_beat_1_4__projection_group_beat_1_4",
-          { x: 120, y: 80 },
-        );
+        .updateNodePosition("projection_beat_1_4__projection_group_beat_1_4", {
+          x: 120,
+          y: 80,
+        });
     });
     await act(async () => {
       vi.advanceTimersByTime(10_000);
@@ -1549,7 +1612,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
     act(() => {
       window.dispatchEvent(new Event("beforeunload"));
     });
-    expect(readCanvasDraft("project-a", "projection_move_refresh_user_eric")).toBeNull();
+    expect(
+      readCanvasDraft("project-a", "projection_move_refresh_user_eric"),
+    ).toBeNull();
 
     first.unmount();
 
@@ -1635,7 +1700,9 @@ describe("useCanvasSync hydrate lifecycle", () => {
     });
 
     expect(putFreezoneCanvas).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata).toMatchObject({
+    expect(
+      vi.mocked(putFreezoneCanvas).mock.calls[0][2].metadata,
+    ).toMatchObject({
       projections: {},
     });
 
@@ -1644,10 +1711,13 @@ describe("useCanvasSync hydrate lifecycle", () => {
 });
 
 describe("trimHistoryForStorage", () => {
-  const snap = (id: number) => ({
-    nodes: [{ id: `n${id}` }],
-    edges: [],
-  }) as unknown as Parameters<typeof trimHistoryForStorage>[0]["past"][number];
+  const snap = (id: number) =>
+    ({
+      nodes: [{ id: `n${id}` }],
+      edges: [],
+    }) as unknown as Parameters<
+      typeof trimHistoryForStorage
+    >[0]["past"][number];
 
   it("keeps only the most recent N undo steps", () => {
     const past = Array.from({ length: 50 }, (_, i) => snap(i));

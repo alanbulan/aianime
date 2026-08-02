@@ -1,10 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
 import { useTranslation } from "react-i18next";
+import { useReactFlow } from "@xyflow/react";
 
 import { Canvas } from "@/features/canvas/Canvas";
 import {
   useCanvasStore,
+  type CanvasEdge,
+  type CanvasNode,
   type CanvasNodeData,
 } from "@/features/canvas/canvasStore";
 import {
@@ -28,6 +31,7 @@ import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezone
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import {
   createCanvasCommitControllerHook,
+  createCanvasSyncHook,
   createUseFreezoneCanvasEntryLifecycle,
   createUseFreezoneShellController,
   FreezoneShellView,
@@ -46,12 +50,18 @@ import { isCeRuntime } from "@/lib/runtime-config";
 import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 
-import { useCanvasSync } from "./hooks/useCanvasSync";
-
 interface FreezoneShellProps {
   project: ProjectSummary;
   canvasId: string;
 }
+
+const useCanvasSync = createCanvasSyncHook<CanvasNode, CanvasEdge>({
+  useCanvasState: (selector) => useCanvasStore((state) => selector(state)),
+  readCanvasState: useCanvasStore.getState,
+  subscribeCanvasState: (listener) =>
+    useCanvasStore.subscribe((state, previous) => listener(state, previous)),
+  useViewportPort: useReactFlow,
+});
 
 const useCanvasCommitController = createCanvasCommitControllerHook({
   store: {

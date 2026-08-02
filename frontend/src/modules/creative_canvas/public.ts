@@ -117,13 +117,6 @@ export type {
   StoredCanvasDraft,
 } from "@/modules/creative_canvas/application/canvasDraft";
 export { canvasDraftStorageGateway } from "@/modules/creative_canvas/canvasDraftComposition";
-export { useCanvasDraftPersistenceController } from "@/modules/creative_canvas/canvasDraftPersistenceComposition";
-export type {
-  CanvasDraftPersistenceController,
-  CanvasDraftPersistenceOptions,
-  CanvasDraftPersistenceState,
-  CanvasDraftPersistenceStore,
-} from "@/modules/creative_canvas/presentation/useCanvasDraftPersistenceController";
 export {
   HISTORY_PERSIST_MAX_STEPS,
   buildConflictCopyCanvasId,
@@ -143,17 +136,12 @@ export type {
   ConflictSnapshot,
   PersistedCanvasHistory,
 } from "@/modules/creative_canvas/application/canvasSyncStorage";
-export { canvasSyncStorageGateway } from "@/modules/creative_canvas/canvasSyncComposition";
-export {
-  useCanvasHistoryPersistence,
-  useCanvasViewportPersistence,
-} from "@/modules/creative_canvas/canvasLocalPersistenceComposition";
+export { createCanvasSyncHook } from "@/modules/creative_canvas/canvasSyncHookComposition";
 export type {
-  CanvasHistoryPersistenceOptions,
-  CanvasLocalPersistenceState,
-  CanvasLocalPersistenceStore,
-  CanvasViewportPersistenceOptions,
-} from "@/modules/creative_canvas/presentation/useCanvasLocalPersistence";
+  CanvasSyncHookCompositionOptions,
+  CanvasSyncStoreState,
+} from "@/modules/creative_canvas/canvasSyncHookComposition";
+export { canvasSyncStorageGateway } from "@/modules/creative_canvas/canvasSyncComposition";
 export {
   canvasContentSignature,
   decideHydrateDraft,
@@ -171,14 +159,7 @@ export type {
   CanvasConflictRecoveryDependencies,
   SaveCanvasConflictCopyArgs,
 } from "@/modules/creative_canvas/application/canvasConflictRecovery";
-export {
-  canvasConflictRecovery,
-  useCanvasConflictController,
-} from "@/modules/creative_canvas/canvasConflictRecoveryComposition";
-export type {
-  CanvasConflictController,
-  CanvasConflictControllerOptions,
-} from "@/modules/creative_canvas/presentation/useCanvasConflictController";
+export { canvasConflictRecovery } from "@/modules/creative_canvas/canvasConflictRecoveryComposition";
 export {
   nodeDataAfterCommittedSlot,
 } from "@/modules/creative_canvas/application/committedNodePatch";
@@ -261,13 +242,6 @@ export type {
   DirectorRenderCanvasCommitSource,
   DirectorRenderTarget,
 } from "@/modules/creative_canvas/application/directorRenderCommit";
-export { createCanvasHydrationLifecycleHook } from "@/modules/creative_canvas/canvasHydrationComposition";
-export type { CanvasHydrationLifecycleCompositionOptions } from "@/modules/creative_canvas/canvasHydrationComposition";
-export type {
-  CanvasHydrationLifecycleOptions,
-  CanvasHydrationLifecycleState,
-  CanvasHydrationLifecycleStore,
-} from "@/modules/creative_canvas/presentation/useCanvasHydrationLifecycle";
 export {
   EMPTY_SHOT_METADATA,
   hasActiveShotMetadata,
@@ -308,12 +282,6 @@ export type {
   LocalProjectionPayload,
   RemoteCanvasMerge,
 } from "@/modules/creative_canvas/application/canvasRuntimeState";
-export { createCanvasRuntimeBridgeHook } from "@/modules/creative_canvas/canvasRuntimeBridgeComposition";
-export type {
-  CanvasRuntimeBridgeOptions,
-  CanvasRuntimeBridgeState,
-  CanvasRuntimeBridgeStore,
-} from "@/modules/creative_canvas/presentation/useCanvasRuntimeBridge";
 export { useCanvasProjectionStatus } from "@/modules/creative_canvas/presentation/useCanvasProjectionStatus";
 export {
   normalizePresetProjectionRequest,
@@ -544,21 +512,9 @@ export type {
   CanvasPresetRefreshArgs,
   CanvasPresetRefreshDependencies,
 } from "@/modules/creative_canvas/application/canvasPresetRefresh";
-export { useCanvasPresetRefreshController } from "@/modules/creative_canvas/canvasPresetRefreshComposition";
-export type {
-  CanvasPresetRefreshController,
-  CanvasPresetRefreshControllerOptions,
-} from "@/modules/creative_canvas/presentation/useCanvasPresetRefreshController";
 export { saveErrorStatusAndBody } from "@/modules/creative_canvas/application/canvasSaveError";
 export type { SaveErrorBody } from "@/modules/creative_canvas/application/canvasSaveError";
 export { canvasEnvelopeFromRemote } from "@/modules/creative_canvas/application/canvasSyncCore";
-export { createCanvasSaveControllerHook } from "@/modules/creative_canvas/canvasSaveControllerComposition";
-export type {
-  CanvasSaveController,
-  CanvasSaveControllerOptions,
-  CanvasSaveControllerState,
-  CanvasSaveControllerStore,
-} from "@/modules/creative_canvas/presentation/useCanvasSaveController";
 export {
   projectionScopedId,
   scopeProjectionGraphIds,

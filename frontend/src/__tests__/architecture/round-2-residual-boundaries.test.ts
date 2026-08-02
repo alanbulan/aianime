@@ -219,6 +219,7 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasProjectionCommandController.test.tsx",
       "useCanvasSaveController.ts",
       "useCanvasSaveController.test.tsx",
+      "useCanvasSync.ts",
       "useCanvasCommitController.ts",
       "useCanvasCommitController.test.tsx",
       "useFreezoneCanvasEntryLifecycle.ts",
@@ -546,6 +547,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/freezone/hooks/useCanvasPresetRefreshController.test.tsx",
       "features/freezone/hooks/useCanvasCommitController.ts",
       "features/freezone/hooks/useCanvasCommitController.test.tsx",
+      "features/freezone/hooks/useCanvasSync.ts",
+      "__tests__/features/freezone/use-canvas-sync.test.tsx",
       "features/canvas/domain/assetDropInfo.ts",
       "features/canvas/domain/canvasCommitEligibility.ts",
       "features/canvas/domain/canvasCommitEligibility.test.ts",
@@ -555,6 +558,9 @@ describe("round 2 residual architecture boundaries", () => {
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredCanvasStoragePath))).toBe(false);
     }
+    expect(existsSync(resolve(SRC_ROOT, "features/freezone/hooks"))).toBe(
+      false,
+    );
     expect(
       existsSync(resolve(SRC_ROOT, "__tests__/features/freezone/canvases-tab.test.ts")),
     ).toBe(false);
@@ -607,8 +613,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/application/canvasPresetRefresh",
         "@/modules/creative_canvas/application/canvasSaveError",
         "@/modules/creative_canvas/application/canvasSyncCore",
-        "@/modules/creative_canvas/canvasSaveControllerComposition",
-        "@/modules/creative_canvas/presentation/useCanvasSaveController",
+        "@/modules/creative_canvas/canvasSyncHookComposition",
         "@/modules/creative_canvas/application/canvasCommitRules",
         "@/modules/creative_canvas/application/canvasCommitEvents",
         "@/modules/creative_canvas/application/directorWorldSceneSaveRegistry",
@@ -1166,7 +1171,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 898],
-      ["features/freezone", 2],
+      ["features/freezone", 1],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

@@ -383,7 +383,7 @@ describe("frontend architecture boundaries", () => {
         "@/lib/runtime-config",
         "@/lib/url-params",
         "@/shared/media/image-cache",
-        "./hooks/useCanvasSync",
+        "@xyflow/react",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -392,6 +392,10 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/FreezoneShellView.tsx"],
     ]);
     expect(shellSource).toContain("createUseFreezoneShellController({");
+    expect(shellSource).toContain(
+      "createCanvasSyncHook<CanvasNode, CanvasEdge>({",
+    );
+    expect(shellSource).not.toContain("./hooks/useCanvasSync");
     expect(shellSource).toContain("useFreezoneShellController({");
     expect(shellSource).toContain(
       "createElement(FreezoneShellView, {",
@@ -4832,7 +4836,11 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const saveControllerPath = resolve(
       SRC_ROOT,
@@ -4847,6 +4855,15 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
     );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
+    const forbiddenSyncHookImports = importSpecifiers(syncHookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier.startsWith("@/features/") ||
+        specifier.startsWith("../infrastructure/") ||
+        specifier === "@/modules/creative_canvas/public",
+    );
     const removedHistoryClientSymbols = [
       "FreezoneCanvasHistoryEntry",
       "FreezoneCanvasRestoreRequest",
@@ -4878,27 +4895,30 @@ describe("frontend architecture boundaries", () => {
     );
     expect(syncHookSource).not.toContain("@/api/canvas");
     expect(syncHookSource).not.toContain("@/features/canvas/composition");
-    expect(importSpecifiers(syncHookPath)).not.toContain(
-      "./useCanvasSaveController",
-    );
-    expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
+    expect(forbiddenSyncHookImports).toEqual([]);
+    expect(importSpecifiers(syncCompositionPath)).toEqual(
+      expect.arrayContaining([
+        "./canvasConflictRecoveryComposition",
+        "./canvasDraftPersistenceComposition",
+        "./canvasHydrationComposition",
+        "./canvasLocalPersistenceComposition",
+        "./canvasPresetRefreshComposition",
+        "./canvasRuntimeBridgeComposition",
+        "./canvasSaveControllerComposition",
+        "./presentation/useCanvasSync",
+      ]),
     );
     expect(importSpecifiers(saveControllerPath)).toContain(
       "../application/canvasSave",
     );
-    expect(importSpecifiers(syncHookPath)).not.toContain(
-      "./useCanvasHydrationLifecycle",
+    expect(syncCompositionSource).toContain(
+      "createCanvasHydrationLifecycleHook(",
     );
-    expect(syncHookSource).toContain("createCanvasHydrationLifecycleHook(");
     expect(importSpecifiers(hydrationLifecyclePath)).toContain(
       "../application/canvasSyncHydration",
     );
-    expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(syncHookPath)).not.toContain(
-      "./useCanvasPresetRefreshController",
+    expect(syncCompositionSource).toContain(
+      "usePresetRefreshController: useCanvasPresetRefreshController",
     );
     expect(importSpecifiers(presetRefreshControllerPath)).toEqual([
       "react",
@@ -6482,7 +6502,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSync = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/useCanvasSync.ts",
+      ),
       "utf8",
     );
     const canvasSyncStorage = readFileSync(
@@ -6571,7 +6594,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSyncStorage).toContain(
       "export interface CanvasSyncHistoryState",
     );
-    expect(canvasSync).toContain("@/modules/creative_canvas/public");
+    expect(canvasSync).not.toContain("@/modules/creative_canvas/public");
     expect(canvasSync).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
@@ -9666,7 +9689,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSync = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/useCanvasSync.ts",
+      ),
       "utf8",
     );
     const saveController = readFileSync(
@@ -9681,7 +9707,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("scheduleCanvasPersist");
     expect(canvasView).not.toContain("saveTimerRef");
     expect(canvasView).not.toContain("isRestoringCanvasRef");
-    expect(canvasSync).toContain("useCanvasSaveController({");
+    expect(canvasSync).toContain("dependencies.useSaveController({");
     expect(canvasSync).not.toContain("useCanvasStore.subscribe(");
     expect(saveController).toContain(
       "const unsubscribeCanvas = dependencies.store.subscribe(",
@@ -9708,7 +9734,7 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const runtimeBridgePath = resolve(
       SRC_ROOT,
@@ -9791,7 +9817,13 @@ describe("frontend architecture boundaries", () => {
       "function canvasEnvelopeFromRemote(",
     );
     expect(syncHookSource).not.toContain("function saveErrorStatusAndBody(");
-    expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
+    expect(importSpecifiers(shellPath)).not.toContain("./hooks/useCanvasSync");
+    expect(importSpecifiers(shellPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(readFileSync(shellPath, "utf8")).toContain(
+      "createCanvasSyncHook<CanvasNode, CanvasEdge>({",
+    );
   });
 
   it("keeps canvas save orchestration in Creative Canvas application", () => {
@@ -9956,7 +9988,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const recoverySource = readFileSync(recoveryPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
@@ -10016,10 +10048,10 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(hookPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useCanvasConflictController",
     );
     expect(importSpecifiers(hookPath)).not.toContain(
-      "./useCanvasConflictController",
+      "@/modules/creative_canvas/public",
     );
     for (const retiredPath of [
       "features/freezone/canvasConflictRecoveryComposition.ts",
@@ -10053,7 +10085,7 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -10085,9 +10117,7 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "createUseCanvasConflictController({",
     );
-    expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(syncHookSource).toContain("dependencies.useConflictController({");
     expect(testSource).toContain('from "./useCanvasConflictController"');
     expect(syncHookSource).not.toContain("canvasConflictRecovery.discard(");
     expect(syncHookSource).not.toContain("canvasConflictRecovery.saveCopy(");
@@ -10110,7 +10140,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -10185,10 +10215,10 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasSyncStorage",
     ]);
     expect(importSpecifiers(hookPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useCanvasPresetRefreshController",
     );
     expect(importSpecifiers(hookPath)).not.toContain(
-      "./useCanvasPresetRefreshController",
+      "@/modules/creative_canvas/public",
     );
     for (const retiredPath of [
       "features/freezone/canvasPresetRefreshComposition.ts",
@@ -10221,7 +10251,7 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -10251,8 +10281,8 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "createUseCanvasPresetRefreshController(refreshCanvasPreset)",
     );
-    expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
+    expect(syncHookSource).toContain(
+      "dependencies.usePresetRefreshController({",
     );
     expect(testSource).toContain('from "./useCanvasPresetRefreshController"');
     expect(syncHookSource).not.toContain("refreshCanvasPreset({");
@@ -11610,7 +11640,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -11645,7 +11675,7 @@ describe("frontend architecture boundaries", () => {
       "./canvasSaveError",
       "./canvasSyncStorage",
     ]);
-    expect(importSpecifiers(hookPath)).toContain(
+    expect(importSpecifiers(hookPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).toContain(
@@ -11809,7 +11839,11 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -11818,6 +11852,7 @@ describe("frontend architecture boundaries", () => {
     const persistenceSource = readFileSync(persistencePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const historyDeclaration = [
       "function",
@@ -11857,15 +11892,18 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useCanvasLocalPersistence.ts",
     ]);
     expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasLocalPersistence",
     );
-    expect(syncHookSource).toContain(
-      "const canvasLocalPersistenceStore: CanvasLocalPersistenceStore",
+    expect(importSpecifiers(syncHookPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
-    expect(syncHookSource.match(/store: canvasLocalPersistenceStore/g)?.length).toBe(2);
+    expect(syncCompositionSource).toContain("const localPersistenceStore = {");
+    expect(syncCompositionSource).toContain(
+      "useHistoryPersistence: useCanvasHistoryPersistence",
+    );
+    expect(syncCompositionSource).toContain(
+      "useViewportPersistence: useCanvasViewportPersistence",
+    );
     expect(syncHookSource).not.toContain(
       "canvasSyncStorageGateway.writeHistory",
     );
@@ -11885,11 +11923,11 @@ describe("frontend architecture boundaries", () => {
       expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
     }
     expect(
-      syncHookSource.indexOf("useCanvasHistoryPersistence({"),
-    ).toBeLessThan(syncHookSource.indexOf("useCanvasSaveController({"));
+      syncHookSource.indexOf("dependencies.useHistoryPersistence({"),
+    ).toBeLessThan(syncHookSource.indexOf("dependencies.useSaveController({"));
     expect(
-      syncHookSource.indexOf("useCanvasViewportPersistence({"),
-    ).toBeGreaterThan(syncHookSource.indexOf("useCanvasSaveController({"));
+      syncHookSource.indexOf("dependencies.useViewportPersistence({"),
+    ).toBeGreaterThan(syncHookSource.indexOf("dependencies.useSaveController({"));
   });
 
   it("keeps canvas draft persistence lifecycle in one presentation controller", () => {
@@ -11903,7 +11941,11 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -11912,6 +11954,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "function",
@@ -11945,15 +11988,15 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("window.");
     expect(controllerSource).not.toContain("@/features/");
     expect(importSpecifiers(syncHookPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasDraftPersistenceController",
     );
-    expect(syncHookSource).toContain(
-      "const canvasDraftPersistenceStore: CanvasDraftPersistenceStore<",
+    expect(importSpecifiers(syncHookPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
-    expect(syncHookSource).toContain("store: canvasDraftPersistenceStore");
+    expect(syncCompositionSource).toContain("const draftPersistenceStore = {");
+    expect(syncCompositionSource).toContain(
+      "useDraftPersistenceController: useCanvasDraftPersistenceController",
+    );
     expect(controllerSource).toContain("const DRAFT_DEBOUNCE_MS = 300");
     expect(controllerSource).toContain("dependencies.storage.writeDraft(");
     expect(controllerSource).toContain("dependencies.storage.readDraft<");
@@ -11986,7 +12029,11 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -11995,6 +12042,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "function",
@@ -12021,20 +12069,18 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/presentation/useCanvasSaveController.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).not.toContain(
+    expect(importSpecifiers(syncHookPath)).toContain(
       "./useCanvasSaveController",
     );
-    expect(importSpecifiers(syncHookPath)).toContain(
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(controllerSource).not.toContain("window.");
     expect(controllerSource).not.toContain("@/features/");
     expect(compositionSource).toContain("createCanvasSaveScheduler({");
     expect(compositionSource).toContain("createCanvasUnloadSaver({");
-    expect(syncHookSource).toContain(
-      "const canvasSaveControllerStore: CanvasSaveControllerStore<",
-    );
-    expect(syncHookSource).toContain("createCanvasSaveControllerHook(");
+    expect(syncCompositionSource).toContain("const saveControllerStore = {");
+    expect(syncCompositionSource).toContain("createCanvasSaveControllerHook(");
     expect(controllerSource).toContain("const SAVE_DEBOUNCE_MS = 800");
     expect(controllerSource).toContain("const inFlightRef = useRef<");
     expect(controllerSource).toContain(
@@ -12118,11 +12164,16 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const bridgeSource = readFileSync(bridgePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
     const declaration = [
       "return function",
       "useCanvasRuntimeBridge(",
@@ -12147,10 +12198,10 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/presentation/useCanvasRuntimeBridge.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).not.toContain(
+    expect(importSpecifiers(syncHookPath)).toContain(
       "./useCanvasRuntimeBridge",
     );
-    expect(syncHookSource).toContain("createCanvasRuntimeBridgeHook(");
+    expect(syncCompositionSource).toContain("createCanvasRuntimeBridgeHook(");
     expect(bridgeSource).toContain("dependencies.registerRuntime(");
     expect(bridgeSource).toContain("dependencies.mergeProjectionGraph(");
     expect(bridgeSource).toContain("dependencies.removeProjectionGraph(");
@@ -12179,8 +12230,8 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("removeProjectionFromLocalCanvas(");
     expect(syncHookSource).not.toContain("saveProjectionEditNow");
     expect(
-      syncHookSource.indexOf("useCanvasRuntimeBridge({"),
-    ).toBeLessThan(syncHookSource.indexOf("useCanvasHydrationLifecycle({"));
+      syncHookSource.indexOf("dependencies.useRuntimeBridge({"),
+    ).toBeLessThan(syncHookSource.indexOf("dependencies.useHydrationLifecycle({"));
   });
 
   it("keeps canvas hydration lifecycle in one presentation hook", () => {
@@ -12190,10 +12241,15 @@ describe("frontend architecture boundaries", () => {
     );
     const syncHookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSync.ts",
+    );
+    const syncCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSyncHookComposition.ts",
     );
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const syncCompositionSource = readFileSync(syncCompositionPath, "utf8");
     const declaration = [
       "return function",
       "useCanvasHydrationLifecycle(",
@@ -12223,7 +12279,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).not.toContain(
+    expect(importSpecifiers(syncHookPath)).toContain(
       "./useCanvasHydrationLifecycle",
     );
     expect(lifecycleSource).toContain(
@@ -12236,7 +12292,9 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).toContain(
       "readSaveController: () => saveController",
     );
-    expect(syncHookSource).toContain("createCanvasHydrationLifecycleHook(");
+    expect(syncCompositionSource).toContain(
+      "createCanvasHydrationLifecycleHook(",
+    );
     expect(syncHookSource).not.toContain(
       "canvasHydrateFlightCoordinator.acquire(",
     );
@@ -12244,11 +12302,11 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("canvasSyncStorageGateway.readHistory(");
     expect(syncHookSource).not.toContain("requestAnimationFrame(");
     expect(
-      syncHookSource.indexOf("useCanvasRuntimeBridge({"),
-    ).toBeLessThan(syncHookSource.indexOf("useCanvasHydrationLifecycle({"));
+      syncHookSource.indexOf("dependencies.useRuntimeBridge({"),
+    ).toBeLessThan(syncHookSource.indexOf("dependencies.useHydrationLifecycle({"));
     expect(
-      syncHookSource.indexOf("useCanvasHydrationLifecycle({"),
-    ).toBeLessThan(syncHookSource.indexOf("useCanvasHistoryPersistence({"));
+      syncHookSource.indexOf("dependencies.useHydrationLifecycle({"),
+    ).toBeLessThan(syncHookSource.indexOf("dependencies.useHistoryPersistence({"));
   });
 
   it("keeps browser canvas drafts behind one application port", () => {

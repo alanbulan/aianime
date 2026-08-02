@@ -972,6 +972,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第六百九十六批将 Freezone 项目页的 Router、Identity、Workspace、全局错误、URL 与 Shell 装配从旧 `features/freezone/routeComposition.ts` 上移到独立 `app/creative-canvas-composition.tsx`；Freezone 懒路由只依赖 App composition，不再直接进入 legacy feature。旧 route composition 直接删除，不保留 facade、re-export 或第二套页面组合；架构门禁把 App composition 固定为唯一允许接触 legacy `FreezoneShell` 的跨上下文适配点，并禁止旧路径、路由绕过或其他模块新增私有依赖。Creative Canvas/Canvas 保持 239/898，Freezone 由 3 降到 2，残余 ratchet 收紧到 898/2，旧路径只保留反回流门禁文本，前端空目录为 0。路由初始化与第二轮残余边界 2 个文件 13 项、完整模块边界 323 项，合计 Vitest 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过。未启动 UI、未构建安装包、未调用真实模型；Electron 内置 Hermes ACP、唯一 Gateway、普通版 Cloud、专业版授权后 BYOK 和平台对象存储边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第六百九十七批将 Canvas Sync 的状态、错误、修订、备份、自动保存、冲突恢复和主线预设刷新编排及 30 项集成测试从旧 Freezone Hook 迁入 Creative Canvas presentation；新增唯一 `canvasSyncHookComposition.ts`，集中装配 hydration、runtime bridge、save、draft、conflict、preset、history、viewport 与浏览器卸载端口。presentation Hook 通过泛型 Store/viewport 合同接收依赖，不导入旧 Canvas/Freezone、React Flow、infrastructure 或模块自身 public；`FreezoneShell.tsx` 只显式注入现有 Zustand selector/read/subscribe 和 `useReactFlow`，不再拥有同步业务。旧 Hook、旧测试路径和空 `features/freezone/hooks` 目录直接删除，不保留 facade、re-export 或第二套实现；模块 public 删除低层 hydration/runtime/save factory、draft/conflict/preset controller 及 history/viewport Hook 出口，只保留组合后的 `createCanvasSyncHook`。Creative Canvas 由 239 增到 241，Canvas 保持 898，Freezone 由 2 降到 1，残余 ratchet 收紧到 898/1，旧路径只保留反回流门禁文本。Canvas Sync、路由初始化和残余边界 3 个文件 43 项、完整模块边界 323 项，共 Vitest 4 个文件 366 项、前端 TypeScript 与 `git diff --check` 通过。未启动 UI、未构建安装包、未调用真实模型；Electron 内置 Hermes ACP、唯一 Gateway、普通版 Cloud、专业版授权后 BYOK 和平台对象存储边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
