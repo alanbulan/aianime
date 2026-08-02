@@ -1,10 +1,14 @@
 // Copyright (c) 2026 AI anime
-import { sourceFromImageTo3gsResult } from "../domain/directorWorldSources";
-import type { CanvasImageTo3dSourceKind } from "../domain/imageTo3d";
+import {
+  sourceFromImageTo3gsResult,
+  type CanvasImageTo3dSourceKind,
+  type CanvasImageTo3dWorldSource,
+} from "../domain/imageTo3d";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
+import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasImageTo3dCommand {
   readonly sourceUrl: string;
@@ -26,18 +30,28 @@ export interface GenerateCanvasImageTo3dParams
 }
 
 export interface GenerateCanvasImageTo3dDependencies {
+  readonly sourceGateway: CanvasImageSourcePreparationGateway;
   readonly submissionGateway: CanvasImageTo3dSubmissionGateway;
   readonly taskGateway: CanvasTaskResultGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
   readonly now: () => number;
 }
 
+export interface GenerateCanvasImageTo3dResult {
+  readonly task: CanvasGenerationTaskRef;
+  readonly source: CanvasImageTo3dWorldSource;
+}
+
 export async function generateCanvasImageTo3d(
   params: GenerateCanvasImageTo3dParams,
   dependencies: GenerateCanvasImageTo3dDependencies,
-) {
+): Promise<GenerateCanvasImageTo3dResult> {
+  const sourceUrl = await dependencies.sourceGateway.prepare(
+    params.projectId,
+    params.sourceUrl,
+  );
   const task = await dependencies.submissionGateway.submit(params.projectId, {
-    sourceUrl: params.sourceUrl,
+    sourceUrl,
     sourceKind: params.sourceKind,
     canvasId: params.canvasId,
     nodeId: params.nodeId,

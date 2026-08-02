@@ -22,7 +22,7 @@ describe("freezoneImageTo3dGenerationGateway", () => {
 
     await expect(
       freezoneImageTo3dGenerationGateway.submit("project/1", {
-        sourceUrl: "/static/pano.png",
+        sourceUrl: "/assets/pano.png",
         sourceKind: "pano",
         canvasId: "canvas-1",
         nodeId: "world-1",
@@ -33,7 +33,7 @@ describe("freezoneImageTo3dGenerationGateway", () => {
       {
         method: "POST",
         json: {
-          source_url: "/static/pano.png",
+          source_url: "/assets/pano.png",
           source_kind: "pano",
           canvas_id: "canvas-1",
           node_id: "world-1",

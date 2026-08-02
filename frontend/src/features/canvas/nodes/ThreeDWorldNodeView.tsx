@@ -11,7 +11,7 @@ import {
   type ThreeDWorldReferenceImage,
   type ThreeDWorldReferenceText,
 } from '@/features/canvas/application/threeDWorldNodeModel';
-import type { CanvasImageTo3dVisibleSourceKind } from '@/features/canvas/domain/imageTo3d';
+import type { CanvasImageTo3dVisibleSourceKind } from '@/modules/creative_canvas/public';
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';

@@ -5,13 +5,16 @@ import {
   generateCanvasImageTo3d,
   type CanvasImageTo3dSubmissionGateway,
 } from "./generateCanvasImageTo3d";
-import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 function dependencies(result: Record<string, unknown>) {
   const task = {
     job_id: "job-1",
     task_key: "task-1",
     task_type: "freezone_image_to_3gs",
+  };
+  const sourceGateway = {
+    prepare: vi.fn().mockResolvedValue("/assets/prepared-pano.png"),
   };
   const submissionGateway: CanvasImageTo3dSubmissionGateway = {
     submit: vi.fn().mockResolvedValue(task),
@@ -22,6 +25,7 @@ function dependencies(result: Record<string, unknown>) {
   };
   return {
     task,
+    sourceGateway,
     submissionGateway,
     taskGateway,
     onTaskSubmitted: vi.fn(),
@@ -31,14 +35,14 @@ function dependencies(result: Record<string, unknown>) {
 
 const params = {
   projectId: "project-1",
-  sourceUrl: "/static/pano.png",
+  sourceUrl: "data:image/png;base64,cGFubw==",
   sourceKind: "pano" as const,
   canvasId: "canvas-1",
   nodeId: "world-1",
 };
 
 describe("generateCanvasImageTo3d", () => {
-  it("submits, waits and maps the generated world source", async () => {
+  it("prepares, submits, waits and maps the generated world source", async () => {
     const deps = dependencies({ output_url: "/static/world.sog" });
 
     await expect(generateCanvasImageTo3d(params, deps)).resolves.toEqual({
@@ -54,13 +58,20 @@ describe("generateCanvasImageTo3d", () => {
         current: true,
       },
     });
+    expect(deps.sourceGateway.prepare).toHaveBeenCalledWith(
+      "project-1",
+      "data:image/png;base64,cGFubw==",
+    );
     expect(deps.submissionGateway.submit).toHaveBeenCalledWith("project-1", {
-      sourceUrl: "/static/pano.png",
+      sourceUrl: "/assets/prepared-pano.png",
       sourceKind: "pano",
       canvasId: "canvas-1",
       nodeId: "world-1",
     });
     expect(deps.onTaskSubmitted).toHaveBeenCalledWith(deps.task);
+    expect(deps.onTaskSubmitted.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps.taskGateway.awaitCompletion).mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it("rejects a completed task without a 3D world URL", async () => {

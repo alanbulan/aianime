@@ -55,10 +55,6 @@ import {
   type GenerateCanvasImageParams,
 } from './application/generateCanvasImage';
 import {
-  generateCanvasImageTo3d as generateCanvasImageTo3dUseCase,
-  type GenerateCanvasImageTo3dParams,
-} from './application/generateCanvasImageTo3d';
-import {
   generateCanvasRedraw as generateCanvasRedrawUseCase,
   type GenerateCanvasRedrawParams,
 } from './application/generateCanvasRedraw';
@@ -156,7 +152,6 @@ import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDi
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneImageGenerationGateway } from './infrastructure/freezoneImageGenerationGateway';
-import { freezoneImageTo3dGenerationGateway } from './infrastructure/freezoneImageTo3dGenerationGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
@@ -427,18 +422,6 @@ export async function generateCanvasStoryScript(
     onTaskSubmitted,
     },
   );
-}
-
-export function generateCanvasImageTo3d(
-  params: GenerateCanvasImageTo3dParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasImageTo3dUseCase(params, {
-    submissionGateway: freezoneImageTo3dGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-    now: () => Date.now(),
-  });
 }
 
 export function generateCanvasImage(

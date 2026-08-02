@@ -7,7 +7,6 @@ import {
   mergeDirectorStageManifestSources,
   mergeDirectorSavedSceneMaps,
   mergeDirectorWorldSources,
-  sourceFromImageTo3gsResult,
 } from "@/features/canvas/domain/directorWorldSources";
 import { CANVAS_NODE_TYPES, type CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
@@ -181,29 +180,6 @@ describe("directorWorldSources", () => {
 
     expect(sources).toHaveLength(1);
     expect(sources[0]?.ply_url).toBe("/static/demo/master.sog?v=222#etag");
-  });
-
-  it("normalizes image-to-3GS task results into SOG sources", () => {
-    const source = sourceFromImageTo3gsResult(
-      {
-        output_url: "/static/demo/world.sog",
-      },
-      {
-        id: "task-source",
-        sourceKind: "pano",
-        label: "360 生成世界",
-      },
-    );
-
-    expect(source).toMatchObject({
-      id: "task-source",
-      source_type: "sog",
-      source_kind: "pano",
-      label: "360 生成世界",
-      ply_url: "/static/demo/world.sog",
-      url: "/static/demo/world.sog",
-      current: true,
-    });
   });
 
   it("merges canvas pano sources into a beat director manifest without dropping backend sources", () => {

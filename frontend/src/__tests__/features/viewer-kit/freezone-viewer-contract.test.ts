@@ -508,9 +508,11 @@ describe("freezone viewer contracts", () => {
       "src/features/canvas/nodes/ThreeDWorldNodeView.tsx",
     );
     const worldImplementation = `${worldModel}\n${worldController}\n${worldView}`;
-    const sourceKindDomain = read("src/features/canvas/domain/imageTo3d.ts");
+    const sourceKindDomain = read(
+      "src/modules/creative_canvas/domain/imageTo3d.ts",
+    );
     const generationUseCase = read(
-      "src/features/canvas/application/generateCanvasImageTo3d.ts",
+      "src/modules/creative_canvas/application/generateCanvasImageTo3d.ts",
     );
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");

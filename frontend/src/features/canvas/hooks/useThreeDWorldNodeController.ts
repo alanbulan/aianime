@@ -33,7 +33,6 @@ import {
 } from '@/features/canvas/application/threeDWorldNodeModel';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
-  generateCanvasImageTo3d,
   getCanvasBeatDirectorManifest,
   getCanvasDirectorStagePalette,
   uploadAndAutoCommitSelectedBackgroundCandidate,
@@ -47,7 +46,6 @@ import {
   mergeDirectorSavedSceneMaps,
   mergeDirectorWorldSources,
 } from '@/features/canvas/domain/directorWorldSources';
-import { resolveCanvasImageTo3dSourceKind } from '@/features/canvas/domain/imageTo3d';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   directorCaptureBlobToDataUrl,
@@ -58,6 +56,8 @@ import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerat
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
+  generateCanvasImageTo3d,
+  resolveCanvasImageTo3dSourceKind,
   setDirectorWorldSceneSaveHandler,
   validMainlineContexts,
 } from '@/modules/creative_canvas/public';

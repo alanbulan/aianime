@@ -100,8 +100,6 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
 }));
 
 vi.mock('@/features/canvas/composition', () => ({
-  generateCanvasImageTo3d: (...args: unknown[]) =>
-    mocks.generateImageTo3d(...args),
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
     mocks.getBeatManifest(...args),
   getCanvasDirectorStagePalette: (...args: unknown[]) =>
@@ -115,6 +113,8 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  generateCanvasImageTo3d: (...args: unknown[]) =>
+    mocks.generateImageTo3d(...args),
   setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
     mocks.registerSaveHandler(...args),
 }));

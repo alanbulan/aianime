@@ -194,6 +194,8 @@ describe("round 2 residual architecture boundaries", () => {
       "toolImageGeometry.test.ts",
     ];
     const imageOperationDomainFiles = [
+      "imageTo3d.ts",
+      "imageTo3d.test.ts",
       "multiAngle.ts",
       "multiAngle.test.ts",
       "outpaint.ts",
@@ -209,6 +211,8 @@ describe("round 2 residual architecture boundaries", () => {
     const imageOperationApplicationFiles = [
       "completeCanvasMediaGenerationTask.ts",
       "completeCanvasMediaGenerationTask.test.ts",
+      "generateCanvasImageTo3d.ts",
+      "generateCanvasImageTo3d.test.ts",
       "generateCanvasMultiAngle.ts",
       "generateCanvasMultiAngle.test.ts",
       "generateCanvasOutpaint.ts",
@@ -217,6 +221,8 @@ describe("round 2 residual architecture boundaries", () => {
       "generateCanvasUpscale.test.ts",
     ];
     const imageOperationInfrastructureFiles = [
+      "freezoneImageTo3dGenerationGateway.ts",
+      "freezoneImageTo3dGenerationGateway.test.ts",
       "freezoneMultiAngleGenerationGateway.ts",
       "freezoneMultiAngleGenerationGateway.test.ts",
       "freezoneOutpaintGenerationGateway.ts",
@@ -1319,7 +1325,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 811],
+      ["features/canvas", 805],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

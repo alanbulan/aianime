@@ -14,10 +14,10 @@ import {
   directorPanoSourceFromCanvasNode,
   isPanoImageCanvasNode,
 } from '@/features/canvas/domain/directorWorldSources';
-import type { CanvasImageTo3dVisibleSourceKind } from '@/features/canvas/domain/imageTo3d';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   hasMainlineContexts,
+  type CanvasImageTo3dVisibleSourceKind,
   type MainlineContext,
 } from '@/modules/creative_canvas/public';
 import type {

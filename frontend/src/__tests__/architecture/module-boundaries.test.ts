@@ -19373,29 +19373,58 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/imageTo3d.ts",
+      "modules/creative_canvas/domain/imageTo3d.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasImageTo3d.ts",
+      "modules/creative_canvas/application/generateCanvasImageTo3d.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
+    const legacyCompositionPath = resolve(
+      SRC_ROOT,
       "features/canvas/composition.ts",
+    );
+    const legacyDirectorWorldDomainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/directorWorldSources.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyPaths = [
+      "features/canvas/domain/imageTo3d.ts",
+      "features/canvas/domain/imageTo3d.test.ts",
+      "features/canvas/application/generateCanvasImageTo3d.ts",
+      "features/canvas/application/generateCanvasImageTo3d.test.ts",
+      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
+      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
+    const legacyDirectorWorldDomainSource = readFileSync(
+      legacyDirectorWorldDomainPath,
+      "utf8",
+    );
     const nodeSource = readFileSync(nodePath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const declaration = [
@@ -19414,32 +19443,35 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(importSpecifiers(domainPath)).toEqual([
+      "@/modules/asset_world/public",
+    ]);
     expect(domainSource).toContain(
       "export function resolveCanvasImageTo3dSourceKind(",
     );
+    expect(domainSource).toContain("export function sourceFromImageTo3gsResult(");
+    expect(domainSource).not.toContain("@/features/");
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/directorWorldSources",
         "../domain/imageTo3d",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
+        "./prepareCanvasImageSource",
       ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
-    expect(applicationSource).toContain(
-      "dependencies.taskGateway.awaitCompletion(",
-    );
+    expect(applicationSource).toContain("dependencies.sourceGateway.prepare(");
+    expect(applicationSource).toContain("dependencies.taskGateway.awaitCompletion(");
     expect(applicationSource).toContain("sourceFromImageTo3gsResult(");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/generateCanvasImageTo3d.ts",
+      "modules/creative_canvas/application/generateCanvasImageTo3d.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasImageTo3d",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(adapterSource).toContain(
@@ -19451,11 +19483,16 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneImageTo3dGenerationGateway",
     );
-    expect(importSpecifiers(nodePath)).toContain(
-      "@/features/canvas/domain/imageTo3d",
+    expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
+    expect(publicSource).toContain("generateCanvasImageTo3d,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/imageTo3d",
     );
     expect(importSpecifiers(nodePath)).toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain(
+      "@/features/canvas/domain/imageTo3d",
     );
     expect(importSpecifiers(nodePath)).not.toContain("@/api/ops");
     expect(importSpecifiers(nodePath)).not.toContain("@/api/tasks");
@@ -19463,8 +19500,18 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).not.toContain("submitFreezoneImageTo3GS");
     expect(nodeSource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
     ]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneImageTo3dGenerationGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "generateCanvasImageTo3dUseCase",
+    );
+    expect(legacyDirectorWorldDomainSource).not.toContain(
+      "sourceFromImageTo3gsResult",
+    );
     for (const legacySymbol of [
       "FreezoneImageTo3GSPayload",
       "submitFreezoneImageTo3GS",

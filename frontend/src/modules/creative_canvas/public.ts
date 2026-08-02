@@ -654,6 +654,7 @@ export type {
 export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationComposition";
 export {
   generateCanvasGridAction,
+  generateCanvasImageTo3d,
   generateCanvasMultiAngle,
   generateCanvasOutpaint,
   generateCanvasRelight,
@@ -689,6 +690,22 @@ export type {
   GenerateCanvasGridActionParams,
   GenerateCanvasGridActionResult,
 } from "@/modules/creative_canvas/application/generateCanvasGridAction";
+export {
+  resolveCanvasImageTo3dSourceKind,
+} from "@/modules/creative_canvas/domain/imageTo3d";
+export type {
+  CanvasImageTo3dSourceKind,
+  CanvasImageTo3dSourceNode,
+  CanvasImageTo3dVisibleSourceKind,
+  CanvasImageTo3dWorldSource,
+} from "@/modules/creative_canvas/domain/imageTo3d";
+export type {
+  CanvasImageTo3dCommand,
+  CanvasImageTo3dSubmissionGateway,
+  GenerateCanvasImageTo3dDependencies,
+  GenerateCanvasImageTo3dParams,
+  GenerateCanvasImageTo3dResult,
+} from "@/modules/creative_canvas/application/generateCanvasImageTo3d";
 export type {
   CanvasMultiAngleGenerationCommand,
   CanvasMultiAngleGenerationGateway,
