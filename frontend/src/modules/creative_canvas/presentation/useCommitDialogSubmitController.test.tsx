@@ -2,7 +2,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PushTarget } from "@/modules/creative_canvas/public";
+import type { PushTarget } from "../domain/assetCommit";
 
 import {
   type CommitDialogSubmitControllerOptions,
@@ -19,19 +19,30 @@ const mocks = vi.hoisted(() => ({
   renderCommitSuccessMessage: vi.fn(),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+vi.mock("../assetTransferComposition", () => ({
+  commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
+}));
+
+vi.mock("../directorCommitComposition", () => ({
   commitDirectorRenderFromCanvasSource: (...args: unknown[]) =>
     mocks.commitDirectorRenderFromCanvasSource(...args),
-  commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
   commitSceneDirectorWorldFromCanvasNode: (...args: unknown[]) =>
     mocks.commitSceneDirectorWorldFromCanvasNode(...args),
+}));
+
+vi.mock("../domain/directorWorldCommit", () => ({
   hasDirectorWorldSceneState: (...args: unknown[]) =>
     mocks.hasDirectorWorldSceneState(...args),
   isDirectorWorldSourceSlotTarget: (...args: unknown[]) =>
     mocks.isDirectorWorldSourceSlotTarget(...args),
+}));
+
+vi.mock("../application/committedNodePatch", () => ({
   nodeDataAfterCommittedSlot: (...args: unknown[]) =>
     mocks.nodeDataAfterCommittedSlot(...args),
+}));
+
+vi.mock("../application/canvasCommitRules", () => ({
   renderCommitSuccessMessage: (...args: unknown[]) =>
     mocks.renderCommitSuccessMessage(...args),
 }));

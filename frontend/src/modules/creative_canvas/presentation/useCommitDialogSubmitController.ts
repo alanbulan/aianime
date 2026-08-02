@@ -2,19 +2,27 @@
 import { useState } from "react";
 
 import {
+  nodeDataAfterCommittedSlot,
+} from "../application/committedNodePatch";
+import { renderCommitSuccessMessage } from "../application/canvasCommitRules";
+import { commitFreezoneAsset as promoteToAsset } from "../assetTransferComposition";
+import {
+  commitDirectorRenderFromCanvasSource,
+  commitSceneDirectorWorldFromCanvasNode,
+} from "../directorCommitComposition";
+import type {
+  PushResult,
+  PushTarget,
+  PushTargetKind,
+} from "../domain/assetCommit";
+import {
   modelSourceUrlFromNodeData,
   type CanvasCommitMediaType,
-  commitDirectorRenderFromCanvasSource,
-  commitFreezoneAsset as promoteToAsset,
-  commitSceneDirectorWorldFromCanvasNode,
+} from "../domain/canvasCommitSource";
+import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-  nodeDataAfterCommittedSlot,
-  renderCommitSuccessMessage,
-  type PushResult,
-  type PushTarget,
-  type PushTargetKind,
-} from "@/modules/creative_canvas/public";
+} from "../domain/directorWorldCommit";
 
 export interface CommitDialogSubmitControllerOptions {
   project: string;

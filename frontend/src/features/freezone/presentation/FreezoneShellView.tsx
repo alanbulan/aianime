@@ -7,6 +7,7 @@ import {
   CanvasErrorOverlay,
   CanvasLoadingOverlay,
   CanvasLoadingScreen,
+  CommitDialog,
   CompareDialog,
   CreateIdentityDialog,
   FreezoneChatDock,
@@ -15,7 +16,6 @@ import {
 
 import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
-import { CommitDialog } from "./CommitDialog";
 import { MaskEditor } from "./MaskEditor";
 
 export function FreezoneShellView({

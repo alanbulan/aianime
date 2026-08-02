@@ -1,24 +1,26 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useState } from "react";
 
+import { getFreezoneAssetImpact as previewAssetImpact } from "../assetTransferComposition";
+import type {
+  ImpactBeat,
+  PushTarget,
+  PushTargetKind,
+} from "../domain/assetCommit";
+import type { CanvasCommitMediaType } from "../domain/canvasCommitSource";
 import {
-  type CanvasCommitMediaType,
   GLOBAL_SLOT_KINDS,
   KIND_LABELS,
   SCENE_SLOT_KINDS,
   buildCommitTarget,
   firstIdentityOptionValue,
-  getFreezoneAssetImpact as previewAssetImpact,
   identityOptionValue,
   identityOptionsForSelect,
   isUserSelectableCommitKind,
   modelSlotKindsForNodeData,
   renderCommitTargetLabel,
   sceneOptionValue,
-  type ImpactBeat,
-  type PushTarget,
-  type PushTargetKind,
-} from "@/modules/creative_canvas/public";
+} from "./commitDialogViewModel";
 import {
   listCharacterIdentities,
   listCharacters,

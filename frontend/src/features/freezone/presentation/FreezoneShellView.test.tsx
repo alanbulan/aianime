@@ -78,6 +78,9 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   ),
   CanvasLoadingOverlay: () => <div>loading-overlay</div>,
   CanvasLoadingScreen: () => <div>loading-screen</div>,
+  CommitDialog: ({ onClose }: { onClose(): void }) => (
+    <button type="button" onClick={onClose}>commit-dialog</button>
+  ),
   CompareDialog: ({ onClose }: { onClose(): void }) => (
     <button type="button" onClick={onClose}>compare-dialog</button>
   ),
@@ -88,12 +91,6 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   ),
   FreezoneToast: ({ text, onClose }: { text: string; onClose(): void }) => (
     <button type="button" onClick={onClose}>toast:{text}</button>
-  ),
-}));
-
-vi.mock("./CommitDialog", () => ({
-  CommitDialog: ({ onClose }: { onClose(): void }) => (
-    <button type="button" onClick={onClose}>commit-dialog</button>
   ),
 }));
 

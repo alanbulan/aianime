@@ -652,6 +652,7 @@ export { FreezoneChatDock } from "@/modules/creative_canvas/presentation/Freezon
 export type { FreezoneChatDockProps } from "@/modules/creative_canvas/presentation/FreezoneChatDock";
 export { CommitDialogView } from "@/modules/creative_canvas/presentation/CommitDialogView";
 export type { CommitDialogViewProps } from "@/modules/creative_canvas/presentation/CommitDialogView";
+export { CommitDialog } from "@/modules/creative_canvas/presentation/CommitDialog";
 export { CompareDialog } from "@/modules/creative_canvas/presentation/CompareDialog";
 export { CreateIdentityDialog } from "@/modules/creative_canvas/presentation/CreateIdentityDialog";
 export {

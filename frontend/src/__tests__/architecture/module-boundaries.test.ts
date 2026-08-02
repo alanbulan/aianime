@@ -5492,7 +5492,7 @@ describe("frontend architecture boundaries", () => {
     );
     const submitControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -5570,13 +5570,13 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasCommitRules",
     );
     expect(importSpecifiers(submitControllerPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(submitControllerPath)).not.toContain(
       "../application/canvasCommitRules",
     );
-    expect(importSpecifiers(submitControllerPath)).not.toContain(
+    expect(importSpecifiers(submitControllerPath)).toContain(
       "../application/committedNodePatch",
+    );
+    expect(importSpecifiers(submitControllerPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(submitControllerSource).not.toContain(
       "function renderCommitSuccessMessage(",
@@ -5680,15 +5680,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps CommitDialog target state and catalog loading in one controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
     );
     const dialogPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialog.tsx",
+      "modules/creative_canvas/presentation/CommitDialog.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCommitDialogTargetController.test.tsx",
+      "modules/creative_canvas/presentation/useCommitDialogTargetController.test.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const dialogSource = readFileSync(dialogPath, "utf8");
@@ -5711,18 +5711,21 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(owners).toEqual([
-      "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
     ]);
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/modules/creative_canvas/public",
+        "../assetTransferComposition",
+        "../domain/assetCommit",
+        "../domain/canvasCommitSource",
+        "./commitDialogViewModel",
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
-      "../hooks/useCommitDialogTargetController",
+      "./useCommitDialogTargetController",
     );
     expect(testSource).toContain(
       'from "./useCommitDialogTargetController"',
@@ -5732,20 +5735,26 @@ describe("frontend architecture boundaries", () => {
       expect(dialogSource).not.toContain(call);
     }
     expect(dialogSource).not.toContain("modelCommitKindAllowed");
+    for (const legacyPath of [
+      "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "features/freezone/hooks/useCommitDialogTargetController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
   });
 
   it("keeps CommitDialog submission orchestration in one controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
     );
     const dialogPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialog.tsx",
+      "modules/creative_canvas/presentation/CommitDialog.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCommitDialogSubmitController.test.tsx",
+      "modules/creative_canvas/presentation/useCommitDialogSubmitController.test.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const dialogSource = readFileSync(dialogPath, "utf8");
@@ -5768,16 +5777,22 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(owners).toEqual([
-      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
     ]);
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/modules/creative_canvas/public",
+        "../application/canvasCommitRules",
+        "../application/committedNodePatch",
+        "../assetTransferComposition",
+        "../directorCommitComposition",
+        "../domain/assetCommit",
+        "../domain/canvasCommitSource",
+        "../domain/directorWorldCommit",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
-      "../hooks/useCommitDialogSubmitController",
+      "./useCommitDialogSubmitController",
     );
     expect(testSource).toContain(
       'from "./useCommitDialogSubmitController"',
@@ -5787,6 +5802,12 @@ describe("frontend architecture boundaries", () => {
       expect(dialogSource).not.toContain(call);
     }
     expect(dialogSource).not.toContain("setSubmitting");
+    for (const legacyPath of [
+      "features/freezone/hooks/useCommitDialogSubmitController.ts",
+      "features/freezone/hooks/useCommitDialogSubmitController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
   });
 
   it("keeps CommitDialog DOM in one presentation view", () => {
@@ -5796,7 +5817,7 @@ describe("frontend architecture boundaries", () => {
     );
     const entryPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialog.tsx",
+      "modules/creative_canvas/presentation/CommitDialog.tsx",
     );
     const legacyEntryPath = resolve(
       SRC_ROOT,
@@ -5844,12 +5865,22 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
-        "../hooks/useCommitDialogSubmitController",
-        "../hooks/useCommitDialogTargetController",
+        "../domain/assetCommit",
+        "../domain/canvasCommitSource",
+        "./CommitDialogView",
+        "./useCommitDialogSubmitController",
+        "./useCommitDialogTargetController",
       ]),
     );
     expect(existsSync(legacyEntryPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/presentation/CommitDialog.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(
       existsSync(
         resolve(
@@ -6107,9 +6138,6 @@ describe("frontend architecture boundaries", () => {
     const internalConsumerPaths = [
       "features/freezone/hooks/useFreezoneShellController.ts",
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
-      "features/freezone/hooks/useCommitDialogTargetController.ts",
-      "features/freezone/hooks/useCommitDialogSubmitController.ts",
-      "features/freezone/presentation/CommitDialog.tsx",
     ];
     const domainConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
@@ -15394,7 +15422,7 @@ describe("frontend architecture boundaries", () => {
     );
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
-      "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
       "modules/creative_canvas/presentation/CommitDialogView.tsx",
     ];
     const episodeListEndpointOwners = sourceFiles(SRC_ROOT)
@@ -15624,7 +15652,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
-      "features/freezone/hooks/useCommitDialogTargetController.ts",
+      "modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
       "modules/creative_canvas/presentation/CommitDialogView.tsx",
       "modules/creative_canvas/presentation/CreateIdentityDialog.tsx",
     ];

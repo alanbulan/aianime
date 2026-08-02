@@ -465,7 +465,7 @@ describe("freezone viewer contracts", () => {
     const push = read("src/modules/creative_canvas/domain/assetCommit.ts");
     const target = read("src/modules/creative_canvas/domain/pushTarget.ts");
     const submitController = read(
-      "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
+      "src/modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
     );
     const shell = read(
       "src/features/freezone/hooks/useFreezoneShellController.ts",

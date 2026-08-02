@@ -105,7 +105,7 @@ describe("CommitDialog target kinds", () => {
     const controllerSource = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useCommitDialogTargetController.ts",
+        "src/modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
       ),
       "utf8",
     );
@@ -149,14 +149,14 @@ describe("CommitDialog target kinds", () => {
     const controllerSource = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useCommitDialogTargetController.ts",
+        "src/modules/creative_canvas/presentation/useCommitDialogTargetController.ts",
       ),
       "utf8",
     );
     const submitControllerSource = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
+        "src/modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
       ),
       "utf8",
     );
