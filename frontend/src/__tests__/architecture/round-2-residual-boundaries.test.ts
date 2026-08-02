@@ -290,6 +290,7 @@ describe("round 2 residual architecture boundaries", () => {
       "composeCanvasVideo.test.ts",
       "composeVideoClip.ts",
       "composeVideoClip.test.ts",
+      "videoFrameStrip.ts",
       "videoComposePreview.ts",
       "videoComposePreview.test.ts",
       "videoComposeTimelineSession.ts",
@@ -309,6 +310,8 @@ describe("round 2 residual architecture boundaries", () => {
     const videoComposeInfrastructureFiles = [
       "browserVideoComposeExportRuntime.ts",
       "browserVideoComposeExportRuntime.test.ts",
+      "browserVideoFrameStrip.ts",
+      "browserVideoFrameStrip.test.ts",
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
     ];
@@ -327,6 +330,13 @@ describe("round 2 residual architecture boundaries", () => {
       "useVideoComposeTrackMediaSync.test.tsx",
       "useVideoComposeExportController.ts",
       "useVideoComposeExportController.test.tsx",
+      "audioPeaks.ts",
+      "filmstrip.ts",
+      "filmstrip.test.ts",
+      "VideoComposeTrackRow.tsx",
+      "VideoComposeTrackRow.test.tsx",
+      "VideoComposeModalView.tsx",
+      "VideoComposeModalView.test.tsx",
       "VideoComposeTimelineControls.tsx",
       "VideoComposeTimelineControls.test.tsx",
     ];
@@ -715,7 +725,11 @@ describe("round 2 residual architecture boundaries", () => {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
         true,
       );
-      const legacyRoot = file.startsWith("VideoCompose") ? "ui" : "hooks";
+      const legacyRoot = file.startsWith("VideoCompose")
+        ? "ui"
+        : file.startsWith("useVideoCompose")
+          ? "hooks"
+          : "compose";
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas", legacyRoot, file)),
         file,
@@ -1605,7 +1619,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 726],
+      ["features/canvas", 716],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

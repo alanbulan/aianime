@@ -889,6 +889,12 @@ export type {
   VideoComposeActiveMediaClock,
   VideoComposeMediaClockSample,
 } from "@/modules/creative_canvas/application/videoComposePreview";
+export type {
+  CaptureVideoFrameStrip,
+  VideoFrameStripCaptureOptions,
+  VideoFrameStripFrame,
+} from "@/modules/creative_canvas/application/videoFrameStrip";
+export { captureBrowserVideoFrameStrip } from "@/modules/creative_canvas/infrastructure/browserVideoFrameStrip";
 export { useVideoComposeTimelineEditorController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
 export type { UseVideoComposeTimelineEditorControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
 export { useVideoComposeTimelinePointerController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController";
@@ -908,6 +914,12 @@ export type {
   VideoComposeExportControllerOptions,
   VideoComposeExportTarget,
 } from "@/modules/creative_canvas/presentation/useVideoComposeExportController";
+export { VideoComposeModalView } from "@/modules/creative_canvas/presentation/VideoComposeModalView";
+export type {
+  VideoComposeExportDialogState,
+  VideoComposeExportLocation,
+  VideoComposeModalViewProps,
+} from "@/modules/creative_canvas/presentation/VideoComposeModalView";
 export {
   VideoComposeSpeedPopover,
   VideoComposeToolButton,

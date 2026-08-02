@@ -11,12 +11,12 @@ import {
 import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-react';
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
-import type { CaptureVideoFrameStrip } from '@/features/canvas/application/videoFrameStrip';
 import {
   VIDEO_CLIP_MIN_DURATION_MS,
   constrainVideoClipEndMs,
   constrainVideoClipStartMs,
   resolveVideoClipRange,
+  type CaptureVideoFrameStrip,
 } from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 

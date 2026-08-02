@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { VideoFrameStripCaptureOptions } from "@/features/canvas/application/videoFrameStrip";
+import type { VideoFrameStripCaptureOptions } from "../application/videoFrameStrip";
 
 const captureBrowserVideoFrameStrip = vi.hoisted(() => vi.fn());
 
-vi.mock("@/features/canvas/composition", () => ({
+vi.mock("../infrastructure/browserVideoFrameStrip", () => ({
   captureBrowserVideoFrameStrip,
 }));
 
@@ -23,12 +23,22 @@ describe("filmstrip", () => {
     ];
     captureBrowserVideoFrameStrip.mockResolvedValue(frames);
 
-    const first = getFilmstrip("https://cdn.example.test/unique-clip.mp4");
-    const second = getFilmstrip("https://cdn.example.test/unique-clip.mp4");
+    const resolveMediaUrl = (url: string) => `resolved:${url}`;
+    const first = getFilmstrip(
+      "https://cdn.example.test/unique-clip.mp4",
+      resolveMediaUrl,
+    );
+    const second = getFilmstrip(
+      "https://cdn.example.test/unique-clip.mp4",
+      resolveMediaUrl,
+    );
 
     await expect(first).resolves.toEqual(frames);
     await expect(second).resolves.toEqual(frames);
     expect(captureBrowserVideoFrameStrip).toHaveBeenCalledOnce();
+    expect(captureBrowserVideoFrameStrip.mock.calls[0]?.[0]).toBe(
+      "resolved:https://cdn.example.test/unique-clip.mp4",
+    );
     const options = captureBrowserVideoFrameStrip.mock.calls[0]?.[1] as
       | VideoFrameStripCaptureOptions
       | undefined;

@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import {
   isLikelyLocalImagePath,
-  mediaNeedsCrossOrigin,
   resolveImageDisplayUrl,
 } from '../application/imageData';
+import { mediaNeedsCrossOrigin } from '@/shared/media/cross-origin';
 import type { CanvasImageRuntimeGateway } from '../application/ports';
 
 interface ErrorWithDetails extends Error {

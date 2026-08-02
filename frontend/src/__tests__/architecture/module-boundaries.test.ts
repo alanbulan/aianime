@@ -25790,7 +25790,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeModalView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
@@ -26207,11 +26207,11 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeModalView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeModalView.test.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.test.tsx",
     );
     const modalSource = readFileSync(modalPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -26230,6 +26230,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(modalPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/ui/VideoComposeModalView",
     );
     expect(modalSource.match(/<VideoComposeModalView/g)?.length).toBe(1);
@@ -26246,10 +26249,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("@/features/canvas/composition");
     expect(viewSource).not.toContain("compose/CoverEditor");
     expect(declarationOwners).toEqual([
-      "features/canvas/ui/VideoComposeModalView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
     ]);
     expect(portalOwners).toEqual([
-      "features/canvas/ui/VideoComposeModalView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
     ]);
     expect(viewTestSource).toContain(
       'from "./VideoComposeModalView"',
@@ -26267,11 +26270,11 @@ describe("frontend architecture boundaries", () => {
     );
     const trackRowPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeTrackRow.tsx",
+      "modules/creative_canvas/presentation/VideoComposeTrackRow.tsx",
     );
     const trackRowTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeTrackRow.test.tsx",
+      "modules/creative_canvas/presentation/VideoComposeTrackRow.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26279,7 +26282,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeModalView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
     );
     const controlsSource = readFileSync(controlsPath, "utf8");
     const controlsTestSource = readFileSync(controlsTestPath, "utf8");
@@ -26313,17 +26316,23 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
-        "@/features/canvas/compose/audioPeaks",
-        "@/features/canvas/compose/filmstrip",
+        "../domain/videoComposeTimeline",
+        "./audioPeaks",
+        "./filmstrip",
       ]),
     );
     expect(controlsSource).not.toContain("useCanvasStore");
     expect(controlsSource).not.toContain("@/api/");
     expect(trackRowSource).not.toContain("useCanvasStore");
     expect(trackRowSource).not.toContain("@/api/");
-    expect(importSpecifiers(modalViewPath)).toContain(
+    expect(importSpecifiers(modalViewPath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(modalViewPath)).toContain(
+      "../domain/videoComposeTimeline",
+    );
+    expect(importSpecifiers(modalViewPath)).toContain(
+      "./VideoComposeTimelineControls",
     );
     expect(importSpecifiers(modalViewPath)).toContain(
       "./VideoComposeTrackRow",
@@ -26352,7 +26361,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
       ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
       ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
-      ["features/canvas/ui/VideoComposeTrackRow.tsx"],
+      ["modules/creative_canvas/presentation/VideoComposeTrackRow.tsx"],
     ]);
     expect(controlsTestSource).toContain(
       'from "./VideoComposeTimelineControls"',
@@ -28046,7 +28055,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(infrastructurePath)).toEqual([
-      "../application/imageData",
+      "@/shared/media/cross-origin",
     ]);
     expect(implementationOwners).toEqual([
       "features/canvas/infrastructure/browserVideoFrameCapture.ts",
@@ -28076,11 +28085,11 @@ describe("frontend architecture boundaries", () => {
     );
     const contractPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoFrameStrip.ts",
+      "modules/creative_canvas/application/videoFrameStrip.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoFrameStrip.ts",
+      "modules/creative_canvas/infrastructure/browserVideoFrameStrip.ts",
     );
     const clipPanelPath = resolve(
       SRC_ROOT,
@@ -28088,13 +28097,26 @@ describe("frontend architecture boundaries", () => {
     );
     const filmstripPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/filmstrip.ts",
+      "modules/creative_canvas/presentation/filmstrip.ts",
+    );
+    const sharedCrossOriginPath = resolve(
+      SRC_ROOT,
+      "shared/media/cross-origin.ts",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
     );
     const contractSource = readFileSync(contractPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const filmstripSource = readFileSync(filmstripPath, "utf8");
+    const sharedCrossOriginSource = readFileSync(
+      sharedCrossOriginPath,
+      "utf8",
+    );
+    const publicSource = readFileSync(publicPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
@@ -28111,18 +28133,28 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const crossOriginDeclaration = [
+      "export function",
+      "mediaNeedsCrossOrigin(",
+    ].join(" ");
+    const crossOriginOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(crossOriginDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(contractPath)).toEqual([]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "../application/imageData",
+        "@/shared/media/cross-origin",
         "../application/videoFrameStrip",
       ]),
     );
     expect(contractSource).not.toContain("react");
     expect(contractSource).not.toContain("document");
     expect(implementationOwners).toEqual([
-      "features/canvas/infrastructure/browserVideoFrameStrip.ts",
+      "modules/creative_canvas/infrastructure/browserVideoFrameStrip.ts",
     ]);
     expect(infrastructureSource).not.toContain("react");
     expect(infrastructureSource).not.toContain("@/stores/");
@@ -28133,18 +28165,32 @@ describe("frontend architecture boundaries", () => {
     expect(clipPanelSource).not.toContain('document.createElement("video")');
     expect(clipPanelSource).not.toContain("function captureFrames(");
     expect(filmstripSource).toContain("captureBrowserVideoFrameStrip(");
-    expect(filmstripSource).toContain("@/features/canvas/composition");
+    expect(filmstripSource).toContain(
+      "../infrastructure/browserVideoFrameStrip",
+    );
+    expect(filmstripSource).not.toContain("@/features/canvas/composition");
     expect(filmstripSource).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
     );
     expect(filmstripSource).not.toContain('document.createElement("video")');
     expect(filmstripSource).not.toContain("function captureFilmstrip(");
-    expect(compositionSource).toContain(
+    expect(compositionSource).not.toContain(
       "./infrastructure/browserVideoFrameStrip",
     );
-    expect(compositionSource).toContain("captureBrowserVideoFrameStrip");
+    expect(compositionSource).not.toContain("captureBrowserVideoFrameStrip");
     expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
+    );
+    expect(videoNode).toContain("captureBrowserVideoFrameStrip,");
+    expect(clipPanelSource).toContain(
+      "type CaptureVideoFrameStrip",
+    );
+    expect(sharedCrossOriginSource).toContain(crossOriginDeclaration);
+    expect(crossOriginOwners).toEqual([
+      "shared/media/cross-origin.ts",
+    ]);
+    expect(publicSource).toContain(
+      "captureBrowserVideoFrameStrip",
     );
     expect(videoNodeView).toContain(
       "captureFrameStrip={captureFrameStrip}",

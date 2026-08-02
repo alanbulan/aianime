@@ -97,7 +97,6 @@ import {
 } from './infrastructure/browserStoryboardExportRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
-import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
@@ -134,7 +133,6 @@ export { rememberLastVideoModel } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
 export { clearBrowserClipboard };
 export {
-  captureBrowserVideoFrameStrip,
   captureVideoFrameBlob,
   ensureWebSafeVideo,
 };

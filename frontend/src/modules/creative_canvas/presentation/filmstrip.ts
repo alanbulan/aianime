@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
-import type { VideoFrameStripFrame } from "@/features/canvas/application/videoFrameStrip";
-import { captureBrowserVideoFrameStrip } from "@/features/canvas/composition";
+import type { VideoFrameStripFrame } from "../application/videoFrameStrip";
+import { captureBrowserVideoFrameStrip } from "../infrastructure/browserVideoFrameStrip";
 
 /**
  * 视频「胶片条」抽帧 —— 给时间线片段铺满采样帧（libtv 风格）。
@@ -21,8 +20,11 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Get (and cache) the filmstrip frames for a source video. */
-export function getFilmstrip(sourceUrl: string): Promise<FilmstripFrame[]> {
-  const resolved = resolveImageDisplayUrl(sourceUrl);
+export function getFilmstrip(
+  sourceUrl: string,
+  resolveMediaUrl: (url: string) => string,
+): Promise<FilmstripFrame[]> {
+  const resolved = resolveMediaUrl(sourceUrl);
   if (!resolved) return Promise.resolve([]);
   const cached = cache.get(resolved);
   if (cached) return cached;

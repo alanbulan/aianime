@@ -3,7 +3,7 @@ import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ComposeTimelineState } from "@/modules/creative_canvas/public";
+import type { ComposeTimelineState } from "../domain/videoComposeTimeline";
 
 import {
   VideoComposeModalView,
@@ -160,6 +160,7 @@ function viewProps(): VideoComposeModalViewProps {
     timelineSurface: {
       pxPerSec: 80,
       pxPerMs: 0.08,
+      resolveMediaUrl: (url) => url,
       durationMs: 3000,
       selected: null,
       selectedIds: new Set(),

@@ -35,6 +35,7 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
 import {
+  captureBrowserVideoFrameStrip,
   isVideoFile,
   resolveAudioReferenceDisplayName,
   translateCanvasText,
@@ -55,7 +56,6 @@ import type { CanvasGenerationHistoryRecord } from '@/features/canvas/applicatio
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
-  captureBrowserVideoFrameStrip,
   captureVideoFrameBlob,
   ensureWebSafeVideo,
   rememberLastVideoModel,

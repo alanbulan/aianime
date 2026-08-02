@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   ComposeClip,
   ComposeTrack,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimeline";
 
 import {
   VideoComposeTrackRow,
@@ -16,12 +16,12 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@/features/canvas/compose/filmstrip", () => ({
+vi.mock("./filmstrip", () => ({
   getFilmstrip: vi.fn(() => new Promise(() => {})),
   pickFrame: vi.fn(() => null),
 }));
 
-vi.mock("@/features/canvas/compose/audioPeaks", () => ({
+vi.mock("./audioPeaks", () => ({
   getCachedAudioPeaks: vi.fn(() => null),
   loadAudioPeaks: vi.fn(() => Promise.resolve(new Float32Array())),
   PEAK_BUCKETS_PER_SEC: 100,
@@ -54,6 +54,7 @@ function baseProps(entry: ComposeTrack): VideoComposeTrackRowProps {
   return {
     track: entry,
     pxPerMs: 0.1,
+    resolveMediaUrl: (url) => url,
     selectedClipId: null,
     selectedIds: new Set<string>(),
     overlapClipIds: new Set<string>(),

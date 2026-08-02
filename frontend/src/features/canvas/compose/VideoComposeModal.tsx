@@ -7,6 +7,7 @@ import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
+  VideoComposeModalView,
   useVideoComposeExportController,
   useVideoComposeKeyboardController,
   useVideoComposePlaybackController,
@@ -14,13 +15,10 @@ import {
   useVideoComposeTimelinePointerController,
   type ComposeCover,
   type ComposeTimelineState,
-} from "@/modules/creative_canvas/public";
-import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
-import {
-  VideoComposeModalView,
   type VideoComposeExportDialogState,
   type VideoComposeExportLocation,
-} from "@/features/canvas/ui/VideoComposeModalView";
+} from "@/modules/creative_canvas/public";
+import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 
 import { CoverEditor } from "./CoverEditor";
@@ -349,6 +347,7 @@ export function VideoComposeModal({
       timelineSurface={{
         pxPerSec,
         pxPerMs,
+        resolveMediaUrl: resolveImageDisplayUrl,
         durationMs,
         selected,
         selectedIds,

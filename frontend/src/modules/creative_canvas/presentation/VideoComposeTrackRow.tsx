@@ -20,17 +20,17 @@ import {
   layoutTrack,
   type ComposeClip,
   type ComposeTrack,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimeline";
 import {
   getCachedAudioPeaks,
   loadAudioPeaks,
   PEAK_BUCKETS_PER_SEC,
-} from "@/features/canvas/compose/audioPeaks";
+} from "./audioPeaks";
 import {
   getFilmstrip,
   pickFrame,
   type FilmstripFrame,
-} from "@/features/canvas/compose/filmstrip";
+} from "./filmstrip";
 
 const FILMSTRIP_THUMB_WIDTH = 72;
 
@@ -69,11 +69,13 @@ function VideoComposeClipFilmstrip({
   trimStartMs,
   trimEndMs,
   width,
+  resolveMediaUrl,
 }: {
   sourceUrl: string;
   trimStartMs: number;
   trimEndMs: number;
   width: number;
+  resolveMediaUrl: (url: string) => string;
 }) {
   const { t } = useTranslation();
   const [frames, setFrames] = useState<FilmstripFrame[]>([]);
@@ -81,7 +83,7 @@ function VideoComposeClipFilmstrip({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getFilmstrip(sourceUrl)
+    getFilmstrip(sourceUrl, resolveMediaUrl)
       .then((result) => {
         if (!cancelled) {
           setFrames(result);
@@ -94,7 +96,7 @@ function VideoComposeClipFilmstrip({
     return () => {
       cancelled = true;
     };
-  }, [sourceUrl]);
+  }, [resolveMediaUrl, sourceUrl]);
 
   if (frames.length === 0) {
     return loading ? (
@@ -136,26 +138,29 @@ function VideoComposeClipWaveform({
   trimStartMs,
   trimEndMs,
   width,
+  resolveMediaUrl,
 }: {
   sourceUrl: string;
   trimStartMs: number;
   trimEndMs: number;
   width: number;
+  resolveMediaUrl: (url: string) => string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const resolvedSourceUrl = resolveMediaUrl(sourceUrl);
   const [peaks, setPeaks] = useState<Float32Array | null>(() =>
-    getCachedAudioPeaks(sourceUrl),
+    getCachedAudioPeaks(resolvedSourceUrl),
   );
 
   useEffect(() => {
     let cancelled = false;
-    const cached = getCachedAudioPeaks(sourceUrl);
+    const cached = getCachedAudioPeaks(resolvedSourceUrl);
     if (cached) {
       setPeaks(cached);
       return;
     }
     setPeaks(null);
-    loadAudioPeaks(sourceUrl)
+    loadAudioPeaks(resolvedSourceUrl)
       .then((result) => {
         if (!cancelled) setPeaks(result);
       })
@@ -165,7 +170,7 @@ function VideoComposeClipWaveform({
     return () => {
       cancelled = true;
     };
-  }, [sourceUrl]);
+  }, [resolvedSourceUrl]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -216,6 +221,7 @@ function VideoComposeClipWaveform({
 export interface VideoComposeTrackRowProps {
   track: ComposeTrack;
   pxPerMs: number;
+  resolveMediaUrl: (url: string) => string;
   selectedClipId: string | null;
   selectedIds: ReadonlySet<string>;
   overlapClipIds: ReadonlySet<string>;
@@ -242,6 +248,7 @@ export interface VideoComposeTrackRowProps {
 export function VideoComposeTrackRow({
   track,
   pxPerMs,
+  resolveMediaUrl,
   selectedClipId,
   selectedIds,
   overlapClipIds,
@@ -316,6 +323,7 @@ export function VideoComposeTrackRow({
                   trimStartMs={clip.trimStartMs}
                   trimEndMs={clip.trimEndMs}
                   width={width}
+                  resolveMediaUrl={resolveMediaUrl}
                 />
               )}
               {track.kind === "audio" && (
@@ -324,6 +332,7 @@ export function VideoComposeTrackRow({
                   trimStartMs={clip.trimStartMs}
                   trimEndMs={clip.trimEndMs}
                   width={width}
+                  resolveMediaUrl={resolveMediaUrl}
                 />
               )}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />
@@ -410,6 +419,7 @@ export function VideoComposeTrackRow({
                 trimStartMs={ghostClip.trimStartMs}
                 trimEndMs={ghostClip.trimEndMs}
                 width={Math.max(24, clipLengthMs(ghostClip) * pxPerMs)}
+                resolveMediaUrl={resolveMediaUrl}
               />
             )}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />

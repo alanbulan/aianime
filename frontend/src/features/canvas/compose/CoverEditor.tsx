@@ -12,10 +12,8 @@ import { useTranslation } from "react-i18next";
 import { ImageUp, Loader2, X } from "lucide-react";
 
 import { uploadCanvasAsset } from "@/features/canvas/composition";
-import {
-  mediaNeedsCrossOrigin,
-  resolveImageDisplayUrl,
-} from "@/features/canvas/application/imageData";
+import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
+import { mediaNeedsCrossOrigin } from "@/shared/media/cross-origin";
 import {
   captureVideoFrame,
   coverFrameSourceAt,

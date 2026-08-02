@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { mediaNeedsCrossOrigin } from "../application/imageData";
+import { mediaNeedsCrossOrigin } from "@/shared/media/cross-origin";
 import type {
   VideoFrameStripCaptureOptions,
   VideoFrameStripFrame,

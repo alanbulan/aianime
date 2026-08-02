@@ -38,10 +38,10 @@ import {
   VideoComposeVolumePopover,
   VideoComposeZoomInGlyph,
   VideoComposeZoomOutGlyph,
-  type CanvasVideoComposeResolution,
-  type ComposeTimelineState,
-  type VideoComposeClipReference,
-} from "@/modules/creative_canvas/public";
+} from "./VideoComposeTimelineControls";
+import type { CanvasVideoComposeResolution } from "../domain/videoCompose";
+import type { ComposeTimelineState } from "../domain/videoComposeTimeline";
+import type { VideoComposeClipReference } from "../domain/videoComposeTimelineEdits";
 
 import {
   VideoComposeTrackRow,
@@ -128,6 +128,7 @@ export interface VideoComposeModalViewProps {
   timelineSurface: {
     pxPerSec: number;
     pxPerMs: number;
+    resolveMediaUrl: (url: string) => string;
     durationMs: number;
     selected: VideoComposeClipReference | null;
     selectedIds: ReadonlySet<string>;
@@ -583,6 +584,7 @@ export function VideoComposeModalView({
                   key={track.id}
                   track={track}
                   pxPerMs={timelineSurface.pxPerMs}
+                  resolveMediaUrl={timelineSurface.resolveMediaUrl}
                   selectedClipId={timelineSurface.selected?.clipId ?? null}
                   selectedIds={timelineSurface.selectedIds}
                   overlapClipIds={timelineSurface.overlapClipIds}
