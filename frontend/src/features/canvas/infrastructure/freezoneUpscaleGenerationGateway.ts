@@ -14,7 +14,7 @@ export const freezoneUpscaleGenerationGateway: CanvasUpscaleGenerationGateway = 
           source_url: command.sourceUrl,
           scale_factor: command.scaleFactor,
           image_size: command.imageSize,
-          ...(command.model ? { model: command.model } : {}),
+          model: command.model,
         },
       },
     );

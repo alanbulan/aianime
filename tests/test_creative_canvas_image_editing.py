@@ -136,20 +136,11 @@ class _CapturingPrompts:
 
 class _FixedModels:
     def __init__(self) -> None:
-        self.received: list[str] = []
-        self.reference_received: list[tuple[str | None, str | None]] = []
+        self.received: list[str | None] = []
 
-    def resolve(self, model: str) -> tuple[str, str]:
+    def resolve(self, model: str | None) -> str:
         self.received.append(model)
-        return "newapi", "gpt-image-2"
-
-    def resolve_reference_edit(
-        self,
-        provider: str | None,
-        model: str | None,
-    ) -> tuple[str, str]:
-        self.reference_received.append((provider, model))
-        return "newapi", "gpt-image-2"
+        return "gpt-image-2"
 
 
 def _editing_use_cases(
@@ -204,11 +195,9 @@ def test_image_editing_prompts_preserve_existing_contracts() -> None:
     assert "artifacts" in build_image_erase_prompt()
 
 
-def test_image_editing_model_router_preserves_empty_model_fallback() -> None:
-    provider, model = FreezoneCreativeCanvasImageModelRouter().resolve("")
-
-    assert provider == "newapi"
-    assert model
+def test_image_editing_model_router_rejects_empty_model() -> None:
+    with pytest.raises(ValueError, match="model is required"):
+        FreezoneCreativeCanvasImageModelRouter().resolve("")
 
 
 def test_image_editing_explicit_aspect_ratio_does_not_read_image_size(
@@ -312,7 +301,6 @@ async def test_image_upscale_enqueues_exact_freezone_edit_payload(tmp_path: Path
             "aspect_ratio": "16:9",
             "image_size": "2K",
             "quality": "low",
-            "provider": "newapi",
             "model": "gpt-image-2",
         },
     )
@@ -358,7 +346,6 @@ async def test_image_outpaint_enqueues_padded_freezone_edit_payload(tmp_path: Pa
             "aspect_ratio": "16:9",
             "image_size": "4K",
             "quality": "medium",
-            "provider": "newapi",
             "model": "gpt-image-2",
         },
     )
@@ -399,7 +386,6 @@ async def test_image_redraw_without_mask_enqueues_freezone_edit_payload(
             "aspect_ratio": "16:9",
             "image_size": "2K",
             "quality": "high",
-            "provider": "newapi",
             "model": "gpt-image-2",
         },
     )
@@ -441,7 +427,6 @@ async def test_masked_redraw_uses_erase_prompt_and_mask_edit_payload(tmp_path: P
             "aspect_ratio": "1:1",
             "image_size": "2K",
             "quality": "medium",
-            "provider": "newapi",
             "model": "gpt-image-2",
         },
     )
@@ -472,7 +457,6 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             image_size="4K",
             camera=camera,
             style=style,
-            provider="newapi",
             model="newapi_gpt_image2",
             quality="high",
             canvas_id="canvas-a",
@@ -484,7 +468,7 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
 
     assert result == _receipt()
     assert prompts.calls == [("edit prompt", style, camera)]
-    assert models.reference_received == [("newapi", "newapi_gpt_image2")]
+    assert models.received == ["newapi_gpt_image2"]
     assert scheduler.task == CreativeCanvasTaskSubmission(
         task_type=CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
         queue_kind="default",
@@ -496,7 +480,6 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             "extra_reference_paths": [reference.as_posix()],
             "aspect_ratio": "9:16",
             "image_size": "4K",
-            "provider": "newapi",
             "model": "gpt-image-2",
             "quality": "high",
             "canvas_id": "canvas-a",
@@ -529,6 +512,7 @@ async def test_reference_image_editing_preserves_source_error_contracts(
             extra_reference_urls=extra_reference_urls,
             aspect_ratio="16:9",
             image_size="2K",
+            model="cloud-image-standard",
         )
 
     with pytest.raises(
@@ -560,38 +544,6 @@ async def test_reference_image_editing_preserves_source_error_contracts(
 
 
 @pytest.mark.asyncio
-async def test_reference_image_editing_rejects_unknown_provider(tmp_path: Path) -> None:
-    context = _project_context(tmp_path)
-    _write_image(context.output_dir / "freezone" / "_uploads" / "base.png")
-    scheduler = _CapturingScheduler(context)
-    use_cases = CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasMediaSourceResolver(),
-        PillowCreativeCanvasImageEditingStorage(),
-        _CapturingPrompts(),
-        FreezoneCreativeCanvasImageModelRouter(),
-        _FixedJobIds(),
-        scheduler,
-    )
-
-    with pytest.raises(
-        InvalidCreativeCanvasImageEditingRequest,
-        match="unsupported freezone image provider",
-    ):
-        await use_cases.start_reference_edit(
-            StartCreativeCanvasReferenceImageEditingCommand(
-                context=context,
-                project_dir=context.output_dir,
-                prompt="edit",
-                base_url="freezone/_uploads/base.png",
-                aspect_ratio="16:9",
-                image_size="2K",
-                provider="unknown",
-            )
-        )
-    assert scheduler.task is None
-
-
-@pytest.mark.asyncio
 async def test_reference_image_editing_maps_unknown_style_template(
     tmp_path: Path,
 ) -> None:
@@ -619,6 +571,7 @@ async def test_reference_image_editing_maps_unknown_style_template(
                 base_url="freezone/_uploads/base.png",
                 aspect_ratio="16:9",
                 image_size="2K",
+                model="cloud-image-standard",
                 style=CreativeCanvasImageStyleConfig(template_id="missing-style"),
             )
         )
@@ -752,28 +705,42 @@ async def test_image_editing_rejects_multiple_outputs(
     [
         (
             "upscale",
-            FreezoneUpscaleRequest(source_url="../source.png"),
+            FreezoneUpscaleRequest(
+                source_url="../source.png",
+                model="cloud-image-standard",
+            ),
             InvalidCreativeCanvasImageEditingRequest("invalid source"),
             400,
             "invalid source",
         ),
         (
             "outpaint",
-            FreezoneOutpaintRequest(source_url="missing.png"),
+            FreezoneOutpaintRequest(
+                source_url="missing.png",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasImageEditingSourceMissing(Path("missing.png")),
             404,
             "source not found: missing.png",
         ),
         (
             "redraw",
-            FreezoneRedrawRequest(source_url="source.png", mask_url="../mask.png"),
+            FreezoneRedrawRequest(
+                source_url="source.png",
+                mask_url="../mask.png",
+                model="cloud-image-standard",
+            ),
             InvalidCreativeCanvasImageEditingRequest("invalid mask"),
             400,
             "invalid mask",
         ),
         (
             "redraw",
-            FreezoneRedrawRequest(source_url="source.png", mask_url="missing-mask.png"),
+            FreezoneRedrawRequest(
+                source_url="source.png",
+                mask_url="missing-mask.png",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasImageEditingSourceMissing(
                 Path("missing-mask.png"),
                 field_name="mask",
@@ -783,28 +750,42 @@ async def test_image_editing_rejects_multiple_outputs(
         ),
         (
             "upscale",
-            FreezoneUpscaleRequest(source_url="source.png"),
+            FreezoneUpscaleRequest(
+                source_url="source.png",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasTaskStartFailed("broker unavailable"),
             503,
             "failed to start upscale task: broker unavailable",
         ),
         (
             "outpaint",
-            FreezoneOutpaintRequest(source_url="source.png"),
+            FreezoneOutpaintRequest(
+                source_url="source.png",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasTaskStartFailed("broker unavailable"),
             503,
             "failed to start outpaint task: broker unavailable",
         ),
         (
             "redraw",
-            FreezoneRedrawRequest(source_url="source.png", prompt="redraw"),
+            FreezoneRedrawRequest(
+                source_url="source.png",
+                prompt="redraw",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasTaskStartFailed("broker unavailable"),
             503,
             "failed to start redraw task: broker unavailable",
         ),
         (
             "redraw",
-            FreezoneRedrawRequest(source_url="source.png", mask_url="mask.png"),
+            FreezoneRedrawRequest(
+                source_url="source.png",
+                mask_url="mask.png",
+                model="cloud-image-standard",
+            ),
             CreativeCanvasTaskStartFailed("broker unavailable"),
             503,
             "failed to start masked redraw task: broker unavailable",
@@ -939,7 +920,6 @@ async def test_reference_image_editing_route_preserves_error_contracts(
             image_size="2K",
             camera=None,
             style=None,
-            provider=None,
             model=None,
             quality=None,
         )
@@ -984,7 +964,6 @@ async def test_reference_image_editing_route_preserves_runtime_error(
             image_size="2K",
             camera=None,
             style=None,
-            provider=None,
             model=None,
             quality=None,
         )

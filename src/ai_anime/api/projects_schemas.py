@@ -23,7 +23,7 @@ class ProjectUpdate(BaseModel):
     tts_voice: Optional[str] = None
     grid_mode: Optional[str] = None
     grid_model: Optional[str] = None
-    video_backend: Optional[str] = None
+    video_model: Optional[str] = None
     use_director_render: Optional[bool] = None
     video_resolution: Optional[str] = None
     add_subtitles: Optional[bool] = None

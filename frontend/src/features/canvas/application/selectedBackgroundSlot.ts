@@ -7,7 +7,6 @@ import type {
 } from '@/features/canvas/domain/canvasNodes';
 import type {
   CanvasAssetGateway,
-  CanvasEventBus,
   CanvasGraphGateway,
 } from '@/features/canvas/application/ports';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
@@ -31,6 +30,12 @@ type StageSelectedBackgroundCandidateOptions = {
 export type UploadSelectedBackgroundCandidateOptions = StageSelectedBackgroundCandidateOptions & {
   successMessage?: string;
 };
+
+export type CanvasCommitRequestPublisher = (request: {
+  nodeId: string;
+  auto?: boolean;
+  successMessage?: string;
+}) => void;
 
 function recordValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? value as Record<string, unknown> : null;
@@ -210,7 +215,7 @@ function stageSelectedBackgroundCandidateFromNode(
 export async function uploadAndAutoCommitSelectedBackgroundCandidate(
   assetGateway: CanvasAssetGateway,
   graphGateway: CanvasGraphGateway,
-  eventBus: CanvasEventBus,
+  publishCommitRequested: CanvasCommitRequestPublisher,
   projectId: string | null | undefined,
   target: SelectedBackgroundTarget,
   blob: Blob,
@@ -233,7 +238,7 @@ export async function uploadAndAutoCommitSelectedBackgroundCandidate(
   if (!nodeId) {
     throw new Error('无法创建当前背景候选节点');
   }
-  eventBus.publish('freezone/commit-node', {
+  publishCommitRequested({
     nodeId,
     auto: true,
     successMessage: options.successMessage

@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { TaskState } from "@/task-center/types";
+import type { TaskState } from "@/modules/task_execution/public";
 
 export function TaskLogs({ task }: { task: TaskState }) {
   const { t } = useTranslation();

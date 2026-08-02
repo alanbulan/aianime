@@ -9,7 +9,6 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone.paths import resolve_static_url_to_path
 from ai_anime.modules.asset_world.application.character_models import CharacterIdentity
 from ai_anime.modules.asset_world.application.dto import (
     CreateIdentityCommand,
@@ -29,7 +28,10 @@ from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
-from ai_anime.shared.project_media import make_static_url_for_context
+from ai_anime.shared.project_media import (
+    make_static_url_for_context,
+    resolve_project_media_path,
+)
 from ai_anime.utils.path_resolver import (
     canonical_identity_path,
     compute_identity_costume_path,
@@ -122,7 +124,7 @@ class LocalCharacterIdentityAssetImporter:
         identity: Any,
     ) -> ImportedCharacterIdentityAsset:
         try:
-            source_path = resolve_static_url_to_path(source_url, project_dir)
+            source_path = resolve_project_media_path(source_url, project_dir)
         except ValueError as exc:
             raise InvalidCharacterInput(str(exc)) from exc
         if not source_path.exists():

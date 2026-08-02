@@ -110,7 +110,7 @@ export function VideoPaneMediaView({
                     : MEDIA_THUMB_IDLE_CLASS,
                   controller.selectionPending && "cursor-wait",
                 )}
-                title={candidate.backendLabel}
+                title={candidate.modelLabel}
               >
                 <div
                   className="h-[76px] bg-media"
@@ -129,7 +129,7 @@ export function VideoPaneMediaView({
                   )}
                 </div>
                 <span className="absolute left-0 top-0 rounded-br bg-media/70 px-1 py-0.5 text-[9px] font-medium leading-none text-media-foreground">
-                  {candidate.backendLabel}
+                  {candidate.modelLabel}
                 </span>
                 {candidate.timeLabel && (
                   <span className={MEDIA_THUMB_TIME_CLASS}>

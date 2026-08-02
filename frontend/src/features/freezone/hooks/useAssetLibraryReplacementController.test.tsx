@@ -3,8 +3,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAssetDropStore } from "@/features/canvas/assetDropStore";
+import type { LibraryAsset } from "@/modules/creative_canvas/public";
 
-import type { LibraryAsset } from "../domain/assetLibraryModel";
 import { useAssetLibraryReplacementController } from "./useAssetLibraryReplacementController";
 
 const mocks = vi.hoisted(() => ({
@@ -12,8 +12,8 @@ const mocks = vi.hoisted(() => ({
   promoteToAsset: vi.fn(),
 }));
 
-vi.mock("../composition", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../composition")>()),
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   commitDirectorRenderFromCanvasSource:
     mocks.commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset: mocks.promoteToAsset,

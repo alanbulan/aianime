@@ -17,7 +17,6 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasVideoUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from './nodeFrameStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
@@ -34,6 +33,8 @@ interface VideoUpscalePersistedFields {
 }
 
 interface VideoUpscaleEditorOverlayProps {
+  projectId: string;
+  canvasId: string;
   /**
    * The video-upscale result node. The panel is always anchored beneath it while
    * the node is selected — settings persist on `node.data` so they survive
@@ -43,7 +44,7 @@ interface VideoUpscaleEditorOverlayProps {
 }
 
 export const VideoUpscaleEditorOverlay = memo(
-  ({ node }: VideoUpscaleEditorOverlayProps) => {
+  ({ projectId, canvasId, node }: VideoUpscaleEditorOverlayProps) => {
     const { t } = useTranslation();
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
     const deleteNode = useCanvasStore((state) => state.deleteNode);
@@ -87,13 +88,6 @@ export const VideoUpscaleEditorOverlay = memo(
         console.error('[video-upscale] missing upscaleSourceUrl on node.data — cannot submit');
         return;
       }
-      const project = readUrl().project;
-      if (!project) {
-        console.error('[video-upscale] no project in URL — cannot submit');
-        return;
-      }
-      const canvasId = readUrl().canvas ?? 'default';
-
       setIsSubmitting(true);
       updateNodeData(node.id, {
         isGenerating: true,
@@ -104,7 +98,7 @@ export const VideoUpscaleEditorOverlay = memo(
       try {
         const { url } = await generateCanvasVideoUpscale(
           {
-            projectId: project,
+            projectId,
             sourceUrl,
             resolution,
             denoiseStrength: denoise,
@@ -132,7 +126,16 @@ export const VideoUpscaleEditorOverlay = memo(
       } finally {
         setIsSubmitting(false);
       }
-    }, [denoise, isSubmitting, node.id, resolution, sourceUrl, updateNodeData]);
+    }, [
+      canvasId,
+      denoise,
+      isSubmitting,
+      node.id,
+      projectId,
+      resolution,
+      sourceUrl,
+      updateNodeData,
+    ]);
 
     return (
       <ReactFlowNodeToolbar

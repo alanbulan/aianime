@@ -7,9 +7,11 @@ import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import {
   translateSkillDescription,
   translateSkillName,
-  type SkillDefinition,
-  type SkillProvider,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import type {
+  SkillDefinition,
+  SkillProvider,
+} from '@/modules/creative_canvas/public';
 import {
   CanvasAddNodeGrid,
   CanvasMenuSectionHeader,

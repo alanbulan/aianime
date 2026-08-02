@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/composition";
+import { commitDirectorRenderFromCanvasSource } from "@/modules/creative_canvas/public";
 import { saveBeatDirectorControlFrame } from "@/features/viewer-kit/public";
 
 vi.mock("@/features/viewer-kit/public", () => ({

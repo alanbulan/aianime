@@ -1,16 +1,20 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
+import {
+  loadCommercialModelCatalog,
+  type CommercialModelCatalog,
+} from "@/modules/model_usage/public";
 
 import type {
   CanvasCameraOptions,
   CanvasGenerationCatalogGateway,
   CanvasImageModel,
-  CanvasImageModelProvider,
   CanvasStyleTemplate,
   CanvasVideoModel,
-  CanvasVideoModelProvider,
 } from "../application/generationCatalog";
 import type { CameraMovementPreset } from "../domain/cameraMovementPresets";
+import type { VideoGenMode } from "../domain/canvasNodes";
+import type { CanvasImageMode } from "../domain/imageModelCapability";
 
 interface StyleTemplateTransport {
   readonly id: string;
@@ -32,29 +36,6 @@ interface CameraOptionsTransport {
   readonly apertures: string[];
 }
 
-type VideoResolution = "480p" | "720p" | "1080p";
-
-const IMAGE_MODEL_PROVIDER_HINTS: ReadonlyArray<{
-  match: (raw: string) => boolean;
-  providerId: CanvasImageModelProvider;
-}> = [
-  { match: (value) => value.toLowerCase().startsWith("huimeng"), providerId: "huimeng" },
-  { match: (value) => value.toLowerCase().includes("/gemini"), providerId: "openrouter" },
-  { match: (value) => value.toLowerCase().startsWith("google/"), providerId: "openrouter" },
-  { match: (value) => value.toLowerCase().startsWith("anthropic/"), providerId: "openrouter" },
-  { match: (value) => value.toLowerCase().startsWith("openrouter/"), providerId: "openrouter" },
-  { match: (value) => value.toLowerCase().startsWith("gpt-image"), providerId: "openai" },
-  { match: (value) => value.toLowerCase().startsWith("dall-e"), providerId: "openai" },
-];
-
-const VIDEO_MODEL_PROVIDER_HINTS: ReadonlyArray<{
-  match: (raw: string) => boolean;
-  providerId: CanvasVideoModelProvider;
-}> = [
-  { match: (value) => value.toLowerCase().startsWith("huimeng"), providerId: "huimeng" },
-  { match: (value) => value.toLowerCase().startsWith("seedance"), providerId: "seedance" },
-];
-
 function pickString(
   record: Record<string, unknown>,
   ...keys: string[]
@@ -66,252 +47,229 @@ function pickString(
   return null;
 }
 
-function pickNumber(
-  record: Record<string, unknown>,
-  ...keys: string[]
-): number | null {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim().length > 0) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return null;
-}
-
-function pickStringArray(
-  record: Record<string, unknown>,
-  ...keys: string[]
-): string[] {
-  for (const key of keys) {
-    const value = record[key];
-    if (Array.isArray(value)) {
-      return value.filter(
-        (item): item is string =>
-          typeof item === "string" && item.length > 0,
-      );
-    }
-  }
-  return [];
-}
-
-function inferImageProvider(raw: string): CanvasImageModelProvider {
-  for (const hint of IMAGE_MODEL_PROVIDER_HINTS) {
-    if (hint.match(raw)) return hint.providerId;
-  }
-  return "huimeng";
-}
-
-function normalizeImageProvider(
-  raw: string | null,
-): CanvasImageModelProvider | null {
-  if (!raw) return null;
-  const lowered = raw.toLowerCase();
-  if (
-    lowered === "huimeng" ||
-    lowered === "openrouter" ||
-    lowered === "openai"
-  ) {
-    return lowered;
-  }
-  return null;
-}
-
-function imageModelFromObject(
-  entry: Record<string, unknown>,
-): CanvasImageModel | null {
-  const apiModel = pickString(entry, "model", "apiModel", "api_model", "name");
-  if (!apiModel) return null;
-  const providerId =
-    normalizeImageProvider(
-      pickString(entry, "providerId", "provider_id", "provider"),
-    ) ?? inferImageProvider(apiModel);
-  return {
-    id: pickString(entry, "id") ?? `${providerId}/${apiModel}`,
-    providerId,
-    apiModel,
-    label:
-      pickString(entry, "label", "displayName", "display_name") ?? apiModel,
-  };
-}
-
-function imageModelFromString(raw: string): CanvasImageModel {
-  const providerId = inferImageProvider(raw);
-  return {
-    id: `${providerId}/${raw}`,
-    providerId,
-    apiModel: raw,
-    label: raw,
-  };
-}
-
-function coerceImageModels(payload: unknown): CanvasImageModel[] {
-  let candidate = payload;
-  if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-    const wrapper = candidate as Record<string, unknown>;
-    if (Array.isArray(wrapper.models)) candidate = wrapper.models;
-    else if (Array.isArray(wrapper.data)) candidate = wrapper.data;
-    else if (Array.isArray(wrapper.items)) candidate = wrapper.items;
-    else {
-      const flattened: CanvasImageModel[] = [];
-      for (const [providerRaw, value] of Object.entries(wrapper)) {
-        const providerId = normalizeImageProvider(providerRaw);
-        if (!providerId || !Array.isArray(value)) continue;
-        for (const item of value) {
-          if (typeof item === "string") {
-            flattened.push({
-              id: `${providerId}/${item}`,
-              providerId,
-              apiModel: item,
-              label: item,
-            });
-          } else if (item && typeof item === "object") {
-            const model = imageModelFromObject(
-              item as Record<string, unknown>,
-            );
-            if (model) flattened.push({ ...model, providerId });
-          }
-        }
-      }
-      if (flattened.length > 0) return flattened;
-    }
-  }
-  if (!Array.isArray(candidate)) return [];
-  const result: CanvasImageModel[] = [];
-  for (const item of candidate) {
-    if (typeof item === "string") result.push(imageModelFromString(item));
-    else if (item && typeof item === "object") {
-      const model = imageModelFromObject(item as Record<string, unknown>);
-      if (model) result.push(model);
-    }
-  }
-  return result;
-}
-
-function inferVideoProvider(raw: string): CanvasVideoModelProvider {
-  for (const hint of VIDEO_MODEL_PROVIDER_HINTS) {
-    if (hint.match(raw)) return hint.providerId;
-  }
-  return "seedance";
-}
-
-function normalizeVideoProvider(
-  raw: string | null,
-): CanvasVideoModelProvider | null {
-  if (!raw) return null;
-  const lowered = raw.toLowerCase();
-  return lowered === "seedance" || lowered === "huimeng" ? lowered : null;
-}
-
-function videoModelFromObject(
-  entry: Record<string, unknown>,
-): CanvasVideoModel | null {
-  const apiModel = pickString(entry, "model", "apiModel", "api_model", "name");
-  if (!apiModel) return null;
-  const providerId =
-    normalizeVideoProvider(
-      pickString(entry, "providerId", "provider_id", "provider"),
-    ) ?? inferVideoProvider(apiModel);
-  const resolutionOptions = pickStringArray(
-    entry,
-    "resolutionOptions",
-    "resolution_options",
-  )
-    .map((value) => value.toLowerCase())
-    .filter(
-      (value): value is VideoResolution =>
-        value === "480p" || value === "720p" || value === "1080p",
+export function commercialImageModels(
+  catalog: CommercialModelCatalog,
+): CanvasImageModel[] {
+  return catalog.items.map((item) => {
+    const imageModes = normalizeImageModes(
+      item.capabilities.supportedModes ??
+        item.capabilities.imageModes ??
+        item.capabilities.modes,
     );
-  const sceneOptimizeOptions = pickStringArray(
-    entry,
-    "sceneOptimizeOptions",
-    "scene_optimize_options",
-  )
-    .map((value) => value.toLowerCase())
-    .filter(
-      (value): value is "anime" | "realistic" =>
-        value === "anime" || value === "realistic",
+    return {
+      id: item.code,
+      apiModel: item.code,
+      label: item.displayName,
+      ...(imageModes.length > 0 ? { imageModes } : {}),
+      capabilities: item.capabilities,
+      parameterSchema: item.parameterSchema,
+    };
+  });
+}
+
+export function commercialVideoModels(
+  catalog: CommercialModelCatalog,
+): CanvasVideoModel[] {
+  return catalog.items.map((item) => {
+    const properties = schemaProperties(item.parameterSchema);
+    const capabilities = item.capabilities;
+    const referenceLimits = optionalRecord(capabilities.referenceLimits);
+    const resolutionOptions = stringArray(
+      capabilities.resolutionOptions ??
+        capabilities.resolutions ??
+        properties.resolution?.enum,
     );
-  const defaultSceneOptimizeRaw = pickString(
-    entry,
-    "defaultSceneOptimize",
-    "default_scene_optimize",
-  )?.toLowerCase();
-  const defaultSceneOptimize =
-    defaultSceneOptimizeRaw === "anime" ||
-    defaultSceneOptimizeRaw === "realistic"
-      ? defaultSceneOptimizeRaw
-      : null;
-  return {
-    id: pickString(entry, "id") ?? apiModel,
-    providerId,
-    apiModel,
-    label:
-      pickString(entry, "label", "displayName", "display_name") ?? apiModel,
-    ...(resolutionOptions.length > 0
-      ? { resolutionOptions }
-      : {}),
-    minDuration: pickNumber(entry, "minDuration", "min_duration"),
-    maxDuration: pickNumber(entry, "maxDuration", "max_duration"),
-    ...(sceneOptimizeOptions.length > 0
-      ? { sceneOptimizeOptions }
-      : {}),
-    defaultSceneOptimize,
-  };
+    const supportedModes = videoModes(
+      capabilities.supportedModes ??
+        capabilities.generationModes ??
+        capabilities.modes,
+    );
+    const sceneOptimizeOptions = sceneOptimizeValues(
+      capabilities.sceneOptimizeOptions ??
+        capabilities.sceneOptimizations ??
+        properties.scene_optimize?.enum ??
+        properties.sceneOptimize?.enum,
+    );
+    const defaultSceneOptimize = sceneOptimizeValue(
+      capabilities.defaultSceneOptimize ??
+        properties.scene_optimize?.default ??
+        properties.sceneOptimize?.default,
+    );
+    return {
+      id: item.code,
+      apiModel: item.code,
+      label: item.displayName,
+      ...(supportedModes.length > 0 ? { supportedModes } : {}),
+      ...optionalBooleanField(
+        "supportsHumanReview",
+        capabilities.supportsHumanReview ?? capabilities.humanReview,
+        properties.human_review || properties.humanReview ? true : undefined,
+      ),
+      ...optionalBooleanField(
+        "supportsReferenceImages",
+        capabilities.supportsReferenceImages,
+      ),
+      ...optionalBooleanField(
+        "supportsReferenceVideos",
+        capabilities.supportsReferenceVideos,
+      ),
+      ...optionalBooleanField(
+        "supportsReferenceAudios",
+        capabilities.supportsReferenceAudios,
+      ),
+      ...optionalNumberField(
+        "maxReferenceImages",
+        capabilities.maxReferenceImages ??
+          referenceLimits?.images ??
+          properties.reference_images?.maxItems,
+      ),
+      ...optionalNumberField(
+        "maxReferenceVideos",
+        capabilities.maxReferenceVideos ??
+          referenceLimits?.videos ??
+          properties.reference_videos?.maxItems,
+      ),
+      ...optionalNumberField(
+        "maxReferenceAudios",
+        capabilities.maxReferenceAudios ??
+          referenceLimits?.audios ??
+          properties.reference_audios?.maxItems,
+      ),
+      ...optionalNumberField(
+        "maxReferenceTotal",
+        capabilities.maxReferenceTotal ??
+          referenceLimits?.total ??
+          properties.references?.maxItems,
+      ),
+      ...optionalNumberField(
+        "maxReferenceAudioDurationSeconds",
+        capabilities.maxReferenceAudioDurationSeconds ??
+          referenceLimits?.audioDurationSeconds,
+      ),
+      ...(resolutionOptions.length > 0 ? { resolutionOptions } : {}),
+      minDuration: finiteNumber(
+        capabilities.minDuration ??
+          capabilities.minSeconds ??
+          properties.duration?.minimum ??
+          properties.seconds?.minimum,
+      ),
+      maxDuration: finiteNumber(
+        capabilities.maxDuration ??
+          capabilities.maxSeconds ??
+          properties.duration?.maximum ??
+          properties.seconds?.maximum,
+      ),
+      ...(sceneOptimizeOptions.length > 0 ? { sceneOptimizeOptions } : {}),
+      ...(defaultSceneOptimize ? { defaultSceneOptimize } : {}),
+    };
+  });
 }
 
-function videoModelFromString(raw: string): CanvasVideoModel {
-  return {
-    id: raw,
-    providerId: inferVideoProvider(raw),
-    apiModel: raw,
-    label: raw,
-  };
+const VIDEO_MODE_BY_TOKEN: Record<string, VideoGenMode> = {
+  texttovideo: "textToVideo",
+  text2video: "textToVideo",
+  allreference: "allReference",
+  omnireference: "allReference",
+  imagetovideo: "imageToVideo",
+  image2video: "imageToVideo",
+  firstlastframe: "firstLastFrame",
+  keyframes: "firstLastFrame",
+  imagereference: "imageReference",
+  videoedit: "videoEdit",
+};
+
+const IMAGE_MODE_BY_TOKEN: Record<string, CanvasImageMode> = {
+  texttoimage: "generation",
+  imagegeneration: "generation",
+  generate: "generation",
+  imageedit: "edit",
+  edit: "edit",
+};
+
+function normalizeImageModes(value: unknown): CanvasImageMode[] {
+  const modes = stringArray(value).flatMap((item) => {
+    const mode = IMAGE_MODE_BY_TOKEN[item.replace(/[\s_-]/g, "").toLowerCase()];
+    return mode ? [mode] : [];
+  });
+  return Array.from(new Set(modes));
 }
 
-function coerceVideoModels(payload: unknown): CanvasVideoModel[] {
-  let candidate = payload;
-  if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-    const wrapper = candidate as Record<string, unknown>;
-    if (Array.isArray(wrapper.models)) candidate = wrapper.models;
-    else if (Array.isArray(wrapper.data)) candidate = wrapper.data;
-    else if (Array.isArray(wrapper.items)) candidate = wrapper.items;
-    else {
-      const flattened: CanvasVideoModel[] = [];
-      for (const [providerRaw, value] of Object.entries(wrapper)) {
-        const providerId = normalizeVideoProvider(providerRaw);
-        if (!providerId || !Array.isArray(value)) continue;
-        for (const item of value) {
-          if (typeof item === "string") {
-            flattened.push({
-              id: item,
-              providerId,
-              apiModel: item,
-              label: item,
-            });
-          } else if (item && typeof item === "object") {
-            const model = videoModelFromObject(
-              item as Record<string, unknown>,
-            );
-            if (model) flattened.push({ ...model, providerId });
-          }
-        }
-      }
-      if (flattened.length > 0) return flattened;
-    }
+function videoModes(value: unknown): VideoGenMode[] {
+  const modes = stringArray(value).flatMap((item) => {
+    const mode = VIDEO_MODE_BY_TOKEN[item.replace(/[\s_-]/g, "").toLowerCase()];
+    return mode ? [mode] : [];
+  });
+  return Array.from(new Set(modes));
+}
+
+function sceneOptimizeValues(
+  value: unknown,
+): Array<"anime" | "realistic"> {
+  return stringArray(value).flatMap((item) => {
+    const normalized = item.trim().toLowerCase();
+    return normalized === "anime" || normalized === "realistic"
+      ? [normalized]
+      : [];
+  });
+}
+
+function sceneOptimizeValue(value: unknown): "anime" | "realistic" | null {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return normalized === "anime" || normalized === "realistic"
+    ? normalized
+    : null;
+}
+
+function optionalRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function optionalBooleanField<K extends string>(
+  key: K,
+  value: unknown,
+  fallback?: boolean,
+): Partial<Record<K, boolean>> {
+  const resolved = typeof value === "boolean" ? value : fallback;
+  return resolved === undefined ? {} : ({ [key]: resolved } as Record<K, boolean>);
+}
+
+function optionalNumberField<K extends string>(
+  key: K,
+  value: unknown,
+): Partial<Record<K, number>> {
+  const resolved = finiteNumber(value);
+  return resolved === null || resolved < 0
+    ? {}
+    : ({ [key]: resolved } as Record<K, number>);
+}
+
+function schemaProperties(
+  schema: Record<string, unknown>,
+): Record<string, Record<string, unknown>> {
+  const properties = schema.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    return {};
   }
-  if (!Array.isArray(candidate)) return [];
-  const result: CanvasVideoModel[] = [];
-  for (const item of candidate) {
-    if (typeof item === "string") result.push(videoModelFromString(item));
-    else if (item && typeof item === "object") {
-      const model = videoModelFromObject(item as Record<string, unknown>);
-      if (model) result.push(model);
-    }
-  }
-  return result;
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      (entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) &&
+        typeof entry[1] === "object" &&
+        !Array.isArray(entry[1]),
+    ),
+  );
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+    : [];
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function coerceCameraTemplates(payload: unknown): CameraMovementPreset[] {
@@ -395,17 +353,13 @@ function mapStyleTemplate(
 }
 
 export const freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway = {
-  async listImageModels(projectId) {
-    const payload = await apiCall<unknown>(
-      `projects/${encodeURIComponent(projectId)}/freezone/image/models`,
-    );
-    return coerceImageModels(payload);
+  async listImageModels(_projectId) {
+    if (!window.aiAnimeDesktop?.commercial) return [];
+    return commercialImageModels(await loadCommercialModelCatalog("IMAGE"));
   },
-  async listVideoModels(projectId) {
-    const payload = await apiCall<unknown>(
-      `projects/${encodeURIComponent(projectId)}/freezone/video/models`,
-    );
-    return coerceVideoModels(payload);
+  async listVideoModels(_projectId) {
+    if (!window.aiAnimeDesktop?.commercial) return [];
+    return commercialVideoModels(await loadCommercialModelCatalog("VIDEO"));
   },
   async getCameraOptions(projectId) {
     const options = await apiCall<CameraOptionsTransport>(

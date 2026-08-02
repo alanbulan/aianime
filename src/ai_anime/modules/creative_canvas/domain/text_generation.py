@@ -4,26 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from ai_anime.official_defaults import (
-    DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
-    DEFAULT_FREEZONE_TRANSLATION_MODEL,
-)
-
 CreativeCanvasTextNodeType = Literal["generic", "image", "video", "audio", "text"]
-
-CREATIVE_CANVAS_TRANSLATION_PROVIDER = "newapi"
-CREATIVE_CANVAS_TRANSLATION_MODEL = DEFAULT_FREEZONE_TRANSLATION_MODEL
-CREATIVE_CANVAS_STORY_SCRIPT_MODEL = {
-    "id": DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
-    "provider": "newapi",
-    "model": DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
-    "label": "AI anime API Story Script",
-}
-LEGACY_CREATIVE_CANVAS_STORY_SCRIPT_MODEL_IDS = {
-    "newapi_gemini_flash",
-    "openrouter_gemini_flash",
-    "OpenRouter Gemini 2.5 Flash",
-}
 
 CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT = """# Freezone Prompt Translator
 
@@ -126,24 +107,6 @@ CREATIVE_CANVAS_NODE_TYPE_LABELS: dict[str, str] = {
     "audio": "音频节点提示词",
     "text": "文本节点提示词",
 }
-
-def resolve_creative_canvas_story_script_model(
-    model: str | None,
-) -> dict[str, str]:
-    model_text = str(model or "").strip()
-    if not model_text:
-        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
-    if model_text == CREATIVE_CANVAS_STORY_SCRIPT_MODEL["id"]:
-        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
-    if (
-        model_text.casefold()
-        == CREATIVE_CANVAS_STORY_SCRIPT_MODEL["label"].casefold()
-    ):
-        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
-    if model_text in LEGACY_CREATIVE_CANVAS_STORY_SCRIPT_MODEL_IDS:
-        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
-    raise ValueError(f"unsupported story script model: {model_text}")
-
 
 def build_creative_canvas_translation_task(
     *,

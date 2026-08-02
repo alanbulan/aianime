@@ -18,7 +18,7 @@ export const freezoneMultiAngleGenerationGateway: CanvasMultiAngleGenerationGate
           shot_size: command.shotSize,
           prompt: command.prompt,
           image_size: command.imageSize,
-          ...(command.model ? { model: command.model } : {}),
+          model: command.model,
         },
       },
     );

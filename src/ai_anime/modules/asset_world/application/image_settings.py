@@ -11,7 +11,6 @@ from ai_anime.modules.asset_world.application.errors import (
 )
 from ai_anime.modules.asset_world.application.dto import CharacterGenerationOptions
 from ai_anime.modules.asset_world.application.ports import (
-    ImageSelectionCatalog,
     ImageUsageReader,
     ProjectImageGenerationSettings,
     ProjectImageSelectionStore,
@@ -31,12 +30,10 @@ from ai_anime.modules.asset_world.domain.image_settings import (
 class ImageSettingsUseCases:
     def __init__(
         self,
-        catalog: ImageSelectionCatalog,
         store: ProjectImageSelectionStore,
         generation_settings: ProjectImageGenerationSettings,
         usage: ImageUsageReader,
     ) -> None:
-        self._catalog = catalog
         self._store = store
         self._generation_settings = generation_settings
         self._usage = usage
@@ -51,16 +48,12 @@ class ImageSettingsUseCases:
         return normalized
 
     def get_character_selection(self, username: str, project: str) -> dict[str, Any]:
-        options = dict(self._catalog.character_options())
-        saved = self._store.get(
-            username,
-            project,
-            CHARACTER_IMAGE_SELECTION_CONFIG_KEY,
-        ).strip()
-        selection = self._effective_character_selection(saved, options)
         return {
-            "character_image_selection": selection,
-            "options": options,
+            "character_image_selection": self._store.get(
+                username,
+                project,
+                CHARACTER_IMAGE_SELECTION_CONFIG_KEY,
+            ).strip(),
         }
 
     def update_character_selection(
@@ -70,10 +63,8 @@ class ImageSettingsUseCases:
         selection: str,
     ) -> dict[str, Any]:
         normalized = str(selection or "").strip()
-        if normalized not in self._catalog.character_options():
-            raise InvalidImageSelection(
-                f"Invalid character_image_selection: {normalized}"
-            )
+        if not normalized:
+            raise InvalidImageSelection("character image model is required")
         self._store.set(
             username,
             project,
@@ -88,7 +79,6 @@ class ImageSettingsUseCases:
         project: str,
         asset_kind: AssetImageKind,
     ) -> dict[str, Any]:
-        options = dict(self._catalog.asset_options())
         if asset_kind == "character":
             selection = self.get_character_selection(username, project)[
                 "character_image_selection"
@@ -99,11 +89,10 @@ class ImageSettingsUseCases:
                 project,
                 ASSET_IMAGE_SELECTION_CONFIG_KEYS[asset_kind],
             ).strip()
-            selection = self._catalog.normalize_asset_selection(saved)
+            selection = saved
         return {
             "asset_kind": asset_kind,
             "image_source_selection": selection,
-            "options": options,
         }
 
     def update_asset_selection(
@@ -114,8 +103,8 @@ class ImageSettingsUseCases:
         selection: str,
     ) -> dict[str, Any]:
         normalized = str(selection or "").strip()
-        if normalized not in self._catalog.asset_options():
-            raise InvalidImageSelection(f"Invalid image_source_selection: {normalized}")
+        if not normalized:
+            raise InvalidImageSelection("asset image model is required")
         self._store.set(
             username,
             project,
@@ -147,17 +136,20 @@ class ImageSettingsUseCases:
         requested_ethnicity: str | None = None,
     ) -> CharacterGenerationOptions:
         config = self._generation_settings.effective(username, project)
+        model = self.resolve_character_model(
+            username,
+            project,
+            requested_model,
+        )
+        if not model:
+            raise InvalidImageSelection("character image model is required")
         return CharacterGenerationOptions(
             style=character_generation_style(config, requested_style),
             ethnicity=character_generation_ethnicity(
                 config,
                 requested_ethnicity,
             ),
-            model=self.resolve_character_model(
-                username,
-                project,
-                requested_model,
-            ),
+            model=model,
         )
 
     def project_style(self, username: str, project: str) -> str:
@@ -170,15 +162,3 @@ class ImageSettingsUseCases:
             project_dir,
             task_types=CHARACTER_IMAGE_USAGE_TASK_TYPES,
         )
-
-    def _effective_character_selection(
-        self,
-        saved: str,
-        options: dict[str, str],
-    ) -> str:
-        if saved in options:
-            return saved
-        normalized = self._catalog.normalize_character_selection(saved)
-        if normalized in options:
-            return normalized
-        return self._catalog.default_character_selection()

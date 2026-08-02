@@ -6,19 +6,23 @@ import { describe, expect, it, vi } from "vitest";
 
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { queryKeys } from "@/lib/query-keys";
-import { createEventBus } from "@/task-center/event-bus";
-import { EventBusContext } from "@/task-center/event-bus-context";
+import {
+  createTaskEventBus,
+  TaskEventBusContext,
+} from "@/modules/task_execution/public";
 import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
 
 function wrap() {
-  const bus = createEventBus();
+  const bus = createTaskEventBus();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <EventBusContext.Provider value={bus}>{children}</EventBusContext.Provider>
+      <TaskEventBusContext.Provider value={bus}>
+        {children}
+      </TaskEventBusContext.Provider>
     </QueryClientProvider>
   );
   return { Wrapper, bus, invalidateSpy };

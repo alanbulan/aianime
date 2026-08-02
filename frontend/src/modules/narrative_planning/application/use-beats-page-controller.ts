@@ -11,7 +11,10 @@ import {
 } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
-import type { BeatStates } from "@/modules/production/public";
+import {
+  resolveAuthorizedVideoModel,
+  type BeatStates,
+} from "@/modules/production/public";
 import type {
   UseBeatSelection,
   UseBeatsViewToggles,
@@ -41,14 +44,14 @@ interface ProjectConfigQuery {
   data?: {
     aspect_ratio?: "2:3" | "9:16" | "16:9";
     spine_template?: string | null;
-    video_backend?: string | null;
+    video_model?: string | null;
   };
 }
 
 interface ProjectPreferencesMutation {
   mutateAsync(data: {
     aspect_ratio?: "2:3" | "9:16" | "16:9";
-    video_backend?: string;
+    video_model?: string;
   }): Promise<unknown>;
 }
 
@@ -62,8 +65,11 @@ interface CreditCostQuery {
   error: unknown;
 }
 
+interface VideoModelsQuery {
+  data: Array<{ value: string }>;
+}
+
 export interface BeatsPageControllerDependencies {
-  defaultVideoBackend: string;
   openEpisodeFreezone(
     project: string,
     options: { scope: "episode"; episode: number },
@@ -85,6 +91,7 @@ export interface BeatsPageControllerDependencies {
   ): RebuildPoolIndexMutation;
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateProject(project: string): ProjectPreferencesMutation;
+  useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
 export interface BeatsPageControllerOptions {
@@ -179,9 +186,8 @@ export function createUseBeatsPageController(
       episodeNumber,
     );
 
-    const [videoBackend, setVideoBackendState] = useState(
-      dependencies.defaultVideoBackend,
-    );
+    const [videoModel, setVideoModelState] = useState("");
+    const { data: videoModels } = dependencies.useVideoModels(Boolean(project));
     const { orientation, spec: aspectSpecValue, setOrientation } =
       useProjectAspectRatio(project);
     const sketchAspectRatio: SketchAspectRatio = aspectSpecValue.sketchAspect;
@@ -221,10 +227,13 @@ export function createUseBeatsPageController(
     );
 
     useEffect(() => {
-      setVideoBackendState(
-        projectConfig.data?.video_backend || dependencies.defaultVideoBackend,
+      setVideoModelState(
+        resolveAuthorizedVideoModel(
+          videoModels,
+          projectConfig.data?.video_model,
+        ),
       );
-    }, [projectConfig.data?.video_backend]);
+    }, [projectConfig.data?.video_model, videoModels]);
     useEffect(() => {
       const persistedOrientation = orientationForAspectRatio(
         projectConfig.data?.aspect_ratio,
@@ -234,15 +243,20 @@ export function createUseBeatsPageController(
       }
     }, [orientation, projectConfig.data?.aspect_ratio, setOrientation]);
 
-    const handleVideoBackendChange = useCallback(
-      (backend: string) => {
-        if (!backend) return;
-        setVideoBackendState(backend);
+    const handleVideoModelChange = useCallback(
+      (model: string) => {
+        if (
+          !model ||
+          resolveAuthorizedVideoModel(videoModels, model) !== model
+        ) {
+          return;
+        }
+        setVideoModelState(model);
         void updateProject
-          .mutateAsync({ video_backend: backend })
+          .mutateAsync({ video_model: model })
           .catch(() => toast.error(t("common.error")));
       },
-      [t, updateProject],
+      [t, updateProject, videoModels],
     );
 
     const imageGenerationSelection =
@@ -415,7 +429,7 @@ export function createUseBeatsPageController(
       handleGenerate,
       handleOpenEpisodeFreezone,
       handleRebuildPoolIndex,
-      handleVideoBackendChange,
+      handleVideoModelChange,
       imageGenerationSelection,
       isLoading,
       isNarratedProject,
@@ -440,7 +454,7 @@ export function createUseBeatsPageController(
       toggleCheck,
       toggleView,
       toggles,
-      videoBackend,
+      videoModel,
     };
   };
 }

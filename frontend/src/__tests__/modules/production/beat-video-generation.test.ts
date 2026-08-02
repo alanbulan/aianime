@@ -21,7 +21,7 @@ describe("beat video generation domain", () => {
   it("normalizes and marks a changed Seedance2 draft for saving", () => {
     const sourceConfig = makeDraft({ resolution: "1080p" });
     const result = prepareBeatVideoGeneration({
-      backend: "newapi_seedance-2.0-fast",
+      model: "seedance-2.0-fast",
       beatNumber: 3,
       kind: "seedance2",
       dirty: false,
@@ -36,14 +36,14 @@ describe("beat video generation domain", () => {
     expect(result.saveDraftBeforeGeneration).toBe(true);
     expect(result.command).toEqual({
       beatNum: 3,
-      videoBackend: "newapi_seedance-2.0-fast",
+      model: "seedance-2.0-fast",
     });
   });
 
   it("does not save an unchanged clean Seedance2 draft", () => {
     const sourceConfig = makeDraft({ resolution: "720p" });
     const result = prepareBeatVideoGeneration({
-      backend: "newapi_seedance-2.0-fast",
+      model: "seedance-2.0-fast",
       beatNumber: 1,
       kind: "seedance2",
       dirty: false,
@@ -65,7 +65,7 @@ describe("beat video generation domain", () => {
       resolution: "480p",
     });
     const result = prepareBeatVideoGeneration({
-      backend: "happyhorse-v1",
+      model: "happyhorse-v1",
       beatNumber: 2,
       kind: "happyhorse",
       draft: sourceConfig,
@@ -76,7 +76,7 @@ describe("beat video generation domain", () => {
 
     expect(result.command).toMatchObject({
       beatNum: 2,
-      videoBackend: "happyhorse-v1",
+      model: "happyhorse-v1",
       duration: 8,
       mode: "multimodal_reference",
       ratio: "9:16",
@@ -99,7 +99,7 @@ describe("beat video generation domain", () => {
       resolution: "1080p",
     });
     const result = prepareBeatVideoGeneration({
-      backend: "grok-video-v1",
+      model: "grok-video-v1",
       beatNumber: 4,
       kind: "grok",
       draft: sourceConfig,
@@ -110,7 +110,7 @@ describe("beat video generation domain", () => {
 
     expect(result.command).toMatchObject({
       beatNum: 4,
-      videoBackend: "grok-video-v1",
+      model: "grok-video-v1",
       duration: 6,
       mode: "multimodal_reference",
       ratio: "16:9",
@@ -127,20 +127,20 @@ describe("beat video generation domain", () => {
   it("builds a plain legacy command", () => {
     expect(
       prepareBeatVideoGeneration({
-        backend: "legacy-backend",
+        model: "legacy-model",
         beatNumber: 5,
         kind: "legacy",
       }).command,
     ).toEqual({
       beatNum: 5,
-      videoBackend: "legacy-backend",
+      model: "legacy-model",
     });
   });
 
   it("adds Seedance 1.5 duration and resolution to a legacy command", () => {
     expect(
       prepareBeatVideoGeneration({
-        backend: "newapi_seedance-1.5-pro",
+        model: "seedance-1.5-pro",
         beatNumber: 6,
         kind: "legacy",
         seedance15: {
@@ -150,7 +150,7 @@ describe("beat video generation domain", () => {
       }).command,
     ).toEqual({
       beatNum: 6,
-      videoBackend: "newapi_seedance-1.5-pro",
+      model: "seedance-1.5-pro",
       duration: 9,
       resolution: "1080p",
     });

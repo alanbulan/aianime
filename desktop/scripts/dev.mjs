@@ -3,8 +3,28 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { hostname } from "node:os";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  safeStorage,
+  session,
+  shell,
+} from "electron";
 import { LocalBackend } from "../src/backend.ts";
+import { EncryptedFileCommercialDeviceIdentity } from "../src/commercial-device.ts";
+import { CommercialModelProxy } from "../src/commercial-model-proxy.ts";
+import { EncryptedFileCommercialModelAccessStore } from "../src/commercial-model-access.ts";
+import {
+  CommercialApiClient,
+  EncryptedFileCommercialSessionStore,
+  registerCommercialIpc,
+  resolveCommercialGatewayUrl,
+} from "../src/commercial.ts";
+import { developmentHermesCliPath } from "../src/hermes-runtime.ts";
 
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -18,11 +38,42 @@ const START_TIMEOUT_MS = 30_000;
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
 const FRONTEND_ROOT = join(REPO_ROOT, "frontend");
 const VITE_ENTRY = join(FRONTEND_ROOT, "node_modules", "vite", "bin", "vite.js");
+const HERMES_RUNTIME_ROOT = join(REPO_ROOT, "desktop", "hermes-runtime");
+const AUTH_COOKIE_NAME = "ai_anime_session";
+const AUTH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 let mainWindow = null;
 let backend = null;
+let commercialModelProxy = null;
 let viteProcess = null;
 let quitting = false;
+
+async function prepareHermesRuntime() {
+  const uvCommand = process.env.AI_ANIME_UV_COMMAND?.trim() || "uv";
+  const child = spawn(
+    uvCommand,
+    ["sync", "--project", HERMES_RUNTIME_ROOT, "--locked", "--no-dev"],
+    {
+      cwd: REPO_ROOT,
+      env: process.env,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  child.stdout.on("data", (chunk) => process.stdout.write(`[hermes] ${chunk}`));
+  child.stderr.on("data", (chunk) => process.stderr.write(`[hermes] ${chunk}`));
+  await new Promise((resolveRuntime, rejectRuntime) => {
+    child.once("error", rejectRuntime);
+    child.once("exit", (code) => {
+      if (code === 0) resolveRuntime();
+      else rejectRuntime(new Error(`Hermes runtime sync exited with ${String(code)}`));
+    });
+  });
+  const cliPath = developmentHermesCliPath(REPO_ROOT);
+  if (!existsSync(cliPath)) {
+    throw new Error(`Hermes runtime sync completed but CLI is missing: ${cliPath}`);
+  }
+}
 
 function sameOrigin(url, baseUrl) {
   try {
@@ -70,6 +121,77 @@ function registerWindowIpc() {
   });
   ipcMain.handle(WINDOW_CHANNELS.isMaximized, (event) => {
     return activeWindow(event.sender.id)?.isMaximized() ?? false;
+  });
+}
+
+function desktopSessionCookieValue(username) {
+  return `desktop.${Buffer.from(username, "utf8").toString("base64url")}`;
+}
+
+async function setDesktopSessionCookies(cloudSession, origins) {
+  await Promise.all(
+    origins.map((origin) =>
+      session.defaultSession.cookies.set({
+        url: origin,
+        name: AUTH_COOKIE_NAME,
+        value: desktopSessionCookieValue(cloudSession.user.username),
+        path: "/",
+        httpOnly: true,
+        secure: origin.startsWith("https://"),
+        sameSite: "lax",
+        expirationDate: Date.now() / 1000 + AUTH_COOKIE_MAX_AGE_SECONDS,
+      }),
+    ),
+  );
+}
+
+function registerCommercialGatewayIpc(
+  localBackend,
+  client,
+  deviceIdentity,
+  modelAccessStore,
+) {
+  const origins = [VITE_URL, localBackend.baseUrl];
+  registerCommercialIpc({
+    ipcMain,
+    client,
+    deviceIdentity,
+    modelAccessStore,
+    deviceName: hostname(),
+    platform: process.platform === "win32" ? "windows" : process.platform,
+    arch: process.arch === "x64" ? "x86_64" : process.arch,
+    clientVersion: app.getVersion(),
+    isAllowedSender: (senderId) =>
+      Boolean(
+        mainWindow &&
+          !mainWindow.isDestroyed() &&
+          mainWindow.webContents.id === senderId,
+      ),
+    onAuthenticated: (cloudSession) =>
+      setDesktopSessionCookies(cloudSession, origins),
+    onModelAccessChanged: (
+      access,
+      allowsCustomModels,
+      cloudModelAssignments,
+    ) =>
+      localBackend.configureModelAccess({
+        allowsCustomModels,
+        mode: allowsCustomModels ? access.mode : "cloud",
+        cloudModelAssignments: [...cloudModelAssignments],
+        ...(allowsCustomModels && access.mode === "byok"
+          ? {
+              byokBaseUrl: access.byokBaseUrl,
+              byokApiKey: access.byokApiKey,
+              modelAssignments: access.byokModelAssignments,
+            }
+          : {}),
+      }),
+    onLoggedOut: () =>
+      Promise.all(
+        origins.map((origin) =>
+          session.defaultSession.cookies.remove(origin, AUTH_COOKIE_NAME),
+        ),
+      ),
   });
 }
 
@@ -137,6 +259,36 @@ async function createMainWindow() {
     },
   });
   mainWindow = window;
+  window.webContents.on("console-message", (_event, ...args) => {
+    const details = args[0];
+    if (details && typeof details === "object") {
+      const level = details.level ?? "unknown";
+      const source = details.sourceId ? ` ${details.sourceId}:${details.lineNumber ?? 0}` : "";
+      process.stderr.write(`[renderer:${level}]${source} ${String(details.message ?? "")}\n`);
+      return;
+    }
+    const [level, message, line, sourceId] = args;
+    process.stderr.write(
+      `[renderer:${String(level)}] ${String(sourceId ?? "")}:${String(line ?? 0)} ${String(message ?? "")}\n`,
+    );
+  });
+  window.webContents.on("preload-error", (_event, preloadPath, error) => {
+    process.stderr.write(`[preload-error] ${preloadPath}: ${error.stack || error.message}\n`);
+  });
+  window.webContents.on(
+    "did-fail-load",
+    (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      if (!isMainFrame) return;
+      process.stderr.write(
+        `[did-fail-load] ${errorCode} ${errorDescription} ${validatedURL}\n`,
+      );
+    },
+  );
+  window.webContents.on("render-process-gone", (_event, details) => {
+    process.stderr.write(
+      `[render-process-gone] ${details.reason} exitCode=${details.exitCode}\n`,
+    );
+  });
   const emitMaximizedState = () => {
     if (!window.isDestroyed()) {
       window.webContents.send(WINDOW_CHANNELS.maximizedChanged, window.isMaximized());
@@ -172,15 +324,55 @@ async function stopServices() {
   const localBackend = backend;
   backend = null;
   await localBackend?.stop();
+  const modelProxy = commercialModelProxy;
+  commercialModelProxy = null;
+  await modelProxy?.stop();
 }
 
 async function startApplication() {
-  backend = new LocalBackend({ repositoryRoot: REPO_ROOT, serveFrontend: false });
-  await backend.start();
-  installBackendHeader(backend);
-  viteProcess = startVite(backend);
-  await waitForVite(viteProcess);
-  await createMainWindow();
+  await prepareHermesRuntime();
+  const secureDirectory = join(app.getPath("userData"), "secure");
+  const client = new CommercialApiClient({
+    baseUrl: resolveCommercialGatewayUrl(),
+    sessionStore: new EncryptedFileCommercialSessionStore(
+      join(secureDirectory, "commercial-session.bin"),
+      safeStorage,
+    ),
+  });
+  const deviceIdentity = new EncryptedFileCommercialDeviceIdentity(
+    join(secureDirectory, "commercial-device.bin"),
+    safeStorage,
+  );
+  const modelAccessStore = new EncryptedFileCommercialModelAccessStore(
+    join(secureDirectory, "commercial-model-access.bin"),
+    safeStorage,
+  );
+  commercialModelProxy = new CommercialModelProxy(client, deviceIdentity);
+  await commercialModelProxy.start();
+  backend = new LocalBackend({
+    repositoryRoot: REPO_ROOT,
+    serveFrontend: false,
+    environment: {
+      AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
+      AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
+    },
+  });
+  try {
+    await backend.start();
+    installBackendHeader(backend);
+    registerCommercialGatewayIpc(
+      backend,
+      client,
+      deviceIdentity,
+      modelAccessStore,
+    );
+    viteProcess = startVite(backend);
+    await waitForVite(viteProcess);
+    await createMainWindow();
+  } catch (error) {
+    await stopServices();
+    throw error;
+  }
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -203,7 +395,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("before-quit", (event) => {
-  if (quitting || (!backend && !viteProcess)) return;
+  if (quitting || (!backend && !viteProcess && !commercialModelProxy)) return;
   event.preventDefault();
   quitting = true;
   void stopServices().finally(() => app.quit());

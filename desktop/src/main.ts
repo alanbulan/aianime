@@ -1,11 +1,32 @@
 // Copyright (c) 2026 AI anime
 
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { hostname } from "node:os";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  safeStorage,
+  session,
+  shell,
+} from "electron";
 import { LocalBackend } from "./backend.js";
+import { EncryptedFileCommercialDeviceIdentity } from "./commercial-device.js";
+import { CommercialModelProxy } from "./commercial-model-proxy.js";
+import { EncryptedFileCommercialModelAccessStore } from "./commercial-model-access.js";
+import {
+  CommercialApiClient,
+  EncryptedFileCommercialSessionStore,
+  registerCommercialIpc,
+  resolveCommercialGatewayUrl,
+  type CommercialSessionSummary,
+} from "./commercial.js";
 
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
+let commercialModelProxy: CommercialModelProxy | null = null;
 let quitting = false;
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -28,6 +49,8 @@ const CONTENT_SECURITY_POLICY = [
   "form-action 'self';",
   "object-src 'none';",
 ].join(" ");
+const AUTH_COOKIE_NAME = "ai_anime_session";
+const AUTH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 function isSameOrigin(url: string, baseUrl: string): boolean {
   try {
@@ -131,11 +154,132 @@ function registerWindowIpc(): void {
   });
 }
 
+function desktopSessionCookieValue(username: string): string {
+  return `desktop.${Buffer.from(username, "utf8").toString("base64url")}`;
+}
+
+async function setDesktopSessionCookie(
+  origin: string,
+  cloudSession: CommercialSessionSummary,
+): Promise<void> {
+  await session.defaultSession.cookies.set({
+    url: origin,
+    name: AUTH_COOKIE_NAME,
+    value: desktopSessionCookieValue(cloudSession.user.username),
+    path: "/",
+    httpOnly: true,
+    secure: origin.startsWith("https://"),
+    sameSite: "lax",
+    expirationDate: Date.now() / 1000 + AUTH_COOKIE_MAX_AGE_SECONDS,
+  });
+}
+
+function registerCommercialGatewayIpc(
+  localBackend: LocalBackend,
+  client: CommercialApiClient,
+  deviceIdentity: EncryptedFileCommercialDeviceIdentity,
+  modelAccessStore: EncryptedFileCommercialModelAccessStore,
+): void {
+  registerCommercialIpc({
+    ipcMain,
+    client,
+    deviceIdentity,
+    modelAccessStore,
+    deviceName: hostname(),
+    platform: commercialPlatform(),
+    arch: commercialArchitecture(),
+    clientVersion: app.getVersion(),
+    isAllowedSender: (senderId) =>
+      Boolean(
+        mainWindow &&
+          !mainWindow.isDestroyed() &&
+          mainWindow.webContents.id === senderId,
+      ),
+    onAuthenticated: (cloudSession) =>
+      setDesktopSessionCookie(localBackend.baseUrl, cloudSession),
+    onModelAccessChanged: (
+      access,
+      allowsCustomModels,
+      cloudModelAssignments,
+    ) =>
+      localBackend.configureModelAccess({
+        allowsCustomModels,
+        mode: allowsCustomModels ? access.mode : "cloud",
+        cloudModelAssignments: [...cloudModelAssignments],
+        ...(allowsCustomModels && access.mode === "byok"
+          ? {
+              byokBaseUrl: access.byokBaseUrl,
+              byokApiKey: access.byokApiKey,
+              modelAssignments: access.byokModelAssignments,
+            }
+          : {}),
+      }),
+    onLoggedOut: () =>
+      session.defaultSession.cookies.remove(
+        localBackend.baseUrl,
+        AUTH_COOKIE_NAME,
+      ),
+  });
+}
+
+function commercialPlatform(): string {
+  if (process.platform === "win32") return "windows";
+  if (process.platform === "darwin") return "macos";
+  return process.platform;
+}
+
+function commercialArchitecture(): string {
+  return process.arch === "x64" ? "x86_64" : process.arch;
+}
+
 async function startApplication(): Promise<void> {
-  backend = new LocalBackend();
-  await backend.start();
-  installBackendHeader(backend);
-  await createMainWindow(backend);
+  const secureDirectory = join(app.getPath("userData"), "secure");
+  const client = new CommercialApiClient({
+    baseUrl: resolveCommercialGatewayUrl(),
+    sessionStore: new EncryptedFileCommercialSessionStore(
+      join(secureDirectory, "commercial-session.bin"),
+      safeStorage,
+    ),
+  });
+  const deviceIdentity = new EncryptedFileCommercialDeviceIdentity(
+    join(secureDirectory, "commercial-device.bin"),
+    safeStorage,
+  );
+  const modelAccessStore = new EncryptedFileCommercialModelAccessStore(
+    join(secureDirectory, "commercial-model-access.bin"),
+    safeStorage,
+  );
+  commercialModelProxy = new CommercialModelProxy(client, deviceIdentity);
+  await commercialModelProxy.start();
+  backend = new LocalBackend({
+    environment: {
+      AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
+      AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
+    },
+  });
+  try {
+    await backend.start();
+    installBackendHeader(backend);
+    registerCommercialGatewayIpc(
+      backend,
+      client,
+      deviceIdentity,
+      modelAccessStore,
+    );
+    await createMainWindow(backend);
+  } catch (error) {
+    await stopApplication();
+    throw error;
+  }
+}
+
+async function stopApplication(): Promise<void> {
+  const localBackend = backend;
+  backend = null;
+  await localBackend?.stop();
+  const modelProxy = commercialModelProxy;
+  commercialModelProxy = null;
+  await modelProxy?.stop();
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -156,10 +300,10 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("before-quit", (event) => {
-  if (!backend || quitting) return;
+  if ((!backend && !commercialModelProxy) || quitting) return;
   event.preventDefault();
   quitting = true;
-  void backend.stop().finally(() => app.quit());
+  void stopApplication().finally(() => app.quit());
 });
 
 app.on("window-all-closed", () => app.quit());

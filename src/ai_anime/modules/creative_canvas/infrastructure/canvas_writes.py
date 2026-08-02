@@ -5,8 +5,26 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasBaseRevisionRequired,
+    CanvasCorruptError,
+    CanvasDeleteResult,
+    CanvasHistoryNotFound,
+    CanvasIdempotencyConflict,
+    CanvasInvalidHistoryId,
+    CanvasRestoreResult,
+    CanvasRevisionConflict,
+    CanvasSaveResult,
+    CanvasStoreError,
+    DangerousEmptyCanvasOverwrite,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    canvas_request_hash,
+    relative_project_path,
+    utc_now_iso,
+)
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
@@ -29,32 +47,32 @@ from ai_anime.modules.creative_canvas.domain import (
 )
 
 
-SaveCanvas = Callable[..., canvas_store.CanvasSaveResult]
-RestoreCanvas = Callable[..., canvas_store.CanvasRestoreResult]
-DeleteCanvas = Callable[..., canvas_store.CanvasDeleteResult]
+SaveCanvas = Callable[..., CanvasSaveResult]
+RestoreCanvas = Callable[..., CanvasRestoreResult]
+DeleteCanvas = Callable[..., CanvasDeleteResult]
 RequestHash = Callable[[dict], str]
 UtcNow = Callable[[], str]
 
 
 def translate_canvas_store_error(exc: Exception) -> Exception:
-    if isinstance(exc, canvas_store.CanvasCorruptError):
+    if isinstance(exc, CanvasCorruptError):
         return CreativeCanvasDocumentCorrupt(str(exc))
-    if isinstance(exc, canvas_store.CanvasBaseRevisionRequired):
+    if isinstance(exc, CanvasBaseRevisionRequired):
         return CreativeCanvasDocumentBaseRevisionRequired()
-    if isinstance(exc, canvas_store.CanvasRevisionConflict):
+    if isinstance(exc, CanvasRevisionConflict):
         return CreativeCanvasDocumentRevisionConflict(
             current_revision=exc.current_revision,
             base_revision=exc.base_revision,
         )
-    if isinstance(exc, canvas_store.CanvasIdempotencyConflict):
+    if isinstance(exc, CanvasIdempotencyConflict):
         return CreativeCanvasDocumentIdempotencyConflict(
             client_save_id=exc.client_save_id,
         )
-    if isinstance(exc, canvas_store.CanvasInvalidHistoryId):
+    if isinstance(exc, CanvasInvalidHistoryId):
         return InvalidCreativeCanvasDocumentHistoryId()
-    if isinstance(exc, canvas_store.CanvasHistoryNotFound):
+    if isinstance(exc, CanvasHistoryNotFound):
         return CreativeCanvasDocumentHistoryNotFound()
-    if isinstance(exc, canvas_store.DangerousEmptyCanvasOverwrite):
+    if isinstance(exc, DangerousEmptyCanvasOverwrite):
         return DangerousCreativeCanvasDocumentOverwrite(
             old_nodes=exc.old_nodes,
             new_nodes=exc.new_nodes,
@@ -104,13 +122,13 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 base_revision=command.base_revision,
                 build_payload=build_payload,
                 client_save_id=command.client_save_id,
-                request_hash=(self._request_hash or canvas_store.canvas_request_hash)(
+                request_hash=(self._request_hash or canvas_request_hash)(
                     dict(command.request_hash_payload)
                 ),
                 save_source=command.save_source,
                 allow_empty_overwrite=command.allow_empty_overwrite,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         payload = saved_canvas.payload
@@ -123,7 +141,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 "edge_count": len(payload.get("edges") or []),
                 "client_save_id": command.client_save_id,
                 "save_source": command.save_source,
-                "backup_path": canvas_store.relative_project_path(
+                "backup_path": relative_project_path(
                     project_dir,
                     saved_canvas.backup_path,
                 ),
@@ -166,7 +184,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 base_revision=command.base_revision,
                 build_payload=build_payload,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         payload = restored_canvas.payload
@@ -185,7 +203,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 "history_id": command.history_id,
                 "node_count": len(payload.get("nodes") or []),
                 "edge_count": len(payload.get("edges") or []),
-                "backup_path": canvas_store.relative_project_path(
+                "backup_path": relative_project_path(
                     project_dir,
                     restored_canvas.backup_path,
                 ),
@@ -203,7 +221,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 command.canvas_id,
                 deleted_by=command.actor_id,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         existing = deleted_canvas.existing
@@ -214,7 +232,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
                 "revision": (
                     existing.get("revision") if isinstance(existing, dict) else None
                 ),
-                "deleted_path": canvas_store.relative_project_path(
+                "deleted_path": relative_project_path(
                     project_dir,
                     deleted_canvas.deleted_path,
                 ),
@@ -222,7 +240,7 @@ class LocalCreativeCanvasDocumentCommandGateway:
         )
 
     def _now(self) -> str:
-        return (self._utc_now or canvas_store.utc_now_iso)()
+        return (self._utc_now or utc_now_iso)()
 
 
 __all__ = [

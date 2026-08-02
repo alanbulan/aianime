@@ -4,8 +4,8 @@ import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { createFreezoneCanvasQueryHooks } from "@/features/canvas/hooks/freezoneCanvasQueryHooks";
-import { createFreezoneContextQueryHooks } from "@/features/freezone/hooks/contextQueryHooks";
+import { createFreezoneCanvasQueryHooks } from "@/modules/creative_canvas/presentation/canvasStorageQueryHooks";
+import { createFreezoneContextQueryHooks } from "@/modules/creative_canvas/presentation/contextQueryHooks";
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({

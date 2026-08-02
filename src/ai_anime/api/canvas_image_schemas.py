@@ -5,7 +5,6 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from ai_anime.api.canvas_mark_schemas import FreezoneVideoMark
-from ai_anime.api.canvas_schema_defaults import FREEZONE_DEFAULT_IMAGE_MODEL
 
 
 class FreezoneImageCameraConfig(BaseModel):
@@ -47,8 +46,10 @@ class FreezoneGenRequest(BaseModel):
         default=None,
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
     )
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    model: str = Field(
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
+    )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
@@ -82,8 +83,10 @@ class FreezoneEditRequest(BaseModel):
         default=None,
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
     )
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    model: str = Field(
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
+    )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
@@ -160,8 +163,8 @@ class FreezoneCharacterMultiViewRequest(BaseModel):
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
     )
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -203,8 +206,8 @@ class FreezoneTemplateEditRequest(BaseModel):
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
     )
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -219,8 +222,8 @@ class FreezoneUpscaleRequest(BaseModel):
 
     source_url: str = Field(description="待高清放大的源图静态地址")
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -269,8 +272,8 @@ class FreezoneOutpaintRequest(BaseModel):
     )
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -311,8 +314,8 @@ class FreezoneRedrawRequest(BaseModel):
     )
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -356,8 +359,8 @@ class FreezoneRelightRequest(BaseModel):
     prompt: str = Field(default="", description="用户补充提示词，可为空")
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
@@ -392,7 +395,6 @@ class FreezoneMarkDetectData(BaseModel):
     """局部元素标记识别结果。"""
 
     mark: FreezoneVideoMark
-    provider: str
     model: str
 
 

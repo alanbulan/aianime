@@ -11,6 +11,8 @@ type ImageGenNodeProps = NodeProps & {
   id: string;
   data: ImageGenNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const ImageGenNode = memo((props: ImageGenNodeProps) => {

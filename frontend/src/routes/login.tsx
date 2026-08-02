@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LoginPage } from "@/components/login-page";
-import {
-  ensureAuthenticatedForAppRoute,
-  useAuthStore,
-} from "@/modules/identity_access/public";
+import { resolveAppRouteAccess } from "@/app/commercial-access";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { clusterConfig } from "@/lib/cluster-config";
 import { getRegionCookie } from "@/lib/region-cookie";
 import { authRequired } from "@/lib/runtime-config";
@@ -22,7 +20,11 @@ export const Route = createFileRoute("/login")({
     if (!authRequired()) {
       throw redirect({ to: "/", replace: true });
     }
-    if (!(await ensureAuthenticatedForAppRoute())) return; // stay on /login
+    const access = await resolveAppRouteAccess();
+    if (access === "unauthenticated") return;
+    if (access === "license-required") {
+      throw redirect({ to: "/license", replace: true });
+    }
 
     throw redirect({ to: "/", replace: true });
   },

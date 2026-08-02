@@ -34,7 +34,6 @@ class RegenerateSelectedBeatsCommand:
     episode_num: int
     beat_indices: tuple[int, ...]
     style: str | None = None
-    model: str = "nanobanana"
     mode_key: str = "1x1_2-3"
     image_generation_selection: str | None = None
     sketch_aspect_padding: bool | None = None

@@ -16,7 +16,6 @@ import {
   projectVideoComposeInputs,
 } from '@/features/canvas/domain/videoComposeInputs';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { readUrl } from '@/lib/url-params';
 
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 136;
@@ -24,12 +23,16 @@ const NODE_HEIGHT = 136;
 export interface VideoComposeNodeControllerOptions {
   id: string;
   data: VideoComposeNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
 }
 
 export function useVideoComposeNodeController({
   id,
   data,
+  projectId,
+  canvasId,
   selected,
 }: VideoComposeNodeControllerOptions) {
   const { t } = useTranslation();
@@ -46,16 +49,12 @@ export function useVideoComposeNodeController({
     () => resolveNodeDisplayName(CANVAS_NODE_TYPES.videoCompose, data),
     [data],
   );
-  const location = readUrl();
-  const project = location.project;
-  const canvasId = location.canvas ?? 'default';
-
   useEffect(() => {
     updateNodeInternals(id);
   }, [id, updateNodeInternals]);
 
   const openEditor = () => {
-    if (inputProjection.canOpen && project) {
+    if (inputProjection.canOpen) {
       setEditorOpen(true);
     }
   };
@@ -93,7 +92,7 @@ export function useVideoComposeNodeController({
     videoCount: inputProjection.videoCount,
     canOpen: inputProjection.canOpen,
     isEditorOpen,
-    project,
+    project: projectId,
     canvasId,
     initialTimeline:
       (data.draftTimeline as ComposeTimelineState | undefined) ?? null,

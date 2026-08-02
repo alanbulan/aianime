@@ -44,7 +44,7 @@ from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.limits import ProjectTaskLimitExceeded
+from ai_anime.modules.task_execution.public import ProjectTaskLimitExceeded
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -311,6 +311,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
                 "frame_paths": [str(frame_a), str(frame_b)],
                 "analysis_mode": "video_story",
                 "duration_sec": 15.0,
+                "model": None,
             },
         ),
         CreativeCanvasTaskSubmission(

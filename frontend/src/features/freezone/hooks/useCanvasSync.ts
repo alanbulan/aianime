@@ -1,28 +1,32 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import { useReactFlow, type Viewport } from "@xyflow/react";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type {
-  CanvasBackupStatus,
-  FreezoneCanvasPayload,
-} from "@/features/freezone/domain/canvasStorage";
 import {
+  useCanvasStore,
+  type CanvasEdge,
+  type CanvasNode,
+} from "@/features/canvas/canvasStore";
+import {
+  createCanvasHydrationLifecycleHook,
+  createCanvasRuntimeBridgeHook,
+  createCanvasSaveControllerHook,
+  getFreezoneCanvas,
+  useCanvasConflictController,
+  useCanvasDraftPersistenceController,
+  useCanvasHistoryPersistence,
+  useCanvasPresetRefreshController,
+  useCanvasViewportPersistence,
+  type CanvasBackupStatus,
+  type CanvasDraftPersistenceStore,
+  type CanvasHydrationLifecycleStore,
+  type CanvasLocalPersistenceStore,
+  type CanvasRuntimeBridgeStore,
+  type CanvasSaveControllerStore,
   type CanvasSyncStatus,
   type ConflictSnapshot,
-} from "../application/canvasSyncStorage";
-import type { ShotMetadata } from "../domain/shotMetadata";
-import {
-  useCanvasHistoryPersistence,
-  useCanvasViewportPersistence,
-} from "./useCanvasLocalPersistence";
-import {
-  useCanvasDraftPersistenceController,
-} from "./useCanvasDraftPersistenceController";
-import { useCanvasSaveController } from "./useCanvasSaveController";
-import { useCanvasConflictController } from "./useCanvasConflictController";
-import { useCanvasPresetRefreshController } from "./useCanvasPresetRefreshController";
-import { useCanvasRuntimeBridge } from "./useCanvasRuntimeBridge";
-import { useCanvasHydrationLifecycle } from "./useCanvasHydrationLifecycle";
+  type FreezoneCanvasPayload,
+  type ShotMetadata,
+} from "@/modules/creative_canvas/public";
 
 interface CanvasSyncResult {
   status: CanvasSyncStatus;
@@ -53,6 +57,60 @@ interface CanvasSyncResult {
   /** Drop the conflict snapshot once the user has recovered / discarded it. */
   clearConflictSnapshot: () => void;
 }
+
+function readUserEditsSinceHydrate(): number {
+  return useCanvasStore.getState().userEditsSinceHydrate;
+}
+
+const canvasLocalPersistenceStore: CanvasLocalPersistenceStore = {
+  read: useCanvasStore.getState,
+  subscribe: useCanvasStore.subscribe,
+};
+
+const canvasDraftPersistenceStore: CanvasDraftPersistenceStore<
+  CanvasNode,
+  CanvasEdge
+> = {
+  read: useCanvasStore.getState,
+};
+
+const canvasSaveControllerStore: CanvasSaveControllerStore<
+  CanvasNode,
+  CanvasEdge
+> = {
+  read: useCanvasStore.getState,
+  subscribe: useCanvasStore.subscribe,
+  acknowledgePendingClear: () =>
+    useCanvasStore.getState().acknowledgePendingClear(),
+};
+
+const canvasHydrationLifecycleStore: CanvasHydrationLifecycleStore<
+  CanvasNode,
+  CanvasEdge
+> = {
+  read: useCanvasStore.getState,
+};
+
+const canvasRuntimeBridgeStore: CanvasRuntimeBridgeStore<
+  CanvasNode,
+  CanvasEdge
+> = {
+  read: useCanvasStore.getState,
+};
+
+const useCanvasSaveController = createCanvasSaveControllerHook(
+  canvasSaveControllerStore,
+);
+const useCanvasHydrationLifecycle = createCanvasHydrationLifecycleHook(
+  canvasHydrationLifecycleStore,
+  {
+    loadCanvas: (project, canvasId, signal) =>
+      getFreezoneCanvas(project, canvasId, { signal }),
+  },
+);
+const useCanvasRuntimeBridge = createCanvasRuntimeBridgeHook(
+  canvasRuntimeBridgeStore,
+);
 
 /**
  * Bind a AI anime freezone canvas (project, canvasId) to the local
@@ -130,6 +188,7 @@ export function useCanvasSync(
     hydratedRef,
     switchingRef,
     revisionRef,
+    store: canvasDraftPersistenceStore,
     buildPersistMetadata,
   });
 
@@ -194,6 +253,7 @@ export function useCanvasSync(
     canvasId,
     hydratedRef,
     switchingRef,
+    store: canvasLocalPersistenceStore,
   });
 
   const saveController = useCanvasSaveController({
@@ -222,6 +282,7 @@ export function useCanvasSync(
     canvasId,
     status,
     lastSavedViewportRef,
+    store: canvasLocalPersistenceStore,
   });
 
   // Persist the final camera position on tab close. When a debounced content
@@ -253,6 +314,7 @@ export function useCanvasSync(
     revision,
     hydratedCanvasId,
     revisionRef,
+    readUserEditsSinceHydrate,
     flush,
     reload: () => setReloadKey((key) => key + 1),
     setStatus: setSyncStatus,

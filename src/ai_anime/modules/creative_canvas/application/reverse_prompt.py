@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from ai_anime.modules.creative_canvas.application.media_sources import (
     CreativeCanvasExistingMediaSourceResolver,
@@ -27,6 +28,18 @@ class CreativeCanvasReversePromptSourceMissing(FileNotFoundError):
     def __init__(self, source_path: Path) -> None:
         self.source_path = source_path
         super().__init__(f"source not found: {source_path}")
+
+
+class CreativeCanvasReversePromptGenerator(Protocol):
+    async def generate(self, image_path: Path) -> str: ...
+
+
+class CreativeCanvasReversePromptExecutionUseCases:
+    def __init__(self, generator: CreativeCanvasReversePromptGenerator) -> None:
+        self._generator = generator
+
+    async def generate(self, image_path: Path) -> str:
+        return await self._generator.generate(image_path)
 
 
 @dataclass(frozen=True)

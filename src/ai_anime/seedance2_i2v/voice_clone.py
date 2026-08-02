@@ -7,8 +7,10 @@ so the existing Seedance 2.0 ``reference_audios`` asset path can pick it up.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import inspect
+import mimetypes
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -340,6 +342,7 @@ async def generate_seedance2_narration_audio(
     project_dir: str | Path,
     narrator_audio_path: Path,
     narration_style: str = DEFAULT_NARRATION_STYLE,
+    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -358,9 +361,9 @@ async def generate_seedance2_narration_audio(
         )
 
     if generator is None:
-        from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
+        from ai_anime.generators.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2FalClient()
+        generator = IndexTTS2Client(model=str(model or "").strip())
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(project_dir, episode, beat_num)
@@ -386,15 +389,20 @@ def build_reference_audio_url(audio_path: Path) -> str:
     ``data:`` URL. We cap raw audio at 5 MB and ask the user to re-encode
     anything larger to mono/16k MP3.
     """
-    from ai_anime.generators.huimengi import local_file_to_data_url
-
-    size = Path(audio_path).stat().st_size
+    path = Path(audio_path)
+    size = path.stat().st_size
     if size > MAX_REFERENCE_AUDIO_BYTES:
         raise ValueError(
             f"Reference audio {Path(audio_path).name} is {size} bytes "
             f"(> {MAX_REFERENCE_AUDIO_BYTES}). Re-encode to mono/16k MP3 before use."
         )
-    return local_file_to_data_url(str(audio_path))
+    mime_type = (
+        "audio/x-wav"
+        if path.suffix.lower() == ".wav"
+        else mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    )
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
 
 
 VoiceTier = Literal["identity_override", "age_group_preset", "character_default"]
@@ -513,6 +521,7 @@ async def generate_seedance2_dialogue_audio(
     episode: int,
     beat_num: int,
     store,
+    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -538,9 +547,9 @@ async def generate_seedance2_dialogue_audio(
         return TTSResult(success=False, error=f"Reference audio not found: {reference_path}")
 
     if generator is None:
-        from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
+        from ai_anime.generators.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2FalClient()
+        generator = IndexTTS2Client(model=str(model or "").strip())
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(store.project_dir, episode, beat_num)
@@ -563,6 +572,7 @@ async def generate_seedance2_dialogue_audio_for_voice(
     episode: int,
     store,
     missing_only: bool = True,
+    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -575,9 +585,9 @@ async def generate_seedance2_dialogue_audio_for_voice(
         return result
 
     if generator is None:
-        from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
+        from ai_anime.generators.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2FalClient()
+        generator = IndexTTS2Client(model=str(model or "").strip())
 
     for beat_num, beat in targets:
         output_path = beat_audio_path(store.project_dir, episode, beat_num)
@@ -589,6 +599,7 @@ async def generate_seedance2_dialogue_audio_for_voice(
             episode=episode,
             beat_num=beat_num,
             store=store,
+            model=model,
             generator=generator,
             audio_url_builder=audio_url_builder,
             emotion_prompt=emotion_prompt,

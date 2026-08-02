@@ -13,7 +13,7 @@ import {
   type ProjectSummary,
 } from "@/modules/project_workspace/public";
 
-import { canvasIdForFreezoneEntry } from "../domain/canvasIdentity";
+import { canvasIdForFreezoneEntry } from "@/modules/creative_canvas/public";
 
 export type FreezoneProjectPageController =
   | { status: "loading" }

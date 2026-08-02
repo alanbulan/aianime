@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
-import type { TaskState } from "@/task-center/types";
-import { displayLabel } from "@/task-center/derivations";
+import {
+  displayLabel,
+  type TaskState,
+} from "@/modules/task_execution/public";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 

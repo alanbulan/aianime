@@ -25,14 +25,18 @@ import { useCanvasViewerSurfaceController } from './hooks/useCanvasViewerSurface
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
 interface CanvasProps {
+  projectId: string;
+  canvasId: string;
   onBlankPaneClick?: () => void;
   controlsPlacement?: 'bottom-right' | 'top-right';
 }
 
 export function Canvas({
+  projectId,
+  canvasId,
   onBlankPaneClick,
   controlsPlacement = 'bottom-right',
-}: CanvasProps = {}) {
+}: CanvasProps) {
   const { t } = useTranslation();
   const reactFlowInstance = useReactFlow();
   const reactFlowStore = useStoreApi();
@@ -47,6 +51,8 @@ export function Canvas({
   } = useCanvasRenderSurfaceController({ nodes, edges });
 
   const { projectId: canvasProject } = useCanvasProjectSurfaceController({
+    projectId,
+    canvasId,
     nodes,
     errorTitle: t('common.error'),
   });
@@ -303,6 +309,8 @@ export function Canvas({
 
   return (
     <CanvasStageView
+      projectId={projectId}
+      canvasId={canvasId}
       wrapperProps={{
         ref: wrapperRef,
         onDragEnter: handleCanvasDragEnter,

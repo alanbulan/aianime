@@ -1,8 +1,7 @@
 """Hermes chat backend SDK adapter.
 
 Speaks ACP (Agent Client Protocol — agentclientprotocol.com) over stdin/stdout
-JSON-RPC to a sandboxed ``hermes acp`` subprocess. Same shape as
-ClaudeSdkClient / CodexClient so chat_service.py can dispatch uniformly.
+JSON-RPC to the desktop-bundled ``hermes acp`` subprocess.
 
 Public:
     HermesSdkClient   — holds spawn config (cli_path, cwd, env, model)
@@ -21,10 +20,19 @@ import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Literal
 
 from ai_anime.security import SandboxSpec, wrap_command
-from ai_anime.chat.backend_sdk import ChatBackendEvent
+
+
+@dataclass(slots=True)
+class ChatBackendEvent:
+    type: Literal["thread_started", "assistant_delta", "tool_update", "complete"]
+    thread_id: str | None = None
+    turn_id: str | None = None
+    text: str | None = None
+    name: str | None = None
+    raw: Any | None = None
 
 _log = logging.getLogger(__name__)
 

@@ -19,7 +19,7 @@ from ai_anime.modules.asset_world.application.ports import (
     PropTaskScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import task_config_scope
+from ai_anime.modules.task_execution.public import task_config_scope
 
 
 class PropTaskUseCases:
@@ -41,6 +41,9 @@ class PropTaskUseCases:
             raise PropNotFound(f"Prop '{prop_name}' not found")
         if not (prop.visual_prompt or prop.description or prop.name):
             raise InvalidPropInput(f"Prop '{prop.name}' has no visual prompt")
+        image_model = str(model or "").strip()
+        if not image_model:
+            raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(
             task_context,
             "道具参考图生成需要 project context",
@@ -49,7 +52,7 @@ class PropTaskUseCases:
         task = PropReferenceGenerationTask(
             prop_name=prop.name,
             style=style,
-            model=model,
+            model=image_model,
             output_dir=output_dir,
             scope=scope,
         )
@@ -69,13 +72,16 @@ class PropTaskUseCases:
         style: str,
         model: str,
     ) -> ScheduledAssetTask:
+        image_model = str(model or "").strip()
+        if not image_model:
+            raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(
             task_context,
             "批量道具参考图生成需要 project context",
         )
         task = BatchPropReferenceGenerationTask(
             style=style,
-            model=model,
+            model=image_model,
             output_dir=output_dir,
         )
         receipt = await self._scheduler.enqueue_batch_prop_references(context, task)

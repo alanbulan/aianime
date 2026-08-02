@@ -14,19 +14,16 @@ import {
 } from "lucide-react";
 
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { CANVAS_ASSET_DRAG_MIME } from "@/features/canvas/domain/assetDrag";
-
-import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
-import type { FreezoneBeatContextResponse } from "../domain/beatContext";
 import {
-  isThreeDAsset,
-  type CanvasKind,
-  type LibraryAsset,
-} from "../domain/assetLibraryModel";
-import {
+  CANVAS_ASSET_DRAG_MIME,
+  assetToDragPayload,
   beatAssetItems,
   groupBeatAssets,
-} from "./assetLibraryViewModel";
+  isThreeDAsset,
+  type CanvasKind,
+  type FreezoneBeatContextResponse,
+  type LibraryAsset,
+} from "@/modules/creative_canvas/public";
 
 type AddAsset = (asset: LibraryAsset, index: number) => void;
 

@@ -2,8 +2,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TFunction } from "i18next";
 
-import { taskErrorMessage } from "@/task-center/task-errors";
-import type { TaskState } from "@/task-center/types";
+import { taskErrorMessage } from "@/modules/task_execution/public";
+import type { TaskState } from "@/modules/task_execution/public";
 
 function task(partial: Partial<TaskState>): TaskState {
   return {

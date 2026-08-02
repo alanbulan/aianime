@@ -11,6 +11,7 @@ type UploadNodeProps = NodeProps & {
   id: string;
   data: UploadImageNodeData;
   selected?: boolean;
+  projectId: string;
 };
 
 export const UploadNode = memo((props: UploadNodeProps) => {

@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone.paths import freezone_root
+from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.seedance2_i2v.voice_clone import resolve_character_voice
 from ai_anime.shared.infrastructure.project_stores import (

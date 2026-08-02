@@ -16,7 +16,7 @@ from ai_anime.modules.asset_world.application.errors import (
     SceneProjectContextRequired,
 )
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
-from ai_anime.task_identity import task_config_scope
+from ai_anime.modules.task_execution.public import task_config_scope
 
 
 @dataclass
@@ -210,7 +210,7 @@ async def test_scene_tasks_require_project_context(
                 scene_name="大殿",
                 kind="master",
                 style="",
-                model=None,
+                model="cloud-image-standard",
             )
 
 
@@ -360,7 +360,10 @@ async def test_pano_generation_falls_back_to_text_and_builds_spatial_description
         task_context=_context(),
         project_dir=tmp_path,
         scene_name="大殿",
-        command=GenerateScenePanoCommand(source="master"),
+        command=GenerateScenePanoCommand(
+            source="master",
+            model="cloud-image-standard",
+        ),
         project_style="period-drama",
     )
 
@@ -378,6 +381,7 @@ async def test_pano_generation_falls_back_to_text_and_builds_spatial_description
             "环境描述：\n"
             "纵深开阔的宫殿"
         ),
+        "model": "cloud-image-standard",
         "style": "period-drama",
         "timeout_seconds": 1800,
     }
@@ -401,7 +405,6 @@ async def test_pano_generation_keeps_master_and_optional_model_parameters(
         command=GenerateScenePanoCommand(
             source="master",
             style="ink",
-            provider="newapi",
             model="image-model",
             image_size="2K",
             quality="high",
@@ -413,7 +416,6 @@ async def test_pano_generation_keeps_master_and_optional_model_parameters(
     payload = scheduler.stage_task.backend_payload()
     assert payload["step"] == "pano_from_master"
     assert payload["params"]["style"] == "ink"
-    assert payload["params"]["provider"] == "newapi"
     assert payload["params"]["model"] == "image-model"
     assert payload["params"]["image_size"] == "2K"
     assert payload["params"]["quality"] == "high"

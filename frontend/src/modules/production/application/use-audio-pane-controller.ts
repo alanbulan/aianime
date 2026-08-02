@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type {
   ProductionErrorResponse,
@@ -17,13 +17,18 @@ import {
   type VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
+import type { AudioModelOption } from "@/modules/model_usage/public";
 
 interface CreditCostQuery {
   data?: { data: { display?: string | null } };
 }
 
 export interface AudioPaneControllerDependencies {
-  useGenerationCreditCost(kind: string): CreditCostQuery;
+  useAudioModels(mode: "speech", enabled?: boolean): {
+    data: AudioModelOption[];
+    isLoading: boolean;
+  };
+  useGenerationCreditCost(kind: string, value?: string | null): CreditCostQuery;
 }
 
 export interface AudioPaneQueries {
@@ -33,7 +38,7 @@ export interface AudioPaneQueries {
   ): {
     isPending: boolean;
     mutateAsync(
-      beatNumber: number,
+      command: { beatNumber: number; model: string },
     ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   };
 }
@@ -52,6 +57,7 @@ export interface AudioPaneController {
   costDisplay?: string | null;
   narrationEmpty: boolean;
   regenerationOpen: boolean;
+  regenerationDisabled: boolean;
   regenerationPending: boolean;
   setRegenerationOpen(open: boolean): void;
   stage: BeatStageState;
@@ -68,7 +74,12 @@ export function createUseAudioPaneController(
     const { beat, episode, onConfigureVoice, project, state } = options;
     const { t } = useTranslation();
     const regenerate = queries.useRegenerateBeatAudio(project, episode);
-    const audioCost = dependencies.useGenerationCreditCost("beat_tts");
+    const audioModels = dependencies.useAudioModels("speech", Boolean(project));
+    const audioModel = audioModels.data[0]?.value ?? "";
+    const audioCost = dependencies.useGenerationCreditCost(
+      "beat_tts",
+      audioModel || null,
+    );
     const audioTask = useTaskController({
       key: {
         taskType: TASK_TYPES.AUDIO_GENERATION_INDEXTTS2,
@@ -100,8 +111,15 @@ export function createUseAudioPaneController(
 
     const confirmRegeneration = async () => {
       setRegenerationOpen(false);
+      if (!audioModel) {
+        toast.error(t("episode.workbench.audio.modelUnavailable"));
+        return;
+      }
       try {
-        const response = await regenerate.mutateAsync(beat.beat_number);
+        const response = await regenerate.mutateAsync({
+          beatNumber: beat.beat_number,
+          model: audioModel,
+        });
         if (!response.ok) {
           showAudioError(
             response.error || t("episode.workbench.audio.regenFailed"),
@@ -125,6 +143,8 @@ export function createUseAudioPaneController(
       costDisplay: audioCost.data?.data.display,
       narrationEmpty: (beat.narration_segment ?? "").trim() === "",
       regenerationOpen,
+      regenerationDisabled:
+        audioModels.isLoading || !audioModel || regenerate.isPending || audioTask.started,
       regenerationPending: regenerate.isPending || audioTask.started,
       setRegenerationOpen,
       stage: state,

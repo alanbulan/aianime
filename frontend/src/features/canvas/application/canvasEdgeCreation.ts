@@ -1,9 +1,11 @@
 // Copyright (c) 2026 AI anime
 import {
+  type SkillDefinition,
+} from '@/modules/creative_canvas/public';
+import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
-  type SkillDefinition,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 import {
   validateCanvasConnection,

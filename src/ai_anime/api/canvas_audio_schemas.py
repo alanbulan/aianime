@@ -58,6 +58,10 @@ class FreezoneAudioVoiceRef(BaseModel):
 class FreezoneAudioSpeechRequest(BaseModel):
     """Freezone 音频节点：文本生成语音请求。"""
 
+    model: str = Field(
+        min_length=1,
+        description="AUDIO 模型目录返回的语音模型 code。",
+    )
     text: str = Field(
         description=("要合成的台词/旁白文本。"),
         examples=["她低声说：终于等到这一天了。"],
@@ -97,7 +101,8 @@ class FreezoneAudioMusicRequest(BaseModel):
         examples=["cinematic rain-soaked suspense music"],
     )
     model: str = Field(
-        default="LingShan-MU-11", description="音乐模型，默认 LingShan-MU-11。"
+        min_length=1,
+        description="AUDIO 模型目录返回的音乐模型 code。",
     )
     response_format: Literal["mp3", "opus", "pcm", "ulaw", "alaw"] = Field(
         default="mp3",

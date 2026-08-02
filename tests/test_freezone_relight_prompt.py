@@ -26,6 +26,7 @@ def test_relight_prompt_keeps_color_hex_and_color_temperature_kelvin() -> None:
         brightness=60,
         color_hex="#FFB877",
         color_temperature_kelvin=3200,
+        model="cloud-image-standard",
     )
 
     prompt = _build_prompt(body)
@@ -38,6 +39,7 @@ def test_relight_prompt_keeps_legacy_color_hex_fallback() -> None:
     body = FreezoneRelightRequest(
         source_url="/static/source.png",
         color_hex="#FFB877",
+        model="cloud-image-standard",
     )
 
     prompt = _build_prompt(body)
@@ -51,6 +53,7 @@ def test_relight_color_temperature_kelvin_is_bounded() -> None:
         FreezoneRelightRequest(
             source_url="/static/source.png",
             color_temperature_kelvin=1300,
+            model="cloud-image-standard",
         )
     except ValidationError as exc:
         assert "color_temperature_kelvin" in str(exc)

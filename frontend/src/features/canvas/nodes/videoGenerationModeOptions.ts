@@ -27,7 +27,7 @@ const MODE_OPTIONS: ReadonlyArray<
   { key: "videoEdit", labelKey: "node.videoNode.tabs.videoEdit" },
 ];
 
-const HAPPYHORSE_MODE_ORDER: ReadonlyArray<VideoGenMode> = [
+const TYPED_REFERENCE_MODE_ORDER: ReadonlyArray<VideoGenMode> = [
   "textToVideo",
   "imageToVideo",
   "imageReference",
@@ -36,10 +36,10 @@ const HAPPYHORSE_MODE_ORDER: ReadonlyArray<VideoGenMode> = [
 
 function disabledReason(
   mode: VideoGenMode,
-  isHappyHorseModel: boolean,
+  usesTypedReferenceModes: boolean,
   upstreamCounts: VideoGenerationModeCounts,
 ): string | null {
-  if (isHappyHorseModel) {
+  if (usesTypedReferenceModes) {
     const { images, videos } = upstreamCounts;
     switch (mode) {
       case "textToVideo":
@@ -61,7 +61,7 @@ function disabledReason(
         if (videos > 1) return "「视频编辑」仅支持连接 1 个视频节点";
         return null;
       default:
-        return "HappyHorse 不支持该模式";
+        return "当前模型不支持该模式";
     }
   }
   if (upstreamCounts.videos > 0 && mode !== "allReference") {
@@ -83,17 +83,20 @@ function disabledReason(
 }
 
 export function resolveVideoGenerationModeOptions({
-  isHappyHorseModel,
+  supportedModes,
+  usesTypedReferenceModes,
   upstreamCounts,
 }: {
-  isHappyHorseModel: boolean;
+  supportedModes: ReadonlyArray<VideoGenMode>;
+  usesTypedReferenceModes: boolean;
   upstreamCounts: VideoGenerationModeCounts;
 }): VideoGenerationModeOption[] {
-  const visibleOptions = isHappyHorseModel
+  const visibleOptions = usesTypedReferenceModes
     ? (upstreamCounts.videos > 0
         ? (["textToVideo", "videoEdit"] as VideoGenMode[])
-        : HAPPYHORSE_MODE_ORDER
+        : TYPED_REFERENCE_MODE_ORDER
       )
+        .filter((key) => supportedModes.includes(key))
         .map((key) => MODE_OPTIONS.find((option) => option.key === key))
         .filter(
           (
@@ -108,13 +111,13 @@ export function resolveVideoGenerationModeOptions({
             ? { ...option, labelKey: "node.videoNode.tabs.firstFrame" }
             : option,
         )
-    : MODE_OPTIONS.filter((option) => option.key !== "videoEdit");
+    : MODE_OPTIONS.filter((option) => supportedModes.includes(option.key));
 
   return visibleOptions.map((option) => ({
     ...option,
     disabledReason: disabledReason(
       option.key,
-      isHappyHorseModel,
+      usesTypedReferenceModes,
       upstreamCounts,
     ),
   }));

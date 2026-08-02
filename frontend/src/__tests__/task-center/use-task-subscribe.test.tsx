@@ -3,13 +3,17 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
-import { createEventBus } from "@/task-center/event-bus";
-import { EventBusContext } from "@/task-center/event-bus-context";
-import { useTaskSubscribe } from "@/task-center/use-task-subscribe";
+import {
+  createTaskEventBus,
+  TaskEventBusContext,
+} from "@/modules/task_execution/public";
+import { useTaskSubscribe } from "@/modules/task_execution/public";
 
-function wrap(bus = createEventBus()) {
+function wrap(bus = createTaskEventBus()) {
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <EventBusContext.Provider value={bus}>{children}</EventBusContext.Provider>
+    <TaskEventBusContext.Provider value={bus}>
+      {children}
+    </TaskEventBusContext.Provider>
   );
   return { Wrapper, bus };
 }
@@ -141,7 +145,7 @@ describe("useTaskSubscribe", () => {
   });
 
   it("throws helpful error outside provider", () => {
-    // useEventBus is tested indirectly — render without wrapper and expect throw
+    // useTaskEventBus is tested indirectly — render without wrapper and expect throw
     expect(() =>
       renderHook(() => useTaskSubscribe({ match: () => true })),
     ).toThrow(/must be used inside/i);

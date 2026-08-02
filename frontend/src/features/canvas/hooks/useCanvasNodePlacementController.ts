@@ -6,7 +6,7 @@ import {
   type RefObject,
 } from 'react';
 
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 import type {
   CanvasNodeData,

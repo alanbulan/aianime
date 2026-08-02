@@ -6,7 +6,7 @@ import {
   type CanvasNode,
   type ThreeDWorldNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import type { MainlineContext } from '@/features/freezone/public';
+import type { MainlineContext } from '@/modules/creative_canvas/public';
 import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
 import {
   buildLocalThreeDWorldDirectorManifest,

@@ -50,12 +50,6 @@ const STORYBOARD_GEN_PARAMS_CHIP_CLASS =
 const STORYBOARD_GEN_GENERATE_BUTTON_CLASS =
   '!h-9 !rounded-md !border-transparent !bg-transparent !px-2.5 !text-[14px] !gap-1.5 !text-foreground/94 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_GEN_ACTION_ICON_CLASS = 'h-3.5 w-3.5';
-const STORYBOARD_GEN_PROVIDER_OPTION_CLASS =
-  'min-w-[122px] px-4 text-center !rounded-full !text-[13px] !h-9';
-const STORYBOARD_GEN_PROVIDER_ACTIVE_CLASS =
-  '!border-primary/45 !bg-primary/12 !text-foreground !shadow-none';
-const STORYBOARD_GEN_PROVIDER_INACTIVE_CLASS =
-  '!border-border !bg-muted/70 !text-muted-foreground hover:!border-foreground/30 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_GEN_MODEL_OPTION_CLASS =
   '!min-h-0 !min-w-0 !justify-start !rounded-none !border-transparent !bg-transparent !px-0 !py-1 !text-left !text-[14px]';
 const STORYBOARD_GEN_MODEL_ACTIVE_CLASS = '!text-foreground';
@@ -395,7 +389,6 @@ export function StoryboardGenNodeView({
             webSearchEnabled={controller.webSearchEnabled}
             onWebSearchToggle={controller.toggleWebSearch}
             triggerSize="md"
-            showProviderName={false}
             chipClassName={STORYBOARD_GEN_TRIGGER_CLASS}
             modelChipClassName={STORYBOARD_GEN_MODEL_CHIP_CLASS}
             paramsChipClassName={STORYBOARD_GEN_PARAMS_CHIP_CLASS}
@@ -403,9 +396,6 @@ export function StoryboardGenNodeView({
             paramsPanelAlign="start"
             modelPanelClassName={`inline-block w-[430px] max-w-[calc(100vw-32px)] p-3 ${STORYBOARD_GEN_BOTTOM_PANEL_CLASS}`}
             paramsPanelClassName={`w-[430px] max-w-[calc(100vw-32px)] p-3 ${STORYBOARD_GEN_BOTTOM_PANEL_CLASS}`}
-            providerOptionClassName={STORYBOARD_GEN_PROVIDER_OPTION_CLASS}
-            activeProviderOptionClassName={STORYBOARD_GEN_PROVIDER_ACTIVE_CLASS}
-            inactiveProviderOptionClassName={STORYBOARD_GEN_PROVIDER_INACTIVE_CLASS}
             modelOptionClassName={STORYBOARD_GEN_MODEL_OPTION_CLASS}
             activeModelOptionClassName={STORYBOARD_GEN_MODEL_ACTIVE_CLASS}
             inactiveModelOptionClassName={STORYBOARD_GEN_MODEL_INACTIVE_CLASS}
@@ -424,6 +414,7 @@ export function StoryboardGenNodeView({
         </div>
 
         <UiButton
+          disabled={!controller.selectedModel}
           onClick={(event) => {
             event.stopPropagation();
             void controller.generateFromModifiers({

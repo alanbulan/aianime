@@ -39,7 +39,7 @@ async def test_page_agent_session_preserves_identity_contract(
     token = await PageAgentSessions().create_token(
         "admin",
         project,
-        agent_kind="codex",
+        agent_kind="hermes",
     )
 
     assert token == "session-token"
@@ -54,8 +54,8 @@ async def test_page_agent_session_preserves_identity_contract(
             "assets:read",
         ],
         "ttl_seconds": 24 * 3600,
-        "agent_kind": "codex",
-        "worker_id": "page-agent:codex:admin",
+        "agent_kind": "hermes",
+        "worker_id": "page-agent:hermes:admin",
         "current_scope_kind": scope_kind,
         "current_project_id": project_id,
         "metadata": {"source": "chat_service"},

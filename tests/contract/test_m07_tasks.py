@@ -11,11 +11,16 @@ from fastapi.testclient import TestClient
 
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import registry
-from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
-from ai_anime.task_backend.cancel import TaskCancelled, is_cancel_requested
-from ai_anime.task_backend.limits import project_lane_effective_active_limit
-from ai_anime.task_backend.queues import QUEUE_KINDS
-from ai_anime.task_backend.registry import register_project_task_runner
+from ai_anime.modules.task_execution.public import (
+    build_in_memory_cancellation_store,
+    build_inline_task_backend,
+)
+from ai_anime.modules.task_execution.public import TaskCancelled, is_cancel_requested
+from ai_anime.modules.task_execution.public import project_lane_effective_active_limit
+from ai_anime.modules.task_execution.public import (
+    QUEUE_KINDS,
+    register_project_task_runner,
+)
 from ai_anime.task_state import TaskStateManager, get_task_manager
 
 pytestmark = pytest.mark.m07
@@ -98,7 +103,7 @@ def test_tasks_routes_are_covered_by_openapi_contract():
 def _task_ports(monkeypatch):
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", registry._BOOTSTRAPPED)
-    registry.register_port("cancellation_store", InMemoryCancellationStore())
+    registry.register_port("cancellation_store", build_in_memory_cancellation_store())
 
 
 @pytest.mark.asyncio
@@ -153,7 +158,7 @@ async def test_task_list_and_project_stream_task_updated_share_serialized_fields
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
     task = manager.create_task_for_project(
         ctx,
         "single_video",
@@ -240,7 +245,7 @@ async def test_single_task_stream_uses_effective_status_and_closes_on_terminal(
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
     task = manager.create_task_for_project(
         ctx,
         f"m07_{status}",
@@ -311,7 +316,10 @@ async def test_single_task_stream_missing_task_returns_structured_error(
 
     ctx = _ctx(tmp_path)
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: TaskStateManager())
+    monkeypatch.setattr(
+        "ai_anime.task_state.get_task_manager",
+        lambda: TaskStateManager(),
+    )
     monkeypatch.setattr(tasks, "_TASK_NOT_FOUND_GRACE_S", 0.0)
 
     response = await tasks.stream_project_task(
@@ -339,7 +347,7 @@ async def test_clear_completed_deletes_only_effective_completed_tasks(
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
 
     completed = manager.create_task_for_project(
         ctx, "m07_completed", 1, status="completed"
@@ -387,14 +395,13 @@ async def test_task_limits_shape_and_ce_single_eligible_user(monkeypatch, tmp_pa
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
 
     async def count_eligible_users(_ctx):
         return 1
 
     monkeypatch.setattr(
-        tasks,
-        "count_project_task_eligible_users",
+        "ai_anime.modules.project_workspace.public.count_project_task_eligible_users",
         count_eligible_users,
     )
     manager.create_task_for_project(
@@ -544,15 +551,14 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
             return True
 
     monkeypatch.setattr(tasks, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
-    monkeypatch.setattr(tasks, "get_task_backend", lambda: FakeBackend())
+    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.ports.get_task_backend", lambda: FakeBackend())
 
     async def count_eligible_users(_ctx):
         return 1
 
     monkeypatch.setattr(
-        tasks,
-        "count_project_task_eligible_users",
+        "ai_anime.modules.project_workspace.public.count_project_task_eligible_users",
         count_eligible_users,
     )
     monkeypatch.setattr(pipeline, "resolve_project_scope", fake_resolve_project_scope)
@@ -650,7 +656,7 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
         ctx = _ctx(tmp_path / backend)
         fake_backend = _FakeTaskBackend(backend)
         await _install_project_context(monkeypatch, ctx)
-        monkeypatch.setattr(tasks, "get_task_backend", lambda: fake_backend)
+        monkeypatch.setattr("ai_anime.ports.get_task_backend", lambda: fake_backend)
         task = get_task_manager().create_task_for_project(
             ctx,
             "m07_shape",
@@ -722,7 +728,7 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
 @pytest.mark.asyncio
 async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     task_type = "m07_cooperative_cancel"
     observed_cancel = False
     runner_started = threading.Event()
@@ -779,10 +785,9 @@ async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
 async def test_inline_backend_runs_sync_core_outside_active_event_loop(
     monkeypatch, tmp_path
 ):
-    from ai_anime.ports.local import tasks as local_tasks
+    from ai_anime.modules.task_execution import composition as task_composition
 
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
     observed = threading.Event()
 
     def fake_run_project_task_core_sync(*args, **kwargs):
@@ -792,10 +797,11 @@ async def test_inline_backend_runs_sync_core_outside_active_event_loop(
         return {"ok": True}
 
     monkeypatch.setattr(
-        local_tasks,
+        task_composition,
         "run_project_task_core_sync",
         fake_run_project_task_core_sync,
     )
+    backend = build_inline_task_backend()
 
     await backend.enqueue_project_task(
         ctx, task_type="m07_no_asyncio_run_in_loop", episode=1

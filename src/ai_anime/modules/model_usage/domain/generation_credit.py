@@ -9,8 +9,7 @@ from typing import Literal
 GenerationCreditKind = Literal[
     "model",
     "image_selection",
-    "fixed_image",
-    "video_backend",
+    "video_model",
     "beat_tts",
     "freezone_audio_music",
     "freezone_image_reverse_prompt",
@@ -92,40 +91,10 @@ def merge_billing_params(defaults: Mapping, explicit: Mapping) -> dict:
     return merged
 
 
-def resolve_labeled_value(
-    value: str,
-    options: Mapping[str, str],
-    *,
-    label_name: str,
-) -> str:
-    clean_value = value.strip()
-    if clean_value in options:
-        return clean_value
-
-    label_matches = [
-        key for key, label in options.items() if label.strip() == clean_value
-    ]
-    if not label_matches:
-        normalized_label = clean_value.casefold()
-        label_matches = [
-            key
-            for key, label in options.items()
-            if label.strip().casefold() == normalized_label
-        ]
-    if len(label_matches) != 1:
-        detail = (
-            f"ambiguous {label_name} label"
-            if label_matches
-            else f"invalid {label_name}"
-        )
-        raise InvalidGenerationCreditRequest(detail)
-    return label_matches[0]
-
-
 def generation_billing_kind(kind: str) -> str:
-    if kind in {"image_selection", "fixed_image"}:
+    if kind == "image_selection":
         return "image"
-    if kind == "video_backend":
+    if kind == "video_model":
         return "video"
     if kind in {"beat_tts", "freezone_audio_music"}:
         return "audio"
@@ -153,13 +122,13 @@ def normalize_billing_params(
     explicit: Mapping,
 ) -> dict:
     if surface == "canvas":
-        if kind == "video_backend":
+        if kind == "video_model":
             return _video_billing_params(explicit)
         return dict(explicit)
 
-    if kind in {"fixed_image", "image_selection"}:
+    if kind == "image_selection":
         return merge_billing_params(defaults, explicit)
-    if kind == "video_backend":
+    if kind == "video_model":
         return _video_billing_params(explicit)
     return dict(explicit)
 

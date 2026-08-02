@@ -25,7 +25,7 @@ def test_legacy_batch_render_route_is_removed_from_api_routes() -> None:
 
 
 def test_legacy_batch_render_ray_surface_is_removed() -> None:
-    from ai_anime.task_identity import TASK_IDENTITY_SPECS
+    from ai_anime.modules.task_execution.public import TASK_IDENTITY_SPECS
 
     assert "batch_render" not in TASK_IDENTITY_SPECS
     assert importlib.util.find_spec("ai_anime.ray_tasks") is None

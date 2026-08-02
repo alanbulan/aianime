@@ -5,10 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.ports.cloud import CloudTaskRequest
-from ai_anime.ports.local.mock_cloud import MockCloudAdapter, cloud_task_kind
-from ai_anime.ports.local.mock_tasks import MockCloudTaskBackend
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    CloudTaskRequest,
+    build_mock_cloud_adapter,
+    build_mock_cloud_task_backend,
+    cloud_task_kind,
+)
 from ai_anime.task_state import get_task_manager
 
 
@@ -61,7 +64,7 @@ async def test_mock_adapter_returns_deterministic_image_artifact(tmp_path: Path)
         output_dir=tmp_path,
     )
     progress: list[float] = []
-    adapter = MockCloudAdapter(step_delay_seconds=0)
+    adapter = build_mock_cloud_adapter(step_delay_seconds=0)
     result = await adapter.run_task(
         request,
         report_progress=lambda value, _message: _append_progress(progress, value),
@@ -99,7 +102,7 @@ async def test_mock_task_backend_completes_and_retries_with_new_task_id(
     tmp_path: Path,
 ) -> None:
     ctx = _context(tmp_path)
-    backend = MockCloudTaskBackend(MockCloudAdapter(step_delay_seconds=0))
+    backend = build_mock_cloud_task_backend(step_delay_seconds=0)
 
     first = await backend.enqueue_project_task(
         ctx,
@@ -125,7 +128,7 @@ async def test_mock_task_backend_completes_and_retries_with_new_task_id(
 @pytest.mark.asyncio
 async def test_mock_task_backend_cancels_active_task(tmp_path: Path) -> None:
     ctx = _context(tmp_path)
-    backend = MockCloudTaskBackend(MockCloudAdapter(step_delay_seconds=0.2))
+    backend = build_mock_cloud_task_backend(step_delay_seconds=0.2)
     queued = await backend.enqueue_project_task(
         ctx,
         task_type="audio_generation",

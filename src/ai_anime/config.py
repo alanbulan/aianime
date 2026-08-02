@@ -4,64 +4,24 @@
 """
 
 import os
+import uuid
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
 from dotenv import load_dotenv
 from ai_anime.official_defaults import (
+    DEFAULT_GENERAL_TEXT_MODEL,
     DEFAULT_TEXT_MODEL_BY_ENV,
-    OFFICIAL_NEWAPI_BASE_URL,
 )
 
 # 加载环境变量（必须在任何其他导入之前）
 load_dotenv()
 
-# =============================================================================
-# 模型提供商配置
-# =============================================================================
-
-PROVIDER_PRESETS = {
-    "openai": {
-        "base_url": None,
-        "default_model": "gpt-4o",
-        "timeout": 120,
-        "api_key_env": "OPENAI_API_KEY",
-    },
-    "anthropic": {
-        "base_url": None,
-        "default_model": "claude-sonnet-4-5",
-        "timeout": 120,
-        "api_key_env": "ANTHROPIC_API_KEY",
-    },
-    "gemini": {
-        "base_url": None,
-        "default_model": "gemini-3.5-flash",
-        "timeout": 300,
-        "api_key_env": "GOOGLE_API_KEY",
-    },
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1",
-        "default_model": "gemini-3.5-flash",
-        "timeout": 300,
-        "api_key_env": "OPENROUTER_API_KEY",
-    },
-    "volcengine": {
-        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-        "default_model": "doubao-seed-1-6-251015",
-        "timeout": 1800,
-        "api_key_env": "ARK_API_KEY",
-    },
-}
-
-PROVIDER_ALIASES = {
-    "doubao": "volcengine",
-    "ark": "volcengine",
-    "claude": "anthropic",
-    "gpt": "openai",
-    "google": "gemini",
-    "or": "openrouter",
-}
-
+_TEXT_MODEL_IDEMPOTENCY_KEY: ContextVar[str] = ContextVar(
+    "ai_anime_text_model_idempotency_key",
+    default="",
+)
 
 def _env_float(name: str, default: float) -> float:
     raw = os.environ.get(name)
@@ -86,42 +46,15 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def get_pydantic_model(
-    provider_override: str | None = None,
     model_name_override: str | None = None,
 ):
-    """Return a PydanticAI model routed through the effective NewAPI gateway.
-
-    This is the compatibility factory used by older Agent call sites. Provider
-    settings still select their legacy default model when no model name is
-    supplied, but they no longer select a direct-provider transport. CE reads
-    credentials from settings.db; EE reads its deployment-level NewAPI env.
-
-    Args:
-        provider_override: Select the legacy provider preset used for a default
-            model name. The request transport remains NewAPI.
-        model_name_override: Override the model name sent to NewAPI.
-    """
-    provider = (provider_override or os.environ.get("MODEL_PROVIDER", "volcengine")).lower()
-    provider = PROVIDER_ALIASES.get(provider, provider)
-
-    if provider not in PROVIDER_PRESETS:
-        available = list(PROVIDER_PRESETS.keys()) + list(PROVIDER_ALIASES.keys())
-        raise ValueError(f"Unknown provider: {provider}. " f"Available: {', '.join(available)}")
-
-    preset = PROVIDER_PRESETS[provider]
-    model_name = model_name_override or os.environ.get("MODEL_NAME", preset["default_model"])
-
-    if provider == "openrouter" and model_name.startswith("openrouter/"):
-        model_name = model_name[len("openrouter/") :]
-
+    """Return a PydanticAI model through the selected cloud/BYOK transport."""
     return get_newapi_text_pydantic_model(
         "MODEL_NAME",
-        preset["default_model"],
-        model_name_override=model_name,
-        timeout_seconds_override=_env_float(
-            "MODEL_TIMEOUT",
-            float(preset.get("timeout", 120)),
-        ),
+        DEFAULT_GENERAL_TEXT_MODEL,
+        model_name_override=model_name_override,
+        model_name_override_is_internal=True,
+        timeout_seconds_override=_env_float("MODEL_TIMEOUT", 120.0),
     )
 
 
@@ -156,6 +89,7 @@ def _get_newapi_text_model_profile(model_name: str):
 def _newapi_text_http_client_factory(
     *,
     timeout_seconds: float,
+    omit_authorization: bool = False,
 ) -> Any:
     trust_env = _env_bool("NEWAPI_TEXT_TRUST_ENV", True)
 
@@ -165,6 +99,22 @@ def _newapi_text_http_client_factory(
         kwargs: dict[str, Any] = {"timeout": timeout_seconds}
         if not trust_env:
             kwargs["trust_env"] = False
+
+        async def prepare_model_request(request: httpx.Request) -> None:
+            if (
+                omit_authorization
+                and request.headers.get("Authorization") == "Bearer ai-anime-no-auth"
+            ):
+                request.headers.pop("Authorization", None)
+            idempotency_key = _TEXT_MODEL_IDEMPOTENCY_KEY.get()
+            if (
+                idempotency_key
+                and request.method.upper() not in {"GET", "HEAD", "OPTIONS"}
+                and "Idempotency-Key" not in request.headers
+            ):
+                request.headers["Idempotency-Key"] = idempotency_key
+
+        kwargs["event_hooks"] = {"request": [prepare_model_request]}
         return httpx.AsyncClient(**kwargs)
 
     return factory
@@ -181,13 +131,15 @@ def _newapi_text_openai_provider(
 
     class _LifecycleManagedOpenAIProvider(OpenAIProvider):
         def __init__(self) -> None:
+            omit_authorization = not str(api_key or "").strip()
             http_client_factory = _newapi_text_http_client_factory(
                 timeout_seconds=timeout_seconds,
+                omit_authorization=omit_authorization,
             )
             http_client = http_client_factory()
             super().__init__(
                 openai_client=AsyncOpenAI(
-                    api_key=api_key,
+                    api_key=api_key or "ai-anime-no-auth",
                     base_url=base_url,
                     timeout=timeout_seconds,
                     max_retries=1,
@@ -214,14 +166,22 @@ def _newapi_text_openai_model(
 
     class _AutoClosingOpenAIChatModel(OpenAIChatModel):
         async def request(self, *args: Any, **kwargs: Any) -> Any:
-            async with self:
-                return await super().request(*args, **kwargs)
+            token = _TEXT_MODEL_IDEMPOTENCY_KEY.set(str(uuid.uuid4()))
+            try:
+                async with self:
+                    return await super().request(*args, **kwargs)
+            finally:
+                _TEXT_MODEL_IDEMPOTENCY_KEY.reset(token)
 
         @asynccontextmanager
         async def request_stream(self, *args: Any, **kwargs: Any):
-            async with self:
-                async with super().request_stream(*args, **kwargs) as response:
-                    yield response
+            token = _TEXT_MODEL_IDEMPOTENCY_KEY.set(str(uuid.uuid4()))
+            try:
+                async with self:
+                    async with super().request_stream(*args, **kwargs) as response:
+                        yield response
+            finally:
+                _TEXT_MODEL_IDEMPOTENCY_KEY.reset(token)
 
     return _AutoClosingOpenAIChatModel(
         model_name,
@@ -239,18 +199,25 @@ def get_newapi_text_pydantic_model(
     default_model: str,
     *,
     model_name_override: str | None = None,
+    model_name_override_is_internal: bool = False,
     timeout_seconds_override: float | None = None,
 ):
     """Create a PydanticAI OpenAI-compatible model that routes through newAPI."""
-    model_name = str(model_name_override or "").strip() or get_newapi_text_model_name(
-        model_env, default_model
+    explicit_model = str(model_name_override or "").strip()
+    logical_model = explicit_model or get_newapi_text_model_name(model_env, default_model)
+    from ai_anime.model_access_policy import (
+        resolve_internal_model_for_role,
+        resolve_model_for_role,
     )
-    api_key, base_url = get_newapi_runtime_credentials(
-        env_api_key="MODEL_API_KEY",
-        env_base_url="MODEL_BASE_URL",
+
+    model_name = (
+        resolve_internal_model_for_role(logical_model, "TEXT")
+        if model_name_override_is_internal or not explicit_model
+        else resolve_model_for_role(logical_model, "TEXT")
     )
-    if not api_key:
-        raise ValueError("API key not set. Configure AI anime API credentials.")
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
     timeout_seconds = (
         float(timeout_seconds_override)
         if timeout_seconds_override is not None
@@ -282,46 +249,23 @@ def get_newapi_text_pydantic_model_settings(
 
 def get_superpower_pydantic_model(
     *,
-    feature_provider_env: str | None = None,
     feature_model_env: str | None = None,
 ):
-    """Return the multimodal model used by SuperPower prompt builders.
-
-    By default this inherits the normal MODEL_PROVIDER/MODEL_NAME settings.
-    Individual prompt builders can override that with feature-specific env vars
-    (for example GLOBAL_VIDEO_PROVIDER/GLOBAL_VIDEO_MODEL). Global
-    SUPERPOWER_* env vars remain available for deployments that want one shared
-    SuperPower provider without hard-coding Google/Gemini in code.
-    """
-
-    provider_override = (
-        _clean_env_value(feature_provider_env)
-        or _clean_env_value("SUPERPOWER_PROVIDER")
-        or _clean_env_value("SUPERPOWER_MODEL_PROVIDER")
-    )
+    """Return a task-selected model through the process model-access mode."""
     model_name_override = (
         _clean_env_value(feature_model_env)
         or _clean_env_value("SUPERPOWER_MODEL")
         or _clean_env_value("SUPERPOWER_MODEL_NAME")
     )
-    return get_pydantic_model(
-        provider_override=provider_override,
-        model_name_override=model_name_override,
-    )
+    return get_pydantic_model(model_name_override=model_name_override)
 
 
 def get_pydantic_model_settings(
-    provider_override: str | None = None,
-    model_name_override: str | None = None,
     *,
     max_tokens: int | None = None,
     thinking_level_override: str | None = None,
 ) -> dict | None:
-    """Build settings for the legacy factory's NewAPI transport.
-
-    Provider/model arguments remain in the signature for existing callers; the
-    transport is always OpenAI-compatible NewAPI.
-    """
+    """Build settings for the OpenAI-compatible cloud/BYOK transport."""
     thinking_level = (
         thinking_level_override
         or os.environ.get("MODEL_THINKING_LEVEL")
@@ -357,19 +301,6 @@ def _normalize_openai_compat_reasoning_effort(value: str | None) -> str:
     return normalized if normalized in _OPENAI_COMPAT_REASONING_EFFORTS else ""
 
 
-def _is_openai_compatible_runtime() -> bool:
-    provider = (
-        (
-            os.environ.get("LLM_PROVIDER")
-            or os.environ.get("MODEL_PROVIDER")
-            or ""
-        )
-        .strip()
-        .lower()
-    )
-    return provider in {"newapi", "custom"}
-
-
 def get_newapi_reasoning_kwargs(
     *,
     thinking_env: str | None = None,
@@ -378,10 +309,8 @@ def get_newapi_reasoning_kwargs(
     """Build reasoning kwargs for OpenAI-compatible newAPI/Cognee calls.
 
     Explicit empty env values disable sending reasoning parameters.
-    Direct providers keep their original request shape.
+    Both supported access modes use an OpenAI-compatible request shape.
     """
-    if not _is_openai_compatible_runtime():
-        return {}
     if thinking_env and thinking_env in os.environ:
         thinking_level = os.environ.get(thinking_env, "").strip()
     elif default_thinking_level is not None:
@@ -394,20 +323,6 @@ def get_newapi_reasoning_kwargs(
     return {
         "reasoning_effort": reasoning_effort,
         "allowed_openai_params": ["reasoning_effort"],
-    }
-
-
-def get_model_info() -> dict:
-    """获取当前模型配置信息。"""
-    provider = os.environ.get("MODEL_PROVIDER", "volcengine").lower()
-    provider = PROVIDER_ALIASES.get(provider, provider)
-    preset = PROVIDER_PRESETS.get(provider, {})
-
-    return {
-        "provider": provider,
-        "model": os.environ.get("MODEL_NAME", preset.get("default_model", "unknown")),
-        "base_url": os.environ.get("MODEL_BASE_URL", preset.get("base_url")),
-        "timeout": int(os.environ.get("MODEL_TIMEOUT", preset.get("timeout", 120))),
     }
 
 
@@ -477,118 +392,71 @@ OSS_STATIC_PRESIGN_EXPIRES = int(os.environ.get("OSS_STATIC_PRESIGN_EXPIRES", "3
 # IndexTTS2 配置
 # =============================================================================
 
-INDEXTTS2_PROVIDER = os.environ.get("INDEXTTS2_PROVIDER", "newapi").strip().lower() or "newapi"
-if INDEXTTS2_PROVIDER not in {"newapi", "fal"}:
-    INDEXTTS2_PROVIDER = "newapi"
-FAL_API_KEY = os.environ.get("FAL_API_KEY", "") or os.environ.get("FAL_KEY", "")
-INDEXTTS2_FAL_ENDPOINT = os.environ.get(
-    "INDEXTTS2_FAL_ENDPOINT",
-    "https://fal.run/fal-ai/index-tts-2/text-to-speech",
-)
 INDEXTTS2_TIMEOUT_SECONDS = float(os.environ.get("INDEXTTS2_TIMEOUT_SECONDS", "1800"))
 
-NEWAPI_BASE_URL = os.environ.get("NEWAPI_BASE_URL", "")
-NEWAPI_API_KEY = os.environ.get("NEWAPI_API_KEY", "")
-
-
 def get_effective_newapi_gateway_config():
-    """Return the selected NewAPI runtime gateway credentials."""
+    """Return the selected cloud-proxy or BYOK runtime endpoint."""
     from ai_anime.model_gateway_settings import get_effective_newapi_config
 
-    return get_effective_newapi_config(
-        official_base_url=OFFICIAL_NEWAPI_BASE_URL,
-        official_api_key=NEWAPI_API_KEY,
-    )
+    return get_effective_newapi_config()
 
 
-def get_newapi_runtime_credentials(
-    *,
-    api_key_override: str | None = None,
-    base_url_override: str | None = None,
-    env_api_key: str = "NEWAPI_API_KEY",
-    env_base_url: str = "NEWAPI_BASE_URL",
-) -> tuple[str, str]:
-    """Resolve NewAPI credentials from the edition's effective gateway.
-
-    CE reads dynamic credentials from settings.db and never falls back to the
-    process environment. EE's deployment-time gateway remains environment
-    backed. Explicit per-call overrides remain available for isolated tools.
-    """
+def get_newapi_runtime_credentials() -> tuple[str, str]:
+    """Resolve the single process-wide cloud-proxy or BYOK endpoint."""
 
     gateway = get_effective_newapi_gateway_config()
-    environment_backed = gateway.source == "environment"
-    api_key = (
-        str(api_key_override or "").strip()
-        or str(gateway.api_key or "").strip()
-        or (
-            os.environ.get(env_api_key, "").strip()
-            or NEWAPI_API_KEY
-            or os.environ.get("MODEL_API_KEY", "").strip()
-            or os.environ.get("OPENAI_API_KEY", "").strip()
-            if environment_backed
-            else ""
-        )
+    return str(gateway.api_key or "").strip(), str(gateway.base_url or "").strip()
+
+
+def get_model_access_json_transport() -> tuple[str, dict[str, str]]:
+    """Return the process-wide model endpoint and JSON request headers."""
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return base_url.rstrip("/"), headers
+
+
+def get_model_access_openai_client(*, timeout_seconds: float = 120.0):
+    """Create one synchronous OpenAI-compatible model operation client."""
+    import httpx
+    from openai import OpenAI
+
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
+
+    event_hooks: dict[str, list[Any]] = {}
+    if not api_key:
+
+        def strip_placeholder_authorization(request: httpx.Request) -> None:
+            if request.headers.get("Authorization") == "Bearer ai-anime-no-auth":
+                request.headers.pop("Authorization", None)
+
+        event_hooks["request"] = [strip_placeholder_authorization]
+
+    http_client = httpx.Client(
+        timeout=timeout_seconds,
+        event_hooks=event_hooks,
     )
-    base_url = (
-        str(base_url_override or "").strip().rstrip("/")
-        or str(gateway.base_url or "").strip()
-        or (
-            os.environ.get(env_base_url, "").strip().rstrip("/")
-            or str(NEWAPI_BASE_URL or "").strip().rstrip("/")
-            or os.environ.get("MODEL_BASE_URL", "").strip().rstrip("/")
-            or OFFICIAL_NEWAPI_BASE_URL
-            if environment_backed
-            else ""
-        )
+    return OpenAI(
+        api_key=api_key or "ai-anime-no-auth",
+        base_url=base_url,
+        timeout=timeout_seconds,
+        max_retries=1,
+        default_headers={"Idempotency-Key": str(uuid.uuid4())},
+        http_client=http_client,
     )
-    return api_key, base_url
 
 
-INDEXTTS2_NEWAPI_MODEL = os.environ.get("INDEXTTS2_NEWAPI_MODEL", "index-tts-2")
-INDEXTTS2_RECORD_PROVIDER = "newapi" if INDEXTTS2_PROVIDER == "newapi" else "fal.ai"
-INDEXTTS2_RECORD_MODEL = INDEXTTS2_NEWAPI_MODEL if INDEXTTS2_PROVIDER == "newapi" else "IndexTTS2"
-NEWAPI_IMAGE_MODEL = os.environ.get("NEWAPI_IMAGE_MODEL", "LingShan-G2")
-NEWAPI_NANOBANANA2_MODEL = os.environ.get("NEWAPI_NANOBANANA2_MODEL", "LingShan-NB-2")
-SCENE_MASTER_IMAGE_PROVIDER = (
-    os.environ.get("SCENE_MASTER_IMAGE_PROVIDER", "").strip().lower() or "newapi"
-)
-SCENE_MASTER_IMAGE_MODEL = os.environ.get("SCENE_MASTER_IMAGE_MODEL", "")
-SCENE_REVERSE_MASTER_IMAGE_PROVIDER = (
-    os.environ.get("SCENE_REVERSE_MASTER_IMAGE_PROVIDER", "").strip().lower() or "newapi"
-)
-SCENE_REVERSE_MASTER_IMAGE_MODEL = os.environ.get("SCENE_REVERSE_MASTER_IMAGE_MODEL", "")
-SCENE_360_IMAGE_PROVIDER = (
-    os.environ.get("SCENE_360_IMAGE_PROVIDER", "").strip().lower() or "newapi"
-)
-SCENE_360_IMAGE_MODEL = os.environ.get("SCENE_360_IMAGE_MODEL", "")
-PROP_REF_IMAGE_PROVIDER = (
-    os.environ.get("PROP_REF_IMAGE_PROVIDER", "").strip().lower() or "newapi"
-)
-PROP_REF_IMAGE_MODEL = os.environ.get("PROP_REF_IMAGE_MODEL", "")
+INDEXTTS2_RECORD_PROVIDER = "commercial"
 
-
-# =============================================================================
-# 火山引擎图像生成配置
-# =============================================================================
-
-VOLCENGINE_VISUAL_API_KEY = os.environ.get("VOLCENGINE_VISUAL_API_KEY") or os.environ.get(
-    "ARK_API_KEY"
-)
-VOLCENGINE_VISUAL_ENDPOINT = os.environ.get(
-    "VOLCENGINE_VISUAL_ENDPOINT", "https://ark.cn-beijing.volces.com/api/v3"
-)
-
-SEEDREAM_MODEL = os.environ.get("SEEDREAM_MODEL", "doubao-seedream-4-5-251128")
-SEEDEDIT_MODEL = os.environ.get("SEEDEDIT_MODEL", "doubao-seededit-3-0-i2i-250628")
 
 IMAGE_DEFAULT_WIDTH = int(os.environ.get("IMAGE_DEFAULT_WIDTH", "1440"))
 IMAGE_DEFAULT_HEIGHT = int(os.environ.get("IMAGE_DEFAULT_HEIGHT", "2560"))
 IMAGE_DEFAULT_STYLE = os.environ.get("IMAGE_DEFAULT_STYLE", "chinese_period_drama")
-
-# 角色参考图生成模型选择
-# "nanobanana" - 使用 Nano Banana Pro (Gemini)，与网格生成同一模型，一致性更好
-# "seedream" - 使用 Seedream 4.5 (火山引擎)，质量高但与网格生成跨模型
-CHARACTER_IMAGE_MODEL = os.environ.get("CHARACTER_IMAGE_MODEL", "nanobanana")
 
 # 风格预设统一由 src/ai_anime/styles/presets/*.json 提供。
 
@@ -663,104 +531,26 @@ def list_available_styles() -> list[dict]:
     return StyleService.list_all_styles()
 
 
-def get_image_config() -> dict:
-    """获取图像生成配置。"""
-    from ai_anime.modules.asset_world.public import StyleService
-
-    all_styles = StyleService.list_all_styles()
-    style_presets = {s["id"]: StyleService.get_legacy_style_preset(s["id"]) for s in all_styles}
-
-    return {
-        "api_key": VOLCENGINE_VISUAL_API_KEY,
-        "endpoint": VOLCENGINE_VISUAL_ENDPOINT,
-        "seedream_model": SEEDREAM_MODEL,
-        "seededit_model": SEEDEDIT_MODEL,
-        "default_width": IMAGE_DEFAULT_WIDTH,
-        "default_height": IMAGE_DEFAULT_HEIGHT,
-        "default_style": IMAGE_DEFAULT_STYLE,
-        "style_presets": style_presets,
-        "character_image_model": CHARACTER_IMAGE_MODEL,
-        "character_image_selection": get_character_image_selection(),
-    }
-
-
-def get_character_image_model() -> str:
-    """获取角色参考图生成模型类型。
-
-    Returns:
-        "nanobanana" 或 "seedream"
-    """
-    return CHARACTER_IMAGE_MODEL
-
-
 # =============================================================================
-# TTS 配置
+# 标准音频模型配置
 # =============================================================================
 
-TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "cosyvoice")  # 默认 CosyVoice
-EDGE_TTS_VOICE = os.environ.get("EDGE_TTS_VOICE", "zh-CN-XiaoxiaoNeural")
-VOLCENGINE_TTS_ENDPOINT = os.environ.get(
-    "VOLCENGINE_TTS_ENDPOINT", "https://openspeech.bytedance.com/api/v1/tts"
-)
-
-# CosyVoice 配置（阿里云 DashScope）
-COSYVOICE_MODEL = os.environ.get("COSYVOICE_MODEL", "cosyvoice-v3-flash")
-COSYVOICE_VOICE = os.environ.get("COSYVOICE_VOICE", "longxiaoxia_v3")
-DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
-
-# CosyVoice 语速倍率（范围 [0.5, 2.0]，1.0 为标准速度）
-COSYVOICE_SPEECH_RATE = float(os.environ.get("COSYVOICE_SPEECH_RATE", "1.2"))
-
-# TTS 语速估算（实测 1.0x 均值 4.45 字/秒 × 1.3x 加速 ≈ 5.8 字/秒）
-TTS_CHARS_PER_SECOND = float(os.environ.get("TTS_CHARS_PER_SECOND", "5.8"))
-
-# Dialogue beat TTS 配置（角色台词使用不同语速）
-COSYVOICE_DIALOGUE_SPEECH_RATE = float(os.environ.get("COSYVOICE_DIALOGUE_SPEECH_RATE", "1.0"))
-TTS_DIALOGUE_CHARS_PER_SECOND = float(os.environ.get("TTS_DIALOGUE_CHARS_PER_SECOND", "4.45"))
+TTS_MODEL = os.environ.get("TTS_MODEL", "").strip()
+TTS_VOICE = os.environ.get("TTS_VOICE", "").strip()
+TTS_SPEECH_RATE = float(os.environ.get("TTS_SPEECH_RATE", "1.0"))
+TTS_RESPONSE_FORMAT = os.environ.get("TTS_RESPONSE_FORMAT", "mp3").strip()
+TTS_TIMEOUT_SECONDS = float(os.environ.get("TTS_TIMEOUT_SECONDS", "600"))
 
 
 def get_tts_config() -> dict:
     """获取 TTS 配置。"""
     return {
-        "provider": TTS_PROVIDER,
-        # Edge TTS
-        "default_voice": EDGE_TTS_VOICE,
-        "rate": os.environ.get("TTS_RATE", "+0%"),
-        "pitch": os.environ.get("TTS_PITCH", "+0Hz"),
-        "volcengine_endpoint": VOLCENGINE_TTS_ENDPOINT,
-        "volcengine_api_key": VOLCENGINE_VISUAL_API_KEY,
-        # CosyVoice
-        "cosyvoice_model": COSYVOICE_MODEL,
-        "cosyvoice_voice": COSYVOICE_VOICE,
-        "cosyvoice_speech_rate": COSYVOICE_SPEECH_RATE,
-        "dashscope_api_key": DASHSCOPE_API_KEY,
+        "model": TTS_MODEL,
+        "voice": TTS_VOICE,
+        "speech_rate": TTS_SPEECH_RATE,
+        "response_format": TTS_RESPONSE_FORMAT,
+        "timeout_seconds": TTS_TIMEOUT_SECONDS,
     }
-
-
-# =============================================================================
-# Fish Audio S2 配置（情感语音合成）
-# =============================================================================
-
-FISH_AUDIO_API_KEY = os.environ.get("FISH_AUDIO_API_KEY")
-FISH_AUDIO_SPEED = float(os.environ.get("FISH_AUDIO_SPEED", "1.0"))
-
-# Fish Audio 声音预设 (8 种: age_group × gender)
-FISH_VOICE_PRESETS = {
-    "child_male": os.environ.get("FISH_VOICE_CHILD_MALE", ""),
-    "child_female": os.environ.get("FISH_VOICE_CHILD_FEMALE", ""),
-    "youth_male": os.environ.get("FISH_VOICE_YOUTH_MALE", ""),
-    "youth_female": os.environ.get("FISH_VOICE_YOUTH_FEMALE", ""),
-    "middle_male": os.environ.get("FISH_VOICE_MIDDLE_MALE", ""),
-    "middle_female": os.environ.get("FISH_VOICE_MIDDLE_FEMALE", ""),
-    "elder_male": os.environ.get("FISH_VOICE_ELDER_MALE", ""),
-    "elder_female": os.environ.get("FISH_VOICE_ELDER_FEMALE", ""),
-}
-
-
-def get_fish_voice_id(age_group: str, gender: str) -> str:
-    """根据年龄段+性别获取预设 voice ID。"""
-    gender_key = "female" if "女" in gender else "male"
-    return FISH_VOICE_PRESETS.get(f"{age_group}_{gender_key}", "")
 
 
 # =============================================================================
@@ -783,88 +573,7 @@ KEN_BURNS_PAN_SPEED = 0.02
 # =============================================================================
 
 
-def _csv_env(name: str, default: str) -> list[str]:
-    values = [item.strip() for item in os.environ.get(name, default).split(",")]
-    return [item for item in values if item]
-
-
-# newAPI 视频网关。VIDEO_BACKEND 使用 newapi_<model> 时会通过 NEWAPI_BASE_URL 调用。
-NEWAPI_VIDEO_MODELS = _csv_env(
-    "NEWAPI_VIDEO_MODELS",
-    "seedance-1.0-pro-fast,seedance-1.5-pro,seedance-2.0,seedance-2.0-fast,seedance-2.0-value,seedance-2.0-fast-value,happyhorse-1.0",
-)
-DEFAULT_VIDEO_MODEL = os.environ.get(
-    "DEFAULT_VIDEO_MODEL",
-    os.environ.get("NEWAPI_VIDEO_MODEL", NEWAPI_VIDEO_MODELS[0]),
-).strip()
-NEWAPI_VIDEO_MODEL = os.environ.get("NEWAPI_VIDEO_MODEL", DEFAULT_VIDEO_MODEL).strip()
-NEWAPI_VIDEO_RESOLUTION = os.environ.get("NEWAPI_VIDEO_RESOLUTION", "720p")
-NEWAPI_VIDEO_AUDIO_MODELS = _csv_env(
-    "NEWAPI_VIDEO_AUDIO_MODELS",
-    "seedance-1.5-pro,seedance-2.0,seedance-2.0-fast,seedance-2.0-value,seedance-2.0-fast-value",
-)
-NEWAPI_VIDEO_DURATION_BOUNDS = os.environ.get(
-    "NEWAPI_VIDEO_DURATION_BOUNDS",
-    "seedance-1.0-pro-fast:2-12,seedance-1.5-pro:4-12,seedance-2.0:4-15,seedance-2.0-fast:4-15,seedance-2.0-value:4-15,seedance-2.0-fast-value:4-15,happyhorse-1.0:3-15",
-).strip()
-
-# 视频生成后端: newapi_seedance-1.0-pro-fast (默认), newapi_seedance-2.0-fast,
-# comfyui, seedance_fast, seedance_pro, seedance_pro_silent, wan26, grok_720
-VIDEO_BACKEND = os.environ.get("VIDEO_BACKEND", f"newapi_{DEFAULT_VIDEO_MODEL}")
-
-# Seedance 模型（火山方舟）
-SEEDANCE_FAST_MODEL = os.environ.get("SEEDANCE_FAST_MODEL", "doubao-seedance-1-0-pro-fast-251015")
-SEEDANCE_PRO_MODEL = os.environ.get("SEEDANCE_PRO_MODEL", "doubao-seedance-1-5-pro-251215")
-
-# HuiMeng 视频聚合 API
-HUIMENGI_BASE_URL = os.environ.get("HUIMENGI_BASE_URL", "https://api.huimengi.com")
-HUIMENGI_VIDEO_RESOLUTION = os.environ.get("HUIMENGI_VIDEO_RESOLUTION", "720p")
-HUIMENGI_VIDEO_GENERATE_AUDIO = os.environ.get(
-    "HUIMENGI_VIDEO_GENERATE_AUDIO", "false"
-).lower() in ("true", "1", "yes")
-
-# ComfyUI 本地视频生成服务
-COMFYUI_VIDEO_URL = os.environ.get("COMFYUI_VIDEO_URL", "http://localhost:9527")
-
-# ComfyUI 工作流类型: gguf (低显存，~8GB) 或 fp8 (高质量，~16GB)
-# - gguf: 使用 GGUF 量化模型，适合显存较小的 GPU
-# - fp8: 使用 fp8 精度模型，质量更好，支持 FLF (首尾帧) 模式
-COMFYUI_WORKFLOW = os.environ.get("COMFYUI_WORKFLOW", "gguf")
-
-# ComfyUI 是否使用 SSL（HTTPS/WSS），云服务器通常需要开启
-COMFYUI_USE_SSL = os.environ.get("COMFYUI_USE_SSL", "false").lower() in ("true", "1", "yes")
-
-# 默认视频分辨率（竖屏）
-VIDEO_RESOLUTION = os.environ.get("VIDEO_RESOLUTION", "720x1280")
-
-# 分辨率预设
-VIDEO_RESOLUTION_PRESETS = {
-    "720x1280": {"width": 720, "height": 1280, "label": "720p 竖屏"},
-    "1080x1920": {"width": 1080, "height": 1920, "label": "1080p 竖屏"},
-}
-
-
-def get_video_generation_config() -> dict:
-    """获取 AI 视频生成（图生视频）配置。"""
-    resolution = VIDEO_RESOLUTION_PRESETS.get(
-        VIDEO_RESOLUTION, VIDEO_RESOLUTION_PRESETS["720x1280"]
-    )
-    return {
-        "backend": VIDEO_BACKEND,
-        "huimengi_base_url": HUIMENGI_BASE_URL,
-        "huimengi_video_resolution": HUIMENGI_VIDEO_RESOLUTION,
-        "newapi_base_url": NEWAPI_BASE_URL,
-        "newapi_video_models": list(NEWAPI_VIDEO_MODELS),
-        "newapi_video_model": NEWAPI_VIDEO_MODEL,
-        "newapi_video_resolution": NEWAPI_VIDEO_RESOLUTION,
-        "comfyui_url": COMFYUI_VIDEO_URL,
-        "comfyui_workflow": COMFYUI_WORKFLOW,
-        "comfyui_use_ssl": COMFYUI_USE_SSL,
-        "resolution": VIDEO_RESOLUTION,
-        "width": resolution["width"],
-        "height": resolution["height"],
-        "resolution_presets": VIDEO_RESOLUTION_PRESETS,
-    }
+DEFAULT_VIDEO_RESOLUTION = os.environ.get("DEFAULT_VIDEO_RESOLUTION", "720p").strip()
 
 
 def get_video_config() -> dict:
@@ -883,107 +592,11 @@ def get_video_config() -> dict:
 
 
 # =============================================================================
-# 图像生成配置（Google / OpenRouter / OpenAI / HuiMeng）
+# 图像生成配置（统一 commercial model access）
 # =============================================================================
 
-GOOGLE_AI_API_KEY = os.environ.get("GOOGLE_AI_API_KEY")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-HUIMENGI_API_KEY = os.environ.get("HUIMENGI_API_KEY")
-OPENROUTER_GPT_IMAGE2_MODEL = os.environ.get(
-    "OPENROUTER_GPT_IMAGE2_MODEL", "openai/gpt-5.4-image-2"
-)
-OPENROUTER_NANOBANANA2_MODEL = os.environ.get(
-    "OPENROUTER_NANOBANANA2_MODEL", "google/gemini-3.1-flash-image-preview"
-)
-
-# 图像生成 Provider: "google" / "openrouter" / "openai" / "huimeng"
-# OpenRouter 价格: $0.002/图 (2K) vs Google 官方 $0.134/图 (2K)
-_NANOBANANA_PROVIDER_EXPLICIT = "NANOBANANA_PROVIDER" in os.environ
-NANOBANANA_PROVIDER = os.environ.get("NANOBANANA_PROVIDER", "openrouter")
-
-
-NANOBANANA_MODEL = os.environ.get("NANOBANANA_MODEL", "gemini-3.1-flash-image-preview")
-OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
-HUIMENG_IMAGE_MODEL = os.environ.get("HUIMENG_IMAGE_MODEL", "image-2")
-HUIMENG_IMAGE_OFFICIAL_MODEL = os.environ.get("HUIMENG_IMAGE_OFFICIAL_MODEL", "image-2-official")
-HUIMENG_NANOBANANA2_MODEL = os.environ.get("HUIMENG_NANOBANANA2_MODEL", "nb-2")
-SCENE_360_PROVIDER = os.environ.get("SCENE_360_PROVIDER") or NANOBANANA_PROVIDER
-SCENE_360_HUIMENG_MODEL = os.environ.get("SCENE_360_HUIMENG_MODEL", HUIMENG_IMAGE_MODEL)
-SCENE_ASSET_PROVIDER = os.environ.get("SCENE_ASSET_PROVIDER") or NANOBANANA_PROVIDER
-SCENE_ASSET_MODEL = os.environ.get("SCENE_ASSET_MODEL", "")
 OPENAI_IMAGE_QUALITY = os.environ.get("OPENAI_IMAGE_QUALITY", "medium")
 OPENAI_SKETCH_IMAGE_QUALITY = os.environ.get("OPENAI_SKETCH_IMAGE_QUALITY", "low")
-_DEFAULT_SKETCH_SELECTION_EXPLICIT = "DEFAULT_SKETCH_IMAGE_SELECTION" in os.environ
-_DEFAULT_RENDER_SELECTION_EXPLICIT = "DEFAULT_RENDER_IMAGE_SELECTION" in os.environ
-DEFAULT_SKETCH_IMAGE_SELECTION = os.environ.get(
-    "DEFAULT_SKETCH_IMAGE_SELECTION", "newapi_gpt_image2"
-)
-DEFAULT_RENDER_IMAGE_SELECTION = os.environ.get(
-    "DEFAULT_RENDER_IMAGE_SELECTION", "newapi_gpt_image2"
-)
-CHARACTER_IMAGE_SELECTION = os.environ.get("CHARACTER_IMAGE_SELECTION") or os.environ.get(
-    "DEFAULT_CHARACTER_IMAGE_SELECTION"
-)
-
-IMAGE_GENERATION_SELECTIONS: dict[str, dict[str, str]] = {
-    "huimeng_gpt_image2": {
-        "label": "HuiMeng GPT Image 2",
-        "provider": "huimeng",
-        "model": HUIMENG_IMAGE_MODEL,
-    },
-    "huimeng_image2_official": {
-        "label": "HuiMeng Image 2 Official",
-        "provider": "huimeng",
-        "model": HUIMENG_IMAGE_OFFICIAL_MODEL,
-    },
-    "huimeng_nanobanana2": {
-        "label": "HuiMeng NanoBanana 2",
-        "provider": "huimeng",
-        "model": HUIMENG_NANOBANANA2_MODEL,
-    },
-    "openai_gpt_image2": {
-        "label": "OpenAI GPT Image 2",
-        "provider": "openai",
-        "model": OPENAI_IMAGE_MODEL,
-    },
-    "openrouter_gpt_image2": {
-        "label": "OpenRouter GPT Image 2",
-        "provider": "openrouter",
-        "model": OPENROUTER_GPT_IMAGE2_MODEL,
-    },
-    "openrouter_nanobanana2": {
-        "label": "OpenRouter NanoBanana 2",
-        "provider": "openrouter",
-        "model": OPENROUTER_NANOBANANA2_MODEL,
-    },
-    "newapi_gpt_image2": {
-        "label": "LingShan-G2",
-        "provider": "newapi",
-        "model": NEWAPI_IMAGE_MODEL,
-    },
-    "newapi_nanobanana2": {
-        "label": "LingShan-NB-2",
-        "provider": "newapi",
-        "model": NEWAPI_NANOBANANA2_MODEL,
-    },
-}
-
-VISIBLE_IMAGE_GENERATION_SELECTION_KEYS = (
-    "newapi_gpt_image2",
-    "newapi_nanobanana2",
-)
-
-LEGACY_IMAGE_GENERATION_SELECTION_ALIASES = {
-    "huimeng_gpt_image2": "newapi_gpt_image2",
-    "huimeng_image2_official": "newapi_gpt_image2",
-    "openai_gpt_image2": "newapi_gpt_image2",
-    "openrouter_gpt_image2": "newapi_gpt_image2",
-    "huimeng_nanobanana2": "newapi_nanobanana2",
-    "openrouter_nanobanana2": "newapi_nanobanana2",
-    "nanobanana": "newapi_nanobanana2",
-    "seedream": "newapi_gpt_image2",
-}
 
 # 网格生成模式配置
 # 竖屏 Panel 模式（每格竖屏，适合 I2V）：
@@ -1027,201 +640,36 @@ else:
 GRID_TOTAL_PANELS = 25  # 动态优化时的最大面板数
 
 
-def image_generation_selection_options() -> dict[str, str]:
-    """Return UI labels for configured image-generation selections."""
+def _image_provider_config(
+    *,
+    model_override: str | None = None,
+) -> dict:
+    model = str(model_override or "").strip()
+    if not model:
+        raise ValueError("image model is required")
+    gateway = get_effective_newapi_gateway_config()
     return {
-        key: IMAGE_GENERATION_SELECTIONS[key]["label"]
-        for key in VISIBLE_IMAGE_GENERATION_SELECTION_KEYS
-        if key in IMAGE_GENERATION_SELECTIONS
+        "provider": "commercial",
+        "access_mode": gateway.mode,
+        "model": model,
     }
 
 
-def character_image_selection_options() -> dict[str, str]:
-    """Return UI labels for character/identity image generation."""
-    return image_generation_selection_options()
-
-
-def _visible_image_generation_selection(value: str | None) -> str:
-    candidate = str(value or "").strip()
-    if (
-        candidate in VISIBLE_IMAGE_GENERATION_SELECTION_KEYS
-        and candidate in IMAGE_GENERATION_SELECTIONS
-    ):
-        return candidate
-    alias = LEGACY_IMAGE_GENERATION_SELECTION_ALIASES.get(candidate)
-    if alias in VISIBLE_IMAGE_GENERATION_SELECTION_KEYS and alias in IMAGE_GENERATION_SELECTIONS:
-        return alias
-    return ""
-
-
-def _default_image_generation_selection(fallback: str | None = None) -> str:
-    for candidate in (
-        fallback,
-        DEFAULT_SKETCH_IMAGE_SELECTION,
-        DEFAULT_RENDER_IMAGE_SELECTION,
-        "newapi_gpt_image2",
-        *VISIBLE_IMAGE_GENERATION_SELECTION_KEYS,
-    ):
-        selection = _visible_image_generation_selection(candidate)
-        if selection:
-            return selection
-    raise ValueError("No visible image generation selection configured.")
-
-
-def normalize_image_generation_selection(
-    value: str | None,
-    *,
-    fallback: str | None = None,
-) -> str:
-    selection = _visible_image_generation_selection(value)
-    if selection:
-        return selection
-    return _default_image_generation_selection(fallback)
-
-
-def image_generation_selection_label(value: str | None, *, fallback: str | None = None) -> str:
-    selection = normalize_image_generation_selection(value, fallback=fallback)
-    return IMAGE_GENERATION_SELECTIONS[selection]["label"]
-
-
-def get_character_image_selection() -> str:
-    """Return the configured character/identity image source selection."""
-    candidate = _visible_image_generation_selection(CHARACTER_IMAGE_SELECTION)
-    if candidate:
-        return candidate
-
-    legacy_model = str(CHARACTER_IMAGE_MODEL or "").strip()
-    legacy_selection = _visible_image_generation_selection(legacy_model)
-    if legacy_selection:
-        return legacy_selection
-
-    return normalize_image_generation_selection(
-        DEFAULT_RENDER_IMAGE_SELECTION,
-        fallback=DEFAULT_SKETCH_IMAGE_SELECTION,
-    )
-
-
-def normalize_character_image_selection(value: str | None) -> str:
-    candidate = _visible_image_generation_selection(value)
-    if candidate:
-        return candidate
-    return get_character_image_selection()
-
-
-def infer_image_generation_selection(
-    provider: str | None,
-    model: str | None,
-    *,
-    fallback: str | None = None,
-) -> str:
-    provider_norm = str(provider or "").strip().lower()
-    model_norm = str(model or "").strip()
-    for key, entry in IMAGE_GENERATION_SELECTIONS.items():
-        if entry["provider"] == provider_norm and entry["model"] == model_norm:
-            return key
-    if provider_norm == "openrouter" and model_norm in {
-        NANOBANANA_MODEL,
-        f"google/{NANOBANANA_MODEL}",
-    }:
-        return "openrouter_nanobanana2"
-    if provider_norm == "huimeng" and model_norm == "image-2":
-        return "huimeng_gpt_image2"
-    if provider_norm == "huimeng" and model_norm == "image-2-official":
-        return "huimeng_image2_official"
-    return normalize_image_generation_selection(fallback, fallback=DEFAULT_SKETCH_IMAGE_SELECTION)
-
-
-def _image_provider_config(
-    provider: str,
-    *,
-    model_override: str | None = None,
-    selection_override: str | None = None,
-) -> dict:
-    if selection_override:
-        selection = normalize_image_generation_selection(selection_override)
-        entry = IMAGE_GENERATION_SELECTIONS[selection]
-        provider = entry["provider"]
-        model = model_override or entry["model"]
-    else:
-        provider = (provider or "openrouter").lower()
-        model = model_override or ""
-
-    if provider == "openrouter":
-        resolved_model = model or (
-            f"google/{NANOBANANA_MODEL}"
-            if not NANOBANANA_MODEL.startswith("google/")
-            else NANOBANANA_MODEL
-        )
-        return {"provider": provider, "api_key": OPENROUTER_API_KEY, "model": resolved_model}
-    if provider in {"huimeng", "huimengi"}:
-        return {
-            "provider": "huimeng",
-            "api_key": HUIMENGI_API_KEY,
-            "model": model or HUIMENG_IMAGE_MODEL,
-        }
-    if provider == "openai":
-        return {
-            "provider": provider,
-            "api_key": OPENAI_API_KEY,
-            "model": model or OPENAI_IMAGE_MODEL,
-        }
-    if provider == "newapi":
-        gateway = get_effective_newapi_gateway_config()
-        return {
-            "provider": provider,
-            "api_key": gateway.api_key,
-            "model": model or NEWAPI_IMAGE_MODEL,
-            "base_url": gateway.base_url,
-        }
-
-    return {"provider": "google", "api_key": GOOGLE_AI_API_KEY, "model": model or NANOBANANA_MODEL}
-
-
 def get_grid_generation_config(
-    selection_override: str | None = None,
-    provider_override: str | None = None,
     model_override: str | None = None,
     image_size_override: str | None = None,
 ) -> dict:
-    """获取网格生成配置。
-
-    支持四种 Provider:
-    - google: 直连 Google AI Studio (GOOGLE_AI_API_KEY)
-    - openrouter: 通过 OpenRouter 代理 (OPENROUTER_API_KEY)，成本降低 60 倍
-    - openai: 通过 OpenAI Image API (OPENAI_API_KEY)，默认 gpt-image-2
-    - huimeng: 通过 HuiMeng Tasks API (HUIMENGI_API_KEY)
-
-    环境变量:
-    - NANOBANANA_PROVIDER: "google" / "openrouter" / "openai" / "huimeng"
-    - GOOGLE_AI_API_KEY: Google AI Studio API Key
-    - OPENROUTER_API_KEY: OpenRouter API Key
-    - OPENAI_API_KEY: OpenAI API Key
-    - HUIMENGI_API_KEY: HuiMeng API Key
-    - OPENAI_IMAGE_MODEL: OpenAI Image API 模型，默认 gpt-image-2
-    - HUIMENG_IMAGE_MODEL: HuiMeng 图片模型，默认 image-2
-    - DEFAULT_SKETCH_IMAGE_SELECTION / DEFAULT_RENDER_IMAGE_SELECTION: UI 默认图片源
-    """
-    if (
-        selection_override is None
-        and provider_override is None
-        and _DEFAULT_RENDER_SELECTION_EXPLICIT
-    ):
-        selection_override = DEFAULT_RENDER_IMAGE_SELECTION
-
+    """Resolve an image model through the selected cloud/BYOK runtime."""
     provider_config = _image_provider_config(
-        provider_override or NANOBANANA_PROVIDER,
         model_override=model_override,
-        selection_override=selection_override,
     )
 
     return {
         "provider": provider_config["provider"],
-        "api_key": provider_config["api_key"],
+        "access_mode": provider_config["access_mode"],
         "model": provider_config["model"],
-        "base_url": provider_config.get("base_url", ""),
         "openai_image_quality": OPENAI_IMAGE_QUALITY,
         "openai_sketch_image_quality": OPENAI_SKETCH_IMAGE_QUALITY,
-        "huimeng_image_quality": os.environ.get("HUIMENG_IMAGE_QUALITY", "medium"),
         "image_size": image_size_override or "1K",
         "mode": GRID_MODE,
         "rows": GRID_ROWS,
@@ -1232,51 +680,22 @@ def get_grid_generation_config(
 
 
 def get_sketch_generation_config(
-    selection_override: str | None = None,
     model_override: str | None = None,
 ) -> dict:
-    """获取草图工作台网格生成配置。
-
-    优先级:
-    1. 显式 DEFAULT_SKETCH_IMAGE_SELECTION（新选择表）
-    2. 显式 NANOBANANA_PROVIDER / NANOBANANA_MODEL（旧环境变量兼容）
-    3. 通用 get_grid_generation_config()
-    """
-    selection = selection_override
-    if selection is None:
-        selection = (
-            DEFAULT_SKETCH_IMAGE_SELECTION
-            if (_DEFAULT_SKETCH_SELECTION_EXPLICIT or not _NANOBANANA_PROVIDER_EXPLICIT)
-            else None
-        )
-    provider_override = None if selection else NANOBANANA_PROVIDER
+    """Resolve the sketch image model through the selected runtime."""
     config = get_grid_generation_config(
-        selection_override=selection,
-        provider_override=provider_override,
         model_override=model_override,
     )
     config["openai_image_quality"] = OPENAI_SKETCH_IMAGE_QUALITY
-    config["huimeng_image_quality"] = "low"
     config["image_size"] = "1K"
     return config
 
 
 def get_render_generation_config(
-    selection_override: str | None = None,
     model_override: str | None = None,
 ) -> dict:
     """获取首帧渲染图像配置。"""
-    selection = selection_override
-    if selection is None:
-        selection = (
-            DEFAULT_RENDER_IMAGE_SELECTION
-            if (_DEFAULT_RENDER_SELECTION_EXPLICIT or not _NANOBANANA_PROVIDER_EXPLICIT)
-            else None
-        )
-    provider_override = None if selection else NANOBANANA_PROVIDER
     return get_grid_generation_config(
-        selection_override=selection,
-        provider_override=provider_override,
         model_override=model_override,
     )
 

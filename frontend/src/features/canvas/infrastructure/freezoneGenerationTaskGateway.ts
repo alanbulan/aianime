@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { awaitTaskCompletion, listTasks } from '@/task-center/public';
+import { awaitTaskCompletion, listTasks } from '@/modules/task_execution/public';
 import { apiCall } from '@/shared/api/client';
 
 import type {
@@ -19,6 +19,16 @@ function resultPath(projectId: string, taskType: string, jobId: string): string 
   return `projects/${encodeURIComponent(projectId)}/freezone/jobs/${encodeURIComponent(taskType)}/${encodeURIComponent(jobId)}/result`;
 }
 
+function canvasTaskResult(
+  value: unknown,
+): Record<string, unknown> | null | undefined {
+  if (value == null) return value;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
 export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   async hasTask(projectId, taskKey) {
     const tasks = await listTasks(projectId);
@@ -27,7 +37,7 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
 
   async awaitCompletion(taskKey, projectId) {
     const completed = await awaitTaskCompletion(taskKey, projectId);
-    return { result: completed.result };
+    return { result: canvasTaskResult(completed.result) };
   },
 
   async fetchResultUrl(projectId, taskType, jobId) {

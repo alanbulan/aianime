@@ -7,13 +7,14 @@ import { useVideoNodeToolbarController } from "@/features/canvas/hooks/useVideoN
 import { VideoNodeToolbarActionsView } from "./VideoNodeToolbarActionsView";
 
 export interface VideoNodeToolbarActionsProps {
+  projectId: string;
   nodeId: string;
   data: VideoNodeData;
 }
 
 export const VideoNodeToolbarActions = memo(
-  ({ nodeId, data }: VideoNodeToolbarActionsProps) => {
-    const controller = useVideoNodeToolbarController({ nodeId, data });
+  ({ projectId, nodeId, data }: VideoNodeToolbarActionsProps) => {
+    const controller = useVideoNodeToolbarController({ projectId, nodeId, data });
     return <VideoNodeToolbarActionsView controller={controller} />;
   },
 );

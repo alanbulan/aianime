@@ -77,7 +77,7 @@ export function BeatsPageView({
     handleGenerate,
     handleOpenEpisodeFreezone,
     handleRebuildPoolIndex,
-    handleVideoBackendChange,
+    handleVideoModelChange,
     imageGenerationSelection,
     isLoading,
     isNarratedProject,
@@ -99,7 +99,7 @@ export function BeatsPageView({
     toggleCheck,
     toggleView,
     toggles,
-    videoBackend,
+    videoModel,
   } = controller;
   const {
     handleConfirmSketchPlan,
@@ -236,7 +236,7 @@ export function BeatsPageView({
             project={project}
             episode={episodeNumber}
             beats={beats}
-            videoBackend={videoBackend}
+            videoModel={videoModel}
             spineTemplate={spineTemplate}
             sketchAspectRatio={sketchAspectRatio}
             onSketchAspectRatioChange={setSketchAspectRatio}
@@ -359,8 +359,8 @@ export function BeatsPageView({
                   states={states}
                   project={project}
                   episode={episodeNumber}
-                  defaultBackend={videoBackend}
-                  onDefaultBackendChange={handleVideoBackendChange}
+                  defaultModel={videoModel}
+                  onDefaultModelChange={handleVideoModelChange}
                   spineTemplate={spineTemplate}
                   showAudioMediaStatus={isNarratedProject}
                   targetSection={targetSection}

@@ -13,10 +13,16 @@ import re
 from pathlib import Path
 from typing import Any
 
-import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from ai_anime.config import OUTPUT_DIR
+from ai_anime.model_access_policy import (
+    load_model_access_from_stdin,
+    resolve_internal_model_for_role,
+    resolve_model_for_role,
+)
+from ai_anime.model_text_transport import request_model_chat_content
+from ai_anime.official_defaults import DEFAULT_SCENE_OVERLAP_MODEL
 
 # Demo defaults for standalone/manual runs. In production stage_asset_tasks
 # always passes absolute --master/--reverse/--output-dir, so these are never used.
@@ -26,7 +32,7 @@ DEFAULT_SCENE_DIR = PROJECT_DIR / "assets/scenes" / DEFAULT_SCENE_NAME
 DEFAULT_MASTER = DEFAULT_SCENE_DIR / "master.png"
 DEFAULT_REVERSE = DEFAULT_SCENE_DIR / "reverse_master.png"
 DEFAULT_OUTPUT_DIR = DEFAULT_SCENE_DIR / "overlap_continuation_test"
-DEFAULT_MODEL = "gemini-3.5-flash"
+DEFAULT_MODEL = DEFAULT_SCENE_OVERLAP_MODEL
 
 
 def load_env() -> None:
@@ -228,14 +234,26 @@ but still classify the join.
 """.strip()
 
 
-async def ask_openrouter(*, image_path: Path, prompt: str, api_key: str, model: str) -> str:
+async def ask_model_access(
+    *,
+    image_path: Path,
+    prompt: str,
+    model: str,
+    use_catalog_default: bool = False,
+) -> str:
+    effective_model = (
+        resolve_internal_model_for_role(model, "TEXT")
+        if use_catalog_default
+        else resolve_model_for_role(model, "TEXT")
+    )
     image_bytes = image_path.read_bytes()
     data_url = "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("ascii")
-    payload = {
-        "model": model,
-        "temperature": 0.0,
-        "max_tokens": 2200,
-        "messages": [
+    return await request_model_chat_content(
+        model=effective_model,
+        temperature=0.0,
+        max_tokens=2200,
+        timeout_seconds=120.0,
+        messages=[
             {
                 "role": "user",
                 "content": [
@@ -244,32 +262,7 @@ async def ask_openrouter(*, image_path: Path, prompt: str, api_key: str, model: 
                 ],
             }
         ],
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://ai_anime.local/scene-overlap",
-        "X-Title": "AI anime Scene Overlap Analyzer",
-    }
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
-    choices = data.get("choices") or []
-    if not choices:
-        return ""
-    content = (choices[0].get("message") or {}).get("content")
-    if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
-        return "".join(
-            str(part.get("text") or "") for part in content if isinstance(part, dict)
-        ).strip()
-    return ""
+    )
 
 
 def parse_json(text: str) -> dict[str, Any]:
@@ -427,6 +420,7 @@ def _wrap(text: str, width: int) -> list[str]:
 
 async def run(args: argparse.Namespace) -> None:
     load_env()
+    load_model_access_from_stdin()
     master = repo_path(args.master)
     reverse = repo_path(args.reverse)
     output_dir = repo_path(args.output_dir)
@@ -444,14 +438,17 @@ async def run(args: argparse.Namespace) -> None:
     prompt = build_prompt(args.scene_name)
     (output_dir / "overlap_continuation_prompt.txt").write_text(prompt, encoding="utf-8")
 
-    api_key = args.api_key or os.environ.get("OPENROUTER_API_KEY") or ""
-    if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is missing")
-    raw_text = await ask_openrouter(
+    explicit_model = str(args.model or "").strip()
+    selected_model = (
+        explicit_model
+        or os.environ.get("SCENE_OVERLAP_MODEL", "").strip()
+        or DEFAULT_MODEL
+    )
+    raw_text = await ask_model_access(
         image_path=sheet_path,
         prompt=prompt,
-        api_key=api_key,
-        model=args.model,
+        model=selected_model,
+        use_catalog_default=not bool(explicit_model),
     )
     (output_dir / "overlap_continuation_raw_response.txt").write_text(raw_text, encoding="utf-8")
     analysis = parse_json(raw_text)
@@ -463,7 +460,7 @@ async def run(args: argparse.Namespace) -> None:
         "reverse": str(reverse),
         "sheet": str(sheet_path),
         "crops": {key: str(value) for key, value in crop_paths.items()},
-        "model": args.model,
+        "model": selected_model,
     }
     analysis_path = output_dir / "overlap_continuation_analysis.json"
     analysis_path.write_text(json.dumps(analysis, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -480,8 +477,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--master", default=str(DEFAULT_MASTER))
     parser.add_argument("--reverse", default=str(DEFAULT_REVERSE))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--model", default=os.environ.get("OPENROUTER_VISION_MODEL", DEFAULT_MODEL))
-    parser.add_argument("--api-key", default="")
+    parser.add_argument("--model", default="")
     parser.add_argument("--edge-ratio", type=float, default=0.36)
     return parser.parse_args()
 

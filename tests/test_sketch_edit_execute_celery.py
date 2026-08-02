@@ -72,8 +72,10 @@ async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeyp
         )
 
     monkeypatch.setattr(routes, "resolve_project_scope", fake_resolve_project_scope, raising=False)
+    import ai_anime.ports as runtime_ports
+
     monkeypatch.setattr(
-        routes,
+        runtime_ports,
         "get_task_backend",
         lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
@@ -96,12 +98,13 @@ async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeyp
         "episode": 1,
         "project_dir": str(tmp_path),
         "labels_name": "labels.jsonl",
+        "model": "newapi_gpt_image2",
     }
 
 
 def test_sketch_edit_execute_runner_calls_existing_executor(tmp_path, monkeypatch):
-    from ai_anime.task_backend.registry import get_project_task_runner
-    import ai_anime.task_backend.runners.sketch_edit_execute as runner_module
+    from ai_anime.modules.task_execution.public import get_project_task_runner
+    import ai_anime.modules.task_execution.infrastructure.runners.sketch_edit_execute as runner_module
 
     _write_valid_labels(tmp_path)
     calls: list[dict] = []
@@ -131,6 +134,7 @@ def test_sketch_edit_execute_runner_calls_existing_executor(tmp_path, monkeypatc
                 "project_dir": str(tmp_path),
                 "episode": 1,
                 "labels_name": "labels.jsonl",
+                "model": "test-image-model",
             },
             "scope": "edit_execute__abc",
         },
@@ -140,4 +144,5 @@ def test_sketch_edit_execute_runner_calls_existing_executor(tmp_path, monkeypatc
     assert result == {"updated_beats": [1], "summary_path": "summary.json"}
     assert calls[0]["project_dir"] == tmp_path
     assert calls[0]["episode_num"] == 1
+    assert calls[0]["model"] == "test-image-model"
     assert calls[0]["labels_path"] == (tmp_path / "verify_reports" / "ep001" / "labels.jsonl")

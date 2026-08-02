@@ -75,7 +75,7 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
 
     result = await use_cases.generate(
         context,
-        GenerateEpisodeAudioCommand(episode_num=3),
+        GenerateEpisodeAudioCommand(episode_num=3, model="audio-speech-test"),
     )
 
     assert result.as_dict() == {
@@ -91,6 +91,7 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
     _, task = scheduler.calls[0]
     assert task.backend_payload() == {
         "episode": 3,
+        "model": "audio-speech-test",
         "mode": "sync_changed",
         "beat_numbers": None,
         "output_dir": str(tmp_path),
@@ -107,7 +108,7 @@ async def test_generate_rejects_episode_without_beats(tmp_path: Path) -> None:
     with pytest.raises(EpisodeAudioBeatsMissing, match="No beats found for episode 3"):
         await use_cases.generate(
             _context(tmp_path),
-            GenerateEpisodeAudioCommand(episode_num=3),
+            GenerateEpisodeAudioCommand(episode_num=3, model="audio-speech-test"),
         )
 
     assert prerequisites.calls == []
@@ -127,7 +128,7 @@ async def test_generate_reports_first_five_voice_errors(tmp_path: Path) -> None:
     with pytest.raises(AudioVoicePrerequisitesMissing) as caught:
         await use_cases.generate(
             _context(tmp_path),
-            GenerateEpisodeAudioCommand(episode_num=3),
+            GenerateEpisodeAudioCommand(episode_num=3, model="audio-speech-test"),
         )
 
     assert str(caught.value) == "error-0；error-1；error-2；error-3；error-4 ..."
@@ -146,7 +147,7 @@ async def test_regenerate_beat_preserves_index_fallback(tmp_path: Path) -> None:
         scheduler,
     )
 
-    result = await use_cases.regenerate_beat(context, 3, 1)
+    result = await use_cases.regenerate_beat(context, 3, 1, "audio-speech-test")
 
     assert result.as_dict()["message"] == "第 3 集 Beat 1 语音生成已进入队列"
     assert prerequisites.calls == [(context, 3, [1], "redo_selected")]
@@ -166,7 +167,12 @@ async def test_regenerate_beat_rejects_unknown_number(tmp_path: Path) -> None:
     )
 
     with pytest.raises(EpisodeAudioBeatMissing, match="Beat 2 not found"):
-        await use_cases.regenerate_beat(_context(tmp_path), 3, 2)
+        await use_cases.regenerate_beat(
+            _context(tmp_path),
+            3,
+            2,
+            "audio-speech-test",
+        )
 
     assert prerequisites.calls == []
     assert scheduler.calls == []

@@ -17,15 +17,22 @@ import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
-import { readUrl } from '@/lib/url-params';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
+import {
+  useCommercialModelCatalog,
+  useGenerationCreditCost,
+  audioModelOptionsForMode,
+} from '@/modules/model_usage/public';
 
 export interface AudioOperationsPanelControllerOptions {
+  projectId: string;
+  canvasId: string;
   nodeId: string;
   data: AudioNodeData;
 }
 
 export function useAudioOperationsPanelController({
+  projectId,
+  canvasId,
   nodeId,
   data,
 }: AudioOperationsPanelControllerOptions) {
@@ -41,6 +48,24 @@ export function useAudioOperationsPanelController({
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMusic = data.audioKind === 'music';
+  const modelCatalog = useCommercialModelCatalog('AUDIO');
+  const audioModels = useMemo(
+    () =>
+      audioModelOptionsForMode(
+        modelCatalog.data?.items ?? [],
+        isMusic ? 'music' : 'speech',
+      ),
+    [isMusic, modelCatalog.data?.items],
+  );
+  const storedModel = String(data.model ?? '').trim();
+  const selectedModel = audioModels.some((model) => model.value === storedModel)
+    ? storedModel
+    : (audioModels[0]?.value ?? '');
+
+  useEffect(() => {
+    if (!selectedModel || selectedModel === storedModel) return;
+    updateNodeData(nodeId, { model: selectedModel });
+  }, [nodeId, selectedModel, storedModel, updateNodeData]);
   const musicSettings = useMemo(
     () => resolveAudioMusicSettings(data),
     [
@@ -55,7 +80,7 @@ export function useAudioOperationsPanelController({
   );
   const audioCost = useGenerationCreditCost(
     isMusic ? 'freezone_audio_music' : 'beat_tts',
-    null,
+    selectedModel || null,
     isMusic
       ? {
           surface: 'canvas',
@@ -67,7 +92,7 @@ export function useAudioOperationsPanelController({
     generate: submit,
     effectivePrompt,
     isGenerating,
-  } = useAudioGeneration(nodeId, data);
+  } = useAudioGeneration({ projectId, nodeId, data });
 
   const text = useMemo(() => deriveAudioText(data), [data]);
   const emotionPrompt = data.emotionPrompt ?? '';
@@ -142,18 +167,13 @@ export function useAudioOperationsPanelController({
     if (isGenerating || isTranslating) return;
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
-    const url = readUrl();
-    if (!url.project) {
-      console.error('[audio-node] translate: no project in URL');
-      return;
-    }
     setIsTranslating(true);
     try {
       const result = await translateCanvasText({
-        projectId: url.project,
+        projectId,
         text: trimmed,
         nodeType: 'audio',
-        canvasId: url.canvas ?? 'default',
+        canvasId,
         nodeId,
       });
       updateText(result.translatedText);
@@ -162,7 +182,15 @@ export function useAudioOperationsPanelController({
     } finally {
       setIsTranslating(false);
     }
-  }, [isGenerating, isTranslating, nodeId, text, updateText]);
+  }, [
+    canvasId,
+    isGenerating,
+    isTranslating,
+    nodeId,
+    projectId,
+    text,
+    updateText,
+  ]);
 
   const clearCopyResetTimer = useCallback(() => {
     if (!copyResetTimerRef.current) return;
@@ -224,6 +252,7 @@ export function useAudioOperationsPanelController({
   }, []);
 
   return {
+    projectId,
     nodeId,
     isMusic,
     panelExpanded,
@@ -235,10 +264,21 @@ export function useAudioOperationsPanelController({
     toggleMusicSettings,
     isGenerating,
     isTranslating,
-    submitDisabled: isAudioSubmitDisabled(isGenerating, effectivePrompt),
+    submitDisabled:
+      isAudioSubmitDisabled(isGenerating, effectivePrompt) ||
+      modelCatalog.isLoading ||
+      !selectedModel ||
+      storedModel !== selectedModel,
     submit,
     translate,
     audioCostDisplay: audioCost.data?.data.display,
+    audioModels,
+    selectedModel,
+    modelCatalogLoading: modelCatalog.isLoading,
+    modelCatalogError:
+      modelCatalog.error instanceof Error ? modelCatalog.error.message : '',
+    setSelectedModel: (model: string) =>
+      updateNodeData(nodeId, { model }),
     text,
     textDraft,
     changeTextDraft,

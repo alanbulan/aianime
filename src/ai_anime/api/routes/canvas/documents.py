@@ -6,7 +6,6 @@ from ai_anime.api.auth import get_api_user
 from ai_anime.api.canvas_documents_schemas import CanvasPayload
 from ai_anime.api.canvas_errors import raise_canvas_document_http_error
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.freezone.paths import CANVAS_ID_RE
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
@@ -24,6 +23,7 @@ from ai_anime.modules.creative_canvas.public import (
     canvas_event_actor,
     creative_canvas_document_commands,
     creative_canvas_document_queries,
+    is_valid_creative_canvas_id,
 )
 
 router = APIRouter()
@@ -269,7 +269,7 @@ async def delete_canvas(
 
 
 def _validate_canvas_id(canvas_id: str) -> None:
-    if not CANVAS_ID_RE.match(canvas_id):
+    if not is_valid_creative_canvas_id(canvas_id):
         raise HTTPException(400, "invalid canvas_id")
 
 

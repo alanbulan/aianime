@@ -17,7 +17,6 @@ from ai_anime.api.episodes_schemas import (
     InsertManualShotRequest,
 )
 from ai_anime.modules.model_usage.public import get_usage_meter
-from ai_anime.ports import get_task_backend
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
     ProjectContextRequired,
@@ -28,23 +27,18 @@ from ai_anime.modules.narrative_planning.public import (
     insert_manual_shot,
     list_episode_summaries,
     serialize_episode_items,
+    start_episode_asset_planning,
+    start_episode_identity_planning,
     start_episode_planning,
     update_episode_metadata,
 )
 from ai_anime.modules.asset_world.public import promote_episode_props_to_global
 from ai_anime.modules.story_intake.public import build_chapter_preview
-from ai_anime.task_identity import project_task_state_key
 
 logger = logging.getLogger("ai_anime.api.episodes")
 
 router = APIRouter()
 AssetCompiler = None
-
-_EPISODE_ASSET_PLANNER_TASKS = {
-    "scene": ("episode_scene_planner", "场景"),
-    "prop": ("episode_prop_planner", "道具"),
-}
-
 
 def _asset_compiler_cls():
     global AssetCompiler
@@ -53,10 +47,6 @@ def _asset_compiler_cls():
 
         AssetCompiler = LoadedAssetCompiler
     return AssetCompiler
-
-
-def _episode_asset_task_scope(asset_kind: str, episode_num: int) -> str:
-    return f"{asset_kind}_run_ep{int(episode_num):03d}"
 
 
 def _find_episode(episodes, episode_num: int):
@@ -143,10 +133,6 @@ async def _enqueue_episode_asset_planner(
     asset_kind: str,
     user: dict,
 ) -> dict:
-    task_info = _EPISODE_ASSET_PLANNER_TASKS.get(asset_kind)
-    if task_info is None:
-        return {"ok": False, "error": f"Unknown asset planning kind: {asset_kind}"}
-    task_type, label = task_info
     resolved = await resolve_project_scope(project, user, required_role="editor")
     if resolved.ctx is None:
         return await _plan_episode_assets(
@@ -155,30 +141,18 @@ async def _enqueue_episode_asset_planner(
             asset_kind=asset_kind,
             user=user,
         )
-    task_scope = _episode_asset_task_scope(asset_kind, episode_num)
-    queued = await get_task_backend().enqueue_project_task(
-        resolved.ctx,
-        task_type=task_type,
-        queue_kind="default",
-        episode=episode_num,
-        scope=task_scope,
-        payload={"episode": episode_num, "asset_kind": asset_kind},
-    )
+    try:
+        scheduled = await start_episode_asset_planning(
+            resolved.ctx,
+            episode_num=episode_num,
+            asset_kind=asset_kind,
+        )
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
     return {
         "ok": True,
-        "task_type": task_type,
-        "scope": task_scope,
-        "task_id": queued.task_state.task_id,
-        "task_key": project_task_state_key(
-            task_type,
-            resolved.ctx.project_id,
-            episode_num,
-            scope=task_scope,
-        ),
-        "backend": queued.backend,
-        "queue": queued.queue,
+        **scheduled.as_dict(),
         "data": {"target_episode": episode_num, "asset_kind": asset_kind},
-        "message": f"第 {episode_num} 集{label}规划已进入队列",
     }
 
 
@@ -338,24 +312,14 @@ async def plan_episode_identities(
     logger.info("[%s] EP%d plan_episode_identities", project, episode_num)
     resolved = await resolve_project_scope(project, user, required_role="editor")
     if resolved.ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
+        scheduled = await start_episode_identity_planning(
             resolved.ctx,
-            task_type="identity_planner",
-            queue_kind="default",
-            episode=episode_num,
-            payload={"episode": episode_num},
+            episode_num=episode_num,
         )
         return {
             "ok": True,
-            "task_type": "identity_planner",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "identity_planner", resolved.ctx.project_id, episode_num
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
+            **scheduled.as_dict(),
             "data": {"target_episode": episode_num},
-            "message": f"第 {episode_num} 集身份规划已进入队列",
         }
 
     await get_usage_meter().set_project_llm_usage_context(

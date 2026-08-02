@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { SkillDefinition } from "@/features/freezone/public";
+import type { SkillDefinition } from "@/modules/creative_canvas/public";
 
 import { createFreezoneSkillCatalogGateway } from "./freezoneSkillCatalogGateway";
 

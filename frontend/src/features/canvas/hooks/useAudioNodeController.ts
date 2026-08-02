@@ -20,8 +20,7 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
-import { hasMainlineContexts } from '@/features/freezone/public';
-import { readUrl } from '@/lib/url-params';
+import { hasMainlineContexts } from '@/modules/creative_canvas/public';
 
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 210;
@@ -59,6 +58,8 @@ function needsDefaultVoice(voiceRef: AudioVoiceRef | null | undefined) {
 }
 
 export interface AudioNodeControllerOptions {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: AudioNodeData;
   selected?: boolean;
@@ -67,6 +68,8 @@ export interface AudioNodeControllerOptions {
 }
 
 export function useAudioNodeController({
+  projectId,
+  canvasId,
   id,
   data,
   selected,
@@ -79,7 +82,7 @@ export function useAudioNodeController({
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
   const isBoxSelecting = useIsBoxSelecting();
   const { isGenerating, task } = useNodeGenerationTaskState(data);
-  const { generate } = useAudioGeneration(id, data);
+  const { generate } = useAudioGeneration({ projectId, nodeId: id, data });
 
   // 即使原页面已销毁，也把任务中心收到的失败状态持久化回节点。
   useEffect(() => {
@@ -123,11 +126,6 @@ export function useAudioNodeController({
       toast.error(t('node.audio.uploadTypeError'));
       return;
     }
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.error('[audio-node] no project in URL — cannot upload');
-      return;
-    }
     updateNodeData(id, { isUploading: true });
     try {
       const uploaded = await uploadCanvasAsset(projectId, file, file.name);
@@ -141,7 +139,7 @@ export function useAudioNodeController({
       console.error('[audio-node] upload failed', error);
       updateNodeData(id, { isUploading: false });
     }
-  }, [id, t, updateNodeData]);
+  }, [id, projectId, t, updateNodeData]);
 
   useEffect(() => canvasEventBus.subscribe(
     'audio-node/external-file',
@@ -160,14 +158,10 @@ export function useAudioNodeController({
     if (!needsDefaultVoice(data.voiceRef)) {
       return;
     }
-    const project = readUrl().project;
-    if (!project) {
-      return;
-    }
     let cancelled = false;
     void (async () => {
       try {
-        const references = await getCachedAudioReferences(project);
+        const references = await getCachedAudioReferences(projectId);
         if (cancelled) {
           return;
         }
@@ -214,9 +208,11 @@ export function useAudioNodeController({
     return () => {
       cancelled = true;
     };
-  }, [data.voiceRef, id, updateNodeData]);
+  }, [data.voiceRef, id, projectId, updateNodeData]);
 
   return {
+    projectId,
+    canvasId,
     id,
     data,
     selected,

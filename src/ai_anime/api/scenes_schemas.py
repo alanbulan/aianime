@@ -49,7 +49,6 @@ class SceneUpdate(BaseModel):
 class ScenePanoGenerateRequest(BaseModel):
     source: Literal["master", "text"] = "master"
     style: Optional[str] = None
-    provider: Optional[str] = None
     model: Optional[str] = None
     image_size: Optional[str] = None
     quality: Optional[str] = None

@@ -7,6 +7,7 @@ import { useImageEditToolbarController } from "@/features/canvas/hooks/useImageE
 import { ImageEditToolbarActionsView } from "./ImageEditToolbarActionsView";
 
 export interface ImageEditToolbarActionsProps {
+  projectId: string;
   nodeId: string;
   nodeData: CanvasNodeData;
   imageSource: string | null;
@@ -19,6 +20,7 @@ export interface ImageEditToolbarActionsProps {
 
 export const ImageEditToolbarActions = memo(
   ({
+    projectId,
     nodeId,
     nodeData,
     imageSource,
@@ -29,6 +31,7 @@ export const ImageEditToolbarActions = memo(
     onOpenOutpaint,
   }: ImageEditToolbarActionsProps) => {
     const controller = useImageEditToolbarController({
+      projectId,
       nodeId,
       nodeData,
       imageSource,

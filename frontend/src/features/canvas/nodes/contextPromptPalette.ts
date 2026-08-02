@@ -7,7 +7,7 @@ import {
   type MainlineContext,
   type MainlineContextEdgeLike,
   type MainlineContextNodeLike,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 
 export type ContextPromptPaletteEntryKind = "actor" | "prop";
 

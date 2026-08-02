@@ -32,7 +32,7 @@ import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextC
 import {
   stringifyParamValue,
   type CapabilityParamDefinition,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 import { UiButton } from '@/components/ui';
 
 function PromptWithHighlights({
@@ -498,6 +498,7 @@ export function ImageEditNodeView({
         <div className="ml-auto" />
 
         <UiButton
+          disabled={!selectedModel}
           onClick={(event) => {
             event.stopPropagation();
             void controller.generate();

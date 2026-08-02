@@ -8,6 +8,7 @@ import { usePano360ViewerNodeController } from '@/features/canvas/hooks/usePano3
 import { Pano360ViewerNodeView } from './Pano360ViewerNodeView';
 
 type Pano360ViewerNodeProps = NodeProps & {
+  projectId: string;
   id: string;
   data: Pano360ViewerNodeData;
   selected?: boolean;

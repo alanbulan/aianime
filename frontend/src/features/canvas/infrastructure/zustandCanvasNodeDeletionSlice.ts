@@ -10,7 +10,7 @@ import {
   trackEdit,
   type CanvasMutationSource,
   type CanvasMutationState,
-} from '../domain/canvasMutation';
+} from '@/modules/creative_canvas/public';
 import type {
   ActiveToolDialog,
   CanvasEdge,

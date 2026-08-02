@@ -4,7 +4,7 @@ import {
   resolveCanvasRelightKeyLightDirection,
   type CanvasRelightKeyLightDirection,
   type CanvasRelightSmartPrompt,
-} from "../domain/relight";
+} from "@/modules/creative_canvas/public";
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,

@@ -11,6 +11,8 @@ import { useImageNodeController } from '@/features/canvas/hooks/useImageNodeCont
 import { ImageNodeView } from './ImageNodeView';
 
 type ImageNodeProps = NodeProps & {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: ImageEditNodeData | ExportImageNodeData;
   selected?: boolean;

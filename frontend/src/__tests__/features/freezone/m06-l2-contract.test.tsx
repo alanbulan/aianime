@@ -9,11 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
-import { freezoneCanvasStorageGateway } from "@/features/canvas/infrastructure/freezoneCanvasStorageGateway";
 import { freezoneGenerationTaskGateway } from "@/features/canvas/infrastructure/freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "@/features/canvas/infrastructure/freezoneImageGenerationGateway";
-import { httpFreezoneAssetCommitGateway } from "@/features/freezone/infrastructure/httpFreezoneAssetCommitGateway";
-import { createStreamClient } from "@/task-center/stream-client";
+import { httpFreezoneAssetCommitGateway } from "@/modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway";
+import {
+  getFreezoneCanvas,
+  listFreezoneCanvases,
+  putFreezoneCanvas,
+} from "@/modules/creative_canvas/public";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/modules/story_intake/public";
 import { useAuthStore } from "@/modules/identity_access/public";
@@ -100,9 +103,8 @@ describe("M06 frontend L2 contract", () => {
     useAuthStore.setState({ username: null, role: null });
   });
 
-  it("starts ingest and consumes task stream terminal updates with cookie SSE", async () => {
+  it("starts ingest with the selected cloud models", async () => {
     let startBody: unknown = null;
-    const taskEvents: unknown[] = [];
 
     server.use(
       http.post("http://localhost/api/v1/projects/demo/ingest/start", async ({ request }) => {
@@ -122,6 +124,8 @@ describe("M06 frontend L2 contract", () => {
     await act(async () => {
       ingestResponse = await ingest.current.mutateAsync({
         filename: "novel.txt",
+        textModel: "cloud-text-standard",
+        embeddingModel: "cloud-embedding-standard",
         rebuild: true,
         spine_template: "drama",
       });
@@ -129,6 +133,8 @@ describe("M06 frontend L2 contract", () => {
 
     expect(startBody).toEqual({
       filename: "novel.txt",
+      textModel: "cloud-text-standard",
+      embeddingModel: "cloud-embedding-standard",
       rebuild: true,
       spine_template: "drama",
     });
@@ -137,43 +143,6 @@ describe("M06 frontend L2 contract", () => {
       message: "ingest queued",
     });
 
-    const streamClient = createStreamClient({
-      streamPath: "/api/v1/projects/demo/tasks/stream",
-      onEvent: (task) => taskEvents.push(task),
-      onDelete: vi.fn(),
-      onHealth: vi.fn(),
-    });
-    streamClient.start();
-
-    expect(MockEventSource.instances).toHaveLength(1);
-    expect(MockEventSource.instances[0].url).toContain("/api/v1/projects/demo/tasks/stream");
-    expect(MockEventSource.instances[0].url).not.toContain("token=");
-    expect(MockEventSource.instances[0].withCredentials).toBe(true);
-
-    MockEventSource.instances[0].dispatch("task_updated", {
-      task_key: "ingest_fast:demo:ep1",
-      task_type: "ingest_fast",
-      status: "running",
-      progress: 25,
-      current_task: "parsing chapters",
-    });
-    MockEventSource.instances[0].dispatch("task_updated", {
-      task_key: "ingest_fast:demo:ep1",
-      task_type: "ingest_fast",
-      status: "completed",
-      progress: 100,
-      current_task: "ingest completed",
-      result: { episodes: 3 },
-    });
-
-    expect(taskEvents).toHaveLength(2);
-    expect(taskEvents[1]).toMatchObject({
-      task_key: "ingest_fast:demo:ep1",
-      status: "completed",
-      result: { episodes: 3 },
-    });
-
-    streamClient.close();
   });
 
   it("keeps the legacy ingest task stream cookie-backed and closes on terminal event", async () => {
@@ -297,22 +266,19 @@ describe("M06 frontend L2 contract", () => {
         affected_count: 1,
       });
 
-    const canvases = await freezoneCanvasStorageGateway.listCanvases({
-      projectId: "demo",
-    });
-    const canvas = await freezoneCanvasStorageGateway.getCanvas({
-      projectId: "demo",
-      canvasId: "default",
-    });
-    const saveResult = await freezoneCanvasStorageGateway.saveCanvas({
-      projectId: "demo",
-      canvasId: "default",
-      payload: {
-        ...canvas,
-        nodes: [{ id: "n1", type: "freezoneImageNode", data: { imageUrl: "/input.png" } }],
-        client_save_id: "save-1",
-        base_revision: 4,
-      },
+    const canvases = await listFreezoneCanvases("demo");
+    const canvas = await getFreezoneCanvas("demo", "default");
+    const saveResult = await putFreezoneCanvas("demo", "default", {
+      ...canvas,
+      nodes: [
+        {
+          id: "n1",
+          type: "freezoneImageNode",
+          data: { imageUrl: "/input.png" },
+        },
+      ],
+      client_save_id: "save-1",
+      base_revision: 4,
     });
     const job = await freezoneImageGenerationGateway.submit("demo", {
       prompt: "cinematic frame",
@@ -320,6 +286,7 @@ describe("M06 frontend L2 contract", () => {
       imageSize: "2K",
       canvasId: "default",
       nodeId: "n1",
+      model: "cloud-image-standard",
     });
     const jobResultUrl = await freezoneGenerationTaskGateway.fetchResultUrl(
       "demo",
@@ -375,6 +342,7 @@ describe("M06 frontend L2 contract", () => {
             image_size: "2K",
             canvas_id: "default",
             node_id: "n1",
+            model: "cloud-image-standard",
           }),
         },
       ],

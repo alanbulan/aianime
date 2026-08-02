@@ -1,4 +1,7 @@
 import { createReleaseNotificationQueries } from "@/modules/platform_release/application/query-hooks";
+import { createCommercialAnnouncementQueries } from "@/modules/platform_release/application/commercial-announcement-queries";
+import { createCommercialReleaseQueries } from "@/modules/platform_release/application/commercial-release-queries";
+import type { QueryClient } from "@tanstack/react-query";
 import { requestChunkLoadRecovery } from "@/modules/platform_release/application/chunk-load-recovery";
 import { markUpdateAvailable } from "@/modules/platform_release/application/update-availability";
 import {
@@ -17,9 +20,19 @@ import { installBrowserVersionUpdateWatch } from "@/modules/platform_release/inf
 import { subscribeOpenVersionUpdateDialog as subscribeBrowserOpenVersionUpdateDialog } from "@/modules/platform_release/infrastructure/browser-version-update-dialog-events";
 import { httpReleaseNotificationGateway } from "@/modules/platform_release/infrastructure/http-release-notification-gateway";
 import { BUILD_ID } from "@/lib/app-version";
+import { queryKeys } from "@/lib/query-keys";
+import { parseCommercialBootstrapRelease } from "@/modules/platform_release/domain/commercial-release";
+import { electronCommercialAnnouncementGateway } from "@/modules/platform_release/infrastructure/electron-commercial-announcement-gateway";
+import { electronCommercialReleaseGateway } from "@/modules/platform_release/infrastructure/electron-commercial-release-gateway";
 
 const releaseNotificationQueries = createReleaseNotificationQueries(
   httpReleaseNotificationGateway,
+);
+const commercialAnnouncementQueries = createCommercialAnnouncementQueries(
+  electronCommercialAnnouncementGateway,
+);
+const commercialReleaseQueries = createCommercialReleaseQueries(
+  electronCommercialReleaseGateway,
 );
 
 export const {
@@ -27,6 +40,19 @@ export const {
   fetchReleaseNotifications,
   useReleaseNotifications,
 } = releaseNotificationQueries;
+export const { useCommercialAnnouncements } = commercialAnnouncementQueries;
+export const { useCommercialRelease } = commercialReleaseQueries;
+
+export function seedCommercialBootstrapRelease(
+  queryClient: QueryClient,
+  value: unknown,
+) {
+  const release = parseCommercialBootstrapRelease(value);
+  if (release) {
+    queryClient.setQueryData(queryKeys.commercialRelease(), release);
+  }
+  return release;
+}
 
 export {
   releaseSeenKey,

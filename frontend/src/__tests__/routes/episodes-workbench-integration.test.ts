@@ -11,8 +11,8 @@ const pageControllerSource = read(
 const itemControllerSource = read(
   "src/modules/narrative_planning/application/use-episode-list-item-controller.ts",
 );
-const compositionSource = read(
-  "src/modules/narrative_planning/composition.ts",
+const workspaceCompositionSource = read(
+  "src/app/workspace-composition.tsx",
 );
 const viewSource = read(
   "src/modules/narrative_planning/presentation/EpisodesPageView.tsx",
@@ -54,13 +54,13 @@ describe("episodes workbench integration", () => {
     expect(pageControllerSource).toContain('"episode_scene_planner"');
     expect(pageControllerSource).toContain('"episode_prop_planner"');
     expect(pageControllerSource).toContain("BillingRuleNotConfiguredError");
-    expect(compositionSource).toContain(
+    expect(workspaceCompositionSource).toContain(
       "identityCostDisplay: controller.planIdentitiesCostDisplay",
     );
-    expect(compositionSource).toContain(
+    expect(workspaceCompositionSource).toContain(
       "sceneCostDisplay: controller.planScenesCostDisplay",
     );
-    expect(compositionSource).toContain(
+    expect(workspaceCompositionSource).toContain(
       "propCostDisplay: controller.planPropsCostDisplay",
     );
     expect(viewSource).toContain("<CreditCostInline display={costDisplay} />");

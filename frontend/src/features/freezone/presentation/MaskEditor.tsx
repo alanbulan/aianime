@@ -7,7 +7,8 @@ import {
 import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-} from "@/features/canvas/domain/redraw";
+} from "@/modules/creative_canvas/public";
+import { useFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
 
 interface MaskEditorProps {
   project: string;
@@ -53,6 +54,13 @@ export function MaskEditor({
   const [submitting, setSubmitting] = useState(false);
   const [progressMsg, setProgressMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const {
+    models: imageModels,
+    isLoading: isModelCatalogLoading,
+    error: modelCatalogError,
+  } = useFreezoneImageModels(project, "edit");
+  const selectedImageModel = imageModels[0];
+  const requestModel = selectedImageModel?.apiModel.trim() ?? "";
 
   // 1. Load base image, size both canvases, draw image on baseCanvas.
   useEffect(() => {
@@ -203,6 +211,10 @@ export function MaskEditor({
   };
 
   const handleSubmit = async () => {
+    if (!requestModel) {
+      setError(modelCatalogError?.message || "暂无可用图像模型");
+      return;
+    }
     if (!prompt.trim()) {
       setError("写一句 prompt 描述要把蒙版区域改成什么");
       return;
@@ -233,6 +245,7 @@ export function MaskEditor({
           prompt,
           aspectRatio: DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
           imageSize: DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+          model: requestModel,
         },
         () => {
           setProgressMsg("处理中（30-60s）...");
@@ -358,8 +371,14 @@ export function MaskEditor({
                 <span className="text-primary">{progressMsg}</span>
               ) : error ? (
                 <span className="text-destructive">{error}</span>
+              ) : modelCatalogError ? (
+                <span className="text-destructive">{modelCatalogError.message}</span>
+              ) : isModelCatalogLoading ? (
+                <>正在加载图像模型...</>
+              ) : !requestModel ? (
+                <>暂无可用图像模型</>
               ) : (
-                <>红色 = 待编辑区域 · LingShan-G2 · 可能 30-60 秒</>
+                <>红色 = 待编辑区域 · {selectedImageModel?.label} · 可能 30-60 秒</>
               )}
             </div>
             <div className="flex gap-2">
@@ -374,7 +393,7 @@ export function MaskEditor({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !imageReady}
+                disabled={submitting || !imageReady || isModelCatalogLoading || !requestModel}
                 className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "处理中..." : "Apply"}

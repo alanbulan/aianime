@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import type { RegenerateBeatVideoCommand } from "@/modules/production/domain/video-generation";
 import {
-  normalizeGrokVideoDraftForBackend,
-  normalizeHappyHorseDraftForBackend,
-  normalizeSeedance2DraftForBackend,
+  normalizeGrokVideoDraftForModel,
+  normalizeHappyHorseDraftForModel,
+  normalizeSeedance2DraftForModel,
   sameSeedance2Config,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
@@ -14,7 +14,7 @@ import {
 } from "@/modules/production/domain/video-config";
 
 interface BeatVideoGenerationInputBase {
-  backend: string;
+  model: string;
   beatNumber: number;
 }
 
@@ -73,7 +73,7 @@ export function prepareBeatVideoGeneration(
 ): PreparedBeatVideoGeneration {
   const baseCommand: RegenerateBeatVideoCommand = {
     beatNum: input.beatNumber,
-    videoBackend: input.backend,
+    model: input.model,
   };
 
   if (input.kind === "legacy") {
@@ -92,10 +92,10 @@ export function prepareBeatVideoGeneration(
   }
 
   if (input.kind === "seedance2") {
-    const normalizedDraft = normalizeSeedance2DraftForBackend(
+    const normalizedDraft = normalizeSeedance2DraftForModel(
       input.draft,
       input.resolutionOptions,
-      input.backend,
+      input.model,
       input.isValueStyle,
     );
     const draftChanged = !sameSeedance2Config(normalizedDraft, input.draft);
@@ -110,7 +110,7 @@ export function prepareBeatVideoGeneration(
   }
 
   if (input.kind === "happyhorse") {
-    const normalizedDraft = normalizeHappyHorseDraftForBackend(
+    const normalizedDraft = normalizeHappyHorseDraftForModel(
       input.draft,
       input.resolutionOptions,
       input.ratioOptions,
@@ -132,7 +132,7 @@ export function prepareBeatVideoGeneration(
     };
   }
 
-  const normalizedDraft = normalizeGrokVideoDraftForBackend(
+  const normalizedDraft = normalizeGrokVideoDraftForModel(
     input.draft,
     input.resolutionOptions,
     input.ratioOptions,

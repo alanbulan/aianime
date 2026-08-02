@@ -1,8 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { readUrl } from '@/lib/url-params';
 import {
   prefetchEpisodeBeats,
   prefetchEpisodeDetail,
@@ -15,18 +14,22 @@ import type { CanvasNode } from '../domain/canvasNodes';
 import { useCanvasBeatContextPrefetch } from './useCanvasBeatContextPrefetch';
 
 export interface CanvasProjectContextControllerOptions {
+  projectId: string | null;
+  canvasId: string;
   nodes: readonly CanvasNode[];
 }
 
 export interface CanvasProjectContextController {
   projectId: string | null;
+  canvasId: string;
 }
 
 export function useCanvasProjectContextController({
+  projectId,
+  canvasId,
   nodes,
 }: CanvasProjectContextControllerOptions): CanvasProjectContextController {
   const queryClient = useQueryClient();
-  const projectId = useMemo(() => readUrl().project, []);
   const prefetchEpisode = useCallback(
     ({
       projectId: referenceProjectId,
@@ -44,5 +47,5 @@ export function useCanvasProjectContextController({
     prefetchEpisode,
   });
 
-  return { projectId };
+  return { projectId, canvasId };
 }

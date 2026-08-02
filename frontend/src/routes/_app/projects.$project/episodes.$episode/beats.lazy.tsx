@@ -2,7 +2,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { useBeatsWorkbenchParam } from "@/hooks/use-beats-workbench-param";
-import { BeatsPageContent } from "@/modules/narrative_planning/public";
+import { BeatsPageContent } from "@/app/workspace-composition";
 
 function BeatsRouteAdapter() {
   const { project, episode } = Route.useParams();

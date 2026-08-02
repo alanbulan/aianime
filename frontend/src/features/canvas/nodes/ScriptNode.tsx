@@ -11,6 +11,8 @@ type ScriptNodeProps = NodeProps & {
   id: string;
   data: ScriptNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const ScriptNode = memo((props: ScriptNodeProps) => {

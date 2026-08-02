@@ -1,0 +1,1196 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+
+import * as ts from "typescript";
+import { describe, expect, it } from "vitest";
+
+const SRC_ROOT = resolve(process.cwd(), "src");
+const DESKTOP_ROOT = resolve(process.cwd(), "../desktop");
+
+function sourceFiles(root: string): string[] {
+  if (!existsSync(root)) return [];
+  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(root, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+  });
+}
+
+function relativeSource(path: string): string {
+  return relative(SRC_ROOT, path).replace(/\\/g, "/");
+}
+
+function importSpecifiers(path: string): string[] {
+  const source = ts.createSourceFile(
+    path,
+    readFileSync(path, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const imports: string[] = [];
+  const visit = (node: ts.Node) => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      imports.push(node.moduleSpecifier.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return imports;
+}
+
+describe("round 2 residual architecture boundaries", () => {
+  it("establishes Creative Canvas as a real module owner", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const capabilityRoot = resolve(moduleRoot, "domain/capabilities");
+    const projectionFiles = [
+      "canvasStorageRetention.ts",
+      "canvasProjection.ts",
+      "canvasProjectionRequest.ts",
+      "canvasProjectionRequest.test.ts",
+      "canvasProjectionMetadata.ts",
+      "canvasProjectionMetadata.test.ts",
+      "projectionGraphIds.ts",
+      "canvasMutation.ts",
+      "canvasMutation.test.ts",
+    ];
+    const projectionApplicationFiles = [
+      "canvasStorageOperations.ts",
+      "canvasStorageOperations.test.ts",
+      "canvasPreset.ts",
+      "canvasPreset.test.ts",
+      "canvasProjection.ts",
+      "canvasProjection.test.ts",
+      "canvasProjectionCommandEvents.ts",
+      "canvasProjectionCommandEvents.test.ts",
+      "canvasRuntimeState.ts",
+      "canvasRuntimeState.test.ts",
+      "openPresetProjection.ts",
+      "openPresetProjection.test.ts",
+      "contextQueries.ts",
+      "contextQueries.test.ts",
+      "canvasDraft.ts",
+      "canvasSyncStorage.ts",
+      "canvasSyncHydration.ts",
+      "canvasSyncHydration.test.ts",
+      "canvasConflictRecovery.ts",
+      "canvasConflictRecovery.test.ts",
+      "canvasProjectionGraph.ts",
+      "canvasProjectionGraph.test.ts",
+      "canvasPresetRefresh.ts",
+      "canvasPresetRefresh.test.ts",
+      "canvasSaveError.ts",
+      "canvasSyncCore.ts",
+      "canvasSyncCore.test.ts",
+      "canvasSave.ts",
+      "canvasSave.test.ts",
+      "canvasUnloadSave.ts",
+      "canvasUnloadSave.test.ts",
+    ];
+    const projectionInfrastructureFiles = [
+      "browserCanvasStorageReclaimer.ts",
+      "httpFreezoneCanvasStorageGateway.ts",
+      "httpFreezoneCanvasStorageGateway.test.ts",
+      "httpFreezoneCanvasProjectionGateway.ts",
+      "httpFreezoneCanvasProjectionGateway.test.ts",
+      "httpFreezoneContextQueryGateway.ts",
+      "httpFreezoneContextQueryGateway.test.ts",
+      "browserCanvasDraftStorageGateway.ts",
+      "browserCanvasSyncStorageGateway.ts",
+    ];
+    const projectionCompositionFiles = [
+      "assetLibraryCatalogComposition.ts",
+      "assetLibraryCatalogComposition.test.tsx",
+      "canvasBrowserComposition.ts",
+      "canvasBrowserComposition.test.tsx",
+      "canvasConflictRecoveryComposition.ts",
+      "canvasDraftPersistenceComposition.ts",
+      "canvasLocalPersistenceComposition.ts",
+      "canvasPresetRefreshComposition.ts",
+      "canvasProjectionStatusLifecycleComposition.ts",
+      "canvasProjectionStatusLifecycleComposition.test.tsx",
+      "canvasProjectionCommandComposition.ts",
+      "canvasCommitControllerComposition.ts",
+      "canvasSaveControllerComposition.ts",
+      "canvasStorageComposition.ts",
+      "canvasStorageRetentionComposition.ts",
+      "projectionComposition.ts",
+      "presetProjectionComposition.ts",
+      "presetProjectionComposition.test.ts",
+      "contextQueryComposition.ts",
+      "canvasDraftComposition.ts",
+      "canvasSyncComposition.ts",
+    ];
+    const commitDomainFiles = [
+      "assetCommit.ts",
+      "canvasCommitEligibility.ts",
+      "canvasCommitEligibility.test.ts",
+      "canvasCommitSource.ts",
+      "directorWorldCommit.ts",
+      "pushTarget.ts",
+      "pushTarget.test.ts",
+    ];
+    const commitApplicationFiles = [
+      "canvasCommitEvents.ts",
+      "canvasCommitEvents.test.ts",
+      "canvasCommitRules.ts",
+      "canvasCommitRules.test.ts",
+      "committedNodePatch.ts",
+      "committedNodePatch.test.ts",
+      "sceneDirectorWorldCommit.ts",
+      "sceneDirectorWorldCommit.test.ts",
+      "directorRenderCommit.ts",
+      "directorRenderCommit.test.ts",
+      "directorWorldSceneSaveRegistry.ts",
+    ];
+    const commitInfrastructureFiles = [
+      "assetWorldSceneDirectorCommitGateway.ts",
+      "browserDirectorRenderCommitGateway.ts",
+    ];
+    const commitCompositionFiles = ["directorCommitComposition.ts"];
+    const mainlineContextFiles = [
+      "mainlineContext.ts",
+      "currentBeatContext.ts",
+      "currentBeatContext.test.ts",
+    ];
+    const skillDomainFiles = [
+      "skillContract.ts",
+      "skillContract.test.ts",
+      "skillExecution.ts",
+      "skillExecution.test.ts",
+      "skillInputResolution.ts",
+      "skillInputResolution.test.ts",
+      "inferSkillConnectionRole.ts",
+      "inferSkillConnectionRole.test.ts",
+    ];
+    const generationHistoryDomainFiles = [
+      "generationHistoryRecord.ts",
+      "generationHistoryRecord.test.ts",
+    ];
+    const beatContextDomainFiles = ["beatContext.ts"];
+    const assetLibraryDomainFiles = [
+      "assetLibraryModel.ts",
+      "assetLibraryModel.test.ts",
+      "assetDrag.ts",
+    ];
+    const assetLibraryApplicationFiles = [
+      "assetLibraryProjection.ts",
+      "assetLibraryProjection.test.ts",
+      "assetLibraryCanvasInsertion.ts",
+      "assetLibraryCanvasInsertion.test.ts",
+    ];
+    const toolImageGeometryDomainFiles = [
+      "toolImageGeometry.ts",
+      "toolImageGeometry.test.ts",
+    ];
+    const imageOperationDomainFiles = [
+      "multiAngle.ts",
+      "multiAngle.test.ts",
+      "outpaint.ts",
+      "outpaint.test.ts",
+      "redraw.ts",
+      "redraw.test.ts",
+      "relight.ts",
+      "relight.test.ts",
+      "scene360.ts",
+      "upscale.ts",
+      "upscale.test.ts",
+    ];
+    const presentationFiles = [
+      "assetLibraryViewModel.ts",
+      "assetLibraryViewModel.test.ts",
+      "canvasBrowserViewModel.ts",
+      "canvasBrowserViewModel.test.ts",
+      "canvasStorageQueryHooks.ts",
+      "useCanvasConflictController.ts",
+      "useCanvasConflictController.test.tsx",
+      "useCanvasDraftPersistenceController.ts",
+      "useCanvasDraftPersistenceController.test.tsx",
+      "useCanvasLocalPersistence.ts",
+      "useCanvasLocalPersistence.test.tsx",
+      "useCanvasPresetRefreshController.ts",
+      "useCanvasPresetRefreshController.test.tsx",
+      "useCanvasProjectionCommandController.ts",
+      "useCanvasProjectionCommandController.test.tsx",
+      "useCanvasSaveController.ts",
+      "useCanvasSaveController.test.tsx",
+      "useCanvasCommitController.ts",
+      "useCanvasCommitController.test.tsx",
+      "commitDialogViewModel.ts",
+      "skillI18n.ts",
+      "skillI18n.test.ts",
+      "contextQueryHooks.ts",
+    ];
+
+    expect(existsSync(publicPath)).toBe(true);
+    expect(sourceFiles(capabilityRoot).length).toBeGreaterThan(0);
+    expect(
+      sourceFiles(resolve(SRC_ROOT, "features/freezone/domain/capabilities")),
+    ).toEqual([]);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/domain")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/infrastructure")),
+    ).toBe(false);
+    for (const file of projectionFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/projectionGraphIds.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/canvasMutation.ts")),
+    ).toBe(false);
+    for (const file of projectionApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of projectionInfrastructureFiles) {
+      expect(existsSync(resolve(moduleRoot, "infrastructure", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of projectionCompositionFiles) {
+      expect(existsSync(resolve(moduleRoot, file)), file).toBe(true);
+    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/openPresetProjectionComposition.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/canvasSyncComposition.ts")),
+    ).toBe(false);
+    for (const file of commitDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of commitApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of commitInfrastructureFiles) {
+      expect(existsSync(resolve(moduleRoot, "infrastructure", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of commitCompositionFiles) {
+      expect(existsSync(resolve(moduleRoot, file)), file).toBe(true);
+    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/composition.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "__tests__/features/freezone/scene-director-world-commit.test.ts",
+        ),
+      ),
+    ).toBe(false);
+    for (const file of mainlineContextFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of skillDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of generationHistoryDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of beatContextDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of assetLibraryDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of assetLibraryApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of toolImageGeometryDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of imageOperationDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of presentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/freezone/presentation", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useCanvasProjectionCommandController.test.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/hooks/contextQueryHooks.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useCanvasProjectionStatusLifecycle.test.tsx",
+        ),
+      ),
+    ).toBe(false);
+    for (const retiredCanvasStoragePath of [
+      "features/canvas/application/freezoneCanvasStorage.ts",
+      "features/canvas/application/freezoneCanvasStorage.test.ts",
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.test.ts",
+      "features/canvas/hooks/freezoneCanvasQueryHooks.ts",
+      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "features/freezone/hooks/useCanvasBrowserController.test.tsx",
+      "features/freezone/canvasConflictRecoveryComposition.ts",
+      "features/freezone/hooks/useCanvasConflictController.ts",
+      "features/freezone/hooks/useCanvasConflictController.test.tsx",
+      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+      "features/freezone/hooks/useCanvasDraftPersistenceController.test.tsx",
+      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+      "features/freezone/hooks/useCanvasLocalPersistence.test.tsx",
+      "features/freezone/canvasSaveComposition.ts",
+      "features/freezone/canvasUnloadSaveComposition.ts",
+      "features/freezone/hooks/useCanvasSaveController.ts",
+      "features/freezone/hooks/useCanvasSaveController.test.tsx",
+      "features/freezone/canvasHydrationComposition.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "features/freezone/hooks/useCanvasHydrationLifecycle.test.tsx",
+      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+      "features/freezone/hooks/useCanvasRuntimeBridge.test.tsx",
+      "features/freezone/canvasPresetRefreshComposition.ts",
+      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "features/freezone/hooks/useCanvasPresetRefreshController.test.tsx",
+      "features/freezone/hooks/useCanvasCommitController.ts",
+      "features/freezone/hooks/useCanvasCommitController.test.tsx",
+      "features/canvas/domain/assetDropInfo.ts",
+      "features/canvas/domain/canvasCommitEligibility.ts",
+      "features/canvas/domain/canvasCommitEligibility.test.ts",
+      "features/canvas/domain/directorWorldSceneSaveRegistry.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredCanvasStoragePath))).toBe(false);
+    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "__tests__/features/freezone/canvases-tab.test.ts")),
+    ).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/freezone/public.ts"))).toBe(
+      false,
+    );
+    for (const retiredContextPath of [
+      "features/freezone/context/contextMatching.ts",
+      "features/freezone/context/contextOperations.tsx",
+      "features/freezone/context/contextPromptCompiler.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredContextPath))).toBe(false);
+    }
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/canvasProjection",
+        "@/modules/creative_canvas/domain/canvasProjectionRequest",
+        "@/modules/creative_canvas/domain/canvasProjectionMetadata",
+        "@/modules/creative_canvas/domain/projectionGraphIds",
+        "@/modules/creative_canvas/domain/assetCommit",
+        "@/modules/creative_canvas/domain/directorWorldCommit",
+        "@/modules/creative_canvas/domain/pushTarget",
+        "@/modules/creative_canvas/domain/mainlineContext",
+        "@/modules/creative_canvas/domain/currentBeatContext",
+        "@/modules/creative_canvas/domain/skillContract",
+        "@/modules/creative_canvas/domain/skillExecution",
+        "@/modules/creative_canvas/domain/skillInputResolution",
+        "@/modules/creative_canvas/domain/inferSkillConnectionRole",
+        "@/modules/creative_canvas/domain/generationHistoryRecord",
+        "@/modules/creative_canvas/domain/beatContext",
+        "@/modules/creative_canvas/domain/assetLibraryModel",
+        "@/modules/creative_canvas/application/assetLibraryProjection",
+        "@/modules/creative_canvas/domain/toolImageGeometry",
+        "@/modules/creative_canvas/domain/multiAngle",
+        "@/modules/creative_canvas/domain/outpaint",
+        "@/modules/creative_canvas/domain/redraw",
+        "@/modules/creative_canvas/domain/relight",
+        "@/modules/creative_canvas/domain/scene360",
+        "@/modules/creative_canvas/domain/upscale",
+        "@/modules/creative_canvas/assetTransferComposition",
+        "@/modules/creative_canvas/canvasStorageRetentionComposition",
+        "@/modules/creative_canvas/domain/canvasStorageRetention",
+        "@/modules/creative_canvas/domain/canvasMutation",
+        "@/modules/creative_canvas/application/canvasRuntimeState",
+        "@/modules/creative_canvas/application/canvasDraft",
+        "@/modules/creative_canvas/application/canvasSyncStorage",
+        "@/modules/creative_canvas/application/canvasSyncHydration",
+        "@/modules/creative_canvas/application/canvasConflictRecovery",
+        "@/modules/creative_canvas/application/canvasProjectionGraph",
+        "@/modules/creative_canvas/application/canvasPresetRefresh",
+        "@/modules/creative_canvas/application/canvasSaveError",
+        "@/modules/creative_canvas/application/canvasSyncCore",
+        "@/modules/creative_canvas/canvasSaveControllerComposition",
+        "@/modules/creative_canvas/presentation/useCanvasSaveController",
+        "@/modules/creative_canvas/application/canvasCommitRules",
+        "@/modules/creative_canvas/application/canvasCommitEvents",
+        "@/modules/creative_canvas/application/directorWorldSceneSaveRegistry",
+        "@/modules/creative_canvas/application/committedNodePatch",
+        "@/modules/creative_canvas/application/sceneDirectorWorldCommit",
+        "@/modules/creative_canvas/application/directorRenderCommit",
+        "@/modules/creative_canvas/directorCommitComposition",
+        "@/modules/creative_canvas/canvasCommitControllerComposition",
+        "@/modules/creative_canvas/domain/canvasCommitEligibility",
+        "@/modules/creative_canvas/domain/canvasCommitSource",
+        "@/modules/creative_canvas/projectionComposition",
+        "@/modules/creative_canvas/presetProjectionComposition",
+        "@/modules/creative_canvas/canvasDraftComposition",
+        "@/modules/creative_canvas/canvasSyncComposition",
+        "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition",
+        "@/modules/creative_canvas/canvasStorageComposition",
+        "@/modules/creative_canvas/canvasBrowserComposition",
+        "@/modules/creative_canvas/presentation/skillI18n",
+        "@/modules/creative_canvas/presentation/assetLibraryViewModel",
+        "@/modules/creative_canvas/presentation/canvasBrowserViewModel",
+        "@/modules/creative_canvas/presentation/commitDialogViewModel",
+      ]),
+    );
+  });
+
+  it("establishes AI Assistant domain and application ownership", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/ai_assistant");
+    const publicPath = resolve(moduleRoot, "public.ts");
+
+    expect(existsSync(publicPath)).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "composition.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/contracts.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/scope.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/scope.test.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/activeTurn.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/activeTurn.test.ts"))).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "domain/messagePresentationRules.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "domain/messagePresentationRules.test.ts")),
+    ).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/message.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/message.test.ts"))).toBe(true);
+    expect(existsSync(resolve(moduleRoot, "domain/structuredContent.ts"))).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "domain/structuredContent.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/panelMessageProjection.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/panelMessageProjection.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/messageTimeline.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/messageTimeline.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/messageProjection.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/messageProjection.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/useFrameController.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/useFrameController.test.tsx")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "application/useIngestAutomationController.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(moduleRoot, "application/useIngestAutomationController.test.tsx"),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "domain/ingestAutomation.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "domain/ingestAutomation.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/messageCache.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/chatCommands.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/chatCommands.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/ingestAutomationGateway.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(moduleRoot, "infrastructure/ingestAutomationGateway.test.ts"),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/ingestUploadStorage.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/ingestUploadStorage.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/messageCache.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/preferencesStorage.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/preferencesStorage.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/activeTurnStorage.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/activeTurnStorage.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/socketSession.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "infrastructure/socketSession.test.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "presentation/timelineScroll.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "presentation/timelineScroll.test.ts")),
+    ).toBe(true);
+    for (const ownedPath of [
+      "domain/specMediaProjection.ts",
+      "domain/specMediaProjection.test.ts",
+      "application/useComposerSubmitController.ts",
+      "application/useComposerSubmitController.test.tsx",
+      "presentation/useComposerAttachmentsController.ts",
+      "presentation/useComposerAttachmentsController.test.tsx",
+      "presentation/useComposerBorderBeam.ts",
+      "presentation/useComposerBorderBeam.test.tsx",
+      "presentation/useComposerHistoryNavigation.ts",
+      "presentation/useComposerHistoryNavigation.test.tsx",
+      "application/useChatQueueController.ts",
+      "application/useChatQueueController.test.tsx",
+      "application/useChatSessionController.ts",
+      "application/useChatSessionController.test.tsx",
+      "presentation/useChatScrollController.ts",
+      "presentation/useChatScrollController.test.tsx",
+      "presentation/useSpeechInputController.ts",
+      "presentation/useSpeechInputController.test.tsx",
+      "presentation/taskNotificationLabel.ts",
+      "presentation/taskNotificationLabel.test.ts",
+      "presentation/useTaskCompletionNotifications.ts",
+      "presentation/useTaskCompletionNotifications.test.tsx",
+      "presentation/ChatControlBar.tsx",
+      "presentation/ChatControlBar.test.tsx",
+      "presentation/ChatPanelHeader.tsx",
+      "presentation/ChatPanelHeader.test.tsx",
+      "presentation/ApprovalCard.tsx",
+      "presentation/ApprovalCard.test.tsx",
+      "presentation/SearchBar.tsx",
+      "presentation/SearchBar.test.tsx",
+      "presentation/PinnedPanel.tsx",
+      "presentation/PinnedPanel.test.tsx",
+      "presentation/StructuredJsonView.tsx",
+      "presentation/StructuredJsonView.test.tsx",
+      "presentation/ComposerWaitingStatus.tsx",
+      "presentation/ComposerWaitingStatus.test.tsx",
+      "presentation/QueuedMessagesPanel.tsx",
+      "presentation/QueuedMessagesPanel.test.tsx",
+      "presentation/ChatPanelContextViews.tsx",
+      "presentation/ChatPanelContextViews.test.tsx",
+      "presentation/ChatComposer.tsx",
+      "presentation/ChatComposer.test.tsx",
+      "presentation/useAiAvatarUrl.ts",
+      "presentation/SpecMediaModals.tsx",
+      "presentation/SpecMediaModals.test.tsx",
+      "presentation/SpecMediaGallery.tsx",
+      "presentation/SpecMediaGallery.test.tsx",
+      "presentation/ChatMessageView.tsx",
+      "presentation/ChatMessageView.test.tsx",
+      "presentation/MessageDetailPanel.tsx",
+      "presentation/MessageDetailPanel.test.tsx",
+      "presentation/ChatTimeline.tsx",
+      "presentation/ChatTimeline.test.tsx",
+      "presentation/ChatMessageArea.tsx",
+      "presentation/ChatMessageArea.test.tsx",
+      "presentation/ChatPanelDetailOverlays.tsx",
+      "presentation/ChatPanelDetailOverlays.test.tsx",
+      "presentation/SuperChatPanelView.tsx",
+      "presentation/SuperChatPanelView.test.tsx",
+      "presentation/SuperChatPanel.tsx",
+    ]) {
+      expect(existsSync(resolve(moduleRoot, ownedPath)), ownedPath).toBe(true);
+    }
+    expect(existsSync(resolve(SRC_ROOT, "features/superchat/types.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/superchat/scope.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/superchat/message.ts"))).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/spec-extract.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/message-timeline.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/message-projection.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/message-cache.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/preferences-storage.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/superchat/message-presentation-rules.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/superchat/panel-message-projection.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/active-turn.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "__tests__/features/superchat/scope.test.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/spec-extract.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/message-timeline.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/message-projection.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/message-cache.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/preferences-storage.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "__tests__/features/superchat/message-presentation-rules.test.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/chat-commands.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/chat-commands.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/timeline-scroll.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/timeline-scroll.test.ts"),
+      ),
+    ).toBe(false);
+    for (const legacyPath of [
+      "features/superchat/ingest-automation-domain.ts",
+      "features/superchat/ingest-automation-gateway.ts",
+      "features/superchat/ingest-upload-storage.ts",
+      "features/superchat/use-ingest-automation-controller.ts",
+      "__tests__/features/superchat/ingest-automation-domain.test.ts",
+      "__tests__/features/superchat/ingest-automation-gateway.test.ts",
+      "__tests__/features/superchat/ingest-upload-storage.test.ts",
+      "__tests__/features/superchat/use-ingest-automation-controller.test.tsx",
+      "features/superchat/use-composer-attachments-controller.ts",
+      "features/superchat/use-composer-border-beam.ts",
+      "features/superchat/use-composer-history-navigation.ts",
+      "features/superchat/use-composer-submit-controller.ts",
+      "__tests__/features/superchat/use-composer-attachments-controller.test.tsx",
+      "__tests__/features/superchat/use-composer-border-beam.test.tsx",
+      "__tests__/features/superchat/use-composer-history-navigation.test.tsx",
+      "__tests__/features/superchat/use-composer-submit-controller.test.tsx",
+      "features/superchat/use-chat-queue-controller.ts",
+      "features/superchat/use-chat-scroll-controller.ts",
+      "features/superchat/use-speech-input-controller.ts",
+      "features/superchat/task-notification-label.ts",
+      "features/superchat/use-task-completion-notifications.ts",
+      "__tests__/features/superchat/use-chat-queue-controller.test.tsx",
+      "__tests__/features/superchat/use-chat-scroll-controller.test.tsx",
+      "__tests__/features/superchat/use-speech-input-controller.test.tsx",
+      "__tests__/features/superchat/task-notification-label.test.ts",
+      "__tests__/features/superchat/use-task-completion-notifications.test.tsx",
+      "features/superchat/chat-control-bar.tsx",
+      "features/superchat/chat-panel-header.tsx",
+      "__tests__/features/superchat/chat-control-bar.test.tsx",
+      "__tests__/features/superchat/chat-panel-header.test.tsx",
+      "features/superchat/approval-card.tsx",
+      "__tests__/features/superchat/approval-card.test.tsx",
+      "features/superchat/chat-search-bar.tsx",
+      "features/superchat/pinned-messages-panel.tsx",
+      "features/superchat/structured-json-view.tsx",
+      "__tests__/features/superchat/structured-json-view.test.tsx",
+      "features/superchat/composer-waiting-status.tsx",
+      "features/superchat/queued-messages-panel.tsx",
+      "__tests__/features/superchat/composer-waiting-status.test.tsx",
+      "__tests__/features/superchat/queued-messages-panel.test.tsx",
+      "features/superchat/chat-panel-context-views.tsx",
+      "__tests__/features/superchat/chat-panel-context-views.test.tsx",
+      "features/superchat/chat-composer.tsx",
+      "__tests__/features/superchat/chat-composer.test.tsx",
+      "features/superchat/ai-avatar.ts",
+      "features/superchat/spec-media-projection.ts",
+      "__tests__/features/superchat/spec-media-projection.test.ts",
+      "features/superchat/spec-media-modals.tsx",
+      "__tests__/features/superchat/spec-media-modals.test.tsx",
+      "features/superchat/spec-media-gallery.tsx",
+      "__tests__/features/superchat/spec-media-gallery.test.tsx",
+      "features/superchat/chat-message-view.tsx",
+      "__tests__/features/superchat/chat-message-view.test.tsx",
+      "features/superchat/message-detail-panel.tsx",
+      "__tests__/features/superchat/panel-secondary-views.test.tsx",
+      "features/superchat/chat-timeline.tsx",
+      "__tests__/features/superchat/chat-timeline.test.tsx",
+      "features/superchat/chat-message-area.tsx",
+      "__tests__/features/superchat/chat-message-area.test.tsx",
+      "features/superchat/chat-panel-detail-overlays.tsx",
+      "__tests__/features/superchat/chat-panel-detail-overlays.test.tsx",
+      "features/superchat/superchat-panel-view.tsx",
+      "__tests__/features/superchat/superchat-panel-view.test.tsx",
+      "features/superchat/use-superchat.ts",
+      "features/superchat/superchat-panel.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "__tests__/features/superchat/panel-message-projection.test.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/active-turn.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/socket-session.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/superchat/socket-session.test.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/use-frame-controller.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "__tests__/features/superchat/use-frame-controller.test.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/ai_assistant/application/messageProjection",
+        "@/modules/ai_assistant/application/messageTimeline",
+        "@/modules/ai_assistant/application/panelMessageProjection",
+        "@/modules/ai_assistant/application/useFrameController",
+        "@/modules/ai_assistant/application/useComposerSubmitController",
+        "@/modules/ai_assistant/application/useChatQueueController",
+        "@/modules/ai_assistant/composition",
+        "@/modules/ai_assistant/domain/activeTurn",
+        "@/modules/ai_assistant/domain/contracts",
+        "@/modules/ai_assistant/domain/ingestAutomation",
+        "@/modules/ai_assistant/domain/message",
+        "@/modules/ai_assistant/domain/messagePresentationRules",
+        "@/modules/ai_assistant/domain/scope",
+        "@/modules/ai_assistant/domain/structuredContent",
+        "@/modules/ai_assistant/infrastructure/activeTurnStorage",
+        "@/modules/ai_assistant/infrastructure/chatCommands",
+        "@/modules/ai_assistant/infrastructure/messageCache",
+        "@/modules/ai_assistant/infrastructure/preferencesStorage",
+        "@/modules/ai_assistant/infrastructure/socketSession",
+        "@/modules/ai_assistant/presentation/timelineScroll",
+        "@/modules/ai_assistant/presentation/useComposerAttachmentsController",
+        "@/modules/ai_assistant/presentation/useComposerBorderBeam",
+        "@/modules/ai_assistant/presentation/useComposerHistoryNavigation",
+        "@/modules/ai_assistant/presentation/useChatScrollController",
+        "@/modules/ai_assistant/presentation/useSpeechInputController",
+        "@/modules/ai_assistant/presentation/taskNotificationLabel",
+        "@/modules/ai_assistant/presentation/useTaskCompletionNotifications",
+        "@/modules/ai_assistant/presentation/ChatPanelHeader",
+        "@/modules/ai_assistant/presentation/ApprovalCard",
+        "@/modules/ai_assistant/presentation/SearchBar",
+        "@/modules/ai_assistant/presentation/PinnedPanel",
+        "@/modules/ai_assistant/presentation/StructuredJsonView",
+        "@/modules/ai_assistant/presentation/ComposerWaitingStatus",
+        "@/modules/ai_assistant/presentation/QueuedMessagesPanel",
+        "@/modules/ai_assistant/presentation/ChatPanelContextViews",
+        "@/modules/ai_assistant/presentation/ChatComposer",
+      ]),
+    );
+  });
+
+  it("establishes Task Execution as the canonical frontend task boundary", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/task_execution");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const ownedPaths = [
+      "domain/contracts.ts",
+      "domain/taskOrigin.ts",
+      "domain/taskOrigin.test.ts",
+      "domain/taskScope.ts",
+      "domain/taskScope.test.ts",
+      "domain/taskState.ts",
+      "domain/taskState.test.ts",
+      "domain/taskTypes.ts",
+      "application/taskEventBus.ts",
+      "application/taskEventBus.test.ts",
+      "application/taskQueryPorts.ts",
+      "application/taskStreamPorts.ts",
+      "composition.ts",
+      "infrastructure/httpTaskQueryGateway.ts",
+      "infrastructure/httpTaskQueryGateway.test.ts",
+      "infrastructure/taskCompletionMonitor.ts",
+      "infrastructure/taskCompletionMonitor.test.ts",
+      "infrastructure/taskStreamClient.ts",
+      "infrastructure/taskStreamClient.test.ts",
+      "presentation/TaskCenterProvider.tsx",
+      "presentation/taskCenterStore.ts",
+      "presentation/taskErrorMessage.ts",
+      "presentation/taskEventBusContext.ts",
+      "presentation/taskOriginLink.ts",
+      "presentation/taskOriginLink.test.ts",
+      "presentation/taskQueryHooks.ts",
+      "presentation/useTaskSubscribe.ts",
+      "public.ts",
+    ];
+    const legacyPaths = [
+      "task-center/types.ts",
+      "task-center/derivations.ts",
+      "task-center/event-bus.ts",
+      "task-center/event-bus-context.ts",
+      "task-center/task-monitor.ts",
+      "task-center/matchers.ts",
+      "task-center/provider.tsx",
+      "task-center/public.ts",
+      "task-center/query-hooks.ts",
+      "task-center/store.ts",
+      "task-center/stream-client.ts",
+      "task-center/task-errors.ts",
+      "task-center/use-task-subscribe.ts",
+      "types/task.ts",
+      "lib/task-scope.ts",
+      "lib/task-scope.test.ts",
+      "lib/task-types.ts",
+      "__tests__/task-center/derivations.test.ts",
+      "__tests__/task-center/event-bus.test.ts",
+      "__tests__/task-center/matchers.test.ts",
+      "__tests__/task-center/stream-client.test.ts",
+    ];
+
+    for (const path of ownedPaths) {
+      expect(existsSync(resolve(moduleRoot, path)), path).toBe(true);
+    }
+    for (const path of legacyPaths) {
+      expect(existsSync(resolve(SRC_ROOT, path)), path).toBe(false);
+    }
+    expect(sourceFiles(resolve(SRC_ROOT, "task-center"))).toEqual([]);
+    expect(sourceFiles(moduleRoot).length).toBe(ownedPaths.length);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/task_execution/domain/contracts",
+        "@/modules/task_execution/domain/taskOrigin",
+        "@/modules/task_execution/domain/taskScope",
+        "@/modules/task_execution/domain/taskState",
+        "@/modules/task_execution/domain/taskTypes",
+        "@/modules/task_execution/application/taskEventBus",
+        "@/modules/task_execution/application/taskQueryPorts",
+        "@/modules/task_execution/composition",
+        "@/modules/task_execution/infrastructure/taskCompletionMonitor",
+        "@/modules/task_execution/presentation/taskCenterStore",
+        "@/modules/task_execution/presentation/taskErrorMessage",
+        "@/modules/task_execution/presentation/taskEventBusContext",
+        "@/modules/task_execution/presentation/taskOriginLink",
+        "@/modules/task_execution/presentation/taskQueryHooks",
+        "@/modules/task_execution/presentation/useTaskSubscribe",
+      ]),
+    );
+
+    const queryHooksSource = readFileSync(
+      resolve(moduleRoot, "presentation/taskQueryHooks.ts"),
+      "utf8",
+    );
+    const providerSource = readFileSync(
+      resolve(moduleRoot, "presentation/TaskCenterProvider.tsx"),
+      "utf8",
+    );
+    const gatewaySource = readFileSync(
+      resolve(moduleRoot, "infrastructure/httpTaskQueryGateway.ts"),
+      "utf8",
+    );
+    expect(queryHooksSource).not.toContain("@/shared/api/");
+    expect(providerSource).not.toContain("@/shared/api/transport");
+    expect(providerSource).toContain("gateway.listProjectTasks(projectId, signal)");
+    expect(gatewaySource).toContain("@/shared/api/transport");
+
+    const privateBypasses = sourceFiles(SRC_ROOT)
+      .filter(
+        (path) =>
+          !relativeSource(path).startsWith("modules/task_execution/"),
+      )
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/modules/task_execution/") &&
+              specifier !== "@/modules/task_execution/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+    expect(privateBypasses).toEqual([]);
+  });
+
+  it("only allows the measured legacy feature roots to shrink", () => {
+    const measuredMaximums = new Map([
+      ["features/canvas", 901],
+      ["features/freezone", 45],
+      ["features/superchat", 0],
+      ["task-center", 0],
+    ]);
+
+    for (const [root, maximum] of measuredMaximums) {
+      expect(sourceFiles(resolve(SRC_ROOT, root)).length, root).toBeLessThanOrEqual(
+        maximum,
+      );
+    }
+  });
+
+  it("tracks every remaining legacy Canvas URL reader", () => {
+    const readers = sourceFiles(resolve(SRC_ROOT, "features/canvas"))
+      .filter((path) => !/\.test\.(ts|tsx)$/.test(path))
+      .map((path) => ({
+        path: relativeSource(path),
+        calls: readFileSync(path, "utf8").match(/readUrl\(\)/g)?.length ?? 0,
+      }))
+      .filter(({ calls }) => calls > 0)
+      .sort((left, right) => left.path.localeCompare(right.path));
+
+    expect(readers).toEqual([]);
+  });
+
+  it("removes all legacy Freezone public consumers", () => {
+    const productionFiles = sourceFiles(SRC_ROOT).filter(
+      (path) =>
+        !path.includes("__tests__") && !/\.(test|spec)\.(ts|tsx)$/.test(path),
+    );
+    const imports = productionFiles.flatMap((path) =>
+      importSpecifiers(path)
+        .filter((specifier) => specifier === "@/features/freezone/public")
+        .map(() => relativeSource(path)),
+    );
+
+    expect(new Set(imports).size).toBe(0);
+    expect(imports.length).toBe(0);
+  });
+
+  it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
+    const allowed = new Set([
+      "modules/production/composition.ts: @/features/canvas/public",
+      "modules/production/sketch-section-composition.ts: @/features/canvas/public",
+      "routes/_app/projects.$project/freezone.lazy.tsx: @/features/freezone/routeComposition",
+    ]);
+    const roots = ["app", "components", "modules", "routes"];
+    const actual = roots.flatMap((root) =>
+      sourceFiles(resolve(SRC_ROOT, root)).flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) =>
+            /^@\/features\/(canvas|freezone|superchat)(\/|$)/.test(specifier),
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      ),
+    );
+
+    expect(actual.filter((entry) => !allowed.has(entry))).toEqual([]);
+  });
+
+  it("keeps Canvas infrastructure independent from routes and Freezone features", () => {
+    const gateway = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/infrastructure/freezoneAiGateway.ts"),
+      "utf8",
+    );
+
+    expect(gateway.match(/readUrl\(\)/g)?.length ?? 0).toBe(0);
+    expect(
+      importSpecifiers(
+        resolve(SRC_ROOT, "features/canvas/infrastructure/freezoneAiGateway.ts"),
+      ).filter((specifier) => specifier === "@/features/freezone/public").length,
+    ).toBe(0);
+  });
+
+  it("uses the authenticated catalog as the only Canvas model source", () => {
+    const modelRoot = resolve(SRC_ROOT, "features/canvas/models");
+    const productionModelFiles = sourceFiles(modelRoot)
+      .filter((path) => !/\.test\.(ts|tsx)$/.test(path))
+      .map(relativeSource)
+      .sort();
+    const catalogConsumers = [
+      "features/canvas/models/registry.ts",
+      "features/canvas/hooks/useFreezoneImageModels.ts",
+      "features/canvas/hooks/useFreezoneVideoModels.ts",
+    ].map((path) => readFileSync(resolve(SRC_ROOT, path), "utf8"));
+
+    expect(productionModelFiles).toEqual([
+      "features/canvas/models/index.ts",
+      "features/canvas/models/registry.ts",
+      "features/canvas/models/types.ts",
+    ]);
+    for (const source of catalogConsumers) {
+      for (const forbidden of [
+        "fallbackModels",
+        "isFallback",
+        "gpt-image-1",
+        "nano-banana-pro",
+        "openrouter/",
+        "huimeng",
+      ]) {
+        expect(source, forbidden).not.toContain(forbidden);
+      }
+    }
+  });
+
+  it("does not persist the removed renderer Provider API-key map", () => {
+    const settings = readFileSync(
+      resolve(SRC_ROOT, "stores/settingsStore.ts"),
+      "utf8",
+    );
+
+    for (const removedSymbol of [
+      "ProviderApiKeys",
+      "setProviderApiKey",
+      "hasConfiguredApiKey",
+      "getConfiguredApiKeyCount",
+    ]) {
+      expect(settings, removedSymbol).not.toContain(removedSymbol);
+    }
+  });
+
+  it("keeps secrets and generic network capabilities out of the renderer bridge", () => {
+    const preload = readFileSync(resolve(DESKTOP_ROOT, "src/preload.cts"), "utf8");
+    const exposedObject = preload.slice(
+      preload.indexOf('contextBridge.exposeInMainWorld("aiAnimeDesktop"'),
+    );
+
+    for (const forbidden of [
+      "accessToken",
+      "privateKey",
+      "payloadJson",
+      "rawRequest:",
+      "request:",
+      "fetch:",
+    ]) {
+      expect(exposedObject, forbidden).not.toContain(forbidden);
+    }
+  });
+});

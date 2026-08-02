@@ -82,7 +82,7 @@ import {
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
-import { NodeContextBadges } from '@/features/freezone/public';
+import { NodeContextBadges } from '@/modules/creative_canvas/public';
 
 export interface VideoNodeViewProps {
   controller: VideoNodeController;
@@ -132,7 +132,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     sceneOptimizeOptions,
     sceneOptimize,
     generateAudio,
-    isSeedance20Model,
+    supportsHumanReview,
     humanReview,
     count,
     totalCreditCostDisplay,
@@ -530,6 +530,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
           <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
               <ProviderModelPicker
+                projectId={projectId}
                 selectedModelId={modelId}
                 onChange={handleModelChange}
                 domain="video"
@@ -549,7 +550,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
                 generateAudio={generateAudio}
                 onChange={(patch) => updateNodeData(id, patch)}
               />
-              {isSeedance20Model && (
+              {supportsHumanReview && (
                 <VideoHumanReviewSwitch
                   checked={humanReview}
                   onChange={(checked) =>

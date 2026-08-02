@@ -12,8 +12,7 @@ const updateNodeData = vi.fn();
 const aiGateway: AiGateway = {
   generateImage: vi.fn(),
   getGenerateImageJob: vi.fn(),
-  setApiKey: vi.fn(),
-  submitGenerateImageJob: (payload) => submitImage(payload),
+  submitGenerateImageJob: (scope, payload) => submitImage(scope, payload),
 };
 
 const submitRedraw = vi.fn();
@@ -29,13 +28,13 @@ const redrawGateway: CanvasRedrawTaskGateway = {
 
 async function regenerate(
   nodeData: Record<string, unknown>,
-  projectId: string | null = 'proj',
 ): Promise<void> {
   await regenerateExportImageNode(
     {
       nodeData,
       nodeId: 'export-node',
-      projectId,
+      projectId: 'proj',
+      canvasId: 'canvas-a',
       runtimeSessionId: 'runtime-test',
       updateNodeData,
     },
@@ -66,6 +65,7 @@ describe('regenerateExportImageNode', () => {
     });
 
     expect(submitImage).toHaveBeenCalledWith(
+      { projectId: 'proj', canvasId: 'canvas-a' },
       expect.objectContaining({ nodeId: 'export-node', prompt: '重新生成' }),
     );
     expect(submitRedraw).not.toHaveBeenCalled();
@@ -90,6 +90,7 @@ describe('regenerateExportImageNode', () => {
         aspectRatio: 'original',
         imageSize: '2K',
         maskUrl: '/static/proj/mask.png',
+        model: 'cloud-image-standard',
         sourceUrl: '/static/proj/source.png',
       },
     });
@@ -98,6 +99,7 @@ describe('regenerateExportImageNode', () => {
       aspectRatio: 'original',
       imageSize: '2K',
       maskUrl: '/static/proj/mask.png',
+      model: 'cloud-image-standard',
       sourceUrl: '/static/proj/source.png',
     });
     expect(fetchRedrawResultUrl).not.toHaveBeenCalled();
@@ -126,6 +128,7 @@ describe('regenerateExportImageNode', () => {
         aspectRatio: '16:9',
         imageSize: '2K',
         maskUrl: '/static/proj/mask.png',
+        model: 'cloud-image-standard',
         sourceUrl: '/static/proj/source.png',
       },
     });
@@ -141,20 +144,4 @@ describe('regenerateExportImageNode', () => {
     );
   });
 
-  it('reports a missing project without submitting a redraw task', async () => {
-    await regenerate(
-      {
-        freezoneRedrawRequest: {
-          maskUrl: '/static/proj/mask.png',
-          sourceUrl: '/static/proj/source.png',
-        },
-      },
-      null,
-    );
-
-    expect(submitRedraw).not.toHaveBeenCalled();
-    expect(updateNodeData).toHaveBeenCalledWith('export-node', {
-      generationError: '当前 URL 没有 project，无法重试',
-    });
-  });
 });

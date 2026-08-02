@@ -6,8 +6,19 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import (
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store, canvas_store_io
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasIdempotencyConflict,
+    DangerousEmptyCanvasOverwrite,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_history import (
+    HISTORY_RETENTION_LIMIT,
+    canvas_idempotency_path,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    canvas_request_hash,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import (
     CanvasLockBusy,
     canvas_lock_path,
     canvas_write_lock,
@@ -377,7 +388,7 @@ def test_save_canvas_prunes_history_to_retention_limit(tmp_path: Path) -> None:
         assert result.payload["revision"] == revision + 1
 
     history_files = list((canvas_file.parent / "_history").glob("default.rev*.json"))
-    assert len(history_files) == canvas_store.HISTORY_RETENTION_LIMIT
+    assert len(history_files) == HISTORY_RETENTION_LIMIT
     assert not list((canvas_file.parent / "_history").glob("default.rev0.*.json"))
     assert list((canvas_file.parent / "_history").glob("default.rev104.*.json"))
 
@@ -396,7 +407,7 @@ def test_save_canvas_idempotency_returns_cached_response(tmp_path: Path) -> None
         "default",
         base_revision=1,
         client_save_id="save-1",
-        request_hash=canvas_store.canvas_request_hash(
+        request_hash=canvas_request_hash(
             {
                 "base_revision": 1,
                 "nodes": [{"id": "new"}],
@@ -415,7 +426,7 @@ def test_save_canvas_idempotency_returns_cached_response(tmp_path: Path) -> None
         "default",
         base_revision=1,
         client_save_id="save-1",
-        request_hash=canvas_store.canvas_request_hash(
+        request_hash=canvas_request_hash(
             {
                 "base_revision": 1,
                 "nodes": [{"id": "new"}],
@@ -489,17 +500,17 @@ def test_save_canvas_rejects_idempotency_key_with_different_payload(tmp_path: Pa
         "default",
         base_revision=1,
         client_save_id="save-1",
-        request_hash=canvas_store.canvas_request_hash({"nodes": [{"id": "new"}]}),
+        request_hash=canvas_request_hash({"nodes": [{"id": "new"}]}),
         build_payload=lambda _existing: {"revision": 2, "nodes": [{"id": "new"}], "edges": []},
     )
 
-    with pytest.raises(canvas_store.CanvasIdempotencyConflict):
+    with pytest.raises(CanvasIdempotencyConflict):
         canvas_store.save_canvas(
             project_dir,
             "default",
             base_revision=1,
             client_save_id="save-1",
-            request_hash=canvas_store.canvas_request_hash({"nodes": [{"id": "different"}]}),
+            request_hash=canvas_request_hash({"nodes": [{"id": "different"}]}),
             build_payload=lambda _existing: {
                 "revision": 3,
                 "nodes": [{"id": "different"}],
@@ -521,7 +532,7 @@ def test_save_canvas_rejects_dangerous_empty_autosave(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    with pytest.raises(canvas_store.DangerousEmptyCanvasOverwrite):
+    with pytest.raises(DangerousEmptyCanvasOverwrite):
         canvas_store.save_canvas(
             project_dir,
             "default",
@@ -546,7 +557,7 @@ def test_save_canvas_warns_for_oversized_payload_but_writes(
         json.dumps({"revision": 1, "nodes": [{"id": "old"}], "edges": []}),
         encoding="utf-8",
     )
-    monkeypatch.setattr(canvas_store, "CANVAS_PAYLOAD_SIZE_LIMIT_BYTES", 512)
+    monkeypatch.setattr(canvas_store_io, "CANVAS_PAYLOAD_SIZE_LIMIT_BYTES", 512)
 
     result = canvas_store.save_canvas(
         project_dir,
@@ -586,7 +597,7 @@ def test_save_canvas_rejects_dangerous_empty_autosave_for_last_node(tmp_path: Pa
         encoding="utf-8",
     )
 
-    with pytest.raises(canvas_store.DangerousEmptyCanvasOverwrite):
+    with pytest.raises(DangerousEmptyCanvasOverwrite):
         canvas_store.save_canvas(
             project_dir,
             "default",
@@ -615,10 +626,10 @@ def test_soft_delete_canvas_clears_idempotency_file(tmp_path: Path) -> None:
         "default",
         base_revision=1,
         client_save_id="save-1",
-        request_hash=canvas_store.canvas_request_hash({"nodes": [{"id": "n2"}]}),
+        request_hash=canvas_request_hash({"nodes": [{"id": "n2"}]}),
         build_payload=lambda _existing: {"revision": 2, "nodes": [{"id": "n2"}], "edges": []},
     )
-    idem_path = canvas_store.canvas_idempotency_path(project_dir, "default")
+    idem_path = canvas_idempotency_path(project_dir, "default")
     assert idem_path.exists(), "precondition: idempotency cache should have been written"
 
     canvas_store.soft_delete_canvas(project_dir, "default", deleted_by="alice")

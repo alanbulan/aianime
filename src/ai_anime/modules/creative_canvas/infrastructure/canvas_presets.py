@@ -7,15 +7,25 @@ from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
-from ai_anime.freezone.presets import (
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
+from ai_anime.modules.creative_canvas.infrastructure.preset_contexts import (
     build_asset_preset_context,
     build_beat_preset_context,
-    build_canvas_payload_from_context,
     build_episode_preset_context,
-    canvas_id_for_preset,
-    preset_key_for_request,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_payload import (
+    build_canvas_payload_from_context,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasSaveResult,
+    CanvasStoreError,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    canvas_request_hash,
+    read_canvas,
+    relative_project_path,
+    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_presets import (
     CreateCreativeCanvasPresetCommand,
@@ -28,11 +38,13 @@ from ai_anime.modules.creative_canvas.application.canvas_presets import (
     InvalidCreativeCanvasPresetRequest,
 )
 from ai_anime.modules.creative_canvas.domain import (
+    canvas_id_for_preset,
     default_push_target_for_preset,
     merge_restored_preset_canvas,
     preset_facts_signature,
     preset_facts_signature_from_payload,
     prepare_creative_canvas_payload_for_write,
+    preset_key_for_request,
     stamp_preset_facts_signature,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
@@ -47,7 +59,7 @@ from ai_anime.shared.infrastructure.project_stores import (
 StoreFactory = Callable[[ProjectContext], Awaitable[Any]]
 PresetContextBuilder = Callable[..., Awaitable[dict[str, Any]]]
 CanvasPayloadBuilder = Callable[..., dict[str, Any]]
-SaveCanvas = Callable[..., canvas_store.CanvasSaveResult]
+SaveCanvas = Callable[..., CanvasSaveResult]
 ReadCanvas = Callable[[Path, str], dict | None]
 LatestPresetCanvas = Callable[[Path, str], str | None]
 RequestHash = Callable[[dict], str]
@@ -203,7 +215,7 @@ class LocalCreativeCanvasPresetBuilder:
         return CreativeCanvasPresetBuild(plan=plan, payload=payload)
 
     def _now(self) -> str:
-        return (self._utc_now or canvas_store.utc_now_iso)()
+        return (self._utc_now or utc_now_iso)()
 
 
 class LocalCreativeCanvasPresetGateway:
@@ -229,7 +241,7 @@ class LocalCreativeCanvasPresetGateway:
         plan: CreativeCanvasPresetPlan,
     ) -> str | None:
         state_dir = Path(context.state_dir)
-        canonical = (self._read_canvas or canvas_store.read_canvas)(
+        canonical = (self._read_canvas or read_canvas)(
             state_dir,
             plan.canonical_canvas_id,
         )
@@ -250,7 +262,7 @@ class LocalCreativeCanvasPresetGateway:
         canvas_id: str,
         plan: CreativeCanvasPresetPlan,
     ) -> None:
-        existing = (self._read_canvas or canvas_store.read_canvas)(
+        existing = (self._read_canvas or read_canvas)(
             Path(context.state_dir),
             canvas_id,
         )
@@ -320,7 +332,7 @@ class LocalCreativeCanvasPresetGateway:
             }
 
         request = preset.plan.request
-        stable_hash = (self._request_hash or canvas_store.canvas_request_hash)(
+        stable_hash = (self._request_hash or canvas_request_hash)(
             {
                 "scope": request["scope"],
                 "episode": request.get("episode"),
@@ -347,7 +359,7 @@ class LocalCreativeCanvasPresetGateway:
                 save_source="from_preset",
                 allow_empty_overwrite=True,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         saved_payload = saved_canvas.payload
@@ -371,7 +383,7 @@ class LocalCreativeCanvasPresetGateway:
                 "edge_count": len(saved_payload.get("edges") or []),
                 "overwrote_existing": overwrite_existing,
                 "backup_path": (
-                    canvas_store.relative_project_path(
+                    relative_project_path(
                         state_dir,
                         saved_canvas.backup_path,
                     )
@@ -436,7 +448,7 @@ class LocalCreativeCanvasPresetGateway:
             return None
 
     def _now(self) -> str:
-        return (self._utc_now or canvas_store.utc_now_iso)()
+        return (self._utc_now or utc_now_iso)()
 
 
 __all__ = [

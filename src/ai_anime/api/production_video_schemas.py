@@ -4,9 +4,6 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
-from ai_anime.modules.production.public import DEFAULT_VIDEO_BACKEND
-
-
 class Seedance2AssetDeleteRequest(BaseModel):
     media_kind: Literal["images", "audios"]
     path: str
@@ -41,7 +38,7 @@ class VideoComposeRequest(BaseModel):
 
 class SingleVideoRequest(BaseModel):
     resolution: str = "720x1280"
-    video_backend: str = DEFAULT_VIDEO_BACKEND
+    model: str
     use_director_render: bool = False
     seedance2_config_json: Optional[str] = None
     mode: Optional[str] = None

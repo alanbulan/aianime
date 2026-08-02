@@ -5,10 +5,11 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
-import type { Task } from "@/types/task";
+import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
+import type { TaskState } from "@/modules/task_execution/public";
 
 const state = vi.hoisted(() => ({
-  tasks: [] as Task[],
+  tasks: [] as TaskState[],
 }));
 
 vi.mock("@/hooks/use-task-stream", () => ({
@@ -22,7 +23,8 @@ vi.mock("@/hooks/use-task-stream", () => ({
   }),
 }));
 
-vi.mock("@/task-center/public", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTasks: () => ({ data: { ok: true, data: state.tasks } }),
   useCancelTask: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ ok: true, data: null }),
@@ -50,7 +52,7 @@ beforeEach(() => {
 describe("useTaskController logs", () => {
   it("hydrates stage logs from task list snapshots", async () => {
     state.tasks = [
-      {
+      sampleTask({
         task_type: "script_writer",
         username: "u",
         project: "demo",
@@ -59,7 +61,7 @@ describe("useTaskController logs", () => {
         progress: 0.5,
         current_task: "生成第 1 行",
         logs: ["[INFO] 启动", "[INFO] 生成第 1 行"],
-      },
+      }),
     ];
 
     const { result } = renderHook(

@@ -19,18 +19,18 @@ import {
   useClearCompleted,
   useDeleteTask,
   useTasks,
-} from "@/task-center/public";
+} from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TaskListSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 import { stageForTaskType } from "@/lib/episode-stage-registry";
-import { TASK_TYPES } from "@/lib/task-types";
-import type { Task, TaskStatus } from "@/types/task";
+import { TASK_TYPES } from "@/modules/task_execution/public";
+import type { TaskState, TaskStatus } from "@/modules/task_execution/public";
 
 // Map a backend task_type → the most relevant FE route under a project.
-function taskDeepLink(task: Task): string | null {
+function taskDeepLink(task: TaskState): string | null {
   const { episode, task_type } = task;
   const project = task.project_id ?? task.project;
 
@@ -95,7 +95,7 @@ function TaskRow({
   deleting,
   outOfProject,
 }: {
-  task: Task;
+  task: TaskState;
   onCancel: () => void;
   onDelete: () => void;
   cancelling: boolean;
@@ -292,7 +292,7 @@ function TasksPage() {
   const hasRunning = tasks.some((tk) => isActiveTaskStatus(tk.status));
 
   const handleCancel = useCallback(
-    async (task: Task) => {
+    async (task: TaskState) => {
       try {
         await cancelTask.mutateAsync({
           type: task.task_type,
@@ -310,7 +310,7 @@ function TasksPage() {
   );
 
   const handleDelete = useCallback(
-    async (task: Task) => {
+    async (task: TaskState) => {
       try {
         await deleteTask.mutateAsync({
           type: task.task_type,

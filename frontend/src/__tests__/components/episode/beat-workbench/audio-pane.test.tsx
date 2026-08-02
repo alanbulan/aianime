@@ -85,6 +85,16 @@ const useAudioPaneController = createUseAudioPaneController(
     }),
   },
   {
+    useAudioModels: () => ({
+      data: [
+        {
+          value: "audio-speech-test",
+          label: "Audio Speech Test",
+          supportedModes: ["speech"],
+        },
+      ],
+      isLoading: false,
+    }),
     useGenerationCreditCost: () => ({
       data: { data: { display: "" } },
     }),
@@ -229,7 +239,10 @@ describe("AudioPane", () => {
     await user.click(screen.getByRole("button", { name: "重新生成" }));
     await user.click(screen.getByRole("button", { name: "确认" }));
 
-    expect(mutateRegenerate).toHaveBeenCalledWith(7);
+    expect(mutateRegenerate).toHaveBeenCalledWith({
+      beatNumber: 7,
+      model: "audio-speech-test",
+    });
     expect(taskStart).toHaveBeenCalledWith({
       scope: "ep001:beat_01:__narrator__",
     });

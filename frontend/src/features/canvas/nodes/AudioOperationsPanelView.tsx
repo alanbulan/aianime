@@ -47,6 +47,8 @@ const MUSIC_LENGTH_SELECT_CLASS =
   '!h-8 !w-[116px] !rounded-[8px] !border-border !bg-muted !px-3 !text-[13px] !text-foreground hover:!border-foreground/25';
 const MUSIC_LENGTH_SELECT_MENU_CLASS =
   '!z-[260] !min-w-[140px] !border-border !bg-popover !text-popover-foreground shadow-xl';
+const AUDIO_MODEL_SELECT_CLASS =
+  '!h-8 !w-[180px] !rounded-[8px] !border-border !bg-muted !px-3 !text-[12px] !text-foreground hover:!border-foreground/25';
 
 export interface AudioOperationsPanelViewProps {
   controller: AudioOperationsPanelController;
@@ -79,6 +81,11 @@ export function AudioOperationsPanelView({
     showMusicSettings,
     toggleMusicSettings,
     audioCostDisplay,
+    audioModels,
+    selectedModel,
+    modelCatalogLoading,
+    modelCatalogError,
+    setSelectedModel,
     submitDisabled,
     submit,
   } = controller;
@@ -175,6 +182,27 @@ export function AudioOperationsPanelView({
       )}
 
       <div className="flex shrink-0 items-center justify-end gap-2 px-3 pb-3 pt-1">
+        <UiSelect
+          aria-label="音频模型"
+          title={modelCatalogError || undefined}
+          value={selectedModel}
+          onChange={(event) => setSelectedModel(event.target.value)}
+          onMouseDown={(event) => event.stopPropagation()}
+          disabled={isGenerating || modelCatalogLoading || audioModels.length === 0}
+          className={AUDIO_MODEL_SELECT_CLASS}
+          menuClassName={MUSIC_LENGTH_SELECT_MENU_CLASS}
+        >
+          {audioModels.length === 0 ? (
+            <option value="">
+              {modelCatalogLoading ? '加载模型…' : '无可用音频模型'}
+            </option>
+          ) : null}
+          {audioModels.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label}
+            </option>
+          ))}
+        </UiSelect>
         <IconButton
           title="翻译（中英文互译）"
           onClick={translate}
@@ -464,6 +492,7 @@ function AudioVoiceSettingsPanel({
         </div>
       </div>
       <VoiceSelectionModal
+        projectId={controller.projectId}
         open={voiceModalOpen}
         onClose={closeVoiceModal}
         currentRef={voiceSettings.currentRef}

@@ -8,7 +8,7 @@ export interface VideoPoolEntry {
   generated_at?: string | null;
   duration: number;
   video_mode: string;
-  backend: string;
+  video_model: string;
   prompt: string;
 }
 

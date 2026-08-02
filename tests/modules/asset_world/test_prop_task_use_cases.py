@@ -13,7 +13,7 @@ from ai_anime.modules.asset_world.application.errors import (
     PropProjectContextRequired,
 )
 from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
-from ai_anime.task_identity import task_config_scope
+from ai_anime.modules.task_execution.public import task_config_scope
 
 
 @dataclass
@@ -173,12 +173,12 @@ async def test_prop_tasks_require_project_context(
                 output_dir=tmp_path,
                 prop_name="玉佩",
                 style="",
-                model="",
+                model="cloud-image-standard",
             )
         else:
             await use_cases.schedule_batch_references(
                 task_context=None,
                 output_dir=tmp_path,
                 style="",
-                model="",
+                model="cloud-image-standard",
             )

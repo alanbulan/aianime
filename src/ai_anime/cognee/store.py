@@ -26,7 +26,7 @@ with preserve_st_env():
     from cognee.modules.engine.operations.setup import setup
 from rich.console import Console
 from ai_anime.config import get_newapi_reasoning_kwargs
-from ai_anime.official_defaults import DEFAULT_COGNEE_LLM_MODEL
+from ai_anime.official_defaults import DEFAULT_COGNEE_EMBEDDING_DIM
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.utils.document_parsers import load_novel_text
 
@@ -91,6 +91,9 @@ class CogneeStore:
         output_dir: str | None = None,
         state_dir: str | None = None,
         sqlite_store: SQLiteStore | None = None,
+        text_model: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimensions: int | None = None,
     ):
         self.project_name = project_name
         self.dataset_name = f"ai_anime_{project_name}"
@@ -154,6 +157,25 @@ class CogneeStore:
         resolved_state_dir.mkdir(parents=True, exist_ok=True)
         self.state_dir = str(resolved_state_dir)
         self.db_path = str(resolved_state_dir / "data.db")
+        from ai_anime.project_config import load_project_config_file_from_state_dir
+
+        project_config = load_project_config_file_from_state_dir(resolved_state_dir)
+        self.text_model = str(
+            text_model or project_config.get("knowledge_text_model") or ""
+        ).strip()
+        self.embedding_model = str(
+            embedding_model
+            or project_config.get("knowledge_embedding_model")
+            or ""
+        ).strip()
+        configured_dimensions = (
+            embedding_dimensions
+            if embedding_dimensions is not None
+            else project_config.get("knowledge_embedding_dimensions")
+        )
+        self.embedding_dimensions = int(
+            configured_dimensions or DEFAULT_COGNEE_EMBEDDING_DIM
+        )
         self.sqlite_store = sqlite_store or SQLiteStore(
             project_name,
             output_dir=str(self.project_dir),
@@ -390,7 +412,7 @@ class CogneeStore:
 
     async def initialize(self):
         """初始化 SQLite 数据库和 Cognee 配置。"""
-        init_cognee()
+        self._init_cognee()
 
         # 初始化项目 SQLite；Cognee 图谱上下文独立设置。
         await self._ensure_db()
@@ -424,6 +446,20 @@ class CogneeStore:
         console.print(
             f"[dim]存储层已初始化 (dataset: {self.dataset_name}, db: {self.db_path})[/dim]"
         )
+
+    def _init_cognee(self) -> None:
+        init_cognee(
+            text_model=self.text_model,
+            embedding_model=self.embedding_model,
+            embedding_dimensions=self.embedding_dimensions,
+        )
+
+    def _configured_text_transport_model(self) -> str:
+        self._init_cognee()
+        model = os.environ.get("LLM_MODEL", "").strip()
+        if not model:
+            raise RuntimeError("Cognee text model was not configured")
+        return model
 
     async def close(self) -> None:
         """Release project-scoped SQLite and Cognee graph resources."""
@@ -550,7 +586,7 @@ class CogneeStore:
 
         from .config import init_cognee
 
-        init_cognee()
+        self._init_cognee()
 
         log(f"读取文件: {novel_path}")
         content = load_novel_text(novel_path)
@@ -560,11 +596,6 @@ class CogneeStore:
         self._novel_content = content
 
         os.environ["COGNEE_TELEMETRY_ENABLED"] = "false"
-
-        if not os.getenv("LLM_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-            raise ValueError(
-                "LLM API key 未设置。请在 .env 文件中添加:\n" "  OPENAI_API_KEY=your_key_here"
-            )
 
         # Step 1: 添加原文到 Cognee
         report(0.1, "解析原文...")
@@ -1158,7 +1189,7 @@ class CogneeStore:
         try:
             log("调用 LLM 分配事件...")
             response = await litellm.acompletion(
-                model=os.environ.get("LLM_MODEL", "gpt-4o"),
+                model=self._configured_text_transport_model(),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"},
@@ -1210,8 +1241,7 @@ class CogneeStore:
 只返回 JSON，不要有其他内容。"""
 
             response = await litellm.acompletion(
-                model=os.environ.get("LLM_MODEL", "").strip()
-                or DEFAULT_COGNEE_LLM_MODEL,
+                model=self._configured_text_transport_model(),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"},
@@ -1642,8 +1672,7 @@ class CogneeStore:
 请直接回复身份编号（如 1、2、3），不要有其他内容。"""
 
             response = await litellm.acompletion(
-                model=os.environ.get("LLM_MODEL", "").strip()
-                or DEFAULT_COGNEE_LLM_MODEL,
+                model=self._configured_text_transport_model(),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
                 max_tokens=10,

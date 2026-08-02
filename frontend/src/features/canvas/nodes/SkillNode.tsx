@@ -10,6 +10,8 @@ import { SkillNodeView } from './SkillNodeView';
 type SkillNodeProps = NodeProps & {
   id: string;
   data: SkillNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
 };
 

@@ -31,6 +31,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
+    production_image_settings_use_cases,
     sketch_editing_use_cases,
     sketch_generation_use_cases,
     sketch_marker_use_cases,
@@ -55,7 +56,6 @@ async def generate_sketches(
                 episode_num=episode_num,
                 grid_index=body.grid_index,
                 style=body.style,
-                model=body.model,
                 sketch_scene_grouping=body.sketch_scene_grouping,
                 aspect_ratio=body.aspect_ratio,
                 image_generation_selection=body.image_generation_selection,
@@ -142,12 +142,17 @@ async def director_control_to_sketch(
 ):
     """Start the existing Direct Render combined.png -> canonical sketch task."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
+    model = production_image_settings_use_cases().sketch_settings(
+        resolved.username,
+        resolved.project_name,
+    )["sketch_image_selection"]
     try:
         scheduled = await director_control_sketch_use_cases().generate(
             resolved.ctx,
             GenerateDirectorControlSketchCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
+                model=model,
             ),
         )
     except DirectorControlSketchUnavailable as exc:

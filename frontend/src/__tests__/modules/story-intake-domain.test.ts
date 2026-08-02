@@ -9,6 +9,10 @@ import {
   countBillableNovelChars,
   isActiveIngestionTask,
 } from "@/modules/story_intake/domain/ingestion";
+import {
+  defaultKnowledgeModelSelection,
+  knowledgeModelOptions,
+} from "@/modules/story_intake/domain/knowledge-model-selection";
 
 describe("story intake domain rules", () => {
   it("normalizes the historical default preset without changing explicit settings", () => {
@@ -66,5 +70,42 @@ describe("story intake domain rules", () => {
     expect(isActiveIngestionTask("ingest_fast", "running")).toBe(true);
     expect(isActiveIngestionTask("ingest_fast", "completed")).toBe(false);
     expect(isActiveIngestionTask("video_gen", "running")).toBe(false);
+  });
+
+  it("selects knowledge models only from their declared catalog operation", () => {
+    const textCatalog = {
+      catalogVersion: "text-v1",
+      items: [
+        {
+          id: "text-1",
+          code: "cloud-text-standard",
+          displayName: "Text standard",
+          operation: "TEXT",
+          capabilities: {},
+          parameterSchema: {},
+        },
+      ],
+    };
+    const embeddingCatalog = {
+      catalogVersion: "embedding-v1",
+      items: [
+        {
+          id: "embedding-1",
+          code: "cloud-embedding-standard",
+          displayName: "Embedding standard",
+          operation: "EMBEDDING",
+          capabilities: {},
+          parameterSchema: {},
+        },
+      ],
+    };
+
+    expect(knowledgeModelOptions(textCatalog.items, "TEXT")).toEqual([
+      { code: "cloud-text-standard", label: "Text standard" },
+    ]);
+    expect(defaultKnowledgeModelSelection(textCatalog, embeddingCatalog)).toEqual({
+      textModel: "cloud-text-standard",
+      embeddingModel: "cloud-embedding-standard",
+    });
   });
 });

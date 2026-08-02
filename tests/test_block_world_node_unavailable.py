@@ -36,9 +36,13 @@ def test_execute_build_code_without_node_raises_typed(monkeypatch):
 
 def test_block_world_unavailable_is_handled_task_failure():
     from ai_anime.director_world.block_world_builder import BlockWorldUnavailable
-    from ai_anime.task_backend.run_core import _project_task_failure_for_exception
+    from ai_anime.modules.task_execution.application.project_task_execution import (
+        project_task_failure_for_exception,
+    )
 
-    message, payload, handled = _project_task_failure_for_exception(BlockWorldUnavailable())
+    message, payload, handled = project_task_failure_for_exception(
+        BlockWorldUnavailable()
+    )
 
     assert handled is True
     assert payload == {"error_code": "BLOCK_WORLD_UNAVAILABLE"}

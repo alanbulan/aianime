@@ -9,6 +9,7 @@ import {
   markCurrentReleaseSeen,
   shouldAutoShowCurrentRelease,
   subscribeOpenVersionUpdateDialog,
+  useCommercialRelease,
   useReleaseNotifications,
 } from "@/modules/platform_release/composition";
 import { normalizeReleaseLocale } from "@/modules/platform_release/domain/release-notifications";
@@ -22,10 +23,17 @@ export function VersionUpdateDialog() {
     i18n.resolvedLanguage ?? i18n.language,
   );
   const releaseNotifications = useReleaseNotifications(locale);
+  const commercialEnabled = Boolean(window.aiAnimeDesktop?.commercial);
+  const commercialRelease = useCommercialRelease(commercialEnabled);
+  const refetchCommercialRelease = commercialRelease.refetch;
   const feed = releaseNotifications.data;
   const items = feed?.current_items ?? [];
+  const commercialUpdateAvailable = Boolean(
+    commercialRelease.data?.available && !commercialRelease.data.required,
+  );
   const [open, setOpen] = useState(false);
   const autoOpenedTagRef = useRef<string | null>(null);
+  const autoOpenedCommercialRef = useRef(false);
 
   useEffect(() => {
     const tag = feed?.current_tag ?? null;
@@ -41,14 +49,24 @@ export function VersionUpdateDialog() {
     setOpen(true);
   }, [feed]);
 
+  useEffect(() => {
+    if (!commercialUpdateAvailable || autoOpenedCommercialRef.current) return;
+    autoOpenedCommercialRef.current = true;
+    setOpen(true);
+  }, [commercialUpdateAvailable]);
+
   useEffect(
     () =>
       subscribeOpenVersionUpdateDialog(() => {
-        void ensureReleaseNotifications(queryClient, locale).finally(() =>
-          setOpen(true),
-        );
+        const commercialCheck = commercialEnabled
+          ? refetchCommercialRelease()
+          : Promise.resolve();
+        void Promise.all([
+          ensureReleaseNotifications(queryClient, locale),
+          commercialCheck,
+        ]).finally(() => setOpen(true));
       }),
-    [locale, queryClient],
+    [commercialEnabled, locale, queryClient, refetchCommercialRelease],
   );
 
   return (
@@ -76,9 +94,18 @@ export function VersionUpdateDialog() {
 
         <div className="px-4.5 pb-5 pt-3.5 sm:px-5">
           <DialogTitle className="text-[17px] font-medium leading-tight tracking-normal text-foreground sm:text-[18px]">
-            {t("app.versionUpdate.title")}
+            {t(
+              commercialUpdateAvailable
+                ? "app.commercialUpdate.availableTitle"
+                : "app.versionUpdate.title",
+            )}
           </DialogTitle>
           <div className="mt-4 max-h-[138px] space-y-4 overflow-y-auto pr-2 text-[12.5px] leading-6 text-muted-foreground [scrollbar-gutter:stable] sm:text-[13.5px]">
+            {commercialUpdateAvailable ? (
+              <p className="m-0">
+                {t("app.commercialUpdate.availableDescription")}
+              </p>
+            ) : null}
             {items.length > 0 ? (
               items.map((item, index) => (
                 <p key={item.id} className="m-0">
@@ -86,16 +113,20 @@ export function VersionUpdateDialog() {
                   {item.body ? `: ${item.body}` : ""}
                 </p>
               ))
-            ) : (
+            ) : !commercialUpdateAvailable ? (
               <p className="m-0">{t("app.versionUpdate.empty")}</p>
-            )}
+            ) : null}
           </div>
           <Button
             type="button"
             className="mt-7 h-10 w-full rounded-[8px] bg-primary text-[14px] font-medium text-primary-foreground shadow-none hover:bg-primary/90"
             onClick={() => setOpen(false)}
           >
-            {t("app.versionUpdate.confirm")}
+            {t(
+              commercialUpdateAvailable
+                ? "app.commercialUpdate.acknowledge"
+                : "app.versionUpdate.confirm",
+            )}
           </Button>
         </div>
       </DialogContent>

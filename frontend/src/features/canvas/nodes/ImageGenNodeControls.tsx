@@ -178,13 +178,14 @@ export function AspectSizeChip({ aspectRatio, size, quality, showQuality, onChan
 }
 
 interface StyleChipProps {
+  projectId: string;
   selectedId: string | null;
   selectedLabel: string | null;
   onChange: (nextId: string | null) => void;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }: StyleChipProps) {
+export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOpenChange }: StyleChipProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -237,6 +238,7 @@ export function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }:
           onClick={(event) => event.stopPropagation()}
         >
           <StylePickerPopover
+            projectId={projectId}
             selectedId={selectedId}
             onSelect={(nextId) => {
               onChange(nextId);
@@ -251,12 +253,13 @@ export function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }:
 }
 
 interface CameraChipProps {
+  projectId: string;
   selection: ImageGenCameraSelection | null;
   summary: string | null;
   onChange: (next: ImageGenCameraSelection | null) => void;
 }
 
-export function CameraChip({ selection, summary, onChange }: CameraChipProps) {
+export function CameraChip({ projectId, selection, summary, onChange }: CameraChipProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -332,6 +335,7 @@ export function CameraChip({ selection, summary, onChange }: CameraChipProps) {
           onClick={(event) => event.stopPropagation()}
         >
           <CameraPickerPopover
+            projectId={projectId}
             selection={selection}
             onConfirm={(next) => {
               onChange(next);

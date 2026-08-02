@@ -3,31 +3,24 @@ import { useState } from "react";
 
 import {
   modelSourceUrlFromNodeData,
-  type DropMediaType,
-} from "@/features/canvas/domain/assetDropInfo";
-import type {
-  PushResult,
-  PushTarget,
-  PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
-
-import {
+  type CanvasCommitMediaType,
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
   commitSceneDirectorWorldFromCanvasNode,
-} from "../composition";
-import { renderCommitSuccessMessage } from "../application/canvasCommitRules";
-import { nodeDataAfterCommittedSlot } from "../application/committedNodePatch";
-import {
   hasDirectorWorldSceneState,
   isDirectorWorldSourceSlotTarget,
-} from "../domain/directorWorldCommit";
+  nodeDataAfterCommittedSlot,
+  renderCommitSuccessMessage,
+  type PushResult,
+  type PushTarget,
+  type PushTargetKind,
+} from "@/modules/creative_canvas/public";
 
 export interface CommitDialogSubmitControllerOptions {
   project: string;
   sourceUrl: string;
   previewUrl?: string | null;
-  mediaType: DropMediaType;
+  mediaType: CanvasCommitMediaType;
   target: PushTarget | null;
   modelSlotKinds: readonly PushTargetKind[];
   noTargetYet: boolean;

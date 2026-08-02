@@ -7,6 +7,7 @@ import pytest
 from ai_anime.desktop_server import (
     DesktopOptions,
     configure_environment,
+    configure_local_api_environment,
     create_listening_socket,
     parse_options,
 )
@@ -48,3 +49,17 @@ def test_desktop_socket_uses_an_available_port() -> None:
         assert int(listener.getsockname()[1]) > 0
     finally:
         listener.close()
+
+
+def test_desktop_dynamic_port_is_visible_before_agent_composition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in ("AI_ANIME_API_HOST", "AI_ANIME_API_PORT", "AI_ANIME_API_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+    configure_local_api_environment("127.0.0.1", 52903)
+
+    env = __import__("os").environ
+    assert env["AI_ANIME_API_HOST"] == "127.0.0.1"
+    assert env["AI_ANIME_API_PORT"] == "52903"
+    assert env["AI_ANIME_API_URL"] == "http://127.0.0.1:52903"

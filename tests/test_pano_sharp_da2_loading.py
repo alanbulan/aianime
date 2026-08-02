@@ -23,9 +23,11 @@ def test_pano_sharp_module_imports_without_world_extra(monkeypatch):
 
 def test_pano_sharp_unavailable_is_handled_task_failure():
     from ai_anime.director_world.pano_sharp import Sharp3DUnavailable
-    from ai_anime.task_backend.run_core import _project_task_failure_for_exception
+    from ai_anime.modules.task_execution.application.project_task_execution import (
+        project_task_failure_for_exception,
+    )
 
-    message, payload, handled = _project_task_failure_for_exception(Sharp3DUnavailable())
+    message, payload, handled = project_task_failure_for_exception(Sharp3DUnavailable())
 
     assert handled is True
     assert payload == {"error_code": "SHARP_3D_UNAVAILABLE"}

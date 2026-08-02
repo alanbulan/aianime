@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from 'react';
 
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 export type LoadCanvasSkillRegistry = () => Promise<SkillDefinition[]>;
 

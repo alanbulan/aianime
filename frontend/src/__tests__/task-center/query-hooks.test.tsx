@@ -12,8 +12,7 @@ vi.mock("@/shared/api/transport", () => ({
 
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { server } from "@/__mocks__/msw/server";
-import { useTasks } from "@/task-center/public";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore, useTasks } from "@/modules/task_execution/public";
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({

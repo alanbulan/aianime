@@ -28,7 +28,7 @@ from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
     LocalCreativeCanvasTextSourceReader,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.limits import ProjectTaskLimitExceeded
+from ai_anime.modules.task_execution.public import ProjectTaskLimitExceeded
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -117,6 +117,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             context=context,
             project_dir=context.output_dir,
             text="  雨夜街头  ",
+            model="cloud-text-standard",
             node_type="image",
             canvas_id="canvas-1",
             node_id="node-1",
@@ -147,6 +148,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             project_dir=context.output_dir,
             payload={
                 "text": "  雨夜街头  ",
+                "model": "cloud-text-standard",
                 "node_type": "image",
                 "canvas_id": "canvas-1",
                 "node_id": "node-1",
@@ -223,6 +225,7 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 context=context,
                 project_dir=context.output_dir,
                 text=" \t ",
+                model="model-1",
                 node_type="generic",
             )
         )
@@ -237,7 +240,35 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 source_text=" ",
                 source_url=None,
                 prompt="",
-                model="",
+                model="model-1",
+            )
+        )
+
+    with pytest.raises(
+        InvalidCreativeCanvasTextProcessingRequest,
+        match="model is required",
+    ):
+        await use_cases.start_translation(
+            StartCreativeCanvasTextTranslationCommand(
+                context=context,
+                project_dir=context.output_dir,
+                text="hello",
+                model=" \t ",
+                node_type="generic",
+            )
+        )
+    with pytest.raises(
+        InvalidCreativeCanvasTextProcessingRequest,
+        match="model is required",
+    ):
+        await use_cases.start_story_script(
+            StartCreativeCanvasStoryScriptCommand(
+                context=context,
+                project_dir=context.output_dir,
+                source_text="story",
+                source_url=None,
+                prompt="",
+                model=" \t ",
             )
         )
 
@@ -350,13 +381,17 @@ async def test_text_routes_preserve_success_contract(
         project="project-1",
         body=FreezoneTextTranslateRequest(
             text="电影感特写，雨夜街头",
+            model="cloud-text-standard",
             node_type="image",
         ),
         user={"username": "alice"},
     )
     story = await text_routes.freezone_story_script_generate(
         project="project-1",
-        body=FreezoneStoryScriptGenerateRequest(source_text="沈昭昭在深夜办公室醒来。"),
+        body=FreezoneStoryScriptGenerateRequest(
+            source_text="沈昭昭在深夜办公室醒来。",
+            model="cloud-text-standard",
+        ),
         user={"username": "alice"},
     )
 
@@ -372,9 +407,10 @@ async def test_text_routes_preserve_success_contract(
     }
     assert story["data"]["task_type"] == CREATIVE_CANVAS_STORY_SCRIPT_TASK_TYPE
     assert commands[0].text == "电影感特写，雨夜街头"
+    assert commands[0].model == "cloud-text-standard"
     assert commands[1].source_text == "沈昭昭在深夜办公室醒来。"
     assert commands[1].prompt == "根据我上传的剧本生成一个完整的故事脚本"
-    assert commands[1].model == "newapi_gemini_flash"
+    assert commands[1].model == "cloud-text-standard"
 
 
 @pytest.mark.asyncio
@@ -445,13 +481,19 @@ async def test_text_routes_preserve_error_contract(
         if handler == "translation":
             await text_routes.freezone_text_translate(
                 project="project-1",
-                body=FreezoneTextTranslateRequest(text="hello"),
+                body=FreezoneTextTranslateRequest(
+                    text="hello",
+                    model="cloud-text-standard",
+                ),
                 user={"username": "alice"},
             )
         else:
             await text_routes.freezone_story_script_generate(
                 project="project-1",
-                body=FreezoneStoryScriptGenerateRequest(source_text="story"),
+                body=FreezoneStoryScriptGenerateRequest(
+                    source_text="story",
+                    model="cloud-text-standard",
+                ),
                 user={"username": "alice"},
             )
 
@@ -490,13 +532,19 @@ async def test_text_routes_preserve_project_task_limits(
         if handler == "translation":
             await text_routes.freezone_text_translate(
                 project="project-1",
-                body=FreezoneTextTranslateRequest(text="hello"),
+                body=FreezoneTextTranslateRequest(
+                    text="hello",
+                    model="cloud-text-standard",
+                ),
                 user={"username": "alice"},
             )
         else:
             await text_routes.freezone_story_script_generate(
                 project="project-1",
-                body=FreezoneStoryScriptGenerateRequest(source_text="story"),
+                body=FreezoneStoryScriptGenerateRequest(
+                    source_text="story",
+                    model="cloud-text-standard",
+                ),
                 user={"username": "alice"},
             )
     assert exc.value is failure

@@ -4,10 +4,22 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import ky from "ky";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
+}));
+
+vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/model_usage/public")>()),
+  loadCommercialModelCatalog: vi.fn(async () => ({
+    catalogVersion: "test-image-catalog",
+    items: [
+      { code: "openrouter_nanobanana2", operation: "IMAGE" },
+      { code: "cloud/image-current", operation: "IMAGE" },
+      { code: "image-platform-sku", operation: "IMAGE" },
+    ],
+  })),
 }));
 
 import { server } from "@/__mocks__/msw/server";
@@ -45,6 +57,30 @@ function wrapperWithClient(queryClient: QueryClient) {
   };
 }
 
+beforeEach(() => {
+  server.use(
+    http.get(
+      "http://localhost:3000/api/v1/projects/demo/sketch-settings",
+      () =>
+        HttpResponse.json({
+          ok: true,
+          data: { sketch_image_selection: "openrouter_nanobanana2" },
+        }),
+    ),
+    http.get(
+      "http://localhost:3000/api/v1/projects/demo/render-settings",
+      () =>
+        HttpResponse.json({
+          ok: true,
+          data: {
+            render_image_selection: "openrouter_nanobanana2",
+            sketch_aspect_padding: false,
+          },
+        }),
+    ),
+  );
+});
+
 describe("sketch generation query", () => {
   it("uses /sketches/generate for whole-episode sketch generation", async () => {
     let requestedPath = "";
@@ -73,7 +109,10 @@ describe("sketch generation query", () => {
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/sketches/generate");
-    expect(receivedBody).toEqual({ grid_index: -1 });
+    expect(receivedBody).toEqual({
+      grid_index: -1,
+      image_generation_selection: "openrouter_nanobanana2",
+    });
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected sketch generation to succeed");
     expect(result.current.data.task_type).toBe("sketch_generation");
@@ -136,7 +175,10 @@ describe("selected sketch regeneration query", () => {
       wrapper,
     });
 
-    result.current.mutate({ beatIndices: [2, 4] });
+    result.current.mutate({
+      beatIndices: [2, 4],
+      imageGenerationSelection: "cloud/image-current",
+    });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe(
@@ -145,6 +187,7 @@ describe("selected sketch regeneration query", () => {
     expect(receivedBody).toEqual({
       beat_indices: [2, 4],
       mode_key: "1x1_2-3_sketch",
+      image_generation_selection: "cloud/image-current",
     });
   });
 });
@@ -568,7 +611,6 @@ describe("render grid query", () => {
 
     result.current.mutate({
       gridIndex: 3,
-      model: "nanobanana",
       sceneGrouping: true,
     });
 
@@ -577,9 +619,9 @@ describe("render grid query", () => {
       "/api/v1/projects/demo/episodes/1/grids/3/regenerate",
     );
     expect(receivedBody).toEqual({
-      model: "nanobanana",
       scene_grouping: true,
       character_grouping: false,
+      image_generation_selection: "openrouter_nanobanana2",
     });
   });
 
@@ -605,16 +647,15 @@ describe("render grid query", () => {
 
     result.current.mutate({
       gridIndex: 3,
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "image-platform-sku",
       sketchAspectPadding: false,
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(receivedBody).toEqual({
-      model: "nanobanana",
       scene_grouping: false,
       character_grouping: false,
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "image-platform-sku",
       sketch_aspect_padding: false,
     });
   });

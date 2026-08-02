@@ -4,25 +4,24 @@ import { describe, expect, it } from "vitest";
 import {
   clampDuration,
   getSeedance2ConfigSaveKey,
-  grokVideoRatioOptionsForBackend,
-  grokVideoResolutionOptionsForBackend,
-  happyHorseRatioOptionsForBackend,
-  happyHorseResolutionOptionsForBackend,
-  isSeedance15ProBackend,
-  isSeedance2ValueBackend,
-  normalizeGrokVideoDraftForBackend,
-  normalizeHappyHorseDraftForBackend,
-  normalizeSeedance2DraftForBackend,
+  grokVideoRatioOptionsForModel,
+  grokVideoResolutionOptionsForModel,
+  happyHorseRatioOptionsForModel,
+  happyHorseResolutionOptionsForModel,
+  isSeedance15ProModel,
+  isSeedance2ValueModel,
+  normalizeGrokVideoDraftForModel,
+  normalizeHappyHorseDraftForModel,
+  normalizeSeedance2DraftForModel,
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
-  seedance2DurationBoundsForBackend,
-  seedance2ModelFromBackend,
-  seedance2ResolutionOptionsForBackend,
+  seedance2ResolutionOptionsForModel,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
-  videoBackendDisplayLabel,
+  videoModelDisplayLabel,
+  videoDurationBoundsForModel,
 } from "@/modules/production/public";
 
 describe("Production video config domain", () => {
@@ -64,46 +63,43 @@ describe("Production video config domain", () => {
     expect(parseSeedance2Config("legacy prompt").final_prompt).toBe("legacy prompt");
   });
 
-  it("resolves backend models and Seedance capabilities", () => {
-    expect(seedance2ModelFromBackend(" HuiMengi_Seedance-1.5-Pro ")).toBe(
-      "seedance-1.5-pro",
-    );
-    expect(isSeedance15ProBackend("newapi_seedance_pro")).toBe(true);
-    expect(isSeedance2ValueBackend("HUIMENG_SEEDANCE-2.0-FAST-VALUE")).toBe(true);
-    expect(seedance2ResolutionOptionsForBackend("newapi_seedance-2.0")).toEqual([
+  it("resolves model capabilities from bare catalog SKUs", () => {
+    expect(isSeedance15ProModel("seedance-1.5-pro")).toBe(true);
+    expect(isSeedance2ValueModel("SEEDANCE-2.0-FAST-VALUE")).toBe(true);
+    expect(seedance2ResolutionOptionsForModel("seedance-2.0")).toEqual([
       "480p",
       "720p",
       "1080p",
     ]);
-    expect(seedance2ResolutionOptionsForBackend("unknown")).toEqual(["480p", "720p"]);
+    expect(seedance2ResolutionOptionsForModel("unknown")).toEqual(["480p", "720p"]);
     expect(seedance2DefaultRatioForProjectAspect("2:3")).toBe("9:16");
     expect(seedance2DefaultRatioForProjectAspect("16:9")).toBe("16:9");
     expect(
-      videoBackendDisplayLabel(
-        "newapi_seedance-2.0-fast",
+      videoModelDisplayLabel(
+        "seedance-2.0-fast",
         new Map([["known", "已配置模型"]]),
       ),
     ).toBe("Seedance 2.0-fast");
     expect(
-      videoBackendDisplayLabel(
+      videoModelDisplayLabel(
         "known",
         new Map([["known", "已配置模型"]]),
       ),
     ).toBe("已配置模型");
   });
 
-  it("filters backend-provided HappyHorse and Grok options", () => {
-    const backend = {
-      resolution_options: ["bad", "480p", "1080p", "720p"],
-      ratio_options: ["bad", "2:3", "4:3", "16:9"],
+  it("filters catalog-provided HappyHorse and Grok options", () => {
+    const model = {
+      resolutionOptions: ["bad", "480p", "1080p", "720p"],
+      ratioOptions: ["bad", "2:3", "4:3", "16:9"],
     };
 
-    expect(happyHorseResolutionOptionsForBackend(backend)).toEqual(["1080p", "720p"]);
-    expect(happyHorseRatioOptionsForBackend(backend)).toEqual(["4:3", "16:9"]);
-    expect(grokVideoResolutionOptionsForBackend(backend)).toEqual(["480p", "720p"]);
-    expect(grokVideoRatioOptionsForBackend(backend)).toEqual(["2:3", "16:9"]);
-    expect(happyHorseResolutionOptionsForBackend(null)).toEqual(["720p", "1080p"]);
-    expect(grokVideoRatioOptionsForBackend(null)).toEqual([
+    expect(happyHorseResolutionOptionsForModel(model)).toEqual(["1080p", "720p"]);
+    expect(happyHorseRatioOptionsForModel(model)).toEqual(["4:3", "16:9"]);
+    expect(grokVideoResolutionOptionsForModel(model)).toEqual(["480p", "720p"]);
+    expect(grokVideoRatioOptionsForModel(model)).toEqual(["2:3", "16:9"]);
+    expect(happyHorseResolutionOptionsForModel(null)).toEqual(["720p", "1080p"]);
+    expect(grokVideoRatioOptionsForModel(null)).toEqual([
       "16:9",
       "9:16",
       "1:1",
@@ -113,11 +109,11 @@ describe("Production video config domain", () => {
   });
 
   it("normalizes duration bounds and values", () => {
-    expect(seedance2DurationBoundsForBackend({ min_duration: 4.4, max_duration: 12.2 })).toEqual({
+    expect(videoDurationBoundsForModel({ minDuration: 4.4, maxDuration: 12.2 })).toEqual({
       min: 4,
       max: 12,
     });
-    expect(seedance2DurationBoundsForBackend({ min_duration: 8, max_duration: 4 })).toEqual({
+    expect(videoDurationBoundsForModel({ minDuration: 8, maxDuration: 4 })).toEqual({
       min: 8,
       max: 15,
     });
@@ -129,17 +125,17 @@ describe("Production video config domain", () => {
     const draft = parseSeedance2Config(
       JSON.stringify({ resolution: "1080p", scene_optimize: "" }),
     );
-    const normalized = normalizeSeedance2DraftForBackend(
+    const normalized = normalizeSeedance2DraftForModel(
       draft,
       ["480p", "720p"],
-      "newapi_seedance-2.0-fast-value",
+      "seedance-2.0-fast-value",
       true,
     );
 
     expect(normalized).toMatchObject({ resolution: "720p", scene_optimize: "realistic" });
     const stable = { ...normalized, scene_optimize: "" as const };
     expect(
-      normalizeSeedance2DraftForBackend(stable, ["480p", "720p"], "seedance", false),
+      normalizeSeedance2DraftForModel(stable, ["480p", "720p"], "seedance", false),
     ).toBe(stable);
   });
 
@@ -160,7 +156,7 @@ describe("Production video config domain", () => {
     };
 
     expect(
-      normalizeHappyHorseDraftForBackend(draft, ["720p", "1080p"], ["16:9", "9:16"]),
+      normalizeHappyHorseDraftForModel(draft, ["720p", "1080p"], ["16:9", "9:16"]),
     ).toMatchObject({
       mode: "multimodal_reference",
       mode_user_set: true,
@@ -172,7 +168,7 @@ describe("Production video config domain", () => {
       human_review: false,
     });
     expect(
-      normalizeGrokVideoDraftForBackend(draft, ["720p", "480p"], ["16:9", "3:2"]),
+      normalizeGrokVideoDraftForModel(draft, ["720p", "480p"], ["16:9", "3:2"]),
     ).toMatchObject({
       mode: "multimodal_reference",
       resolution: "480p",
@@ -184,7 +180,7 @@ describe("Production video config domain", () => {
     });
   });
 
-  it("serializes prompts and provider-specific constraints without losing raw fields", () => {
+  it("serializes prompts and model-specific constraints without losing raw fields", () => {
     const previous = parseSeedance2Config(
       JSON.stringify({
         legacy_field: "keep",

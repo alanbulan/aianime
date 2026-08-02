@@ -13,6 +13,7 @@ import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 
 export interface ImageNodeToolbarControllerOptions {
+  projectId: string;
   node: CanvasNode;
   isPresetLocked: boolean;
   onOpenMultiAngleEditor: (nodeId: string) => void;
@@ -27,6 +28,7 @@ export interface ImageNodeToolbarControllerOptions {
 }
 
 export function useImageNodeToolbarController({
+  projectId,
   node,
   isPresetLocked,
   onOpenMultiAngleEditor,
@@ -72,6 +74,7 @@ export function useImageNodeToolbarController({
 
   return {
     ...projection,
+    projectId,
     nodeId: node.id,
     nodeData: node.data,
     isPresetLocked,

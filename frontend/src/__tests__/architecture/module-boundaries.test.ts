@@ -11,11 +11,16 @@ import { describe, expect, it } from "vitest";
 const SRC_ROOT = resolve(process.cwd(), "src");
 const MODULES_ROOT = resolve(SRC_ROOT, "modules");
 const sourceFilesCache = new Map<string, string[]>();
+const sourceTextCache = new Map<string, string>();
 const importSpecifiersCache = new Map<string, string[]>();
 
 function readFileSync(path: string, encoding: "utf8"): string {
   if (!existsSync(path) && relativeSource(path) === "api/ops.ts") return "";
-  return readFileSyncStrict(path, encoding);
+  const cached = sourceTextCache.get(path);
+  if (cached !== undefined) return cached;
+  const source = readFileSyncStrict(path, encoding);
+  sourceTextCache.set(path, source);
+  return source;
 }
 
 function sourceFiles(root: string): string[] {
@@ -212,7 +217,7 @@ describe("frontend architecture boundaries", () => {
         "@/lib/url-params",
         "@/modules/identity_access/public",
         "@/modules/project_workspace/public",
-        "../domain/canvasIdentity",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).not.toContain("<FreezoneShell");
@@ -306,7 +311,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "useCanvasProjectionCommandController({",
     );
-    expect(controllerSource).not.toContain("<Canvas");
+    expect(controllerSource).not.toMatch(/<Canvas(?:\s|\/?>)/);
     expect(controllerSource).not.toContain("className=");
     expect(viewSource).toContain("<Canvas");
     expect(viewSource).toContain("<AssetLibraryPanel");
@@ -396,7 +401,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(modelPath))).toEqual(
       new Set([
         "@/features/canvas/domain/canvasNodes",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -590,8 +595,13 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("@/api/");
     expect(registrySource).toContain("import { AudioNode } from './AudioNode'");
-    expect(registrySource).toContain("audioNode: AudioNode");
+    expect(registrySource).toContain(
+      "createElement(AudioNode, { ...props, projectId, canvasId })",
+    );
+    expect(registrySource).toContain("audioNode: BoundAudioNode");
     expect(entrySource).toContain("useAudioNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(AudioNodeView, { controller })",
     );
@@ -603,12 +613,18 @@ describe("frontend architecture boundaries", () => {
     );
     expect(controllerSource).toContain("uploadCanvasAsset(projectId");
     expect(controllerSource).toContain(
-      "loadCanvasAudioReferences(project)",
+      "getCachedAudioReferences(projectId)",
     );
+    expect(controllerSource).toContain(
+      "useAudioGeneration({ projectId, nodeId: id, data })",
+    );
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<Handle");
     expect(viewSource).toContain("<AudioWaveformPlayer");
     expect(viewSource).toContain("<AudioOperationsPanel");
+    expect(viewSource).toContain("projectId={controller.projectId}");
+    expect(viewSource).toContain("canvasId={controller.canvasId}");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useCanvasStore(");
     expect(viewSource).not.toContain("uploadCanvasAsset(");
@@ -690,8 +706,11 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/nodes/ImageNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { ImageNode } from './ImageNode'");
-    expect(registrySource).toContain("exportImageNode: ImageNode");
-    expect(registrySource).toContain("imageNode: ImageEditNode");
+    expect(registrySource).toContain(
+      "createElement(ImageNode, { ...props, projectId, canvasId })",
+    );
+    expect(registrySource).toContain("exportImageNode: BoundImageNode");
+    expect(registrySource).toContain("imageNode: BoundImageEditNode");
     expect(entrySource).toContain("useImageNodeController(props)");
     expect(entrySource).toContain(
       "createElement(ImageNodeView, { controller })",
@@ -795,8 +814,12 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { VideoComposeNode } from './VideoComposeNode'",
     );
-    expect(registrySource).toContain("videoComposeNode: VideoComposeNode");
+    expect(registrySource).toContain(
+      "videoComposeNode: BoundVideoComposeNode",
+    );
     expect(entrySource).toContain("useVideoComposeNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(VideoComposeNodeView, { controller })",
     );
@@ -809,6 +832,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "store.addNode(CANVAS_NODE_TYPES.video",
     );
+    expect(controllerSource).not.toContain("readUrl");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<VideoComposeModal");
     expect(viewSource).toContain("<VideoComposeModal");
@@ -881,8 +906,9 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/nodes/GroupNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
-    expect(registrySource).toContain("groupNode: GroupNode");
+    expect(registrySource).toContain("groupNode: BoundGroupNode");
     expect(entrySource).toContain("useGroupNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
     expect(entrySource).toContain(
       "createElement(GroupNodeView, { controller })",
     );
@@ -897,6 +923,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "useCanvasProjectionStatus(projectionKey)",
     );
+    expect(controllerSource).not.toContain("readUrl");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<Handle");
     expect(viewSource).toContain("<CanvasHistoryAssetsModal");
@@ -992,9 +1020,11 @@ describe("frontend architecture boundaries", () => {
       "import { TextAnnotationNode } from './TextAnnotationNode'",
     );
     expect(registrySource).toContain(
-      "textAnnotationNode: TextAnnotationNode",
+      "textAnnotationNode: BoundTextAnnotationNode",
     );
     expect(entrySource).toContain("useTextAnnotationNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(TextAnnotationNodeView, { controller })",
     );
@@ -1006,6 +1036,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("submitVideoGeneration({");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("useIsBoxSelecting()");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ReactMarkdown");
     expect(viewSource).toContain("<ReactMarkdown");
@@ -1101,8 +1133,9 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { UploadNode } from './UploadNode'",
     );
-    expect(registrySource).toContain("uploadNode: UploadNode");
+    expect(registrySource).toContain("uploadNode: BoundUploadNode");
     expect(entrySource).toContain("useUploadNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
     expect(entrySource).toContain(
       "createElement(UploadNodeView, { controller })",
     );
@@ -1114,6 +1147,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("canvasEventBus.subscribe(");
     expect(controllerSource).toContain("getCanvasBeatDirectorManifest(");
     expect(controllerSource).toContain("captureCanvasNodeBusyRef");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
     expect(viewSource).toContain("<ThreeDDirectorDialog");
@@ -1211,8 +1246,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { ScriptNode } from './ScriptNode'",
     );
-    expect(registrySource).toContain("scriptNode: ScriptNode");
+    expect(registrySource).toContain("scriptNode: BoundScriptNode");
     expect(entrySource).toContain("useScriptNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(ScriptNodeView, { controller })",
     );
@@ -1224,6 +1261,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("useNodeGenerationHistory(");
     expect(controllerSource).toContain("resolveScriptNodeSpawnPlan({");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<OperationPanelShell");
     expect(viewSource).toContain("<OperationPanelShell");
@@ -1330,7 +1369,10 @@ describe("frontend architecture boundaries", () => {
       "import { Pano360ViewerNode } from './Pano360ViewerNode'",
     );
     expect(registrySource).toContain(
-      "pano360ViewerNode: Pano360ViewerNode",
+      "createElement(Pano360ViewerNode, { ...props, projectId })",
+    );
+    expect(registrySource).toContain(
+      "pano360ViewerNode: BoundPano360ViewerNode",
     );
     expect(entrySource).toContain(
       "usePano360ViewerNodeController(props)",
@@ -1484,7 +1526,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { StoryboardNode } from './StoryboardNode'",
     );
-    expect(registrySource).toContain("storyboardNode: StoryboardNode");
+    expect(registrySource).toContain(
+      "createElement(StoryboardNode, { ...props, projectId })",
+    );
+    expect(registrySource).toContain("storyboardNode: BoundStoryboardNode");
     expect(entrySource).toContain("useStoryboardNodeController(props)");
     expect(entrySource).toContain(
       "createElement(StoryboardNodeView, { controller })",
@@ -1493,7 +1538,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
     expect(controllerSource).toContain("useCanvasStore(");
-    expect(controllerSource).toContain("exportStoryboardGrid({");
+    expect(controllerSource).toContain("exportStoryboardGrid(projectId, {");
     expect(controllerSource).toContain("packStoryboardFrames(");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<NodeHeader");
@@ -1628,8 +1673,9 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { StoryboardGenNode } from './StoryboardGenNode'",
     );
-    expect(registrySource).toContain("storyboardGenNode: StoryboardGenNode");
+    expect(registrySource).toContain("storyboardGenNode: BoundStoryboardGenNode");
     expect(entrySource).toContain("useStoryboardGenNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
     expect(entrySource).toContain(
       "createElement(StoryboardGenNodeView, { controller })",
     );
@@ -1642,6 +1688,9 @@ describe("frontend architecture boundaries", () => {
       "canvasAiGateway.submitGenerateImageJob(",
     );
     expect(controllerSource).toContain("generateStoryboardGridImageDataUrl(");
+    expect(controllerSource).toContain(
+      "useFreezoneImageModels(projectId, 'edit')",
+    );
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<NodeHeader");
     expect(viewSource).toContain("<GridStepperControl");
@@ -1753,7 +1802,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { ImageEditNode } from './ImageEditNode'",
     );
-    expect(registrySource).toContain("imageNode: ImageEditNode");
+    expect(registrySource).toContain(
+      "createElement(ImageEditNode, { ...props, projectId, canvasId })",
+    );
+    expect(registrySource).toContain("imageNode: BoundImageEditNode");
     expect(entrySource).toContain("useImageEditNodeController(props)");
     expect(entrySource).toContain(
       "createElement(ImageEditNodeView, { controller })",
@@ -1766,6 +1818,11 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "canvasAiGateway.submitGenerateImageJob(",
     );
+    expect(controllerSource).toContain(
+      "useFreezoneImageModels(projectId, 'edit')",
+    );
+    expect(controllerSource).toContain("assetLibraryProject = projectId");
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).toContain("planImageEditAssetReferences({");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<NodeHeader");
@@ -1859,8 +1916,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { BeatContextNode } from './BeatContextNode'",
     );
-    expect(registrySource).toContain("beatContextNode: BeatContextNode");
+    expect(registrySource).toContain("beatContextNode: BoundBeatContextNode");
     expect(entrySource).toContain("useBeatContextNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(BeatContextNodeView, { controller })",
     );
@@ -1871,8 +1930,10 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("useEpisodeDetail(");
     expect(controllerSource).toContain("updateBeat(");
     expect(controllerSource).toContain(
-      "restoreCurrentMainlinePresetCanvas(projectId)",
+      "restoreCurrentMainlinePresetCanvas(beatProjectId, canvasId)",
     );
+    expect(controllerSource).not.toContain("readUrl");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<NodeHeader");
     expect(viewSource).toContain("<UiSelect");
@@ -2002,8 +2063,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { ThreeDWorldNode } from './ThreeDWorldNode'",
     );
-    expect(registrySource).toContain("threeDWorldNode: ThreeDWorldNode");
+    expect(registrySource).toContain("threeDWorldNode: BoundThreeDWorldNode");
     expect(entrySource).toContain("useThreeDWorldNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(ThreeDWorldNodeView, { controller })",
     );
@@ -2014,6 +2077,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("generateCanvasImageTo3d(");
     expect(controllerSource).toContain("uploadDirectorCaptureBundle(");
     expect(controllerSource).toContain("setDirectorWorldSceneSaveHandler(");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
     expect(viewSource).toContain("<ThreeDDirectorDialog");
@@ -2109,8 +2174,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { ImageGenNode } from './ImageGenNode'",
     );
-    expect(registrySource).toContain("imageGenNode: ImageGenNode");
+    expect(registrySource).toContain("imageGenNode: BoundImageGenNode");
     expect(entrySource).toContain("useImageGenNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(ImageGenNodeView, { controller })",
     );
@@ -2121,6 +2188,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("await generateCanvasImage(");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("getCanvasBeatDirectorManifest({");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
     expect(controlsSource).toContain("useState(");
@@ -2204,8 +2273,12 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { VideoNode } from './VideoNode'",
     );
-    expect(registrySource).toContain("videoNode: VideoNode");
+    expect(registrySource).toContain("export function createCanvasNodeTypes(");
+    expect(registrySource).toContain("videoNode: BoundVideoNode");
+    expect(registrySource).not.toContain("export const nodeTypes");
     expect(entrySource).toContain("useVideoNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain(
       "createElement(VideoNodeView, { controller })",
     );
@@ -2216,6 +2289,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("submitVideoGeneration({");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("uploadCanvasAsset(");
+    expect(controllerSource).not.toContain("readUrl()");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<VideoNodePrimaryVideo");
     expect(viewSource).toContain("<VideoNodePrimaryVideo");
@@ -2304,8 +2379,10 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).toContain(
       "import { SkillNode } from './SkillNode'",
     );
-    expect(registrySource).toContain("skillNode: SkillNode");
+    expect(registrySource).toContain("skillNode: BoundSkillNode");
     expect(entrySource).toContain("useSkillNodeController(props)");
+    expect(entrySource).toContain("projectId: string");
+    expect(entrySource).toContain("canvasId: string");
     expect(entrySource).toContain("createElement(SkillNodeView, { controller })");
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
@@ -2314,6 +2391,11 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("startCanvasSkillRun({");
     expect(controllerSource).toContain("awaitCanvasSkillRunResult({");
     expect(controllerSource).toContain("getCanvasSceneAssetsForBeat({");
+    expect(controllerSource).toContain(
+      "useFreezoneImageModels(projectId, 'edit')",
+    );
+    expect(controllerSource).not.toContain("readUrl");
+    expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
     expect(viewSource).toContain("<BackgroundCropperDialog");
@@ -2355,10 +2437,17 @@ describe("frontend architecture boundaries", () => {
     expect(bypasses).toEqual([]);
   });
 
-  it("keeps task capabilities behind the Task Center public API", () => {
+  it("keeps all task execution capabilities behind the module public API", () => {
     const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/tasks.ts");
     const legacyMonitorPath = resolve(SRC_ROOT, "api/tasks.ts");
-    const publicPath = resolve(SRC_ROOT, "task-center/public.ts");
+    const legacyTaskTypePath = resolve(SRC_ROOT, "types/task.ts");
+    const legacyTaskCatalogPath = resolve(SRC_ROOT, "lib/task-types.ts");
+    const legacyTaskScopePath = resolve(SRC_ROOT, "lib/task-scope.ts");
+    const taskCenterRoot = resolve(SRC_ROOT, "task-center");
+    const taskExecutionPublicPath = resolve(
+      SRC_ROOT,
+      "modules/task_execution/public.ts",
+    );
     const bypasses = sourceFiles(SRC_ROOT)
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
       .flatMap((path) =>
@@ -2367,16 +2456,67 @@ describe("frontend architecture boundaries", () => {
             (specifier) =>
               specifier === "@/lib/queries/tasks" ||
               specifier === "@/api/tasks" ||
-              specifier === "@/task-center/query-hooks" ||
-              specifier === "@/task-center/task-monitor",
+              specifier === "@/types/task" ||
+              specifier === "@/lib/task-types" ||
+              specifier === "@/lib/task-scope" ||
+              specifier.startsWith("@/task-center/"),
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       );
 
     expect(existsSync(legacyQueryPath)).toBe(false);
     expect(existsSync(legacyMonitorPath)).toBe(false);
-    expect(importSpecifiers(publicPath)).toContain("./query-hooks");
-    expect(importSpecifiers(publicPath)).toContain("./task-monitor");
+    expect(existsSync(legacyTaskTypePath)).toBe(false);
+    expect(existsSync(legacyTaskCatalogPath)).toBe(false);
+    expect(existsSync(legacyTaskScopePath)).toBe(false);
+    expect(sourceFiles(taskCenterRoot)).toEqual([]);
+    expect(importSpecifiers(taskExecutionPublicPath)).toContain(
+      "@/modules/task_execution/infrastructure/taskCompletionMonitor",
+    );
+    expect(importSpecifiers(taskExecutionPublicPath)).toContain(
+      "@/modules/task_execution/composition",
+    );
+    expect(bypasses).toEqual([]);
+  });
+
+  it("keeps Task Execution callers on its module public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/task_execution");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const bypasses = sourceFiles(SRC_ROOT)
+      .filter(
+        (path) =>
+          !relativeSource(path).startsWith("modules/task_execution/"),
+      )
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/modules/task_execution/") &&
+              specifier !== "@/modules/task_execution/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+
+    expect(existsSync(publicPath)).toBe(true);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/task_execution/domain/contracts",
+        "@/modules/task_execution/domain/taskOrigin",
+        "@/modules/task_execution/domain/taskScope",
+        "@/modules/task_execution/domain/taskState",
+        "@/modules/task_execution/domain/taskTypes",
+        "@/modules/task_execution/application/taskEventBus",
+        "@/modules/task_execution/application/taskQueryPorts",
+        "@/modules/task_execution/composition",
+        "@/modules/task_execution/infrastructure/taskCompletionMonitor",
+        "@/modules/task_execution/presentation/taskCenterStore",
+        "@/modules/task_execution/presentation/taskErrorMessage",
+        "@/modules/task_execution/presentation/taskEventBusContext",
+        "@/modules/task_execution/presentation/taskOriginLink",
+        "@/modules/task_execution/presentation/taskQueryHooks",
+        "@/modules/task_execution/presentation/useTaskSubscribe",
+      ]),
+    );
     expect(bypasses).toEqual([]);
   });
 
@@ -2799,14 +2939,15 @@ describe("frontend architecture boundaries", () => {
       "stageSelectedBackgroundOutputForSkillUseCase(",
     );
     expect(composition).toContain("zustandCanvasGraphGateway");
-    expect(composition).toContain("canvasEventBus");
+    expect(composition).toContain("publishCanvasCommitRequested");
     expect(composition).toContain("regenerateExportImageNodeUseCase(");
-    expect(composition).toContain("projectId: readUrl().project");
+    expect(composition).not.toContain("readUrl");
+    expect(composition).not.toContain("@/lib/url-params");
     expect(composition).toContain("freezoneRedrawTaskGateway");
     expect(composition).toContain("resumeNodeGenerationUseCase(");
     expect(composition).toContain("freezoneGenerationTaskGateway");
     expect(assetGateway).toContain("uploadFreezoneAsset(");
-    expect(assetGateway).toContain("@/features/freezone/public");
+    expect(assetGateway).toContain("@/modules/creative_canvas/public");
     expect(assetGateway).not.toContain("@/api/ops");
     expect(assetGateway).toContain("async read(source, options)");
     expect(assetGateway).toContain("dataUrlToBlob(source)");
@@ -2816,7 +2957,9 @@ describe("frontend architecture boundaries", () => {
     expect(selectedBackgroundSlot).toContain(
       "graphGateway: CanvasGraphGateway",
     );
-    expect(selectedBackgroundSlot).toContain("eventBus: CanvasEventBus");
+    expect(selectedBackgroundSlot).toContain(
+      "publishCommitRequested: CanvasCommitRequestPublisher",
+    );
     expect(uploadToolOutput).toContain(
       "projectId: string | null | undefined",
     );
@@ -2856,9 +2999,13 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/infrastructure/videoTranscode",
     );
     expect(toolProcessor).toContain("CanvasToolImageGateway");
+    expect(toolProcessor).toContain("@/modules/creative_canvas/public");
+    expect(toolProcessor).not.toContain("../domain/toolImageGeometry");
     expect(toolProcessor).not.toContain("document.");
     expect(toolProcessor).not.toContain("./imageData");
     expect(toolImageGateway).toContain("document.createElement('canvas')");
+    expect(toolImageGateway).toContain("@/modules/creative_canvas/public");
+    expect(toolImageGateway).not.toContain("../domain/toolImageGeometry");
     expect(toolImageGateway).toContain("cropImageSource");
     expect(toolImageGateway).toContain("./browserImageRuntime");
     expect(imageData).not.toContain("document.");
@@ -2884,7 +3031,7 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
-  it("keeps Canvas model defaults in one pure domain owner", () => {
+  it("keeps blank Canvas defaults in one domain owner and catalog models runtime-owned", () => {
     const defaultsPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/modelDefaults.ts",
@@ -2918,6 +3065,8 @@ describe("frontend architecture boundaries", () => {
       })
       .map(relativeSource)
       .sort();
+    const defaultsSource = readFileSync(defaultsPath, "utf8");
+    const modelRegistrySource = readFileSync(modelRegistryPath, "utf8");
 
     expect(importSpecifiers(defaultsPath)).toEqual([]);
     expect(declarationOwners).toEqual([
@@ -2928,27 +3077,36 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(nodeRegistryPath)).not.toContain(
       "../ui/ProviderModelPicker",
     );
-    expect(importSpecifiers(modelRegistryPath)).toContain(
+    expect(importSpecifiers(modelRegistryPath)).not.toContain(
       "../domain/modelDefaults",
     );
+    for (const name of defaultNames) {
+      expect(defaultsSource).toContain(`export const ${name} = ""`);
+    }
+    expect(modelRegistrySource).toContain(
+      "models: readonly CatalogImageModel[]",
+    );
+    expect(modelRegistrySource).not.toContain("providerId");
     expect(readFileSync(pickerPath, "utf8")).not.toContain(
       "export const DEFAULT_",
     );
   });
 
-  it("publishes Freezone contracts through one public API", () => {
+  it("publishes Freezone capabilities and Creative Canvas contracts through public APIs", () => {
     const freezoneRoot = resolve(SRC_ROOT, "features/freezone");
+    const creativeCanvasRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const contractPath = resolve(
-      freezoneRoot,
+      creativeCanvasRoot,
       "domain/skillContract.ts",
     );
     const publicPath = resolve(freezoneRoot, "public.ts");
+    const creativeCanvasPublicPath = resolve(creativeCanvasRoot, "public.ts");
     const legacyPath = resolve(freezoneRoot, "context/skillRoles.ts");
     const nodeRegistryPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/nodeRegistry.ts",
     );
-    const declarationOwners = sourceFiles(freezoneRoot)
+    const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
         readFileSync(path, "utf8").includes(
@@ -2965,16 +3123,32 @@ describe("frontend architecture boundaries", () => {
             (specifier) =>
               specifier.includes("features/freezone/domain/skillContract") ||
               specifier.includes("features/freezone/domain/skillExecution") ||
+              specifier.includes("features/freezone/domain/skillInputResolution") ||
+              specifier.includes("features/freezone/domain/inferSkillConnectionRole") ||
               specifier.includes("features/freezone/domain/sceneAssets") ||
               specifier.includes("features/freezone/domain/assetCommit") ||
+              specifier.includes("features/freezone/domain/pushTarget") ||
               specifier.includes("features/freezone/domain/beatContext") ||
               specifier.includes("features/freezone/domain/capabilities/") ||
               specifier.includes("features/freezone/domain/canvasProjection") ||
               specifier.includes("features/freezone/domain/canvasStorage") ||
               specifier.includes("features/freezone/domain/referenceRoles") ||
               specifier.includes("features/freezone/domain/shotMetadata") ||
+              specifier.includes("features/freezone/domain/mainlineContext") ||
+              specifier.includes("features/freezone/domain/currentBeatContext") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
+          )
+          .map((specifier) => `${relativeSource(path)} -> ${specifier}`),
+      );
+    const creativeCanvasContractBypasses = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(creativeCanvasRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) =>
+            /^@\/modules\/creative_canvas\/domain\/(skillContract|skillExecution|skillInputResolution|inferSkillConnectionRole)$/.test(
+              specifier,
+            ),
           )
           .map((specifier) => `${relativeSource(path)} -> ${specifier}`),
       );
@@ -2990,8 +3164,7 @@ describe("frontend architecture boundaries", () => {
         importSpecifiers(path)
           .filter(
             (specifier) =>
-              specifier.startsWith("@/features/freezone/") &&
-              specifier !== "@/features/freezone/public",
+              specifier.startsWith("@/features/freezone/"),
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       )
@@ -3000,58 +3173,45 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyPath)).toBe(false);
     expect(importSpecifiers(contractPath)).toEqual([]);
     expect(declarationOwners).toEqual([
-      "features/freezone/domain/skillContract.ts",
+      "modules/creative_canvas/domain/skillContract.ts",
     ]);
-    expect(new Set(importSpecifiers(publicPath))).toEqual(
-      new Set([
-        "@/features/freezone/application/canvasMetadataState",
-        "@/features/freezone/application/canvasPreset",
-        "@/features/freezone/application/canvasRuntimeState",
-        "@/features/freezone/composition",
-        "@/features/freezone/openPresetProjectionComposition",
-        "@/features/freezone/canvasDraftComposition",
-        "@/features/freezone/shotMetadataComposition",
-        "@/features/freezone/domain/assetCommit",
-        "@/features/freezone/domain/assetUpload",
-        "@/features/freezone/domain/beatContext",
-        "@/features/freezone/domain/capabilities/contracts",
-        "@/features/freezone/domain/capabilities/registry",
-        "@/features/freezone/domain/canvasProjection",
-        "@/features/freezone/domain/canvasStorage",
-        "@/features/freezone/domain/currentBeatContext",
-        "@/features/freezone/domain/inferSkillConnectionRole",
-        "@/features/freezone/domain/mainlineContext",
-        "@/features/freezone/domain/pushTarget",
-        "@/features/freezone/domain/referenceRoles",
-        "@/features/freezone/domain/skillContract",
-        "@/features/freezone/domain/skillExecution",
-        "@/features/freezone/domain/sceneAssets",
-        "@/features/freezone/domain/skillInputResolution",
-        "@/features/freezone/hooks/useCanvasProjectionStatus",
-        "@/features/freezone/presentation/NodeContextBadges",
-        "@/features/freezone/presentation/skillI18n",
+    expect(existsSync(publicPath)).toBe(false);
+    expect(importSpecifiers(creativeCanvasPublicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/inferSkillConnectionRole",
+        "@/modules/creative_canvas/domain/skillContract",
+        "@/modules/creative_canvas/domain/skillExecution",
+        "@/modules/creative_canvas/domain/skillInputResolution",
+        "@/modules/creative_canvas/domain/beatContext",
+        "@/modules/creative_canvas/assetTransferComposition",
+        "@/modules/creative_canvas/contextQueryComposition",
+        "@/modules/creative_canvas/application/canvasPreset",
+        "@/modules/creative_canvas/application/canvasRuntimeState",
+        "@/modules/creative_canvas/application/canvasProjectionStatusState",
+        "@/modules/creative_canvas/projectionComposition",
+        "@/modules/creative_canvas/presetProjectionComposition",
+        "@/modules/creative_canvas/presentation/NodeContextBadges",
+        "@/modules/creative_canvas/presentation/skillI18n",
+        "@/modules/creative_canvas/presentation/useCanvasProjectionStatus",
       ]),
     );
     expect(externalContractImportFailures).toEqual([]);
+    expect(creativeCanvasContractBypasses).toEqual([]);
     expect(internalPublicConsumers).toEqual([]);
     expect(modulePublicBypasses).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     );
   });
 
-  it("owns mainline context graph rules in the Freezone domain", () => {
-    const legacyPath = resolve(
-      SRC_ROOT,
+  it("owns mainline context graph rules in Creative Canvas", () => {
+    const legacyPaths = [
       "features/freezone/context/mainlineContext.ts",
-    );
-    const domainPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/mainlineContext.ts",
-    );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
-    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
-    const contextRoot = resolve(SRC_ROOT, "features/freezone/context");
+    ].map((path) => resolve(SRC_ROOT, path));
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(moduleRoot, "domain/mainlineContext.ts");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const declarations = [
       "isMainlineContext(",
       "collectNodeMainlineContexts(",
@@ -3065,62 +3225,49 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort(),
     );
-    const canvasBypasses = sourceFiles(canvasRoot)
+    const directDomainConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
       .flatMap((path) =>
         importSpecifiers(path)
           .filter(
             (specifier) =>
               specifier === "@/features/freezone/context/mainlineContext" ||
-              specifier === "@/features/freezone/domain/mainlineContext",
-          )
-          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
-      )
-      .sort();
-    const contextImportFailures = sourceFiles(contextRoot)
-      .flatMap((path) =>
-        importSpecifiers(path)
-          .filter(
-            (specifier) =>
-              specifier.includes("mainlineContext") &&
-              specifier !== "../domain/mainlineContext",
+              specifier === "@/features/freezone/domain/mainlineContext" ||
+              specifier === "@/modules/creative_canvas/domain/mainlineContext",
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       )
       .sort();
 
-    expect(existsSync(legacyPath)).toBe(false);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/domain/mainlineContext.ts",
+        "modules/creative_canvas/domain/mainlineContext.ts",
       ]),
     );
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/domain/mainlineContext",
+      "@/modules/creative_canvas/domain/mainlineContext",
     );
-    expect(canvasBypasses).toEqual([]);
-    expect(contextImportFailures).toEqual([]);
+    expect(directDomainConsumers).toEqual([]);
   });
 
-  it("owns current Beat Context parsing in the Freezone domain", () => {
-    const legacyPath = resolve(
-      SRC_ROOT,
+  it("owns current Beat Context parsing in Creative Canvas", () => {
+    const legacyPaths = [
       "features/freezone/context/currentBeatContext.ts",
-    );
-    const domainPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/currentBeatContext.ts",
-    );
-    const testPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/currentBeatContext.test.ts",
-    );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    ].map((path) => resolve(SRC_ROOT, path));
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(moduleRoot, "domain/currentBeatContext.ts");
+    const testPath = resolve(moduleRoot, "domain/currentBeatContext.test.ts");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const skillInputsPath = resolve(
-      SRC_ROOT,
-      "features/freezone/domain/skillInputResolution.ts",
+      moduleRoot,
+      "domain/skillInputResolution.ts",
     );
-    const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const domainSource = readFileSync(domainPath, "utf8");
     const declarations = [
       "parseBeatContextVisualMarkers(",
@@ -3133,37 +3280,41 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort(),
     );
-    const canvasBypasses = sourceFiles(canvasRoot)
+    const directDomainConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
       .flatMap((path) =>
         importSpecifiers(path)
           .filter(
             (specifier) =>
               specifier === "@/features/freezone/context/currentBeatContext" ||
               specifier === "@/features/freezone/domain/currentBeatContext" ||
-              specifier.endsWith("freezone/context/currentBeatContext.ts"),
+              specifier === "@/modules/creative_canvas/domain/currentBeatContext",
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       )
       .sort();
 
-    expect(existsSync(legacyPath)).toBe(false);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(importSpecifiers(domainPath)).toEqual(["./mainlineContext"]);
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/domain/currentBeatContext.ts",
+        "modules/creative_canvas/domain/currentBeatContext.ts",
       ]),
     );
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window.");
     expect(domainSource).not.toContain("document.");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/domain/currentBeatContext",
+      "@/modules/creative_canvas/domain/currentBeatContext",
     );
-    expect(importSpecifiers(skillInputsPath)).toContain(
-      "./currentBeatContext",
+    expect(importSpecifiers(skillInputsPath)).toContain("./currentBeatContext");
+    expect(importSpecifiers(skillInputsPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(testPath)).toEqual(["vitest", "./currentBeatContext"]);
-    expect(canvasBypasses).toEqual([]);
+    expect(directDomainConsumers).toEqual([]);
   });
 
   it("owns Beat Context refresh projection in Canvas application", () => {
@@ -3201,7 +3352,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(existsSync(legacyPath)).toBe(false);
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/features/freezone/public", "../domain/canvasNodes"]),
+      new Set([
+        "@/modules/creative_canvas/public",
+        "../domain/canvasNodes",
+      ]),
     );
     expect(declarationOwners).toEqual([
       "features/canvas/application/beatContextRefreshProjection.ts",
@@ -3263,20 +3417,16 @@ describe("frontend architecture boundaries", () => {
     expect(legacyConsumers).toEqual([]);
   });
 
-  it("owns Skill input resolution in the Freezone domain", () => {
-    const legacyPath = resolve(
-      SRC_ROOT,
+  it("owns Skill input resolution in the Creative Canvas domain", () => {
+    const legacyPaths = [
       "features/freezone/context/skillNodeInputs.ts",
-    );
-    const domainPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/skillInputResolution.ts",
-    );
-    const testPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/skillInputResolution.test.ts",
-    );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    ].map((path) => resolve(SRC_ROOT, path));
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(moduleRoot, "domain/skillInputResolution.ts");
+    const testPath = resolve(moduleRoot, "domain/skillInputResolution.test.ts");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const declarations = [
       "inputAcceptsNode(",
@@ -3296,6 +3446,7 @@ describe("frontend architecture boundaries", () => {
             (specifier) =>
               specifier === "@/features/freezone/context/skillNodeInputs" ||
               specifier === "@/features/freezone/domain/skillInputResolution" ||
+              specifier === "@/modules/creative_canvas/domain/skillInputResolution" ||
               specifier.endsWith("freezone/context/skillNodeInputs.ts") ||
               specifier.endsWith("freezone/domain/skillInputResolution.ts"),
           )
@@ -3303,17 +3454,19 @@ describe("frontend architecture boundaries", () => {
       )
       .sort();
 
-    expect(existsSync(legacyPath)).toBe(false);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(new Set(importSpecifiers(domainPath))).toEqual(
       new Set(["./currentBeatContext", "./skillContract"]),
     );
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/domain/skillInputResolution.ts",
+        "modules/creative_canvas/domain/skillInputResolution.ts",
       ]),
     );
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/domain/skillInputResolution",
+      "@/modules/creative_canvas/domain/skillInputResolution",
     );
     expect(new Set(importSpecifiers(testPath))).toEqual(
       new Set(["vitest", "./skillInputResolution", "./skillContract"]),
@@ -3321,20 +3474,16 @@ describe("frontend architecture boundaries", () => {
     expect(canvasBypasses).toEqual([]);
   });
 
-  it("owns Skill connection role inference in the Freezone domain", () => {
-    const legacyPath = resolve(
-      SRC_ROOT,
+  it("owns Skill connection role inference in the Creative Canvas domain", () => {
+    const legacyPaths = [
       "features/freezone/context/inferSkillConnectionRole.ts",
-    );
-    const domainPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/inferSkillConnectionRole.ts",
-    );
-    const testPath = resolve(
-      SRC_ROOT,
       "features/freezone/domain/inferSkillConnectionRole.test.ts",
-    );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    ].map((path) => resolve(SRC_ROOT, path));
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(moduleRoot, "domain/inferSkillConnectionRole.ts");
+    const testPath = resolve(moduleRoot, "domain/inferSkillConnectionRole.test.ts");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const canvasConsumerPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/skillConnectionEdges.ts",
@@ -3350,23 +3499,29 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const canvasImports = importSpecifiers(canvasConsumerPath);
 
-    expect(existsSync(legacyPath)).toBe(false);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(importSpecifiers(domainPath)).toEqual(["./skillContract"]);
     expect(declarationOwners).toEqual([
-      "features/freezone/domain/inferSkillConnectionRole.ts",
+      "modules/creative_canvas/domain/inferSkillConnectionRole.ts",
     ]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window.");
     expect(domainSource).not.toContain("document.");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/domain/inferSkillConnectionRole",
+      "@/modules/creative_canvas/domain/inferSkillConnectionRole",
     );
-    expect(canvasImports).toContain("@/features/freezone/public");
+    expect(canvasImports).toContain("@/modules/creative_canvas/public");
+    expect(canvasImports).not.toContain("@/features/freezone/public");
     expect(canvasImports).not.toContain(
       "../../freezone/context/inferSkillConnectionRole.ts",
     );
     expect(canvasImports).not.toContain(
       "@/features/freezone/domain/inferSkillConnectionRole",
+    );
+    expect(canvasImports).not.toContain(
+      "@/modules/creative_canvas/domain/inferSkillConnectionRole",
     );
     expect(importSpecifiers(testPath)).toEqual([
       "vitest",
@@ -3374,20 +3529,24 @@ describe("frontend architecture boundaries", () => {
     ]);
   });
 
-  it("owns Skill translations in Freezone presentation", () => {
-    const legacyPath = resolve(
+  it("owns Skill translations in Creative Canvas presentation", () => {
+    const legacyContextPath = resolve(
       SRC_ROOT,
       "features/freezone/context/skillI18n.ts",
     );
-    const presentationPath = resolve(
+    const legacyPresentationPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/skillI18n.ts",
     );
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/skillI18n.ts",
+    );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/skillI18n.test.ts",
+      "modules/creative_canvas/presentation/skillI18n.test.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const presentationSource = readFileSync(presentationPath, "utf8");
     const declarations = [
@@ -3412,26 +3571,28 @@ describe("frontend architecture boundaries", () => {
           .filter(
             (specifier) =>
               specifier === "@/features/freezone/context/skillI18n" ||
-              specifier === "@/features/freezone/presentation/skillI18n",
+              specifier === "@/features/freezone/presentation/skillI18n" ||
+              specifier === "@/modules/creative_canvas/presentation/skillI18n",
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       )
       .sort();
 
-    expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(legacyContextPath)).toBe(false);
+    expect(existsSync(legacyPresentationPath)).toBe(false);
     expect(new Set(importSpecifiers(presentationPath))).toEqual(
-      new Set(["i18next", "../domain/skillContract"]),
+      new Set(["i18next", "@/modules/creative_canvas/domain/skillContract"]),
     );
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/presentation/skillI18n.ts",
+        "modules/creative_canvas/presentation/skillI18n.ts",
       ]),
     );
     expect(presentationSource).not.toContain("react");
     expect(presentationSource).not.toContain("window.");
     expect(presentationSource).not.toContain("document.");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/presentation/skillI18n",
+      "@/modules/creative_canvas/presentation/skillI18n",
     );
     expect(new Set(importSpecifiers(testPath))).toEqual(
       new Set(["vitest", "./skillI18n", "../domain/skillContract"]),
@@ -3439,20 +3600,28 @@ describe("frontend architecture boundaries", () => {
     expect(canvasBypasses).toEqual([]);
   });
 
-  it("owns mainline context badges in Freezone presentation", () => {
-    const legacyPath = resolve(
+  it("owns mainline context rules and badges in Creative Canvas", () => {
+    const legacyContextPath = resolve(
       SRC_ROOT,
       "features/freezone/context/NodeContextBadges.tsx",
     );
-    const presentationPath = resolve(
+    const legacyPresentationPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/NodeContextBadges.tsx",
     );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/mainlineContext.ts",
+    );
+    const presentationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/NodeContextBadges.tsx",
+    );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/NodeContextBadges.test.tsx",
+      "modules/creative_canvas/presentation/NodeContextBadges.test.tsx",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
     const colorTestPath = resolve(
       SRC_ROOT,
@@ -3480,7 +3649,9 @@ describe("frontend architecture boundaries", () => {
           .filter(
             (specifier) =>
               specifier === "@/features/freezone/context/NodeContextBadges" ||
-              specifier === "@/features/freezone/presentation/NodeContextBadges",
+              specifier === "@/features/freezone/presentation/NodeContextBadges" ||
+              specifier === "@/modules/creative_canvas/domain/mainlineContext" ||
+              specifier === "@/modules/creative_canvas/presentation/NodeContextBadges",
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       )
@@ -3488,17 +3659,23 @@ describe("frontend architecture boundaries", () => {
     const colorTestSource = readFileSync(colorTestPath, "utf8");
     const assetDragTestSource = readFileSync(assetDragTestPath, "utf8");
 
-    expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(legacyContextPath)).toBe(false);
+    expect(existsSync(legacyPresentationPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(presentationPath)).toEqual([
-      "../domain/mainlineContext",
+      "@/modules/creative_canvas/domain/mainlineContext",
     ]);
-    expect(declarationOwners).toEqual(
-      declarations.map(() => [
-        "features/freezone/presentation/NodeContextBadges.tsx",
-      ]),
+    expect(declarationOwners).toEqual([
+      ["modules/creative_canvas/domain/mainlineContext.ts"],
+      ["modules/creative_canvas/domain/mainlineContext.ts"],
+      ["modules/creative_canvas/presentation/NodeContextBadges.tsx"],
+      ["modules/creative_canvas/presentation/NodeContextBadges.tsx"],
+    ]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/mainlineContext",
     );
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/presentation/NodeContextBadges",
+      "@/modules/creative_canvas/presentation/NodeContextBadges",
     );
     expect(new Set(importSpecifiers(testPath))).toEqual(
       new Set(["@testing-library/react", "vitest", "./NodeContextBadges"]),
@@ -3510,8 +3687,11 @@ describe("frontend architecture boundaries", () => {
     expect(colorTestSource).not.toContain(
       '"features/freezone/context/NodeContextBadges.tsx"',
     );
+    expect(colorTestSource).not.toContain(
+      '"modules/creative_canvas/presentation/NodeContextBadges.tsx"',
+    );
     expect(assetDragTestSource).toContain(
-      "src/features/freezone/presentation/NodeContextBadges.tsx",
+      "src/modules/creative_canvas/presentation/NodeContextBadges.tsx",
     );
   });
 
@@ -3522,27 +3702,42 @@ describe("frontend architecture boundaries", () => {
     );
     const domainPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/shotMetadata.ts",
+      "modules/creative_canvas/domain/shotMetadata.ts",
     );
     const statePath = resolve(
       SRC_ROOT,
-      "features/freezone/application/shotMetadataState.ts",
+      "modules/creative_canvas/application/shotMetadataState.ts",
     );
     const storePath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/zustandShotMetadataStore.ts",
+      "modules/creative_canvas/infrastructure/zustandShotMetadataStore.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/shotMetadataComposition.ts",
+      "modules/creative_canvas/shotMetadataComposition.ts",
     );
+    const oldOwnerPaths = [
+      "features/freezone/domain/shotMetadata.ts",
+      "features/freezone/application/shotMetadataState.ts",
+      "features/freezone/infrastructure/zustandShotMetadataStore.ts",
+      "features/freezone/shotMetadataComposition.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const gatewayPath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneAiGateway.ts",
     );
     const gatewayImports = importSpecifiers(gatewayPath);
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const canvasCompositionSource = readFileSync(
+      canvasCompositionPath,
+      "utf8",
+    );
 
     expect(existsSync(legacyPath)).toBe(false);
+    expect(oldOwnerPaths.every((path) => !existsSync(path))).toBe(true);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(statePath)).toEqual([
       "../domain/shotMetadata",
@@ -3560,7 +3755,7 @@ describe("frontend architecture boundaries", () => {
         "./infrastructure/zustandShotMetadataStore",
       ]),
     );
-    expect(gatewayImports).toContain("@/features/freezone/public");
+    expect(gatewayImports).not.toContain("@/features/freezone/public");
     expect(gatewayImports).not.toContain(
       "@/features/freezone/domain/shotMetadata",
     );
@@ -3572,6 +3767,12 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "resolveCurrentShotMetadataPrompt(",
     );
+    expect(importSpecifiers(canvasCompositionPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(canvasCompositionSource).toContain(
+      "resolveShotMetadataPrompt: resolveCurrentShotMetadataPrompt",
+    );
   });
 
   it("publishes one high-level reference role prompt rule", () => {
@@ -3581,6 +3782,10 @@ describe("frontend architecture boundaries", () => {
     );
     const domainPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/referenceRoles.ts",
+    );
+    const oldDomainPath = resolve(
+      SRC_ROOT,
       "features/freezone/domain/referenceRoles.ts",
     );
     const gatewayPath = resolve(
@@ -3589,8 +3794,17 @@ describe("frontend architecture boundaries", () => {
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const gatewayImports = importSpecifiers(gatewayPath);
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const canvasCompositionSource = readFileSync(
+      canvasCompositionPath,
+      "utf8",
+    );
 
     expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(oldDomainPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
       "export function resolvePromptReferenceRoles(",
@@ -3604,21 +3818,31 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain(
       "export function renderReferenceRolesForPrompt(",
     );
-    expect(gatewayImports).toContain("@/features/freezone/public");
+    expect(gatewayImports).not.toContain("@/features/freezone/public");
     expect(gatewayImports).not.toContain(
       "@/features/freezone/referenceRoles",
     );
     expect(gatewayImports).not.toContain(
       "@/features/freezone/domain/referenceRoles",
     );
+    expect(importSpecifiers(canvasCompositionPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(canvasCompositionSource).toContain(
+      "resolvePromptReferenceRoles,",
+    );
   });
 
-  it("keeps canvas metadata state writable only inside Freezone", () => {
+  it("keeps canvas metadata state owned by Creative Canvas", () => {
     const legacyPath = resolve(
       SRC_ROOT,
       "features/freezone/canvasMetadataContext.ts",
     );
     const statePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasMetadataState.ts",
+    );
+    const oldStatePath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasMetadataState.ts",
     );
@@ -3628,6 +3852,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
+    const [gatewayPath, ...publicReaderPaths] = readerPaths;
     const getterDeclaration = [
       "export function",
       "getFreezoneCanvasMetadata(",
@@ -3638,13 +3863,20 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(oldStatePath)).toBe(false);
     expect(importSpecifiers(statePath)).toEqual([]);
     expect(getterOwners).toEqual([
-      "features/freezone/application/canvasMetadataState.ts",
+      "modules/creative_canvas/application/canvasMetadataState.ts",
     ]);
-    for (const readerPath of readerPaths) {
+    expect(importSpecifiers(gatewayPath)).not.toContain(
+      "@/features/freezone/public",
+    );
+    expect(readFileSync(gatewayPath, "utf8")).toContain(
+      "readonly getCanvasMetadata:",
+    );
+    for (const readerPath of publicReaderPaths) {
       const imports = importSpecifiers(readerPath);
-      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).toContain("@/modules/creative_canvas/public");
       expect(imports).not.toContain(
         "@/features/freezone/canvasMetadataContext",
       );
@@ -3657,26 +3889,31 @@ describe("frontend architecture boundaries", () => {
   it("separates generation capability contracts from the registry", () => {
     const contractsPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/capabilities/contracts.ts",
+      "modules/creative_canvas/domain/capabilities/contracts.ts",
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/capabilities/registry.ts",
+      "modules/creative_canvas/domain/capabilities/registry.ts",
     );
     const implementationPaths = [
       "candidateCapabilities.ts",
       "portraitFromRef.ts",
       "realSceneSketchRepair.ts",
     ].map((name) =>
-      resolve(SRC_ROOT, "features/freezone/domain/capabilities", name),
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/capabilities", name),
     );
     const legacyPaths = [
-      "capabilityRegistry.ts",
-      "candidate_capabilities.ts",
-      "portrait_from_ref.ts",
-      "real_scene_sketch_repair.ts",
+      "domain/capabilities/contracts.ts",
+      "domain/capabilities/registry.ts",
+      "domain/capabilities/candidateCapabilities.ts",
+      "domain/capabilities/portraitFromRef.ts",
+      "domain/capabilities/realSceneSketchRepair.ts",
+      "capabilities/capabilityRegistry.ts",
+      "capabilities/candidate_capabilities.ts",
+      "capabilities/portrait_from_ref.ts",
+      "capabilities/real_scene_sketch_repair.ts",
     ].map((name) =>
-      resolve(SRC_ROOT, "features/freezone/capabilities", name),
+      resolve(SRC_ROOT, "features/freezone", name),
     );
     const canvasConsumerPaths = [
       "features/canvas/infrastructure/freezoneAiGateway.ts",
@@ -3684,6 +3921,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useImageEditNodeController.ts",
       "features/canvas/nodes/ImageEditNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
+    const [gatewayPath, ...modulePublicConsumerPaths] = canvasConsumerPaths;
 
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     expect(importSpecifiers(contractsPath)).toEqual([]);
@@ -3701,9 +3939,15 @@ describe("frontend architecture boundaries", () => {
         "./registry",
       );
     }
-    for (const consumerPath of canvasConsumerPaths) {
+    expect(importSpecifiers(gatewayPath)).not.toContain(
+      "@/features/freezone/public",
+    );
+    expect(readFileSync(gatewayPath, "utf8")).toContain(
+      "readonly composeCapability:",
+    );
+    for (const consumerPath of modulePublicConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).toContain("@/modules/creative_canvas/public");
       expect(
         imports.some((specifier) =>
           specifier.startsWith("@/features/freezone/capabilities/"),
@@ -3715,88 +3959,72 @@ describe("frontend architecture boundaries", () => {
         ),
       ).toBe(false);
     }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/public.ts")),
+    ).toBe(false);
   });
 
-  it("publishes shared Canvas helpers through one public API", () => {
+  it("owns Canvas commit source and eligibility rules in Creative Canvas", () => {
     const canvasRoot = resolve(SRC_ROOT, "features/canvas");
-    const publicPath = resolve(canvasRoot, "public.ts");
-    const imageDataPath = resolve(canvasRoot, "application/imageData.ts");
+    const canvasPublicPath = resolve(canvasRoot, "public.ts");
+    const modulePublicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
+    const sourcePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasCommitSource.ts",
+    );
     const eligibilityPath = resolve(
-      canvasRoot,
-      "domain/canvasCommitEligibility.ts",
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasCommitEligibility.ts",
     );
     const eligibilityTestPath = resolve(
-      canvasRoot,
-      "domain/canvasCommitEligibility.test.ts",
-    );
-    const legacyEligibilityPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/commitEligibility.ts",
+      "modules/creative_canvas/domain/canvasCommitEligibility.test.ts",
     );
-    const commitControllerPath = resolve(
-      SRC_ROOT,
-      "features/freezone/hooks/useCanvasCommitController.ts",
+    const legacyPaths = [
+      resolve(canvasRoot, "domain/assetDropInfo.ts"),
+      resolve(canvasRoot, "domain/canvasCommitEligibility.ts"),
+      resolve(SRC_ROOT, "features/freezone/commit/commitEligibility.ts"),
+    ];
+    const owners = [
+      ["export function", "deriveNodeDropInfo("].join(" "),
+      ["export function", "modelSourceUrlFromNodeData("].join(" "),
+      ["export function", "isCommitCandidateData("].join(" "),
+    ].map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
     );
-    const viewerKitRoot = resolve(SRC_ROOT, "features/viewer-kit");
-    const externalRoots = [MODULES_ROOT, viewerKitRoot];
-    const bypasses = externalRoots
-      .flatMap((root) => sourceFiles(root))
-      .flatMap((path) =>
-        importSpecifiers(path)
-          .filter(
-            (specifier) =>
-              specifier.startsWith("@/features/canvas/") &&
-              specifier !== "@/features/canvas/public",
-          )
-          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
-      )
-      .sort();
-    const publicSource = readFileSync(publicPath, "utf8");
-    const eligibilityDeclaration = [
-      "export function",
-      "isCommitCandidateData(",
-    ].join(" ");
-    const eligibilityOwners = sourceFiles(SRC_ROOT)
-      .filter((path) =>
-        readFileSync(path, "utf8").includes(eligibilityDeclaration),
-      )
-      .map(relativeSource)
-      .sort();
 
-    expect(importSpecifiers(publicPath)).toEqual([
+    expect(importSpecifiers(canvasPublicPath)).toEqual([
       "@/features/canvas/application/imageData",
-      "@/features/canvas/domain/canvasCommitEligibility",
       "@/features/canvas/pricing/types",
     ]);
-    expect(publicSource).toContain("dataUrlToBlob,");
-    expect(publicSource).toContain("withImageCacheBust,");
-    expect(publicSource).toContain("DEFAULT_GRSAI_CREDIT_TIER_ID,");
-    expect(publicSource).toContain("PRICE_DISPLAY_CURRENCY_MODES,");
-    expect(publicSource).toContain("isCommitCandidateData");
-    expect(readFileSync(imageDataPath, "utf8")).toContain(
-      "export function dataUrlToBlob(",
+    expect(readFileSync(canvasPublicPath, "utf8")).not.toContain(
+      "isCommitCandidateData",
     );
-    expect(readFileSync(imageDataPath, "utf8")).toContain(
-      "export function withImageCacheBust(",
+    expect(importSpecifiers(modulePublicPath)).toContain(
+      "@/modules/creative_canvas/domain/canvasCommitSource",
     );
-    expect(existsSync(legacyEligibilityPath)).toBe(false);
-    expect(importSpecifiers(eligibilityPath)).toEqual([
-      "@/features/freezone/public",
-    ]);
-    expect(eligibilityOwners).toEqual([
-      "features/canvas/domain/canvasCommitEligibility.ts",
+    expect(importSpecifiers(modulePublicPath)).toContain(
+      "@/modules/creative_canvas/domain/canvasCommitEligibility",
+    );
+    expect(importSpecifiers(sourcePath)).toEqual(["./assetLibraryModel"]);
+    expect(importSpecifiers(eligibilityPath)).toEqual(["./pushTarget"]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(owners).toEqual([
+      ["modules/creative_canvas/domain/canvasCommitSource.ts"],
+      ["modules/creative_canvas/domain/canvasCommitSource.ts"],
+      ["modules/creative_canvas/domain/canvasCommitEligibility.ts"],
     ]);
     expect(importSpecifiers(eligibilityTestPath)).toEqual([
       "vitest",
       "./canvasCommitEligibility",
     ]);
-    expect(importSpecifiers(commitControllerPath)).toContain(
-      "@/features/canvas/public",
-    );
-    expect(importSpecifiers(commitControllerPath)).not.toContain(
-      "../commit/commitEligibility",
-    );
-    expect(bypasses).toEqual([]);
   });
 
   it("installs Freezone storage recovery from the application bootstrap", () => {
@@ -3808,20 +4036,28 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasDraftComposition.ts",
+      "modules/creative_canvas/canvasStorageRetentionComposition.ts",
+    );
+    const reclaimerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserCanvasStorageReclaimer.ts",
     );
     const draftStoragePath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/browserCanvasDraftStorageGateway.ts",
     );
     const bootstrap = readFileSync(bootstrapPath, "utf8");
     const settings = readFileSync(settingsPath, "utf8");
     const composition = readFileSync(compositionPath, "utf8");
+    const reclaimer = readFileSync(reclaimerPath, "utf8");
     const draftStorage = readFileSync(draftStoragePath, "utf8");
 
     expect(existsSync(legacyDraftStoragePath)).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/freezone/public.ts"))).toBe(
+      false,
+    );
     expect(importSpecifiers(bootstrapPath)).toContain(
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     );
     expect(bootstrap).toContain("installFreezoneCanvasStorageReclaimer();");
     expect(importSpecifiers(settingsPath)).toContain("@/features/canvas/public");
@@ -3833,10 +4069,12 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain(
       "return installBrowserCanvasStorageReclaimer();",
     );
-    expect(draftStorage).toContain(
+    expect(reclaimer).toContain(
       "return registerStorageReclaimer(pruneFreezoneCanvasStorage);",
     );
-    expect(draftStorage).not.toContain("registerStorageReclaimer(() =>");
+    expect(reclaimer).not.toContain("registerStorageReclaimer(() =>");
+    expect(draftStorage).not.toContain("registerStorageReclaimer");
+    expect(draftStorage).not.toContain("pruneFreezoneCanvasStorage");
     expect(draftStorage).not.toContain("pruneOldCanvasDrafts");
   });
 
@@ -3865,7 +4103,7 @@ describe("frontend architecture boundaries", () => {
   it("separates Canvas asset-drop rules from interaction state", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/assetDropInfo.ts",
+      "modules/creative_canvas/domain/canvasCommitSource.ts",
     );
     const storePath = resolve(SRC_ROOT, "features/canvas/assetDropStore.ts");
     const legacyPath = resolve(SRC_ROOT, "stores/assetDropStore.ts");
@@ -3890,50 +4128,66 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(legacyPath)).toBe(false);
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(importSpecifiers(domainPath)).toEqual(["./assetLibraryModel"]);
     expect(new Set(importSpecifiers(storePath))).toEqual(
-      new Set(["zustand", "./domain/assetDropInfo"]),
+      new Set(["zustand", "@/modules/creative_canvas/public"]),
     );
     expect(owners).toEqual([
-      ["features/canvas/domain/assetDropInfo.ts"],
-      ["features/canvas/domain/assetDropInfo.ts"],
+      ["modules/creative_canvas/domain/canvasCommitSource.ts"],
+      ["modules/creative_canvas/domain/canvasCommitSource.ts"],
       ["features/canvas/assetDropStore.ts"],
     ]);
     expect(legacyImports).toEqual([]);
   });
 
-  it("keeps Freezone canvas and Beat Context transport behind application ports", () => {
+  it("keeps Creative Canvas storage and Beat Context transport behind application ports", () => {
     const canvasContractPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasStorage.ts",
+    );
+    const legacyCanvasContractPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/canvasStorage.ts",
     );
     const beatContextContractPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/beatContext.ts",
+    );
+    const legacyBeatContextContractPath = resolve(
+      SRC_ROOT,
       "features/freezone/domain/beatContext.ts",
     );
     const canvasApplicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/freezoneCanvasStorage.ts",
+      "modules/creative_canvas/application/canvasStorageOperations.ts",
     );
     const canvasInfrastructurePath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasStorageGateway.ts",
+    );
+    const legacyCanvasApplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/freezoneCanvasStorage.ts",
+    );
+    const legacyCanvasInfrastructurePath = resolve(
+      SRC_ROOT,
       "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
     );
-    const freezoneApplicationPath = resolve(
+    const contextApplicationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/contextQueries.ts",
+      "modules/creative_canvas/application/contextQueries.ts",
     );
-    const freezoneInfrastructurePath = resolve(
+    const contextInfrastructurePath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/httpFreezoneContextQueryGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneContextQueryGateway.ts",
     );
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasStorageComposition.ts",
     );
-    const freezoneCompositionPath = resolve(
+    const contextCompositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/composition.ts",
+      "modules/creative_canvas/contextQueryComposition.ts",
     );
     const beatContextNodePath = resolve(
       SRC_ROOT,
@@ -3943,7 +4197,7 @@ describe("frontend architecture boundaries", () => {
     const apiProjectsPath = resolve(SRC_ROOT, "api/projects.ts");
     const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
-    const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
+    const contextCompositionSource = readFileSync(contextCompositionPath, "utf8");
     const beatContextNodeSource = readFileSync(beatContextNodePath, "utf8");
     const presetEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -3961,26 +4215,27 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
+    expect(existsSync(legacyCanvasContractPath)).toBe(false);
+    expect(existsSync(legacyBeatContextContractPath)).toBe(false);
+    expect(existsSync(legacyCanvasApplicationPath)).toBe(false);
+    expect(existsSync(legacyCanvasInfrastructurePath)).toBe(false);
     expect(new Set(importSpecifiers(beatContextContractPath))).toEqual(
       new Set(["./assetCommit", "./mainlineContext"]),
     );
-    expect(new Set(importSpecifiers(canvasApplicationPath))).toEqual(
-      new Set([
-        "@/features/freezone/public",
-        "./ports",
-      ]),
-    );
+    expect(importSpecifiers(canvasApplicationPath)).toEqual([
+      "../domain/canvasStorage",
+    ]);
     expect(new Set(importSpecifiers(canvasInfrastructurePath))).toEqual(
       new Set([
-        "@/features/freezone/public",
         "@/shared/api/client",
-        "../application/freezoneCanvasStorage",
+        "../application/canvasStorageOperations",
+        "../domain/canvasStorage",
       ]),
     );
-    expect(importSpecifiers(freezoneApplicationPath)).toEqual([
+    expect(importSpecifiers(contextApplicationPath)).toEqual([
       "../domain/beatContext",
     ]);
-    expect(new Set(importSpecifiers(freezoneInfrastructurePath))).toEqual(
+    expect(new Set(importSpecifiers(contextInfrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
         "../application/contextQueries",
@@ -3988,27 +4243,29 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(presetEndpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasStorageGateway.ts",
     ]);
     expect(beatContextEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneContextQueryGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneContextQueryGateway.ts",
     ]);
     expect(existsSync(apiCanvasPath)).toBe(false);
     expect(existsSync(apiProjectsPath)).toBe(false);
     expect(existsSync(legacyQueryPath)).toBe(false);
-    expect(importSpecifiers(beatContextNodePath)).toContain(
+    expect(importSpecifiers(beatContextNodePath)).not.toContain(
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(beatContextNodePath)).toContain(
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(beatContextNodePath)).toContain(
       "@/modules/narrative_planning/public",
     );
     expect(beatContextNodeSource).not.toContain("@/api/canvas");
     expect(beatContextNodeSource).not.toContain("@/api/projects");
-    expect(canvasCompositionSource).toContain("freezoneCanvasStorageGateway");
-    expect(freezoneCompositionSource).toContain(
+    expect(canvasCompositionSource).toContain(
+      "httpFreezoneCanvasStorageGateway",
+    );
+    expect(contextCompositionSource).toContain(
       "httpFreezoneContextQueryGateway",
     );
   });
@@ -4025,32 +4282,35 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasQueryHooksPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/freezoneCanvasQueryHooks.ts",
+      "modules/creative_canvas/presentation/canvasStorageQueryHooks.ts",
     );
     const contextQueryHooksPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/contextQueryHooks.ts",
+      "modules/creative_canvas/presentation/contextQueryHooks.ts",
     );
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasStorageComposition.ts",
     );
-    const freezoneCompositionPath = resolve(
+    const contextCompositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/composition.ts",
+      "modules/creative_canvas/contextQueryComposition.ts",
     );
-    const freezonePublicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const creativeCanvasPublicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const canvasesTabPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/CanvasesTab.tsx",
     );
     const canvasBrowserControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "modules/creative_canvas/canvasBrowserComposition.ts",
     );
     const assetLibraryControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+      "modules/creative_canvas/assetLibraryCatalogComposition.ts",
     );
     const assetLibraryPanelPath = resolve(
       SRC_ROOT,
@@ -4085,8 +4345,11 @@ describe("frontend architecture boundaries", () => {
       )
       .sort();
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
-    const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
-    const freezonePublicSource = readFileSync(freezonePublicPath, "utf8");
+    const contextCompositionSource = readFileSync(contextCompositionPath, "utf8");
+    const creativeCanvasPublicSource = readFileSync(
+      creativeCanvasPublicPath,
+      "utf8",
+    );
 
     expect(existsSync(legacyQueryPath)).toBe(false);
     expect(existsSync(legacyCanvasQueryHooksPath)).toBe(false);
@@ -4094,8 +4357,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(canvasQueryHooksPath))).toEqual(
       new Set([
         "@tanstack/react-query",
-        "@/lib/query-keys",
-        "../application/freezoneCanvasStorage",
+        "../application/canvasStorageOperations",
       ]),
     );
     expect(new Set(importSpecifiers(contextQueryHooksPath))).toEqual(
@@ -4106,25 +4368,34 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/hooks/freezoneCanvasQueryHooks.ts"],
-      ["features/freezone/hooks/contextQueryHooks.ts"],
+      ["modules/creative_canvas/presentation/canvasStorageQueryHooks.ts"],
+      ["modules/creative_canvas/presentation/contextQueryHooks.ts"],
     ]);
     expect(legacyConsumers).toEqual([]);
     expect(applicationReactQueryUsers).toEqual([]);
     expect(importSpecifiers(canvasBrowserControllerPath)).toContain(
+      "./canvasStorageComposition",
+    );
+    expect(importSpecifiers(canvasBrowserControllerPath)).not.toContain(
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "../hooks/useCanvasBrowserController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
     );
-    expect(importSpecifiers(assetLibraryControllerPath)).toContain(
-      "@/features/freezone/composition",
+    expect(new Set(importSpecifiers(assetLibraryControllerPath))).toEqual(
+      new Set([
+        "react",
+        "./application/assetLibraryProjection",
+        "./contextQueryComposition",
+        "./domain/assetLibraryModel",
+        "./presentation/assetLibraryViewModel",
+      ]),
     );
     expect(importSpecifiers(assetLibraryControllerPath)).not.toContain(
-      "@/features/freezone/public",
+      "@/features/freezone/composition",
     );
     expect(importSpecifiers(assetLibraryPanelPath)).not.toContain(
       "@/features/freezone/composition",
@@ -4133,12 +4404,15 @@ describe("frontend architecture boundaries", () => {
       "@/features/freezone/public",
     );
     expect(canvasCompositionSource).toContain("createFreezoneCanvasQueryHooks(");
-    expect(canvasCompositionSource).toContain("freezoneCanvasStorageGateway,");
-    expect(freezoneCompositionSource).toContain(
+    expect(canvasCompositionSource).toContain(
+      "httpFreezoneCanvasStorageGateway,",
+    );
+    expect(contextCompositionSource).toContain(
       "createFreezoneContextQueryHooks(httpFreezoneContextQueryGateway)",
     );
-    expect(freezonePublicSource).toContain("useFreezoneBeatContext,");
-    expect(freezonePublicSource).toContain("useFreezoneProjectAssets,");
+    expect(creativeCanvasPublicSource).toContain("useFreezoneBeatContext,");
+    expect(creativeCanvasPublicSource).toContain("useFreezoneProjectAssets,");
+    expect(creativeCanvasPublicSource).toContain("useFreezoneCanvases,");
   });
 
   it("does not retain an unreachable frontend Freezone bootstrap client", () => {
@@ -4225,19 +4499,38 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Freezone asset upload behind one application gateway", () => {
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
-    const applicationPath = resolve(
+    const legacyApplicationPath = resolve(
       SRC_ROOT,
       "features/freezone/application/assetUpload.ts",
     );
-    const infrastructurePath = resolve(
+    const legacyInfrastructurePath = resolve(
       SRC_ROOT,
       "features/freezone/infrastructure/httpFreezoneAssetUploadGateway.ts",
     );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/assetUpload.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/assetUpload.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/httpFreezoneAssetUploadGateway.ts",
+    );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/assetTransferComposition.ts",
+    );
+    const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const creativeCanvasPublicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const canvasGatewayPath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneAssetGateway.ts",
@@ -4253,10 +4546,12 @@ describe("frontend architecture boundaries", () => {
     const pipelineConsumerPaths = [
       "features/freezone/presentation/MaskEditor.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
-    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
-    const publicSource = readFileSync(publicPath, "utf8");
+    const creativeCanvasPublicSource = readFileSync(
+      creativeCanvasPublicPath,
+      "utf8",
+    );
     const canvasGatewaySource = readFileSync(canvasGatewayPath, "utf8");
     const propGatewaySource = readFileSync(propGatewayPath, "utf8");
     const uploadEndpointOwners = sourceFiles(SRC_ROOT)
@@ -4278,18 +4573,23 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
+    expect(existsSync(legacyOpsPath)).toBe(false);
+    expect(existsSync(legacyApplicationPath)).toBe(false);
+    expect(existsSync(legacyInfrastructurePath)).toBe(false);
+    expect(existsSync(legacyFreezoneCompositionPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/assetUpload",
+      "@/modules/creative_canvas/domain/assetUpload",
     ]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "@/modules/creative_canvas/domain/assetUpload",
         "../application/assetUpload",
-        "../domain/assetUpload",
       ]),
     );
     expect(uploadEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneAssetUploadGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneAssetUploadGateway.ts",
     ]);
     expect(infrastructureSource).toContain('method: "POST"');
     expect(infrastructureSource).toContain(
@@ -4297,34 +4597,31 @@ describe("frontend architecture boundaries", () => {
     );
     expect(compositionSource).toContain("uploadFreezoneAssetUseCase(");
     expect(compositionSource).toContain("httpFreezoneAssetUploadGateway");
-    expect(publicSource).toContain("uploadFreezoneAsset,");
-    expect(publicSource).toContain("FreezoneAssetUploadResult,");
+    expect(creativeCanvasPublicSource).toContain(
+      "FreezoneAssetUploadResult,",
+    );
+    expect(creativeCanvasPublicSource).toContain("uploadFreezoneAsset,");
+    expect(importSpecifiers(creativeCanvasPublicPath)).toContain(
+      "@/modules/creative_canvas/assetTransferComposition",
+    );
     expect(helperOwners).toEqual(
       helperDeclarations.map(() => [
         "features/canvas/infrastructure/freezoneAssetGateway.ts",
       ]),
     );
     expect(importSpecifiers(canvasGatewayPath)).toContain(
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(canvasGatewayPath)).not.toContain("@/api/ops");
     expect(canvasGatewaySource).toContain("uploadFreezoneAsset(");
     expect(importSpecifiers(propGatewayPath)).toContain(
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     );
     expect(propGatewaySource).toContain("uploadFreezoneAsset(");
     expect(propGatewaySource).not.toContain("}/freezone/upload`");
     expect(importSpecifiers(aiGatewayPath)).toContain(
       "./freezoneAssetGateway",
     );
-    expect(importSpecifiers(legacyOpsPath)).not.toContain(
-      "@/features/canvas/infrastructure/freezoneAssetGateway",
-    );
-    expect(legacyOpsSource).not.toContain("FreezoneUploadResult");
-    expect(legacyOpsSource).not.toContain("FreezoneUploadOptions");
-    expect(legacyOpsSource).not.toContain("uploadFreezoneImage");
-    expect(legacyOpsSource).not.toContain("uploadFreezoneVideo");
-    expect(legacyOpsSource).not.toContain("}/freezone/upload`");
     for (const consumerPath of pipelineConsumerPaths) {
       const source = readFileSync(consumerPath, "utf8");
       expect(importSpecifiers(consumerPath)).toContain(
@@ -4339,7 +4636,7 @@ describe("frontend architecture boundaries", () => {
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const canvasContractPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/canvasStorage.ts",
+      "modules/creative_canvas/domain/canvasStorage.ts",
     );
     const removedDebugPanelPath = resolve(
       SRC_ROOT,
@@ -4347,17 +4644,23 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasApplicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/freezoneCanvasStorage.ts",
+      "modules/creative_canvas/application/canvasStorageOperations.ts",
     );
     const canvasInfrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasStorageGateway.ts",
     );
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasStorageComposition.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const legacyStoragePaths = [
+      "features/canvas/application/freezoneCanvasStorage.ts",
+      "features/canvas/application/freezoneCanvasStorage.test.ts",
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.test.ts",
+      "features/canvas/hooks/freezoneCanvasQueryHooks.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const canvasContractSource = readFileSync(canvasContractPath, "utf8");
     const canvasApplicationSource = readFileSync(canvasApplicationPath, "utf8");
     const canvasInfrastructureSource = readFileSync(
@@ -4365,14 +4668,13 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
-    const publicSource = readFileSync(publicPath, "utf8");
     const directCanvasApiConsumers = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) => importSpecifiers(path).includes("@/api/canvas"))
       .map(relativeSource)
       .sort();
     const migratedConsumerPaths = [
-      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "features/canvas/hooks/useBeatContextNodeController.ts",
     ];
     const canvasesTabPath = resolve(
       SRC_ROOT,
@@ -4384,15 +4686,15 @@ describe("frontend architecture boundaries", () => {
     );
     const saveControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSaveController.ts",
+      "modules/creative_canvas/presentation/useCanvasSaveController.ts",
     );
     const hydrationLifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const presetRefreshControllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
     );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
     const removedHistoryClientSymbols = [
@@ -4407,50 +4709,83 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(removedDebugPanelPath)).toBe(false);
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
     expect(directCanvasApiConsumers).toEqual([]);
+    for (const legacyStoragePath of legacyStoragePaths) {
+      expect(existsSync(legacyStoragePath), relativeSource(legacyStoragePath)).toBe(
+        false,
+      );
+    }
     for (const consumerPath of migratedConsumerPaths) {
       const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
       expect(source).not.toContain("@/api/canvas");
-      expect(source).toContain("@/features/canvas/composition");
+      expect(source).toContain("@/modules/creative_canvas/public");
+      expect(source).not.toContain("@/features/canvas/composition");
     }
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "../hooks/useCanvasBrowserController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
     );
     expect(syncHookSource).not.toContain("@/api/canvas");
     expect(syncHookSource).not.toContain("@/features/canvas/composition");
-    expect(importSpecifiers(syncHookPath)).toContain(
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasSaveController",
     );
-    expect(importSpecifiers(saveControllerPath)).toContain(
-      "../canvasSaveComposition",
-    );
     expect(importSpecifiers(syncHookPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(saveControllerPath)).toContain(
+      "../application/canvasSave",
+    );
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasHydrationLifecycle",
     );
+    expect(syncHookSource).toContain("createCanvasHydrationLifecycleHook(");
     expect(importSpecifiers(hydrationLifecyclePath)).toContain(
-      "../canvasHydrationComposition",
+      "../application/canvasSyncHydration",
     );
     expect(importSpecifiers(syncHookPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasPresetRefreshController",
     );
-    expect(importSpecifiers(presetRefreshControllerPath)).toContain(
-      "../canvasPresetRefreshComposition",
-    );
+    expect(importSpecifiers(presetRefreshControllerPath)).toEqual([
+      "react",
+      "../application/canvasPresetRefresh",
+      "../application/canvasSyncStorage",
+    ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/canvasPresetRefreshComposition.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(canvasApplicationSource).toContain("idGenerator.next()");
     expect(canvasApplicationSource).not.toContain("@/shared/api/");
     expect(canvasInfrastructureSource).toContain('method: "PUT"');
     expect(canvasInfrastructureSource).toContain('method: "DELETE"');
     expect(canvasCompositionSource).toContain(
-      "generateClientSaveIdUseCase(uuidGenerator)",
+      "generateClientSaveIdUseCase(canvasSaveIdGenerator)",
+    );
+    expect(canvasCompositionSource).toContain(
+      "httpFreezoneCanvasStorageGateway",
     );
     for (const source of [
       canvasContractSource,
       canvasApplicationSource,
       canvasInfrastructureSource,
       canvasCompositionSource,
-      publicSource,
     ]) {
       for (const symbol of removedHistoryClientSymbols) {
         expect(source).not.toContain(symbol);
@@ -4462,24 +4797,46 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Freezone canvas projection behind one application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/canvas.ts");
-    const domainPath = resolve(
-      SRC_ROOT,
-      "features/freezone/domain/canvasProjection.ts",
-    );
-    const applicationPath = resolve(
+    const legacyApplicationPath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasProjection.ts",
     );
-    const infrastructurePath = resolve(
+    const legacyInfrastructurePath = resolve(
       SRC_ROOT,
       "features/freezone/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
     );
+    const legacyDomainPaths = [
+      "canvasProjection.ts",
+      "canvasProjectionRequest.ts",
+      "canvasProjectionRequest.test.ts",
+      "canvasProjectionMetadata.ts",
+      "canvasProjectionMetadata.test.ts",
+    ].map((file) =>
+      resolve(SRC_ROOT, "features/freezone/domain", file),
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasProjection.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasProjection.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
+    );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/projectionComposition.ts",
+    );
+    const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const projectionApplicationImports = importSpecifiers(applicationPath);
     const buildEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -4498,89 +4855,118 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(legacyApiPath)).toBe(false);
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasStorage"]);
-    expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/canvasProjection",
+    expect(existsSync(legacyApplicationPath)).toBe(false);
+    expect(existsSync(legacyInfrastructurePath)).toBe(false);
+    expect(existsSync(legacyFreezoneCompositionPath)).toBe(false);
+    expect(legacyDomainPaths.filter(existsSync)).toEqual([]);
+    expect(importSpecifiers(domainPath)).toEqual([
+      "./canvasStorage",
     ]);
+    expect(new Set(projectionApplicationImports)).toEqual(
+      new Set([
+        "@/modules/creative_canvas/domain/canvasProjection",
+        "@/modules/creative_canvas/domain/canvasProjectionMetadata",
+        "@/modules/creative_canvas/domain/canvasProjectionRequest",
+        "./canvasRuntimeState",
+      ]),
+    );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "@/modules/creative_canvas/domain/canvasProjection",
         "../application/canvasProjection",
-        "../domain/canvasProjection",
       ]),
     );
     expect(buildEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
     ]);
     expect(statusEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
     ]);
-    const commandControllerImports = importSpecifiers(
-      resolve(
-        SRC_ROOT,
-        "features/freezone/hooks/useCanvasProjectionCommandController.ts",
-      ),
-    );
     const projectionRequestImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/freezone/domain/canvasProjectionRequest.ts",
+        "modules/creative_canvas/domain/canvasProjectionRequest.ts",
       ),
     );
     const projectionMetadataImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/freezone/domain/canvasProjectionMetadata.ts",
+        "modules/creative_canvas/domain/canvasProjectionMetadata.ts",
       ),
     );
     const projectionGraphImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/freezone/application/canvasProjectionGraph.ts",
+        "modules/creative_canvas/application/canvasProjectionGraph.ts",
       ),
     );
     const projectionGraphIdImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/canvas/domain/projectionGraphIds.ts",
+        "modules/creative_canvas/domain/projectionGraphIds.ts",
       ),
     );
     const openProjectionImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/freezone/application/openPresetProjection.ts",
+        "modules/creative_canvas/application/openPresetProjection.ts",
       ),
     );
     const statusStateImports = importSpecifiers(
       resolve(
         SRC_ROOT,
-        "features/freezone/application/canvasProjectionStatusState.ts",
+        "modules/creative_canvas/application/canvasProjectionStatusState.ts",
       ),
     );
-    expect(commandControllerImports).toContain("../composition");
-    expect(projectionRequestImports).toEqual(["./canvasStorage"]);
+    expect(projectionRequestImports).toEqual([
+      "./canvasStorage",
+    ]);
     expect(new Set(projectionMetadataImports)).toEqual(
-      new Set(["./canvasProjectionRequest", "./canvasStorage"]),
-    );
-    expect(new Set(projectionGraphImports)).toEqual(
       new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/projectionGraphIds",
+        "./canvasProjectionRequest",
+        "./canvasStorage",
       ]),
     );
-    expect(projectionGraphIdImports).toEqual(["./canvasNodes"]);
+    expect(projectionGraphImports).toEqual(["../domain/projectionGraphIds"]);
+    expect(projectionGraphIdImports).toEqual([]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasProjectionGraph.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasProjectionGraph.test.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/projectionGraphIds.ts")),
+    ).toBe(false);
     expect(
       existsSync(resolve(SRC_ROOT, "features/freezone/projections.ts")),
     ).toBe(false);
     expect(
       existsSync(resolve(SRC_ROOT, "features/freezone/projectionGraphIds.ts")),
     ).toBe(false);
-    expect(openProjectionImports).toContain(
-      "../domain/canvasStorage",
-    );
-    expect(statusStateImports).toEqual(["../domain/canvasProjection"]);
+    expect(openProjectionImports).toEqual([
+      "@/modules/creative_canvas/domain/canvasProjectionRequest",
+      "@/modules/creative_canvas/domain/canvasIdentity",
+      "@/modules/creative_canvas/domain/canvasProjectionMetadata",
+      "@/modules/creative_canvas/domain/canvasProjection",
+      "@/modules/creative_canvas/domain/canvasStorage",
+    ]);
+    expect(statusStateImports).toEqual([
+      "@/modules/creative_canvas/domain/canvasProjection",
+    ]);
     for (const imports of [
-      commandControllerImports,
+      projectionApplicationImports,
       projectionRequestImports,
       projectionMetadataImports,
       projectionGraphImports,
@@ -4602,18 +4988,30 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/openPresetProjection.ts",
     );
-    const applicationPath = resolve(
+    const legacyApplicationPath = resolve(
       SRC_ROOT,
       "features/freezone/application/openPresetProjection.ts",
     );
-    const compositionPath = resolve(
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/openPresetProjectionComposition.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/openPresetProjection.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presetProjectionComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPaths = [
       "features/canvas/hooks/useBeatContextNodeController.ts",
       "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+      "modules/asset_world/composition.ts",
+      "modules/narrative_planning/composition.ts",
+      "modules/production/render-section-composition.ts",
+      "modules/production/sketch-section-composition.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
@@ -4627,24 +5025,25 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(legacyApplicationPath)).toBe(false);
+    expect(existsSync(legacyCompositionPath)).toBe(false);
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/canvasIdentity",
-        "../domain/canvasProjection",
-        "../domain/canvasProjectionMetadata",
-        "../domain/canvasProjectionRequest",
-        "../domain/canvasStorage",
+        "@/modules/creative_canvas/domain/canvasIdentity",
+        "@/modules/creative_canvas/domain/canvasProjection",
+        "@/modules/creative_canvas/domain/canvasProjectionMetadata",
+        "@/modules/creative_canvas/domain/canvasProjectionRequest",
+        "@/modules/creative_canvas/domain/canvasStorage",
       ]),
     );
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/features/canvas/domain/canvasNodes",
         "@/lib/app-router",
         "@/lib/url-params",
         "@/modules/identity_access/public",
-        "./application/canvasRuntimeState",
-        "./application/openPresetProjection",
-        "./composition",
+        "@/modules/creative_canvas/application/canvasRuntimeState",
+        "@/modules/creative_canvas/application/openPresetProjection",
+        "@/modules/creative_canvas/projectionComposition",
       ]),
     );
     expect(applicationSource).not.toContain("window.");
@@ -4656,14 +5055,17 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain("window.history.pushState(");
     expect(compositionSource).toContain("queueLocalFreezoneProjection(");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/openPresetProjectionComposition",
+      "@/modules/creative_canvas/presetProjectionComposition",
     );
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/public.ts")),
+    ).toBe(false);
     expect(declarationOwners).toEqual([
-      "features/freezone/openPresetProjectionComposition.ts",
+      "modules/creative_canvas/presetProjectionComposition.ts",
     ]);
     for (const consumerPath of canvasConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).toContain("@/modules/creative_canvas/public");
       expect(imports).not.toContain(
         "@/features/freezone/openPresetProjection",
       );
@@ -4676,18 +5078,26 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("separates projection status state from its React hook", () => {
+  it("owns projection status state and its React hook in Creative Canvas", () => {
     const legacyPath = resolve(
       SRC_ROOT,
       "features/freezone/projectionStatusStore.ts",
     );
-    const statePath = resolve(
+    const legacyStatePath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasProjectionStatusState.ts",
     );
-    const hookPath = resolve(
+    const legacyHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasProjectionStatus.ts",
+    );
+    const statePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasProjectionStatusState.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasProjectionStatus.ts",
     );
     const canvasConsumerPaths = [
       "features/canvas/hooks/useGroupNodeController.ts",
@@ -4696,21 +5106,23 @@ describe("frontend architecture boundaries", () => {
     const stateSource = readFileSync(statePath, "utf8");
 
     expect(existsSync(legacyPath)).toBe(false);
+    expect(existsSync(legacyStatePath)).toBe(false);
+    expect(existsSync(legacyHookPath)).toBe(false);
     expect(importSpecifiers(statePath)).toEqual([
-      "../domain/canvasProjection",
+      "@/modules/creative_canvas/domain/canvasProjection",
     ]);
     expect(new Set(importSpecifiers(hookPath))).toEqual(
       new Set([
         "react",
+        "@/modules/creative_canvas/domain/canvasProjection",
         "../application/canvasProjectionStatusState",
-        "../domain/canvasProjection",
       ]),
     );
     expect(stateSource).not.toContain("react");
     expect(stateSource).not.toContain("useSyncExternalStore");
     for (const consumerPath of canvasConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).toContain("@/modules/creative_canvas/public");
       expect(imports).not.toContain(
         "@/features/freezone/projectionStatusStore",
       );
@@ -4723,7 +5135,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas projection status polling in one presentation hook", () => {
     const lifecyclePath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/canvasProjectionStatusLifecycleComposition.ts",
+    );
+    const legacyLifecyclePath = resolve(
+      SRC_ROOT,
       "features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+    );
+    const legacyTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionStatusLifecycle.test.tsx",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -4743,15 +5163,20 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
       new Set([
         "react",
-        "../application/canvasProjectionStatusState",
-        "../application/canvasSyncStorage",
-        "../composition",
+        "./application/canvasProjectionStatusState",
+        "./application/canvasSyncStorage",
+        "./projectionComposition",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+      "modules/creative_canvas/canvasProjectionStatusLifecycleComposition.ts",
     ]);
+    expect(existsSync(legacyLifecyclePath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
     expect(importSpecifiers(shellPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(shellPath)).not.toContain(
       "./useCanvasProjectionStatusLifecycle",
     );
     expect(lifecycleSource).toContain("getProjectionStatuses(");
@@ -4768,24 +5193,42 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas projection event commands in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+      "modules/creative_canvas/presentation/useCanvasProjectionCommandController.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasProjection.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasProjectionCommandComposition.ts",
     );
     const projectionMetadataPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/canvasProjectionMetadata.ts",
+      "modules/creative_canvas/domain/canvasProjectionMetadata.ts",
+    );
+    const legacyControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+    );
+    const legacyTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasProjectionCommandController.test.tsx",
     );
     const shellPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useFreezoneShellController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const projectionMetadataSource = readFileSync(
       projectionMetadataPath,
       "utf8",
     );
     const shellSource = readFileSync(shellPath, "utf8");
     const declaration = [
-      "export function",
+      "return function",
       "useCanvasProjectionCommandController(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
@@ -4796,27 +5239,28 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/canvasServices",
-        "@/features/canvas/canvasStore",
-        "../application/canvasRuntimeState",
-        "../composition",
-        "../application/canvasProjectionStatusState",
-        "../domain/canvasProjectionMetadata",
-        "../domain/canvasProjectionRequest",
+        "../application/canvasProjection",
+        "../application/canvasProjectionCommandEvents",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasProjectionCommandController.ts",
+      "modules/creative_canvas/presentation/useCanvasProjectionCommandController.ts",
     ]);
-    expect(importSpecifiers(shellPath)).toContain(
-      "./useCanvasProjectionCommandController",
-    );
+    expect(existsSync(legacyControllerPath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
+    expect(importSpecifiers(shellPath)).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(shellPath)).not.toContain("./useCanvasProjectionCommandController");
     expect(projectionMetadataSource).toContain(
       "export function requestFromProjectionMetadata(",
     );
-    expect(controllerSource).toContain("buildProjectionFromPreset(");
-    expect(controllerSource).toContain("queueLocalFreezoneProjection(");
-    expect(controllerSource).toContain("removeLocalFreezoneProjection(");
+    expect(applicationSource).toContain("requestFromProjectionMetadata(");
+    expect(applicationSource).toContain("dependencies.buildProjection(");
+    expect(applicationSource).toContain("dependencies.queueProjection(");
+    expect(applicationSource).toContain("dependencies.removeProjection(");
+    expect(compositionSource).toContain("buildProjectionFromPreset(");
+    expect(compositionSource).toContain("queueLocalFreezoneProjection");
+    expect(compositionSource).toContain("removeLocalFreezoneProjection");
+    expect(compositionSource).toContain("canvasProjectionCommandEvents");
     expect(controllerSource).toContain('"freezone/projection-sync"');
     expect(controllerSource).toContain('"freezone/projection-remove"');
     expect(shellSource).toContain("useCanvasProjectionCommandController({");
@@ -4885,7 +5329,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/components/ui/button",
         "@/components/ui/sheet",
-        "@/features/superchat/superchat-panel",
+        "@/modules/ai_assistant/public",
         "@/lib/utils",
         "../hooks/useFreezoneChatDockController",
       ]),
@@ -4953,8 +5397,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/freezone/domain/canvasStorage",
-        "../application/canvasSyncStorage",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(shellImports).toContain(
@@ -4982,20 +5425,28 @@ describe("frontend architecture boundaries", () => {
     expect(shellSource).not.toContain("URL.createObjectURL(");
   });
 
-  it("keeps Freezone canvas commit decisions in one pure rules module", () => {
+  it("keeps Creative Canvas commit decisions in one pure application boundary", () => {
     const rulesPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasCommitRules.ts",
+      "modules/creative_canvas/application/canvasCommitRules.ts",
     );
     const committedPatchPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/committedNodePatch.ts",
+      "modules/creative_canvas/application/committedNodePatch.ts",
     );
     const legacyRulesPath = resolve(
       SRC_ROOT,
-      "features/freezone/commit/canvasCommitRules.ts",
+      "features/freezone/application/canvasCommitRules.ts",
     );
     const legacyCommittedPatchPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/committedNodePatch.ts",
+    );
+    const retiredRulesPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/canvasCommitRules.ts",
+    );
+    const retiredCommittedPatchPath = resolve(
       SRC_ROOT,
       "features/freezone/commit/committedNodePatch.ts",
     );
@@ -5009,9 +5460,17 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasCommitRules.test.ts",
+      "modules/creative_canvas/application/canvasCommitRules.test.ts",
     );
     const committedPatchTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/committedNodePatch.test.ts",
+    );
+    const legacyRulesTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasCommitRules.test.ts",
+    );
+    const legacyCommittedPatchLocalTestPath = resolve(
       SRC_ROOT,
       "features/freezone/application/committedNodePatch.test.ts",
     );
@@ -5039,6 +5498,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(rulesPath))).toEqual(
       new Set([
         "../domain/assetCommit",
+        "../domain/canvasCommitEligibility",
         "../domain/directorWorldCommit",
         "../domain/pushTarget",
         "./committedNodePatch",
@@ -5050,6 +5510,9 @@ describe("frontend architecture boundaries", () => {
         "../domain/directorWorldCommit",
       ]),
     );
+    expect(new Set(importSpecifiers(testPath))).toEqual(
+      new Set(["vitest", "./canvasCommitRules"]),
+    );
     expect(new Set(importSpecifiers(committedPatchTestPath))).toEqual(
       new Set([
         "vitest",
@@ -5059,12 +5522,25 @@ describe("frontend architecture boundaries", () => {
     );
     expect(existsSync(legacyRulesPath)).toBe(false);
     expect(existsSync(legacyCommittedPatchPath)).toBe(false);
+    expect(existsSync(retiredRulesPath)).toBe(false);
+    expect(existsSync(retiredCommittedPatchPath)).toBe(false);
+    expect(existsSync(legacyRulesTestPath)).toBe(false);
+    expect(existsSync(legacyCommittedPatchLocalTestPath)).toBe(false);
     expect(existsSync(legacyCommittedPatchTestPath)).toBe(false);
     expect(importSpecifiers(shellPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(shellPath)).not.toContain(
       "../application/canvasCommitRules",
     );
     expect(importSpecifiers(submitControllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(submitControllerPath)).not.toContain(
       "../application/canvasCommitRules",
+    );
+    expect(importSpecifiers(submitControllerPath)).not.toContain(
+      "../application/committedNodePatch",
     );
     expect(submitControllerSource).not.toContain(
       "function renderCommitSuccessMessage(",
@@ -5077,7 +5553,7 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/freezone/application/canvasCommitRules.ts",
+        "modules/creative_canvas/application/canvasCommitRules.ts",
       ]);
       expect(shellSource).not.toContain(`function ${name}(`);
     }
@@ -5087,15 +5563,15 @@ describe("frontend architecture boundaries", () => {
     expect(rulesSource).not.toContain("useCanvasStore");
   });
 
-  it("keeps CommitDialog presentation rules in one pure view model", () => {
+  it("keeps CommitDialog presentation rules in Creative Canvas", () => {
     const viewModelPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/commitDialogViewModel.ts",
+    );
+    const legacyViewModelPaths = [
       "features/freezone/presentation/commitDialogViewModel.ts",
-    );
-    const legacyViewModelPath = resolve(
-      SRC_ROOT,
       "features/freezone/commit/commitDialogViewModel.ts",
-    );
+    ].map((path) => resolve(SRC_ROOT, path));
     const viewPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/CommitDialogView.tsx",
@@ -5135,14 +5611,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/presentation/commitDialogViewModel.ts",
+        "modules/creative_canvas/presentation/commitDialogViewModel.ts",
       ]),
     );
-    expect(existsSync(legacyViewModelPath)).toBe(false);
+    for (const legacyViewModelPath of legacyViewModelPaths) {
+      expect(existsSync(legacyViewModelPath)).toBe(false);
+    }
     expect(new Set(importSpecifiers(viewModelPath))).toEqual(
       new Set([
-        "@/features/freezone/domain/assetCommit",
-        "@/features/canvas/domain/assetDropInfo",
+        "../domain/assetCommit",
+        "../domain/assetLibraryModel",
         "@/modules/asset_world/public",
       ]),
     );
@@ -5152,13 +5630,14 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("@/features/freezone/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
     expect(importSpecifiers(viewPath)).toContain(
-      "./commitDialogViewModel",
+      "@/modules/creative_canvas/public",
     );
+    expect(importSpecifiers(viewPath)).not.toContain("./commitDialogViewModel");
     for (const declaration of declarations) {
       expect(viewSource).not.toContain(declaration);
     }
     expect(testSource).toContain(
-      'from "@/features/freezone/presentation/commitDialogViewModel"',
+      'from "@/modules/creative_canvas/public"',
     );
   });
 
@@ -5201,12 +5680,9 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/freezone/domain/assetCommit",
-        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/creative_canvas/public",
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
-        "../composition",
-        "../presentation/commitDialogViewModel",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
@@ -5261,12 +5737,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/domain/assetDropInfo",
-        "@/features/freezone/domain/assetCommit",
-        "../application/canvasCommitRules",
-        "../application/committedNodePatch",
-        "../composition",
-        "../domain/directorWorldCommit",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(importSpecifiers(dialogPath)).toContain(
@@ -5325,20 +5796,17 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-dom",
         "lucide-react",
-        "@/features/freezone/domain/assetCommit",
-        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/creative_canvas/public",
         "@/components/ui",
         "@/components/ui/motion",
         "@/components/ui/useDialogTransition",
         "@/modules/asset_world/public",
         "@/modules/narrative_planning/public",
-        "./commitDialogViewModel",
       ]),
     );
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
-        "@/features/freezone/domain/assetCommit",
-        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/creative_canvas/public",
         "../hooks/useCommitDialogSubmitController",
         "../hooks/useCommitDialogTargetController",
         "./CommitDialogView",
@@ -5362,7 +5830,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps Freezone canvas commit orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasCommitController.ts",
+      "modules/creative_canvas/presentation/useCanvasCommitController.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasCommitControllerComposition.ts",
+    );
+    const rulesPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasCommitRules.ts",
+    );
+    const eventsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasCommitEvents.ts",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -5370,56 +5850,45 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasCommitController.test.tsx",
+      "modules/creative_canvas/presentation/useCanvasCommitController.test.tsx",
+    );
+    const legacyControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasCommitController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const rulesSource = readFileSync(rulesPath, "utf8");
+    const eventsSource = readFileSync(eventsPath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
-    const declarations = [
-      "useCanvasCommitController",
-      "latestCanvasNodeData",
-      "refreshCommittedTargetNodes",
-      "markCommitCandidatePushed",
-    ];
 
-    expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set([
-        "react",
-        "@tanstack/react-query",
-        "@/features/canvas/application/canvasServices",
-        "@/features/canvas/application/imageData",
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/assetDropInfo",
-        "@/features/canvas/domain/directorWorldSceneSaveRegistry",
-        "@/features/canvas/public",
-        "@/features/freezone/domain/assetCommit",
-        "@/lib/query-keys",
-        "../application/canvasCommitRules",
-        "../composition",
-        "../domain/directorWorldCommit",
-        "../domain/pushTarget",
-      ]),
+    expect(existsSync(legacyControllerPath)).toBe(false);
+    expect(importSpecifiers(controllerPath).every((specifier) =>
+      specifier === "react" || specifier.startsWith("../") || specifier.startsWith("./")
+    )).toBe(true);
+    expect(importSpecifiers(compositionPath)).not.toContain(
+      "@/features/canvas/canvasStore",
     );
+    expect(compositionSource).toContain("canvasCommitEvents");
+    expect(compositionSource).toContain("useCommittedTargetInvalidator");
+    expect(eventsSource).toContain("publishCanvasCommitRequested");
+    expect(eventsSource).toContain("publishCanvasAssetsUpdated");
+    expect(rulesSource).toContain("latestCanvasNodeData(");
+    expect(rulesSource).toContain("refreshCommittedTargetNodes(");
+    expect(rulesSource).toContain("markCommitCandidatePushed(");
     expect(importSpecifiers(shellPath)).toContain(
-      "./useCanvasCommitController",
+      "@/modules/creative_canvas/public",
     );
+    expect(shellSource).toContain("createCanvasCommitControllerHook({");
     expect(testSource).toContain('from "./useCanvasCommitController"');
-    for (const name of declarations) {
-      const owners = sourceFiles(SRC_ROOT)
-        .filter((path) => readFileSync(path, "utf8").includes(`function ${name}(`))
-        .map(relativeSource)
-        .sort();
-      expect(owners).toEqual([
-        "features/freezone/hooks/useCanvasCommitController.ts",
-      ]);
-      expect(shellSource).not.toContain(`function ${name}(`);
-    }
     expect(shellSource).not.toContain("canvasEventBus");
     expect(shellSource).not.toContain("promoteToAsset");
     expect(shellSource).not.toContain("commitDirectorRenderFromCanvasSource");
     expect(shellSource).not.toContain("commitSceneDirectorWorldFromCanvasNode");
     expect(shellSource).not.toContain("interface PushPrompt");
     expect(controllerSource).not.toContain("CommitDialog");
+    expect(controllerSource).not.toContain("@/features/");
   });
 
   it("keeps Freezone canvas entry side effects in one lifecycle hook", () => {
@@ -5458,7 +5927,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/hooks/useFreezoneVideoModels",
         "@/lib/app-router",
         "@/lib/url-params",
-        "../application/canvasSyncStorage",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(owners).toEqual([
@@ -5480,25 +5949,45 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleSource).not.toContain("CanvasLoadingOverlay");
   });
 
-  it("keeps Freezone asset commits behind one application gateway", () => {
+  it("owns asset commit targets behind the Creative Canvas application gateway", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
-    const domainPath = resolve(
+    const legacyDomainPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/assetCommit.ts",
     );
-    const applicationPath = resolve(
+    const legacyApplicationPath = resolve(
       SRC_ROOT,
       "features/freezone/application/assetCommit.ts",
     );
-    const infrastructurePath = resolve(
+    const legacyInfrastructurePath = resolve(
       SRC_ROOT,
       "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
     );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/assetCommit.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/assetCommit.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway.ts",
+    );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/assetTransferComposition.ts",
+    );
+    const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
     const pushTargetPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/pushTarget.ts",
+    );
+    const legacyFreezonePushTargetPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/pushTarget.ts",
     );
@@ -5514,9 +6003,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/freezone/commit/BatchCommitDialog.tsx",
     );
+    const modulePublicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const pushTargetSource = readFileSync(pushTargetPath, "utf8");
+    const modulePublicSource = readFileSync(modulePublicPath, "utf8");
     const directLegacyConsumers = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -5538,6 +6032,25 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const legacyDomainConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test.") && !path.includes("__tests__"))
+      .filter(
+        (path) => !relativeSource(path).startsWith("modules/creative_canvas/"),
+      )
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.includes("features/freezone/domain/assetCommit") ||
+              specifier.includes("features/freezone/domain/pushTarget") ||
+              specifier === "../domain/assetCommit" ||
+              specifier === "../domain/pushTarget" ||
+              specifier === "./domain/assetCommit" ||
+              specifier === "./domain/pushTarget",
+          )
+          .map((specifier) => `${relativeSource(path)} -> ${specifier}`),
+      )
+      .sort();
     const internalConsumerPaths = [
       "features/freezone/hooks/useFreezoneShellController.ts",
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
@@ -5546,51 +6059,69 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/presentation/CommitDialog.tsx",
       "features/freezone/presentation/CommitDialogView.tsx",
     ];
-    const publicConsumerPaths = [
+    const domainConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
-      "features/canvas/domain/canvasCommitEligibility.ts",
       "features/canvas/domain/mainlineNodeTypes.ts",
       "features/canvas/domain/mainlineNodeFlags.ts",
       "features/canvas/application/imageEditNodeModel.ts",
       "features/canvas/hooks/useImageEditNodeController.ts",
-      "modules/asset_world/infrastructure/http-prop-gateway.ts",
     ];
+    const applicationPublicConsumerPath =
+      "modules/asset_world/infrastructure/http-prop-gateway.ts";
 
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(existsSync(legacyPromotePath)).toBe(false);
     expect(existsSync(legacyPushTargetPath)).toBe(false);
+    expect(existsSync(legacyDomainPath)).toBe(false);
+    expect(existsSync(legacyApplicationPath)).toBe(false);
+    expect(existsSync(legacyInfrastructurePath)).toBe(false);
+    expect(existsSync(legacyFreezoneCompositionPath)).toBe(false);
+    expect(existsSync(legacyFreezonePushTargetPath)).toBe(false);
     expect(existsSync(unusedBatchDialogPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(pushTargetPath)).toEqual(["./assetCommit"]);
-    expect(pushTargetSource).not.toContain("@/features/canvas/");
+    expect(pushTargetSource).not.toContain("@/features/");
+    expect(importSpecifiers(modulePublicPath)).toContain(
+      "@/modules/creative_canvas/domain/assetCommit",
+    );
+    expect(importSpecifiers(modulePublicPath)).toContain(
+      "@/modules/creative_canvas/domain/pushTarget",
+    );
+    expect(modulePublicSource).toContain("isCanonicalPushTarget,");
+    expect(modulePublicSource).toContain("PushTargetKind,");
     expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/assetCommit",
+      "@/modules/creative_canvas/domain/assetCommit",
     ]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "@/modules/creative_canvas/domain/assetCommit",
         "../application/assetCommit",
-        "../domain/assetCommit",
       ]),
     );
     expect(directLegacyConsumers).toEqual([]);
+    expect(legacyDomainConsumers).toEqual([]);
     expect(pushEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway.ts",
     ]);
     expect(impactEndpointOwners).toEqual([
-      "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway.ts",
     ]);
     for (const consumerPath of internalConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
-      expect(imports).toContain("@/features/freezone/domain/assetCommit");
+      expect(imports).toContain("@/modules/creative_canvas/public");
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
-    for (const consumerPath of publicConsumerPaths) {
+    for (const consumerPath of domainConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
-      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).toContain("@/modules/creative_canvas/public");
+      expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
+    expect(
+      importSpecifiers(resolve(SRC_ROOT, applicationPublicConsumerPath)),
+    ).toContain("@/modules/creative_canvas/public");
     expect(applicationSource).toContain("validateCommitTarget(params.target)");
     expect(applicationSource).toContain('target.kind === "scene_director_world"');
     expect(applicationSource).not.toContain("@/shared/api/");
@@ -5728,12 +6259,12 @@ describe("frontend architecture boundaries", () => {
     const canvasSyncStorage = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/freezone/application/canvasSyncStorage.ts",
+        "modules/creative_canvas/application/canvasSyncStorage.ts",
       ),
       "utf8",
     );
     const draftStorage = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/application/canvasDraft.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/application/canvasDraft.ts"),
       "utf8",
     );
     const forbiddenHistoryImports = importSpecifiers(historyPath).filter(
@@ -5805,15 +6336,21 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasHistoryNavigation",
     );
-    expect(canvasSyncStorage).toContain(
+    expect(canvasSyncStorage).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
-    expect(canvasSync).toContain("../application/canvasSyncStorage");
+    expect(canvasSyncStorage).toContain(
+      "export interface CanvasSyncHistoryState",
+    );
+    expect(canvasSync).toContain("@/modules/creative_canvas/public");
     expect(canvasSync).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
-    expect(draftStorage).toContain(
+    expect(draftStorage).not.toContain(
       "@/features/canvas/domain/canvasHistory",
+    );
+    expect(draftStorage).toContain(
+      "export interface CanvasDraftHistoryState",
     );
   });
 
@@ -6010,10 +6547,10 @@ describe("frontend architecture boundaries", () => {
     ).toBe(false);
   });
 
-  it("keeps Canvas mutation and persistence state in the domain model", () => {
+  it("keeps Canvas mutation and persistence state in Creative Canvas", () => {
     const mutationPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasMutation.ts",
+      "modules/creative_canvas/domain/canvasMutation.ts",
     );
     const mutationModel = readFileSync(mutationPath, "utf8");
     const canvasStore = readFileSync(
@@ -6028,19 +6565,21 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSyncCore = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/application/canvasSyncCore.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/canvasSyncCore.ts",
+      ),
       "utf8",
     );
     const draftStorage = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/application/canvasDraft.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/application/canvasDraft.ts"),
       "utf8",
     );
     const forbiddenMutationImports = importSpecifiers(mutationPath).filter(
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/"),
+        specifier.startsWith("@/features/"),
     );
     const mutationContractDeclaration = [
       "export interface",
@@ -6055,13 +6594,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenMutationImports).toEqual([]);
     expect(mutationContractOwners).toEqual([
-      "features/canvas/domain/canvasMutation.ts",
+      "modules/creative_canvas/domain/canvasMutation.ts",
     ]);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/canvasMutation.ts")),
+    ).toBe(false);
     expect(mutationModel).toContain("export function trackEdit(");
     expect(mutationModel).toContain("export function isDeleteToEmpty(");
-    expect(nodeDeletionSlice).toContain(
-      "../domain/canvasMutation",
-    );
+    expect(nodeDeletionSlice).toContain("@/modules/creative_canvas/public");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasMutation",
     );
@@ -6069,12 +6609,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function trackEdit(");
     expect(canvasStore).not.toContain("function isDeleteToEmpty(");
     expect(canvasSyncCore).toContain(
-      "@/features/canvas/domain/canvasMutation",
+      "@/modules/creative_canvas/domain/canvasMutation",
     );
     expect(draftStorage).toContain(
-      "@/features/canvas/domain/canvasMutation",
+      "@/modules/creative_canvas/domain/canvasMutation",
     );
-    expect(draftStorage).not.toContain("interface CanvasDraftMutationState");
+    expect(draftStorage).not.toContain("CanvasDraftMutationState");
   });
 
   it("keeps Canvas graph geometry independent from the Zustand store", () => {
@@ -8061,7 +8601,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("./useCanvasBeatContextPrefetch");
     expect(controllerModel).toContain("prefetchEpisodeBeats");
     expect(controllerModel).toContain("prefetchEpisodeDetail");
-    expect(controllerModel).toContain("readUrl().project");
+    expect(controllerModel).toContain("projectId: string | null");
+    expect(controllerModel).toContain("canvasId: string");
+    expect(controllerModel).not.toContain("readUrl");
     expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasProjectContextController",
@@ -8680,15 +9222,15 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(new Set(importSpecifiers(domainPath))).toEqual(
-      new Set(["@/features/freezone/public"]),
+      new Set(["@/modules/creative_canvas/public"]),
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/features/freezone/public"]),
+      new Set(["@/modules/creative_canvas/public"]),
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
         "../application/skillCatalog",
         "../domain/skillCatalog",
       ]),
@@ -8901,7 +9443,7 @@ describe("frontend architecture boundaries", () => {
     const saveController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/freezone/hooks/useCanvasSaveController.ts",
+        "modules/creative_canvas/presentation/useCanvasSaveController.ts",
       ),
       "utf8",
     );
@@ -8913,12 +9455,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSync).toContain("useCanvasSaveController({");
     expect(canvasSync).not.toContain("useCanvasStore.subscribe(");
     expect(saveController).toContain(
-      "const unsubscribeCanvas = useCanvasStore.subscribe((state, previous) =>",
+      "const unsubscribeCanvas = dependencies.store.subscribe(",
     );
     expect(saveController).toContain("void saveCurrent();");
   });
 
-  it("separates Freezone canvas sync decisions from its presentation hook", () => {
+  it("keeps canvas sync decisions in Creative Canvas", () => {
     const legacyCorePath = resolve(
       SRC_ROOT,
       "features/freezone/canvasSyncCore.ts",
@@ -8929,6 +9471,10 @@ describe("frontend architecture boundaries", () => {
     );
     const corePath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/application/canvasSyncCore.ts",
+    );
+    const legacyApplicationCorePath = resolve(
+      SRC_ROOT,
       "features/freezone/application/canvasSyncCore.ts",
     );
     const syncHookPath = resolve(
@@ -8937,11 +9483,15 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimeBridgePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+      "modules/creative_canvas/presentation/useCanvasRuntimeBridge.ts",
+    );
+    const runtimeBridgeCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasRuntimeBridgeComposition.ts",
     );
     const hydrationLifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -8962,8 +9512,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/features/freezone/infrastructure/") ||
-        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/shared/api/"),
     );
     const declarations = [
@@ -8979,22 +9528,30 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(existsSync(legacyCorePath)).toBe(false);
+    expect(existsSync(legacyApplicationCorePath)).toBe(false);
     expect(existsSync(legacyHookPath)).toBe(false);
     expect(forbiddenCoreImports).toEqual([]);
     expect(coreSource).not.toContain("window.");
     expect(coreSource).not.toContain("document.");
     expect(coreSource).not.toContain("localStorage");
     expect(declarationOwners).toEqual([
-      ["features/freezone/application/canvasSyncCore.ts"],
-      ["features/freezone/application/canvasSyncCore.ts"],
-      ["features/freezone/application/canvasSyncCore.ts"],
+      ["modules/creative_canvas/application/canvasSyncCore.ts"],
+      ["modules/creative_canvas/application/canvasSyncCore.ts"],
+      ["modules/creative_canvas/application/canvasSaveError.ts"],
     ]);
-    expect(importSpecifiers(runtimeBridgePath)).toContain(
-      "../application/canvasSyncCore",
+    expect(importSpecifiers(runtimeBridgeCompositionPath)).toContain(
+      "./application/canvasSyncCore",
     );
-    expect(importSpecifiers(hydrationLifecyclePath)).toContain(
-      "../application/canvasSyncCore",
-    );
+    expect(
+      importSpecifiers(runtimeBridgePath).filter((specifier) =>
+        specifier.startsWith("@/features/"),
+      ),
+    ).toEqual([]);
+    expect(
+      importSpecifiers(hydrationLifecyclePath).filter((specifier) =>
+        specifier.startsWith("@/features/"),
+      ),
+    ).toEqual([]);
     expect(importSpecifiers(syncHookPath)).not.toContain(
       "../application/canvasSyncCore",
     );
@@ -9008,18 +9565,22 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(shellPath)).toContain("./useCanvasSync");
   });
 
-  it("keeps canvas save orchestration in Freezone application", () => {
+  it("keeps canvas save orchestration in Creative Canvas application", () => {
     const savePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasSave.ts",
+    );
+    const legacySavePath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasSave.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasSaveComposition.ts",
+      "modules/creative_canvas/canvasSaveControllerComposition.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSaveController.ts",
+      "modules/creative_canvas/presentation/useCanvasSaveController.ts",
     );
     const saveSource = readFileSync(savePath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -9041,8 +9602,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
-          specifier.startsWith("@/features/freezone/infrastructure/") ||
-          specifier.startsWith("@/features/freezone/composition") ||
+          specifier.startsWith("@/features/") ||
           specifier.startsWith("@/shared/api/"),
       ),
     ).toEqual([]);
@@ -9050,20 +9610,24 @@ describe("frontend architecture boundaries", () => {
     expect(saveSource).not.toContain("document.");
     expect(saveSource).not.toContain("localStorage");
     expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasSave.ts",
+      "modules/creative_canvas/application/canvasSave.ts",
     ]);
+    expect(existsSync(legacySavePath)).toBe(false);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/composition",
         "./application/canvasSave",
+        "./application/canvasUnloadSave",
+        "./application/canvasSyncHydration",
         "./canvasConflictRecoveryComposition",
         "./canvasDraftComposition",
+        "./canvasStorageComposition",
+        "./canvasSyncComposition",
+        "./presentation/useCanvasSaveController",
+        "./shotMetadataComposition",
       ]),
     );
-    expect(importSpecifiers(controllerPath)).toContain(
-      "../canvasSaveComposition",
-    );
+    expect(importSpecifiers(controllerPath)).toContain("../application/canvasSave");
+    expect(importSpecifiers(controllerPath)).not.toContain("@/features/");
     expect(controllerSource).not.toContain("async function scheduleSave(");
     expect(controllerSource).not.toContain("async function performSave(");
     expect(controllerSource).not.toContain("function consumeSaveResponse(");
@@ -9074,19 +9638,23 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas unload saves behind application and transport ports", () => {
     const unloadPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/application/canvasUnloadSave.ts",
+    );
+    const legacyUnloadPath = resolve(
+      SRC_ROOT,
       "features/freezone/application/canvasUnloadSave.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasUnloadSaveComposition.ts",
+      "modules/creative_canvas/canvasSaveControllerComposition.ts",
     );
     const gatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/httpFreezoneCanvasStorageGateway.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSaveController.ts",
+      "modules/creative_canvas/presentation/useCanvasSaveController.ts",
     );
     const unloadSource = readFileSync(unloadPath, "utf8");
     const gatewaySource = readFileSync(gatewayPath, "utf8");
@@ -9109,8 +9677,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
-          specifier.startsWith("@/features/freezone/infrastructure/") ||
-          specifier === "@/features/canvas/composition" ||
+          specifier.startsWith("@/features/") ||
           specifier.startsWith("@/shared/api/"),
       ),
     ).toEqual([]);
@@ -9118,19 +9685,26 @@ describe("frontend architecture boundaries", () => {
     expect(unloadSource).not.toContain("document.");
     expect(unloadSource).not.toContain("fetch(");
     expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasUnloadSave.ts",
+      "modules/creative_canvas/application/canvasUnloadSave.ts",
     ]);
+    expect(existsSync(legacyUnloadPath)).toBe(false);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/features/canvas/composition",
+        "./application/canvasSave",
         "./application/canvasUnloadSave",
+        "./application/canvasSyncHydration",
+        "./canvasConflictRecoveryComposition",
+        "./canvasDraftComposition",
+        "./canvasStorageComposition",
         "./canvasSyncComposition",
+        "./presentation/useCanvasSaveController",
+        "./shotMetadataComposition",
       ]),
     );
     expect(gatewaySource).toContain("saveCanvasKeepalive(params)");
     expect(gatewaySource).toContain("keepalive: true");
     expect(importSpecifiers(controllerPath)).toContain(
-      "../canvasUnloadSaveComposition",
+      "../application/canvasUnloadSave",
     );
     expect(controllerSource).not.toContain("fetch(");
     expect(controllerSource).not.toContain("keepalive: true");
@@ -9138,26 +9712,22 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("decideSaveAction(");
   });
 
-  it("keeps canvas conflict recovery in one Freezone application service", () => {
+  it("keeps canvas conflict recovery in Creative Canvas application", () => {
     const recoveryPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasConflictRecovery.ts",
+      "modules/creative_canvas/application/canvasConflictRecovery.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasConflictRecoveryComposition.ts",
+      "modules/creative_canvas/canvasConflictRecoveryComposition.ts",
     );
     const saveCompositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasSaveComposition.ts",
+      "modules/creative_canvas/canvasSaveControllerComposition.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
-    );
-    const controllerPath = resolve(
-      SRC_ROOT,
-      "features/freezone/hooks/useCanvasConflictController.ts",
     );
     const recoverySource = readFileSync(recoveryPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
@@ -9179,6 +9749,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/features/") ||
           specifier.startsWith("@/features/freezone/infrastructure/") ||
           specifier === "@/features/canvas/composition" ||
           specifier.startsWith("@/shared/api/"),
@@ -9188,29 +9759,46 @@ describe("frontend architecture boundaries", () => {
     expect(recoverySource).not.toContain("document.");
     expect(recoverySource).not.toContain("localStorage");
     expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasConflictRecovery.ts",
+      "modules/creative_canvas/application/canvasConflictRecovery.ts",
     ]);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/features/canvas/composition",
         "./application/canvasConflictRecovery",
         "./application/canvasSyncStorage",
         "./canvasDraftComposition",
+        "./canvasStorageComposition",
         "./canvasSyncComposition",
+        "./presentation/useCanvasConflictController",
+        "./shotMetadataComposition",
       ]),
     );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasConflictRecovery.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(importSpecifiers(saveCompositionPath)).toContain(
       "./canvasConflictRecoveryComposition",
     );
-    expect(importSpecifiers(controllerPath)).toContain(
-      "../canvasConflictRecoveryComposition",
+    expect(importSpecifiers(saveCompositionPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(hookPath)).toContain(
-      "./useCanvasConflictController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(hookPath)).not.toContain(
-      "../canvasConflictRecoveryComposition",
+      "./useCanvasConflictController",
     );
+    for (const retiredPath of [
+      "features/freezone/canvasConflictRecoveryComposition.ts",
+      "features/freezone/hooks/useCanvasConflictController.ts",
+      "features/freezone/hooks/useCanvasConflictController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
     expect(hookSource).not.toContain("snapshotConflict");
     expect(hookSource).not.toContain("buildConflictCopyCanvasId");
     expect(hookSource).not.toContain("buildConflictCopyMetadata");
@@ -9228,7 +9816,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas conflict commands in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasConflictController.ts",
+      "modules/creative_canvas/presentation/useCanvasConflictController.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasConflictRecoveryComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
@@ -9236,13 +9828,13 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasConflictController.test.tsx",
+      "modules/creative_canvas/presentation/useCanvasConflictController.test.tsx",
     );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "export function",
-      "useCanvasConflictController(",
+      "createUseCanvasConflictController(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9252,18 +9844,20 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasConflictRecovery",
         "../application/canvasSyncStorage",
-        "../canvasConflictRecoveryComposition",
-        "../shotMetadataComposition",
-        "./useCanvasSaveController",
+        "../domain/canvasStorage",
+        "../domain/shotMetadata",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasConflictController.ts",
+      "modules/creative_canvas/presentation/useCanvasConflictController.ts",
     ]);
+    expect(readFileSync(compositionPath, "utf8")).toContain(
+      "createUseCanvasConflictController({",
+    );
     expect(importSpecifiers(syncHookPath)).toContain(
-      "./useCanvasConflictController",
+      "@/modules/creative_canvas/public",
     );
     expect(testSource).toContain('from "./useCanvasConflictController"');
     expect(syncHookSource).not.toContain("canvasConflictRecovery.discard(");
@@ -9272,18 +9866,18 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("canvasConflictRecovery.clearSnapshot(");
   });
 
-  it("keeps mainline preset refresh orchestration in Freezone application", () => {
+  it("keeps mainline preset refresh orchestration in Creative Canvas application", () => {
     const refreshPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasPresetRefresh.ts",
+      "modules/creative_canvas/application/canvasPresetRefresh.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasPresetRefreshComposition.ts",
+      "modules/creative_canvas/canvasPresetRefreshComposition.ts",
     );
     const hydrationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasSyncHydration.ts",
+      "modules/creative_canvas/application/canvasSyncHydration.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
@@ -9291,7 +9885,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
     );
     const refreshSource = readFileSync(refreshPath, "utf8");
     const hydrationSource = readFileSync(hydrationPath, "utf8");
@@ -9322,24 +9916,58 @@ describe("frontend architecture boundaries", () => {
     expect(refreshSource).not.toContain("window.");
     expect(refreshSource).not.toContain("document.");
     expect(refreshSource).not.toContain("localStorage");
-    expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasPresetRefresh.ts",
-    ]);
-    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+    expect(new Set(importSpecifiers(refreshPath))).toEqual(
       new Set([
-        "@/features/canvas/composition",
-        "./application/canvasPresetRefresh",
+        "../domain/canvasStorage",
+        "./canvasPreset",
+        "./canvasSaveError",
+        "./canvasSyncStorage",
       ]),
     );
-    expect(importSpecifiers(controllerPath)).toContain(
-      "../canvasPresetRefreshComposition",
+    expect(declarationOwners).toEqual([
+      "modules/creative_canvas/application/canvasPresetRefresh.ts",
+    ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasPresetRefresh.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasPresetRefresh.test.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./application/canvasPresetRefresh",
+        "./canvasStorageComposition",
+        "./presentation/useCanvasPresetRefreshController",
+      ]),
     );
+    expect(importSpecifiers(controllerPath)).toEqual([
+      "react",
+      "../application/canvasPresetRefresh",
+      "../application/canvasSyncStorage",
+    ]);
     expect(importSpecifiers(hookPath)).toContain(
-      "./useCanvasPresetRefreshController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(hookPath)).not.toContain(
-      "../canvasPresetRefreshComposition",
+      "./useCanvasPresetRefreshController",
     );
+    for (const retiredPath of [
+      "features/freezone/canvasPresetRefreshComposition.ts",
+      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "features/freezone/hooks/useCanvasPresetRefreshController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
     for (const legacyName of [
       "shouldAbortBestEffortPresetRefresh",
       "shouldDeferPresetRefreshUntilReady",
@@ -9356,7 +9984,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas preset refresh commands in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasPresetRefreshComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
@@ -9364,13 +9996,13 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasPresetRefreshController.test.tsx",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.test.tsx",
     );
     const syncHookSource = readFileSync(syncHookPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "export function",
-      "useCanvasPresetRefreshController(",
+      "createUseCanvasPresetRefreshController(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9380,16 +10012,18 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
+        "../application/canvasPresetRefresh",
         "../application/canvasSyncStorage",
-        "../canvasPresetRefreshComposition",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
     ]);
+    expect(readFileSync(compositionPath, "utf8")).toContain(
+      "createUseCanvasPresetRefreshController(refreshCanvasPreset)",
+    );
     expect(importSpecifiers(syncHookPath)).toContain(
-      "./useCanvasPresetRefreshController",
+      "@/modules/creative_canvas/public",
     );
     expect(testSource).toContain('from "./useCanvasPresetRefreshController"');
     expect(syncHookSource).not.toContain("refreshCanvasPreset({");
@@ -9397,8 +10031,12 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("preset: metadata?.preset");
   });
 
-  it("keeps asset library Director World modeling in one Freezone domain module", () => {
+  it("keeps asset library Director World modeling in Creative Canvas", () => {
     const modelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/assetLibraryModel.ts",
+    );
+    const legacyModelPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/assetLibraryModel.ts",
     );
@@ -9412,11 +10050,11 @@ describe("frontend architecture boundaries", () => {
     );
     const projectionPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/assetLibraryProjection.ts",
+      "modules/creative_canvas/application/assetLibraryProjection.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/assetLibraryModel.test.ts",
+      "modules/creative_canvas/domain/assetLibraryModel.test.ts",
     );
     const dragTestPath = resolve(
       SRC_ROOT,
@@ -9450,6 +10088,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/") ||
         specifier === "@/features/canvas/canvasStore" ||
         specifier === "@/features/canvas/assetDropStore" ||
         specifier === "@/features/freezone/composition" ||
@@ -9460,18 +10099,23 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/domain/assetLibraryModel.ts",
+        "modules/creative_canvas/domain/assetLibraryModel.ts",
       ]),
     );
+    expect(existsSync(legacyModelPath)).toBe(false);
     expect(forbiddenModelImports).toEqual([]);
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("localStorage");
     expect(importSpecifiers(panelViewPath)).toContain(
-      "../domain/assetLibraryModel",
+      "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(projectionPath)).toContain(
-      "../domain/assetLibraryModel",
+    expect(new Set(importSpecifiers(projectionPath))).toEqual(
+      new Set([
+        "../domain/assetLibraryModel",
+        "../domain/beatContext",
+        "../domain/mainlineContext",
+      ]),
     );
     expect(projectionSource).toContain("finalizeDirectorWorldAssets(out)");
     for (const legacyDeclaration of [
@@ -9490,21 +10134,25 @@ describe("frontend architecture boundaries", () => {
     }
     expect(modelTestSource).toContain('from "./assetLibraryModel"');
     expect(dragTestSource).toContain(
-      "@/features/freezone/domain/assetLibraryModel",
+      "@/modules/creative_canvas/public",
     );
     expect(dragTestSource).not.toContain(
       "@/features/freezone/presentation/AssetLibraryPanel",
     );
   });
 
-  it("keeps asset library catalog projection in one Freezone application module", () => {
+  it("keeps asset library catalog projection in Creative Canvas application", () => {
     const projectionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/assetLibraryProjection.ts",
+    );
+    const legacyProjectionPath = resolve(
       SRC_ROOT,
       "features/freezone/application/assetLibraryProjection.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+      "modules/creative_canvas/assetLibraryCatalogComposition.ts",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -9512,7 +10160,7 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/assetLibraryProjection.test.ts",
+      "modules/creative_canvas/application/assetLibraryProjection.test.ts",
     );
     const projectionSource = readFileSync(projectionPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -9536,9 +10184,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/application/assetLibraryProjection.ts",
+        "modules/creative_canvas/application/assetLibraryProjection.ts",
       ]),
     );
+    expect(existsSync(legacyProjectionPath)).toBe(false);
     expect(new Set(importSpecifiers(projectionPath))).toEqual(
       new Set([
         "../domain/assetLibraryModel",
@@ -9553,6 +10202,9 @@ describe("frontend architecture boundaries", () => {
     expect(projectionSource).not.toContain("@/features/freezone/infrastructure/");
     expect(projectionSource).not.toContain("@/shared/api/");
     expect(importSpecifiers(controllerPath)).toContain(
+      "./application/assetLibraryProjection",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/freezone/application/assetLibraryProjection",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
@@ -9570,7 +10222,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps asset library query lifecycle in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+      "modules/creative_canvas/assetLibraryCatalogComposition.ts",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -9578,17 +10230,16 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useAssetLibraryCatalogController.test.tsx",
+      "modules/creative_canvas/assetLibraryCatalogComposition.test.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["export function", "useAssetLibraryCatalogController("].join(" "),
-      ["function", "errorMessage("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
-      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+      sourceFiles(SRC_ROOT)
         .filter((path) => readFileSync(path, "utf8").includes(declaration))
         .map(relativeSource)
         .sort(),
@@ -9596,16 +10247,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+        "modules/creative_canvas/assetLibraryCatalogComposition.ts",
       ]),
     );
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/freezone/application/assetLibraryProjection",
-        "@/features/freezone/composition",
-        "../domain/assetLibraryModel",
-        "../presentation/assetLibraryViewModel",
+        "./application/assetLibraryProjection",
+        "./contextQueryComposition",
+        "./domain/assetLibraryModel",
+        "./presentation/assetLibraryViewModel",
       ]),
     );
     expect(controllerSource).not.toContain("zustand");
@@ -9616,8 +10267,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("projectAssetsQuery.refetch()");
     expect(controllerSource).toContain("beatContextQuery.refetch()");
     expect(controllerSource).toContain("buildLibraryAssets({");
+    expect(controllerSource).toContain("function errorMessage(");
     expect(importSpecifiers(panelPath)).toContain(
-      "../hooks/useAssetLibraryCatalogController",
+      "@/modules/creative_canvas/public",
     );
     for (const legacyOwner of [
       "useFreezoneProjectAssets",
@@ -9635,12 +10287,32 @@ describe("frontend architecture boundaries", () => {
       expect(panelSource).not.toContain(legacyOwner);
     }
     expect(testSource).toContain(
-      'from "./useAssetLibraryCatalogController"',
+      'from "./assetLibraryCatalogComposition"',
     );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useAssetLibraryCatalogController.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/hooks/useAssetLibraryCatalogController.test.tsx",
+        ),
+      ),
+    ).toBe(false);
   });
 
-  it("keeps asset library presentation rules in one pure view model", () => {
+  it("keeps asset library presentation rules in Creative Canvas", () => {
     const viewModelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/assetLibraryViewModel.ts",
+    );
+    const legacyViewModelPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/assetLibraryViewModel.ts",
     );
@@ -9654,8 +10326,14 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/assetLibraryViewModel.test.ts",
+      "modules/creative_canvas/presentation/assetLibraryViewModel.test.ts",
     );
+    const consumerPaths = [
+      panelPath,
+      panelViewPath,
+      resolve(SRC_ROOT, "features/freezone/presentation/AssetLibraryBeatPanels.tsx"),
+      resolve(SRC_ROOT, "features/freezone/presentation/AssetLibraryAssetCard.tsx"),
+    ];
     const viewModelSource = readFileSync(viewModelPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const panelViewSource = readFileSync(panelViewPath, "utf8");
@@ -9681,9 +10359,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/presentation/assetLibraryViewModel.ts",
+        "modules/creative_canvas/presentation/assetLibraryViewModel.ts",
       ]),
     );
+    expect(existsSync(legacyViewModelPath)).toBe(false);
     expect(importSpecifiers(viewModelPath)).toEqual([
       "../domain/assetLibraryModel",
     ]);
@@ -9694,12 +10373,25 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("localStorage");
     expect(viewModelSource).not.toContain("@/features/freezone/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
-    expect(importSpecifiers(panelPath)).toContain(
-      "./assetLibraryViewModel",
-    );
-    expect(importSpecifiers(panelViewPath)).toContain(
-      "./assetLibraryViewModel",
-    );
+    for (const consumerPath of consumerPaths) {
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "./assetLibraryViewModel",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "../presentation/assetLibraryViewModel",
+      );
+    }
+    expect(
+      importSpecifiers(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/assetLibraryCatalogComposition.ts",
+        ),
+      ),
+    ).toContain("./presentation/assetLibraryViewModel");
     expect(panelViewSource).toContain(
       "buildAssetLibraryTabs(canvasKind, catalog.assets)",
     );
@@ -9719,8 +10411,12 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain('from "./assetLibraryViewModel"');
   });
 
-  it("keeps canvas browser presentation rules in one pure view model", () => {
+  it("keeps canvas browser presentation rules in Creative Canvas", () => {
     const viewModelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/canvasBrowserViewModel.ts",
+    );
+    const legacyViewModelPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/canvasBrowserViewModel.ts",
     );
@@ -9734,8 +10430,16 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/canvasBrowserViewModel.test.ts",
+    );
+    const legacyTestPath = resolve(
+      SRC_ROOT,
       "__tests__/features/freezone/canvases-tab.test.ts",
     );
+    const consumerPaths = [
+      viewPath,
+      resolve(SRC_ROOT, "features/freezone/presentation/CanvasBrowserView.test.tsx"),
+    ];
     const viewModelSource = readFileSync(viewModelPath, "utf8");
     const tabSource = readFileSync(tabPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -9760,9 +10464,11 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/presentation/canvasBrowserViewModel.ts",
+        "modules/creative_canvas/presentation/canvasBrowserViewModel.ts",
       ]),
     );
+    expect(existsSync(legacyViewModelPath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
     expect(new Set(importSpecifiers(viewModelPath))).toEqual(
       new Set(["../domain/canvasIdentity", "../domain/canvasStorage"]),
     );
@@ -9773,9 +10479,17 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("localStorage");
     expect(viewModelSource).not.toContain("@/features/canvas/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
-    expect(importSpecifiers(viewPath)).toContain(
-      "./canvasBrowserViewModel",
-    );
+    for (const consumerPath of consumerPaths) {
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "./canvasBrowserViewModel",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "../presentation/canvasBrowserViewModel",
+      );
+    }
     expect(importSpecifiers(tabPath)).not.toContain(
       "./canvasBrowserViewModel",
     );
@@ -9783,15 +10497,13 @@ describe("frontend architecture boundaries", () => {
       expect(tabSource).not.toContain(legacyDeclaration);
       expect(viewSource).not.toContain(legacyDeclaration);
     }
-    expect(testSource).toContain(
-      'from "@/features/freezone/presentation/canvasBrowserViewModel"',
-    );
+    expect(testSource).toContain('from "./canvasBrowserViewModel"');
   });
 
   it("keeps canvas browser orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "modules/creative_canvas/canvasBrowserComposition.ts",
     );
     const tabPath = resolve(
       SRC_ROOT,
@@ -9799,8 +10511,12 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasBrowserController.test.tsx",
+      "modules/creative_canvas/canvasBrowserComposition.test.tsx",
     );
+    const legacyControllerPaths = [
+      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "features/freezone/hooks/useCanvasBrowserController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const controllerSource = readFileSync(controllerPath, "utf8");
     const tabSource = readFileSync(tabPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
@@ -9814,18 +10530,21 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasBrowserController.ts",
+      "modules/creative_canvas/canvasBrowserComposition.ts",
     ]);
+    for (const legacyControllerPath of legacyControllerPaths) {
+      expect(existsSync(legacyControllerPath)).toBe(false);
+    }
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/composition",
+        "./canvasStorageComposition",
         "@/lib/url-params",
         "@/modules/identity_access/public",
         "@/shared/api/errors",
-        "../domain/canvasIdentity",
-        "../presentation/canvasBrowserViewModel",
+        "./domain/canvasIdentity",
+        "./presentation/canvasBrowserViewModel",
       ]),
     );
     expect(controllerSource).toContain("useFreezoneCanvases(project)");
@@ -9836,7 +10555,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
     expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
     expect(importSpecifiers(tabPath)).toContain(
-      "../hooks/useCanvasBrowserController",
+      "@/modules/creative_canvas/public",
     );
     for (const legacyOwner of [
       "useFreezoneCanvases",
@@ -9852,7 +10571,7 @@ describe("frontend architecture boundaries", () => {
       expect(tabSource).not.toContain(legacyOwner);
     }
     expect(testSource).toContain(
-      'from "./useCanvasBrowserController"',
+      'from "./canvasBrowserComposition"',
     );
   });
 
@@ -9900,7 +10619,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "./canvasBrowserViewModel",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(viewSource).not.toContain("useCanvasBrowserController");
@@ -9909,7 +10628,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("@/shared/api/");
     expect(existsSync(legacyTabPath)).toBe(false);
     expect(importSpecifiers(tabPath)).toContain(
-      "../hooks/useCanvasBrowserController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(tabPath)).toContain(
       "./CanvasBrowserView",
@@ -9976,13 +10695,10 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "lucide-react",
-        "@/features/canvas/domain/assetDropInfo",
+        "@/modules/creative_canvas/public",
         "./CanvasesTab",
-        "../domain/beatContext",
-        "../domain/assetLibraryModel",
         "./AssetLibraryAssetCard",
         "./AssetLibraryBeatPanels",
-        "./assetLibraryViewModel",
       ]),
     );
     expect(viewSource).not.toContain("zustand");
@@ -10058,11 +10774,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "@/features/canvas/application/imageData",
-        "@/features/canvas/domain/assetDrag",
-        "../application/assetLibraryCanvasInsertion",
-        "../domain/beatContext",
-        "../domain/assetLibraryModel",
-        "./assetLibraryViewModel",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(presentationSource).not.toContain("zustand");
@@ -10119,11 +10831,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "@/features/canvas/application/imageData",
-        "@/features/canvas/domain/assetDrag",
-        "../application/assetLibraryCanvasInsertion",
-        "../domain/assetLibraryModel",
-        "../domain/pushTarget",
-        "./assetLibraryViewModel",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(presentationSource).not.toContain("zustand");
@@ -10190,10 +10898,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/assetDropStore",
-        "@/features/freezone/domain/assetCommit",
-        "../composition",
-        "../domain/assetLibraryModel",
-        "../domain/pushTarget",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).toContain(
@@ -10232,7 +10937,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps asset library canvas insertion behind one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
+    );
+    const dragContractPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/assetDrag.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -10252,9 +10961,10 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/assetLibraryCanvasInsertion.test.ts",
+      "modules/creative_canvas/application/assetLibraryCanvasInsertion.test.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
+    const dragContractSource = readFileSync(dragContractPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
@@ -10265,9 +10975,9 @@ describe("frontend architecture boundaries", () => {
       ["export function", "addAssetToCanvas("].join(" "),
     ];
     const expectedOwners = [
-      "features/freezone/application/assetLibraryCanvasInsertion.ts",
-      "features/freezone/application/assetLibraryCanvasInsertion.ts",
-      "features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
+      "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
+      "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
       "features/freezone/assetLibraryCanvasInsertionComposition.ts",
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -10282,18 +10992,21 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/assetDrag",
-        "@/features/viewer-kit/three-d/directorManifest",
-        "../domain/assetLibraryModel",
+        "@/modules/asset_world/public",
+        "@/modules/creative_canvas/domain/assetLibraryModel",
+        "@/modules/creative_canvas/domain/assetDrag",
       ]),
+    );
+    expect(new Set(importSpecifiers(dragContractPath))).toEqual(
+      new Set(["@/modules/asset_world/public"]),
     );
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
-        "./application/assetLibraryCanvasInsertion",
-        "./domain/assetLibraryModel",
+        "@/features/canvas/domain/assetDrag",
+        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -10303,12 +11016,17 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("localStorage");
     expect(applicationSource).not.toContain("canvasStore");
     expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(applicationSource).not.toContain("@/features/canvas/");
+    expect(dragContractSource).not.toContain("DataTransfer");
+    expect(dragContractSource).not.toContain("@/features/");
     expect(compositionSource).toContain("insertAssetLibraryAsset({");
+    expect(compositionSource).toContain("nodeWidth: DEFAULT_NODE_WIDTH");
+    expect(compositionSource).toContain("spawnAssetNode(canvasState, payload, position)");
     expect(importSpecifiers(beatPresentationPath)).toContain(
-      "../application/assetLibraryCanvasInsertion",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(assetCardPresentationPath)).toContain(
-      "../application/assetLibraryCanvasInsertion",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
       "../application/assetLibraryCanvasInsertion",
@@ -10325,16 +11043,32 @@ describe("frontend architecture boundaries", () => {
     expect(panelSource).not.toContain("spawnAssetNode(");
     expect(panelSource).not.toContain("viewportCenteredPosition(");
     expect(testSource).toContain('from "./assetLibraryCanvasInsertion"');
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/assetLibraryCanvasInsertion.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/assetLibraryCanvasInsertion.test.ts",
+        ),
+      ),
+    ).toBe(false);
   });
 
-  it("keeps canvas hydration reconciliation in Freezone application", () => {
+  it("keeps canvas hydration reconciliation in Creative Canvas application", () => {
     const hydrationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasSyncHydration.ts",
+      "modules/creative_canvas/application/canvasSyncHydration.ts",
     );
     const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const hydrationSource = readFileSync(hydrationPath, "utf8");
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
@@ -10346,13 +11080,14 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/freezone/infrastructure/") ||
         specifier === "@/features/freezone/composition" ||
         specifier.startsWith("@/shared/api/"),
     );
     const declarations = [
-      ["export function", "canvasContentSignature("].join(" "),
-      ["export function", "decideHydrateDraft("].join(" "),
+      ["export function", "canvasContentSignature<"].join(" "),
+      ["export function", "decideHydrateDraft<"].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -10362,38 +11097,45 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
-    expect(new Set(importSpecifiers(hydrationPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "./canvasDraft",
-      ]),
-    );
+    expect(importSpecifiers(hydrationPath)).toEqual(["./canvasDraft"]);
     expect(hydrationSource).not.toContain("window.");
     expect(hydrationSource).not.toContain("document.");
     expect(hydrationSource).not.toContain("localStorage");
     expect(declarationOwners).toEqual([
-      ["features/freezone/application/canvasSyncHydration.ts"],
-      ["features/freezone/application/canvasSyncHydration.ts"],
+      ["modules/creative_canvas/application/canvasSyncHydration.ts"],
+      ["modules/creative_canvas/application/canvasSyncHydration.ts"],
     ]);
     expect(importSpecifiers(lifecyclePath)).toContain(
       "../application/canvasSyncHydration",
     );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/application/canvasSyncHydration.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(lifecycleSource).not.toContain("const nodeSignatureCache");
     expect(lifecycleSource).not.toContain("function decideHydrateDraft(");
   });
 
-  it("keeps canvas hydrate flight coordination in Freezone application", () => {
+  it("keeps canvas hydrate flight coordination in Creative Canvas application", () => {
     const coordinatorPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasHydrateFlights.ts",
+    );
+    const legacyCoordinatorPath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasHydrateFlights.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasHydrationComposition.ts",
+      "modules/creative_canvas/canvasHydrationComposition.ts",
     );
     const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const coordinatorSource = readFileSync(coordinatorPath, "utf8");
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
@@ -10406,38 +11148,53 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
+    expect(existsSync(legacyCoordinatorPath)).toBe(false);
     expect(importSpecifiers(coordinatorPath)).toEqual([
-      "@/features/freezone/domain/canvasStorage",
+      "../domain/canvasStorage",
     ]);
     expect(coordinatorSource).not.toContain("window.");
     expect(coordinatorSource).not.toContain("document.");
     expect(coordinatorSource).not.toContain("localStorage");
     expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasHydrateFlights.ts",
+      "modules/creative_canvas/application/canvasHydrateFlights.ts",
     ]);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/composition",
         "./application/canvasHydrateFlights",
+        "./application/canvasMetadataState",
+        "./application/canvasRuntimeState",
+        "./application/canvasSyncHydration",
+        "./canvasConflictRecoveryComposition",
+        "./canvasStorageRetentionComposition",
+        "./canvasSyncComposition",
+        "./domain/canvasStorage",
+        "./presentation/useCanvasHydrationLifecycle",
+        "./shotMetadataComposition",
       ]),
     );
     expect(importSpecifiers(lifecyclePath)).toContain(
-      "../canvasHydrationComposition",
+      "../application/canvasHydrateFlights",
+    );
+    expect(importSpecifiers(compositionPath)).not.toContain(
+      "@/features/canvas/canvasStore",
     );
     expect(lifecycleSource).not.toContain("const hydrateFlights");
     expect(lifecycleSource).not.toContain("function acquireHydrateFlight(");
     expect(lifecycleSource).not.toContain("getFreezoneCanvas");
   });
 
-  it("keeps preset metadata parsing in Freezone application", () => {
+  it("owns preset metadata parsing in Creative Canvas application", () => {
     const parserPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasPreset.ts",
+    );
+    const legacyParserPath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasPreset.ts",
     );
     const refreshPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasPresetRefresh.ts",
+      "modules/creative_canvas/application/canvasPresetRefresh.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
@@ -10445,13 +11202,13 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasPresetRefreshController.ts",
+      "modules/creative_canvas/presentation/useCanvasPresetRefreshController.ts",
     );
     const beatNodePath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useBeatContextNodeController.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const parserSource = readFileSync(parserPath, "utf8");
     const refreshSource = readFileSync(refreshPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
@@ -10463,22 +11220,28 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(parserPath)).toEqual([
-      "@/features/freezone/domain/canvasStorage",
-    ]);
+    expect(existsSync(legacyParserPath)).toBe(false);
+    expect(importSpecifiers(parserPath)).toEqual(["../domain/canvasStorage"]);
     expect(parserSource).not.toContain("window.");
     expect(parserSource).not.toContain("document.");
     expect(declarationOwners).toEqual([
-      "features/freezone/application/canvasPreset.ts",
+      "modules/creative_canvas/application/canvasPreset.ts",
     ]);
-    expect(importSpecifiers(refreshPath)).toContain("./canvasPreset");
+    expect(importSpecifiers(refreshPath)).toEqual([
+      "../domain/canvasStorage",
+      "./canvasPreset",
+      "./canvasSaveError",
+      "./canvasSyncStorage",
+    ]);
     expect(importSpecifiers(hookPath)).toContain(
-      "./useCanvasPresetRefreshController",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).toContain(
-      "../canvasPresetRefreshComposition",
+      "../application/canvasPresetRefresh",
     );
-    expect(importSpecifiers(beatNodePath)).toContain("@/features/freezone/public");
+    expect(importSpecifiers(beatNodePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(refreshSource).not.toContain(declaration);
     expect(hookSource).not.toContain(declaration);
     expect(beatNodeSource).not.toContain(declaration);
@@ -10488,32 +11251,37 @@ describe("frontend architecture boundaries", () => {
   it("keeps browser canvas sync persistence behind an application port", () => {
     const storagePath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasSyncStorage.ts",
+      "modules/creative_canvas/application/canvasSyncStorage.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/browserCanvasSyncStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/browserCanvasSyncStorageGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasSyncComposition.ts",
+      "modules/creative_canvas/canvasSyncComposition.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const draftStoragePath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/browserCanvasDraftStorageGateway.ts",
     );
     const feedbackPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
     );
+    const retentionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasStorageRetention.ts",
+    );
     const storageSource = readFileSync(storagePath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
     const draftStorageSource = readFileSync(draftStoragePath, "utf8");
+    const retentionSource = readFileSync(retentionPath, "utf8");
     const forbiddenStorageImports = importSpecifiers(storagePath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -10522,6 +11290,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/freezone/infrastructure/") ||
         specifier === "@/features/freezone/composition" ||
         specifier.startsWith("@/shared/api/"),
@@ -10554,10 +11323,10 @@ describe("frontend architecture boundaries", () => {
     expect(storageSource).not.toContain("document.");
     expect(storageSource).not.toContain("localStorage");
     expect(gatewayOwners).toEqual([
-      "features/freezone/application/canvasSyncStorage.ts",
+      "modules/creative_canvas/application/canvasSyncStorage.ts",
     ]);
     expect(viewportOwners).toEqual([
-      "features/freezone/application/canvasSyncStorage.ts",
+      "modules/creative_canvas/application/canvasSyncStorage.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
@@ -10565,13 +11334,16 @@ describe("frontend architecture boundaries", () => {
         "../application/canvasSyncStorage",
       ]),
     );
-    expect(storageSource).toContain(
+    expect(importSpecifiers(storagePath)).toEqual([
+      "../domain/canvasStorageRetention",
+    ]);
+    expect(retentionSource).toContain(
       'CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
     );
-    expect(storageSource).toContain(
+    expect(retentionSource).toContain(
       'CANVAS_HISTORY_PREFIX = "freezone:canvas-history:"',
     );
-    expect(storageSource).toContain(
+    expect(retentionSource).toContain(
       'CANVAS_CONFLICT_PREFIX = "freezone:conflict:"',
     );
     expect(adapterSource).toContain("canvasViewportStorageKey(project, canvasId)");
@@ -10584,11 +11356,10 @@ describe("frontend architecture boundaries", () => {
     expect(storageBypasses).toEqual([]);
     expect(hookSource).not.toContain("localStorage.");
     expect(hookSource).toContain("isCanvasSyncViewport(remote.viewport)");
-    expect(importSpecifiers(hookPath)).toContain("../canvasSyncComposition");
     expect(importSpecifiers(hookPath)).toContain(
       "../application/canvasSyncStorage",
     );
-    expect(importSpecifiers(draftStoragePath)).toContain(
+    expect(importSpecifiers(draftStoragePath)).not.toContain(
       "../application/canvasSyncStorage",
     );
     expect(draftStorageSource).not.toContain(
@@ -10601,27 +11372,44 @@ describe("frontend architecture boundaries", () => {
       'const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
     );
     expect(importSpecifiers(feedbackPath)).toContain(
-      "../application/canvasSyncStorage",
+      "@/modules/creative_canvas/public",
     );
+    for (const legacyPath of [
+      "features/freezone/application/canvasSyncStorage.ts",
+      "features/freezone/infrastructure/browserCanvasSyncStorageGateway.ts",
+      "features/freezone/canvasSyncComposition.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
   });
 
   it("separates canvas history and viewport persistence effects", () => {
     const persistencePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+      "modules/creative_canvas/presentation/useCanvasLocalPersistence.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasLocalPersistenceComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasLocalPersistence.test.tsx",
+    );
     const persistenceSource = readFileSync(persistencePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
     const historyDeclaration = [
-      "export function",
+      "function",
       "useCanvasHistoryPersistence(",
     ].join(" ");
     const viewportDeclaration = [
-      "export function",
+      "function",
       "useCanvasViewportPersistence(",
     ].join(" ");
     const owners = (declaration: string) =>
@@ -10633,37 +11421,54 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(persistencePath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/viewportBookmarks",
         "../application/canvasSyncHydration",
         "../application/canvasSyncStorage",
-        "../canvasSyncComposition",
       ]),
     );
     expect(persistenceSource).not.toContain("localStorage");
-    expect(persistenceSource).not.toContain(
-      "../infrastructure/browserCanvasSyncStorageGateway",
+    expect(persistenceSource).not.toContain("window.");
+    expect(persistenceSource).not.toContain("@/features/");
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./application/canvasSyncHydration",
+        "./canvasSyncComposition",
+        "./presentation/useCanvasLocalPersistence",
+      ]),
     );
     expect(owners(historyDeclaration)).toEqual([
-      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+      "modules/creative_canvas/presentation/useCanvasLocalPersistence.ts",
     ]);
     expect(owners(viewportDeclaration)).toEqual([
-      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+      "modules/creative_canvas/presentation/useCanvasLocalPersistence.ts",
     ]);
     expect(importSpecifiers(syncHookPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasLocalPersistence",
     );
+    expect(syncHookSource).toContain(
+      "const canvasLocalPersistenceStore: CanvasLocalPersistenceStore",
+    );
+    expect(syncHookSource.match(/store: canvasLocalPersistenceStore/g)?.length).toBe(2);
     expect(syncHookSource).not.toContain(
       "canvasSyncStorageGateway.writeHistory",
     );
     expect(syncHookSource).not.toContain(
       "canvasSyncStorageGateway.writeViewport",
     );
-    expect(persistenceSource).toContain("window.setTimeout(writeNow, 400)");
+    expect(persistenceSource).toContain("dependencies.schedule(writeNow, 400)");
     expect(persistenceSource).toContain("}, 300)");
-    expect(persistenceSource).toContain(
-      'window.addEventListener("beforeunload", handleUnload)',
+    expect(compositionSource).toContain(
+      'window.addEventListener("beforeunload", listener)',
     );
+    expect(testSource).toContain('from "./useCanvasLocalPersistence"');
+    for (const retiredPath of [
+      "features/freezone/hooks/useCanvasLocalPersistence.ts",
+      "features/freezone/hooks/useCanvasLocalPersistence.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
     expect(
       syncHookSource.indexOf("useCanvasHistoryPersistence({"),
     ).toBeLessThan(syncHookSource.indexOf("useCanvasSaveController({"));
@@ -10675,17 +11480,27 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas draft persistence lifecycle in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+      "modules/creative_canvas/presentation/useCanvasDraftPersistenceController.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasDraftPersistenceComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasDraftPersistenceController.test.tsx",
+    );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
     const declaration = [
-      "export function",
-      "useCanvasDraftPersistenceController(",
+      "function",
+      "useCanvasDraftPersistenceController<",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -10695,23 +11510,49 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
         "../application/canvasDraft",
-        "../canvasDraftComposition",
+        "../application/canvasSyncHydration",
+        "../application/canvasSyncStorage",
+        "../domain/canvasMutation",
         "../domain/shotMetadata",
-        "../shotMetadataComposition",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+      "modules/creative_canvas/presentation/useCanvasDraftPersistenceController.ts",
     ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./canvasDraftComposition",
+        "./presentation/useCanvasDraftPersistenceController",
+        "./shotMetadataComposition",
+      ]),
+    );
+    expect(controllerSource).not.toContain("window.");
+    expect(controllerSource).not.toContain("@/features/");
     expect(importSpecifiers(syncHookPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasDraftPersistenceController",
     );
+    expect(syncHookSource).toContain(
+      "const canvasDraftPersistenceStore: CanvasDraftPersistenceStore<",
+    );
+    expect(syncHookSource).toContain("store: canvasDraftPersistenceStore");
     expect(controllerSource).toContain("const DRAFT_DEBOUNCE_MS = 300");
-    expect(controllerSource).toContain("canvasDraftStorageGateway.writeDraft(");
-    expect(controllerSource).toContain("canvasDraftStorageGateway.readDraft(");
-    expect(controllerSource).toContain("canvasDraftStorageGateway.clearDraft(");
+    expect(controllerSource).toContain("dependencies.storage.writeDraft(");
+    expect(controllerSource).toContain("dependencies.storage.readDraft<");
+    expect(controllerSource).toContain("dependencies.storage.clearDraft(");
+    expect(compositionSource).toContain("window.setTimeout(callback, delayMs)");
+    expect(testSource).toContain(
+      'from "./useCanvasDraftPersistenceController"',
+    );
+    for (const retiredPath of [
+      "features/freezone/hooks/useCanvasDraftPersistenceController.ts",
+      "features/freezone/hooks/useCanvasDraftPersistenceController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
     expect(syncHookSource).not.toContain("const draftTimerRef");
     expect(syncHookSource).not.toContain("const writeDraftNow");
     expect(syncHookSource).not.toContain("const scheduleDraftWrite");
@@ -10722,16 +11563,26 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas save lifecycle in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasSaveController.ts",
+      "modules/creative_canvas/presentation/useCanvasSaveController.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasSaveControllerComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasSaveController.test.tsx",
+    );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
+    const testSource = readFileSync(testPath, "utf8");
     const declaration = [
-      "export function",
+      "function",
       "useCanvasSaveController(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
@@ -10742,32 +11593,50 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@xyflow/react",
-        "@/features/canvas/canvasStore",
-        "@/features/freezone/domain/canvasStorage",
+        "../application/canvasSave",
+        "../application/canvasUnloadSave",
+        "./useCanvasDraftPersistenceController",
         "../application/canvasSyncHydration",
         "../application/canvasSyncStorage",
-        "../canvasSaveComposition",
-        "../canvasUnloadSaveComposition",
+        "../domain/canvasStorage",
+        "../domain/canvasMutation",
         "../domain/shotMetadata",
-        "../shotMetadataComposition",
-        "./useCanvasDraftPersistenceController",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasSaveController.ts",
+      "modules/creative_canvas/presentation/useCanvasSaveController.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).toContain(
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasSaveController",
     );
+    expect(importSpecifiers(syncHookPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(controllerSource).not.toContain("window.");
+    expect(controllerSource).not.toContain("@/features/");
+    expect(compositionSource).toContain("createCanvasSaveScheduler({");
+    expect(compositionSource).toContain("createCanvasUnloadSaver({");
+    expect(syncHookSource).toContain(
+      "const canvasSaveControllerStore: CanvasSaveControllerStore<",
+    );
+    expect(syncHookSource).toContain("createCanvasSaveControllerHook(");
     expect(controllerSource).toContain("const SAVE_DEBOUNCE_MS = 800");
     expect(controllerSource).toContain("const inFlightRef = useRef<");
     expect(controllerSource).toContain(
       "const pendingClientSaveIdRef = useRef<",
     );
-    expect(controllerSource).toContain("useCanvasStore.subscribe(");
-    expect(controllerSource).toContain("scheduleCanvasSave({");
-    expect(controllerSource).toContain("saveCanvasBeforeUnload({");
+    expect(controllerSource).toContain("dependencies.store.subscribe(");
+    expect(controllerSource).toContain("dependencies.scheduleCanvasSave({");
+    expect(controllerSource).toContain("dependencies.saveCanvasBeforeUnload({");
+    expect(testSource).toContain('from "./useCanvasSaveController"');
+    for (const retiredPath of [
+      "features/freezone/canvasSaveComposition.ts",
+      "features/freezone/canvasUnloadSaveComposition.ts",
+      "features/freezone/hooks/useCanvasSaveController.ts",
+      "features/freezone/hooks/useCanvasSaveController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
     expect(syncHookSource).not.toContain("debounceTimerRef");
     expect(syncHookSource).not.toContain("inFlightRef");
     expect(syncHookSource).not.toContain("pendingClientSaveIdRef");
@@ -10775,16 +11644,20 @@ describe("frontend architecture boundaries", () => {
     expect(syncHookSource).not.toContain("saveCanvasBeforeUnload({");
   });
 
-  it("keeps canvas runtime state in application and cross-context access public", () => {
+  it("owns canvas runtime state in Creative Canvas behind its public API", () => {
     const legacyPath = resolve(
       SRC_ROOT,
       "features/freezone/canvasSyncRuntime.ts",
     );
-    const statePath = resolve(
+    const legacyStatePath = resolve(
       SRC_ROOT,
       "features/freezone/application/canvasRuntimeState.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const statePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasRuntimeState.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useBeatContextNodeController.ts",
@@ -10794,21 +11667,23 @@ describe("frontend architecture boundaries", () => {
     const canvasConsumerImports = importSpecifiers(canvasConsumerPath);
 
     expect(existsSync(legacyPath)).toBe(false);
-    expect(new Set(importSpecifiers(statePath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "../domain/canvasStorage",
-      ]),
-    );
+    expect(existsSync(legacyStatePath)).toBe(false);
+    expect(importSpecifiers(statePath)).toEqual([
+      "@/modules/creative_canvas/domain/canvasStorage",
+    ]);
     expect(stateSource).not.toContain("react");
     expect(stateSource).not.toContain("window.");
     expect(stateSource).not.toContain("document.");
+    expect(stateSource).not.toContain("@/features/");
     expect(publicSource).toContain("applyRemoteFreezoneCanvas");
     expect(publicSource).toContain("flushFreezoneCanvasRuntime");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/application/canvasRuntimeState",
+      "@/modules/creative_canvas/application/canvasRuntimeState",
     );
-    expect(canvasConsumerImports).toContain("@/features/freezone/public");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/public.ts")),
+    ).toBe(false);
+    expect(canvasConsumerImports).toContain("@/modules/creative_canvas/public");
     expect(canvasConsumerImports).not.toContain(
       "@/features/freezone/canvasSyncRuntime",
     );
@@ -10820,16 +11695,21 @@ describe("frontend architecture boundaries", () => {
   it("keeps external canvas runtime projection bridging in one hook", () => {
     const bridgePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+      "modules/creative_canvas/presentation/useCanvasRuntimeBridge.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasRuntimeBridgeComposition.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useCanvasSync.ts",
     );
     const bridgeSource = readFileSync(bridgePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
     const declaration = [
-      "export function",
+      "return function",
       "useCanvasRuntimeBridge(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
@@ -10840,31 +11720,40 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(bridgePath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
-        "@/features/freezone/domain/canvasStorage",
-        "../application/canvasSyncCore",
-        "../application/canvasSyncHydration",
-        "../application/canvasSyncStorage",
-        "../application/canvasProjectionGraph",
-        "../application/canvasMetadataState",
-        "../application/canvasRuntimeState",
-        "../domain/canvasProjectionMetadata",
-        "../domain/shotMetadata",
-        "../shotMetadataComposition",
         "./useCanvasDraftPersistenceController",
+        "../application/canvasRuntimeState",
+        "../application/canvasProjectionGraph",
+        "../application/canvasSyncStorage",
+        "../domain/canvasStorage",
+        "../domain/shotMetadata",
         "./useCanvasSaveController",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasRuntimeBridge.ts",
+      "modules/creative_canvas/presentation/useCanvasRuntimeBridge.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).toContain(
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasRuntimeBridge",
     );
-    expect(bridgeSource).toContain("registerFreezoneCanvasRuntime(");
-    expect(bridgeSource).toContain("mergeProjectedCanvasWithLocalCanvas(");
-    expect(bridgeSource).toContain("removeProjectionFromLocalCanvas(");
+    expect(syncHookSource).toContain("createCanvasRuntimeBridgeHook(");
+    expect(bridgeSource).toContain("dependencies.registerRuntime(");
+    expect(bridgeSource).toContain("dependencies.mergeProjectionGraph(");
+    expect(bridgeSource).toContain("dependencies.removeProjectionGraph(");
     expect(bridgeSource).toContain("const saveProjectionEditNow = () =>");
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./domain/canvasProjectionMetadata",
+        "./application/canvasProjectionGraph",
+        "./application/canvasRuntimeState",
+        "./application/canvasSyncHydration",
+        "./application/canvasSyncCore",
+        "./application/canvasMetadataState",
+        "./domain/shotMetadata",
+        "./presentation/useCanvasRuntimeBridge",
+        "./shotMetadataComposition",
+      ]),
+    );
+    expect(compositionSource).not.toContain("@/features/");
     expect(syncHookSource).toContain(
       "readSaveController: () => saveController",
     );
@@ -10882,7 +11771,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas hydration lifecycle in one presentation hook", () => {
     const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
@@ -10891,7 +11780,7 @@ describe("frontend architecture boundaries", () => {
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
     const declaration = [
-      "export function",
+      "return function",
       "useCanvasHydrationLifecycle(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
@@ -10902,41 +11791,37 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
       new Set([
         "react",
-        "@xyflow/react",
-        "@/features/canvas/canvasStore",
-        "@/features/freezone/domain/canvasStorage",
-        "../application/canvasDraft",
-        "../application/canvasSyncCore",
+        "../application/canvasConflictRecovery",
+        "./useCanvasDraftPersistenceController",
+        "../application/canvasHydrateFlights",
         "../application/canvasSyncHydration",
         "../application/canvasSyncStorage",
-        "../canvasConflictRecoveryComposition",
-        "../canvasDraftComposition",
-        "../canvasHydrationComposition",
-        "../application/canvasMetadataState",
-        "../canvasSyncComposition",
-        "../application/canvasRuntimeState",
+        "../application/canvasDraft",
+        "../application/canvasSyncCore",
+        "../application/shotMetadataState",
+        "../domain/canvasStorage",
+        "../domain/canvasMutation",
         "../domain/shotMetadata",
-        "../shotMetadataComposition",
-        "./useCanvasDraftPersistenceController",
         "./useCanvasSaveController",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     ]);
-    expect(importSpecifiers(syncHookPath)).toContain(
+    expect(importSpecifiers(syncHookPath)).not.toContain(
       "./useCanvasHydrationLifecycle",
     );
     expect(lifecycleSource).toContain(
-      "canvasHydrateFlightCoordinator.acquire(",
+      "dependencies.hydrateFlights.acquire(",
     );
     expect(lifecycleSource).toContain("decideHydrateDraft(");
-    expect(lifecycleSource).toContain("canvasSyncStorageGateway.readHistory(");
-    expect(lifecycleSource).toContain("canvasSyncStorageGateway.readViewport(");
-    expect(lifecycleSource).toContain("canvasConflictRecovery.capture({");
+    expect(lifecycleSource).toContain("dependencies.syncStorage.readHistory<");
+    expect(lifecycleSource).toContain("dependencies.syncStorage.readViewport(");
+    expect(lifecycleSource).toContain("dependencies.conflictRecovery.capture({");
     expect(syncHookSource).toContain(
       "readSaveController: () => saveController",
     );
+    expect(syncHookSource).toContain("createCanvasHydrationLifecycleHook(");
     expect(syncHookSource).not.toContain(
       "canvasHydrateFlightCoordinator.acquire(",
     );
@@ -10958,24 +11843,37 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/canvasDraft.ts",
+      "modules/creative_canvas/application/canvasDraft.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+      "modules/creative_canvas/infrastructure/browserCanvasDraftStorageGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/freezone/canvasDraftComposition.ts",
+      "modules/creative_canvas/canvasDraftComposition.ts",
     );
     const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useCanvasHydrationLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasHydrationLifecycle.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const retentionCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasStorageRetentionComposition.ts",
+    );
+    const retentionAdapterPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserCanvasStorageReclaimer.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const retentionCompositionSource = readFileSync(
+      retentionCompositionPath,
+      "utf8",
+    );
+    const retentionAdapterSource = readFileSync(retentionAdapterPath, "utf8");
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const forbiddenApplicationImports = importSpecifiers(applicationPath).filter(
       (specifier) =>
@@ -11012,42 +11910,71 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("document.");
     expect(applicationSource).not.toContain("localStorage");
     expect(gatewayOwners).toEqual([
-      "features/freezone/application/canvasDraft.ts",
+      "modules/creative_canvas/application/canvasDraft.ts",
     ]);
     expect(signatureOwners).toEqual([
-      "features/freezone/application/canvasDraft.ts",
+      "modules/creative_canvas/application/canvasDraft.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/lib/localStorageQuota",
         "../application/canvasDraft",
-        "../application/canvasSyncStorage",
       ]),
     );
     expect(adapterSource).toContain("createStoredCanvasDraft(");
-    expect(adapterSource).toContain("parseStoredCanvasDraft(");
+    expect(adapterSource).toContain("parseStoredCanvasDraft<");
     expect(adapterSource).not.toContain("pruneOldCanvasDrafts");
     expect(importSpecifiers(compositionPath)).toEqual([
       "./infrastructure/browserCanvasDraftStorageGateway",
     ]);
-    expect(compositionSource).toContain(
+    expect(compositionSource).not.toContain(
       "export function scheduleCanvasDraftPruneOnce()",
     );
-    expect(compositionSource).toContain("window.requestIdleCallback(run");
-    expect(importSpecifiers(lifecyclePath)).toContain(
-      "../application/canvasDraft",
+    expect(retentionCompositionSource).toContain(
+      "export function scheduleCanvasDraftPruneOnce()",
+    );
+    expect(retentionCompositionSource).toContain(
+      "window.requestIdleCallback(run",
+    );
+    expect(retentionAdapterSource).toContain(
+      "return registerStorageReclaimer(pruneFreezoneCanvasStorage);",
     );
     expect(importSpecifiers(lifecyclePath)).toContain(
-      "../canvasDraftComposition",
+      "../application/canvasDraft",
     );
     expect(importSpecifiers(lifecyclePath)).not.toContain(
       "../infrastructure/browserCanvasDraftStorageGateway",
     );
-    expect(lifecycleSource).toContain("scheduleCanvasDraftPruneOnce();");
+    expect(lifecycleSource).toContain("dependencies.scheduleDraftPrune();");
     expect(lifecycleSource).not.toContain("requestIdleCallback");
     expect(lifecycleSource).not.toContain("prunePending");
     expect(importSpecifiers(publicPath)).toContain(
-      "@/features/freezone/canvasDraftComposition",
+      "@/modules/creative_canvas/canvasStorageRetentionComposition",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/application/canvasDraft",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/canvasDraftComposition",
+    );
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/freezone/application/canvasDraft.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/infrastructure/browserCanvasDraftStorageGateway.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/freezone/canvasDraftComposition.ts")),
+    ).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/freezone/public.ts"))).toBe(
+      false,
     );
   });
 
@@ -11183,7 +12110,9 @@ describe("frontend architecture boundaries", () => {
     expect(useCaseModel).toContain("buildGenerationErrorReport({");
     expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
     expect(composition).toContain("pollExportImageGenerationUseCase(");
-    expect(recoveryController).toContain("pollExportImageGeneration({");
+    expect(recoveryController).toContain(
+      "pollExportImageGeneration(projectId, {",
+    );
     expect(canvasView).not.toContain("pollExportImageGeneration({");
     expect(canvasView).not.toContain("getGenerateImageJob(");
     expect(canvasView).not.toContain("GENERATION_JOB_POLL_INTERVAL_MS");
@@ -13548,19 +14477,7 @@ describe("frontend architecture boundaries", () => {
       moduleRoot,
       "infrastructure/http-model-gateway-gateway.ts",
     );
-    const modelGatewayEndpoints = [
-      "api/v1/model-gateway/config",
-      "api/v1/model-gateway/official/config",
-      "api/v1/model-gateway/official/enable",
-      "api/v1/model-gateway/custom/newapi/init",
-      "api/v1/model-gateway/custom/newapi/provider-channels",
-      "api/v1/model-gateway/custom/newapi/provider-channel/sync",
-      "api/v1/model-gateway/custom/newapi/channels",
-      "api/v1/model-gateway/custom/newapi/media-models",
-      "api/v1/model-gateway/custom/newapi/embedding-model",
-      "api/v1/model-gateway/media-relay/config",
-      "api/v1/model-gateway/custom/newapi/channels/batch",
-    ];
+    const modelGatewayEndpoints = ["api/v1/model-gateway/config"];
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -13610,6 +14527,17 @@ describe("frontend architecture boundaries", () => {
     for (const endpoint of modelGatewayEndpoints) {
       expect(modelGatewayAdapterSource).toContain(`"${endpoint}"`);
     }
+    const productionModelSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    for (const removedEndpoint of [
+      "/model-gateway/official/",
+      "/model-gateway/custom/newapi/",
+      "/model-gateway/media-relay/",
+    ]) {
+      expect(productionModelSources).not.toContain(removedEndpoint);
+    }
     for (const caller of [
       "components/layout/header.tsx",
       "components/settings/settings-dialog.tsx",
@@ -13618,6 +14546,12 @@ describe("frontend architecture boundaries", () => {
         "@/modules/model_usage/public",
       );
     }
+    const settingsSource = readFileSync(
+      resolve(SRC_ROOT, "components/settings/settings-dialog.tsx"),
+      "utf8",
+    );
+    expect(settingsSource).not.toContain("gatewayOrigin");
+    expect(settingsSource).not.toContain("MediaStorage");
     expect(
       readFileSync(
         resolve(
@@ -13952,8 +14886,18 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "application/use-text-pane-controller.ts"),
       "utf8",
     );
+    const workspaceCompositionPath = resolve(
+      SRC_ROOT,
+      "app/workspace-composition.tsx",
+    );
+    const workspaceNarrativeImports = importSpecifiers(
+      workspaceCompositionPath,
+    ).filter((specifier) =>
+      specifier.startsWith("@/modules/narrative_planning/"),
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => path !== workspaceCompositionPath)
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
     const internalImportFailures = externalSources.flatMap((path) =>
       importSpecifiers(path)
@@ -14033,6 +14977,15 @@ describe("frontend architecture boundaries", () => {
     expect(applicationViewImportFailures).toEqual([]);
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
+    expect(new Set(workspaceNarrativeImports)).toEqual(
+      new Set([
+        "@/modules/narrative_planning/composition",
+        "@/modules/narrative_planning/domain/types",
+        "@/modules/narrative_planning/presentation/BeatsPageView",
+        "@/modules/narrative_planning/presentation/EpisodesPageView",
+        "@/modules/narrative_planning/presentation/ScriptPageView",
+      ]),
+    );
     expect(directEndpointFailures).toEqual([]);
     expect(beatsPageViewSource).toContain(
       "<SketchColorLegendView controller={sketchStudio} />",
@@ -14085,7 +15038,7 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelSource).not.toContain("useState(");
     expect(singleBeatPanelSource).not.toContain("useEscapeToClose(");
     expect(singleBeatPanelSource).not.toContain("useGridsByBeat(");
-    expect(singleBeatPanelSource).not.toContain("useVideoBackends(");
+    expect(singleBeatPanelSource).not.toContain("useVideoModels(");
     expect(singleBeatPanelSource).not.toContain("resolveImage(");
     expect(singleBeatPanelSource).not.toContain("useSaveState(");
     expect(singleBeatPanelViewSource).toContain("className=");
@@ -14094,7 +15047,7 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelViewSource).toContain("useState<string");
     expect(singleBeatPanelViewSource).toContain("useEscapeToClose(");
     expect(singleBeatPanelViewSource).not.toContain("useGridsByBeat(");
-    expect(singleBeatPanelViewSource).not.toContain("useVideoBackends(");
+    expect(singleBeatPanelViewSource).not.toContain("useVideoModels(");
     expect(singleBeatPanelViewSource).not.toContain("resolveImage(");
     expect(singleBeatPanelViewSource).toContain(
       "controller: SingleBeatPanelController",
@@ -14106,7 +15059,7 @@ describe("frontend architecture boundaries", () => {
       "queries.useGridsByBeat",
     );
     expect(singleBeatPanelControllerSource).toContain(
-      "queries.useVideoBackends",
+      "queries.useVideoModels",
     );
     expect(singleBeatPanelControllerSource).toContain(
       "dependencies.useAssetWorkspaceNavigation",
@@ -14336,8 +15289,8 @@ describe("frontend architecture boundaries", () => {
     expect(textPaneControllerSource).toContain("useState(");
     expect(textPaneControllerSource).toContain("useEffect(");
     expect(textPaneControllerSource).toContain("mentionsToProgramMarkers");
-    expect(narrativePublicSource).toContain(
-      'export { TextPane } from "@/modules/narrative_planning/text-pane-composition";',
+    expect(narrativePublicSource).not.toContain(
+      "text-pane-composition",
     );
     expect(narrativePublicSource).not.toContain("useTextPaneController");
     expect(narrativePublicSource).not.toContain("TextPaneView");
@@ -14359,15 +15312,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
     );
-    const compositionPath = resolve(
+    const queryCompositionPath = resolve(
       SRC_ROOT,
-      "modules/narrative_planning/composition.ts",
+      "modules/narrative_planning/query-composition.ts",
     );
     const publicPath = resolve(
       SRC_ROOT,
       "modules/narrative_planning/public.ts",
     );
-    const compositionSource = readFileSync(compositionPath, "utf8");
+    const queryCompositionSource = readFileSync(
+      queryCompositionPath,
+      "utf8",
+    );
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
       "features/freezone/hooks/useCommitDialogTargetController.ts",
@@ -14410,8 +15366,8 @@ describe("frontend architecture boundaries", () => {
       expect(imports).toContain("@/modules/narrative_planning/public");
       expect(imports).not.toContain("@/api/projects");
     }
-    expect(compositionSource).toContain("listEpisodesUseCase(");
-    expect(compositionSource).toContain("listBeatsUseCase(");
+    expect(queryCompositionSource).toContain("listEpisodesUseCase(");
+    expect(queryCompositionSource).toContain("listBeatsUseCase(");
     expect(publicSource).toContain("listEpisodes,");
     expect(publicSource).toContain("listBeats,");
     expect(readFileSync(gatewayPath, "utf8")).toContain(
@@ -15076,7 +16032,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("function BeatVideoPlayer");
     expect(videoPaneSource).not.toContain("function Seedance2SummaryPill");
     expect(videoPaneSource).not.toContain("function isErrorResponse");
-    expect(videoPaneSource).not.toContain("function videoBackendDisplayLabel");
+    expect(videoPaneSource).not.toContain("function videoModelDisplayLabel");
     expect(videoPaneSource).not.toContain("function getSeedance2MentionQuery");
     expect(videoPaneSource).not.toContain("useVideoPool(");
     expect(videoPaneSource).not.toContain("useVideoPoolSelect(");
@@ -15143,7 +16099,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("useMemo(");
     expect(videoPaneSource).not.toContain("useState(");
     expect(videoPaneSource).not.toContain("useProjectAspectRatio(");
-    expect(videoPaneSource).not.toContain("useVideoBackends(");
+    expect(videoPaneSource).not.toContain("useVideoModels(");
     expect(videoPaneSource).not.toContain("useSeedance2BeatStatus(");
     expect(videoPaneSource).not.toContain(
       "useLegacyVideoPromptController(",
@@ -15160,6 +16116,9 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain(
       "isSeedanceReferenceCropBackend(",
     );
+    expect(videoPaneSource).not.toContain(
+      "isVideoReferenceCropModel(",
+    );
     expect(videoPaneViewSource).toContain(
       "controller: VideoPaneController",
     );
@@ -15168,7 +16127,7 @@ describe("frontend architecture boundaries", () => {
       "createUseVideoPaneController",
     );
     expect(videoPaneControllerSource).toContain(
-      "queries.useVideoBackends",
+      "queries.useVideoModels",
     );
     expect(videoPaneControllerSource).toContain(
       "queries.useSeedance2BeatStatus",
@@ -15189,7 +16148,7 @@ describe("frontend architecture boundaries", () => {
       "dependencies.useVideoPaneMediaController",
     );
     expect(videoPaneControllerSource).toContain(
-      "isSeedanceReferenceCropBackend(",
+      "isVideoReferenceCropModel(",
     );
     expect(videoPaneControllerSource).not.toContain("document.");
     expect(videoPaneControllerSource).not.toContain("navigator.");
@@ -15556,7 +16515,7 @@ describe("frontend architecture boundaries", () => {
     expect(batchBarSource).not.toContain("useDetectIdentities(");
     expect(batchBarSource).not.toContain("useGenerateAudio(");
     expect(batchBarSource).not.toContain("useGlobalOptimize(");
-    expect(batchBarSource).not.toContain("useVideoBackends(");
+    expect(batchBarSource).not.toContain("useVideoModels(");
     expect(batchBarSource).not.toContain("toast.");
     expect(batchBarViewSource).toContain("className=");
     expect(batchBarViewSource).toContain("<Button");
@@ -15592,7 +16551,7 @@ describe("frontend architecture boundaries", () => {
     expect(batchBarControllerSource).toContain(
       "queries.useUpdateSketchSettings",
     );
-    expect(batchBarControllerSource).toContain("queries.useVideoBackends");
+    expect(batchBarControllerSource).toContain("queries.useVideoModels");
     expect(batchBarControllerSource).toContain(
       "dependencies.useGenerationCreditCost",
     );
@@ -15929,6 +16888,68 @@ describe("frontend architecture boundaries", () => {
     expect(internalImportFailures).toEqual([]);
   });
 
+  it("keeps cross-context page wiring in the application composition root", () => {
+    const workspaceCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "app/workspace-composition.tsx"),
+      "utf8",
+    );
+    const narrativePublicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/narrative_planning/public.ts"),
+      "utf8",
+    );
+    const narrativeCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/narrative_planning/composition.ts"),
+      "utf8",
+    );
+    const productionCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/composition.ts"),
+      "utf8",
+    );
+    const assetCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/asset_world/composition.ts"),
+      "utf8",
+    );
+    const delayedBindingPattern =
+      /([A-Za-z][A-Za-z0-9]*): \(\.\.\.args\) => \1\(\.\.\.args\)/;
+
+    expect(workspaceCompositionSource).toContain(
+      "AssetCharactersPageContent",
+    );
+    expect(workspaceCompositionSource).toContain("NarratorVoicePanel");
+    expect(narrativePublicSource).toContain(
+      "@/modules/narrative_planning/query-composition",
+    );
+    expect(narrativePublicSource).not.toContain(
+      "@/modules/narrative_planning/composition",
+    );
+    expect(narrativePublicSource).not.toContain("PageContent");
+    expect(productionCompositionSource).toContain(
+      "@/modules/narrative_planning/public",
+    );
+    expect(productionCompositionSource).not.toContain(
+      "@/modules/narrative_planning/query-composition",
+    );
+    expect(assetCompositionSource).not.toContain(
+      "@/modules/production/",
+    );
+    expect(assetCompositionSource).toContain("renderNarratorVoicePanel");
+
+    for (const source of [
+      narrativeCompositionSource,
+      productionCompositionSource,
+      readFileSync(
+        resolve(SRC_ROOT, "modules/production/render-section-composition.ts"),
+        "utf8",
+      ),
+      readFileSync(
+        resolve(SRC_ROOT, "modules/production/sketch-section-composition.ts"),
+        "utf8",
+      ),
+    ]) {
+      expect(source).not.toMatch(delayedBindingPattern);
+    }
+  });
+
   it("keeps the Characters route as an adapter", () => {
     const route = readFileSync(
       resolve(
@@ -15939,7 +16960,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(route).toContain(
-      'import { CharactersPageContent } from "@/modules/asset_world/public";',
+      'import { CharactersPageContent } from "@/app/workspace-composition";',
     );
     expect(route).toContain("Route.useParams()");
     expect(route).not.toContain("useCharacters");
@@ -15955,7 +16976,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(route).toContain(
-      'import { EpisodesPageContent } from "@/modules/narrative_planning/public";',
+      'import { EpisodesPageContent } from "@/app/workspace-composition";',
     );
     expect(route).toContain("Route.useParams()");
     expect(route).toContain("<Outlet />");
@@ -15976,7 +16997,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(route).toContain(
-      'import { ScriptPageContent } from "@/modules/narrative_planning/public";',
+      'import { ScriptPageContent } from "@/app/workspace-composition";',
     );
     expect(route).toContain("Route.useParams()");
     expect(route).not.toContain("useQueryClient");
@@ -15996,7 +17017,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(route).toContain(
-      'import { BeatsPageContent } from "@/modules/narrative_planning/public";',
+      'import { BeatsPageContent } from "@/app/workspace-composition";',
     );
     expect(route).toContain("Route.useParams()");
     expect(route).toContain("useBeatsWorkbenchParam()");
@@ -16129,8 +17150,6 @@ describe("frontend architecture boundaries", () => {
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointFragments = [
-      "projects/${encodeURIComponent(projectId)}/freezone/image/models`",
-      "projects/${encodeURIComponent(projectId)}/freezone/video/models`",
       "projects/${encodeURIComponent(projectId)}/freezone/image/camera-options`",
       "projects/${encodeURIComponent(projectId)}/freezone/image/style-templates`",
       "projects/${encodeURIComponent(projectId)}/freezone/video/camera-templates`",
@@ -16149,9 +17168,13 @@ describe("frontend architecture boundaries", () => {
       }
     }
 
-    expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/cameraMovementPresets",
-    ]);
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/cameraMovementPresets",
+        "../domain/canvasNodes",
+        "../domain/imageModelCapability",
+      ]),
+    );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).toContain(
@@ -16160,13 +17183,18 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "@/modules/model_usage/public",
         "../application/generationCatalog",
         "../domain/cameraMovementPresets",
+        "../domain/canvasNodes",
+        "../domain/imageModelCapability",
       ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway",
     );
+    expect(infrastructureSource).toContain('loadCommercialModelCatalog("IMAGE")');
+    expect(infrastructureSource).toContain('loadCommercialModelCatalog("VIDEO")');
     expect(infrastructureSource).toContain(
       "cameraBodies: options.camera_bodies",
     );
@@ -16192,6 +17220,8 @@ describe("frontend architecture boundaries", () => {
     ).toEqual([]);
     for (const source of hookSources) {
       expect(source).toContain("@/features/canvas/catalogComposition");
+      expect(source).not.toContain("@/lib/url-params");
+      expect(source).not.toContain("readUrl");
     }
     expect(stylePicker).toContain(
       "@/features/canvas/application/generationCatalog",
@@ -16209,6 +17239,8 @@ describe("frontend architecture boundaries", () => {
       ]);
       expect(legacyOpsSource).not.toContain(endpointFragment);
     }
+    expect(infrastructureSource).not.toContain("/freezone/image/models");
+    expect(infrastructureSource).not.toContain("/freezone/video/models");
     for (const legacySymbol of [
       "FreezoneStyleTemplate",
       "listFreezoneStyleTemplates",
@@ -16337,7 +17369,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => {
         const source = readFileSync(path, "utf8");
         return (
-          source.includes("loadCanvasAudioReferences(project)") ||
+          source.includes("loadCanvasAudioReferences(projectId)") ||
           source.includes("createCanvasAudioVoice(")
         );
       })
@@ -16387,10 +17419,10 @@ describe("frontend architecture boundaries", () => {
       "@/api/ops",
     );
     expect(audioControllerSource).toContain(
-      "loadCanvasAudioReferences(project)",
+      "getCachedAudioReferences(projectId)",
     );
     expect(voiceModalControllerSource).toContain(
-      "loadCanvasAudioReferences(project)",
+      "loadCanvasAudioReferences(projectId)",
     );
     expect(voiceModalControllerSource).toContain("createCanvasAudioVoice(");
     expect(audioControllerSource).not.toContain("character_name");
@@ -16421,6 +17453,7 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalControllerSource).not.toContain("className=");
     expect(voiceModalControllerSource).not.toContain("lucide-react");
     expect(voiceModalControllerSource).not.toContain("createPortal(");
+    expect(voiceModalControllerSource).not.toContain("readUrl");
     expect(importSpecifiers(voiceModalViewPath)).not.toContain(
       "@/features/canvas/audioComposition",
     );
@@ -16565,6 +17598,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(hookPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(hookPath)).not.toContain("@/api/tasks");
+    expect(importSpecifiers(hookPath)).not.toContain("@/lib/url-params");
+    expect(hookSource).toContain("projectId: string");
     expect(hookSource).toContain("await generateCanvasAudio(");
     expect(hookSource).not.toContain("submitFreezoneAudioMusic");
     expect(hookSource).not.toContain("submitFreezoneAudioSpeech");
@@ -16682,8 +17717,13 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("navigator.");
     expect(modelSource).not.toContain("className=");
-    expect(controllerSource).toContain("useAudioGeneration(nodeId, data)");
+    expect(controllerSource).toContain(
+      "useAudioGeneration({ projectId, nodeId, data })",
+    );
     expect(controllerSource).toContain("translateCanvasText({");
+    expect(controllerSource).toContain("projectId,");
+    expect(controllerSource).toContain("canvasId,");
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).toContain("useGenerationCreditCost(");
     expect(controllerSource).toContain("navigator.clipboard.writeText(");
     expect(controllerSource).not.toContain("className=");
@@ -16705,6 +17745,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useRef(");
     expect(viewSource).toContain("<OperationPanelShell");
     expect(viewSource).toContain("<VoiceSelectionModal");
+    expect(viewSource).toContain("projectId={controller.projectId}");
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/AudioOperationsPanel.tsx"],
       ["features/canvas/application/audioOperationsPanelModel.ts"],
@@ -16796,7 +17837,13 @@ describe("frontend architecture boundaries", () => {
     );
     expect(portsSource).toContain("export interface CanvasStoryScriptRow");
     expect(compositionSource).toContain(
-      "generateCanvasStoryScriptUseCase(params, {",
+      "const model = await resolveCanvasTextModel(params.command.model)",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasStoryScriptUseCase(",
+    );
+    expect(compositionSource).toContain(
+      "{ ...params, command: { ...params.command, model } }",
     );
     expect(compositionSource).toContain(
       "submissionGateway: freezoneStoryScriptGenerationGateway",
@@ -16936,9 +17983,13 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Skill execution and task waiting behind Canvas composition", () => {
-    const domainPath = resolve(
+    const legacyDomainPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/skillExecution.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/skillExecution.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -16982,14 +18033,15 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(legacyApiPath)).toBe(false);
+    expect(existsSync(legacyDomainPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual(["./skillContract"]);
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/features/freezone/public"]),
+      new Set(["@/modules/creative_canvas/public"]),
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
         "../application/skillExecution",
       ]),
     );
@@ -17020,7 +18072,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(existsSync(legacyOutputModelPath)).toBe(false);
     expect(new Set(importSpecifiers(outputProjectionPath))).toEqual(
-      new Set(["@/features/freezone/public", "../domain/canvasNodes"]),
+      new Set(["@/modules/creative_canvas/public", "../domain/canvasNodes"]),
     );
     expect(imports).toContain(
       "@/features/canvas/application/skillOutputProjection",
@@ -17034,7 +18086,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Beat scene-asset queries behind Canvas composition", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/sceneAssets.ts",
+      "modules/creative_canvas/domain/sceneAssets.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -17052,7 +18104,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useSkillNodeController.ts",
     );
-    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const legacyApiPath = resolve(SRC_ROOT, "api/sceneAssets.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -17091,12 +18146,12 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(applicationPath)).toEqual([
-      "@/features/freezone/public",
+      "@/modules/creative_canvas/public",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
         "../application/sceneAssets",
       ]),
     );
@@ -17107,16 +18162,19 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(removedEndpointOwners).toEqual([]);
     expect(contractOwners).toEqual([
-      "features/freezone/domain/sceneAssets.ts",
+      "modules/creative_canvas/domain/sceneAssets.ts",
     ]);
     expect(publicSource).toContain(
-      'from "@/features/freezone/domain/sceneAssets"',
+      'from "@/modules/creative_canvas/domain/sceneAssets"',
     );
     expect(importSpecifiers(nodePath)).toContain(
       "@/features/canvas/composition",
     );
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/features/freezone/public",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(nodePath)).not.toContain("@/api/sceneAssets");
     expect(
@@ -17346,25 +18404,45 @@ describe("frontend architecture boundaries", () => {
     );
     const assetLibraryModelPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/assetLibraryModel.ts",
+      "modules/creative_canvas/domain/assetLibraryModel.ts",
     );
-    const freezoneDomainPath = resolve(
+    const creativeCanvasDomainPath = resolve(
       SRC_ROOT,
-      "features/freezone/domain/directorWorldCommit.ts",
+      "modules/creative_canvas/domain/directorWorldCommit.ts",
     );
-    const freezoneApplicationPath = resolve(
+    const creativeCanvasApplicationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/sceneDirectorWorldCommit.ts",
+      "modules/creative_canvas/application/sceneDirectorWorldCommit.ts",
     );
-    const freezoneAdapterPath = resolve(
+    const creativeCanvasAdapterPath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway.ts",
+      "modules/creative_canvas/infrastructure/assetWorldSceneDirectorCommitGateway.ts",
     );
-    const freezoneCompositionPath = resolve(
+    const directorCommitCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/directorCommitComposition.ts",
+    );
+    const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
-    const freezoneCommitTestPath = resolve(
+    const creativeCanvasCommitTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/sceneDirectorWorldCommit.test.ts",
+    );
+    const legacyFreezoneDomainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/directorWorldCommit.ts",
+    );
+    const legacyFreezoneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/sceneDirectorWorldCommit.ts",
+    );
+    const legacyFreezoneAdapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway.ts",
+    );
+    const legacyFreezoneCommitTestPath = resolve(
       SRC_ROOT,
       "__tests__/features/freezone/scene-director-world-commit.test.ts",
     );
@@ -17387,14 +18465,20 @@ describe("frontend architecture boundaries", () => {
     );
     const sourceIdentitySource = readFileSync(sourceIdentityPath, "utf8");
     const canvasSourcesSource = readFileSync(canvasSourcesPath, "utf8");
-    const freezoneDomainSource = readFileSync(freezoneDomainPath, "utf8");
-    const freezoneApplicationSource = readFileSync(
-      freezoneApplicationPath,
+    const creativeCanvasDomainSource = readFileSync(
+      creativeCanvasDomainPath,
       "utf8",
     );
-    const freezoneAdapterSource = readFileSync(freezoneAdapterPath, "utf8");
-    const freezoneCompositionSource = readFileSync(
-      freezoneCompositionPath,
+    const creativeCanvasApplicationSource = readFileSync(
+      creativeCanvasApplicationPath,
+      "utf8",
+    );
+    const creativeCanvasAdapterSource = readFileSync(
+      creativeCanvasAdapterPath,
+      "utf8",
+    );
+    const directorCommitCompositionSource = readFileSync(
+      directorCommitCompositionPath,
       "utf8",
     );
     const sourceEndpointOwners = sourceFiles(SRC_ROOT)
@@ -17476,58 +18560,66 @@ describe("frontend architecture boundaries", () => {
       "getSceneDirectorStageManifest: loadSceneDirectorStageManifest",
     );
     expect(existsSync(legacyFreezoneCommitPath)).toBe(false);
-    expect(new Set(importSpecifiers(freezoneDomainPath))).toEqual(
+    expect(existsSync(legacyFreezoneCompositionPath)).toBe(false);
+    expect(existsSync(legacyFreezoneDomainPath)).toBe(false);
+    expect(existsSync(legacyFreezoneApplicationPath)).toBe(false);
+    expect(existsSync(legacyFreezoneAdapterPath)).toBe(false);
+    expect(existsSync(legacyFreezoneCommitTestPath)).toBe(false);
+    expect(new Set(importSpecifiers(creativeCanvasDomainPath))).toEqual(
       new Set([
         "@/modules/asset_world/public",
         "./assetCommit",
       ]),
     );
-    expect(freezoneDomainSource).toContain(
+    expect(creativeCanvasDomainSource).toContain(
       "export function buildSceneDirectorWorldCommitPlan(",
     );
-    expect(freezoneDomainSource).not.toContain("@/features/canvas/");
-    expect(freezoneDomainSource).not.toContain("@/features/viewer-kit/");
-    expect(new Set(importSpecifiers(freezoneApplicationPath))).toEqual(
+    expect(creativeCanvasDomainSource).not.toContain("@/features/canvas/");
+    expect(creativeCanvasDomainSource).not.toContain("@/features/freezone/");
+    expect(creativeCanvasDomainSource).not.toContain("@/features/viewer-kit/");
+    expect(new Set(importSpecifiers(creativeCanvasApplicationPath))).toEqual(
       new Set([
         "../domain/assetCommit",
         "../domain/directorWorldCommit",
       ]),
     );
-    expect(freezoneApplicationSource).toContain(
+    expect(creativeCanvasApplicationSource).toContain(
       "buildSceneDirectorWorldCommitPlan(params.target, params.nodeData)",
     );
-    expect(freezoneApplicationSource).not.toContain(
+    expect(creativeCanvasApplicationSource).not.toContain(
       "@/modules/asset_world/public",
     );
-    expect(new Set(importSpecifiers(freezoneAdapterPath))).toEqual(
+    expect(new Set(importSpecifiers(creativeCanvasAdapterPath))).toEqual(
       new Set([
         "@/modules/asset_world/public",
         "../application/sceneDirectorWorldCommit",
       ]),
     );
-    expect(freezoneAdapterSource).toContain(
+    expect(creativeCanvasAdapterSource).toContain(
       "await dependencies.loadSceneDirectorStageManifest(",
     );
-    expect(freezoneAdapterSource).toContain(
+    expect(creativeCanvasAdapterSource).toContain(
       "export function createAssetWorldSceneDirectorCommitGateway(",
     );
-    expect(importSpecifiers(freezoneCompositionPath)).toContain(
-      "./application/sceneDirectorWorldCommit",
+    expect(new Set(importSpecifiers(directorCommitCompositionPath))).toEqual(
+      new Set([
+        "./application/directorRenderCommit",
+        "./application/sceneDirectorWorldCommit",
+        "./domain/directorWorldCommit",
+        "./infrastructure/assetWorldSceneDirectorCommitGateway",
+        "./infrastructure/browserDirectorRenderCommitGateway",
+      ]),
     );
-    expect(importSpecifiers(freezoneCompositionPath)).toContain(
-      "./infrastructure/assetWorldSceneDirectorCommitGateway",
-    );
-    expect(freezoneCompositionSource).toContain(
+    expect(directorCommitCompositionSource).toContain(
       "commitSceneDirectorWorldFromCanvasNodeUseCase(",
     );
-    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
-      "@/features/freezone/domain/directorWorldCommit",
-    );
-    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
-      "@/features/freezone/application/sceneDirectorWorldCommit",
-    );
-    expect(importSpecifiers(freezoneCommitTestPath)).toContain(
-      "@/features/freezone/infrastructure/assetWorldSceneDirectorCommitGateway",
+    expect(new Set(importSpecifiers(creativeCanvasCommitTestPath))).toEqual(
+      new Set([
+        "vitest",
+        "../domain/directorWorldCommit",
+        "./sceneDirectorWorldCommit",
+        "../infrastructure/assetWorldSceneDirectorCommitGateway",
+      ]),
     );
   });
 
@@ -17551,13 +18643,25 @@ describe("frontend architecture boundaries", () => {
     );
     const freezoneApplicationPath = resolve(
       SRC_ROOT,
-      "features/freezone/application/directorRenderCommit.ts",
+      "modules/creative_canvas/application/directorRenderCommit.ts",
     );
     const freezoneAdapterPath = resolve(
       SRC_ROOT,
-      "features/freezone/infrastructure/browserDirectorRenderCommitGateway.ts",
+      "modules/creative_canvas/infrastructure/browserDirectorRenderCommitGateway.ts",
     );
     const freezoneCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/directorCommitComposition.ts",
+    );
+    const legacyFreezoneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/directorRenderCommit.ts",
+    );
+    const legacyFreezoneAdapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/browserDirectorRenderCommitGateway.ts",
+    );
+    const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
     );
@@ -17592,6 +18696,9 @@ describe("frontend architecture boundaries", () => {
 
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(existsSync(legacyFreezoneCommitPath)).toBe(false);
+    expect(existsSync(legacyFreezoneApplicationPath)).toBe(false);
+    expect(existsSync(legacyFreezoneAdapterPath)).toBe(false);
+    expect(existsSync(legacyFreezoneCompositionPath)).toBe(false);
     expect(importSpecifiers(applicationPath)).toEqual([
       "../directorManifest",
     ]);
@@ -17925,7 +19032,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(gatewayPath))).toEqual(
       new Set([
-        "@/task-center/public",
+        "@/modules/task_execution/public",
         "@/shared/api/client",
         "../application/ports",
       ]),
@@ -18140,7 +19247,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/scene360.ts",
+      "modules/creative_canvas/domain/scene360.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -18179,7 +19286,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/scene360",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -18240,7 +19347,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas multi-angle generation rules and orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/multiAngle.ts",
+      "modules/creative_canvas/domain/multiAngle.ts",
     );
     const completionPath = resolve(
       SRC_ROOT,
@@ -18304,7 +19411,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/multiAngle",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -18338,7 +19445,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneMultiAngleGenerationGateway",
     );
     expect(importSpecifiers(panelPath)).toContain(
-      "@/features/canvas/domain/multiAngle",
+      "@/modules/creative_canvas/public",
     );
     expect(panelSource).not.toContain("export type MultiAnglePresetKey");
     expect(panelSource).not.toContain("export type MultiAngleZoomLevel");
@@ -18370,7 +19477,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas relight rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/relight.ts",
+      "modules/creative_canvas/domain/relight.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -18417,7 +19524,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/relight",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -18453,7 +19560,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneRelightGenerationGateway",
     );
     expect(importSpecifiers(panelPath)).toContain(
-      "@/features/canvas/domain/relight",
+      "@/modules/creative_canvas/public",
     );
     expect(panelSource).not.toContain("export type LightDirectionKey");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
@@ -18514,7 +19621,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "@/features/canvas/domain/canvasNodes",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -18608,10 +19715,11 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/nodeActionBeatContext",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/freezone/public",
-        "@/lib/url-params",
+        "@/modules/creative_canvas/public",
+        "@/modules/creative_canvas/public",
       ]),
     );
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("lucide-react");
     expect(new Set(importSpecifiers(componentPath))).toEqual(
@@ -19093,7 +20201,9 @@ describe("frontend architecture boundaries", () => {
         return (
           source.includes('publish("freezone/projection-sync"') ||
           source.includes('publish("freezone/projection-remove"') ||
-          source.includes('publish("freezone/commit-node"') ||
+          source.includes("publishCanvasProjectionSyncRequested(") ||
+          source.includes("publishCanvasProjectionRemovalRequested(") ||
+          source.includes("publishCanvasCommitRequested(") ||
           source.includes("deleteNode(node.id)")
         );
       })
@@ -19102,8 +20212,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(modelPath))).toEqual(
       new Set([
-        "@/features/canvas/domain/assetDropInfo",
         "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
       ]),
     );
     for (const forbiddenModelDependency of [
@@ -19126,11 +20236,10 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/canvasServices",
         "@/features/canvas/application/nodeManagementToolbarModel",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/freezone/public",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).toContain("useCanvasProjectionStatus(");
@@ -19294,9 +20403,9 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
-        "@/lib/url-params",
       ]),
     );
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<UiChipButton");
     expect(controllerSource).not.toContain("<DropdownMenu");
@@ -19979,13 +21088,15 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/infrastructure/matteClient",
-        "@/lib/url-params",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<UiChipButton");
     expect(controllerSource).not.toContain("<DropdownMenu");
+    expect(controllerSource).not.toContain("readUrl");
     expect(editControllerSource).toContain("useImageMatteController({");
+    expect(editControllerSource).toContain("projectId,");
+    expect(componentSource).toContain("projectId,");
     expect(componentSource).toContain("nodeData,");
     expect(componentSource).toContain("imageSource,");
     expect(componentSource).not.toContain("onMatteImage");
@@ -20137,9 +21248,12 @@ describe("frontend architecture boundaries", () => {
       expect(viewSource).not.toContain(forbiddenViewDependency);
     }
     expect(componentSource).toContain("useImageNodeToolbarController(props)");
+    expect(componentSource).toContain("projectId: string;");
     expect(componentSource).toContain(
       "<ImageNodeToolbarActionsView controller={controller} />",
     );
+    expect(controllerSource).toContain("projectId: string;");
+    expect(viewSource).toContain("projectId={projectId}");
     expect(viewSource).toContain("<ImageEditToolbarActions");
     expect(viewSource).toContain("<ImageGridToolbarActions");
     expect(viewSource).toContain("<NodeToolbarIconChip");
@@ -20169,6 +21283,7 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(toolbarSource).toContain("<ImageNodeToolbarActions");
+    expect(toolbarSource).toContain("projectId={projectId}");
     expect(toolbarSource).not.toContain("<NodeToolbarIconChip");
     for (const legacyInlineLogic of [
       "getNodeToolPlugins",
@@ -20254,7 +21369,10 @@ describe("frontend architecture boundaries", () => {
     expect(outputControllerSource).toContain("const copyStoryboardText");
     expect(outputControllerSource).toContain("const copyGenerationError");
     expect(managementControllerSource).toContain(
-      'canvasEventBus.publish("freezone/projection-sync"',
+      "publishCanvasProjectionSyncRequested(projection.projectionKey)",
+    );
+    expect(managementControllerSource).toContain(
+      "publishCanvasProjectionRemovalRequested(projection.projectionKey)",
     );
   });
 
@@ -20377,7 +21495,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas image-upscale rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/upscale.ts",
+      "modules/creative_canvas/domain/upscale.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -20422,7 +21540,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/upscale",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -20453,7 +21571,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneUpscaleGenerationGateway",
     );
     expect(importSpecifiers(overlayPath)).toContain(
-      "@/features/canvas/domain/upscale",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
@@ -20573,7 +21691,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas outpaint rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/outpaint.ts",
+      "modules/creative_canvas/domain/outpaint.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -20615,7 +21733,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/outpaint",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -20647,7 +21765,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneOutpaintGenerationGateway",
     );
     expect(importSpecifiers(overlayPath)).toContain(
-      "@/features/canvas/domain/outpaint",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
@@ -20669,7 +21787,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas redraw rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/redraw.ts",
+      "modules/creative_canvas/domain/redraw.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -20726,7 +21844,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/redraw",
+        "@/modules/creative_canvas/public",
         "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
@@ -20759,7 +21877,7 @@ describe("frontend architecture boundaries", () => {
       "redrawGateway: freezoneRedrawTaskGateway",
     );
     expect(importSpecifiers(overlayPath)).toContain(
-      "@/features/canvas/domain/redraw",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
@@ -20771,7 +21889,8 @@ describe("frontend architecture boundaries", () => {
     expect(retrySource).not.toContain("redrawGateway.awaitCompletion(");
     expect(retrySource).not.toContain("redrawGateway.fetchResultUrl(");
     expect(portsSource).toContain("prompt?: string");
-    expect(portsSource).toContain("model?: string");
+    expect(portsSource).toContain("model: string");
+    expect(portsSource).not.toContain("model?: string");
     expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
     ]);
@@ -20779,7 +21898,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(pipelineEditorPath)).toContain(
-      "@/features/canvas/domain/redraw",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/tasks");
@@ -20800,7 +21919,7 @@ describe("frontend architecture boundaries", () => {
     const imports = importSpecifiers(overlayPath);
 
     expect(imports).toContain("@/features/canvas/composition");
-    expect(imports).toContain("@/features/canvas/domain/redraw");
+    expect(imports).toContain("@/modules/creative_canvas/public");
     expect(imports).not.toContain("@/api/ops");
     expect(imports).not.toContain("@/api/tasks");
     expect(overlaySource).toContain("await generateCanvasRedraw(");
@@ -20908,6 +22027,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(controllerSource).toContain("downloadUrlAsFile(asset.url)");
     expect(controllerSource).toContain("buildStandaloneWorldManifest({");
+    expect(controllerSource).toContain("projectId: string");
+    expect(controllerSource).toContain("canvasId: string | null");
+    expect(controllerSource).not.toContain("@/lib/url-params");
+    expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("lucide-react");
     expect(controllerSource).not.toContain("<ImageViewerModal");
@@ -20951,14 +22074,20 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps generation-history record parsing and asset projection out of UI", () => {
-    const domainPath = resolve(
-      SRC_ROOT,
+    const legacyPaths = [
       "features/canvas/domain/generationHistoryRecord.ts",
+      "features/canvas/domain/generationHistoryRecord.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(
+      moduleRoot,
+      "domain/generationHistoryRecord.ts",
     );
     const domainTestPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/generationHistoryRecord.test.ts",
+      moduleRoot,
+      "domain/generationHistoryRecord.test.ts",
     );
+    const publicPath = resolve(moduleRoot, "public.ts");
     const applicationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/generationHistoryAssets.ts",
@@ -21011,7 +22140,22 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort(),
     );
+    const directDomainConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/features/canvas/domain/generationHistoryRecord" ||
+              specifier === "@/modules/creative_canvas/domain/generationHistoryRecord",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("@/features/canvas/application/");
@@ -21021,15 +22165,19 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/canvas/application/generationHistory",
         "@/features/canvas/domain/canvasAssets",
-        "@/features/canvas/domain/generationHistoryRecord",
+        "@/modules/creative_canvas/public",
       ]),
     );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/generationHistoryRecord",
+    );
+    expect(directDomainConsumers).toEqual([]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/features/canvas/ui/");
     expect(applicationSource).not.toContain("@/lib/media-url");
     expect(applicationSource).not.toContain("className=");
     expect(historyViewSource).toContain(
-      "@/features/canvas/domain/generationHistoryRecord",
+      "@/modules/creative_canvas/public",
     );
     expect(historyViewSource).not.toContain(
       "export function historyRecord",
@@ -21044,10 +22192,10 @@ describe("frontend architecture boundaries", () => {
       "export function recordsToAssetBuckets",
     );
     expect(imageControllerSource).toContain(
-      "@/features/canvas/domain/generationHistoryRecord",
+      "@/modules/creative_canvas/public",
     );
     expect(videoControllerSource).toContain(
-      "@/features/canvas/domain/generationHistoryRecord",
+      "@/modules/creative_canvas/public",
     );
     expect(imageControllerSource).not.toContain(
       "@/features/canvas/ui/NodeGenerationHistory",
@@ -21056,14 +22204,14 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/ui/NodeGenerationHistory",
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
-      ["features/canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
+      ["modules/creative_canvas/domain/generationHistoryRecord.ts"],
       ["features/canvas/application/generationHistoryAssets.ts"],
     ]);
     expect(domainTestSource).toContain("from './generationHistoryRecord'");
@@ -21071,7 +22219,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/application/generationHistoryAssets",
     );
     expect(historyAssetTestSource).toContain(
-      "@/features/canvas/domain/generationHistoryRecord",
+      "@/modules/creative_canvas/public",
     );
   });
 
@@ -21687,6 +22835,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("absolute z-40 overflow-visible");
     expect(stageSource).toContain("@xyflow/react/dist/style.css");
     expect(stageSource).toContain("<ReactFlow<CanvasNode, CanvasEdge>");
+    expect(stageSource).toContain("createCanvasNodeTypes({ projectId, canvasId })");
     expect(stageSource).toContain("nodeTypes={canvasNodeTypes}");
     expect(stageSource).toContain("edgeTypes={canvasEdgeTypes}");
     expect(stageSource).toContain("<CanvasTransientOverlays");
@@ -22099,7 +23248,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasHistory",
       "../domain/canvasEdgeDeletion",
       "../domain/canvasEdgeNormalization",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasEdgeChangeEffects",
       "../application/canvasEdgeCreation",
@@ -22152,7 +23301,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasHistory",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasDataNormalization",
       "../application/ports",
@@ -22220,7 +23369,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasHistory",
       "../domain/canvasNodeLayering",
       "../domain/canvasNodePositions",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/storyboardFrames",
       "../application/canvasNodeConversion",
@@ -22277,7 +23426,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
       "../domain/canvasHistory",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasDerivedNodeCreation",
       "../application/canvasNodeDuplication",
@@ -22324,7 +23473,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasHistory",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/groupSelectionDelete",
     ]));
@@ -22374,7 +23523,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasGroupFit",
       "../domain/canvasGroupRemoval",
       "../domain/canvasHistory",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasGroupCreation",
       "../application/ports",
@@ -22422,7 +23571,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasHistory",
-      "../domain/canvasMutation",
+      "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/canvasStoryboardGroupConfig",
       "../domain/canvasStoryboardGroupConversion",
@@ -23302,7 +24451,7 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/nodes/videoGenerationModeOptions.ts"],
       ["features/canvas/nodes/VideoGenerationModeSelect.tsx"],
     ]);
-    expect(projectionSource).toContain("HAPPYHORSE_MODE_ORDER");
+    expect(projectionSource).toContain("TYPED_REFERENCE_MODE_ORDER");
     expect(projectionSource).toContain("上游含视频素材时只能用");
     expect(viewSource).toContain("options.map((option)");
     expect(viewSource).toContain("option.disabledReason");
@@ -23338,15 +24487,16 @@ describe("frontend architecture boundaries", () => {
       ["export function", "videoQualityOptionsForModel("].join(" "),
       ["export function", "videoDurationBoundsForModel("].join(" "),
       ["export function", "clampVideoDuration("].join(" "),
-      ["export function", "isHappyHorseVideoModel("].join(" "),
-      ["export function", "isSeedance20VideoModel("].join(" "),
       ["export function", "isVideoModeSupportedByModel("].join(" "),
+      ["export function", "supportedVideoModesForModel("].join(" "),
+      ["export function", "videoModelUsesTypedReferenceModes("].join(" "),
       ["export function", "videoModelReferenceDisabledReason("].join(" "),
       ["export function", "sceneOptimizeOptionsForModel("].join(" "),
+      ["export function", "defaultSceneOptimizeForModel("].join(" "),
       ["export function", "normalizeSceneOptimize("].join(" "),
     ];
     const implementationOwners = declarations.map((declaration) =>
-      sourceFiles(SRC_ROOT)
+      sourceFiles(resolve(SRC_ROOT, "features/canvas"))
         .filter((path) => readFileSync(path, "utf8").includes(declaration))
         .map(relativeSource)
         .sort(),
@@ -23368,7 +24518,12 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function resolutionToQuality(");
     expect(videoNode).not.toContain("function isSeedance1xModel(");
     expect(videoNode).not.toContain("function isGrokVideoChannelModel(");
-    expect(videoNode).toContain("isSeedance20VideoModel(modelId)");
+    expect(videoNode).toContain(
+      "supportedVideoModesForModel(selectedVideoModel)",
+    );
+    expect(videoNode).toContain(
+      "videoModelUsesTypedReferenceModes(selectedVideoModel)",
+    );
     expect(videoNode).not.toContain("/seedance2/i.test(");
   });
 
@@ -24751,6 +25906,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
       "features/canvas/application/translateCanvasText.ts",
+      "features/canvas/composition.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
@@ -24781,6 +25937,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(compositionSource).toContain(
       "taskGateway: freezoneGenerationTaskGateway",
+    );
+    expect(compositionSource).toContain(
+      "const model = await resolveCanvasTextModel(params.model)",
     );
     for (const consumerPath of consumerPaths) {
       const consumerSource = readFileSync(consumerPath, "utf8");
@@ -25381,6 +26540,8 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
+    const canvasHistoryHookSource = hookSources[0];
+    const nodeHistoryHookSource = hookSources[1];
     const consumerSources = consumerPaths.map((path) =>
       readFileSync(path, "utf8"),
     );
@@ -25436,6 +26597,14 @@ describe("frontend architecture boundaries", () => {
       expect(hookSource).not.toContain("ApiError");
       expect(hookSource).not.toContain("FANOUT_CONCURRENCY");
     }
+    expect(canvasHistoryHookSource).toContain("projectId: string");
+    expect(canvasHistoryHookSource).toContain("canvasId: string | null");
+    expect(canvasHistoryHookSource).not.toContain("readUrl()");
+    expect(canvasHistoryHookSource).not.toContain("@/lib/url-params");
+    expect(nodeHistoryHookSource).toContain("projectId: string");
+    expect(nodeHistoryHookSource).toContain("canvasId: string");
+    expect(nodeHistoryHookSource).not.toContain("readUrl()");
+    expect(nodeHistoryHookSource).not.toContain("@/lib/url-params");
     for (const consumerSource of consumerSources) {
       expect(consumerSource).not.toContain(
         "FreezoneGenerationHistoryRecord",
@@ -25572,8 +26741,9 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("document");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).toContain(
-      "SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS = 15_200",
+    expect(applicationSource).toContain("readonly maxDurationMs: number");
+    expect(applicationSource).not.toContain(
+      "SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS",
     );
     expect(applicationSource).toContain("gateway.probeDurationMs(");
     expect(useCaseOwners).toEqual([
@@ -25594,6 +26764,9 @@ describe("frontend architecture boundaries", () => {
       "browserAudioMetadataGateway",
     );
     expect(videoNode).toContain("validateVideoReferenceAudioDuration({");
+    expect(videoNode).toContain(
+      "selectedVideoModel.maxReferenceAudioDurationSeconds * 1000",
+    );
     expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserAudioMetadata",
     );

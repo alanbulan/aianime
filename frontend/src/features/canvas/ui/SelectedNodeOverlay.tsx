@@ -74,7 +74,15 @@ const SCENE_360_FOCUS_ZOOM = 1.2;
 const SCENE_360_FOCUS_DURATION = 320;
 const SCENE_360_DEFAULT_NODE_HEIGHT = 320;
 
-export const SelectedNodeOverlay = memo(() => {
+interface SelectedNodeOverlayProps {
+  projectId: string;
+  canvasId: string;
+}
+
+export const SelectedNodeOverlay = memo(({
+  projectId,
+  canvasId,
+}: SelectedNodeOverlayProps) => {
   const { t } = useTranslation();
   const nodes = useCanvasStore((state) => state.nodes);
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
@@ -436,7 +444,7 @@ export const SelectedNodeOverlay = memo(() => {
           isGenerating: false,
           // Persist enough to (re-)run the upscale and to drive the always-attached panel.
           upscaleSourceUrl: sourceImageUrl,
-          upscaleModelId: 'huimeng/gpt-image-2',
+          upscaleModelId: '',
           upscaleImageSize: '2K',
           upscaleScaleFactor: 2,
         },
@@ -544,6 +552,7 @@ export const SelectedNodeOverlay = memo(() => {
         && !effectiveOverlayNodeId
         && nodeHasResourceForToolbar(selectedNode) && (
         <NodeActionToolbar
+          projectId={projectId}
           // 按节点 id 重挂载，确保每次「激活某个节点」都重放顶部菜单的入场动画
           // ——否则直接在两个节点间切换时组件实例复用，CSS 动画只在首次挂载时跑。
           key={selectedNode.id}
@@ -564,6 +573,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {multiAngleNode && multiAngleImageSource && (
         <MultiAngleEditorOverlay
+          projectId={projectId}
           node={multiAngleNode}
           imageSource={multiAngleImageSource}
           onClose={handleCloseMultiAngleEditor}
@@ -571,6 +581,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {lightEditorNode && lightEditorImageSource && (
         <LightEditorOverlay
+          projectId={projectId}
           node={lightEditorNode}
           imageSource={lightEditorImageSource}
           onClose={handleCloseLightEditor}
@@ -578,6 +589,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {redrawNode && redrawImageSource && (
         <RedrawOverlay
+          projectId={projectId}
           node={redrawNode}
           imageSource={redrawImageSource}
           onClose={handleCloseRedraw}
@@ -585,6 +597,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {eraseNode && eraseImageSource && (
         <EraseOverlay
+          projectId={projectId}
           node={eraseNode}
           imageSource={eraseImageSource}
           onClose={handleCloseErase}
@@ -592,19 +605,25 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {scene360Node && scene360ImageSource && (
         <Scene360Overlay
+          projectId={projectId}
           node={scene360Node}
           imageSource={scene360ImageSource}
           onClose={handleCloseScene360}
         />
       )}
       {upscalePanelNode && (
-        <UpscaleEditorOverlay node={upscalePanelNode} />
+        <UpscaleEditorOverlay projectId={projectId} node={upscalePanelNode} />
       )}
       {videoUpscalePanelNode && (
-        <VideoUpscaleEditorOverlay node={videoUpscalePanelNode} />
+        <VideoUpscaleEditorOverlay
+          projectId={projectId}
+          canvasId={canvasId}
+          node={videoUpscalePanelNode}
+        />
       )}
       {outpaintNode && outpaintImageSource && (
         <OutpaintEditorOverlay
+          projectId={projectId}
           node={outpaintNode}
           imageSource={outpaintImageSource}
           onClose={handleCloseOutpaint}
@@ -612,6 +631,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {rotateNode && rotateImageSource && (
         <RotateEditorOverlay
+          projectId={projectId}
           node={rotateNode}
           imageSource={rotateImageSource}
           onClose={handleCloseRotate}
@@ -619,6 +639,7 @@ export const SelectedNodeOverlay = memo(() => {
       )}
       {gridActionRequest && gridActionNode && gridActionImageSource && (
         <GridActionConfirmOverlay
+          projectId={projectId}
           node={gridActionNode}
           imageSource={gridActionImageSource}
           request={gridActionRequest}

@@ -5,14 +5,19 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
-import { createEventBus, type TaskEventBus } from "@/task-center/event-bus";
-import { EventBusContext } from "@/task-center/event-bus-context";
+import {
+  createTaskEventBus,
+  TaskEventBusContext,
+  type TaskEventBus,
+} from "@/modules/task_execution/public";
 import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
 
 function wrap(bus: TaskEventBus, qc: QueryClient) {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>
-      <EventBusContext.Provider value={bus}>{children}</EventBusContext.Provider>
+      <TaskEventBusContext.Provider value={bus}>
+        {children}
+      </TaskEventBusContext.Provider>
     </QueryClientProvider>
   );
   return Wrapper;
@@ -33,7 +38,7 @@ function complete(scope: string, project = "demo") {
 
 describe("useScopedTaskBatchInvalidation", () => {
   it("invalidates once for EACH tracked scope's completion (not just the last)", () => {
-    const bus = createEventBus();
+    const bus = createTaskEventBus();
     const qc = new QueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
 
@@ -63,7 +68,7 @@ describe("useScopedTaskBatchInvalidation", () => {
   });
 
   it("ignores untracked scopes, other projects, and double-completions", () => {
-    const bus = createEventBus();
+    const bus = createTaskEventBus();
     const qc = new QueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
 
@@ -89,7 +94,7 @@ describe("useScopedTaskBatchInvalidation", () => {
   });
 
   it("matches by task_id when matchBy is set (render execute fan-out)", () => {
-    const bus = createEventBus();
+    const bus = createTaskEventBus();
     const qc = new QueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
 
@@ -130,7 +135,7 @@ describe("useScopedTaskBatchInvalidation", () => {
   });
 
   it("prunes a scope on failure without invalidating", () => {
-    const bus = createEventBus();
+    const bus = createTaskEventBus();
     const qc = new QueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
 

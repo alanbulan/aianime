@@ -31,7 +31,7 @@ from ai_anime.modules.production.application.selected_regeneration import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import selection_scope
 
 
 class LocalManualSketchRegenerationPreparer:
@@ -85,6 +85,8 @@ class LocalManualSketchRegenerationPreparer:
             image_selection = self._image_settings.resolve_sketch_selection(
                 project_config
             )
+            if not image_selection:
+                raise ManualSketchRegenerationRejected("请先选择草图图片模型")
             generation_context = self._generation_context_factory(store, context)
             character_map = await generation_context.build_character_map(
                 beats=beats,
@@ -108,8 +110,7 @@ class LocalManualSketchRegenerationPreparer:
                         "beats": beats,
                         "character_map": character_map,
                         "style": style,
-                        "model": None,
-                        "image_generation_selection": image_selection,
+                        "model": image_selection,
                         "selected_beat_numbers": list(selected_beats),
                         "composite_key": f"{mode_key}:sketch",
                         "sketch_colors": sketch_colors,

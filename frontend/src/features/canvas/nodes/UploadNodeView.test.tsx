@@ -63,7 +63,7 @@ vi.mock('@/features/canvas/ui/DirectorControlBundleBadge', () => ({
   DirectorControlBundleBadge: () => <div>bundle-badge</div>,
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>roles:{roles.join(',')}</div>
   ),

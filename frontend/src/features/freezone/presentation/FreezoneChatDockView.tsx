@@ -12,7 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { SuperChatPanel } from "@/features/superchat/superchat-panel";
+import { SuperChatPanel } from "@/modules/ai_assistant/public";
 import { cn } from "@/lib/utils";
 
 import type { ChatLauncherPosition } from "../hooks/useFreezoneChatDockController";

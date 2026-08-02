@@ -8,9 +8,10 @@ from ai_anime.modules.production.application.director_control_sketch import (
 )
 from ai_anime.modules.production.infrastructure.director_control_sketch import (
     AssetWorldDirectorControlFrameSource,
-    TaskBackendDirectorControlSketchScheduler,
+    TaskExecutionDirectorControlSketchScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 def _context(tmp_path: Path) -> ProjectContext:
@@ -61,7 +62,7 @@ def test_asset_world_frame_source_projects_canonical_control_frame(
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_preserves_director_control_contract(
+async def test_task_execution_scheduler_preserves_director_control_contract(
     tmp_path: Path,
 ) -> None:
     calls = []
@@ -82,10 +83,11 @@ async def test_task_backend_scheduler_preserves_director_control_contract(
         scope="director_control_to_sketch:ep002:beat_03",
         output_dir=tmp_path,
         state_dir=tmp_path / "state",
+        model="cloud-image-standard",
     )
 
-    receipt = await TaskBackendDirectorControlSketchScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionDirectorControlSketchScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

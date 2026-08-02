@@ -7,11 +7,37 @@ import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
 import { AudioOperationsPanel } from "@/features/canvas/nodes/AudioOperationsPanel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
+import { queryKeys } from "@/lib/query-keys";
+
+function seedAudioCatalog(queryClient: QueryClient) {
+  queryClient.setQueryData(queryKeys.commercialModels("AUDIO"), {
+    catalogVersion: "test",
+    items: [
+      {
+        id: "speech-model",
+        code: "audio-speech-1",
+        displayName: "Speech Model",
+        operation: "AUDIO",
+        capabilities: { supportedModes: ["SPEECH"] },
+        parameterSchema: {},
+      },
+      {
+        id: "music-model",
+        code: "audio-music-1",
+        displayName: "Music Model",
+        operation: "AUDIO",
+        capabilities: { supportedModes: ["MUSIC"] },
+        parameterSchema: {},
+      },
+    ],
+  });
+}
 
 function renderPanel(data: Partial<AudioNodeData>) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  seedAudioCatalog(queryClient);
   useCanvasStore.getState().setCanvasData(
     [
       {
@@ -26,6 +52,8 @@ function renderPanel(data: Partial<AudioNodeData>) {
   return render(
     <QueryClientProvider client={queryClient}>
       <AudioOperationsPanel
+        projectId="project-a"
+        canvasId="canvas-a"
         nodeId="audio-1"
         data={{ audioUrl: null, ...data }}
       />
@@ -64,6 +92,7 @@ describe("AudioOperationsPanel music advanced settings", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    seedAudioCatalog(queryClient);
     useCanvasStore.getState().setCanvasData(
       [
         {
@@ -88,7 +117,14 @@ describe("AudioOperationsPanel music advanced settings", () => {
       const data = useCanvasStore(
         (s) => s.nodes.find((n) => n.id === "audio-1")?.data,
       ) as AudioNodeData;
-      return <AudioOperationsPanel nodeId="audio-1" data={data} />;
+      return (
+        <AudioOperationsPanel
+          projectId="project-a"
+          canvasId="canvas-a"
+          nodeId="audio-1"
+          data={data}
+        />
+      );
     }
     render(
       <QueryClientProvider client={queryClient}>
@@ -108,6 +144,7 @@ describe("AudioOperationsPanel music advanced settings", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    seedAudioCatalog(queryClient);
     useCanvasStore.getState().setCanvasData(
       [
         {
@@ -131,7 +168,14 @@ describe("AudioOperationsPanel music advanced settings", () => {
       const data = useCanvasStore(
         (s) => s.nodes.find((n) => n.id === "audio-1")?.data,
       ) as AudioNodeData;
-      return <AudioOperationsPanel nodeId="audio-1" data={data} />;
+      return (
+        <AudioOperationsPanel
+          projectId="project-a"
+          canvasId="canvas-a"
+          nodeId="audio-1"
+          data={data}
+        />
+      );
     }
     render(
       <QueryClientProvider client={queryClient}>

@@ -95,6 +95,7 @@ def test_newapi_text_provider_can_disable_system_proxy(monkeypatch):
 
 def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
     import asyncio
+    import uuid
 
     from pydantic_ai.models.openai import OpenAIChatModel
 
@@ -113,9 +114,11 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
     assert not http_client.is_closed
 
     original_request = OpenAIChatModel.request
+    request_keys = []
 
     async def fake_request(self, *args, **kwargs):
         assert not self.provider._own_http_client.is_closed
+        request_keys.append(config._TEXT_MODEL_IDEMPOTENCY_KEY.get())
         return "ok"
 
     monkeypatch.setattr(OpenAIChatModel, "request", fake_request)
@@ -128,6 +131,96 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
             asyncio.run(http_client.aclose())
 
     assert result == "ok"
+    assert str(uuid.UUID(request_keys[0])) == request_keys[0]
+    assert config._TEXT_MODEL_IDEMPOTENCY_KEY.get() == ""
+    assert http_client.is_closed
+
+
+def test_newapi_text_http_retries_reuse_the_operation_idempotency_key():
+    import asyncio
+
+    import httpx
+
+    import ai_anime.config as config
+
+    client = config._newapi_text_http_client_factory(
+        timeout_seconds=12.0,
+        omit_authorization=True,
+    )()
+
+    async def run_hooks() -> tuple[httpx.Request, httpx.Request, httpx.Request]:
+        token = config._TEXT_MODEL_IDEMPOTENCY_KEY.set("operation-1")
+        try:
+            first = httpx.Request(
+                "POST",
+                "https://example.test/v1/chat/completions",
+                headers={"Authorization": "Bearer ai-anime-no-auth"},
+            )
+            retry = httpx.Request(
+                "POST",
+                "https://example.test/v1/chat/completions",
+                headers={"Authorization": "Bearer ai-anime-no-auth"},
+            )
+            read = httpx.Request("GET", "https://example.test/v1/models")
+            for request in (first, retry, read):
+                for hook in client._event_hooks["request"]:
+                    await hook(request)
+            return first, retry, read
+        finally:
+            config._TEXT_MODEL_IDEMPOTENCY_KEY.reset(token)
+            await client.aclose()
+
+    first, retry, read = asyncio.run(run_hooks())
+
+    assert first.headers["Idempotency-Key"] == "operation-1"
+    assert retry.headers["Idempotency-Key"] == "operation-1"
+    assert "Authorization" not in first.headers
+    assert "Idempotency-Key" not in read.headers
+    assert config._TEXT_MODEL_IDEMPOTENCY_KEY.get() == ""
+
+
+def test_newapi_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
+    import asyncio
+    import uuid
+    from contextlib import asynccontextmanager
+
+    from pydantic_ai.models.openai import OpenAIChatModel
+
+    import ai_anime.config as config
+
+    model = config._newapi_text_openai_model(
+        "gpt-test",
+        api_key="key",
+        base_url="https://example.test/v1",
+        timeout_seconds=12.0,
+        profile=None,
+    )
+    provider = model.provider
+    http_client = provider._own_http_client
+    stream_keys = []
+
+    @asynccontextmanager
+    async def fake_request_stream(self, *args, **kwargs):
+        stream_keys.append(config._TEXT_MODEL_IDEMPOTENCY_KEY.get())
+        yield "stream"
+        stream_keys.append(config._TEXT_MODEL_IDEMPOTENCY_KEY.get())
+
+    monkeypatch.setattr(OpenAIChatModel, "request_stream", fake_request_stream)
+
+    async def consume() -> None:
+        async with model.request_stream([], None, None) as response:
+            assert response == "stream"
+            stream_keys.append(config._TEXT_MODEL_IDEMPOTENCY_KEY.get())
+
+    try:
+        asyncio.run(consume())
+    finally:
+        if not http_client.is_closed:
+            asyncio.run(http_client.aclose())
+
+    assert len(set(stream_keys)) == 1
+    assert str(uuid.UUID(stream_keys[0])) == stream_keys[0]
+    assert config._TEXT_MODEL_IDEMPOTENCY_KEY.get() == ""
     assert http_client.is_closed
 
 

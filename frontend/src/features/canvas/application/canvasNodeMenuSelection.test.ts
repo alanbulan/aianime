@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SKILL_SCHEMA_VERSION,
   type SkillDefinition,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 import {
   CANVAS_NODE_TYPES,

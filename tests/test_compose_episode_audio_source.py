@@ -28,7 +28,7 @@ def test_compose_episode_preserves_embedded_audio_when_no_external_mp3(
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.task_backend.runners import video
+    from ai_anime.modules.task_execution.infrastructure.runners import video
 
     _write_beat_video(tmp_path, episode=1, beat_num=3)
     manager = _FakeTaskManager()

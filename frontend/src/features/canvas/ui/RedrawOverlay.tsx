@@ -37,19 +37,14 @@ import {
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
-} from '@/features/canvas/domain/redraw';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   generateCanvasRedraw,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
-import {
-  ProviderModelPicker,
-  SHARED_MODELS,
-} from '@/features/canvas/ui/ProviderModelPicker';
-import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
+import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
@@ -60,6 +55,7 @@ import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_CREDIT_PILL_FLAT_CLASS } from './nodeControlStyles';
 
 interface RedrawOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
@@ -98,7 +94,12 @@ function imageModelSupportsQuality(apiModel: string | null | undefined): boolean
   );
 }
 
-export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlayProps) => {
+export const RedrawOverlay = memo(({
+  projectId,
+  node,
+  imageSource,
+  onClose,
+}: RedrawOverlayProps) => {
   const { t } = useTranslation();
   const addNode = useCanvasStore((state) => state.addNode);
   const addEdge = useCanvasStore((state) => state.addEdge);
@@ -123,8 +124,8 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
   const [error, setError] = useState<string | null>(null);
 
   const [prompt, setPrompt] = useState('');
-  const [modelId, setModelId] = useState<string>(DEFAULT_SHARED_MODEL_ID);
-  const { models: availableModels } = useFreezoneImageModels();
+  const [modelId, setModelId] = useState<string>('');
+  const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
   const [imageSize, setImageSize] = useState<CanvasRedrawImageSize>(
     DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   );
@@ -136,8 +137,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
   );
   const selectedModel =
     availableModels.find((m) => m.id === modelId)
-    ?? availableModels[0]
-    ?? SHARED_MODELS.find((m) => m.id === modelId);
+    ?? availableModels[0];
   const creditCost = useGenerationCreditCost(
     'image_selection',
     selectedModel?.apiModel ?? null,
@@ -475,13 +475,12 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
-    const project = readUrl().project;
-    if (!project) {
-      setError('当前 URL 没有 project，无法提交');
-      return;
-    }
     if (!hasMask && !prompt.trim()) {
       setError('请输入提示词，或在图上画出局部重绘区域');
+      return;
+    }
+    if (!selectedModel) {
+      setError(t('modelPicker.empty'));
       return;
     }
     setError(null);
@@ -519,15 +518,15 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
           type: 'image/png',
         });
         const uploaded = await uploadCanvasAsset(
-          project,
+          projectId,
           maskFile,
           maskFile.name,
         );
         maskUrl = uploaded.url.split('?')[0];
       }
-      const apiModel = selectedModel?.apiModel ?? modelId;
+      const apiModel = selectedModel.apiModel;
       nodeIds.forEach((id) =>
-        void runRedrawGeneration(project, id, sourceUrl, maskUrl, apiModel),
+        void runRedrawGeneration(projectId, id, sourceUrl, maskUrl, apiModel),
       );
     } catch (err) {
       // 蒙版上传等前置步骤失败：把所有占位节点标记为失败。
@@ -548,15 +547,16 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
     createRedrawNode,
     findNodePosition,
     hasMask,
-    modelId,
     node,
     numImages,
     onClose,
     prompt,
+    projectId,
     runRedrawGeneration,
     selectedModel,
     setSelectedNode,
     submitting,
+    t,
     updateNodeData,
   ]);
 
@@ -693,6 +693,8 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
               <ProviderModelPicker
                 selectedModelId={modelId}
                 onChange={setModelId}
+                models={availableModels}
+                imageMode="edit"
                 popoverPlacement="top"
               />
             </Field>
@@ -751,7 +753,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !imageReady}
+                disabled={submitting || !imageReady || !selectedModel}
                 className={REDRAW_CONFIRM_BUTTON_CLASS}
                 title={submitLabel}
               >

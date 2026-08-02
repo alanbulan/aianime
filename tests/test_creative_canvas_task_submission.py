@@ -10,10 +10,11 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskSubmission,
 )
 from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
-    TaskBackendCreativeCanvasTaskScheduler,
+    TaskExecutionCreativeCanvasTaskScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.limits import (
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmissionUseCases,
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
@@ -53,7 +54,7 @@ def _task(tmp_path: Path) -> CreativeCanvasTaskSubmission:
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_preserves_payload_and_receipt(
+async def test_task_execution_scheduler_preserves_payload_and_receipt(
     tmp_path: Path,
 ) -> None:
     context = _project_context(tmp_path)
@@ -70,8 +71,8 @@ async def test_task_backend_scheduler_preserves_payload_and_receipt(
                 queue="node.local.default",
             )
 
-    result = await TaskBackendCreativeCanvasTaskScheduler(
-        lambda: FakeBackend()
+    result = await TaskExecutionCreativeCanvasTaskScheduler(
+        ProjectTaskSubmissionUseCases(lambda: FakeBackend())
     ).enqueue(context, task)
 
     assert captured == {
@@ -99,7 +100,7 @@ async def test_task_backend_scheduler_preserves_payload_and_receipt(
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_supports_exact_mainline_envelope(
+async def test_task_execution_scheduler_supports_exact_mainline_envelope(
     tmp_path: Path,
 ) -> None:
     context = _project_context(tmp_path)
@@ -126,8 +127,8 @@ async def test_task_backend_scheduler_supports_exact_mainline_envelope(
                 queue="node.local.default",
             )
 
-    receipt = await TaskBackendCreativeCanvasTaskScheduler(
-        lambda: FakeBackend()
+    receipt = await TaskExecutionCreativeCanvasTaskScheduler(
+        ProjectTaskSubmissionUseCases(lambda: FakeBackend())
     ).enqueue(context, task)
 
     assert captured == {
@@ -172,7 +173,7 @@ async def test_task_backend_scheduler_supports_exact_mainline_envelope(
         ),
     ],
 )
-async def test_task_backend_scheduler_preserves_limit_errors(
+async def test_task_execution_scheduler_preserves_limit_errors(
     tmp_path: Path,
     failure: RuntimeError,
 ) -> None:
@@ -180,7 +181,9 @@ async def test_task_backend_scheduler_preserves_limit_errors(
         async def enqueue_project_task(self, *_args, **_kwargs):
             raise failure
 
-    scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: FailingBackend())
+    scheduler = TaskExecutionCreativeCanvasTaskScheduler(
+        ProjectTaskSubmissionUseCases(lambda: FailingBackend())
+    )
 
     with pytest.raises(type(failure)) as exc:
         await scheduler.enqueue(_project_context(tmp_path), _task(tmp_path))
@@ -188,27 +191,29 @@ async def test_task_backend_scheduler_preserves_limit_errors(
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_maps_runtime_failure(tmp_path: Path) -> None:
+async def test_task_execution_scheduler_maps_runtime_failure(tmp_path: Path) -> None:
     class FailingBackend:
         async def enqueue_project_task(self, *_args, **_kwargs):
             raise RuntimeError("broker unavailable")
 
     with pytest.raises(CreativeCanvasTaskStartFailed, match="broker unavailable"):
-        await TaskBackendCreativeCanvasTaskScheduler(
-            lambda: FailingBackend()
+        await TaskExecutionCreativeCanvasTaskScheduler(
+            ProjectTaskSubmissionUseCases(lambda: FailingBackend())
         ).enqueue(_project_context(tmp_path), _task(tmp_path))
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_can_preserve_runtime_failure(tmp_path: Path) -> None:
+async def test_task_execution_scheduler_can_preserve_runtime_failure(
+    tmp_path: Path,
+) -> None:
     failure = RuntimeError("broker unavailable")
 
     class FailingBackend:
         async def enqueue_project_task(self, *_args, **_kwargs):
             raise failure
 
-    scheduler = TaskBackendCreativeCanvasTaskScheduler(
-        lambda: FailingBackend(),
+    scheduler = TaskExecutionCreativeCanvasTaskScheduler(
+        ProjectTaskSubmissionUseCases(lambda: FailingBackend()),
         translate_runtime_errors=False,
     )
 

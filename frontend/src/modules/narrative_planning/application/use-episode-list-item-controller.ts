@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useStageTask } from "@/hooks/use-stage-task";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import {
   isPlanEpisodeAssetsResult,
   type NarrativePlanningQueryHooks,

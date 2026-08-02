@@ -11,6 +11,7 @@ pytestmark = pytest.mark.m07
 
 class FakeGenerator:
     def __init__(self, fail_beats=None):
+        self.model = "audio-speech-test"
         self.calls = []
         self.fail_beats = set(fail_beats or [])
 
@@ -34,6 +35,8 @@ class FakeGenerator:
 
 
 class InsufficientCreditGenerator:
+    model = "audio-speech-test"
+
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
         raise InsufficientCreditsError(user_id="usr_1", cost=3, balance=0)
 
@@ -205,16 +208,16 @@ async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_pa
         ).fetchall()
     assert rows == [
         (
-            "newapi",
-            "index-tts-2",
+                "commercial",
+                "audio-speech-test",
             "audio_generation_indextts2",
             "ep001:beat_01:__narrator__",
             1,
             "completed",
         ),
         (
-            "newapi",
-            "index-tts-2",
+                "commercial",
+                "audio-speech-test",
             "audio_generation_indextts2",
             "ep001:beat_02:谢铮_青年时期",
             1,

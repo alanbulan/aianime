@@ -29,8 +29,6 @@ const mocks = vi.hoisted(() => ({
   systemManaged: false,
   isGenerating: false,
   videoModels: [{ id: 'video-model-a' }],
-  project: 'project-a' as string | undefined,
-  canvas: 'canvas-a' as string | undefined,
   generateCanvasReversePrompt: vi.fn(),
   submitVideoGeneration: vi.fn(),
   awaitCanvasGenerationTaskCompletion: vi.fn(),
@@ -111,9 +109,10 @@ vi.mock('@/features/canvas/application/generationOutputUrl', () => ({
     mocks.outputUrl(result, kind),
 }));
 
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project, canvas: mocks.canvas }),
-}));
+const NODE_CONTEXT = {
+  projectId: 'project-a',
+  canvasId: 'canvas-a',
+} as const;
 
 vi.mock('@/features/canvas/composition', () => ({
   generateCanvasReversePrompt: (
@@ -190,8 +189,6 @@ describe('useTextAnnotationNodeController', () => {
     mocks.systemManaged = false;
     mocks.isGenerating = false;
     mocks.videoModels = [{ id: 'video-model-a' }];
-    mocks.project = 'project-a';
-    mocks.canvas = 'canvas-a';
     mocks.generateCanvasReversePrompt.mockReset();
     mocks.submitVideoGeneration.mockReset();
     mocks.awaitCanvasGenerationTaskCompletion.mockReset();
@@ -221,6 +218,7 @@ describe('useTextAnnotationNodeController', () => {
     });
     const { result } = renderHook(() =>
       useTextAnnotationNodeController({
+        ...NODE_CONTEXT,
         id: 'text-a',
         data: data({ mode: 'removed-mode' as never }),
         selected: true,
@@ -278,6 +276,7 @@ describe('useTextAnnotationNodeController', () => {
     );
     const { result } = renderHook(() =>
       useTextAnnotationNodeController({
+        ...NODE_CONTEXT,
         id: 'text-a',
         data: data({ content: '生成描述' }),
       }),
@@ -363,6 +362,7 @@ describe('useTextAnnotationNodeController', () => {
     );
     const { result } = renderHook(() =>
       useTextAnnotationNodeController({
+        ...NODE_CONTEXT,
         id: 'text-a',
         data: data({ mode: 'imageToPrompt' }),
       }),
@@ -421,6 +421,7 @@ describe('useTextAnnotationNodeController', () => {
     );
     const { result } = renderHook(() =>
       useTextAnnotationNodeController({
+        ...NODE_CONTEXT,
         id: 'text-a',
         data: data({ mode: 'textToVideo', content: '  视频提示词  ' }),
       }),
@@ -466,6 +467,7 @@ describe('useTextAnnotationNodeController', () => {
     });
     const { result } = renderHook(() =>
       useTextAnnotationNodeController({
+        ...NODE_CONTEXT,
         id: 'text-a',
         data: data({ mode: 'writing', content: '待翻译文本' }),
         selected: true,

@@ -11,8 +11,6 @@ from ai_anime.modules.creative_canvas.application.job_results import (
     CreativeCanvasJobResultQueries,
 )
 from ai_anime.modules.creative_canvas.domain.text_generation import (
-    CREATIVE_CANVAS_TRANSLATION_MODEL,
-    CREATIVE_CANVAS_TRANSLATION_PROVIDER,
     build_creative_canvas_story_script_task,
     build_creative_canvas_translation_task,
 )
@@ -96,17 +94,19 @@ async def test_translate_creative_canvas_text_trusts_model_detected_direction(
 
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
-        "_get_translation_agent",
-        FakeAgent,
+        "_create_translation_agent",
+        lambda model: captured.update(model=model) or FakeAgent(),
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
         text="Generate ONE storyboard sketch panel for this AI anime beat. 颜色法则：保留 [CM_6932]",
+        model="cloud-text-standard",
         node_type="image",
     )
 
     assert "You must decide whether the dominant natural language" in captured["task"]
     assert "[CM_6932]" in captured["task"]
+    assert captured["model"] == "cloud-text-standard"
     assert translated == "生成一个 AI anime 节拍的故事板草图面板。"
     assert source_language == "en"
     assert target_language == "zh"
@@ -129,24 +129,19 @@ async def test_translate_creative_canvas_text_flips_invalid_same_language_result
 
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
-        "_get_translation_agent",
-        FakeAgent,
+        "_create_translation_agent",
+        lambda model: FakeAgent(),
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
         text="雨夜街头",
+        model="cloud-text-standard",
         node_type="image",
     )
 
     assert translated == "雨夜街头"
     assert source_language == "zh"
     assert target_language == "en"
-
-
-def test_translation_defaults_use_newapi_gemini_flash() -> None:
-    assert CREATIVE_CANVAS_TRANSLATION_PROVIDER == "newapi"
-    assert CREATIVE_CANVAS_TRANSLATION_MODEL == "ai-anime-freezone-translator-LLM"
-
 
 def test_build_creative_canvas_story_script_task_mentions_required_columns() -> None:
     task = build_creative_canvas_story_script_task(
@@ -194,12 +189,13 @@ async def test_generate_creative_canvas_story_script_returns_plain_dict(
 
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
-        "_get_story_script_agent",
-        lambda _model=None: FakeAgent(),
+        "_create_story_script_agent",
+        lambda model: FakeAgent(),
     )
 
     result = await generate_creative_canvas_story_script(
         source_text="沈昭昭在深夜办公室醒来。",
+        model="cloud-text-standard",
     )
 
     assert result == expected

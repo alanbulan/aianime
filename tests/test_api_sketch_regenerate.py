@@ -40,7 +40,7 @@ def _client(monkeypatch):
 
 def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
     from ai_anime.api.routes import production_render
-    from ai_anime.task_identity import selection_scope
+    from ai_anime.modules.task_execution.public import selection_scope
 
     client, context = _client(monkeypatch)
     calls = []

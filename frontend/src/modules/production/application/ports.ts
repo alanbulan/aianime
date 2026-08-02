@@ -39,7 +39,6 @@ import type {
   RenderExecuteResult,
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 import type {
   GenerateSeedance2PromptCommand,
   RegenerateBeatVideoCommand,
@@ -116,10 +115,6 @@ export interface BeatVideoPromptResult {
 }
 
 export interface ProductionVideoGateway {
-  listVideoBackends(
-    project: string,
-    signal?: AbortSignal,
-  ): Promise<ProductionDataResponse<VideoBackendOption[]>>;
   getVideoPool(
     project: string,
     episode: number,
@@ -263,12 +258,13 @@ export interface ProductionVideoGateway {
   generateEpisodeAudio(
     project: string,
     episode: number,
-    command?: GenerateAudioCommand,
+    command: GenerateAudioCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   regenerateBeatAudio(
     project: string,
     episode: number,
     beatNumber: number,
+    model: string,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   generateSketches(
     project: string,

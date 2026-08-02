@@ -23,7 +23,7 @@ from ai_anime.modules.creative_canvas.domain.mainline_generation import (
     normalize_mainline_frame_quality,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import selection_scope, task_config_scope
+from ai_anime.modules.task_execution.public import selection_scope, task_config_scope
 
 MAINLINE_SCENE_360_IMAGE_SIZE = "2K"
 
@@ -49,6 +49,7 @@ class GenerateCreativeCanvasSketchFromContextCommand:
     source_kind: str
     source_url: str | None
     aspect_ratio: str
+    model: str
     canvas_id: str | None = None
     node_id: str | None = None
 
@@ -65,6 +66,7 @@ class GenerateCreativeCanvasFrameFromContextCommand:
     prop_urls: tuple[str, ...]
     aspect_ratio: str
     quality: str
+    model: str
     canvas_id: str | None = None
     node_id: str | None = None
 
@@ -76,7 +78,7 @@ class GenerateCreativeCanvasScene360Command:
     reference_url: str
     reverse_reference_url: str | None
     mode: str
-    model: str | None
+    model: str
     quality: str | None
     canvas_id: str | None = None
     node_id: str | None = None
@@ -90,6 +92,7 @@ class StartCreativeCanvasBackgroundSketchCommand:
     beat: int
     beat_payload: Mapping[str, Any] | None
     background_url: str
+    model: str
     aspect_ratio: str = "2:3"
     canvas_id: str | None = None
     node_id: str | None = None
@@ -103,6 +106,7 @@ class StartCreativeCanvasDirectorSketchCommand:
     episode: int
     beat: int
     director_combined_url: str
+    model: str
     aspect_ratio: str = "2:3"
     canvas_id: str | None = None
     node_id: str | None = None
@@ -115,6 +119,7 @@ class StartCreativeCanvasBeatSketchCommand:
     project_dir: Path
     episode: int
     beat: int
+    model: str
     canvas_id: str | None = None
     node_id: str | None = None
     task_display: Mapping[str, str] | None = None
@@ -126,6 +131,7 @@ class StartCreativeCanvasFrameFromContextCommand:
     project_dir: Path
     sketch_url: str
     reference_urls: tuple[str, ...]
+    model: str
     extra_reference_urls: tuple[str, ...] = ()
     identity_references: tuple[Mapping[str, Any], ...] = ()
     prop_references: tuple[Mapping[str, Any], ...] = ()
@@ -147,8 +153,8 @@ class StartCreativeCanvasScene360Command:
     scene_id: str
     master_url: str
     reverse_url: str | None
+    model: str
     description: str | None = None
-    model: str | None = None
     image_size: str | None = None
     quality: str | None = None
     canvas_id: str | None = None
@@ -195,7 +201,7 @@ class CreativeCanvasImageAspectReader(Protocol):
 class CreativeCanvasScene360Runtime(Protocol):
     def artifact_dir(self, project_dir: Path, job_id: str) -> Path: ...
 
-    def resolve_model(self, model: str | None) -> tuple[str, str | None]: ...
+    def resolve_model(self, model: str) -> str: ...
 
 
 class CreativeCanvasMainlineGenerationUseCases:
@@ -251,6 +257,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     episode=command.episode,
                     beat=command.beat,
                     director_combined_url=source_url,
+                    model=command.model,
                     aspect_ratio=command.aspect_ratio,
                     canvas_id=command.canvas_id,
                     node_id=command.node_id,
@@ -270,6 +277,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     beat=command.beat,
                     beat_payload=beat_payload,
                     background_url=source_url,
+                    model=command.model,
                     aspect_ratio=command.aspect_ratio,
                     canvas_id=command.canvas_id,
                     node_id=command.node_id,
@@ -282,6 +290,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                 project_dir=command.project_dir,
                 episode=command.episode,
                 beat=command.beat,
+                model=command.model,
                 canvas_id=command.canvas_id,
                 node_id=command.node_id,
                 task_display=task_display,
@@ -307,6 +316,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                 sketch_url=command.sketch_url,
                 reference_urls=(command.background_url,) if command.background_url else (),
                 extra_reference_urls=(*command.identity_urls, *command.prop_urls),
+                model=command.model,
                 quality=command.quality,
                 canvas_id=command.canvas_id,
                 node_id=command.node_id,
@@ -382,6 +392,8 @@ class CreativeCanvasMainlineGenerationUseCases:
             aspect_ratio=aspect_ratio,
             is_sketch=True,
         )
+        config["model"] = self._resolve_image_model(command.model)
+        config.pop("image_generation_selection", None)
         effective_beat = dict(command.beat_payload or {})
         if effective_beat:
             effective_beat["episode_number"] = command.episode
@@ -461,6 +473,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     "control_frame_path": source_path.as_posix(),
                     "mode_key": mainline_mode_key(aspect_ratio, is_sketch=True),
                     "aspect_ratio": aspect_ratio,
+                    "model": self._resolve_image_model(command.model),
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                     "task_family": "mainline_skill",
@@ -489,6 +502,8 @@ class CreativeCanvasMainlineGenerationUseCases:
             aspect_ratio="2:3",
             is_sketch=True,
         )
+        config["model"] = self._resolve_image_model(command.model)
+        config.pop("image_generation_selection", None)
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(
@@ -592,6 +607,9 @@ class CreativeCanvasMainlineGenerationUseCases:
             sketch_key = str(command.beat)
             task_episode = command.episode
             task_beat = command.beat
+
+        config["model"] = self._resolve_image_model(command.model)
+        config.pop("image_generation_selection", None)
 
         config["canvas_sketch_paths"] = {sketch_key: sketch_path.as_posix()}
         effective_scene = dict(command.beat_payload or {}).get("scene_ref") or {}
@@ -726,7 +744,7 @@ class CreativeCanvasMainlineGenerationUseCases:
             else self._job_ids.new_id()
         )
         artifact_dir = self._scene_runtime.artifact_dir(command.project_dir, job_id)
-        provider, model = self._scene_runtime.resolve_model(command.model)
+        model = self._resolve_image_model(command.model)
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(
@@ -742,8 +760,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     "params": {
                         "description": (command.description or "").strip()
                         or build_scene_360_prompt(command.scene_id),
-                        "provider": provider or "newapi",
-                        "model": model or command.model,
+                        "model": model,
                         "image_size": command.image_size
                         or MAINLINE_SCENE_360_IMAGE_SIZE,
                         "quality": command.quality or "medium",
@@ -768,6 +785,12 @@ class CreativeCanvasMainlineGenerationUseCases:
                 },
             ),
         )
+
+    def _resolve_image_model(self, model: str) -> str:
+        try:
+            return self._scene_runtime.resolve_model(model)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasMainlineGeneration(str(exc)) from exc
 
     def _resolve_required_media(
         self,

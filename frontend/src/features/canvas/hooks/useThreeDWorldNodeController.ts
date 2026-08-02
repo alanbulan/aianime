@@ -49,7 +49,6 @@ import {
   mergeDirectorWorldSources,
 } from '@/features/canvas/domain/directorWorldSources';
 import { resolveCanvasImageTo3dSourceKind } from '@/features/canvas/domain/imageTo3d';
-import { setDirectorWorldSceneSaveHandler } from '@/features/canvas/domain/directorWorldSceneSaveRegistry';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   directorCaptureBlobToDataUrl,
@@ -59,14 +58,16 @@ import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { validMainlineContexts } from '@/features/freezone/public';
+import {
+  setDirectorWorldSceneSaveHandler,
+  validMainlineContexts,
+} from '@/modules/creative_canvas/public';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type {
   DirectorStageManifest,
   DirectorWorldSource,
 } from '@/features/viewer-kit/three-d/directorManifest';
 import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
-import { readUrl } from '@/lib/url-params';
 
 export interface ThreeDWorldNodeControllerOptions {
   id: string;
@@ -74,6 +75,8 @@ export interface ThreeDWorldNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
+  canvasId: string;
 }
 
 const uploadDirectorCaptureAsset: DirectorCaptureAssetUploader = (
@@ -89,6 +92,8 @@ export function useThreeDWorldNodeController({
   selected,
   width,
   height,
+  projectId,
+  canvasId,
 }: ThreeDWorldNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -105,7 +110,12 @@ export function useThreeDWorldNodeController({
     records: historyRecords,
     isLoading: historyLoading,
     refresh: refreshHistory,
-  } = useNodeGenerationHistory(id, { enabled: Boolean(selected) });
+  } = useNodeGenerationHistory({
+    projectId,
+    canvasId,
+    nodeId: id,
+    enabled: Boolean(selected),
+  });
 
   const restoreHistory = useCallback(
     (record: CanvasGenerationHistoryRecord) => {
@@ -152,7 +162,6 @@ export function useThreeDWorldNodeController({
     useState<DirectorStageManifest | null>(null);
 
   const openDirector = useCallback(async () => {
-    const projectId = readUrl().project;
     if (!projectId) return;
     setDirectorBusy(true);
     try {
@@ -201,7 +210,7 @@ export function useThreeDWorldNodeController({
     } finally {
       setDirectorBusy(false);
     }
-  }, [beatContext, contexts, data, upstreamPanoSources]);
+  }, [beatContext, contexts, data, projectId, upstreamPanoSources]);
 
   const sourceNodeForGeneration = useMemo(() => {
     if (references.activeRef?.kind !== 'image') return null;
@@ -217,7 +226,6 @@ export function useThreeDWorldNodeController({
   );
 
   const submitGeneration = useCallback(async () => {
-    const projectId = readUrl().project;
     const sourceNode = sourceNodeForGeneration;
     if (!projectId) {
       updateNodeData(id, { errorMessage: '无法识别当前项目' });
@@ -274,7 +282,7 @@ export function useThreeDWorldNodeController({
           projectId,
           sourceUrl,
           sourceKind,
-          canvasId: readUrl().canvas ?? 'default',
+          canvasId,
           nodeId: id,
         },
         (task) => {
@@ -314,9 +322,11 @@ export function useThreeDWorldNodeController({
       void refreshHistory();
     }
   }, [
+    canvasId,
     data.sources,
     id,
     isGenerating,
+    projectId,
     references.activeRef,
     refreshHistory,
     selectedImageSourceKind,
@@ -330,6 +340,7 @@ export function useThreeDWorldNodeController({
         throw new Error('当前不在镜头上下文中，不能设置当前背景');
       }
       await uploadAndAutoCommitSelectedBackgroundCandidate(
+        projectId,
         { episode: beatContext.episode, beat: beatContext.beat },
         blob,
         `background_3gs_${Date.now()}.png`,
@@ -347,13 +358,12 @@ export function useThreeDWorldNodeController({
       );
       updateNodeData(id, { errorMessage: null });
     },
-    [beatContext, id, t, updateNodeData],
+    [beatContext, id, projectId, t, updateNodeData],
   );
 
   const submitDirectorCombined = useCallback(
     async (_blob: Blob, meta: ThreeDDirectorCaptureMeta) => {
       if (!beatContext) return;
-      const projectId = readUrl().project;
       if (!projectId) {
         throw new Error('缺少项目，无法保存画布导演合成图');
       }
@@ -380,7 +390,7 @@ export function useThreeDWorldNodeController({
         errorMessage: null,
       });
     },
-    [beatContext, id, updateNodeData],
+    [beatContext, id, projectId, updateNodeData],
   );
 
   const captureCanvasNode = useCallback(
@@ -388,7 +398,6 @@ export function useThreeDWorldNodeController({
       if (captureCanvasNodeBusyRef.current) return;
       captureCanvasNodeBusyRef.current = true;
       try {
-        const projectId = readUrl().project;
         if (projectId && meta.captureBundle) {
           const bundle = await uploadDirectorCaptureBundle(
             projectId,
@@ -462,6 +471,7 @@ export function useThreeDWorldNodeController({
           '无法解析 3GS 截图尺寸',
         );
         const uploadedUrl = await uploadLocalImageToBackend(
+          projectId,
           dataUrl,
           `3gs-${id}-${meta.kind}-${Date.now()}.png`,
         );
@@ -491,7 +501,7 @@ export function useThreeDWorldNodeController({
         captureCanvasNodeBusyRef.current = false;
       }
     },
-    [addPanoCaptureGroup, id, t, updateNodeData],
+    [addPanoCaptureGroup, id, projectId, t, updateNodeData],
   );
 
   const saveScene = useCallback(

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 from ai_anime.modules.production.application.global_video_optimization import (
     GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
     GlobalVideoOptimizationMaterials,
@@ -12,8 +9,11 @@ from ai_anime.modules.production.application.global_video_optimization import (
     GlobalVideoOptimizationTaskReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.utils.path_resolver import PathResolver
 
 
@@ -56,29 +56,26 @@ class LocalEpisodeSketchCatalog:
         return sketches_dir.exists() and any(sketches_dir.glob("beat_*.png"))
 
 
-class TaskBackendGlobalVideoOptimizationScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionGlobalVideoOptimizationScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: GlobalVideoOptimizationTask,
     ) -> GlobalVideoOptimizationTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
-            queue_kind="default",
-            episode=task.episode_num,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
+                episode=task.episode_num,
+                payload=task.backend_payload(),
+            ),
         )
         return GlobalVideoOptimizationTaskReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
-                context.project_id,
-                task.episode_num,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

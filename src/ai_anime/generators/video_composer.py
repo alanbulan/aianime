@@ -14,8 +14,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from ai_anime.config import get_video_config
-from ai_anime.task_backend.cancel import TaskCancelled, TaskTimedOut
-from ai_anime.task_backend.subprocesses import run_project_subprocess
+from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
+from ai_anime.modules.task_execution.public import run_project_subprocess
 
 
 def _run_video_subprocess(cmd: list[str], *, timeout: int = 30 * 60) -> subprocess.CompletedProcess:

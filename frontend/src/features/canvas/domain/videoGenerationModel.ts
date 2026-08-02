@@ -13,10 +13,28 @@ const DEFAULT_QUALITIES: ReadonlyArray<VideoGenQuality> = [
 export const DEFAULT_VIDEO_DURATION_SEC = 5;
 const DEFAULT_DURATION_MIN = DEFAULT_VIDEO_DURATION_SEC;
 const DEFAULT_DURATION_MAX = 15;
-const SEEDANCE_2_SCENE_OPTIONS: ReadonlyArray<Seedance2SceneOptimize> = [
-  "anime",
-  "realistic",
+const DEFAULT_SUPPORTED_MODES: ReadonlyArray<VideoGenMode> = [
+  "textToVideo",
+  "allReference",
+  "imageToVideo",
+  "firstLastFrame",
+  "imageReference",
 ];
+
+export interface VideoModelCapabilityDescriptor {
+  readonly supportedModes?: ReadonlyArray<VideoGenMode>;
+  readonly supportsHumanReview?: boolean;
+  readonly supportsReferenceImages?: boolean;
+  readonly supportsReferenceVideos?: boolean;
+  readonly supportsReferenceAudios?: boolean;
+  readonly maxReferenceImages?: number | null;
+  readonly maxReferenceVideos?: number | null;
+  readonly maxReferenceAudios?: number | null;
+  readonly maxReferenceTotal?: number | null;
+  readonly maxReferenceAudioDurationSeconds?: number | null;
+  readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
+  readonly defaultSceneOptimize?: "anime" | "realistic" | null;
+}
 
 export interface VideoDurationBounds {
   min: number;
@@ -80,116 +98,74 @@ export function clampVideoDuration(
   return Math.min(Math.max(Math.round(value), bounds.min), bounds.max);
 }
 
-function isSeedance2ValueModel(
-  modelId: string | null | undefined,
+export function isVideoModeSupportedByModel(
+  mode: VideoGenMode,
+  model: VideoModelCapabilityDescriptor | null | undefined,
 ): boolean {
-  const normalized = String(modelId ?? "").trim().toLowerCase();
+  return (model?.supportedModes ?? DEFAULT_SUPPORTED_MODES).includes(mode);
+}
+
+export function supportedVideoModesForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): ReadonlyArray<VideoGenMode> {
+  return model?.supportedModes?.length
+    ? model.supportedModes
+    : DEFAULT_SUPPORTED_MODES;
+}
+
+export function videoModelUsesTypedReferenceModes(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): boolean {
   return (
-    normalized === "newapi_seedance-2.0-value" ||
-    normalized === "newapi_seedance-2.0-fast-value" ||
-    normalized === "huimeng_seedance-2.0-value" ||
-    normalized === "huimeng_seedance-2.0-fast-value"
+    isVideoModeSupportedByModel("videoEdit", model) &&
+    !isVideoModeSupportedByModel("allReference", model)
   );
 }
 
-function isSeedance1xModel(modelId: string | null | undefined): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return /seedance1\d/.test(normalized);
-}
-
-function isGrokVideoChannelModel(
-  modelId: string | null | undefined,
-): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return normalized.includes("grokvideochannel");
-}
-
-export function isHappyHorseVideoModel(
-  modelId: string | null | undefined,
-): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return normalized.includes("happyhorse10");
-}
-
-export function isSeedance20VideoModel(
-  modelId: string | null | undefined,
-): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return normalized.includes("seedance2");
-}
-
-export function isVideoModeSupportedByModel(
-  mode: VideoGenMode,
-  modelId: string | null | undefined,
-): boolean {
-  if (isHappyHorseVideoModel(modelId)) {
-    return (
-      mode === "textToVideo" ||
-      mode === "imageToVideo" ||
-      mode === "imageReference" ||
-      mode === "videoEdit"
-    );
-  }
-  return mode !== "videoEdit";
-}
-
 export function videoModelReferenceDisabledReason(
-  modelId: string | null | undefined,
+  model: VideoModelCapabilityDescriptor | null | undefined,
   counts: { images: number; videos: number; audios: number },
 ): string | null {
-  if (isGrokVideoChannelModel(modelId)) {
-    if (counts.videos > 0 || counts.audios > 0) {
-      return "Grok Video Channel 仅支持图片素材";
-    }
-    if (counts.images > 8) {
-      return "Grok Video Channel 最多支持 1 张首帧和 7 张参考图";
-    }
-    return null;
+  if (model?.supportsReferenceImages === false && counts.images > 0) {
+    return "该模型不支持图片参考素材";
   }
-  if (
-    isSeedance1xModel(modelId) &&
-    (counts.images > 0 || counts.videos > 0 || counts.audios > 0)
-  ) {
-    return "该模型不支持当前接入的素材";
+  if (model?.supportsReferenceVideos === false && counts.videos > 0) {
+    return "该模型不支持视频参考素材";
+  }
+  if (model?.supportsReferenceAudios === false && counts.audios > 0) {
+    return "该模型不支持音频参考素材";
+  }
+  if (exceedsLimit(counts.images, model?.maxReferenceImages)) {
+    return `该模型最多支持 ${model?.maxReferenceImages} 张参考图片`;
+  }
+  if (exceedsLimit(counts.videos, model?.maxReferenceVideos)) {
+    return `该模型最多支持 ${model?.maxReferenceVideos} 个参考视频`;
+  }
+  if (exceedsLimit(counts.audios, model?.maxReferenceAudios)) {
+    return `该模型最多支持 ${model?.maxReferenceAudios} 个参考音频`;
+  }
+  const total = counts.images + counts.videos + counts.audios;
+  if (exceedsLimit(total, model?.maxReferenceTotal)) {
+    return `该模型最多支持 ${model?.maxReferenceTotal} 个参考素材`;
   }
   return null;
 }
 
+function exceedsLimit(value: number, limit: number | null | undefined): boolean {
+  return typeof limit === "number" && Number.isFinite(limit) && value > limit;
+}
+
 export function sceneOptimizeOptionsForModel(
-  model:
-    | {
-        id?: string;
-        apiModel?: string;
-        sceneOptimizeOptions?: Array<"anime" | "realistic">;
-      }
-    | null
-    | undefined,
+  model: VideoModelCapabilityDescriptor | null | undefined,
 ): ReadonlyArray<Seedance2SceneOptimize> {
   if (model?.sceneOptimizeOptions?.length) {
     return model.sceneOptimizeOptions;
   }
-  return isSeedance2ValueModel(model?.apiModel ?? model?.id)
-    ? SEEDANCE_2_SCENE_OPTIONS
-    : [];
+  return [];
 }
 
 export function defaultSceneOptimizeForModel(
-  model:
-    | {
-        id?: string;
-        apiModel?: string;
-        defaultSceneOptimize?: "anime" | "realistic" | null;
-      }
-    | null
-    | undefined,
+  model: VideoModelCapabilityDescriptor | null | undefined,
 ): Seedance2SceneOptimize {
   if (
     model?.defaultSceneOptimize === "anime" ||
@@ -197,8 +173,7 @@ export function defaultSceneOptimizeForModel(
   ) {
     return model.defaultSceneOptimize;
   }
-  const modelId = String(model?.apiModel ?? model?.id ?? "").toLowerCase();
-  return modelId.includes("fast-value") ? "realistic" : "anime";
+  return model?.sceneOptimizeOptions?.[0] ?? "anime";
 }
 
 export function normalizeSceneOptimize(

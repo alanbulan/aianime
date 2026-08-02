@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { create } from "zustand";
 
-import type { DropMediaType } from "./domain/assetDropInfo";
+import type { CanvasCommitMediaType } from "@/modules/creative_canvas/public";
 
 export interface ActiveNodeDrag {
   nodeId: string;
-  mediaType: DropMediaType;
+  mediaType: CanvasCommitMediaType;
   sourceUrl: string | null;
   thumbUrl: string | null;
   label: string;

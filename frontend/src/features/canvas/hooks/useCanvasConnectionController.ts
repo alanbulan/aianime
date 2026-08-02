@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { Connection, Edge } from '@xyflow/react';
 
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 import {
   planCanvasGraphConnection,

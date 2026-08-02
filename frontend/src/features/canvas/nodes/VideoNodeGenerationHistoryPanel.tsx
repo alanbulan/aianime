@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import {
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
-} from "@/features/canvas/domain/generationHistoryRecord";
+} from "@/modules/creative_canvas/public";
 import { NodeGenerationHistory } from "@/features/canvas/ui/NodeGenerationHistory";
 import { NODE_OPS_PANEL_ENTER_CLASS } from "@/features/canvas/ui/OperationPanelShell";
 import { CANVAS_NODE_OPS_PANEL_CLASS } from "@/features/canvas/ui/nodeFrameStyles";

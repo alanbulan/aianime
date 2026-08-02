@@ -19,7 +19,7 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasTextTranslationCommand,
     creative_canvas_text_processing_use_cases,
 )
-from ai_anime.task_backend.limits import (
+from ai_anime.modules.task_execution.public import (
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
@@ -46,6 +46,7 @@ async def freezone_text_translate(
                 context=resolved.ctx,
                 project_dir=resolved.project_dir,
                 text=body.text,
+                model=body.model,
                 node_type=body.node_type,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,

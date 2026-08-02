@@ -11,16 +11,19 @@ from ai_anime.api.canvas_video_schemas import (
 )
 from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.freezone import vision_gateway
-from ai_anime.freezone.jobs import build_video_story_analysis_prompt
-from ai_anime.freezone.jobs import run_freezone_analyze_shots
 from ai_anime.modules.creative_canvas.application.job_results import (
     CreativeCanvasJobResultQueries,
     public_creative_canvas_video_story_result,
 )
+from ai_anime.modules.creative_canvas.public import (
+    AnalyzeCreativeCanvasShotsJobCommand,
+    build_video_story_analysis_prompt,
+    creative_canvas_job_execution_use_cases,
+)
 from ai_anime.modules.creative_canvas.infrastructure.job_results import (
     LocalCreativeCanvasJobResultReader,
 )
+from ai_anime.modules.creative_canvas.infrastructure import vision_model
 
 
 def _patch_project_resolution(
@@ -108,7 +111,7 @@ def test_freezone_analyze_request_defaults_to_shots_mode() -> None:
 
 
 @pytest.mark.asyncio
-async def test_video_story_analysis_uses_shared_freezone_vision_model(
+async def test_video_story_analysis_uses_creative_canvas_vision_model(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -116,24 +119,26 @@ async def test_video_story_analysis_uses_shared_freezone_vision_model(
     frame.write_bytes(b"png")
     captured: dict[str, object] = {}
 
-    async def fake_call_freezone_vision_model(**kwargs):
+    async def fake_call_creative_canvas_vision_model(**kwargs):
         captured.update(kwargs)
         return "ai-anime-freezone-vision-LLM", '{"shots":[]}'
 
     monkeypatch.setattr(
-        vision_gateway,
-        "call_freezone_vision_model",
-        fake_call_freezone_vision_model,
+        vision_model,
+        "call_creative_canvas_vision_model",
+        fake_call_creative_canvas_vision_model,
     )
 
-    result = await run_freezone_analyze_shots(
-        project_dir=tmp_path,
-        job_id="vision-job",
-        frame_paths=[str(frame)],
-        analysis_mode="video_story",
+    result = await creative_canvas_job_execution_use_cases().analyze_shots(
+        AnalyzeCreativeCanvasShotsJobCommand(
+            project_dir=tmp_path,
+            job_id="vision-job",
+            frame_paths=(str(frame),),
+            analysis_mode="video_story",
+        )
     )
 
-    assert result["provider"] == "newapi"
+    assert "provider" not in result
     assert result["model"] == "ai-anime-freezone-vision-LLM"
     assert result["video_story"] == {"shots": []}
     assert len(captured["images"]) == 1
@@ -167,7 +172,6 @@ async def test_freezone_analyze_route_passes_video_story_options(
             frame_urls=["/static/admin/59/frame.png"],
             analysis_mode="video_story",
             duration_sec=15.0,
-            provider="openrouter",
             model="gemini-3.5-flash",
         ),
         user={"username": username},
@@ -182,7 +186,7 @@ async def test_freezone_analyze_route_passes_video_story_options(
     assert command.analysis_mode == "video_story"
     assert command.duration_sec == 15.0
     assert not hasattr(command, "provider")
-    assert not hasattr(command, "model")
+    assert command.model == "gemini-3.5-flash"
 
 
 @pytest.mark.asyncio

@@ -31,7 +31,7 @@ async def test_video_compose_runner_preserves_payload_and_public_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.task_backend.runners import freezone as freezone_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import freezone as freezone_runner
 
     ctx = _ctx(tmp_path)
     project_dir = Path(ctx.output_dir)
@@ -50,9 +50,10 @@ async def test_video_compose_runner_preserves_payload_and_public_result(
         def update_progress_for_project(self, *_args, **_kwargs):
             pass
 
-    async def fake_run_freezone_video_compose(**kwargs):
-        captured.update(kwargs)
-        return output_path
+    class FakeJobExecution:
+        async def compose_video(self, command):
+            captured["command"] = command
+            return output_path
 
     tracks = [
         {
@@ -63,8 +64,8 @@ async def test_video_compose_runner_preserves_payload_and_public_result(
     ]
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.freezone.jobs.run_freezone_video_compose",
-        fake_run_freezone_video_compose,
+        "ai_anime.modules.creative_canvas.public.creative_canvas_job_execution_use_cases",
+        lambda: FakeJobExecution(),
     )
 
     result = await freezone_runner._run_freezone_video_compose_async(
@@ -85,17 +86,16 @@ async def test_video_compose_runner_preserves_payload_and_public_result(
         ctx,
     )
 
-    assert captured == {
-        "project_dir": project_dir,
-        "job_id": "job",
-        "title": "Final cut",
-        "canvas_id": "canvas-1",
-        "resolution": "720p",
-        "fps": 24,
-        "background_color": "#101010",
-        "keep_original_audio": False,
-        "tracks": tracks,
-    }
+    command = captured["command"]
+    assert command.project_dir == project_dir
+    assert command.job_id == "job"
+    assert command.title == "Final cut"
+    assert command.canvas_id == "canvas-1"
+    assert command.resolution == "720p"
+    assert command.fps == 24
+    assert command.background_color == "#101010"
+    assert command.keep_original_audio is False
+    assert command.tracks == tuple(tracks)
     assert result["job_id"] == "job"
     assert result["output_format"] == "mp4"
     assert result["output_path"] == str(output_path)

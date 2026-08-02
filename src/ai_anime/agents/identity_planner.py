@@ -352,7 +352,7 @@ class IdentityPlanner:
         char,
         visual_state: str,
         age_group: str = "",
-    ) -> tuple[str, str]:
+    ) -> str:
         """使用 AI 输出的 age_group，并做最小必要的一致性校验。"""
         normalized_age_group = _normalize_age_group_value(age_group)
         inferred_age_group = self._infer_age_group_from_visual_state(visual_state)
@@ -363,12 +363,7 @@ class IdentityPlanner:
         final_age_group = normalized_age_group or inferred_age_group
         if not inferred_age_group and final_age_group == getattr(char, "age_group", ""):
             final_age_group = ""
-        inferred_fish_voice = ""
-        if final_age_group:
-            from ai_anime.config import get_fish_voice_id
-
-            inferred_fish_voice = get_fish_voice_id(final_age_group, char.gender)
-        return final_age_group, inferred_fish_voice
+        return final_age_group
 
     @staticmethod
     def _identity_model(model_env: str, default_model: str = "gemini-3.5-flash"):
@@ -955,7 +950,6 @@ class IdentityPlanner:
         visual_state: str,
         resolved_age_group: str,
         explicit_age_group: str,
-        inferred_fish_voice: str,
         reason: str,
         on_log: Optional[Callable] = None,
     ) -> dict[str, str]:
@@ -990,12 +984,7 @@ class IdentityPlanner:
             voice_age_group = appearance_age_group or resolved_age_group
             identity_body_type = appearance_result.body_type or ""
 
-        identity_fish_voice = inferred_fish_voice
-        if voice_age_group:
-            from ai_anime.config import get_fish_voice_id
-
-            identity_fish_voice = get_fish_voice_id(voice_age_group, char.gender)
-        else:
+        if not voice_age_group:
             identity_body_type = ""
 
         if voice_age_group and voice_age_group == char.age_group and not explicit_age_group:
@@ -1007,7 +996,6 @@ class IdentityPlanner:
             face_description = ""
             voice_age_group = ""
             identity_body_type = ""
-            identity_fish_voice = ""
 
         reconciled = AppearanceDescription(
             appearance_details=appearance,
@@ -1020,7 +1008,6 @@ class IdentityPlanner:
             "face_prompt": reconciled.face_description,
             "age_group": reconciled.age_group,
             "body_type": reconciled.body_type,
-            "fish_voice_id": identity_fish_voice,
         }
 
     async def _recover_identity_appearance(
@@ -1031,7 +1018,6 @@ class IdentityPlanner:
         visual_state: str,
         resolved_age_group: str,
         explicit_age_group: str,
-        inferred_fish_voice: str,
         reason: str,
         pending: bool,
         corrupted_fields: dict[str, str],
@@ -1043,7 +1029,6 @@ class IdentityPlanner:
                 visual_state,
                 resolved_age_group,
                 explicit_age_group,
-                inferred_fish_voice,
                 reason,
                 on_log,
             )
@@ -1141,7 +1126,7 @@ class IdentityPlanner:
             candidate_id = f"{char.name}_{vs}"
             explicit_age_group = self._infer_age_group_from_visual_state(vs)
             try:
-                resolved_age_group, inferred_fish_voice = self._seed_identity_structured_fields(
+                resolved_age_group = self._seed_identity_structured_fields(
                     char, vs, req.age_group
                 )
             except ValueError as e:
@@ -1170,7 +1155,6 @@ class IdentityPlanner:
                         visual_state=vs,
                         resolved_age_group=repair_age_group,
                         explicit_age_group=explicit_age_group,
-                        inferred_fish_voice=inferred_fish_voice,
                         reason=req.reason,
                         pending=pending,
                         corrupted_fields=corrupted_fields,
@@ -1181,8 +1165,6 @@ class IdentityPlanner:
                     existing_age_group = getattr(matched, "age_group", "")
                     if existing_age_group != resolved_age_group:
                         updates["age_group"] = resolved_age_group
-                    if inferred_fish_voice and not getattr(matched, "fish_voice_id", ""):
-                        updates["fish_voice_id"] = inferred_fish_voice
                     if updates:
                         try:
                             await self.cognee_store.update_character_identity(
@@ -1210,7 +1192,6 @@ class IdentityPlanner:
                     identity_name=vs,
                     character_tag=compute_char_tag(char.name, identity_id=candidate_id),
                     age_group=resolved_age_group,
-                    fish_voice_id=inferred_fish_voice,
                     source="identity_planner",
                 )
 
@@ -1242,7 +1223,6 @@ class IdentityPlanner:
                         visual_state=vs,
                         resolved_age_group=resolved_age_group,
                         explicit_age_group=explicit_age_group,
-                        inferred_fish_voice=inferred_fish_voice,
                         reason=req.reason,
                         pending=True,
                         corrupted_fields={},

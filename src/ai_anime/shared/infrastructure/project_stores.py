@@ -53,7 +53,14 @@ async def make_sqlite_store_for_context(ctx: ProjectContext) -> SQLiteStore:
     return store
 
 
-async def make_cognee_store_for_context(ctx: ProjectContext) -> CogneeStore:
+async def make_cognee_store_for_context(
+    ctx: ProjectContext,
+    *,
+    text_model: str | None = None,
+    embedding_model: str | None = None,
+    embedding_dimensions: int | None = None,
+    load_graph_state: bool = False,
+) -> CogneeStore:
     from ai_anime.cognee import CogneeStore
 
     require_project_home_node(ctx, operation="open project graph store")
@@ -61,8 +68,13 @@ async def make_cognee_store_for_context(ctx: ProjectContext) -> CogneeStore:
         ctx.owner_project_label,
         output_dir=str(ctx.output_dir),
         state_dir=str(ctx.state_dir),
+        text_model=text_model,
+        embedding_model=embedding_model,
+        embedding_dimensions=embedding_dimensions,
     )
     await store.initialize()
+    if load_graph_state:
+        await store.load_graph_state()
     return store
 
 

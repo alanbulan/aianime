@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 
 import { TOP_TABS } from "@/lib/episode-nav";
-import { EpisodesPageContent } from "@/modules/narrative_planning/public";
+import { EpisodesPageContent } from "@/app/workspace-composition";
 
 const DEFAULT_STAGE_PATH = "/script";
 const KNOWN_STAGE_PATHS: readonly string[] = [

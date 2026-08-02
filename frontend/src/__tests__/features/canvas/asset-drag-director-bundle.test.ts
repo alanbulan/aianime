@@ -10,8 +10,10 @@ import {
 } from "@/features/canvas/domain/assetDrag";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { usableDirectorWorldPreviewUrl } from "@/features/canvas/application/threeDWorldNodeModel";
-import { directorControlBundleFromAssetSource } from "@/features/freezone/domain/assetLibraryModel";
-import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
+import {
+  deriveNodeDropInfo,
+  directorControlBundleFromAssetSource,
+} from "@/modules/creative_canvas/public";
 
 describe("director bundle canvas assets", () => {
   it("keeps director control bundle on nodes spawned from library assets", () => {
@@ -117,7 +119,7 @@ describe("director bundle canvas assets", () => {
     const source = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/commitDialogViewModel.ts",
+        "src/modules/creative_canvas/presentation/commitDialogViewModel.ts",
       ),
       "utf8",
     );
@@ -172,7 +174,7 @@ describe("director bundle canvas assets", () => {
     const viewModel = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/commitDialogViewModel.ts",
+        "src/modules/creative_canvas/presentation/commitDialogViewModel.ts",
       ),
       "utf8",
     );
@@ -186,7 +188,7 @@ describe("director bundle canvas assets", () => {
     const rules = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/application/canvasCommitRules.ts",
+        "src/modules/creative_canvas/application/canvasCommitRules.ts",
       ),
       "utf8",
     );
@@ -230,7 +232,7 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
     const badges = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/presentation/NodeContextBadges.tsx"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/NodeContextBadges.tsx"),
       "utf8",
     );
 
@@ -268,7 +270,7 @@ describe("director bundle canvas assets", () => {
     const catalogController = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useAssetLibraryCatalogController.ts",
+        "src/modules/creative_canvas/assetLibraryCatalogComposition.ts",
       ),
       "utf8",
     );

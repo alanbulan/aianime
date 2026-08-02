@@ -33,7 +33,7 @@ _SEEDANCE2_CONFIG_FIELDS = (
 class GenerateSingleVideoCommand:
     episode_num: int
     beat_num: int
-    video_backend: str
+    video_model: str
     resolution: str
     use_director_render: bool = False
     seedance2_config_json: str | None = None

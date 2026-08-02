@@ -92,6 +92,10 @@ if TYPE_CHECKING:
         CanonicalSketch,
         SketchBeatContext,
     )
+    from ai_anime.modules.production.application.sketch_edit_execution import (
+        SketchEditExecutionTask,
+        SketchEditExecutionTaskReceipt,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -151,12 +155,8 @@ class ProductionSettingsRepository(Protocol):
     ) -> None: ...
 
 
-class ProductionImageSelectionCatalog(Protocol):
-    def options(self) -> dict[str, str]: ...
-
-    def normalize_render(self, value: str | None) -> str: ...
-
-    def normalize_sketch(self, value: str | None) -> str: ...
+class ProductionImageModelPolicy(Protocol):
+    def normalize(self, value: str | None) -> str: ...
 
 
 class ProductionGenerationStore(Protocol):
@@ -514,14 +514,6 @@ class ProductionProjectMediaUrls(Protocol):
     ) -> str: ...
 
 
-class ProductionVideoBackendSource(Protocol):
-    def options(self) -> dict[str, str]: ...
-
-    def model(self, video_backend: str) -> str | None: ...
-
-    def duration_bounds(self) -> dict[str, tuple[int, int]]: ...
-
-
 class ProductionGlobalVideoOptimizationSource(Protocol):
     async def load(
         self,
@@ -613,6 +605,14 @@ class ProductionSketchGenerationScheduler(Protocol):
         context: ProjectContext,
         task: SketchGenerationTask,
     ) -> SketchGenerationTaskReceipt: ...
+
+
+class ProductionSketchEditExecutionScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: SketchEditExecutionTask,
+    ) -> SketchEditExecutionTaskReceipt: ...
 
 
 class ProductionDirectorControlFrameSource(Protocol):

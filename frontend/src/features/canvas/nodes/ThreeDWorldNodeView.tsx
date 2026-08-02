@@ -27,7 +27,7 @@ import {
   CANVAS_NODE_OPS_PANEL_CLASS,
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { NodeContextBadges } from '@/features/freezone/public';
+import { NodeContextBadges } from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;

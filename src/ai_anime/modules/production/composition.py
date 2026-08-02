@@ -46,9 +46,6 @@ from ai_anime.modules.production.application.sketch_regen_queue import (
     SketchRegenQueueUseCases,
 )
 from ai_anime.modules.production.application.video_pool import VideoPoolUseCases
-from ai_anime.modules.production.application.video_backend_catalog import (
-    VideoBackendCatalogUseCases,
-)
 from ai_anime.modules.production.application.global_video_optimization import (
     GlobalVideoOptimizationUseCases,
 )
@@ -74,11 +71,14 @@ from ai_anime.modules.production.application.single_video import (
 from ai_anime.modules.production.application.sketch_generation import (
     SketchGenerationUseCases,
 )
+from ai_anime.modules.production.application.sketch_edit_execution import (
+    SketchEditExecutionUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
 from ai_anime.modules.production.infrastructure.image_settings import (
-    ConfiguredProductionImageSelections,
+    ExplicitProductionImageModelPolicy,
     ProjectConfigProductionSettings,
 )
 from ai_anime.modules.production.infrastructure.image_generation_usage import (
@@ -92,18 +92,18 @@ from ai_anime.modules.production.infrastructure.generation_context import (
 from ai_anime.modules.production.infrastructure.episode_video import (
     LocalFinalEpisodeVideoCatalog,
     SqliteEpisodeBeatSource,
-    TaskBackendEpisodeVideoScheduler,
+    TaskExecutionEpisodeVideoScheduler,
 )
 from ai_anime.modules.production.infrastructure.episode_export import (
     LocalEpisodeExportFiles,
 )
 from ai_anime.modules.production.infrastructure.episode_audio import (
     IndexTTS2VoicePrerequisiteChecker,
-    TaskBackendEpisodeAudioScheduler,
+    TaskExecutionEpisodeAudioScheduler,
 )
 from ai_anime.modules.production.infrastructure.director_control_sketch import (
     AssetWorldDirectorControlFrameSource,
-    TaskBackendDirectorControlSketchScheduler,
+    TaskExecutionDirectorControlSketchScheduler,
 )
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
@@ -128,18 +128,15 @@ from ai_anime.modules.production.infrastructure.video_pool import (
     LocalVideoPoolStorage,
     ProjectStaticMediaUrls,
 )
-from ai_anime.modules.production.infrastructure.video_backend_catalog import (
-    ConfiguredVideoBackendSource,
-)
 from ai_anime.modules.production.infrastructure.global_video_optimization import (
     LocalEpisodeSketchCatalog,
     SqliteGlobalVideoOptimizationSource,
-    TaskBackendGlobalVideoOptimizationScheduler,
+    TaskExecutionGlobalVideoOptimizationScheduler,
 )
 from ai_anime.modules.production.infrastructure.grid_regeneration import (
     LocalGridRegenerationPreparer,
     NanoBananaGridRegenerationPlanner,
-    TaskBackendGridRegenerationScheduler,
+    TaskExecutionGridRegenerationScheduler,
 )
 from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
 from ai_anime.modules.production.infrastructure.manual_sketch_regeneration import (
@@ -149,35 +146,37 @@ from ai_anime.modules.production.infrastructure.render_planning import (
     EnvironmentRenderPlanAvailability,
     LocalRenderPlanningPreparer,
     NanoBananaRenderPlanEngine,
-    TaskBackendRenderPlanScheduler,
+    TaskExecutionRenderPlanScheduler,
 )
 from ai_anime.modules.production.infrastructure.seedance2_panel import (
     LocalSeedance2PanelGateway,
 )
 from ai_anime.modules.production.infrastructure.selected_regeneration import (
     LocalSelectedRegenerationPreparer,
-    TaskBackendSelectedRegenerationScheduler,
+    TaskExecutionSelectedRegenerationScheduler,
 )
 from ai_anime.modules.production.infrastructure.single_video import (
     LocalSingleVideoPreparer,
     MediaIoBeatAudioDurationSource,
-    TaskBackendSingleVideoScheduler,
+    TaskExecutionSingleVideoScheduler,
 )
 from ai_anime.modules.production.infrastructure.sketch_generation import (
     LocalSketchGenerationPreparer,
     NanoBananaSketchGridPlanner,
-    TaskBackendSketchGenerationScheduler,
+    TaskExecutionSketchGenerationScheduler,
+)
+from ai_anime.modules.production.infrastructure.sketch_edit_execution import (
+    TaskExecutionSketchEditExecutionScheduler,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
+from ai_anime.modules.task_execution.public import project_task_submission_use_cases
 
 
 def episode_audio_use_cases() -> EpisodeAudioUseCases:
-    from ai_anime import ports
-
     return EpisodeAudioUseCases(
         SqliteEpisodeBeatSource(),
         IndexTTS2VoicePrerequisiteChecker(),
-        TaskBackendEpisodeAudioScheduler(ports.get_task_backend),
+        TaskExecutionEpisodeAudioScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -190,11 +189,9 @@ def episode_export_use_cases() -> EpisodeExportUseCases:
 
 
 def episode_video_use_cases() -> EpisodeVideoUseCases:
-    from ai_anime import ports
-
     return EpisodeVideoUseCases(
         SqliteEpisodeBeatSource(),
-        TaskBackendEpisodeVideoScheduler(ports.get_task_backend),
+        TaskExecutionEpisodeVideoScheduler(project_task_submission_use_cases()),
         LocalFinalEpisodeVideoCatalog(),
     )
 
@@ -206,30 +203,24 @@ def video_pool_use_cases() -> VideoPoolUseCases:
     )
 
 
-def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
-    return VideoBackendCatalogUseCases(ConfiguredVideoBackendSource())
-
-
 def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
-    from ai_anime import ports
-
     return GlobalVideoOptimizationUseCases(
         SqliteGlobalVideoOptimizationSource(),
         LocalEpisodeSketchCatalog(),
-        TaskBackendGlobalVideoOptimizationScheduler(ports.get_task_backend),
+        TaskExecutionGlobalVideoOptimizationScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
 def grid_regeneration_use_cases() -> GridRegenerationUseCases:
-    from ai_anime import ports
-
     settings = ProjectConfigProductionSettings()
     return GridRegenerationUseCases(
         LocalGridRegenerationPreparer(
             settings,
             ProductionImageSettingsUseCases(
                 settings,
-                ConfiguredProductionImageSelections(),
+                ExplicitProductionImageModelPolicy(),
             ),
             lambda store, context: production_generation_context_use_cases(
                 store,
@@ -237,7 +228,7 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
             ),
             NanoBananaGridRegenerationPlanner(),
         ),
-        TaskBackendGridRegenerationScheduler(ports.get_task_backend),
+        TaskExecutionGridRegenerationScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -246,8 +237,6 @@ def grid_pool_use_cases() -> GridPoolUseCases:
 
 
 def render_plan_use_cases() -> RenderPlanUseCases:
-    from ai_anime import ports
-
     settings = ProjectConfigProductionSettings()
     return RenderPlanUseCases(
         EnvironmentRenderPlanAvailability(),
@@ -255,7 +244,7 @@ def render_plan_use_cases() -> RenderPlanUseCases:
             settings,
             ProductionImageSettingsUseCases(
                 settings,
-                ConfiguredProductionImageSelections(),
+                ExplicitProductionImageModelPolicy(),
             ),
             lambda store, context: production_generation_context_use_cases(
                 store,
@@ -264,7 +253,7 @@ def render_plan_use_cases() -> RenderPlanUseCases:
             AssetWorldRuntimePropMenuSource(),
         ),
         NanoBananaRenderPlanEngine(),
-        TaskBackendRenderPlanScheduler(ports.get_task_backend),
+        TaskExecutionRenderPlanScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -278,28 +267,24 @@ def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
 
 
 def single_video_use_cases() -> SingleVideoUseCases:
-    from ai_anime import ports
-
     return SingleVideoUseCases(
         LocalSingleVideoPreparer(
             CompatibleEpisodeSource(),
             AssetWorldRuntimePropMenuSource(),
             MediaIoBeatAudioDurationSource(),
         ),
-        TaskBackendSingleVideoScheduler(ports.get_task_backend),
+        TaskExecutionSingleVideoScheduler(project_task_submission_use_cases()),
     )
 
 
 def sketch_generation_use_cases() -> SketchGenerationUseCases:
-    from ai_anime import ports
-
     settings = ProjectConfigProductionSettings()
     return SketchGenerationUseCases(
         LocalSketchGenerationPreparer(
             settings,
             ProductionImageSettingsUseCases(
                 settings,
-                ConfiguredProductionImageSelections(),
+                ExplicitProductionImageModelPolicy(),
             ),
             lambda store, context: production_generation_context_use_cases(
                 store,
@@ -309,29 +294,35 @@ def sketch_generation_use_cases() -> SketchGenerationUseCases:
             LocalProductionSketchWorkspace(),
             NanoBananaSketchGridPlanner(),
         ),
-        TaskBackendSketchGenerationScheduler(ports.get_task_backend),
+        TaskExecutionSketchGenerationScheduler(project_task_submission_use_cases()),
+    )
+
+
+def sketch_edit_execution_use_cases() -> SketchEditExecutionUseCases:
+    return SketchEditExecutionUseCases(
+        TaskExecutionSketchEditExecutionScheduler(
+            project_task_submission_use_cases()
+        )
     )
 
 
 def director_control_sketch_use_cases() -> DirectorControlSketchUseCases:
-    from ai_anime import ports
-
     return DirectorControlSketchUseCases(
         AssetWorldDirectorControlFrameSource(),
-        TaskBackendDirectorControlSketchScheduler(ports.get_task_backend),
+        TaskExecutionDirectorControlSketchScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
 def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
-    from ai_anime import ports
-
     settings = ProjectConfigProductionSettings()
     return SelectedRegenerationUseCases(
         LocalSelectedRegenerationPreparer(
             settings,
             ProductionImageSettingsUseCases(
                 settings,
-                ConfiguredProductionImageSelections(),
+                ExplicitProductionImageModelPolicy(),
             ),
             lambda store, context: production_generation_context_use_cases(
                 store,
@@ -339,27 +330,29 @@ def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
             ),
             AssetWorldRuntimePropMenuSource(),
         ),
-        TaskBackendSelectedRegenerationScheduler(ports.get_task_backend),
+        TaskExecutionSelectedRegenerationScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
 def manual_sketch_regeneration_use_cases() -> ManualSketchRegenerationUseCases:
-    from ai_anime import ports
-
     settings = ProjectConfigProductionSettings()
     return ManualSketchRegenerationUseCases(
         LocalManualSketchRegenerationPreparer(
             settings,
             ProductionImageSettingsUseCases(
                 settings,
-                ConfiguredProductionImageSelections(),
+                ExplicitProductionImageModelPolicy(),
             ),
             lambda store, context: production_generation_context_use_cases(
                 store,
                 context.owner_username,
             ),
         ),
-        TaskBackendSelectedRegenerationScheduler(ports.get_task_backend),
+        TaskExecutionSelectedRegenerationScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
@@ -377,7 +370,7 @@ def sketch_editing_use_cases() -> SketchEditingUseCases:
 def production_image_settings_use_cases() -> ProductionImageSettingsUseCases:
     return ProductionImageSettingsUseCases(
         ProjectConfigProductionSettings(),
-        ConfiguredProductionImageSelections(),
+        ExplicitProductionImageModelPolicy(),
     )
 
 

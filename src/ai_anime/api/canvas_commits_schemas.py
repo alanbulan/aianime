@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from ai_anime.freezone.slots import SlotTarget
+from ai_anime.modules.creative_canvas.public import SlotTarget
 
 
 class PushRequest(BaseModel):

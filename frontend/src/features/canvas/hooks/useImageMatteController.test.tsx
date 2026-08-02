@@ -20,9 +20,6 @@ const mocks = vi.hoisted(() => ({
   uploadCanvasAsset: vi.fn(),
   matteInWorker: vi.fn(),
   preloadMatteWorker: vi.fn(),
-  readUrl: vi.fn(
-    (): { project: string | null } => ({ project: "project-a" }),
-  ),
 }));
 
 vi.mock("@/features/canvas/canvasStore", () => ({
@@ -47,12 +44,9 @@ vi.mock("@/features/canvas/infrastructure/matteClient", () => ({
   preloadMatteWorker: mocks.preloadMatteWorker,
 }));
 
-vi.mock("@/lib/url-params", () => ({
-  readUrl: mocks.readUrl,
-}));
-
 function options() {
   return {
+    projectId: "project-a",
     nodeId: "image-a",
     nodeData: {
       imageUrl: "/source.png",
@@ -69,9 +63,7 @@ describe("useImageMatteController", () => {
     for (const mock of Object.values(mocks)) mock.mockReset();
     mocks.addNode.mockReturnValue("matte-node");
     mocks.findNodePosition.mockReturnValue({ x: 480, y: 20 });
-    mocks.readUrl.mockReturnValue({ project: "project-a" });
     vi.spyOn(Date, "now").mockReturnValue(1234);
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -176,15 +168,13 @@ describe("useImageMatteController", () => {
     expect(mocks.uploadCanvasAsset).not.toHaveBeenCalled();
   });
 
-  it("does not create a node when the project id is unavailable", () => {
-    mocks.readUrl.mockReturnValue({ project: null });
-    const { result } = renderHook(() => useImageMatteController(options()));
+  it("does not create a node when the source image is unavailable", () => {
+    const { result } = renderHook(() =>
+      useImageMatteController({ ...options(), imageSource: null }),
+    );
 
     act(() => result.current.matte());
 
     expect(mocks.addNode).not.toHaveBeenCalled();
-    expect(console.warn).toHaveBeenCalledWith(
-      "[matte] no project_id in URL (?p=<project_id>) — cannot persist matted PNG",
-    );
   });
 });

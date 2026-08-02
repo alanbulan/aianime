@@ -4,27 +4,27 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.freezone.jobs import run_freezone_video_gen
 from ai_anime.generators.video_generator import (
-    HuimengVideoGenerator,
-    Seedance2VideoGenerator,
-    ShotReference,
-    newapi_video_backend_options,
+    CommercialVideoGenerator,
+    VideoGenResult,
+    VideoGenStatus,
 )
-from ai_anime.generators.video_generator import VideoGenResult, VideoGenStatus
+from ai_anime.model_access_policy import configure_model_access
+from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
+    ConfiguredCreativeCanvasVideoModelPolicy,
+)
 from ai_anime.modules.creative_canvas.public import (
+    GenerateCreativeCanvasVideoJobCommand,
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
     build_freezone_omni_video_prompt,
     build_freezone_video_prompt,
+    creative_canvas_job_execution_use_cases,
     get_video_camera_template,
     normalize_video_aspect_ratio,
     normalize_video_resolution,
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
-)
-from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
-    ConfiguredCreativeCanvasVideoModelPolicy,
 )
 
 
@@ -73,7 +73,14 @@ def test_build_freezone_image_to_video_prompt_includes_first_frame_and_marks() -
     prompt = build_freezone_image_to_video_prompt(
         user_prompt="老人缓慢抬眼，呼吸微弱。",
         camera_template_id="pedestal_up",
-        marks=[{"label": "老人", "point_x": 0.15, "point_y": 0.45, "note": "主体"}],
+        marks=[
+            {
+                "label": "老人",
+                "point_x": 0.15,
+                "point_y": 0.45,
+                "note": "主体",
+            }
+        ],
     )
 
     assert "老人缓慢抬眼" in prompt
@@ -95,18 +102,6 @@ def test_build_freezone_image_to_video_prompt_supports_multi_image_references() 
     assert "跟随拍摄" in prompt
 
 
-def test_build_freezone_image_to_video_prompt_supports_box_marks() -> None:
-    prompt = build_freezone_image_to_video_prompt(
-        user_prompt="老人微微转头。",
-        camera_template_id="locked_off",
-        marks=[{"label": "老人", "box_x": 0.05, "box_y": 0.2, "box_width": 0.3, "box_height": 0.5}],
-    )
-
-    assert "重点元素标记" in prompt
-    assert "老人" in prompt
-    assert "左侧中间" in prompt
-
-
 def test_build_freezone_keyframe_video_prompt_handles_first_and_last_frame() -> None:
     prompt = build_freezone_keyframe_video_prompt(
         user_prompt="老人抬眼后镜头缓慢推进到病床侧面。",
@@ -122,212 +117,123 @@ def test_build_freezone_keyframe_video_prompt_handles_first_and_last_frame() -> 
     assert "老人" in prompt
 
 
-def test_video_model_options_and_resolution_work() -> None:
+def test_commercial_video_model_policy_requires_and_preserves_explicit_sku() -> None:
     policy = ConfiguredCreativeCanvasVideoModelPolicy()
-    names = policy.model_names()
-    options = policy.model_options()
-    ids = {item["id"] for item in options}
-    labels = {item["label"] for item in options}
-    api_models = {item["apiModel"] for item in options}
-
-    assert names[0] == "newapi_seedance-2.0-fast"
-    assert {
-        "newapi_seedance-2.0-fast",
-        "newapi_seedance-1.0-pro-fast",
-        "newapi_seedance-1.5-pro",
-    }.issubset(names)
-    assert "newapi_grok-video-channel" not in names
-    assert ids == set(names)
-    assert api_models == set(names)
-    assert all(item["providerId"] == "newapi" for item in options)
-    assert "Seedance1.0 Pro Fast" in labels
-    assert "Seedance1.5 Pro" in labels
-    assert "Seedance2.0 Fast" in labels
-    assert "HappyHorse 1.0" in labels
-    assert "Grok Video Channel" not in labels
-    assert normalize_video_resolution("720P") == "720p"
-    happyhorse = next(item for item in options if item["id"] == "newapi_happyhorse-1.0")
-    assert happyhorse["resolutionOptions"] == ["720p", "1080p"]
-    assert happyhorse["minDuration"] == 3
-    assert happyhorse["maxDuration"] == 15
-    assert policy.normalize_resolution("newapi_happyhorse-1.0", "480p") == "720p"
+    with pytest.raises(ValueError, match="video model is required"):
+        policy.resolve_model(None)
+    assert policy.resolve_model("Cloud-Video-Pro") == "Cloud-Video-Pro"
 
 
-def test_grok_video_channel_is_not_exposed_even_if_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_anime import config
-
-    monkeypatch.setattr(
-        config,
-        "NEWAPI_VIDEO_MODELS",
-        ["seedance-2.0-fast", "grok-video-channel"],
+def test_commercial_video_generator_enforces_byok_model_role() -> None:
+    configure_model_access(
+        allows_custom_models=True,
+        mode="byok",
+        byok_base_url="https://models.example.test/v1",
+        model_assignments=[
+            {
+                "modelId": "local-video",
+                "role": "VIDEO_IMAGE_TO_VIDEO",
+            },
+        ],
     )
-
-    assert "newapi_grok-video-channel" not in newapi_video_backend_options()
-    policy = ConfiguredCreativeCanvasVideoModelPolicy()
-    assert "newapi_grok-video-channel" not in policy.model_names()
-    with pytest.raises(ValueError, match="unknown video model"):
-        policy.resolve_backend("newapi_grok-video-channel")
-
-
-def test_resolve_freezone_video_backend_accepts_id_and_label() -> None:
-    policy = ConfiguredCreativeCanvasVideoModelPolicy()
-    assert (
-        policy.resolve_backend("newapi_seedance-1.0-pro-fast")
-        == "newapi_seedance-1.0-pro-fast"
-    )
-    assert policy.resolve_backend("Seedance1.5 Pro") == "newapi_seedance-1.5-pro"
-    assert policy.resolve_backend("huimeng_seedance20_fast") == "newapi_seedance-2.0-fast"
-    assert policy.resolve_backend("seedance_fast") == "newapi_seedance-1.0-pro-fast"
-    assert policy.resolve_backend("Seedance 1.5 有声") == "newapi_seedance-1.5-pro"
-    assert policy.resolve_backend(None) == "newapi_seedance-2.0-fast"
-
-
-def test_seedance2_backend_detection_accepts_newapi_and_legacy_values() -> None:
-    policy = ConfiguredCreativeCanvasVideoModelPolicy()
-    assert policy.is_seedance2_backend("newapi_seedance-2.0-fast")
-    assert policy.is_seedance2_backend("huimeng_seedance-2.0-fast")
-    assert policy.is_seedance2_backend("seedance_2")
-    assert not policy.is_seedance2_backend("newapi_seedance-1.5-pro")
-
-
-def test_happyhorse_backend_detection_accepts_newapi_value() -> None:
-    policy = ConfiguredCreativeCanvasVideoModelPolicy()
-    assert policy.is_happyhorse_backend("newapi_happyhorse-1.0")
-    assert not policy.is_happyhorse_backend("newapi_seedance-2.0-fast")
+    try:
+        generator = CommercialVideoGenerator(
+            model="local-video",
+            model_role="VIDEO_IMAGE_TO_VIDEO",
+        )
+        assert generator.model_role == "VIDEO_IMAGE_TO_VIDEO"
+        with pytest.raises(PermissionError, match="VIDEO_EDIT"):
+            CommercialVideoGenerator(
+                model="local-video",
+                model_role="VIDEO_EDIT",
+            )
+    finally:
+        configure_model_access(allows_custom_models=False, mode="cloud")
 
 
 @pytest.mark.asyncio
-async def test_freezone_video_gen_allows_newapi_seedance2_text_to_video(
-    monkeypatch, tmp_path: Path
-):
-    captured: dict[str, dict] = {}
-
-    class FakeVideoGenerator:
-        async def generate(self, **kwargs):
-            captured["generate"] = kwargs
-            output_path = Path(kwargs["output_path"])
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(b"fake mp4")
-            return VideoGenResult(status=VideoGenStatus.DONE, video_path=str(output_path))
-
-    def fake_create_video_generator(**kwargs):
-        captured["create"] = kwargs
-        return FakeVideoGenerator()
-
-    monkeypatch.setattr(
-        "ai_anime.generators.video_generator.create_video_generator",
-        fake_create_video_generator,
-    )
-
-    out = await run_freezone_video_gen(
-        project_dir=tmp_path,
-        job_id="job_newapi_t2v",
-        prompt="雨夜街头，镜头缓慢推进",
-        reference_items=[],
-        backend="newapi_seedance-2.0-fast",
-    )
-
-    assert out.exists()
-    assert captured["create"]["backend"] == "newapi_seedance-2.0-fast"
-    assert captured["generate"]["image_path"] is None
-    assert captured["generate"]["references"] == []
-
-
-@pytest.mark.asyncio
-async def test_freezone_video_gen_allows_newapi_fast_text_to_video(monkeypatch, tmp_path: Path):
-    captured: dict[str, dict] = {}
-
-    class FakeVideoGenerator:
-        async def generate(self, **kwargs):
-            captured["generate"] = kwargs
-            output_path = Path(kwargs["output_path"])
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(b"fake mp4")
-            return VideoGenResult(status=VideoGenStatus.DONE, video_path=str(output_path))
-
-    def fake_create_video_generator(**kwargs):
-        captured["create"] = kwargs
-        return FakeVideoGenerator()
-
-    monkeypatch.setattr(
-        "ai_anime.generators.video_generator.create_video_generator",
-        fake_create_video_generator,
-    )
-
-    out = await run_freezone_video_gen(
-        project_dir=tmp_path,
-        job_id="job_newapi_fast_t2v",
-        prompt="雨夜街头，镜头缓慢推进",
-        reference_items=[],
-        backend="newapi_seedance-1.0-pro-fast",
-    )
-
-    assert out.exists()
-    assert captured["create"]["backend"] == "newapi_seedance-1.0-pro-fast"
-    assert captured["generate"]["image_path"] is None
-    assert captured["generate"]["references"] == []
-
-
-def test_seedance2_model_selection_prefers_omni_model_for_mixed_references() -> None:
-    generator = object.__new__(Seedance2VideoGenerator)
-
-    assert (
-        generator._select_generation_model(image_count=1, video_count=0, audio_count=0)
-        == "seedance-2.0-i2v"
-    )
-    assert (
-        generator._select_generation_model(image_count=1, video_count=1, audio_count=0)
-        == "seedance-2.0"
-    )
-    assert (
-        generator._select_generation_model(image_count=0, video_count=1, audio_count=0)
-        == "seedance-2.0"
-    )
-
-
-def test_huimeng_multimodal_reference_params_support_images_videos_and_audio(
+async def test_freezone_video_generation_uses_one_commercial_generator(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    image_path = tmp_path / "ref.png"
-    image_path.write_bytes(b"\x89PNG\r\n\x1a\nfake")
-    video_path = tmp_path / "ref.mp4"
-    video_path.write_bytes(b"\x00\x00\x00\x18ftypmp42fake")
-    audio_path = tmp_path / "ref.wav"
-    audio_path.write_bytes(b"RIFFfakeWAVEfmt ")
+    captured: dict[str, dict] = {}
 
-    generator = object.__new__(HuimengVideoGenerator)
-    params, counts = generator._build_reference_params(
-        [
-            ShotReference("image", str(image_path), "角色参考"),
-            ShotReference("video", str(video_path), "动作参考"),
-            ShotReference("audio", str(audio_path), "音频参考"),
-        ],
-        log=lambda _msg: None,
+    class FakeVideoGenerator:
+        async def generate(self, **kwargs):
+            captured["generate"] = kwargs
+            output_path = Path(kwargs["output_path"])
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(b"fake mp4")
+            return VideoGenResult(
+                status=VideoGenStatus.DONE,
+                video_path=str(output_path),
+            )
+
+    def fake_create_video_generator(**kwargs):
+        captured["create"] = kwargs
+        return FakeVideoGenerator()
+
+    monkeypatch.setattr(
+        "ai_anime.generators.video_generator.create_video_generator",
+        fake_create_video_generator,
     )
 
-    assert counts == {"image_count": 1, "video_count": 1, "audio_count": 1}
-    assert params["reference_images"][0].startswith("data:image/png;base64,")
-    assert params["reference_videos"][0].startswith("data:video/mp4;base64,")
-    assert params["reference_audios"][0].startswith("data:audio/x-wav;base64,")
+    out = await creative_canvas_job_execution_use_cases().generate_video(
+        GenerateCreativeCanvasVideoJobCommand(
+            project_dir=tmp_path,
+            job_id="job_video",
+            prompt="雨夜街头，镜头缓慢推进",
+            model="cloud-video-standard",
+            model_role="VIDEO_ALL_REFERENCE",
+            reference_items=(
+                {
+                    "type": "image",
+                    "path": "https://media.example/first.png",
+                    "role": "首帧",
+                    "field": "input_reference",
+                },
+                {
+                    "type": "video",
+                    "path": "https://media.example/motion.mp4",
+                    "role": "动作参考",
+                    "field": "reference_videos",
+                },
+            ),
+        )
+    )
+
+    assert out.exists()
+    assert captured["create"] == {
+        "model": "cloud-video-standard",
+        "model_role": "VIDEO_ALL_REFERENCE",
+        "resolution": "720p",
+        "generate_audio": False,
+    }
+    assert captured["generate"]["image_path"] == (
+        "https://media.example/first.png"
+    )
+    assert [item.field for item in captured["generate"]["references"]] == [
+        "input_reference",
+        "reference_videos",
+    ]
 
 
 def test_validate_omni_reference_limits_and_summary() -> None:
     items = [{"type": "image", "url": f"/static/{i}.png"} for i in range(9)]
     items += [{"type": "video", "url": f"/static/{i}.mp4"} for i in range(3)]
-    counts = summarize_omni_reference_counts(items)
 
-    assert counts == {
+    assert summarize_omni_reference_counts(items) == {
         "image_count": 9,
         "video_count": 3,
         "audio_count": 0,
         "total_count": 12,
     }
-
     validate_omni_reference_limits(items)
 
-    too_many_images = [{"type": "image", "url": f"/static/{i}.png"} for i in range(10)]
-    try:
-        validate_omni_reference_limits(too_many_images)
-        raise AssertionError("expected validate_omni_reference_limits to fail")
-    except ValueError as exc:
-        assert "<= 9" in str(exc)
+    with pytest.raises(ValueError, match="<= 9"):
+        validate_omni_reference_limits(
+            [
+                {"type": "image", "url": f"/static/{i}.png"}
+                for i in range(10)
+            ]
+        )

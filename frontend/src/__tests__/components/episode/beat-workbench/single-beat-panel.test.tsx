@@ -61,25 +61,25 @@ vi.mock("@/modules/narrative_planning/composition", async () => {
   const useSingleBeatPanelController = createUseSingleBeatPanelController(
     {
       useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
-      useVideoBackends: () => ({
-        data: {
-          data: [
-            {
-              value: "standard",
-              label: "Standard",
-              is_default: true,
-              is_seedance2: false,
-              dialogue_only: false,
-            },
-            {
-              value: "huimeng_seedance-2.0-fast",
-              label: "Seedance 2.0 Fast",
-              is_default: false,
-              is_seedance2: true,
-              dialogue_only: false,
-            },
-          ],
-        },
+      useVideoModels: () => ({
+        data: [
+          {
+            value: "standard",
+            label: "Standard",
+            profile: "standard" as const,
+            supportsAdvancedConfig: false,
+            supportsNativeAudio: false,
+            dialogueOnly: false,
+          },
+          {
+            value: "seedance-2.0-fast",
+            label: "Seedance 2.0 Fast",
+            profile: "seedance2" as const,
+            supportsAdvancedConfig: true,
+            supportsNativeAudio: true,
+            dialogueOnly: false,
+          },
+        ],
       }),
     },
     {
@@ -136,7 +136,7 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 
 function renderPanel(
   options: {
-    onDefaultBackendChange?: (backend: string) => void;
+    onDefaultModelChange?: (model: string) => void;
     onToggleSection?: (id: SectionId) => void;
     spineTemplate?: "drama" | "narrated";
   } = {},
@@ -149,8 +149,8 @@ function renderPanel(
         project="demo"
         episode={1}
         stages={{ audio: "missing", video: "missing", sketch: "ready", render: "ready" }}
-        defaultBackend="huimeng_seedance-2.0-fast"
-        onDefaultBackendChange={options.onDefaultBackendChange ?? vi.fn()}
+        defaultModel="seedance-2.0-fast"
+        onDefaultModelChange={options.onDefaultModelChange ?? vi.fn()}
         spineTemplate={options.spineTemplate}
         openSections={openSections}
         onToggleSection={options.onToggleSection ?? vi.fn()}
@@ -178,10 +178,10 @@ describe("SingleBeatPanel", () => {
 
   it("delegates section and video backend changes", async () => {
     const user = userEvent.setup();
-    const onDefaultBackendChange = vi.fn();
+    const onDefaultModelChange = vi.fn();
     const onToggleSection = vi.fn();
     renderPanel({
-      onDefaultBackendChange,
+      onDefaultModelChange,
       onToggleSection,
       spineTemplate: "narrated",
     });
@@ -191,7 +191,7 @@ describe("SingleBeatPanel", () => {
     await user.click(screen.getByRole("option", { name: /Standard/ }));
 
     expect(onToggleSection).toHaveBeenCalledWith("text");
-    expect(onDefaultBackendChange).toHaveBeenCalledWith("standard");
+    expect(onDefaultModelChange).toHaveBeenCalledWith("standard");
   });
 
   it("opens and closes the shared image preview", async () => {

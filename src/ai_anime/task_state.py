@@ -29,19 +29,21 @@ from typing import List, Optional
 
 from ai_anime.config import OUTPUT_DIR, STATE_DIR
 from ai_anime.modules.project_workspace.public import ProjectContext, require_project_home_node
-from ai_anime.sqlite_pragmas import configure_sqlite_connection
-from ai_anime.task_backend.queues import normalize_queue_kind
-from ai_anime.task_identity import (
+from ai_anime.modules.task_execution.public import (
+    ACTIVE_PROJECT_TASK_STATUSES,
+    TERMINAL_TASK_STATUSES,
+    interrupted_inline_recovery_plan,
+    normalize_queue_kind,
+    parse_task_timestamp,
     project_task_scope_from_key,
     project_task_state_key,
     task_scope_from_key,
     task_state_key,
 )
+from ai_anime.sqlite_pragmas import configure_sqlite_connection
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_PROJECT_TASK_STATUSES = {"submitting", "queued", "running"}
-TERMINAL_TASK_STATUSES = {"completed", "failed", "cancelled"}
 _PROJECT_LANE_LIMIT_UNSET = object()
 _CURRENT_PROJECT_TASK_ID: ContextVar[str | None] = ContextVar(
     "ai_anime_current_project_task_id",
@@ -133,30 +135,6 @@ def compute_expiry(ttl_seconds: int | None) -> str | None:
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-# inline 后端的 worker 与 API 同进程:早于本进程启动仍标记 ACTIVE 的
-# inline 任务必然已中断(见 _sweep_interrupted_inline_tasks_once)。
-_PROCESS_STARTED_AT = utc_now_iso()
-if "." not in _PROCESS_STARTED_AT:
-    # isoformat 在整秒时省略小数位;同秒内 "...:56Z" 字典序大于 "...:56.4Z",
-    # 会把启动后同秒更新的活任务误判为过期,补齐小数位消除该反转。
-    _PROCESS_STARTED_AT = _PROCESS_STARTED_AT.replace("Z", ".000000Z")
-
-
-def parse_task_timestamp(value: str | None) -> datetime | None:
-    text = str(value or "").strip()
-    if not text:
-        return None
-    if text.endswith("Z"):
-        text = f"{text[:-1]}+00:00"
-    try:
-        parsed = datetime.fromisoformat(text)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
 
 
 def get_project_task_db_path(username: str, project: str) -> Path:
@@ -580,7 +558,7 @@ class TaskStateManager:
             beat_num=beat_num,
             scope=scope,
         )
-        from ai_anime.task_backend.limits import (
+        from ai_anime.modules.task_execution.public import (
             ProjectTaskLimitExceeded,
             ProjectUserTaskLimitExceeded,
             project_lane_active_limit,
@@ -1144,22 +1122,26 @@ class TaskStateManager:
         with self._sweep_lock:
             if key in self._swept_dbs:
                 return
-        now = utc_now_iso()
+        recovery = interrupted_inline_recovery_plan(self.COMPLETED_TTL)
+        status_placeholders = ",".join("?" for _ in recovery.active_statuses)
         try:
             conn.execute(
-                "UPDATE task_states SET status = 'failed', "
+                "UPDATE task_states SET status = ?, "
                 "error = COALESCE(NULLIF(error, ''), ?), "
                 "completed_at = ?, updated_at = ?, expires_at = ? "
-                "WHERE status IN ('submitting', 'queued', 'running') "
+                f"WHERE status IN ({status_placeholders}) "
                 "AND updated_at < ? "
                 "AND json_valid(result_json) "
-                "AND json_extract(result_json, '$.task_metadata.backend') = 'inline'",
+                "AND json_extract(result_json, '$.task_metadata.backend') = ?",
                 (
-                    "服务重启,任务已中断,请重新发起",
-                    now,
-                    now,
-                    compute_expiry(self.COMPLETED_TTL),
-                    _PROCESS_STARTED_AT,
+                    recovery.status,
+                    recovery.error,
+                    recovery.recovered_at,
+                    recovery.recovered_at,
+                    recovery.expires_at,
+                    *recovery.active_statuses,
+                    recovery.updated_before,
+                    recovery.backend,
                 ),
             )
             conn.commit()

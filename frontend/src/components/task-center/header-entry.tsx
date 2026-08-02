@@ -2,7 +2,7 @@
 import { Activity } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/app-store";
-import { useTaskCenterStore, selectRunningTasks } from "@/task-center/store";
+import { useTaskCenterStore, selectRunningTasks } from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

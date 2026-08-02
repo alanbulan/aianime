@@ -11,11 +11,7 @@ class GenerationCatalogSource(Protocol):
 
     def image_style_templates(self) -> list[dict[str, Any]]: ...
 
-    def image_models(self) -> list[dict[str, Any]]: ...
-
     def video_camera_templates(self) -> list[dict[str, Any]]: ...
-
-    def video_models(self) -> list[dict[str, Any]]: ...
 
 
 class GenerationCatalogQueries:
@@ -28,11 +24,5 @@ class GenerationCatalogQueries:
     def image_style_templates(self) -> list[dict[str, Any]]:
         return deepcopy(self._source.image_style_templates())
 
-    def image_models(self) -> list[dict[str, Any]]:
-        return deepcopy(self._source.image_models())
-
     def video_camera_templates(self) -> list[dict[str, Any]]:
         return deepcopy(self._source.video_camera_templates())
-
-    def video_models(self) -> list[dict[str, Any]]:
-        return deepcopy(self._source.video_models())

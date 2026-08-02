@@ -204,6 +204,7 @@ function CompactOpsPanel({
           <span />
         ) : (
           <ProviderModelPicker
+            projectId={controller.projectId}
             selectedModelId={controller.modelId}
             onChange={controller.changeModel}
             popoverPlacement="top"

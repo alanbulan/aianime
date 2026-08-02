@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { SceneAssetsForBeatResult } from "@/features/freezone/public";
+import type { SceneAssetsForBeatResult } from "@/modules/creative_canvas/public";
 
 export interface GetCanvasSceneAssetsForBeatParams {
   projectId: string;

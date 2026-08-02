@@ -14,14 +14,13 @@ import {
   CANVAS_SCENE_360_ASPECT_RATIOS,
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
   type CanvasScene360AspectRatio,
-} from '@/features/canvas/domain/scene360';
+} from '@/modules/creative_canvas/public';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { generateCanvasScene360 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
@@ -35,20 +34,21 @@ const PANO_VIEWER_LAYOUT_WIDTH = 720;
 const PANO_VIEWER_LAYOUT_HEIGHT = 420;
 
 interface Scene360OverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
 }
 
 export const Scene360Overlay = memo(
-  ({ node, imageSource, onClose }: Scene360OverlayProps) => {
+  ({ projectId, node, imageSource, onClose }: Scene360OverlayProps) => {
     const { t } = useTranslation();
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-    const { models: imageModels } = useFreezoneImageModels();
+    const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
     const panoCost = useGenerationCreditCost(
       'image_selection',
@@ -65,11 +65,7 @@ export const Scene360Overlay = memo(
     );
 
     const handleSubmit = useCallback(async () => {
-      const project = readUrl().project;
-      if (!project) {
-        console.error('[scene-360] no project in URL — cannot submit');
-        return;
-      }
+      if (!selectedModel) return;
 
       const position = findNodePosition(
         node.id,
@@ -99,9 +95,10 @@ export const Scene360Overlay = memo(
       try {
         const { url } = await generateCanvasScene360(
           {
-            projectId: project,
+            projectId,
             referenceUrl: imageSource,
             aspectRatio,
+            model: selectedModel.apiModel,
           },
           (task) => {
             updateNodeData(nextNodeId, generationTaskDescriptor(task));
@@ -142,6 +139,8 @@ export const Scene360Overlay = memo(
       imageSource,
       node,
       onClose,
+      projectId,
+      selectedModel,
       setSelectedNode,
       t,
       updateNodeData,
@@ -187,6 +186,7 @@ export const Scene360Overlay = memo(
             type="button"
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} shrink-0 ${NODE_GENERATE_BUTTON_ENABLED_CLASS}`}
             onClick={handleSubmit}
+            disabled={!selectedModel}
             title={t('scene360.submit')}
           >
             <ArrowUp className="h-4 w-4" />

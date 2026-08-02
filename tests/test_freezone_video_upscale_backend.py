@@ -8,7 +8,6 @@ from fastapi import HTTPException
 
 from ai_anime.api.canvas_video_schemas import FreezoneVideoUpscaleRequest
 from ai_anime.api.routes.canvas import video as video_routes
-from ai_anime.freezone.jobs import _video_upscale_filter
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
 )
@@ -18,10 +17,13 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
 )
+from ai_anime.modules.creative_canvas.public import (
+    build_creative_canvas_video_upscale_filter,
+)
 
 
 def test_video_upscale_filter_uses_lanczos_and_enhancement() -> None:
-    video_filter = _video_upscale_filter("1080p", "1x")
+    video_filter = build_creative_canvas_video_upscale_filter("1080p", "1x")
 
     assert "scale='if(gte(iw,ih),1920,-2)'" in video_filter
     assert "flags=lanczos" in video_filter

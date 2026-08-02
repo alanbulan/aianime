@@ -36,7 +36,9 @@ const useAuthStoreMock = Object.assign(
 
 vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: useAuthStoreMock,
-  ensureAuthenticatedForAppRoute: async () => true,
+}));
+vi.mock("@/app/commercial-access", () => ({
+  resolveAppRouteAccess: async () => "granted",
 }));
 
 vi.mock("@/components/layout/header", () => ({ Header: () => null }));
@@ -58,7 +60,8 @@ vi.mock("@/stores/region-store", () => ({
 }));
 vi.mock("@/lib/region-tab-sync", () => ({ initRegionTabSync: vi.fn() }));
 vi.mock("@/lib/observability", () => ({ initObservability: vi.fn() }));
-vi.mock("@/task-center/provider", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   TaskCenterProvider: ({ children }: PropsWithChildren) => createElement(Fragment, null, children),
 }));
 vi.mock("@/components/task-center/status-bar", () => ({ TaskStatusBar: () => null }));

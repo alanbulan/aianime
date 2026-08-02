@@ -60,7 +60,7 @@ vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
   ),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>bindings:{roles.join(',')}</div>
   ),

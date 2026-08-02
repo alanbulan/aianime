@@ -20,6 +20,7 @@ export const freezoneScene360GenerationGateway: CanvasScene360GenerationGateway 
           image_size: "2K",
           mode: "candidate",
           aspect_ratio: command.aspectRatio,
+          model: command.model,
         },
       },
     );

@@ -13,12 +13,8 @@ from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
     HermesProjectReplies,
 )
 from ai_anime.modules.ai_assistant.application.ports import (
-    AgentBackend,
     ChatEventSink,
     ChatRunLocks,
-)
-from ai_anime.modules.ai_assistant.application.thread_replies import (
-    AgentThreadReplies,
 )
 from ai_anime.modules.ai_assistant.domain import (
     reingest_confirmation_reply,
@@ -29,14 +25,10 @@ from ai_anime.modules.ai_assistant.domain import (
 class ProjectAssistantReplies:
     def __init__(
         self,
-        backend: AgentBackend,
-        thread_replies: AgentThreadReplies,
         run_locks: ChatRunLocks,
         deterministic_replies: DeterministicProjectReplies,
         hermes_replies: HermesProjectReplies,
     ) -> None:
-        self._backend = backend
-        self._thread_replies = thread_replies
         self._run_locks = run_locks
         self._deterministic_replies = deterministic_replies
         self._hermes_replies = hermes_replies
@@ -67,30 +59,7 @@ class ProjectAssistantReplies:
                     project_state_dir=project_state_dir,
                 )
             model_prompt = script_creation_guidance_prompt(prompt) or prompt
-            backend = self._backend.name()
-            if backend == "codex":
-                return await self._thread_replies.stream(
-                    "codex",
-                    username,
-                    project,
-                    model_prompt,
-                    on_event,
-                    project_dir=project_dir,
-                    project_state_dir=project_state_dir,
-                )
-            if backend == "hermes":
-                return await self._hermes_replies.stream(
-                    username,
-                    project,
-                    model_prompt,
-                    on_event,
-                    project_dir=project_dir,
-                    project_state_dir=project_state_dir,
-                )
-            if backend != "claude":
-                raise RuntimeError(f"Unsupported chat backend: {backend}")
-            return await self._thread_replies.stream(
-                "claude",
+            return await self._hermes_replies.stream(
                 username,
                 project,
                 model_prompt,

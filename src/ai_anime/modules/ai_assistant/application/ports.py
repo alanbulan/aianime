@@ -11,46 +11,6 @@ from ai_anime.modules.ai_assistant.domain import ChatScope
 ChatEventSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
-class AgentThreadSessions(Protocol):
-    def get_active(self, username: str, backend: str) -> str | None: ...
-
-    def set_active(self, username: str, backend: str, thread_id: str) -> None: ...
-
-
-class AgentThread(Protocol):
-    def stream(self, prompt: str) -> AsyncIterator[Any]: ...
-
-
-class AgentThreadRuntime(Protocol):
-    def open_claude(
-        self,
-        username: str,
-        project: str,
-        agent_token: str,
-    ) -> AgentThread: ...
-
-    def open_codex(
-        self,
-        username: str,
-        project: str,
-        agent_token: str,
-    ) -> AgentThread: ...
-
-    def remember(
-        self,
-        username: str,
-        backend: str,
-        thread_id: str,
-    ) -> None: ...
-
-    async def interrupt(
-        self,
-        backend: str,
-        thread_id: str,
-        turn_id: str,
-    ) -> bool: ...
-
-
 class HermesThread(Protocol):
     def stream(
         self,
@@ -209,55 +169,3 @@ class ChatRunLocks(Protocol):
 
 class UserPreferences(Protocol):
     def load(self, username: str) -> str: ...
-
-
-class AgentBackend(Protocol):
-    def name(self) -> str: ...
-
-    def is_available(self) -> bool: ...
-
-    def claude_cli_path(self) -> Path: ...
-
-    def codex_bin_path(self) -> Path | None: ...
-
-    def codex_model(self) -> str: ...
-
-    def claude_model(self) -> str | None: ...
-
-
-class AgentBackendRuntime(Protocol):
-    def preferred_name(self) -> str: ...
-
-    def is_available(self, backend: str) -> bool: ...
-
-    def claude_cli_path(self) -> Path: ...
-
-    def codex_bin_path(self) -> Path | None: ...
-
-    def codex_model(self) -> str: ...
-
-    def claude_model(self) -> str | None: ...
-
-
-class AgentWorkspace(Protocol):
-    def ensure_claude(
-        self,
-        username: str,
-        project: str,
-        agent_token: str = "",
-    ) -> Path: ...
-
-    def ensure_codex(self, username: str) -> Path: ...
-
-    def build_environment(
-        self,
-        username: str,
-        project: str,
-        agent_token: str = "",
-    ) -> dict[str, str]: ...
-
-
-class AgentToolConfiguration(Protocol):
-    def mcp_servers(self) -> dict[str, dict[str, Any]]: ...
-
-    def codex_config_overrides(self) -> tuple[str, ...]: ...

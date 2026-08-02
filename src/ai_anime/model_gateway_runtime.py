@@ -18,10 +18,6 @@ def _runtime_version(api_key: str, base_url: str) -> str:
 def _clear_agent_singletons() -> list[str]:
     cleared: list[str] = []
     targets = {
-        "ai_anime.modules.creative_canvas.infrastructure.text_generation": (
-            "_translation_agent",
-            "_story_script_agent",
-        ),
         "ai_anime.agents.global_video_optimizer": ("_global_video_optimizer",),
     }
     for module_name, attrs in targets.items():
@@ -56,12 +52,7 @@ def refresh_model_gateway_runtime() -> dict[str, Any]:
     if not is_ce_effective():
         raise RuntimeError("model gateway runtime refresh is only available in CE")
 
-    from ai_anime import config as app_config
-
-    gateway = get_effective_newapi_config(
-        official_base_url=app_config.OFFICIAL_NEWAPI_BASE_URL,
-        official_api_key=app_config.NEWAPI_API_KEY,
-    )
+    gateway = get_effective_newapi_config()
     api_key = str(gateway.api_key or "").strip()
     base_url = str(gateway.base_url or "").strip().rstrip("/")
     version = _runtime_version(api_key, base_url)
@@ -71,7 +62,7 @@ def refresh_model_gateway_runtime() -> dict[str, Any]:
     return {
         "mode": gateway.mode,
         "source": gateway.source,
-        "configured": bool(api_key and base_url),
+        "configured": bool(base_url and (gateway.mode == "byok" or api_key)),
         "runtimeVersion": version,
         "clearedCaches": cleared,
         "cognee": _cognee_runtime_status(),

@@ -2,7 +2,7 @@
 import type {
   SkillDefinition,
   SkillParameterSpec,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 const PARAMETER_LABELS: Record<string, string> = {
   aspect_ratio: '比例',
@@ -31,6 +31,7 @@ export function selectedParameterValue(
   key: string,
   spec: SkillParameterSpec,
   storedParameters: Record<string, unknown>,
+  options: readonly string[] = parameterOptions(spec),
 ): string | boolean {
   if (spec.type === 'boolean') {
     const storedValue = storedParameters[key];
@@ -49,7 +50,6 @@ export function selectedParameterValue(
     return typeof spec.default === 'boolean' ? spec.default : false;
   }
 
-  const options = parameterOptions(spec);
   const storedValue = typeof storedParameters[key] === 'string' ? storedParameters[key].trim() : '';
   if (storedValue && (options.length === 0 || options.includes(storedValue))) {
     return storedValue;
@@ -64,13 +64,16 @@ export function selectedParameterValue(
 export function skillParameterEntries(
   skill: SkillDefinition | null,
   parameters: unknown,
+  dynamicOptions: Record<string, string[]> = {},
 ): SkillParameterEntry[] {
   const definitions = skill?.parameters ?? {};
   const storedParameters = recordValue(parameters) ?? {};
   return Object.entries(definitions)
     .map(([key, spec]) => {
-      const options = parameterOptions(spec);
       const type = typeof spec.type === 'string' ? spec.type : 'string';
+      const options = type === 'image_model'
+        ? dynamicOptions[key] ?? []
+        : parameterOptions(spec);
       return {
         key,
         label: typeof spec.label === 'string' && spec.label.trim()
@@ -78,7 +81,7 @@ export function skillParameterEntries(
           : PARAMETER_LABELS[key] ?? key,
         type,
         options,
-        value: selectedParameterValue(key, spec, storedParameters),
+        value: selectedParameterValue(key, spec, storedParameters, options),
       };
     })
     .filter((entry) => entry.type === 'boolean' || entry.options.length > 0);
@@ -87,8 +90,9 @@ export function skillParameterEntries(
 export function normalizedSkillParameters(
   skill: SkillDefinition | null,
   parameters: unknown,
+  dynamicOptions: Record<string, string[]> = {},
 ): Record<string, unknown> {
   return Object.fromEntries(
-    skillParameterEntries(skill, parameters).map((entry) => [entry.key, entry.value]),
+    skillParameterEntries(skill, parameters, dynamicOptions).map((entry) => [entry.key, entry.value]),
   );
 }

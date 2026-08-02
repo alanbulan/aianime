@@ -4,12 +4,12 @@ import type {
   CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
-  getCurrentBeatContextFromNode,
-  type SceneAssetsForBeat,
   type SkillDefinition,
   type SkillInputRole,
   type SkillRunOutput,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import { getCurrentBeatContextFromNode } from '@/modules/creative_canvas/public';
+import type { SceneAssetsForBeat } from '@/modules/creative_canvas/public';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,

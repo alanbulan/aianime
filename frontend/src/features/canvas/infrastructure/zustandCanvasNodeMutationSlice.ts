@@ -10,7 +10,7 @@ import {
   setCanvasNodePositions,
   updateCanvasNodePosition,
 } from '../domain/canvasNodePositions';
-import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
 import type {
   CanvasEdge,
   CanvasNode,

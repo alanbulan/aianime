@@ -12,7 +12,7 @@ import {
 import {
   extractMainlineContextsFromNode,
   parseBeatContextVisualMarkers,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 import { sceneNameToRef } from '@/lib/scene-ref';
 
 export const BEAT_CONTEXT_NODE_SIZE_LIMITS = {

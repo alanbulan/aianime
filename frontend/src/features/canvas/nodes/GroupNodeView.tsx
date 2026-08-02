@@ -153,6 +153,8 @@ export function GroupNodeView({
 
       {controller.historyOpen ? (
         <CanvasHistoryAssetsModal
+          projectId={controller.projectId}
+          canvasId={null}
           imageOnly
           assetSource="live-canvas"
           onClose={controller.closeHistory}

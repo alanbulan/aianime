@@ -2,32 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import time
 from pathlib import Path
 from typing import Literal
 
-from ai_anime.config import (
-    HUIMENGI_API_KEY,
-    HUIMENG_IMAGE_MODEL,
-    NEWAPI_IMAGE_MODEL,
-    NEWAPI_NANOBANANA2_MODEL,
-    OPENAI_API_KEY,
-    OPENAI_IMAGE_MODEL,
-    OPENROUTER_API_KEY,
-    OPENROUTER_GPT_IMAGE2_MODEL,
-    SCENE_ASSET_MODEL,
-    SCENE_ASSET_PROVIDER,
-    SCENE_MASTER_IMAGE_MODEL,
-    SCENE_MASTER_IMAGE_PROVIDER,
-    SCENE_REVERSE_MASTER_IMAGE_MODEL,
-    SCENE_REVERSE_MASTER_IMAGE_PROVIDER,
-)
 from ai_anime.generators.nanobanana_grid import (
-    _call_huimeng_image_api,
     _call_newapi_image_api,
-    _call_openai_image_api,
-    _call_openrouter_image_api,
 )
 from ai_anime.director_world.paths import safe_name
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
@@ -531,55 +511,24 @@ def _output_path(project_dir: Path, scene_name: str, kind: SceneReferenceKind) -
     raise ValueError(f"Unsupported scene reference kind: {kind}")
 
 
-def _scene_image_provider(kind: SceneReferenceKind, provider: str | None) -> str:
-    if provider:
-        return provider.strip().lower()
-    if kind == "master" and SCENE_MASTER_IMAGE_PROVIDER:
-        return SCENE_MASTER_IMAGE_PROVIDER.strip().lower()
-    if kind == "reverse_master" and SCENE_REVERSE_MASTER_IMAGE_PROVIDER:
-        return SCENE_REVERSE_MASTER_IMAGE_PROVIDER.strip().lower()
-    return (
-        (os.environ.get("SCENE_ASSET_PROVIDER") or SCENE_ASSET_PROVIDER or "newapi")
-        .strip()
-        .lower()
-    )
-
-
 def _scene_image_model(
     kind: SceneReferenceKind,
-    provider: str,
     model: str | None,
 ) -> str:
-    if model:
-        return model
-    if kind == "master" and SCENE_MASTER_IMAGE_MODEL:
-        return SCENE_MASTER_IMAGE_MODEL
-    if kind == "reverse_master" and SCENE_REVERSE_MASTER_IMAGE_MODEL:
-        return SCENE_REVERSE_MASTER_IMAGE_MODEL
-    if provider == "newapi":
-        if kind in {"master", "reverse_master"}:
-            return NEWAPI_NANOBANANA2_MODEL
-        return SCENE_ASSET_MODEL or NEWAPI_IMAGE_MODEL
-    if provider == "openai":
-        return SCENE_ASSET_MODEL or os.environ.get("SCENE_ASSET_OPENAI_MODEL") or OPENAI_IMAGE_MODEL
-    if provider in {"huimeng", "huimengi"}:
-        return SCENE_ASSET_MODEL or HUIMENG_IMAGE_MODEL
-    return (
-        SCENE_ASSET_MODEL
-        or os.environ.get("SCENE_ASSET_OPENROUTER_MODEL")
-        or OPENROUTER_GPT_IMAGE2_MODEL
-    )
+    del kind
+    resolved = str(model or "").strip()
+    if not resolved:
+        raise ValueError("scene reference image model is required")
+    return resolved
 
 
 def resolve_scene_reference_image_model(
     kind: SceneReferenceKind,
     *,
-    provider: str | None = None,
     model: str | None = None,
 ) -> str:
     """Return the model used by canonical scene reference generation."""
-    selected_provider = _scene_image_provider(kind, provider)
-    return _scene_image_model(kind, selected_provider, model)
+    return _scene_image_model(kind, model)
 
 
 def _scene_image_config(model: str) -> dict[str, str]:
@@ -603,7 +552,6 @@ async def generate_scene_reference_image(
     project_dir: Path,
     scene: NovelScene,
     kind: SceneReferenceKind,
-    provider: str | None = None,
     model: str | None = None,
     style_name: str = "",
     style_prompt: str = "",
@@ -654,62 +602,13 @@ async def generate_scene_reference_image(
         has_master_reference=has_master_reference,
         base_scene=base_scene,
     )
-    provider = _scene_image_provider(kind, provider)
-
-    if provider == "openai":
-        api_key = OPENAI_API_KEY or ""
-        selected_model = _scene_image_model(kind, provider, model)
-        image_bytes, _text, error = await _call_openai_image_api(
-            api_key=api_key,
-            model=selected_model,
-            prompt=prompt,
-            reference_images=references or None,
-            image_config=_scene_image_config(selected_model),
-        )
-    elif provider == "newapi":
-        from ai_anime.config import get_effective_newapi_gateway_config
-
-        gateway = get_effective_newapi_gateway_config()
-        api_key = gateway.api_key
-        base_url = gateway.base_url
-        selected_model = _scene_image_model(kind, provider, model)
-        image_bytes, _text, error = await _call_newapi_image_api(
-            api_key=api_key,
-            model=selected_model,
-            prompt=prompt,
-            reference_images=references or None,
-            image_config=_scene_image_config(selected_model),
-            base_url=base_url,
-        )
-    elif provider in {"huimeng", "huimengi"}:
-        api_key = HUIMENGI_API_KEY or ""
-        selected_model = _scene_image_model(kind, provider, model)
-        image_bytes, _text, error = await _call_huimeng_image_api(
-            api_key=api_key,
-            model=selected_model,
-            prompt=prompt,
-            reference_images=references or None,
-            image_config={
-                "aspect_ratio": "16:9",
-                "image_size": "1K",
-                "quality": "low",
-                "huimeng_image_quality": "low",
-            },
-        )
-    else:
-        api_key = OPENROUTER_API_KEY or ""
-        selected_model = _scene_image_model(kind, provider, model)
-        image_bytes, _text, error = await _call_openrouter_image_api(
-            api_key=api_key,
-            model=selected_model,
-            prompt=prompt,
-            reference_images=[item[1] for item in references] or None,
-            image_config={
-                "aspect_ratio": "16:9",
-                "image_size": "1K",
-                "quality": "low",
-            },
-        )
+    selected_model = _scene_image_model(kind, model)
+    image_bytes, _text, error = await _call_newapi_image_api(
+        model=selected_model,
+        prompt=prompt,
+        reference_images=references or None,
+        image_config=_scene_image_config(selected_model),
+    )
 
     if error or not image_bytes:
         raise RuntimeError(error or "Image API returned no image bytes")

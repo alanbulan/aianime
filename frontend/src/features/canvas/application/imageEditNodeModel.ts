@@ -2,10 +2,8 @@
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import type { ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
 import { findReferenceTokens } from '@/features/canvas/application/referenceTokenEditing';
-import {
-  coercePushTarget,
-  type GenerationCapability,
-} from '@/features/freezone/public';
+import { coercePushTarget } from '@/modules/creative_canvas/public';
+import type { GenerationCapability } from '@/modules/creative_canvas/public';
 
 export interface ImageEditAspectRatioChoice {
   value: string;

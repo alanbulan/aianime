@@ -15,7 +15,7 @@ import type { NodeSelectionMenuController } from '@/features/canvas/hooks/useNod
 import {
   translateSkillDescription,
   translateSkillName,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 import {
   CanvasAddNodeGrid,

@@ -23,6 +23,7 @@ describe("freezoneCanvasTextTranslationGateway", () => {
     await expect(
       freezoneCanvasTextTranslationGateway.submit("project/1", {
         text: "原始提示词",
+        model: "cloud-text-standard",
         nodeType: "video",
         canvasId: "canvas-1",
         nodeId: "node-1",
@@ -34,6 +35,7 @@ describe("freezoneCanvasTextTranslationGateway", () => {
         method: "POST",
         json: {
           text: "原始提示词",
+          model: "cloud-text-standard",
           node_type: "video",
           canvas_id: "canvas-1",
           node_id: "node-1",

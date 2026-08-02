@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 
 import { AUTO_REQUEST_ASPECT_RATIO } from '@/features/canvas/domain/canvasNodes';
 import {
-  getModelProvider,
   type AspectRatioOption,
   type ImageModelDefinition,
   type ResolutionOption,
@@ -30,7 +29,7 @@ import {
 
 interface ModelParamsControlsProps {
   imageModels: ImageModelDefinition[];
-  selectedModel: ImageModelDefinition;
+  selectedModel: ImageModelDefinition | undefined;
   resolutionOptions: ResolutionOption[];
   selectedResolution: ResolutionOption;
   selectedAspectRatio: AspectRatioOption;
@@ -44,7 +43,6 @@ interface ModelParamsControlsProps {
   webSearchEnabled?: boolean;
   onWebSearchToggle?: (enabled: boolean) => void;
   webSearchLabel?: string;
-  showProviderName?: boolean;
   triggerSize?: 'md' | 'sm';
   chipClassName?: string;
   modelChipClassName?: string;
@@ -53,10 +51,7 @@ interface ModelParamsControlsProps {
   paramsPanelAlign?: 'center' | 'start';
   modelPanelClassName?: string;
   paramsPanelClassName?: string;
-  providerOptionClassName?: string;
   modelOptionClassName?: string;
-  activeProviderOptionClassName?: string;
-  inactiveProviderOptionClassName?: string;
   activeModelOptionClassName?: string;
   inactiveModelOptionClassName?: string;
   optionGroupClassName?: string;
@@ -79,14 +74,8 @@ interface PanelAnchor {
 
 const OTHER_PARAMS_PANEL_CLASS_NAME = 'w-[280px] p-3';
 const DEFAULT_MODEL_PANEL_CLASS_NAME = 'inline-block min-w-[320px] max-w-[calc(100vw-32px)] p-2';
-const DEFAULT_PROVIDER_OPTION_CLASS_NAME =
-  'min-w-[92px] px-3 text-center';
 const DEFAULT_MODEL_OPTION_CLASS_NAME =
   'min-h-9 min-w-[128px] max-w-full justify-center px-3 py-2 text-center';
-const DEFAULT_ACTIVE_PROVIDER_OPTION_CLASS_NAME =
-  'border-primary/50 bg-primary/15 text-foreground';
-const DEFAULT_INACTIVE_PROVIDER_OPTION_CLASS_NAME =
-  'border-border bg-muted text-muted-foreground hover:border-foreground/25';
 const DEFAULT_ACTIVE_MODEL_OPTION_CLASS_NAME =
   'border-primary/50 bg-primary/15 text-foreground shadow-sm';
 const DEFAULT_INACTIVE_MODEL_OPTION_CLASS_NAME =
@@ -191,7 +180,6 @@ export const ModelParamsControls = memo(({
   webSearchEnabled = false,
   onWebSearchToggle,
   webSearchLabel,
-  showProviderName = true,
   triggerSize = 'md',
   chipClassName = '',
   modelChipClassName = 'w-auto justify-start',
@@ -200,10 +188,7 @@ export const ModelParamsControls = memo(({
   paramsPanelAlign = 'center',
   modelPanelClassName = DEFAULT_MODEL_PANEL_CLASS_NAME,
   paramsPanelClassName = 'w-[420px] p-3',
-  providerOptionClassName = DEFAULT_PROVIDER_OPTION_CLASS_NAME,
   modelOptionClassName = DEFAULT_MODEL_OPTION_CLASS_NAME,
-  activeProviderOptionClassName = DEFAULT_ACTIVE_PROVIDER_OPTION_CLASS_NAME,
-  inactiveProviderOptionClassName = DEFAULT_INACTIVE_PROVIDER_OPTION_CLASS_NAME,
   activeModelOptionClassName = DEFAULT_ACTIVE_MODEL_OPTION_CLASS_NAME,
   inactiveModelOptionClassName = DEFAULT_INACTIVE_MODEL_OPTION_CLASS_NAME,
   optionGroupClassName = DEFAULT_OPTION_GROUP_CLASS_NAME,
@@ -235,36 +220,16 @@ export const ModelParamsControls = memo(({
   const [modelAnchorBaseWidth, setModelAnchorBaseWidth] = useState<number | null>(null);
   const [paramsAnchorBaseWidth, setParamsAnchorBaseWidth] = useState<number | null>(null);
   const [otherParamsAnchorBaseWidth, setOtherParamsAnchorBaseWidth] = useState<number | null>(null);
-  const [panelProviderId, setPanelProviderId] = useState(selectedModel.providerId);
-
-  const selectedProvider = useMemo(
-    () => getModelProvider(selectedModel.providerId),
-    [selectedModel.providerId]
-  );
   const selectedModelName = useMemo(
-    () => selectedModel.displayName.replace(/\s*\([^)]*\)\s*$/u, '').trim() || selectedModel.displayName,
-    [selectedModel.displayName]
-  );
-  const selectedProviderName = selectedProvider.label || selectedProvider.name;
-  const providerOptions = useMemo(() => {
-    const providerOrder = ['huimeng', 'openrouter', 'openai'];
-    const providerIndex = new Map(providerOrder.map((id, index) => [id, index]));
-    const uniqueProviderIds = Array.from(new Set(imageModels.map((model) => model.providerId)));
-    return uniqueProviderIds
-      .map((providerId) => getModelProvider(providerId))
-      .sort((left, right) => {
-        const leftIndex = providerIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-        const rightIndex = providerIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER;
-        return leftIndex - rightIndex;
-      });
-  }, [imageModels]);
-  const providerModels = useMemo(
-    () => imageModels.filter((model) => model.providerId === panelProviderId),
-    [imageModels, panelProviderId]
+    () => selectedModel
+      ? selectedModel.displayName.replace(/\s*\([^)]*\)\s*$/u, '').trim()
+        || selectedModel.displayName
+      : t('modelPicker.empty'),
+    [selectedModel, t]
   );
   const modelGroups = useMemo(() => {
     const grouped = new Map<string, ImageModelDefinition[]>();
-    providerModels.forEach((model) => {
+    imageModels.forEach((model) => {
       const normalizedName = model.displayName.replace(/\s*\([^)]*\)\s*$/u, '').trim();
       const key = normalizedName.length > 0 ? normalizedName : model.displayName;
       const current = grouped.get(key) ?? [];
@@ -274,23 +239,20 @@ export const ModelParamsControls = memo(({
     return Array.from(grouped.entries())
       .map(([name, models]) => ({ name, models }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [providerModels]);
+  }, [imageModels]);
   const isCompactTrigger = triggerSize === 'sm';
   const modelIconClassName = isCompactTrigger ? 'h-3 w-3 shrink-0' : 'h-4 w-4 shrink-0';
   const paramsIconClassName = isCompactTrigger ? 'h-2.5 w-2.5 shrink-0' : 'h-4 w-4 shrink-0';
   const modelTextClassName = isCompactTrigger
     ? 'min-w-0 truncate text-[10px] font-medium leading-none'
     : 'min-w-0 truncate font-medium';
-  const providerTextClassName = isCompactTrigger
-    ? 'shrink-0 text-[10px] leading-none text-text-muted/80'
-    : 'shrink-0 text-text-muted/80';
   const paramsPrimaryTextClassName = isCompactTrigger
     ? 'truncate text-[10px] leading-none'
     : 'truncate';
   const paramsSecondaryTextClassName = isCompactTrigger
     ? 'text-[10px] leading-none text-text-muted/80'
     : 'text-text-muted/80';
-  const extraParamSchema = selectedModel.extraParamsSchema ?? [];
+  const extraParamSchema = selectedModel?.extraParamsSchema ?? [];
   const inlineExtraParamSchema = useMemo(
     () =>
       extraParamSchema.filter(
@@ -456,6 +418,7 @@ export const ModelParamsControls = memo(({
       <div ref={modelTriggerRef} className="relative flex">
         <UiChipButton
           active={openPanel === 'model'}
+          disabled={imageModels.length === 0}
           className={`${chipClassName} ${modelChipClassName}`}
           onClick={(event) => {
             event.stopPropagation();
@@ -463,7 +426,6 @@ export const ModelParamsControls = memo(({
               setOpenPanel(null);
               return;
             }
-            setPanelProviderId(selectedModel.providerId);
             const triggerWidth = modelTriggerRef.current?.getBoundingClientRect().width ?? null;
             const nextBaseWidth = modelAnchorBaseWidth ?? triggerWidth;
             if (modelAnchorBaseWidth == null && triggerWidth) {
@@ -475,15 +437,13 @@ export const ModelParamsControls = memo(({
         >
           <NanoBananaIcon className={modelIconClassName} />
           <span className={modelTextClassName}>{selectedModelName}</span>
-          {showProviderName && (
-            <span className={providerTextClassName}>{selectedProviderName}</span>
-          )}
         </UiChipButton>
       </div>
 
       <div ref={paramsTriggerRef} className="relative flex">
         <UiChipButton
           active={openPanel === 'params'}
+          disabled={!selectedModel}
           className={`${chipClassName} ${paramsChipClassName}`}
           onClick={(event) => {
             event.stopPropagation();
@@ -540,47 +500,15 @@ export const ModelParamsControls = memo(({
         modelPanelAlign,
         (
           <UiPanel className={modelPanelClassName}>
-            <div className="ui-scrollbar max-h-[340px] space-y-4 overflow-y-auto p-1">
-              <section>
-                <div className="mb-2 text-xs font-medium text-text-muted">
-                  {t('modelParams.provider')}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {providerOptions.map((provider) => {
-                    const active = provider.id === panelProviderId;
-                    return (
-                      <button
-                        key={provider.id}
-                        className={`h-8 rounded-lg border text-xs transition-colors ${providerOptionClassName} ${active
-                          ? activeProviderOptionClassName
-                          : inactiveProviderOptionClassName
-                        }`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (provider.id !== panelProviderId) {
-                            const firstModel = imageModels.find((model) => model.providerId === provider.id);
-                            if (firstModel) {
-                              onModelChange(firstModel.id);
-                            }
-                          }
-                          setPanelProviderId(provider.id);
-                        }}
-                      >
-                        {provider.label || provider.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
+            <div className="ui-scrollbar max-h-[340px] overflow-y-auto p-1">
               <section>
                 <div className="mb-2 text-xs font-medium text-text-muted">
                   {t('modelParams.model')}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {modelGroups.map((group) => {
-                    const active = group.models.some((model) => model.id === selectedModel.id);
-                    const targetModel = group.models.find((model) => model.id === selectedModel.id)
+                    const active = group.models.some((model) => model.id === selectedModel?.id);
+                    const targetModel = group.models.find((model) => model.id === selectedModel?.id)
                       ?? group.models[0];
                     return (
                       <button
@@ -591,7 +519,7 @@ export const ModelParamsControls = memo(({
                           }`}
                         onClick={(event) => {
                           event.stopPropagation();
-                          onModelChange(targetModel.id);
+                          if (targetModel) onModelChange(targetModel.id);
                           setOpenPanel(null);
                         }}
                       >
@@ -701,7 +629,7 @@ export const ModelParamsControls = memo(({
                     const resolvedValue = resolveExtraParamValue(
                       definition.key,
                       extraParams,
-                      selectedModel.defaultExtraParams,
+                      selectedModel?.defaultExtraParams,
                       definition.defaultValue
                     );
 
@@ -811,7 +739,7 @@ export const ModelParamsControls = memo(({
                 const resolvedValue = resolveExtraParamValue(
                   definition.key,
                   extraParams,
-                  selectedModel.defaultExtraParams,
+                  selectedModel?.defaultExtraParams,
                   definition.defaultValue
                 );
 

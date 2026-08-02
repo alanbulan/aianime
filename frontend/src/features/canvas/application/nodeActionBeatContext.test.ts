@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { MainlineContext } from "@/features/freezone/public";
+import type { MainlineContext } from "@/modules/creative_canvas/public";
 
 import {
   buildNodeActionBeatContextData,

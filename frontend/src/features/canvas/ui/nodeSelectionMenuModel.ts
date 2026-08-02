@@ -6,7 +6,7 @@ import {
 import type {
   SkillDefinition,
   SkillProvider,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 export const SKILL_PROVIDER_LABELS: Record<SkillProvider, string> = {
   freezone_mainline: '主线技能',

@@ -25,7 +25,6 @@ const mocks = vi.hoisted(() => ({
   extractLive: vi.fn(),
   download: vi.fn(),
   buildManifest: vi.fn(),
-  url: { project: 'project-a' } as { project?: string },
 }));
 
 vi.mock('@/features/canvas/canvasStore', () => ({
@@ -36,10 +35,11 @@ vi.mock('@/features/canvas/canvasStore', () => ({
 
 vi.mock('@/features/canvas/hooks/useCanvasGenerationHistory', () => ({
   useCanvasGenerationHistory: (
+    context: { projectId: string; canvasId: string | null },
     nodeIds: string[],
     options: { enabled: boolean },
   ) => {
-    mocks.readHistory(nodeIds, options);
+    mocks.readHistory(context, nodeIds, options);
     return {
       records: mocks.records,
       isLoading: mocks.isLoading,
@@ -82,10 +82,6 @@ vi.mock('@/lib/browserDownload', () => ({
 
 vi.mock('@/lib/media-url', () => ({
   resolveMediaUrl: (url: string | null | undefined) => url ?? null,
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => mocks.url,
 }));
 
 vi.mock('@/features/viewer-kit/three-d/directorManifest', () => ({
@@ -134,7 +130,6 @@ describe('useCanvasHistoryAssetsModalController', () => {
     mocks.extractLive.mockReset();
     mocks.download.mockReset().mockResolvedValue(undefined);
     mocks.buildManifest.mockReset().mockReturnValue({ id: 'world-manifest' });
-    mocks.url = { project: 'project-a' };
   });
 
   afterEach(() => {
@@ -169,6 +164,8 @@ describe('useCanvasHistoryAssetsModalController', () => {
 
     const { result } = renderHook(() =>
       useCanvasHistoryAssetsModalController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         onClose: vi.fn(),
         onUseAsset: vi.fn(),
         onDeleteNode: vi.fn(),
@@ -176,6 +173,7 @@ describe('useCanvasHistoryAssetsModalController', () => {
     );
 
     expect(mocks.readHistory).toHaveBeenCalledWith(
+      { projectId: 'project-a', canvasId: 'canvas-a' },
       ['generated-image', 'world-a'],
       { enabled: true },
     );
@@ -205,6 +203,8 @@ describe('useCanvasHistoryAssetsModalController', () => {
 
     const { result } = renderHook(() =>
       useCanvasHistoryAssetsModalController({
+        projectId: 'project-a',
+        canvasId: null,
         onClose: vi.fn(),
         onUseAsset: vi.fn(),
         onDeleteNode: vi.fn(),
@@ -213,7 +213,11 @@ describe('useCanvasHistoryAssetsModalController', () => {
       }),
     );
 
-    expect(mocks.readHistory).toHaveBeenCalledWith([], { enabled: false });
+    expect(mocks.readHistory).toHaveBeenCalledWith(
+      { projectId: 'project-a', canvasId: null },
+      [],
+      { enabled: false },
+    );
     expect(mocks.extractLive).toHaveBeenCalledOnce();
     expect(mocks.projectHistory).not.toHaveBeenCalled();
     expect(result.current.tabOrder).toEqual(['image']);
@@ -230,6 +234,8 @@ describe('useCanvasHistoryAssetsModalController', () => {
     const onDeleteNode = vi.fn();
     const { result } = renderHook(() =>
       useCanvasHistoryAssetsModalController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         onClose,
         onUseAsset,
         onDeleteNode,
@@ -272,6 +278,8 @@ describe('useCanvasHistoryAssetsModalController', () => {
     const onClose = vi.fn();
     const { result } = renderHook(() =>
       useCanvasHistoryAssetsModalController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         onClose,
         onUseAsset: vi.fn(),
         onDeleteNode: vi.fn(),
@@ -312,6 +320,8 @@ describe('useCanvasHistoryAssetsModalController', () => {
     mocks.historyBuckets = buckets({ image: [first, second] });
     const { result } = renderHook(() =>
       useCanvasHistoryAssetsModalController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         onClose: vi.fn(),
         onUseAsset: vi.fn(),
         onDeleteNode: vi.fn(),

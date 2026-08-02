@@ -49,6 +49,30 @@ vi.mock("@/features/canvas/canvasStore", () => ({
   },
 }));
 
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/creative_canvas/public")
+  >();
+  return {
+    ...actual,
+    createCanvasCommitControllerHook: () =>
+      (options: Record<string, unknown>) => {
+        mocks.commitOptions = options;
+        return mocks.commitController;
+      },
+    useCanvasProjectionCommandController: (
+      options: Record<string, unknown>,
+    ) => {
+      mocks.projectionCommandOptions = options;
+    },
+    useCanvasProjectionStatusLifecycle: (
+      options: Record<string, unknown>,
+    ) => {
+      mocks.projectionStatusOptions = options;
+    },
+  };
+});
+
 vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => mocks.ceRuntime,
 }));
@@ -61,25 +85,6 @@ vi.mock("./useCanvasSync", () => ({
   useCanvasSync: (projectId: string, canvasId: string) => {
     mocks.syncArgs = [projectId, canvasId];
     return mocks.sync;
-  },
-}));
-
-vi.mock("./useCanvasCommitController", () => ({
-  useCanvasCommitController: (options: Record<string, unknown>) => {
-    mocks.commitOptions = options;
-    return mocks.commitController;
-  },
-}));
-
-vi.mock("./useCanvasProjectionCommandController", () => ({
-  useCanvasProjectionCommandController: (options: Record<string, unknown>) => {
-    mocks.projectionCommandOptions = options;
-  },
-}));
-
-vi.mock("./useCanvasProjectionStatusLifecycle", () => ({
-  useCanvasProjectionStatusLifecycle: (options: Record<string, unknown>) => {
-    mocks.projectionStatusOptions = options;
   },
 }));
 

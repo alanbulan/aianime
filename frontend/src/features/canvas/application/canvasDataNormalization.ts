@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { scopeProjectionGraphIds } from '@/features/canvas/domain/projectionGraphIds';
+import { scopeProjectionGraphIds } from '@/modules/creative_canvas/public';
 
 import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
 import type { CanvasHistorySnapshot } from '../domain/canvasHistory';

@@ -3,9 +3,10 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { CANVAS_ASSET_DRAG_MIME } from "@/features/canvas/domain/assetDrag";
-
-import type { LibraryAsset } from "../domain/assetLibraryModel";
+import {
+  CANVAS_ASSET_DRAG_MIME,
+  type LibraryAsset,
+} from "@/modules/creative_canvas/public";
 import { AssetLibraryAssetCard } from "./AssetLibraryAssetCard";
 
 function asset(

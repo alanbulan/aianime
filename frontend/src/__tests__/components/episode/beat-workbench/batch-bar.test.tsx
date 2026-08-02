@@ -133,13 +133,14 @@ const {
 
 function BatchBar({
   spineTemplate = "drama",
-  videoBackend,
+  videoModel,
 }: BatchBarProps) {
   const controller = {
     assignColorsPending: false,
     audioPending: false,
-    audioUnavailableForVideoBackend:
-      videoBackend === "huimeng_seedance-2.0-fast",
+    audioModelUnavailable: false,
+    audioUnavailableForVideoModel:
+      videoModel === "huimeng_seedance-2.0-fast",
     detectIdentitiesCostDisplay: "5",
     detectIdentitiesPending: false,
     episodeAudioCostDisplay: "5",
@@ -225,7 +226,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -244,7 +245,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -261,7 +262,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -279,7 +280,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -297,7 +298,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -335,7 +336,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -353,7 +354,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           spineTemplate="drama"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -373,7 +374,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -392,7 +393,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -414,7 +415,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="huimeng_seedance-2.0-fast"
+          videoModel="huimeng_seedance-2.0-fast"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -435,7 +436,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           spineTemplate="drama"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -454,7 +455,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoBackend="seedance"
+          videoModel="seedance"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />

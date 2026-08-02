@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type DragEvent as ReactDragEvent } from 'react';
 
-import {
-  readAssetDragPayload,
-  type CanvasAssetDragPayload,
-} from '../domain/assetDrag';
+import { readAssetDragPayload } from '../domain/assetDrag';
+import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
 import { collectDroppedMediaFiles } from '../ui/canvasMediaTransfer';
 import { useCanvasDropIndicator } from './useCanvasDropIndicator';
 

@@ -21,7 +21,6 @@ import { generateCanvasGridAction } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 
@@ -48,6 +47,7 @@ export interface GridActionSubmitPayload {
 }
 
 interface GridActionConfirmOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   request: GridActionRequest;
@@ -55,14 +55,20 @@ interface GridActionConfirmOverlayProps {
 }
 
 export const GridActionConfirmOverlay = memo(
-  ({ node, imageSource, request, onClose }: GridActionConfirmOverlayProps) => {
+  ({
+    projectId,
+    node,
+    imageSource,
+    request,
+    onClose,
+  }: GridActionConfirmOverlayProps) => {
     const { t } = useTranslation();
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-    const { models: imageModels } = useFreezoneImageModels();
+    const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
     const gridActionCost = useGenerationCreditCost(
       'image_selection',
@@ -76,11 +82,7 @@ export const GridActionConfirmOverlay = memo(
     );
 
     const handleSubmit = useCallback(async () => {
-      const project = readUrl().project;
-      if (!project) {
-        console.error('[grid-action] no project in URL — cannot submit');
-        return;
-      }
+      if (!selectedModel) return;
 
       const sourceAspectRatio =
         typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
@@ -112,10 +114,11 @@ export const GridActionConfirmOverlay = memo(
       try {
         const { url } = await generateCanvasGridAction(
           {
-            projectId: project,
+            projectId,
             sourceUrl: imageSource,
             actionKey: request.key,
             prompt: request.label,
+            model: selectedModel.apiModel,
           },
           (task) => {
             updateNodeData(nextNodeId, generationTaskDescriptor(task));
@@ -144,7 +147,9 @@ export const GridActionConfirmOverlay = memo(
       imageSource,
       node,
       onClose,
+      projectId,
       request,
+      selectedModel,
       setSelectedNode,
       updateNodeData,
     ]);
@@ -181,6 +186,7 @@ export const GridActionConfirmOverlay = memo(
             type="button"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"
             onClick={handleSubmit}
+            disabled={!selectedModel}
             title={t('nodeToolbar.gridMenu.confirmBar.submit')}
           >
             <ArrowUp className="h-4 w-4" />

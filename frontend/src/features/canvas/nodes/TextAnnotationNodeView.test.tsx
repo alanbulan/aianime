@@ -75,6 +75,7 @@ vi.mock('@/components/credit-cost-inline', () => ({
 function createController(): TextAnnotationNodeController {
   return {
     id: 'text-a',
+    projectId: 'project-a',
     data: {
       label: '文本节点',
       displayName: '文本节点',

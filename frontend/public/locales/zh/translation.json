@@ -18,6 +18,16 @@
       "confirm": "我知道了",
       "empty": "当前版本暂无更新说明"
     },
+    "commercialUpdate": {
+      "availableTitle": "桌面端有新版本",
+      "availableDescription": "新版本已发布，请通过官方发布渠道获取并安装。",
+      "acknowledge": "稍后处理",
+      "requiredTitle": "当前版本需要升级",
+      "requiredDescription": "当前版本已不再受支持。请安装最新版本，然后重新检查。",
+      "recheck": "重新检查",
+      "checking": "正在检查",
+      "checkFailed": "更新状态检查失败，请确认网络后重试"
+    },
     "routeError": {
       "title": "页面加载失败",
       "description": "请刷新页面后重试。"
@@ -53,6 +63,7 @@
     "title": "通知中心",
     "close": "关闭通知中心",
     "empty": "暂无通知",
+    "loadFailed": "通知加载失败，请稍后重试",
     "upgrade": {
       "title": "有新版本 {{version}} 可用",
       "body": "检测到新版本，可查看发布说明并安排升级。",
@@ -369,6 +380,9 @@
     "imageSource": {
       "label": "图源",
       "loading": "正在读取图源",
+      "selectModel": "请选择图片模型",
+      "empty": "暂无可用图片模型",
+      "loadFailed": "图片模型目录加载失败",
       "saveFailed": "图源更新失败"
     },
     "projectStyle": {
@@ -628,7 +642,30 @@
     "authorizationCode": "授权码",
     "authorizationCodePlaceholder": "请输入授权码",
     "authenticating": "正在验证",
-    "authorizeButton": "验证授权"
+    "authorizeButton": "验证授权",
+    "tenantCode": "租户编码",
+    "tenantCodePlaceholder": "请输入租户编码",
+    "commercialAccessSubtitle": "使用商业账户登录客户端",
+    "workspaceSessionFailed": "本地工作区会话建立失败",
+    "captcha": "验证码",
+    "captchaPlaceholder": "请输入验证码",
+    "refreshCaptcha": "刷新验证码",
+    "captchaRefreshFailed": "验证码刷新失败"
+  },
+  "license": {
+    "requiredTitle": "需要有效的软件许可",
+    "requiredDescription": "当前账户未取得可用许可，或暂时无法核验许可状态。请重试，仍无许可时联系租户管理员分配席位。",
+    "activateTitle": "激活当前设备",
+    "activateDescription": "此账户已有软件许可，但当前设备尚未激活。激活完成后才能进入工作区并调用模型。",
+    "edition": "授权版本",
+    "device": "设备",
+    "currentDevice": "当前设备",
+    "activateDevice": "激活设备",
+    "activationFailed": "设备激活失败",
+    "activationIncomplete": "设备激活结果尚未生效，请重试",
+    "retry": "重新核验",
+    "loadFailed": "许可状态加载失败",
+    "logoutFailed": "退出登录失败"
   },
   "project": {
     "create": "创建项目",
@@ -1015,6 +1052,10 @@
     "videoBackend": "视频引擎",
     "videoResolution": "视频分辨率",
     "selectPlaceholder": "选择",
+    "textModel": "知识理解模型",
+    "embeddingModel": "知识向量模型",
+    "modelPlaceholder": "选择模型",
+    "modelCatalogFailed": "模型目录加载失败，请检查登录、许可和模型访问配置。",
     "firstPerson": "第一人称（解说主角视角）",
     "thirdPerson": "第三人称（旁白视角）",
     "uploadSuccess": "成功",
@@ -1597,6 +1638,7 @@
         "notGenerated": "尚未生成",
         "regenTitle": "重新生成音频？",
         "regenDesc": "将为 Beat #{{n}} 重新生成 TTS 配音。",
+        "modelUnavailable": "没有可用的语音模型，请检查 AUDIO 模型目录及 supportedModes 配置。",
         "configureVoiceAction": "去配置",
         "beatNarrationVoice": "本条解说音频",
         "beatNarrationVoiceUpload": "上传本条音频",
@@ -2753,6 +2795,8 @@
   "modelPicker": {
     "provider": "供应商",
     "model": "模型",
+    "loading": "正在加载模型",
+    "loadFailed": "模型目录加载失败",
     "empty": "暂无可用模型"
   },
   "modelParams": {
@@ -3363,14 +3407,53 @@
   "settings": {
     "title": "设置",
     "close": "关闭",
-    "navigationLabel": "设置分类",
-    "statusConfigured": "{{page}}已配置",
-    "statusNotConfigured": "{{page}}未配置",
     "secretSavedBadge": "已保存",
     "secretSavedPlaceholder": "已保存 · {{preview}}（重新输入可替换）",
-    "pages": {
-      "models": "模型与渠道",
-      "storage": "媒体存储"
+    "showSecret": "显示",
+    "hideSecret": "隐藏",
+    "modelAccess": {
+      "title": "模型访问",
+      "cloud": "云端模型",
+      "byok": "BYOK",
+      "availableModels": "授权模型",
+      "modelCount": "{{count}} 个可用模型",
+      "noModels": "当前授权没有可用模型",
+      "catalogFailed": "模型目录加载失败",
+      "baseUrl": "标准接口地址",
+      "apiKey": "API Key（可选）",
+      "baseUrlRequired": "请输入标准模型接口地址",
+      "modelAssignments": "模型用途",
+      "modelId": "模型 ID",
+      "modelRole": "模型用途",
+      "modelIdRequired": "模型 ID 不能为空",
+      "addModel": "添加模型",
+      "removeModel": "移除模型",
+      "roles": {
+        "text": "文本生成",
+        "imageGeneration": "图片生成",
+        "imageEdit": "图片编辑",
+        "videoTextToVideo": "视频·文生视频",
+        "videoImageToVideo": "视频·图生视频",
+        "videoFirstLastFrame": "视频·首尾帧",
+        "videoImageReference": "视频·图片参考",
+        "videoAllReference": "视频·全参考",
+        "videoEdit": "视频编辑",
+        "audioSpeech": "音频·语音合成",
+        "audioVoiceClone": "音频·声线克隆",
+        "audioMusic": "音频·音乐生成",
+        "embedding": "向量嵌入",
+        "rerank": "文档重排",
+        "moderation": "内容审核"
+      },
+      "saveByok": "保存并启用 BYOK",
+      "saved": "BYOK 配置已保存",
+      "saveFailed": "模型访问配置失败",
+      "clearByok": "清除 BYOK 配置",
+      "clearFailed": "BYOK 配置清除失败",
+      "desktopRequired": "模型访问配置仅在 Electron 桌面端可用",
+      "deviceNotActivated": "当前设备尚未激活",
+      "activateDevice": "激活设备",
+      "activationFailed": "设备激活失败"
     },
     "modelConfig": {
       "title": "模型配置",
@@ -3549,49 +3632,6 @@
           "video": "视频",
           "audio": "音频"
         }
-      }
-    },
-    "mediaStorage": {
-      "title": "图床 / 媒体存储",
-      "description": "配置 NewAPI/上游模型可访问的参考媒体临时 relay，支持阿里云 OSS 和 Cloudinary。",
-      "fullyManagedUpload": "全托管素材上传",
-      "provider": "提供商",
-      "providerAliyunOss": "阿里云 OSS",
-      "providerCloudinary": "Cloudinary（免费）",
-      "providerHint": "使用此方案建议不要开「全托管素材上传」；免费版有流量额度，建议仅在点对点编辑/上传时使用。",
-      "currentPlan": "当前上传方案",
-      "status": "当前配置",
-      "source": "来源：{{source}}",
-      "configured": "已配置",
-      "notConfigured": "未配置",
-      "warningIconLabel": "参考媒体存储未配置",
-      "notConfiguredImpact": "未配置参考媒体存储。纯文本和纯文生图通常不受影响；但需要上传本地参考图的功能会失败，例如AI\u00a0anime 画布参考图、角色参考图、身份图、图生图、视频首帧和图生视频。请配置阿里云 OSS 或 Cloudinary。",
-      "showSecret": "显示",
-      "hideSecret": "隐藏",
-      "fieldsHint": "保存后写入 CE 本地配置库；后端不会回传完整 AccessKey，如需更新请重新输入。",
-      "save": "保存 OSS 配置",
-      "saveCloudinary": "保存 Cloudinary 配置",
-      "saveSuccess": "OSS 配置已保存",
-      "cloudinarySaveSuccess": "Cloudinary 配置已保存",
-      "saveFailed": "OSS 配置保存失败",
-      "cloudinaryFieldsHint": "保存后写入 CE 本地配置库；后端不会回传完整 API Key / Secret，如需更新请重新输入。API 文件夹可留空，留空时上传到 Cloudinary 根目录。",
-      "cloudinaryRegisterLink": "前往 Cloudinary 注册",
-      "testUpload": "测试上传",
-      "testUploadPlaceholder": "测试上传功能即将上线",
-      "validation": {
-        "ttlSeconds": "签名 URL 有效期必须大于 0"
-      },
-      "fields": {
-        "cloudName": "Cloud Name",
-        "apiKey": "API Key",
-        "apiSecret": "API Secret",
-        "apiFolder": "API 文件夹（可选）",
-        "materialsRoot": "素材根路径",
-        "accessKeyId": "AccessKey ID",
-        "accessKeySecret": "AccessKey Secret",
-        "bucket": "Bucket",
-        "endpoint": "Endpoint / 地域",
-        "ttlSeconds": "签名有效期（秒）"
       }
     },
     "codexBridge": {

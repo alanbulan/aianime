@@ -11,10 +11,15 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.director_world import DirectorWorldService
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_static_urls import migrate_canvas_static_urls_in_memory
-from ai_anime.freezone.paths import freezone_root
-from ai_anime.freezone.presets import build_beat_preset_context
+from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
+    migrate_canvas_static_urls_in_memory,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    timestamp_utc_iso,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_contexts import (
+    build_beat_preset_context,
+)
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_assets import (
     CreativeCanvasBeatNotFound,
@@ -27,6 +32,7 @@ from ai_anime.modules.creative_canvas.domain.canvas_assets import (
     project_creative_canvas_asset_record,
     project_creative_canvas_beat_context_asset,
 )
+from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
 from ai_anime.shared.project_media import make_static_url_for_context
@@ -753,9 +759,7 @@ class LocalCreativeCanvasDirectorCaptureStorage:
                         else "json"
                     ),
                     "size": stat.st_size if stat else 0,
-                    "modified_at": (
-                        canvas_store.timestamp_utc_iso(stat.st_mtime) if stat else None
-                    ),
+                    "modified_at": (timestamp_utc_iso(stat.st_mtime) if stat else None),
                 }
             )
         return files

@@ -20,12 +20,13 @@ pytestmark = pytest.mark.m07
 
 def _import_celery_tasks(monkeypatch):
     monkeypatch.delenv("AI_ANIME_PROJECT_TASK_TIMEOUT_S", raising=False)
-    sys.modules.pop("ai_anime.task_backend.run_core", None)
-    return importlib.import_module("ai_anime.task_backend.run_core")
+    module_name = "ai_anime.modules.task_execution.application.project_task_execution"
+    sys.modules.pop(module_name, None)
+    return importlib.import_module(module_name)
 
 
 def test_task_serialization_exposes_error_code() -> None:
-    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.modules.task_execution.public import serialize_project_task
     from ai_anime.task_state import TaskState
 
     task = TaskState(
@@ -38,7 +39,7 @@ def test_task_serialization_exposes_error_code() -> None:
         metadata={"error_code": INSUFFICIENT_CREDITS_CODE},
     )
 
-    assert _serialize_task(task)["error_code"] == INSUFFICIENT_CREDITS_CODE
+    assert serialize_project_task(task)["error_code"] == INSUFFICIENT_CREDITS_CODE
 
 
 def test_celery_task_failure_maps_insufficient_credits_stop(monkeypatch) -> None:
@@ -46,7 +47,7 @@ def test_celery_task_failure_maps_insufficient_credits_stop(monkeypatch) -> None
 
     stop = InsufficientCreditsStop(user_id="usr_1", cost=2, balance=1)
 
-    error, metadata, handled = celery_tasks._project_task_failure_for_exception(stop)
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(stop)
 
     assert handled is True
     assert error == INSUFFICIENT_CREDITS_MESSAGE
@@ -63,7 +64,7 @@ def test_celery_task_failure_maps_output_moderation(monkeypatch) -> None:
         '"code":"output_moderation"}}'
     )
 
-    error, metadata, handled = celery_tasks._project_task_failure_for_exception(exc)
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(exc)
 
     assert handled is True
     assert error == CONTENT_MODERATION_FAILED_MESSAGE
@@ -81,7 +82,7 @@ def test_celery_task_failure_maps_output_video_policy_violation(monkeypatch) -> 
             f"Request id: {request_id}"
         )
 
-        error, metadata, handled = celery_tasks._project_task_failure_for_exception(exc)
+        error, metadata, handled = celery_tasks.project_task_failure_for_exception(exc)
 
         assert handled is True
         assert error == OUTPUT_VIDEO_POLICY_FAILED_MESSAGE
@@ -100,7 +101,7 @@ def test_celery_task_failure_maps_input_image_policy_violation(monkeypatch) -> N
         "Request id: dynamic-request-id"
     )
 
-    error, metadata, handled = celery_tasks._project_task_failure_for_exception(exc)
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(exc)
 
     assert handled is True
     assert error == INPUT_IMAGE_POLICY_FAILED_MESSAGE
@@ -114,7 +115,7 @@ def test_celery_task_failure_maps_soft_time_limit(monkeypatch) -> None:
     celery_tasks = _import_celery_tasks(monkeypatch)
     from celery.exceptions import SoftTimeLimitExceeded
 
-    error, metadata, handled = celery_tasks._project_task_failure_for_exception(
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(
         SoftTimeLimitExceeded()
     )
 
@@ -124,16 +125,19 @@ def test_celery_task_failure_maps_soft_time_limit(monkeypatch) -> None:
 
 
 def test_project_task_timeout_is_independent_from_celery_hard_limit(monkeypatch) -> None:
-    celery_tasks = _import_celery_tasks(monkeypatch)
+    _import_celery_tasks(monkeypatch)
+    from ai_anime.modules.task_execution.infrastructure.project_task_runtime import (
+        project_task_timeout_seconds,
+    )
 
-    assert celery_tasks._project_task_timeout_seconds() == 30 * 60
+    assert project_task_timeout_seconds() == 30 * 60
 
 
 def test_celery_task_failure_maps_cooperative_task_timeout(monkeypatch) -> None:
     celery_tasks = _import_celery_tasks(monkeypatch)
-    from ai_anime.task_backend.cancel import TaskTimedOut
+    from ai_anime.modules.task_execution.public import TaskTimedOut
 
-    error, metadata, handled = celery_tasks._project_task_failure_for_exception(
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(
         TaskTimedOut(timeout_seconds=30 * 60)
     )
 
@@ -146,4 +150,4 @@ def test_celery_task_failure_reraises_non_business_base_exception(monkeypatch) -
     celery_tasks = _import_celery_tasks(monkeypatch)
 
     with pytest.raises(KeyboardInterrupt):
-        celery_tasks._project_task_failure_for_exception(KeyboardInterrupt())
+        celery_tasks.project_task_failure_for_exception(KeyboardInterrupt())

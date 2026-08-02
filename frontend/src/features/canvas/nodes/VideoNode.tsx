@@ -11,6 +11,8 @@ type VideoNodeProps = NodeProps & {
   id: string;
   data: VideoNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const VideoNode = memo((props: VideoNodeProps) => {

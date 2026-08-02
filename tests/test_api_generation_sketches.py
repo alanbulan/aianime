@@ -62,7 +62,6 @@ async def test_generate_sketches_route_maps_request_to_application(
     )
     request = SketchGenerateRequest(
         style="ink",
-        model="nanobanana",
         grid_index=-1,
         sketch_scene_grouping=True,
         aspect_ratio="16:9",
@@ -113,7 +112,6 @@ async def test_generate_sketches_route_maps_request_to_application(
     assert command.episode_num == 2
     assert command.grid_index == -1
     assert command.style == "ink"
-    assert command.model == "nanobanana"
     assert command.sketch_scene_grouping is True
     assert command.aspect_ratio == "16:9"
     assert command.image_generation_selection == "openrouter_nanobanana2"

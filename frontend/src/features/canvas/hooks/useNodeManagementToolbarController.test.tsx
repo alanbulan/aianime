@@ -13,6 +13,8 @@ import { useNodeManagementToolbarController } from "./useNodeManagementToolbarCo
 const mocks = vi.hoisted(() => ({
   deleteNode: vi.fn(),
   publish: vi.fn(),
+  publishProjectionRemoval: vi.fn(),
+  publishProjectionSync: vi.fn(),
   t: vi.fn((key: string) => key),
   projectionStatus: { current: null as { stale: boolean } | null },
 }));
@@ -21,17 +23,17 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mocks.t }),
 }));
 
-vi.mock("@/features/canvas/application/canvasServices", () => ({
-  canvasEventBus: { publish: mocks.publish },
-}));
-
 vi.mock("@/features/canvas/canvasStore", () => ({
   useCanvasStore: (
     selector: (state: { deleteNode: typeof mocks.deleteNode }) => unknown,
   ) => selector({ deleteNode: mocks.deleteNode }),
 }));
 
-vi.mock("@/features/freezone/public", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+  publishCanvasCommitRequested: mocks.publish,
+  publishCanvasProjectionRemovalRequested: mocks.publishProjectionRemoval,
+  publishCanvasProjectionSyncRequested: mocks.publishProjectionSync,
   useCanvasProjectionStatus: () => mocks.projectionStatus.current,
 }));
 
@@ -46,6 +48,8 @@ describe("useNodeManagementToolbarController", () => {
   beforeEach(() => {
     mocks.deleteNode.mockReset();
     mocks.publish.mockReset();
+    mocks.publishProjectionRemoval.mockReset();
+    mocks.publishProjectionSync.mockReset();
     mocks.t.mockClear();
     mocks.projectionStatus.current = null;
   });
@@ -70,10 +74,8 @@ describe("useNodeManagementToolbarController", () => {
     act(() => result.current.syncProjection());
     act(() => result.current.remove());
 
-    expect(mocks.publish.mock.calls).toEqual([
-      ["freezone/projection-sync", { projectionKey: "beat:1:4" }],
-      ["freezone/projection-remove", { projectionKey: "beat:1:4" }],
-    ]);
+    expect(mocks.publishProjectionSync).toHaveBeenCalledWith("beat:1:4");
+    expect(mocks.publishProjectionRemoval).toHaveBeenCalledWith("beat:1:4");
     expect(mocks.deleteNode).not.toHaveBeenCalled();
   });
 
@@ -96,7 +98,7 @@ describe("useNodeManagementToolbarController", () => {
     act(() => result.current.commit());
 
     expect(mocks.deleteNode).toHaveBeenCalledWith("node-a");
-    expect(mocks.publish).toHaveBeenCalledWith("freezone/commit-node", {
+    expect(mocks.publish).toHaveBeenCalledWith({
       nodeId: "node-a",
     });
   });
@@ -120,5 +122,7 @@ describe("useNodeManagementToolbarController", () => {
 
     expect(mocks.deleteNode).not.toHaveBeenCalled();
     expect(mocks.publish).not.toHaveBeenCalled();
+    expect(mocks.publishProjectionSync).not.toHaveBeenCalled();
+    expect(mocks.publishProjectionRemoval).not.toHaveBeenCalled();
   });
 });

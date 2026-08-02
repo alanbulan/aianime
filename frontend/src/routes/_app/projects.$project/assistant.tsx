@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SuperChatPanel } from "@/features/superchat/superchat-panel";
+import { SuperChatPanel } from "@/modules/ai_assistant/public";
 
 function ProjectAssistantPage() {
   return (

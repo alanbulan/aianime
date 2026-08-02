@@ -3,10 +3,7 @@ import { useMemo } from "react";
 
 import type { AspectSpec } from "@/lib/aspect-ratio";
 import type { Beat } from "@/modules/narrative_planning/public";
-import type {
-  ProductionDataResponse,
-  Seedance2BeatStatusResponse,
-} from "@/modules/production/application/ports";
+import type { Seedance2BeatStatusResponse } from "@/modules/production/application/ports";
 import type {
   BeatVideoGenerationController,
   BeatVideoGenerationControllerOptions,
@@ -33,12 +30,12 @@ import type {
   VideoPaneMediaController,
   VideoPaneMediaControllerOptions,
 } from "@/modules/production/application/use-video-pane-media-controller";
-import { isSeedanceReferenceCropBackend } from "@/modules/production/domain/seedance2-crop";
+import { isVideoReferenceCropModel } from "@/modules/production/domain/seedance2-crop";
 import type {
   Seedance2AssetItem,
   Seedance2BeatStatus,
 } from "@/modules/production/domain/seedance2-panel";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type { VideoModelOption } from "@/modules/production/domain/video-model";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 interface Seedance2StatusQuery {
@@ -46,8 +43,8 @@ interface Seedance2StatusQuery {
   refetch(): unknown;
 }
 
-interface VideoBackendsQuery {
-  data?: ProductionDataResponse<VideoBackendOption[]>;
+interface VideoModelsQuery {
+  data: VideoModelOption[];
 }
 
 export interface VideoPaneControllerQueries {
@@ -57,7 +54,7 @@ export interface VideoPaneControllerQueries {
     beatNumber: number,
     enabled: boolean,
   ): Seedance2StatusQuery;
-  useVideoBackends(project: string): VideoBackendsQuery;
+  useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
 export interface VideoPaneControllerDependencies {
@@ -84,7 +81,7 @@ export interface VideoPaneControllerDependencies {
 
 export interface VideoPaneControllerOptions {
   beat: Beat;
-  defaultBackend: string;
+  defaultModel: string;
   episode: number;
   project: string;
   savePending: boolean;
@@ -124,7 +121,7 @@ export function createUseVideoPaneController(
 ) {
   return function useVideoPaneController({
     beat,
-    defaultBackend,
+    defaultModel,
     episode,
     project,
     savePending,
@@ -138,25 +135,26 @@ export function createUseVideoPaneController(
       project,
       updateBeat,
     });
-    const { data: videoBackendsResponse } =
-      queries.useVideoBackends(project);
-    const videoBackends = videoBackendsResponse?.data ?? [];
+    const { data: videoModels } = queries.useVideoModels(Boolean(project));
     const assetOperations =
       dependencies.useSeedance2AssetOperationsController({
         beatNumber: beat.beat_number,
         episode,
         project,
       });
-    const selectedBackend = videoBackends.find(
-      (backend) => backend.value === defaultBackend,
+    const selectedModel = videoModels.find(
+      (model) => model.value === defaultModel,
     );
-    const showSeedance2Config = selectedBackend?.is_seedance2 === true;
-    const showHappyHorseConfig = selectedBackend?.is_happyhorse === true;
-    const showGrokVideoConfig = selectedBackend?.is_grok_video === true;
+    const showSeedance2Config =
+      selectedModel?.profile === "seedance2" ||
+      (selectedModel?.profile === "standard" &&
+        selectedModel.supportsAdvancedConfig);
+    const showHappyHorseConfig = selectedModel?.profile === "happyhorse";
+    const showGrokVideoConfig = selectedModel?.profile === "grok";
     const showPromptConfig =
       showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig;
     const showReferenceDetails =
-      showPromptConfig || isSeedanceReferenceCropBackend(defaultBackend);
+      showPromptConfig || isVideoReferenceCropModel(defaultModel);
     const seedance2Status = queries.useSeedance2BeatStatus(
       project,
       episode,
@@ -168,12 +166,12 @@ export function createUseVideoPaneController(
         ? seedance2Status.data.data
         : null;
     const config = dependencies.useSeedance2ConfigController({
-      backend: defaultBackend,
+      model: defaultModel,
       beat,
       episode,
       project,
       projectAspect: spec.renderAspect,
-      selectedBackend,
+      selectedModel,
       showGrokVideoConfig,
       showHappyHorseConfig,
       showSeedance2Config,
@@ -225,7 +223,7 @@ export function createUseVideoPaneController(
       project,
       state,
       videoActive: generation.started,
-      videoBackends,
+      videoModels,
       videoProgress: generation.progress,
       videoUrl: beat.video_url,
       useSeedance2Preview: showSeedance2Config,

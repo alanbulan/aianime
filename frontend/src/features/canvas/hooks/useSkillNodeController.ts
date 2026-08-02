@@ -9,7 +9,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   createSkillRunNonce,
   directorControlBundleFromMeta,
@@ -63,32 +62,43 @@ import {
   normalizedSkillParameters,
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
+import { publishCanvasCommitRequested } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useCanvasSkillRegistry } from '@/features/canvas/hooks/useCanvasSkillRegistry';
+import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
   resolveInputsForSkill,
   skillRunErrorMessage,
-  translateSkillDescription,
-  translateSkillName,
   type MainlineContext,
   type SceneAssetsForBeat,
   type SkillRunOutput,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import {
+  translateSkillDescription,
+  translateSkillName,
+} from '@/modules/creative_canvas/public';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
 } from '@/features/viewer-kit/three-d/directorManifest';
-import { readUrl } from '@/lib/url-params';
-import { isActive as isActiveTask } from '@/task-center/derivations';
-import { useTaskCenterStore } from '@/task-center/store';
+import { isActive as isActiveTask } from '@/modules/task_execution/public';
+import { useTaskCenterStore } from '@/modules/task_execution/public';
 
 export interface SkillNodeControllerOptions {
   id: string;
   data: SkillNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
   width?: number;
+}
+
+interface SkillNodeRouteContext {
+  projectId: string;
+  canvasId: string;
+  active: boolean;
 }
 
 interface SkillDirectorCaptureMeta {
@@ -97,16 +107,17 @@ interface SkillDirectorCaptureMeta {
 }
 
 function assertCurrentRunContext(
+  currentContext: SkillNodeRouteContext,
   projectId: string,
   canvasId: string,
   skillNodeId: string,
   runId: string | null,
   startedAt: number | null,
 ): void {
-  const currentUrl = readUrl();
   if (
-    currentUrl.project !== projectId ||
-    (currentUrl.canvas ?? 'default') !== canvasId
+    !currentContext.active ||
+    currentContext.projectId !== projectId ||
+    currentContext.canvasId !== canvasId
   ) {
     throw new Error(
       'Skill run completed after switching canvas; output was not materialized',
@@ -139,12 +150,21 @@ function assertCurrentRunContext(
 export function useSkillNodeController({
   id,
   data,
+  projectId,
+  canvasId,
   selected,
   width,
 }: SkillNodeControllerOptions) {
   const { t } = useTranslation();
   const resumeRunRef = useRef<string | null>(null);
   const submitInFlightRef = useRef(false);
+  const currentRouteContextRef = useRef<SkillNodeRouteContext>({
+    projectId,
+    canvasId,
+    active: true,
+  });
+  currentRouteContextRef.current.projectId = projectId;
+  currentRouteContextRef.current.canvasId = canvasId;
   const updateNodeInternals = useUpdateNodeInternals();
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
   const addNode = useCanvasStore((state) => state.addNode);
@@ -173,6 +193,7 @@ export function useSkillNodeController({
   const { skills: registry, isLoading, loadError } = useCanvasSkillRegistry(
     loadCanvasSkillRegistry,
   );
+  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
   const [sceneAssets, setSceneAssets] =
     useState<SceneAssetsForBeat | null>(null);
   const [sourcePickerError, setSourcePickerError] = useState<string | null>(
@@ -193,13 +214,17 @@ export function useSkillNodeController({
     () => registry.find((item) => item.id === data.skill_id) ?? null,
     [data.skill_id, registry],
   );
+  const dynamicParameterOptions = useMemo(
+    () => ({ model: imageModels.map((model) => model.apiModel) }),
+    [imageModels],
+  );
   const parameterEntries = useMemo(
-    () => skillParameterEntries(skill, data.parameters),
-    [data.parameters, skill],
+    () => skillParameterEntries(skill, data.parameters, dynamicParameterOptions),
+    [data.parameters, dynamicParameterOptions, skill],
   );
   const skillParameters = useMemo(
-    () => normalizedSkillParameters(skill, data.parameters),
-    [data.parameters, skill],
+    () => normalizedSkillParameters(skill, data.parameters, dynamicParameterOptions),
+    [data.parameters, dynamicParameterOptions, skill],
   );
   const generationTaskKey =
     typeof data.generationTaskKey === 'string'
@@ -251,9 +276,12 @@ export function useSkillNodeController({
     () => resolveSkillBeatTarget(beatContextNode),
     [beatContextNode],
   );
-  const ready = skill
-    ? isSkillReadyToSubmit(skill, incomingEdges, nodeById)
-    : false;
+  const requiresImageModel = skill?.parameters?.model?.type === 'image_model';
+  const ready = Boolean(
+    skill
+      && isSkillReadyToSubmit(skill, incomingEdges, nodeById)
+      && (!requiresImageModel || skillParameters.model),
+  );
   const taskIsActive = trackedTask ? isActiveTask(trackedTask) : false;
   const waitingForTaskRecord =
     data.isGenerating === true &&
@@ -316,7 +344,7 @@ export function useSkillNodeController({
       return null;
     }
     if (mainlineManaged && !extraData?.committed_at) {
-      canvasEventBus.publish('freezone/commit-node', {
+      publishCanvasCommitRequested({
         nodeId: outputNodeId,
         auto: true,
         successMessage: t(
@@ -333,9 +361,8 @@ export function useSkillNodeController({
     filename: string,
     label?: string,
   ) => {
-    const projectId = readUrl().project;
-    if (!projectId || !beatTarget) {
-      throw new Error('缺少项目或镜头上下文');
+    if (!beatTarget) {
+      throw new Error('缺少镜头上下文');
     }
     const uploaded = await uploadCanvasAsset(projectId, blob, filename, {
       disableTimeout: true,
@@ -355,9 +382,8 @@ export function useSkillNodeController({
     if (!fresh && sceneAssets) {
       return sceneAssets;
     }
-    const projectId = readUrl().project;
-    if (!projectId || !beatTarget) {
-      setSourcePickerError('缺少项目或镜头上下文');
+    if (!beatTarget) {
+      setSourcePickerError('缺少镜头上下文');
       return null;
     }
     setSourcePickerBusy(true);
@@ -380,8 +406,6 @@ export function useSkillNodeController({
 
   useEffect(() => {
     if (!isSetSelectedBackgroundSkill || !beatTarget) return;
-    const projectId = readUrl().project;
-    if (!projectId) return;
     let cancelled = false;
     setSourcePickerBusy(true);
     void getCanvasSceneAssetsForBeat({
@@ -401,7 +425,12 @@ export function useSkillNodeController({
     return () => {
       cancelled = true;
     };
-  }, [beatTarget?.beat, beatTarget?.episode, isSetSelectedBackgroundSkill]);
+  }, [
+    beatTarget?.beat,
+    beatTarget?.episode,
+    isSetSelectedBackgroundSkill,
+    projectId,
+  ]);
 
   const handleParameterChange = (key: string, value: string | boolean) => {
     const currentParameters = skillRecordValue(data.parameters) ?? {};
@@ -420,7 +449,14 @@ export function useSkillNodeController({
     runId: string | null,
     startedAt: number | null,
   ) => {
-    assertCurrentRunContext(projectId, canvasId, id, runId, startedAt);
+    assertCurrentRunContext(
+      currentRouteContextRef.current,
+      projectId,
+      canvasId,
+      id,
+      runId,
+      startedAt,
+    );
     const state = useCanvasStore.getState();
     const sourceNode = state.nodes.find((node) => node.id === id);
     if (!sourceNode) {
@@ -529,9 +565,7 @@ export function useSkillNodeController({
     blob: Blob,
     meta?: SkillDirectorCaptureMeta,
   ) => {
-    const projectId = readUrl().project;
-    const canvasId = readUrl().canvas ?? 'default';
-    if (!projectId || !beatTarget) {
+    if (!beatTarget) {
       throw new Error(t('viewer.threeD.directorCombinedMissingContext'));
     }
     const bundle = directorControlBundleFromMeta(meta);
@@ -596,7 +630,7 @@ export function useSkillNodeController({
         committed_slot_url: imageUrl,
       });
     } else if (mainlineManaged && outputNodeId) {
-      canvasEventBus.publish('freezone/commit-node', {
+      publishCanvasCommitRequested({
         nodeId: outputNodeId,
         auto: true,
         successMessage: t('viewer.threeD.directorCombinedCommitSuccess', {
@@ -607,6 +641,13 @@ export function useSkillNodeController({
     }
     setSourcePickerError(null);
   };
+
+  useEffect(() => {
+    currentRouteContextRef.current.active = true;
+    return () => {
+      currentRouteContextRef.current.active = false;
+    };
+  }, []);
 
   useEffect(() => {
     setSceneAssets(null);
@@ -644,11 +685,6 @@ export function useSkillNodeController({
     }
     const runId = typeof data.skillRunId === 'string' ? data.skillRunId : '';
     if (!runId) {
-      return;
-    }
-    const projectId = readUrl().project;
-    const canvasId = readUrl().canvas ?? 'default';
-    if (!projectId) {
       return;
     }
     const resumeKey = `${projectId}:${canvasId}:${id}:${runId}`;
@@ -723,7 +759,9 @@ export function useSkillNodeController({
     data.generationTaskKey,
     data.isGenerating,
     data.skillRunId,
+    canvasId,
     id,
+    projectId,
     skill,
     updateNodeData,
   ]);
@@ -754,9 +792,8 @@ export function useSkillNodeController({
   const openContextDirectorWorld = async (
     destination: SkillDirectorWorldDestination,
   ) => {
-    const projectId = readUrl().project;
-    if (!projectId || !beatTarget) {
-      setSourcePickerError('缺少项目或镜头上下文');
+    if (!beatTarget) {
+      setSourcePickerError('缺少镜头上下文');
       return;
     }
     setSourcePickerBusy(true);
@@ -826,14 +863,6 @@ export function useSkillNodeController({
       return;
     }
 
-    const projectId = readUrl().project;
-    const canvasId = readUrl().canvas ?? 'default';
-    if (!projectId) {
-      updateNodeData(id, {
-        generationError: 'project id is required to run a skill',
-      });
-      return;
-    }
     if (submitInFlightRef.current) {
       return;
     }
@@ -865,6 +894,7 @@ export function useSkillNodeController({
       const currentParameters = normalizedSkillParameters(
         skill,
         (skillNode.data as SkillNodeData).parameters,
+        dynamicParameterOptions,
       );
       const inputSignature = skillInputSignature({
         inputs: resolvedInputs,
@@ -981,6 +1011,7 @@ export function useSkillNodeController({
     data,
     resolvedWidth,
     skill,
+    imageModels,
     parameterEntries,
     skillParameters,
     incomingEdges,

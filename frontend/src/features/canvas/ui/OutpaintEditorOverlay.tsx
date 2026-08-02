@@ -32,16 +32,11 @@ import {
   type CanvasOutpaintAspectRatio,
   type CanvasOutpaintImageSize,
   type CanvasOutpaintNumImages,
-} from '@/features/canvas/domain/outpaint';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasOutpaint } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
-import {
-  ProviderModelPicker,
-  SHARED_MODELS,
-} from '@/features/canvas/ui/ProviderModelPicker';
-import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
+import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
@@ -83,13 +78,14 @@ function imageModelSupportsQuality(apiModel: string | null | undefined): boolean
 }
 
 interface OutpaintEditorOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
 }
 
 export const OutpaintEditorOverlay = memo(
-  ({ node, imageSource, onClose }: OutpaintEditorOverlayProps) => {
+  ({ projectId, node, imageSource, onClose }: OutpaintEditorOverlayProps) => {
     const { t } = useTranslation();
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
@@ -105,13 +101,12 @@ export const OutpaintEditorOverlay = memo(
     const [numImages, setNumImages] = useState<CanvasOutpaintNumImages>(
       DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
     );
-    const [modelId, setModelId] = useState<string>(DEFAULT_SHARED_MODEL_ID);
-    const { models: availableModels } = useFreezoneImageModels();
+    const [modelId, setModelId] = useState<string>('');
+    const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const selectedModel =
       availableModels.find((m) => m.id === modelId)
-      ?? availableModels[0]
-      ?? SHARED_MODELS.find((m) => m.id === modelId);
+      ?? availableModels[0];
     const creditCost = useGenerationCreditCost(
       'image_selection',
       selectedModel?.apiModel ?? null,
@@ -213,12 +208,7 @@ export const OutpaintEditorOverlay = memo(
     );
 
     const handleSubmit = useCallback(async () => {
-      if (isSubmitting) return;
-      const project = readUrl().project;
-      if (!project) {
-        console.error('[outpaint] no project in URL — cannot submit');
-        return;
-      }
+      if (isSubmitting || !selectedModel) return;
 
       const sourceAspectRatio =
         typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
@@ -229,7 +219,7 @@ export const OutpaintEditorOverlay = memo(
         EXPORT_RESULT_NODE_DEFAULT_WIDTH,
         EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
       );
-      const apiModel = selectedModel?.apiModel ?? modelId;
+      const apiModel = selectedModel.apiModel;
 
       setIsSubmitting(true);
       try {
@@ -244,7 +234,7 @@ export const OutpaintEditorOverlay = memo(
         );
         setSelectedNode(nodeIds[0]);
         onClose();
-        nodeIds.forEach((id) => void runOutpaintGeneration(project, id, apiModel));
+        nodeIds.forEach((id) => void runOutpaintGeneration(projectId, id, apiModel));
       } finally {
         setIsSubmitting(false);
       }
@@ -252,10 +242,10 @@ export const OutpaintEditorOverlay = memo(
       createOutpaintNode,
       findNodePosition,
       isSubmitting,
-      modelId,
       node,
       numImages,
       onClose,
+      projectId,
       runOutpaintGeneration,
       selectedModel,
       setSelectedNode,
@@ -333,7 +323,12 @@ export const OutpaintEditorOverlay = memo(
               <X className="h-4 w-4" />
             </button>
 
-            <ProviderModelPicker selectedModelId={modelId} onChange={setModelId} />
+            <ProviderModelPicker
+              selectedModelId={modelId}
+              onChange={setModelId}
+              models={availableModels}
+              imageMode="edit"
+            />
             <AspectRatioPicker value={aspectRatio} onChange={setAspectRatio} />
             <SimpleSegmentedDropdown<CanvasOutpaintImageSize>
               value={imageSize}
@@ -357,9 +352,9 @@ export const OutpaintEditorOverlay = memo(
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !selectedModel}
               className={`shrink-0 ${NODE_GENERATE_BUTTON_BASE_CLASS} ${
-                isSubmitting
+                isSubmitting || !selectedModel
                   ? NODE_GENERATE_BUTTON_DISABLED_CLASS
                   : NODE_GENERATE_BUTTON_ENABLED_CLASS
               }`}

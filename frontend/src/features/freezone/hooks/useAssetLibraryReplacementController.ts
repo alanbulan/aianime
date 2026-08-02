@@ -2,14 +2,17 @@
 import { useCallback, useState } from "react";
 
 import { useAssetDropStore } from "@/features/canvas/assetDropStore";
-import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
+import type {
+  LibraryAsset,
+  PushResult,
+  PushTarget,
+} from "@/modules/creative_canvas/public";
 
 import {
+  assetToPushTarget,
   commitDirectorRenderFromCanvasSource,
   commitFreezoneAsset as promoteToAsset,
-} from "../composition";
-import { assetToPushTarget } from "../domain/pushTarget";
-import type { LibraryAsset } from "../domain/assetLibraryModel";
+} from "@/modules/creative_canvas/public";
 
 export type AssetLibraryReplacementHandler = (
   payload: { target: PushTarget; result: PushResult } | null,

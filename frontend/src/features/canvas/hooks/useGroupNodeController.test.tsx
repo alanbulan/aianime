@@ -23,7 +23,6 @@ const mocks = vi.hoisted(() => ({
   setSnapGuides: vi.fn(),
   clearSnapGuides: vi.fn(),
   zoom: 2,
-  project: 'project-a' as string | undefined,
   uploadCanvasAsset: vi.fn(
     async (_project: string, file: File, _displayName: string) => ({
       url: `/uploaded/${file.name}`,
@@ -56,16 +55,12 @@ vi.mock('sonner', () => ({
   toast: (message: string) => mocks.toast(message),
 }));
 
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project }),
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (project: string, file: File, displayName: string) =>
     mocks.uploadCanvasAsset(project, file, displayName),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasProjectionStatus: (projectionKey: string | null) => {
     mocks.useCanvasProjectionStatus(projectionKey);
     return mocks.projectionStatus;
@@ -143,7 +138,6 @@ describe('useGroupNodeController', () => {
     mocks.setSnapGuides.mockReset();
     mocks.clearSnapGuides.mockReset();
     mocks.zoom = 2;
-    mocks.project = 'project-a';
     mocks.uploadCanvasAsset.mockReset().mockImplementation(
       async (_project: string, file: File, _displayName: string) => ({
         url: `/uploaded/${file.name}`,
@@ -191,6 +185,7 @@ describe('useGroupNodeController', () => {
           storyboardShowIndex: true,
           projection_key: ' projection-a ',
         }),
+        projectId: 'project-a',
         selected: true,
       }),
     );
@@ -229,6 +224,7 @@ describe('useGroupNodeController', () => {
       useGroupNodeController({
         id: 'group-a',
         data: data({ user_spawned: true, projection_key: 'ignored' }),
+        projectId: 'project-a',
       }),
     );
 
@@ -245,7 +241,11 @@ describe('useGroupNodeController', () => {
     mocks.fitGroupToChildren.mockReset();
     mocks.dragHistorySnapshot = {};
     const interacting = renderHook(() =>
-      useGroupNodeController({ id: 'group-a', data: data() }),
+      useGroupNodeController({
+        id: 'group-a',
+        data: data(),
+        projectId: 'project-a',
+      }),
     );
     expect(mocks.fitGroupToChildren).not.toHaveBeenCalled();
     interacting.unmount();
@@ -259,6 +259,7 @@ describe('useGroupNodeController', () => {
       useGroupNodeController({
         id: 'group-a',
         data: data({ storyboardGroup: true }),
+        projectId: 'project-a',
       }),
     );
     const image = new File(['image'], 'frame.png', { type: 'image/png' });
@@ -332,6 +333,7 @@ describe('useGroupNodeController', () => {
       useGroupNodeController({
         id: 'group-a',
         data: data({ storyboardGroup: true, storyboardCols: 2 }),
+        projectId: 'project-a',
       }),
     );
 

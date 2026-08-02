@@ -9,6 +9,7 @@ import { useImageEditToolbarController } from "./useImageEditToolbarController";
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   matte: vi.fn(),
+  useImageMatteController: vi.fn(),
   t: vi.fn((key: string) => `translated:${key}`),
 }));
 
@@ -24,13 +25,17 @@ vi.mock("@/features/canvas/application/canvasServices", () => ({
 }));
 
 vi.mock("@/features/canvas/hooks/useImageMatteController", () => ({
-  useImageMatteController: () => ({ matte: mocks.matte }),
+  useImageMatteController: (...args: unknown[]) =>
+    mocks.useImageMatteController(...args),
 }));
 
 describe("useImageEditToolbarController", () => {
   beforeEach(() => {
     mocks.publish.mockReset();
     mocks.matte.mockReset();
+    mocks.useImageMatteController
+      .mockReset()
+      .mockReturnValue({ matte: mocks.matte });
     mocks.t
       .mockReset()
       .mockImplementation((key: string) => `translated:${key}`);
@@ -43,6 +48,7 @@ describe("useImageEditToolbarController", () => {
     const onOpenOutpaint = vi.fn();
     const { result } = renderHook(() =>
       useImageEditToolbarController({
+        projectId: "project-a",
         nodeId: "image-a",
         nodeData: {} as CanvasNodeData,
         imageSource: "/source.png",
@@ -58,6 +64,9 @@ describe("useImageEditToolbarController", () => {
       key: "matting",
       label: "translated:nodeToolbar.matting",
     });
+    expect(mocks.useImageMatteController).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "project-a" }),
+    );
 
     for (const action of result.current.actions) {
       act(() => result.current.selectAction(action.key));
@@ -77,6 +86,7 @@ describe("useImageEditToolbarController", () => {
 
   it("removes HD and projects matting when a selected node becomes locked", () => {
     const options = {
+      projectId: "project-a",
       nodeId: "image-a",
       nodeData: {} as CanvasNodeData,
       imageSource: "/source.png",

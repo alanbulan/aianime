@@ -5,11 +5,6 @@ import type {
   CanvasTaskResultGateway,
 } from "./ports";
 
-export type CanvasImageGenerationProvider =
-  | "openrouter"
-  | "huimeng"
-  | "openai";
-
 export interface CanvasImageGenerationCamera {
   readonly cameraBodyId?: string | null;
   readonly lensId?: string | null;
@@ -28,8 +23,7 @@ export interface CanvasImageGenerationCommand {
   readonly referenceUrls?: string[];
   readonly camera?: CanvasImageGenerationCamera | null;
   readonly style?: CanvasImageGenerationStyle | null;
-  readonly provider?: CanvasImageGenerationProvider | null;
-  readonly model?: string | null;
+  readonly model: string;
   readonly modelId?: string | null;
   readonly genMode?: string | null;
   readonly quality?: string | null;
@@ -71,7 +65,6 @@ export async function generateCanvasImage(
     referenceUrls: params.referenceUrls,
     camera: params.camera,
     style: params.style,
-    provider: params.provider,
     model: params.model,
     modelId: params.modelId,
     genMode: params.genMode,

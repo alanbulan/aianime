@@ -247,12 +247,14 @@ def _chunk_revise_rows(rows: list[dict[str, Any]], aspect_ratio: str) -> list[di
     return chunks
 
 
-def _get_sketch_edit_generation_config() -> dict[str, Any]:
+def _get_sketch_edit_generation_config(model: str) -> dict[str, Any]:
     """Resolve the image-edit backend for sketch correction/director passes."""
-    selection = os.environ.get("SKETCH_EDIT_IMAGE_SELECTION", "huimeng_gpt_image2")
+    resolved_model = str(model or "").strip()
+    if not resolved_model:
+        raise ValueError("sketch edit image model is required")
     quality = os.environ.get("SKETCH_EDIT_IMAGE_QUALITY", "low")
     config = get_grid_generation_config(
-        selection_override=selection,
+        model_override=resolved_model,
         image_size_override=os.environ.get("SKETCH_EDIT_IMAGE_SIZE", "1K"),
     )
     config["openai_image_quality"] = quality
@@ -386,6 +388,7 @@ def execute_sketch_edit_batches(
     project_dir: Path,
     episode_num: int,
     labels_path: Path,
+    model: str,
     progress_callback: ProgressCallback | None = None,
     log_callback: LogCallback | None = None,
 ) -> dict[str, Any]:
@@ -440,7 +443,7 @@ def execute_sketch_edit_batches(
         if clause:
             registry_negative_clauses.append(clause)
     registry_negative_clause = "\n".join(registry_negative_clauses)
-    edit_generator_config = _get_sketch_edit_generation_config()
+    edit_generator_config = _get_sketch_edit_generation_config(model)
     edit_image_quality = str(
         os.environ.get("SKETCH_EDIT_IMAGE_QUALITY")
         or edit_generator_config.get("huimeng_image_quality")

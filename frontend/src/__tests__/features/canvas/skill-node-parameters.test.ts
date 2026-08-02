@@ -5,7 +5,7 @@ import {
   normalizedSkillParameters,
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 const skill: SkillDefinition = {
   id: 'freezone.frame_from_context',
@@ -16,6 +16,10 @@ const skill: SkillDefinition = {
   inputs: [],
   outputs: [],
   parameters: {
+    model: {
+      type: 'image_model',
+      label: '模型',
+    },
     quality: {
       type: 'enum',
       label: '质量',
@@ -33,7 +37,8 @@ const skill: SkillDefinition = {
 
 describe('skill node parameters', () => {
   it('includes enum parameters with default values', () => {
-    expect(normalizedSkillParameters(skill, {})).toEqual({
+    expect(normalizedSkillParameters(skill, {}, { model: ['cloud-image-standard'] })).toEqual({
+      model: 'cloud-image-standard',
       quality: 'medium',
       background_reference_mode: 'material_only',
     });
@@ -76,5 +81,15 @@ describe('skill node parameters', () => {
         value: 'material_only',
       }),
     ]);
+  });
+
+  it('uses only authenticated catalog SKUs for image model parameters', () => {
+    expect(
+      normalizedSkillParameters(
+        skill,
+        { model: 'retired-model' },
+        { model: ['cloud-image-standard', 'byok-image'] },
+      ),
+    ).toMatchObject({ model: 'cloud-image-standard' });
   });
 });

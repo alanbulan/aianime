@@ -45,7 +45,6 @@ import {
   isStaleGenerationTask,
   shouldWriteGenerationError,
 } from '@/features/canvas/application/generationTaskArbitration';
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
@@ -59,7 +58,15 @@ import {
   type ImageQuality,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
-import { historyRecordOutputUrl } from '@/features/canvas/domain/generationHistoryRecord';
+import {
+  historyRecordOutputUrl,
+  publishCanvasAssetsUpdated,
+  publishCanvasCommitRequested,
+} from '@/modules/creative_canvas/public';
+import {
+  filterCanvasImageModels,
+  type CanvasImageMode,
+} from '@/features/canvas/domain/imageModelCapability';
 import {
   isSystemManagedNodeData,
   mainlineNodeVisualState,
@@ -102,8 +109,8 @@ import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMen
 import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import {
   collectCandidateBindingsForNode,
-  getFreezoneCanvasMetadata,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import { getFreezoneCanvasMetadata } from '@/modules/creative_canvas/public';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
@@ -111,10 +118,7 @@ import type {
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
-import { readUrl } from '@/lib/url-params';
 import { backendErrorToastMessage } from '@/shared/api/errors';
-import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
-import { SHARED_MODELS } from '@/features/canvas/ui/ProviderModelPicker';
 
 export interface ImageGenNodeControllerOptions {
   id: string;
@@ -122,6 +126,8 @@ export interface ImageGenNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
+  canvasId: string;
 }
 
 interface ImageGenDirectorCaptureMeta {
@@ -135,6 +141,8 @@ export function useImageGenNodeController({
   selected,
   width,
   height,
+  projectId,
+  canvasId,
 }: ImageGenNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -219,10 +227,9 @@ export function useImageGenNodeController({
   }, [generationError, generationErrorDetails, generationErrorRequestId]);
 
   const {
-    models: availableModels,
+    models: catalogImageModels,
     isLoading: imageModelsLoading,
-    isFallback: imageModelsFallback,
-  } = useFreezoneImageModels();
+  } = useFreezoneImageModels(projectId);
   // Per-node generation history. Only fetch while the node is selected so an
   // unselected canvas full of nodes doesn't fan out a request each. `refresh`
   // is called after a generation settles to pull in the new record.
@@ -230,7 +237,12 @@ export function useImageGenNodeController({
     records: historyRecords,
     isLoading: historyLoading,
     refresh: refreshHistory,
-  } = useNodeGenerationHistory(id, { enabled: Boolean(selected) });
+  } = useNodeGenerationHistory({
+    projectId,
+    canvasId,
+    nodeId: id,
+    enabled: Boolean(selected),
+  });
 
   // 生成进行中时，点击历史记录走「非破坏性预览」：不覆写 imageUrl、不打断在途
   // 任务，仅把这张历史图临时显示在主体上（见 isGenerating 渲染分支）。新图生成
@@ -264,39 +276,9 @@ export function useImageGenNodeController({
   useEffect(() => {
     if (!isGenerating) setHistoryPreviewUrl(null);
   }, [isGenerating]);
-  // Resolve the model against the LIVE model list and derive BOTH the picker's
-  // displayed id and the submit apiModel from this one object, so they can
-  // never diverge.
-  //
-  // The node's default `data.model` is seeded to the static
-  // `DEFAULT_SHARED_MODEL_ID` (`huimeng/gpt-image-2`), which is normally NOT in
-  // the live `/freezone/image/models` list. Trusting it blindly is the bug:
-  // ProviderModelPicker silently falls back to showing `availableModels[0]`
-  // (e.g. LingShan-G2) when the id isn't found, while submit resolves the stale
-  // id through SHARED_MODELS to `huimeng_gpt_image2` — display ≠ value sent.
-  // Reconciling here keeps them in lockstep: an unknown persisted id falls back
-  // to the first live model (exactly what the picker shows).
-  const selectedModel = useMemo(
-    () => resolveImageGenModel(availableModels, data.model),
-    [availableModels, data.model],
-  );
-  const modelId = selectedModel?.id ?? DEFAULT_SHARED_MODEL_ID;
-  const isImage2 = isImage2Model(selectedModel?.apiModel);
-  const imageSelectionForCost =
-    imageModelsLoading || imageModelsFallback ? null : selectedModel?.apiModel ?? null;
-  const imageCreditCost = useGenerationCreditCost('image_selection', imageSelectionForCost, {
-    surface: 'canvas',
-    params: isImage2 ? { size, quality } : { size },
-    quantity: Math.min(Math.max(effectiveCount, 1), 4),
-  });
-  const totalCreditCostDisplay = useMemo(() => {
-    const total = imageCreditCost.data?.data.cost;
-    if (typeof total !== 'number') return null;
-    return formatCreditCost(total);
-  }, [imageCreditCost.data?.data.cost]);
-  const { options: cameraOptions } = useFreezoneCameraOptions();
+  const { options: cameraOptions } = useFreezoneCameraOptions(projectId);
   const cameraSummary = describeCameraSelection(cameraSelection, cameraOptions);
-  const { templates: styleTemplates } = useFreezoneStyleTemplates();
+  const { templates: styleTemplates } = useFreezoneStyleTemplates(projectId);
   const selectedStyle = describeStyleSelection(styleTemplateId, styleTemplates);
 
   const upstreamContents = useUpstreamContents(id);
@@ -351,6 +333,32 @@ export function useImageGenNodeController({
     () => orderedReferenceUrlsWithOwnFirst(referenceImageUrl, upstreamReferenceUrls),
     [referenceImageUrl, upstreamReferenceUrls],
   );
+  const imageModelMode: CanvasImageMode =
+    orderedReferenceUrls.length > 0 ? 'edit' : 'generation';
+  const availableModels = useMemo(
+    () => filterCanvasImageModels(catalogImageModels, imageModelMode),
+    [catalogImageModels, imageModelMode],
+  );
+  // Reconcile persisted ids against the authorized list for the active request
+  // role so the picker and submitted SKU cannot diverge after references change.
+  const selectedModel = useMemo(
+    () => resolveImageGenModel(availableModels, data.model),
+    [availableModels, data.model],
+  );
+  const modelId = selectedModel?.id ?? "";
+  const isImage2 = isImage2Model(selectedModel?.apiModel);
+  const imageSelectionForCost =
+    imageModelsLoading ? null : selectedModel?.apiModel ?? null;
+  const imageCreditCost = useGenerationCreditCost('image_selection', imageSelectionForCost, {
+    surface: 'canvas',
+    params: isImage2 ? { size, quality } : { size },
+    quantity: Math.min(Math.max(effectiveCount, 1), 4),
+  });
+  const totalCreditCostDisplay = useMemo(() => {
+    const total = imageCreditCost.data?.data.cost;
+    if (typeof total !== 'number') return null;
+    return formatCreditCost(total);
+  }, [imageCreditCost.data?.data.cost]);
   // collectCandidateBindingsForNode 只关心连到 this node 的边。用 useShallow 只订阅
   // 本节点相连的边(逐元素比较),拖动无关节点时边引用稳定,本节点不再重渲染。
   const connectedEdges = useCanvasStore(
@@ -637,9 +645,8 @@ export function useImageGenNodeController({
 
   const handleUploadFile = useCallback(
     async (file: File) => {
-      const projectId = readUrl().project;
       if (!projectId) {
-        console.error('[image-gen] no project in URL');
+        console.error('[image-gen] missing project context');
         return;
       }
       setIsUploading(true);
@@ -652,7 +659,7 @@ export function useImageGenNodeController({
         setIsUploading(false);
       }
     },
-    [id, updateNodeData],
+    [id, projectId, updateNodeData],
   );
 
   const handleClearReference = useCallback(() => {
@@ -679,9 +686,8 @@ export function useImageGenNodeController({
     if (isTranslatingPrompt || isGenerating) return;
     const trimmed = prompt.trim();
     if (trimmed.length === 0) return;
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error('[image-gen] translate: no project in URL');
+      console.error('[image-gen] translate: missing project context');
       return;
     }
     setIsTranslatingPrompt(true);
@@ -690,7 +696,7 @@ export function useImageGenNodeController({
         projectId,
         text: prompt,
         nodeType: 'image',
-        canvasId: readUrl().canvas ?? 'default',
+        canvasId,
         nodeId: id,
       });
       if (result.translatedText) {
@@ -702,7 +708,15 @@ export function useImageGenNodeController({
     } finally {
       setIsTranslatingPrompt(false);
     }
-  }, [id, isGenerating, isTranslatingPrompt, prompt, updateNodeData]);
+  }, [
+    canvasId,
+    id,
+    isGenerating,
+    isTranslatingPrompt,
+    projectId,
+    prompt,
+    updateNodeData,
+  ]);
 
   useEffect(() => {
     updateNodeInternals(id);
@@ -717,24 +731,21 @@ export function useImageGenNodeController({
     hasUserEditedPrompt: hasUserEditedPromptRef.current,
   });
   const submitDisabled =
-    isGenerating || !hasEffectivePrompt;
+    isGenerating || imageModelsLoading || !selectedModel || !hasEffectivePrompt;
 
   const handleSubmit = useCallback(async () => {
     if (submitDisabled || submittingRef.current) return;
     submittingRef.current = true;
     try {
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error('[image-gen] no project in URL');
+      console.error('[image-gen] missing project context');
       return;
     }
 
     // apiModel comes from the SAME reconciled model the picker displays, so the
     // backend always receives the model the user actually sees.
-    const apiModel =
-      selectedModel?.apiModel
-      ?? SHARED_MODELS.find((m) => m.id === modelId)?.apiModel
-      ?? modelId;
+    if (!selectedModel) return;
+    const apiModel = selectedModel.apiModel;
     // 自身参考图（用户手动上传） + 所有上游图片/视频 URL，去重 —— 与 @图片N
     // 编号共用同一份有序列表（orderedReferenceUrls），后端按位置解释 图片N。
     // 后端 reference_urls 接受 image / video 混合数组。
@@ -786,7 +797,6 @@ export function useImageGenNodeController({
     // 先完成的图立即入册展示，未完成的在画册里渲染占位骨架。
     setAlbumPendingTotal(id, total > 1 ? total : 0);
 
-    const canvasId = readUrl().canvas ?? 'default';
     // 各并发任务完成顺序不定，本地累积已完成的 URL，整组写回（避免读改写竞态）。
     const completedUrls: string[] = [];
     const runOne = async (runIndex: number) => {
@@ -819,7 +829,7 @@ export function useImageGenNodeController({
             ...(total > 1 ? { generationBatch: [...completedUrls] } : {}),
           });
           if (canAutoCommitOnGenerate && isFirstCompleted) {
-            canvasEventBus.publish('freezone/commit-node', {
+            publishCanvasCommitRequested({
               nodeId: id,
               auto: true,
             });
@@ -897,6 +907,7 @@ export function useImageGenNodeController({
   }, [
     aspectRatio,
     canAutoCommitOnGenerate,
+    canvasId,
     selectedModel,
     cameraSelection,
     count,
@@ -906,6 +917,7 @@ export function useImageGenNodeController({
     modelId,
     orderedReferenceUrls,
     prompt,
+    projectId,
     quality,
     size,
     styleTemplateId,
@@ -967,7 +979,6 @@ export function useImageGenNodeController({
 
   const handleOpenDirectorStageInline = useCallback(async () => {
     if (!canOpenDirectorStage) return;
-    const projectId = readUrl().project;
     if (!projectId || effectiveEpisode === null || effectiveBeat === null) return;
     setDirectorStageBusy(true);
     try {
@@ -983,11 +994,10 @@ export function useImageGenNodeController({
     } finally {
       setDirectorStageBusy(false);
     }
-  }, [canOpenDirectorStage, effectiveEpisode, effectiveBeat]);
+  }, [canOpenDirectorStage, effectiveBeat, effectiveEpisode, projectId]);
 
   const handleDirectorCaptureCombined = useCallback(
     async (blob: Blob, meta: ImageGenDirectorCaptureMeta) => {
-      const projectId = readUrl().project;
       if (!projectId || effectiveEpisode === null || effectiveBeat === null) {
         throw new Error('缺少项目或镜头上下文');
       }
@@ -1019,9 +1029,16 @@ export function useImageGenNodeController({
           beat: effectiveBeat,
         },
       });
-      canvasEventBus.publish('freezone/assets-updated', undefined);
+      publishCanvasAssetsUpdated();
     },
-    [data.director_control_bundle, effectiveEpisode, effectiveBeat, id, updateNodeData],
+    [
+      data.director_control_bundle,
+      effectiveBeat,
+      effectiveEpisode,
+      id,
+      projectId,
+      updateNodeData,
+    ],
   );
 
   const handlePreviewImageLoad = useCallback(
@@ -1072,6 +1089,7 @@ export function useImageGenNodeController({
     async (blob: Blob, filename: string) => {
       if (effectiveEpisode === null || effectiveBeat === null) return;
       await uploadAndAutoCommitSelectedBackgroundCandidate(
+        projectId,
         { episode: effectiveEpisode, beat: effectiveBeat },
         blob,
         filename,
@@ -1088,7 +1106,7 @@ export function useImageGenNodeController({
         },
       );
     },
-    [effectiveBeat, effectiveEpisode, id, t],
+    [effectiveBeat, effectiveEpisode, id, projectId, t],
   );
 
   // 视觉态从 4 个 derived flag 派生(see mainlineNodeFlags):
@@ -1160,6 +1178,7 @@ export function useImageGenNodeController({
     setHistoryPreviewUrl,
     handleRestoreHistory,
     modelId,
+    imageModelMode,
     isImage2,
     totalCreditCostDisplay,
     cameraSummary,
@@ -1227,7 +1246,7 @@ export function useImageGenNodeController({
     handleConfirmBackgroundCrop,
     cardToneClass,
     showImageOpsPanel,
-    projectId: readUrl().project ?? null,
+    projectId,
   };
 }
 

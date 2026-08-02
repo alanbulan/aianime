@@ -53,7 +53,6 @@ describe("nodeActionToolbarModel", () => {
         generationErrorDetails: "Encoder exited with code 1",
         generationDebugContext: {
           sourceType: "imageGen",
-          providerId: "provider-a",
           prompt: "A city at night",
         },
       }),
@@ -64,7 +63,7 @@ describe("nodeActionToolbarModel", () => {
     expect(exported.report).toContain("Export failed");
     expect(exported.report).toContain("Encoder exited with code 1");
     expect(exported.report).toContain("- Source: imageGen");
-    expect(exported.report).toContain("- Provider: provider-a");
+    expect(exported.report).not.toContain("Provider:");
     expect(exported.report).toContain("A city at night");
 
     expect(

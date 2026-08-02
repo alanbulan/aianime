@@ -1,14 +1,16 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { TaskLogs } from "./task-logs";
 import { TaskActions } from "./task-actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { displayLabel } from "@/task-center/derivations";
-import { taskErrorMessage } from "@/task-center/task-errors";
-import type { TaskState } from "@/task-center/types";
+import {
+  displayLabel,
+  type TaskState,
+} from "@/modules/task_execution/public";
+import { taskErrorMessage } from "@/modules/task_execution/public";
 
 export function formatLocalTaskTime(value?: string | null): string {
   if (!value) return "—";

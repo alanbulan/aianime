@@ -14,7 +14,10 @@ import {
 } from './useCanvasProjectSurfaceController';
 
 const controllerMocks = vi.hoisted(() => {
-  const projectContext = { projectId: 'project-1' as string | null };
+  const projectContext = {
+    projectId: 'project-1' as string | null,
+    canvasId: 'canvas-1',
+  };
   return {
     projectContext,
     useProjectContext: vi.fn(
@@ -35,6 +38,8 @@ vi.mock('./useCanvasGenerationRecoveryController', () => ({
 
 function createOptions(): CanvasProjectSurfaceControllerOptions {
   return {
+    projectId: 'project-1',
+    canvasId: 'canvas-1',
     nodes: [],
     errorTitle: 'Generation failed',
   };
@@ -55,6 +60,8 @@ describe('useCanvasProjectSurfaceController', () => {
     );
 
     expect(controllerMocks.useProjectContext).toHaveBeenCalledWith({
+      projectId: options.projectId,
+      canvasId: options.canvasId,
       nodes: options.nodes,
     });
     expect(controllerMocks.useGenerationRecovery).toHaveBeenCalledWith({
@@ -66,7 +73,7 @@ describe('useCanvasProjectSurfaceController', () => {
 
   it('keeps null project context for export-only recovery', () => {
     const options = createOptions();
-    const projectContext = { projectId: null };
+    const projectContext = { projectId: null, canvasId: 'canvas-1' };
     controllerMocks.useProjectContext.mockReturnValueOnce(projectContext);
     const { result } = renderHook(() =>
       useCanvasProjectSurfaceController(options),

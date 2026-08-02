@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 
 import { loadCanvasVideoCameraTemplates } from "@/features/canvas/catalogComposition";
 import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
-import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneVideoCameraTemplatesResult {
   templates: CameraMovementPreset[];
@@ -68,11 +67,8 @@ function subscribe(project: string | null, callback: () => void) {
 }
 
 export function useFreezoneVideoCameraTemplates(
-  projectOverride?: string | null,
+  project: string | null,
 ): UseFreezoneVideoCameraTemplatesResult {
-  const project =
-    projectOverride !== undefined ? projectOverride : readUrl().project;
-
   if (project) ensureLoaded(project);
 
   return useSyncExternalStore(

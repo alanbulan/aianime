@@ -3,8 +3,8 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/query-keys";
-import { useTaskSubscribe } from "@/task-center/use-task-subscribe";
-import type { TaskState } from "@/task-center/types";
+import { useTaskSubscribe } from "@/modules/task_execution/public";
+import type { TaskState } from "@/modules/task_execution/public";
 
 const EPISODE_IMAGE_TASK_TYPES = new Set([
   "sketch_generation",

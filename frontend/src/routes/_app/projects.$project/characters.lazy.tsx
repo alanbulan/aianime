@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { CharactersPageContent } from "@/modules/asset_world/public";
+import { CharactersPageContent } from "@/app/workspace-composition";
 
 function CharactersRouteAdapter() {
   const { project } = Route.useParams();

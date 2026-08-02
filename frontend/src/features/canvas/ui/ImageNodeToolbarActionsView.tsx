@@ -35,6 +35,7 @@ export function ImageNodeToolbarActionsView({
   if (!controller.visible) return null;
   const {
     t,
+    projectId,
     nodeId,
     nodeData,
     imageSource,
@@ -88,6 +89,7 @@ export function ImageNodeToolbarActionsView({
       </UiChipButton>
       {canEdit && (
         <ImageEditToolbarActions
+          projectId={projectId}
           nodeId={nodeId}
           nodeData={nodeData}
           imageSource={imageSource}

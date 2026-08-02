@@ -3,13 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 import { getCanvasGenerationHistory } from "@/features/canvas/composition";
-import { readUrl } from "@/lib/url-params";
 
 export interface UseCanvasGenerationHistoryResult {
   records: CanvasGenerationHistoryRecord[];
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+}
+
+export interface CanvasGenerationHistoryContext {
+  projectId: string;
+  canvasId: string | null;
 }
 
 /**
@@ -30,6 +34,7 @@ export interface UseCanvasGenerationHistoryResult {
  * gated by `enabled` (the modal only mounts when opened).
  */
 export function useCanvasGenerationHistory(
+  { projectId, canvasId }: CanvasGenerationHistoryContext,
   fallbackNodeIds: string[],
   options?: { enabled?: boolean },
 ): UseCanvasGenerationHistoryResult {
@@ -43,13 +48,11 @@ export function useCanvasGenerationHistory(
   const nodeIdsKey = fallbackNodeIds.join(",");
 
   const refresh = useCallback(async () => {
-    const project = readUrl().project;
-    if (!project) return;
-    const canvasId = readUrl().canvas ?? "default";
+    if (!canvasId) return;
     setIsLoading(true);
     try {
       const recs = await getCanvasGenerationHistory({
-        projectId: project,
+        projectId,
         canvasId,
         fallbackNodeIds: nodeIdsKey ? nodeIdsKey.split(",") : [],
       });
@@ -60,7 +63,7 @@ export function useCanvasGenerationHistory(
     } finally {
       setIsLoading(false);
     }
-  }, [nodeIdsKey]);
+  }, [canvasId, nodeIdsKey, projectId]);
 
   useEffect(() => {
     if (!enabled) return;

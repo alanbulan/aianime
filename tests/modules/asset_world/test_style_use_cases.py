@@ -232,7 +232,7 @@ async def test_style_preview_generation_returns_application_file(tmp_path) -> No
         style_id="custom_style",
         scope=StyleScope(username="alice"),
         prompt="portrait",
-        model="nanobanana",
+        model="image-platform-sku",
     )
 
     assert result.path == preview

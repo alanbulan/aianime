@@ -18,11 +18,11 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { loadImageElement } from '@/features/canvas/infrastructure/browserImageRuntime';
-import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 
 interface RotateEditorOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   /**
@@ -42,7 +42,7 @@ function normalizeAngle(angle: number): number {
 }
 
 export const RotateEditorOverlay = memo(
-  ({ node, imageSource, onClose }: RotateEditorOverlayProps) => {
+  ({ projectId, node, imageSource, onClose }: RotateEditorOverlayProps) => {
     const { t } = useTranslation();
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
 
@@ -88,12 +88,6 @@ export const RotateEditorOverlay = memo(
         onClose(false);
         return;
       }
-      const project = readUrl().project;
-      if (!project) {
-        console.error('[rotate] no project in URL — cannot persist result');
-        return;
-      }
-
       setIsSaving(true);
       updateNodeData(node.id, {
         isGenerating: true,
@@ -135,7 +129,7 @@ export const RotateEditorOverlay = memo(
         });
 
         const filename = `rotate-${node.id}-${Date.now()}.png`;
-        const uploaded = await uploadCanvasAsset(project, blob, filename);
+        const uploaded = await uploadCanvasAsset(projectId, blob, filename);
 
         const newAspectRatio = `${dw}:${dh}`;
         updateNodeData(node.id, {
@@ -167,6 +161,7 @@ export const RotateEditorOverlay = memo(
       mirrorV,
       node.id,
       onClose,
+      projectId,
       updateNodeData,
     ]);
 

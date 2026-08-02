@@ -9,8 +9,9 @@ from ai_anime.modules.production.application.episode_audio import EpisodeAudioTa
 from ai_anime.modules.production.infrastructure import episode_audio
 from ai_anime.modules.production.infrastructure.episode_audio import (
     IndexTTS2VoicePrerequisiteChecker,
-    TaskBackendEpisodeAudioScheduler,
+    TaskExecutionEpisodeAudioScheduler,
 )
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 @pytest.mark.asyncio
@@ -86,16 +87,16 @@ async def test_audio_scheduler_preserves_task_payload_and_identity() -> None:
     context = SimpleNamespace(project_id="proj-1")
     task = EpisodeAudioTask(
         episode_num=3,
+        model="audio-speech-test",
         mode="redo_selected",
         beat_numbers=[2],
         output_dir=Path("output"),
         state_dir=Path("state"),
     )
 
-    receipt = await TaskBackendEpisodeAudioScheduler(lambda: _Backend()).enqueue(
-        context,
-        task,
-    )
+    receipt = await TaskExecutionEpisodeAudioScheduler(
+        ProjectTaskSubmissionUseCases(lambda: _Backend())
+    ).enqueue(context, task)
 
     assert receipt.task_id == "task-1"
     assert receipt.task_key == "task:audio_generation_indextts2:project:proj-1:3"

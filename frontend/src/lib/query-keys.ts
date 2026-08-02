@@ -89,7 +89,6 @@ export const queryKeys = {
     ["projects", p, "episodes", ep, "beats", beat, "director-control-frame"] as const,
   videoPool: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "video-pool"] as const,
-  videoBackends: (p: string) => ["projects", p, "video-backends"] as const,
   seedance2BeatStatusProject: (p: string) =>
     ["seedance2-beat-status", p] as const,
   seedance2BeatStatus: (p: string, ep: number, beat: number) =>
@@ -102,8 +101,6 @@ export const queryKeys = {
   finalVideo: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "final-video"] as const,
   tasks: (p?: string) => (p ? (["projects", p, "tasks"] as const) : (["tasks"] as const)),
-  freezoneCanvases: (p: string) =>
-    ["projects", p, "freezone", "canvases"] as const,
   freezoneProjectAssets: (p: string) =>
     ["projects", p, "freezone", "assets"] as const,
   freezoneBeatContext: (p: string, episode?: number | null, beat?: number | null) =>
@@ -113,5 +110,12 @@ export const queryKeys = {
   style: (id: string) => ["styles", "detail", id] as const,
   ttsVoices: (p: string) => ["projects", p, "tts", "voices"] as const,
   modelGateway: () => ["model-gateway", "config"] as const,
+  commercialQuota: () => ["commercial", "quota"] as const,
+  commercialModels: (operation: string) =>
+    ["commercial", "models", operation] as const,
+  commercialModelAccess: () => ["commercial", "model-access"] as const,
+  commercialRelease: () => ["commercial", "release"] as const,
+  commercialAnnouncements: (limit: number) =>
+    ["commercial", "announcements", limit] as const,
   releaseNotifications: (locale: string) => ["release-notifications", locale] as const,
 };

@@ -1,6 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { ScrollText, Pencil, Mic2, Video, Film, type LucideIcon } from "lucide-react";
-import { TASK_TYPES, type TaskType } from "@/lib/task-types";
+import {
+  TASK_EPISODE_STAGES,
+  type TaskEpisodeRouteSegment,
+  type TaskType,
+} from "@/modules/task_execution/public";
 
 export type StageId = "script" | "sketch" | "audio" | "video" | "compose";
 
@@ -8,7 +12,7 @@ export interface StageDef {
   id: StageId;
   labelKey: string;
   /** Path segment appended to `/projects/$project/episodes/$episode`. */
-  routeSegment: "/script" | "/sketches" | "/audio" | "/video" | "/compose";
+  routeSegment: TaskEpisodeRouteSegment;
   icon: LucideIcon;
   /** Backend task types that belong to this stage (any of these running → stage is busy). */
   taskTypes: readonly TaskType[];
@@ -22,62 +26,45 @@ export const EPISODE_STAGE_REGISTRY: readonly StageDef[] = [
   {
     id: "script",
     labelKey: "episode.stage.script",
-    routeSegment: "/script",
+    routeSegment: TASK_EPISODE_STAGES.script.routeSegment,
     icon: ScrollText,
-    taskTypes: [
-      TASK_TYPES.SCRIPT_WRITER,
-      TASK_TYPES.LITERAL_SCRIPT_WRITER,
-      TASK_TYPES.DIRECTOR_NOTES,
-      TASK_TYPES.IDENTITY_PLANNER,
-    ],
+    taskTypes: TASK_EPISODE_STAGES.script.taskTypes,
     dependsOn: [],
     supportsBeatJump: true,
   },
   {
     id: "sketch",
     labelKey: "episode.stage.sketch",
-    routeSegment: "/sketches",
+    routeSegment: TASK_EPISODE_STAGES.sketch.routeSegment,
     icon: Pencil,
-    taskTypes: [
-      TASK_TYPES.SKETCH_GENERATION,
-      TASK_TYPES.BATCH_SKETCH,
-      TASK_TYPES.SKETCH_REGEN,
-      TASK_TYPES.GRID_REGENERATE,
-    ],
+    taskTypes: TASK_EPISODE_STAGES.sketch.taskTypes,
     dependsOn: ["script"],
     supportsBeatJump: true,
   },
   {
     id: "audio",
     labelKey: "episode.stage.audio",
-    routeSegment: "/audio",
+    routeSegment: TASK_EPISODE_STAGES.audio.routeSegment,
     icon: Mic2,
-    taskTypes: [
-      TASK_TYPES.AUDIO_GENERATION_INDEXTTS2,
-      TASK_TYPES.AUDIO_GENERATION,
-    ],
+    taskTypes: TASK_EPISODE_STAGES.audio.taskTypes,
     dependsOn: ["script"],
     supportsBeatJump: true,
   },
   {
     id: "video",
     labelKey: "episode.stage.video",
-    routeSegment: "/video",
+    routeSegment: TASK_EPISODE_STAGES.video.routeSegment,
     icon: Video,
-    taskTypes: [
-      TASK_TYPES.SINGLE_VIDEO,
-      TASK_TYPES.GLOBAL_OPTIMIZE_VIDEO,
-      TASK_TYPES.SELECTED_REGEN,
-    ],
+    taskTypes: TASK_EPISODE_STAGES.video.taskTypes,
     dependsOn: ["sketch"],
     supportsBeatJump: true,
   },
   {
     id: "compose",
     labelKey: "episode.stage.compose",
-    routeSegment: "/compose",
+    routeSegment: TASK_EPISODE_STAGES.compose.routeSegment,
     icon: Film,
-    taskTypes: [TASK_TYPES.COMPOSE_EPISODE],
+    taskTypes: TASK_EPISODE_STAGES.compose.taskTypes,
     dependsOn: ["sketch", "video", "audio"],
     supportsBeatJump: false,
   },

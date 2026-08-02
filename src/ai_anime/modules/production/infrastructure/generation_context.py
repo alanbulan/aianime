@@ -52,7 +52,6 @@ class AssetWorldCharacterProjector:
                             "appearance_details": identity.appearance_details,
                             "face_prompt": identity.face_prompt,
                             "body_type": identity.body_type,
-                            "fish_voice_id": identity.fish_voice_id,
                             "age_group": identity.age_group,
                             "portrait_image": identity.portrait_image,
                             "costume_image": identity.costume_image,

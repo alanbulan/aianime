@@ -4,8 +4,8 @@ import type {
   VideoInputCropTarget,
 } from "@/modules/production/domain/seedance2-panel";
 import {
-  isSeedance15ProBackend,
-  seedance2ModelFromBackend,
+  isSeedance15ProModel,
+  normalizeVideoModelId,
   type Seedance2ConfigDraft,
 } from "@/modules/production/domain/video-config";
 
@@ -16,15 +16,14 @@ export interface Seedance2CropIntent {
   target: VideoInputCropTarget;
 }
 
-export function isSeedanceReferenceCropBackend(
+export function isVideoReferenceCropModel(
   value: string | null | undefined,
 ): boolean {
-  const model = seedance2ModelFromBackend(value);
+  const model = normalizeVideoModelId(value);
   return (
     model === "seedance-1.0-pro-fast" ||
     model === "seedance-1.0-pro" ||
-    model === "seedance_1.0_pro_fast" ||
-    isSeedance15ProBackend(value)
+    isSeedance15ProModel(value)
   );
 }
 

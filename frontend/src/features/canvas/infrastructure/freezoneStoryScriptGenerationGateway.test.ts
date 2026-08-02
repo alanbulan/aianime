@@ -19,6 +19,7 @@ describe("freezoneStoryScriptGenerationGateway", () => {
     await expect(
       freezoneStoryScriptGenerationGateway.submit("project/1", {
         sourceText: "Story",
+        model: "cloud-text-standard",
         videoUrl: "/video.mp4",
         durationSec: 6,
         characterRefs: [{ imageUrl: "/hero.png", name: "Hero" }],
@@ -35,6 +36,7 @@ describe("freezoneStoryScriptGenerationGateway", () => {
           canvas_id: "canvas-1",
           node_id: "script-1",
           source_text: "Story",
+          model: "cloud-text-standard",
           video_url: "/video.mp4",
           duration_sec: 6,
           prompt: "Cinematic",

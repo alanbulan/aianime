@@ -2,10 +2,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import { useAuthStore } from "@/modules/identity_access/public";
+import { clearCommercialModelCatalogCache } from "@/modules/model_usage/public";
 import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
 
 // UX chrome keys that must survive a region switch.
 const PRESERVE_KEYS = new Set<string>([
@@ -41,6 +42,7 @@ function resetSessionScopedState(
   useAspectRatioStore.getState().reset();
 
   deps.queryClient.clear();
+  clearCommercialModelCatalogCache();
 
   const toRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {

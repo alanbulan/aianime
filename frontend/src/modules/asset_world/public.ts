@@ -116,6 +116,11 @@ export {
 } from "@/modules/asset_world/domain/asset-collection";
 export { directorSourceIdentityUrl } from "@/modules/asset_world/domain/director-world-source";
 export type {
+  DirectorWorldSourceDescriptor,
+  DirectorWorldSourceKind,
+  DirectorWorldSourceType,
+} from "@/modules/asset_world/domain/director-world-source";
+export type {
   AssetReferenceIndex,
   AssetRefType,
   AssetImageSourceKind,

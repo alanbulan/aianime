@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import json
+import os
 import sys
 import types as py_types
 from pathlib import Path
@@ -22,6 +23,13 @@ from mcp.server.stdio import stdio_server
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def _hermes_assets_root() -> Path:
+    configured = os.environ.get("AI_ANIME_HERMES_ASSETS_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return _repo_root() / ".hermes"
 
 
 def _install_hermes_registry_shim() -> None:
@@ -46,7 +54,7 @@ def _install_hermes_registry_shim() -> None:
 
 def _load_ai_anime_plugin() -> Any:
     _install_hermes_registry_shim()
-    plugin_path = _repo_root() / ".hermes" / "plugins" / "ai_anime" / "__init__.py"
+    plugin_path = _hermes_assets_root() / "plugins" / "ai_anime" / "__init__.py"
     spec = importlib.util.spec_from_file_location(
         "_ai_anime_hermes_plugin_for_mcp",
         plugin_path,

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { uploadFreezoneAsset } from '@/features/freezone/public';
+import { uploadFreezoneAsset } from '@/modules/creative_canvas/public';
 
 import { dataUrlToBlob } from '../application/imageData';
 import type {

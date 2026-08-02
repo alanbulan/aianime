@@ -12,9 +12,10 @@ function reasonsByMode(
 }
 
 describe("resolveVideoGenerationModeOptions", () => {
-  it("exposes non-HappyHorse modes when there are no references", () => {
+  it("exposes catalog-supported general modes when there are no references", () => {
     const options = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: false,
+      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      usesTypedReferenceModes: false,
       upstreamCounts: { images: 0, videos: 0, audios: 0 },
     });
 
@@ -28,9 +29,10 @@ describe("resolveVideoGenerationModeOptions", () => {
     expect(options.every((option) => option.disabledReason === null)).toBe(true);
   });
 
-  it("restricts non-HappyHorse references without hiding modes", () => {
+  it("restricts general references without hiding supported modes", () => {
     const videoOptions = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: false,
+      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      usesTypedReferenceModes: false,
       upstreamCounts: { images: 0, videos: 1, audios: 0 },
     });
     const videoReasons = reasonsByMode(videoOptions);
@@ -41,7 +43,8 @@ describe("resolveVideoGenerationModeOptions", () => {
     );
 
     const imageOptions = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: false,
+      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      usesTypedReferenceModes: false,
       upstreamCounts: { images: 3, videos: 0, audios: 1 },
     });
     const imageReasons = reasonsByMode(imageOptions);
@@ -49,9 +52,10 @@ describe("resolveVideoGenerationModeOptions", () => {
     expect(imageReasons.firstLastFrame).toBe("上游图片超过 2 张时不可用");
   });
 
-  it("projects HappyHorse image modes and first-frame label", () => {
+  it("projects typed-reference image modes and first-frame label", () => {
     const options = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: true,
+      supportedModes: ["textToVideo", "imageToVideo", "imageReference", "videoEdit"],
+      usesTypedReferenceModes: true,
       upstreamCounts: { images: 1, videos: 0, audios: 0 },
     });
     const reasons = reasonsByMode(options);
@@ -73,9 +77,10 @@ describe("resolveVideoGenerationModeOptions", () => {
     expect(reasons.videoEdit).toBe("需要连接视频节点（1个）");
   });
 
-  it("reduces HappyHorse video references to text and edit modes", () => {
+  it("reduces typed video references to text and edit modes", () => {
     const oneVideo = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: true,
+      supportedModes: ["textToVideo", "imageToVideo", "imageReference", "videoEdit"],
+      usesTypedReferenceModes: true,
       upstreamCounts: { images: 0, videos: 1, audios: 0 },
     });
     expect(oneVideo.map((option) => option.key)).toEqual([
@@ -88,7 +93,8 @@ describe("resolveVideoGenerationModeOptions", () => {
     });
 
     const twoVideos = resolveVideoGenerationModeOptions({
-      isHappyHorseModel: true,
+      supportedModes: ["textToVideo", "imageToVideo", "imageReference", "videoEdit"],
+      usesTypedReferenceModes: true,
       upstreamCounts: { images: 0, videos: 2, audios: 0 },
     });
     expect(reasonsByMode(twoVideos).videoEdit).toBe(

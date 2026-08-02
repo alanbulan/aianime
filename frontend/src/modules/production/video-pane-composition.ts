@@ -11,7 +11,7 @@ import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 export interface VideoPaneProps {
   beat: Beat;
-  defaultBackend: string;
+  defaultModel: string;
   episode: number;
   project: string;
   showAudioMediaStatus?: boolean;
@@ -20,7 +20,7 @@ export interface VideoPaneProps {
 
 export function VideoPane({
   beat,
-  defaultBackend,
+  defaultModel,
   episode,
   project,
   showAudioMediaStatus = true,
@@ -29,7 +29,7 @@ export function VideoPane({
   const updateBeat = useUpdateBeat(project, episode);
   const controller = useVideoPaneController({
     beat,
-    defaultBackend,
+    defaultModel,
     episode,
     project,
     savePending: updateBeat.isPending,

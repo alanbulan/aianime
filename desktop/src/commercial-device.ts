@@ -1,0 +1,158 @@
+import {
+  createHash,
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  sign,
+} from "node:crypto";
+
+import {
+  readEncryptedJsonFile,
+  writeEncryptedJsonFile,
+  type SecureStorageAdapter,
+} from "./secure-file-store.js";
+
+interface StoredDeviceIdentity {
+  schemaVersion: 1;
+  publicKey: string;
+  publicKeyHash: string;
+  privateKeyPkcs8: string;
+}
+
+export interface CommercialDeviceIdentitySummary {
+  publicKey: string;
+  publicKeyHash: string;
+}
+
+export interface CommercialDeviceSigner {
+  summary(): Promise<CommercialDeviceIdentitySummary>;
+  signMessage(message: string): Promise<string>;
+}
+
+export class EncryptedFileCommercialDeviceIdentity
+  implements CommercialDeviceSigner
+{
+  private cache: StoredDeviceIdentity | null = null;
+
+  constructor(
+    private readonly filePath: string,
+    private readonly secureStorage: SecureStorageAdapter,
+  ) {}
+
+  async summary(): Promise<CommercialDeviceIdentitySummary> {
+    const identity = await this.loadOrCreate();
+    return {
+      publicKey: identity.publicKey,
+      publicKeyHash: identity.publicKeyHash,
+    };
+  }
+
+  async signMessage(message: string): Promise<string> {
+    if (!message) throw new Error("设备激活挑战消息不能为空");
+    const identity = await this.loadOrCreate();
+    const privateKey = createPrivateKey({
+      key: Buffer.from(identity.privateKeyPkcs8, "base64"),
+      format: "der",
+      type: "pkcs8",
+    });
+    return withoutBase64Padding(
+      sign(null, Buffer.from(message, "utf8"), privateKey).toString("base64"),
+    );
+  }
+
+  private async loadOrCreate(): Promise<StoredDeviceIdentity> {
+    if (this.cache) return this.cache;
+    const stored = await readEncryptedJsonFile(
+      this.filePath,
+      this.secureStorage,
+      parseStoredDeviceIdentity,
+    );
+    if (stored) {
+      this.cache = stored;
+      return stored;
+    }
+
+    const created = createDeviceIdentity();
+    await writeEncryptedJsonFile(this.filePath, this.secureStorage, created);
+    this.cache = created;
+    return created;
+  }
+}
+
+function createDeviceIdentity(): StoredDeviceIdentity {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const exportedPublic = publicKey.export({ format: "jwk" });
+  if (typeof exportedPublic.x !== "string" || !exportedPublic.x) {
+    throw new Error("无法导出 Ed25519 设备公钥");
+  }
+  const rawPublicKey = Buffer.from(exportedPublic.x, "base64url");
+  if (rawPublicKey.byteLength !== 32) {
+    throw new Error("Ed25519 设备公钥长度无效");
+  }
+  return {
+    schemaVersion: 1,
+    publicKey: withoutBase64Padding(rawPublicKey.toString("base64")),
+    publicKeyHash: createHash("sha256").update(rawPublicKey).digest("hex"),
+    privateKeyPkcs8: privateKey
+      .export({ format: "der", type: "pkcs8" })
+      .toString("base64"),
+  };
+}
+
+function parseStoredDeviceIdentity(value: unknown): StoredDeviceIdentity {
+  const record = requiredRecord(value, "device identity");
+  if (record.schemaVersion !== 1) {
+    throw new Error("不支持的设备身份存储版本");
+  }
+  const privateKeyPkcs8 = requiredText(
+    record.privateKeyPkcs8,
+    "privateKeyPkcs8",
+  );
+  const privateKey = createPrivateKey({
+    key: Buffer.from(privateKeyPkcs8, "base64"),
+    format: "der",
+    type: "pkcs8",
+  });
+  if (privateKey.asymmetricKeyType !== "ed25519") {
+    throw new Error("设备私钥不是 Ed25519");
+  }
+  const exportedPublic = createPublicKey(privateKey).export({ format: "jwk" });
+  if (typeof exportedPublic.x !== "string" || !exportedPublic.x) {
+    throw new Error("无法从设备私钥恢复公钥");
+  }
+  const rawPublicKey = Buffer.from(exportedPublic.x, "base64url");
+  const publicKey = withoutBase64Padding(rawPublicKey.toString("base64"));
+  const publicKeyHash = createHash("sha256").update(rawPublicKey).digest("hex");
+  if (
+    requiredText(record.publicKey, "publicKey") !== publicKey ||
+    requiredText(record.publicKeyHash, "publicKeyHash") !== publicKeyHash
+  ) {
+    throw new Error("设备身份公私钥不匹配");
+  }
+  return {
+    schemaVersion: 1,
+    publicKey,
+    publicKeyHash,
+    privateKeyPkcs8,
+  };
+}
+
+function requiredRecord(
+  value: unknown,
+  name: string,
+): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${name} must be an object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function requiredText(value: unknown, name: string): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text) throw new Error(`${name} must be a non-empty string`);
+  return text;
+}
+
+function withoutBase64Padding(value: string): string {
+  return value.replace(/=+$/, "");
+}

@@ -27,9 +27,10 @@ import {
 } from '@/features/canvas/application/imageGenNodeModel';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
+  CandidateBindingBadges,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
-} from '@/features/canvas/domain/generationHistoryRecord';
+} from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
@@ -82,7 +83,6 @@ import {
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
-import { CandidateBindingBadges } from '@/features/freezone/public';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';
@@ -130,6 +130,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     setHistoryPreviewUrl,
     handleRestoreHistory,
     modelId,
+    imageModelMode,
     isImage2,
     totalCreditCostDisplay,
     cameraSummary,
@@ -675,6 +676,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
           />
           <div className="flex shrink-0 items-center gap-2 pl-3 pr-10 pt-3">
             <StyleChip
+              projectId={projectId}
               selectedId={styleTemplateId}
               selectedLabel={selectedStyle?.label ?? null}
               onChange={(nextId) => updateNodeData(id, { styleTemplateId: nextId })}
@@ -781,8 +783,10 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
           <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
               <ProviderModelPicker
+                projectId={projectId}
                 selectedModelId={modelId}
                 onChange={(nextModelId) => updateNodeData(id, { model: nextModelId })}
+                imageMode={imageModelMode}
                 popoverPlacement="top"
               />
               <AspectSizeChip
@@ -793,6 +797,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 onChange={(patch) => updateNodeData(id, patch)}
               />
               <CameraChip
+                projectId={projectId}
                 selection={cameraSelection}
                 summary={cameraSummary}
                 onChange={(next) => updateNodeData(id, { cameraSelection: next })}

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasRevisionConflict,
+    DangerousEmptyCanvasOverwrite,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
 )
@@ -139,7 +142,7 @@ def test_creative_canvas_document_commands_record_gateway_event(tmp_path: Path) 
 
 def test_translate_canvas_store_error_preserves_conflict_details() -> None:
     revision = translate_canvas_store_error(
-        canvas_store.CanvasRevisionConflict(
+        CanvasRevisionConflict(
             current_revision=4,
             base_revision=2,
         )
@@ -149,7 +152,7 @@ def test_translate_canvas_store_error_preserves_conflict_details() -> None:
     assert revision.base_revision == 2
 
     dangerous = translate_canvas_store_error(
-        canvas_store.DangerousEmptyCanvasOverwrite(
+        DangerousEmptyCanvasOverwrite(
             old_nodes=2,
             new_nodes=0,
             save_source="autosave",

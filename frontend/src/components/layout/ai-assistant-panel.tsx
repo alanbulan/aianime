@@ -17,7 +17,7 @@ import {
   AI_ASSISTANT_WIDTH_MIN,
   useAppStore,
 } from "@/stores/app-store";
-import { SuperChatPanel } from "@/features/superchat/superchat-panel";
+import { SuperChatPanel } from "@/modules/ai_assistant/public";
 
 export function AiAssistantPanel() {
   const { t } = useTranslation();

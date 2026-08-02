@@ -18,6 +18,16 @@
       "confirm": "Got it",
       "empty": "No release notes for this version"
     },
+    "commercialUpdate": {
+      "availableTitle": "Desktop update available",
+      "availableDescription": "A new version has been released. Install it from the official release channel.",
+      "acknowledge": "Later",
+      "requiredTitle": "This version must be updated",
+      "requiredDescription": "This version is no longer supported. Install the latest version, then check again.",
+      "recheck": "Check again",
+      "checking": "Checking",
+      "checkFailed": "Update check failed. Check your connection and try again."
+    },
     "routeError": {
       "title": "Page failed to load",
       "description": "Refresh the page and try again."
@@ -53,6 +63,7 @@
     "title": "Notification Center",
     "close": "Close notification center",
     "empty": "No notifications",
+    "loadFailed": "Failed to load notifications. Try again later.",
     "upgrade": {
       "title": "New version {{version}} available",
       "body": "A new version is available. Review the release notes before upgrading.",
@@ -369,6 +380,9 @@
     "imageSource": {
       "label": "Image source",
       "loading": "Loading image source",
+      "selectModel": "Select an image model",
+      "empty": "No image models available",
+      "loadFailed": "Failed to load the image model catalog",
       "saveFailed": "Failed to update image source"
     },
     "projectStyle": {
@@ -628,7 +642,30 @@
     "authorizationCode": "Authorization code",
     "authorizationCodePlaceholder": "Enter authorization code",
     "authenticating": "Authenticating",
-    "authorizeButton": "Authorize"
+    "authorizeButton": "Authorize",
+    "tenantCode": "Tenant code",
+    "tenantCodePlaceholder": "Enter tenant code",
+    "commercialAccessSubtitle": "Sign in with your commercial account",
+    "workspaceSessionFailed": "Failed to establish the local workspace session",
+    "captcha": "Captcha",
+    "captchaPlaceholder": "Enter captcha",
+    "refreshCaptcha": "Refresh captcha",
+    "captchaRefreshFailed": "Failed to refresh captcha"
+  },
+  "license": {
+    "requiredTitle": "A valid software license is required",
+    "requiredDescription": "This account has no available license, or its license could not be verified. Retry, then contact your tenant administrator if no seat is assigned.",
+    "activateTitle": "Activate this device",
+    "activateDescription": "This account has a software license, but this device is not activated. Activate it before entering the workspace or using models.",
+    "edition": "Edition",
+    "device": "Device",
+    "currentDevice": "Current device",
+    "activateDevice": "Activate device",
+    "activationFailed": "Device activation failed",
+    "activationIncomplete": "Device activation has not taken effect yet. Retry.",
+    "retry": "Check again",
+    "loadFailed": "Failed to load license status",
+    "logoutFailed": "Failed to sign out"
   },
   "project": {
     "create": "Create Project",
@@ -1015,6 +1052,10 @@
     "videoBackend": "Video Engine",
     "videoResolution": "Video Resolution",
     "selectPlaceholder": "Select",
+    "textModel": "Knowledge text model",
+    "embeddingModel": "Knowledge embedding model",
+    "modelPlaceholder": "Select a model",
+    "modelCatalogFailed": "The model catalog could not be loaded. Check your session, license, and model access settings.",
     "firstPerson": "First person (narrator lead)",
     "thirdPerson": "Third person (narrator)",
     "uploadSuccess": "Uploaded",
@@ -1597,6 +1638,7 @@
         "notGenerated": "Not generated",
         "regenTitle": "Regenerate audio?",
         "regenDesc": "Regenerate TTS voiceover for Beat #{{n}}.",
+        "modelUnavailable": "No speech model is available. Check the AUDIO catalog and its supportedModes metadata.",
         "configureVoiceAction": "Configure",
         "beatNarrationVoice": "This beat's narration audio",
         "beatNarrationVoiceUpload": "Upload beat audio",
@@ -2753,6 +2795,8 @@
   "modelPicker": {
     "provider": "Provider",
     "model": "Model",
+    "loading": "Loading models",
+    "loadFailed": "Failed to load the model catalog",
     "empty": "No models available"
   },
   "modelParams": {
@@ -3363,14 +3407,53 @@
   "settings": {
     "title": "Settings",
     "close": "Close",
-    "navigationLabel": "Settings categories",
-    "statusConfigured": "{{page}} is configured",
-    "statusNotConfigured": "{{page}} is not configured",
     "secretSavedBadge": "Saved",
     "secretSavedPlaceholder": "Saved · {{preview}} (enter a new value to replace)",
-    "pages": {
-      "models": "Models & Channels",
-      "storage": "Media Storage"
+    "showSecret": "Show",
+    "hideSecret": "Hide",
+    "modelAccess": {
+      "title": "Model access",
+      "cloud": "Cloud models",
+      "byok": "BYOK",
+      "availableModels": "Authorized models",
+      "modelCount": "{{count}} available models",
+      "noModels": "No models are available for the current authorization",
+      "catalogFailed": "Failed to load the model catalog",
+      "baseUrl": "Standard API URL",
+      "apiKey": "API Key (optional)",
+      "baseUrlRequired": "Enter a standard model API URL",
+      "modelAssignments": "Model purposes",
+      "modelId": "Model ID",
+      "modelRole": "Model purpose",
+      "modelIdRequired": "Model ID is required",
+      "addModel": "Add model",
+      "removeModel": "Remove model",
+      "roles": {
+        "text": "Text generation",
+        "imageGeneration": "Image generation",
+        "imageEdit": "Image editing",
+        "videoTextToVideo": "Video · Text to video",
+        "videoImageToVideo": "Video · Image to video",
+        "videoFirstLastFrame": "Video · First and last frame",
+        "videoImageReference": "Video · Image reference",
+        "videoAllReference": "Video · All references",
+        "videoEdit": "Video editing",
+        "audioSpeech": "Audio · Speech synthesis",
+        "audioVoiceClone": "Audio · Voice cloning",
+        "audioMusic": "Audio · Music generation",
+        "embedding": "Embeddings",
+        "rerank": "Document reranking",
+        "moderation": "Content moderation"
+      },
+      "saveByok": "Save and enable BYOK",
+      "saved": "BYOK configuration saved",
+      "saveFailed": "Failed to configure model access",
+      "clearByok": "Clear BYOK configuration",
+      "clearFailed": "Failed to clear BYOK configuration",
+      "desktopRequired": "Model access settings are available in the Electron desktop app",
+      "deviceNotActivated": "This device is not activated",
+      "activateDevice": "Activate device",
+      "activationFailed": "Device activation failed"
     },
     "modelConfig": {
       "title": "Model Config",
@@ -3549,49 +3632,6 @@
           "video": "Video",
           "audio": "Audio"
         }
-      }
-    },
-    "mediaStorage": {
-      "title": "Image Host / Media Storage",
-      "description": "Configure the temporary reference media relay used by NewAPI/upstream models, with Aliyun OSS or Cloudinary.",
-      "fullyManagedUpload": "Fully-managed asset upload",
-      "provider": "Provider",
-      "providerAliyunOss": "Aliyun OSS",
-      "providerCloudinary": "Cloudinary (Free)",
-      "providerHint": "With this provider we suggest leaving 「Fully-managed asset upload」 off; the free tier has a bandwidth quota, so use it only for point-to-point editing / uploads.",
-      "currentPlan": "Current upload plan",
-      "status": "Current config",
-      "source": "Source: {{source}}",
-      "configured": "Configured",
-      "notConfigured": "Not configured",
-      "warningIconLabel": "Reference media storage is not configured",
-      "notConfiguredImpact": "Reference media storage is not configured. Text-only flows and text-to-image usually still work; features that need to upload local reference images will fail, including AI\u00a0anime Canvas reference images, character references, identity images, image-to-image, video first frames, and image-to-video. Configure Aliyun OSS or Cloudinary.",
-      "showSecret": "Show",
-      "hideSecret": "Hide",
-      "fieldsHint": "Saved values are stored in the local CE settings database; full AccessKeys are not returned, so re-enter them when updating.",
-      "save": "Save OSS config",
-      "saveCloudinary": "Save Cloudinary config",
-      "saveSuccess": "OSS config saved",
-      "cloudinarySaveSuccess": "Cloudinary config saved",
-      "saveFailed": "Failed to save OSS config",
-      "cloudinaryFieldsHint": "Saved values are stored in the local CE settings database; full API Key / Secret values are not returned, so re-enter them when updating. API Folder is optional; leave it empty to upload to the Cloudinary root.",
-      "cloudinaryRegisterLink": "Register at Cloudinary",
-      "testUpload": "Test upload",
-      "testUploadPlaceholder": "Test upload is coming soon",
-      "validation": {
-        "ttlSeconds": "Signed URL TTL must be greater than 0"
-      },
-      "fields": {
-        "cloudName": "Cloud Name",
-        "apiKey": "API Key",
-        "apiSecret": "API Secret",
-        "apiFolder": "API Folder (optional)",
-        "materialsRoot": "Materials Root",
-        "accessKeyId": "AccessKey ID",
-        "accessKeySecret": "AccessKey Secret",
-        "bucket": "Bucket",
-        "endpoint": "Endpoint / Region",
-        "ttlSeconds": "Signed URL TTL (seconds)"
       }
     },
     "codexBridge": {

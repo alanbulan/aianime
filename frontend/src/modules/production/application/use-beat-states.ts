@@ -10,7 +10,7 @@ import {
   type BeatStates,
   type EpisodeCounts,
 } from "@/modules/production/domain/beat-state";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
 
 export interface UseBeatStatesResult {
   states: BeatStates;
@@ -27,7 +27,7 @@ export interface BeatStateQueries {
     data?: { spine_template?: string | null };
   };
   useTasks(filter: { project: string; episode: number }): {
-    data?: { data: Task[] };
+    data?: { data: TaskState[] };
     isLoading: boolean;
   };
 }

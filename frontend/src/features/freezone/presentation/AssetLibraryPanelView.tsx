@@ -2,21 +2,19 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
+import type { CanvasCommitMediaType } from "@/modules/creative_canvas/public";
 
 import { CanvasesTab } from "./CanvasesTab";
-import type { FreezoneBeatContextResponse } from "../domain/beatContext";
-import type {
-  AssetTab,
-  CanvasKind,
-  LibraryAsset,
-} from "../domain/assetLibraryModel";
-import { AssetLibraryAssetCard } from "./AssetLibraryAssetCard";
-import { BeatContextPanel } from "./AssetLibraryBeatPanels";
 import {
   buildAssetLibraryTabs,
   filterAssetLibraryAssets,
-} from "./assetLibraryViewModel";
+  type AssetTab,
+  type CanvasKind,
+  type FreezoneBeatContextResponse,
+  type LibraryAsset,
+} from "@/modules/creative_canvas/public";
+import { AssetLibraryAssetCard } from "./AssetLibraryAssetCard";
+import { BeatContextPanel } from "./AssetLibraryBeatPanels";
 
 type PanelTab = "library" | "canvases";
 
@@ -28,7 +26,7 @@ interface CatalogViewState {
 }
 
 interface ReplacementViewState {
-  activeDragMediaType: DropMediaType | null;
+  activeDragMediaType: CanvasCommitMediaType | null;
   hoverAssetId: string | null;
   confirmingAssetId: string | null;
   busyAssetId: string | null;

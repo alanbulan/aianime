@@ -2,7 +2,7 @@
 import type {
   CanvasOutpaintAspectRatio,
   CanvasOutpaintImageSize,
-} from "../domain/outpaint";
+} from "@/modules/creative_canvas/public";
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,

@@ -26,7 +26,7 @@ from ai_anime.modules.asset_world.domain.scene_generation import (
 )
 from ai_anime.modules.asset_world.application.scene_lookup import require_scene
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import task_config_scope
+from ai_anime.modules.task_execution.public import task_config_scope
 
 
 class SceneTaskUseCases:
@@ -68,6 +68,9 @@ class SceneTaskUseCases:
         model: str | None,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
+        image_model = str(model or "").strip()
+        if not image_model:
+            raise SceneGenerationRejected("请先选择场景图片模型")
         context = self._require_context(
             task_context,
             "场景参考图生成需要 project context",
@@ -80,7 +83,7 @@ class SceneTaskUseCases:
             scene_name=scene.name,
             kind=kind,
             style=style,
-            model=str(model or "").strip(),
+            model=image_model,
             output_dir=output_dir,
             scope=scope,
         )
@@ -180,6 +183,9 @@ class SceneTaskUseCases:
         project_style: str,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
+        image_model = str(command.model or "").strip()
+        if not image_model:
+            raise SceneGenerationRejected("请先选择场景图片模型")
         source = resolve_scene_pano_source(
             command.source,
             has_master=self._assets.has_master(project_dir, scene.name),
@@ -190,8 +196,7 @@ class SceneTaskUseCases:
             "timeout_seconds": command.timeout_seconds,
         }
         for key, value in {
-            "provider": command.provider,
-            "model": command.model,
+            "model": image_model,
             "image_size": command.image_size,
             "quality": command.quality,
         }.items():

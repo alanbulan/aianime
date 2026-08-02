@@ -19,7 +19,7 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   hasMainlineContexts,
   type MainlineContext,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 import type {
   DirectorStageManifest,
   DirectorWorldSource,

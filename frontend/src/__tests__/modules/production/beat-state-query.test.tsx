@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseBeatStates } from "@/modules/production/application/use-beat-states";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
 
 function createHook(spineTemplate: "drama" | "narrated") {
   return createUseBeatStates({
@@ -24,7 +24,7 @@ function createHook(spineTemplate: "drama" | "narrated") {
     }),
     useProject: () => ({ data: { spine_template: spineTemplate } }),
     useTasks: () => ({
-      data: { data: [] as Task[] },
+      data: { data: [] as TaskState[] },
       isLoading: false,
     }),
   });

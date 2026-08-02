@@ -80,10 +80,6 @@ from ai_anime.modules.production.application.video_pool import (
     VideoPoolListing,
     VideoPoolUseCases,
 )
-from ai_anime.modules.production.application.video_backend_catalog import (
-    VideoBackendCatalogUseCases,
-    VideoBackendOption,
-)
 from ai_anime.modules.production.application.global_video_optimization import (
     GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
     GlobalVideoOptimizationBeatsMissing,
@@ -172,6 +168,12 @@ from ai_anime.modules.production.application.sketch_generation import (
     SketchGenerationRejected,
     SketchGenerationUseCases,
 )
+from ai_anime.modules.production.application.sketch_edit_execution import (
+    SKETCH_EDIT_EXECUTION_TASK_TYPE,
+    ScheduledSketchEditExecution,
+    SketchEditExecutionTask,
+    SketchEditExecutionUseCases,
+)
 from ai_anime.modules.production.domain.detected_refs import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
@@ -184,17 +186,16 @@ from ai_anime.modules.production.domain.detected_refs import (
     real_detected_identities,
     real_detected_props,
 )
-from ai_anime.modules.production.domain.video_backend import (
-    DEFAULT_VIDEO_BACKEND,
+from ai_anime.modules.production.domain.video_model import (
     grok_video_ratio,
     grok_video_resolution,
     happyhorse_ratio,
     happyhorse_resolution,
-    is_grok_video_backend,
-    is_happyhorse_backend,
-    is_seedance2_backend,
-    seedance2_api_resolution,
-    seedance2_resolution,
+    is_grok_video_model,
+    is_happyhorse_model,
+    is_seedance2_model,
+    video_api_resolution,
+    video_resolution,
 )
 from ai_anime.modules.production.domain.sketch_color import (
     BRIDGMAN_CHARACTER_PALETTE,
@@ -237,14 +238,6 @@ def episode_video_use_cases() -> EpisodeVideoUseCases:
 
 def video_pool_use_cases() -> VideoPoolUseCases:
     from ai_anime.modules.production.composition import video_pool_use_cases as build
-
-    return build()
-
-
-def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
-    from ai_anime.modules.production.composition import (
-        video_backend_catalog_use_cases as build,
-    )
 
     return build()
 
@@ -292,6 +285,14 @@ def single_video_use_cases() -> SingleVideoUseCases:
 def sketch_generation_use_cases() -> SketchGenerationUseCases:
     from ai_anime.modules.production.composition import (
         sketch_generation_use_cases as build,
+    )
+
+    return build()
+
+
+def sketch_edit_execution_use_cases() -> SketchEditExecutionUseCases:
+    from ai_anime.modules.production.composition import (
+        sketch_edit_execution_use_cases as build,
     )
 
     return build()
@@ -375,7 +376,6 @@ def sketch_editing_use_cases() -> SketchEditingUseCases:
 __all__ = [
     "AddGeneratedVideoCommand",
     "AssignProjectSketchColorsCommand",
-    "DEFAULT_VIDEO_BACKEND",
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "GRID_REGENERATION_TASK_TYPE",
@@ -464,6 +464,7 @@ __all__ = [
     "ScheduledManualSketchRegeneration",
     "ScheduledDirectorControlSketch",
     "ScheduledSketchGeneration",
+    "ScheduledSketchEditExecution",
     "ScheduledSelectedRegeneration",
     "ScheduledSingleVideo",
     "Seedance2PanelBeatMissing",
@@ -479,6 +480,9 @@ __all__ = [
     "SingleVideoUseCases",
     "SketchGenerationRejected",
     "SketchGenerationUseCases",
+    "SKETCH_EDIT_EXECUTION_TASK_TYPE",
+    "SketchEditExecutionTask",
+    "SketchEditExecutionUseCases",
     "CurrentSketchMissing",
     "SaveSketchEditorCommand",
     "SketchBeatMissing",
@@ -508,8 +512,6 @@ __all__ = [
     "VideoPoolEntryUnavailable",
     "VideoPoolListing",
     "VideoPoolUseCases",
-    "VideoBackendCatalogUseCases",
-    "VideoBackendOption",
     "assign_identity_sketch_colors",
     "collect_prop_marker_ids_from_beat",
     "complete_detected_refs_from_visual_description",
@@ -528,9 +530,9 @@ __all__ = [
     "happyhorse_resolution",
     "global_prop_marker_colors",
     "image_generation_usage_use_cases",
-    "is_grok_video_backend",
-    "is_happyhorse_backend",
-    "is_seedance2_backend",
+    "is_grok_video_model",
+    "is_happyhorse_model",
+    "is_seedance2_model",
     "marker_color_change_requires_sketch_clean",
     "manual_sketch_regeneration_use_cases",
     "normalize_detected_identities",
@@ -541,14 +543,14 @@ __all__ = [
     "real_detected_props",
     "render_plan_use_cases",
     "sketch_generation_use_cases",
+    "sketch_edit_execution_use_cases",
     "sketch_editing_use_cases",
     "sketch_marker_use_cases",
     "sketch_regen_queue_use_cases",
-    "seedance2_api_resolution",
+    "video_api_resolution",
     "seedance2_panel_use_cases",
     "selected_regeneration_use_cases",
-    "seedance2_resolution",
+    "video_resolution",
     "single_video_use_cases",
-    "video_backend_catalog_use_cases",
     "video_pool_use_cases",
 ]

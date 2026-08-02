@@ -5,11 +5,9 @@ import {
   hydrateAssetDragPayload,
   type CanvasSceneDirectorManifestGateway,
 } from "@/features/canvas/application/assetDragHydration";
+import type { CanvasAssetNodeSpawnPort } from "@/features/canvas/domain/assetDrag";
 import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
-import type {
-  CanvasAssetDragPayload,
-  CanvasAssetNodeSpawnPort,
-} from "@/features/canvas/domain/assetDrag";
+import type { CanvasAssetDragPayload } from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";

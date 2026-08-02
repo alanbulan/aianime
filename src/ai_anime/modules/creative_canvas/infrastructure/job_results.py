@@ -7,15 +7,20 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone.audio_node import (
+from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
     freezone_audio_eleven_music_output_path,
     freezone_audio_speech_output_path,
 )
-from ai_anime.freezone.canvas_static_urls import migrate_canvas_static_urls_in_memory
-from ai_anime.freezone.paths import output_path_for_job, outputs_dir
+from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
+    migrate_canvas_static_urls_in_memory,
+)
 from ai_anime.modules.creative_canvas.application.job_results import (
     GetCreativeCanvasJobResultQuery,
     public_creative_canvas_video_story_result,
+)
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    output_path_for_job,
+    outputs_dir,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.project_media import make_static_url_for_context

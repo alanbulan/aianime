@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import type { VideoPoolResponse } from "@/modules/production/application/ports";
-import { videoBackendDisplayLabel } from "@/modules/production/domain/video-config";
+import { videoModelDisplayLabel } from "@/modules/production/domain/video-config";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 export interface VideoPaneMediaQueries {
@@ -29,7 +29,7 @@ export interface VideoPaneMediaControllerOptions {
   project: string;
   state: BeatStageState;
   videoActive: boolean;
-  videoBackends: ReadonlyArray<{ value: string; label: string }>;
+  videoModels: ReadonlyArray<{ value: string; label: string }>;
   videoProgress: number;
   videoUrl?: string | null;
   useSeedance2Preview: boolean;
@@ -37,7 +37,7 @@ export interface VideoPaneMediaControllerOptions {
 
 export interface VideoPaneMediaCandidate {
   active: boolean;
-  backendLabel: string;
+  modelLabel: string;
   id: string;
   previewSource: string | null;
   timeLabel: string | null;
@@ -75,15 +75,15 @@ export function createUseVideoPaneMediaController(
       options.episode,
     );
     const now = dependencies.useNow();
-    const backendLabels = useMemo(
+    const modelLabels = useMemo(
       () =>
         new Map(
-          options.videoBackends.map((backend) => [
-            backend.value,
-            backend.label,
+          options.videoModels.map((model) => [
+            model.value,
+            model.label,
           ]),
         ),
-      [options.videoBackends],
+      [options.videoModels],
     );
     const { candidates, activePoolId } = useMemo(() => {
       const pool = poolResponse?.data ?? null;
@@ -106,9 +106,9 @@ export function createUseVideoPaneMediaController(
           const source = resolveMediaUrl(entry.video_url);
           return {
             active: entry.id === activeId,
-            backendLabel: videoBackendDisplayLabel(
-              entry.backend,
-              backendLabels,
+            modelLabel: videoModelDisplayLabel(
+              entry.video_model,
+              modelLabels,
             ),
             id: entry.id,
             previewSource: source ? `${source}#t=0.1` : null,
@@ -116,7 +116,7 @@ export function createUseVideoPaneMediaController(
           };
         });
       return { candidates: entries, activePoolId: activeId };
-    }, [backendLabels, now, options.beatNumber, poolResponse]);
+    }, [modelLabels, now, options.beatNumber, poolResponse]);
     const downloadUrl = options.videoUrl
       ? resolveMediaUrl(options.videoUrl)
       : null;

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -7,7 +7,7 @@ import type {
   CanvasNode,
   SkillNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 import { useSkillNodeController } from './useSkillNodeController';
 
 const mocks = vi.hoisted(() => ({
@@ -29,8 +29,12 @@ const mocks = vi.hoisted(() => ({
   edges: [] as CanvasEdge[],
   skills: [] as SkillDefinition[],
   tasks: new Map(),
-  url: { project: 'project-a', canvas: 'canvas-a' },
 }));
+
+const routeContext = {
+  projectId: 'project-a',
+  canvasId: 'canvas-a',
+};
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
@@ -81,10 +85,7 @@ vi.mock('@/features/canvas/hooks/useCanvasSkillRegistry', () => ({
 
 vi.mock('@/features/canvas/catalogComposition', () => ({
   loadCanvasSkillRegistry: vi.fn(),
-}));
-
-vi.mock('@/features/canvas/application/canvasServices', () => ({
-  canvasEventBus: { publish: (...args: unknown[]) => mocks.publish(...args) },
+  loadCanvasImageModels: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/features/canvas/composition', () => ({
@@ -101,14 +102,18 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.stageSelectedBackground(...args),
 }));
 
-vi.mock('@/task-center/store', () => ({
+vi.mock('@/modules/task_execution/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/task_execution/public')>()),
   useTaskCenterStore: (
     selector: (state: { tasks: Map<unknown, unknown>; isHydrated: boolean }) =>
       unknown,
   ) => selector({ tasks: mocks.tasks, isHydrated: true }),
 }));
 
-vi.mock('@/lib/url-params', () => ({ readUrl: () => mocks.url }));
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  publishCanvasCommitRequested: (...args: unknown[]) => mocks.publish(...args),
+}));
 
 function skill(
   patch: Partial<SkillDefinition> = {},
@@ -233,6 +238,7 @@ describe('useSkillNodeController', () => {
 
     const { result } = renderHook(() =>
       useSkillNodeController({
+        ...routeContext,
         id: 'skill-a',
         data,
         selected: true,
@@ -272,7 +278,7 @@ describe('useSkillNodeController', () => {
     mocks.nodes.push(skillNode(data));
 
     const { result } = renderHook(() =>
-      useSkillNodeController({ id: 'skill-a', data }),
+      useSkillNodeController({ ...routeContext, id: 'skill-a', data }),
     );
 
     await act(async () => {
@@ -319,6 +325,66 @@ describe('useSkillNodeController', () => {
       expect.objectContaining({
         isGenerating: false,
         generationError: null,
+      }),
+    );
+  });
+
+  it('rejects a completion after the route switches to another canvas', async () => {
+    const definition = skill();
+    mocks.skills.push(definition);
+    const data: SkillNodeData = {
+      skill_id: definition.id,
+      parameters: { enabled: true },
+    };
+    mocks.nodes.push(skillNode(data));
+    let releaseRun!: () => void;
+    mocks.awaitRun.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        releaseRun = resolve;
+      });
+      return {
+        status: 'completed',
+        outputs: [
+          {
+            schema_version: 'skill.v1',
+            role: 'current_frame_candidate',
+            media_type: 'image',
+            node_type: 'imageGenNode',
+            pushable: true,
+            image_url: '/stale-result.png',
+          },
+        ],
+      };
+    });
+    const { result, rerender } = renderHook(
+      ({ projectId, canvasId }) =>
+        useSkillNodeController({
+          id: 'skill-a',
+          data,
+          projectId,
+          canvasId,
+        }),
+      { initialProps: routeContext },
+    );
+    let submitPromise!: Promise<void>;
+
+    act(() => {
+      submitPromise = result.current.submit();
+    });
+    await waitFor(() => expect(mocks.awaitRun).toHaveBeenCalledOnce());
+    rerender({ projectId: 'project-b', canvasId: 'canvas-b' });
+    await act(async () => {
+      releaseRun();
+      await submitPromise;
+    });
+
+    expect(mocks.addNode).not.toHaveBeenCalled();
+    expect(mocks.updateNodeData).toHaveBeenLastCalledWith(
+      'skill-a',
+      expect.objectContaining({
+        isGenerating: false,
+        generationError:
+          'Skill run completed after switching canvas; output was not materialized',
       }),
     );
   });

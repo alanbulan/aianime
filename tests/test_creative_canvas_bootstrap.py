@@ -5,9 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
-from ai_anime.freezone.paths import canvas_path, freezone_root, uploads_dir
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    canvas_path,
+    freezone_root,
+    uploads_dir,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapBusy,
     CreativeCanvasBootstrapCorrupt,

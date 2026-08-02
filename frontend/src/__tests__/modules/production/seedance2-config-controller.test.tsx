@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type { VideoModelOption } from "@/modules/production/domain/video-model";
 
 const generatePrompt = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
@@ -54,43 +54,44 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
   };
 }
 
-function makeBackend(
-  overrides: Partial<VideoBackendOption> = {},
-): VideoBackendOption {
+function makeModel(
+  overrides: Partial<VideoModelOption> = {},
+): VideoModelOption {
   return {
-    value: "newapi_seedance-2.0-fast",
+    value: "seedance-2.0-fast",
     label: "Seedance 2.0 Fast",
-    is_default: true,
-    is_seedance2: true,
-    dialogue_only: false,
-    min_duration: 4,
-    max_duration: 15,
+    profile: "seedance2",
+    supportsAdvancedConfig: true,
+    supportsNativeAudio: true,
+    dialogueOnly: false,
+    minDuration: 4,
+    maxDuration: 15,
     ...overrides,
   };
 }
 
 function renderController(
   overrides: Partial<{
-    backend: string;
+    model: string;
     beat: Beat;
-    selectedBackend: VideoBackendOption;
+    selectedModel: VideoModelOption;
     showGrokVideoConfig: boolean;
     showHappyHorseConfig: boolean;
     showSeedance2Config: boolean;
   }> = {},
   updateBeat = vi.fn().mockResolvedValue(undefined),
 ) {
-  const selectedBackend = overrides.selectedBackend ?? makeBackend();
+  const selectedModel = overrides.selectedModel ?? makeModel();
   return {
     updateBeat,
     ...renderHook(() =>
       useController({
-        backend: overrides.backend ?? selectedBackend.value,
+        model: overrides.model ?? selectedModel.value,
         beat: overrides.beat ?? makeBeat(),
         episode: 1,
         project: "demo",
         projectAspect: "2:3",
-        selectedBackend,
+        selectedModel,
         showGrokVideoConfig: overrides.showGrokVideoConfig ?? false,
         showHappyHorseConfig: overrides.showHappyHorseConfig ?? false,
         showSeedance2Config: overrides.showSeedance2Config ?? true,
@@ -132,7 +133,7 @@ describe("Seedance2 config controller", () => {
 
   it("normalizes an unsupported value-model resolution", () => {
     const { result } = renderController({
-      backend: "newapi_seedance-2.0-value",
+      model: "seedance-2.0-value",
       beat: makeBeat({
         seedance2_config_json: JSON.stringify({
           mode: "multimodal_reference",
@@ -141,9 +142,9 @@ describe("Seedance2 config controller", () => {
           final_prompt: "主体提示词",
         }),
       }),
-      selectedBackend: makeBackend({
-        value: "newapi_seedance-2.0-value",
-        resolution_options: ["720p", "1080p"],
+      selectedModel: makeModel({
+        value: "seedance-2.0-value",
+        resolutionOptions: ["720p", "1080p"],
       }),
     });
 
@@ -152,17 +153,19 @@ describe("Seedance2 config controller", () => {
   });
 
   it("uses the rounded audio duration as the Seedance 1.5 floor", () => {
-    const backend = makeBackend({
-      value: "newapi_seedance-1.5-pro",
-      is_seedance2: false,
-      min_duration: 4,
-      max_duration: 12,
-      resolution_options: ["720p", "1080p"],
+    const model = makeModel({
+      value: "seedance-1.5-pro",
+      profile: "standard",
+      supportsAdvancedConfig: false,
+      supportsNativeAudio: false,
+      minDuration: 4,
+      maxDuration: 12,
+      resolutionOptions: ["720p", "1080p"],
     });
     const { result } = renderController({
-      backend: backend.value,
+      model: model.value,
       beat: makeBeat({ audio_duration_seconds: 6.2 }),
-      selectedBackend: backend,
+      selectedModel: model,
       showSeedance2Config: false,
     });
 

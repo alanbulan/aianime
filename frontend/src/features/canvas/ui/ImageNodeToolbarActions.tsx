@@ -8,6 +8,7 @@ import { useImageNodeToolbarController } from "@/features/canvas/hooks/useImageN
 import { ImageNodeToolbarActionsView } from "./ImageNodeToolbarActionsView";
 
 export interface ImageNodeToolbarActionsProps {
+  projectId: string;
   node: CanvasNode;
   isPresetLocked: boolean;
   onOpenMultiAngleEditor: (nodeId: string) => void;

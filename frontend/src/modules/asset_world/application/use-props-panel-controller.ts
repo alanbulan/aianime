@@ -16,6 +16,7 @@ import {
 } from "@/modules/asset_world/domain/asset-collection";
 import type { AssetReferenceIndex } from "@/modules/asset_world/domain/character";
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
+import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
 
 interface CreditCostQuery {
   data?: { data: { cost?: number | null } };
@@ -27,7 +28,11 @@ export interface PropsPanelControllerDependencies {
     ready: boolean,
   ): RefObject<HTMLDivElement | null>;
   useAssetReferenceIndex(project: string): AssetReferenceIndex;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
+  useGenerationCreditCost(
+    kind: string,
+    value: string,
+    options?: GenerationCreditCostOptions,
+  ): CreditCostQuery;
 }
 
 export interface PropsPanelControllerOptions {
@@ -64,12 +69,15 @@ export function createUsePropsPanelController(
     const deleteProp = propQueries.useDeleteProp(project);
     const batchGenerate = propQueries.useBatchGeneratePropReferences(project);
     const referenceIndex = dependencies.useAssetReferenceIndex(project);
-    const referenceCost = dependencies.useGenerationCreditCost(
-      "fixed_image",
-      "prop_reference",
-    );
     const imageSourceQuery =
       imageSourceQueries.useAssetImageSourceSelection(project, "prop");
+    const imageSourceSelection =
+      imageSourceQuery.data?.data.image_source_selection ?? "";
+    const referenceCost = dependencies.useGenerationCreditCost(
+      "image_selection",
+      imageSourceSelection,
+      { imageRole: "prop_reference" },
+    );
     const batchTask = useTaskController({
       key: { taskType: "batch_prop_ref", project, episode: 0 },
       invalidateKeys: [queryKeys.props(project)],
@@ -210,8 +218,7 @@ export function createUsePropsPanelController(
       },
       gridRef,
       handleBatchGenerate,
-      imageSourceSelection:
-        imageSourceQuery.data?.data.image_source_selection ?? "",
+      imageSourceSelection,
       isLoading: propsQuery.isLoading,
       isRefetching: propsQuery.isRefetching,
       items,

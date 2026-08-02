@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
-import type { SkillDefinition } from "@/features/freezone/public";
+import type { SkillDefinition } from "@/modules/creative_canvas/public";
 
 import type { CanvasSkillCatalogGateway } from "../application/skillCatalog";
 import { normalizeCanvasSkillCatalog } from "../domain/skillCatalog";

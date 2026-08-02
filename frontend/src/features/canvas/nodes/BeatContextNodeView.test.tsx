@@ -53,10 +53,8 @@ vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
   ),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   NodeContextBadges: () => <div>context-badges</div>,
-  extractMainlineContextsFromNode: () => [],
-  parseBeatContextVisualMarkers: () => ({ identities: [], props: [] }),
 }));
 
 vi.mock('@/components/ui', () => ({

@@ -38,7 +38,11 @@ const VISUAL_TOOL_CANCEL_CLASS =
 const VISUAL_TOOL_CONFIRM_CLASS =
   'inline-flex h-8 items-center justify-center rounded-[8px] bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/40';
 
-export function NodeToolDialog() {
+export interface NodeToolDialogProps {
+  projectId: string;
+}
+
+export function NodeToolDialog({ projectId }: NodeToolDialogProps) {
   const { t } = useTranslation();
   const activeToolDialog = useCanvasStore((state) => state.activeToolDialog);
   const nodes = useCanvasStore((state) => state.nodes);
@@ -216,6 +220,7 @@ export function NodeToolDialog() {
               return frame;
             }
             const uploadedUrl = await uploadLocalImageToBackend(
+              projectId,
               frame.imageUrl,
               `split-${sourceNode.id}-${Date.now()}-${index}.png`
             );
@@ -243,6 +248,7 @@ export function NodeToolDialog() {
         // local base64 produced by prepareNodeImage (which would otherwise
         // bloat PUT /default — see exportImageNode preview-base64 bug).
         const uploadedUrl = await uploadLocalImageToBackend(
+          projectId,
           prepared.imageUrl,
           `${activeToolDialog.toolType}-${sourceNode.id}-${Date.now()}.png`
         );
@@ -286,6 +292,7 @@ export function NodeToolDialog() {
     sourceImageUrl,
     activePlugin,
     options,
+    projectId,
     addStoryboardSplitNode,
     addDerivedExportNode,
     addEdge,

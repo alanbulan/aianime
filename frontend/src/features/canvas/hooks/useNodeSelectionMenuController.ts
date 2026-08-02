@@ -14,7 +14,7 @@ import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type {
   SkillDefinition,
   SkillProvider,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 import {
   referenceGenerateItemsForAllowedTypes,

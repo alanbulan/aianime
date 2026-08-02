@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import selection_scope
 from ai_anime.utils.state_index_files import resolve_state_index_path
 
 

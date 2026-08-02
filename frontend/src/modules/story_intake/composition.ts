@@ -1,7 +1,9 @@
 import { createElement } from "react";
 
 import { createStoryIntakeQueryHooks } from "@/modules/story_intake/application/query-hooks";
+import { loadCommercialModelCatalog } from "@/modules/model_usage/public";
 import type { StartIngestionParams } from "@/modules/story_intake/domain/types";
+import { defaultKnowledgeModelSelection } from "@/modules/story_intake/domain/knowledge-model-selection";
 import { createUseStoryIntakeController } from "@/modules/story_intake/application/use-story-intake-controller";
 import { httpStoryIntakeGateway } from "@/modules/story_intake/infrastructure/http-story-intake-gateway";
 import { importPreviewPreference } from "@/modules/story_intake/infrastructure/import-preview-preference";
@@ -27,6 +29,14 @@ export function startStoryIngestion(
   params: StartIngestionParams,
 ) {
   return httpStoryIntakeGateway.startIngestion(project, params);
+}
+
+export async function loadDefaultKnowledgeModels() {
+  const [textCatalog, embeddingCatalog] = await Promise.all([
+    loadCommercialModelCatalog("TEXT"),
+    loadCommercialModelCatalog("EMBEDDING"),
+  ]);
+  return defaultKnowledgeModelSelection(textCatalog, embeddingCatalog);
 }
 
 const useStoryIntakeController = createUseStoryIntakeController(

@@ -38,8 +38,7 @@ describe("freezoneImageGenerationGateway", () => {
         aperture: "f/1.8",
       },
       style: { templateId: "cinematic" },
-      provider: "openai" as const,
-      model: "gpt-image-2",
+      model: "cloud-image-standard",
       modelId: "image-model",
       genMode: "image_reference",
       quality: "high",
@@ -69,8 +68,7 @@ describe("freezoneImageGenerationGateway", () => {
             aperture: "f/1.8",
           },
           style: { template_id: "cinematic" },
-          provider: "openai",
-          model: "gpt-image-2",
+          model: "cloud-image-standard",
           model_id: "image-model",
           gen_mode: "image_reference",
           quality: "high",
@@ -91,6 +89,7 @@ describe("freezoneImageGenerationGateway", () => {
     await expect(
       freezoneImageGenerationGateway.submit("project-1", {
         prompt: "character portrait",
+        model: "cloud-image-standard",
       }),
     ).rejects.toThrow("Unexpected image generation task type: freezone_edit");
   });

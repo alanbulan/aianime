@@ -1,11 +1,11 @@
-"""NanoBananaPro 网格生成模块。
+"""商业图片模型网格生成模块。
 
-使用 Google AI Studio (Gemini Pro Image) 生成网格图，
-Sketch 模式使用 3x3 网格（每张 9 panel 位），按 beat 顺序分块，自动产出 ceil(N/9) 张网格。
+Sketch 模式按 beat 顺序分块生成网格，并通过当前 cloud/BYOK 访问配置
+调用标准图片协议。
 
 生成流程:
 1. 从 beats 数据构建网格 Prompt
-2. 调用 NanoBananaPro API 生成网格图
+2. 调用当前商业图片模型生成网格图
 3. 使用 grid_splitter 分割成独立分镜
 4. 使用 Seedream 图生图做高清修复
 """
@@ -17,6 +17,7 @@ import io
 import json
 import logging
 import math
+import mimetypes
 import os
 import re
 import time
@@ -34,13 +35,6 @@ from ai_anime.config import (
     IMAGE_DEFAULT_STYLE,
     get_grid_generation_config,
     get_style_preset,
-)
-from ai_anime.generators.huimengi import (
-    HuimengTaskFailed,
-    HuimengiTaskClient,
-    bytes_to_data_url,
-    extract_huimeng_result_url,
-    validate_huimeng_media_download,
 )
 from ai_anime.modules.model_usage.public import (
     get_usage_meter,
@@ -72,22 +66,20 @@ from ai_anime.image_request_usage import (
     update_image_request_status,
 )
 from ai_anime.utils.path_resolver import compute_scoped_grid_filename
-from ai_anime.storage.media_relay import (
-    IMAGE_TRANSFORM_AI_REFERENCE_JPEG,
-    upload_image_bytes,
-)
-
-_VALID_IMAGE_SIZES = {"512", "1K", "2K", "4K"}
-_OPENROUTER_IMAGE_CAPABILITY_CACHE: dict[str, tuple[bool, str]] = {}
-_OPENAI_VALID_QUALITIES = {"low", "medium", "high", "auto"}
-_OPENAI_MIN_PIXELS = 655_360
-_OPENAI_MAX_PIXELS = 8_294_400
-_OPENAI_MAX_EDGE = 3840
-_OPENAI_MAX_RATIO = 3.0
-_HUIMENG_IMAGE_POLL_INTERVAL_SECONDS = 2.0
-_HUIMENG_IMAGE_MAX_POLLS = 290
-HUIMENG_IMAGE2_SINGLE_CELL_SELECTION = "huimeng_gpt_image2"
-HUIMENG_IMAGE2_SINGLE_CELL_REASON = "huimeng-image-2-1k-only"
+_STANDARD_IMAGE_VALID_QUALITIES = {"low", "medium", "high", "auto"}
+_STANDARD_IMAGE_MIN_PIXELS = 655_360
+_STANDARD_IMAGE_MAX_PIXELS = 8_294_400
+_STANDARD_IMAGE_MAX_EDGE = 3840
+_STANDARD_IMAGE_MAX_RATIO = 3.0
+_STANDARD_IMAGE_MAX_FILE_BYTES = 10 * 1024 * 1024
+_STANDARD_IMAGE_MAX_TOTAL_FILE_BYTES = 32 * 1024 * 1024
+_STANDARD_IMAGE_MAX_FILES = 10
+_STANDARD_IMAGE_EXTENSION_BY_MIME = {
+    "image/gif": ".gif",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
 SINGLE_CELL_RENDER_MODE_KEY = "1x1_2-3"
 SINGLE_CELL_RENDER_MODE_BY_ASPECT = {
     "1:1": "1x1_1-1",
@@ -126,14 +118,14 @@ def _newapi_safe_header_summary(headers: Any) -> dict[str, str]:
 def _newapi_safe_request_context(
     *,
     endpoint: str,
+    request_path: str,
     model: str,
     payload: dict[str, object],
     prompt: str,
+    reference_image_count: int,
 ) -> dict[str, object]:
-    reference_images = payload.get("images")
-    reference_image_count = len(reference_images) if isinstance(reference_images, list) else 0
     return {
-        "endpoint": f"{endpoint}/images/generations",
+        "endpoint": f"{endpoint}/{request_path}",
         "model": model,
         "payload_keys": sorted(payload.keys()),
         "extra_fields": payload.get("extra_fields") or {},
@@ -154,17 +146,77 @@ def _newapi_context_for_error(context: dict[str, object]) -> str:
     )
 
 
+def _newapi_protocol_error_message(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    error = payload.get("error")
+    if isinstance(error, dict):
+        return str(error.get("message") or error.get("code") or "model request failed")
+    if error:
+        return str(error)
+    status = str(payload.get("status") or "").strip().lower()
+    if status in {"failed", "error"}:
+        return str(payload.get("message") or "model request failed")
+    return ""
+
+
+def _newapi_image_multipart_files(
+    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]],
+) -> list[tuple[str, tuple[str, bytes, str]]]:
+    if len(reference_images) > _STANDARD_IMAGE_MAX_FILES:
+        raise ValueError(
+            f"image edits accepts at most {_STANDARD_IMAGE_MAX_FILES} reference images"
+        )
+
+    files: list[tuple[str, tuple[str, bytes, str]]] = []
+    total_bytes = 0
+    for index, image_ref in enumerate(reference_images, start=1):
+        filename = f"reference-{index}.png"
+        mime_type = "image/png"
+        if isinstance(image_ref, tuple):
+            if len(image_ref) == 3:
+                filename = Path(str(image_ref[0] or filename)).name or filename
+                content = bytes(image_ref[1])
+                mime_type = str(image_ref[2] or "").strip().lower()
+            elif len(image_ref) == 2:
+                content = bytes(image_ref[0])
+                hint = str(image_ref[1] or "").strip()
+                if hint.lower().startswith("image/"):
+                    mime_type = hint.lower()
+                    extension = _STANDARD_IMAGE_EXTENSION_BY_MIME.get(
+                        mime_type,
+                        mimetypes.guess_extension(mime_type) or ".bin",
+                    )
+                    filename = f"reference-{index}{extension}"
+                else:
+                    filename = Path(hint).name or filename
+                    mime_type = (
+                        mimetypes.guess_type(filename)[0] or "application/octet-stream"
+                    ).lower()
+            else:
+                raise ValueError(f"reference image {index} has an invalid tuple shape")
+        else:
+            content = bytes(image_ref)
+
+        if not content:
+            raise ValueError(f"reference image {index} is empty")
+        if len(content) > _STANDARD_IMAGE_MAX_FILE_BYTES:
+            raise ValueError(f"reference image {index} exceeds 10 MiB")
+        total_bytes += len(content)
+        if total_bytes > _STANDARD_IMAGE_MAX_TOTAL_FILE_BYTES:
+            raise ValueError("reference images exceed the 32 MiB total limit")
+        if not mime_type.startswith("image/"):
+            raise ValueError(f"reference image {index} must use an image content type")
+        files.append(("image", (filename, content, mime_type)))
+    return files
+
+
 def _beat_display_sort_key(beat: dict) -> tuple[int, int]:
     return (beat_order_value(beat), int(beat.get("beat_number", 0) or 0))
 
 
-def image_generation_selection_forces_single_cell(selection: str | None) -> bool:
-    """Whether render planning must split every beat into a 1x1 grid."""
-    return str(selection or "").strip() == HUIMENG_IMAGE2_SINGLE_CELL_SELECTION
-
-
 class _InlineImagePart:
-    """Provider-neutral image part used by OpenRouter/OpenAI branches."""
+    """Provider-neutral image part used by the commercial image adapter."""
 
     def __init__(self, data: bytes, mime_type: str = "image/png"):
         self.inline_data = SimpleNamespace(data=data, mime_type=mime_type)
@@ -214,22 +266,13 @@ def _resolve_scene_prop_asset_refs(
     return resolver.resolve_all_for_beats(beats)
 
 
-def normalize_image_size(size: str, provider: str = "google") -> str:
-    """Normalize image_size across providers.
-
-    Internal configs may still use 0.5K, but providers expect different values:
-    - Gemini direct: 512
-    - OpenRouter: 1K (0.5K currently triggers INVALID_ARGUMENT on Gemini image routes)
-    """
-    if provider in {"huimeng", "newapi"} and size == "0.5K":
-        return "1K"
-    if size == "0.5K":
-        return "1K" if provider == "openrouter" else "512"
-    return size
+def normalize_image_size(size: str) -> str:
+    """Normalize internal image-size labels for the standard image protocol."""
+    return "1K" if str(size or "").strip() == "0.5K" else str(size or "").strip()
 
 
 def _newapi_resolution_from_image_size(image_size: str | None) -> str:
-    normalized = normalize_image_size(str(image_size or "").strip(), provider="newapi")
+    normalized = normalize_image_size(str(image_size or "").strip())
     lower = normalized.lower()
     return lower if lower in {"1k", "2k", "4k"} else ""
 
@@ -259,28 +302,12 @@ def _image_credit_billing_params(
     return params
 
 
-def _huimeng_image_resolution_for_model(model: str, image_size: str | None) -> str:
-    """Map local image_size labels to HuiMeng model resolution params when supported."""
-    model_name = (model or "").strip()
-    image2_family = model_name in {"image-2", "image-2-official"}
-    if not (
-        model_name.startswith(("nb-", "seedream-")) or image2_family or "gpt-image" in model_name
-    ):
-        return ""
-
-    normalized = normalize_image_size(str(image_size or "").strip(), provider="huimeng")
-    if image2_family:
-        lower = normalized.lower()
-        return lower if lower in {"1k", "2k", "4k"} else ""
-    return normalized if normalized in {"1K", "2K", "3K", "4K"} else ""
-
-
-def _round_openai_edge(value: float) -> int:
+def _round_standard_edge(value: float) -> int:
     return max(16, int(math.ceil(value / 16.0)) * 16)
 
 
-def resolve_openai_image_size(aspect_ratio: str = "1:1", image_size: str = "1K") -> str:
-    """Map internal aspect/image_size labels to GPT Image 2 size strings.
+def resolve_standard_image_size(aspect_ratio: str = "1:1", image_size: str = "1K") -> str:
+    """Map internal aspect/image-size labels to standard flexible size strings.
 
     gpt-image-2 supports flexible sizes, but they must satisfy OpenAI's documented
     constraints: both edges are multiples of 16, max edge <= 3840, ratio <= 3:1,
@@ -297,12 +324,12 @@ def resolve_openai_image_size(aspect_ratio: str = "1:1", image_size: str = "1K")
         raw_w, raw_h = 1.0, 1.0
 
     ratio = raw_w / raw_h
-    if ratio > _OPENAI_MAX_RATIO:
-        ratio = _OPENAI_MAX_RATIO
-    elif ratio < 1.0 / _OPENAI_MAX_RATIO:
-        ratio = 1.0 / _OPENAI_MAX_RATIO
+    if ratio > _STANDARD_IMAGE_MAX_RATIO:
+        ratio = _STANDARD_IMAGE_MAX_RATIO
+    elif ratio < 1.0 / _STANDARD_IMAGE_MAX_RATIO:
+        ratio = 1.0 / _STANDARD_IMAGE_MAX_RATIO
 
-    normalized_size = normalize_image_size(str(image_size or "1K"), provider="openai")
+    normalized_size = normalize_image_size(str(image_size or "1K"))
     long_edge = {
         "512": 1024,
         "0.5K": 1024,
@@ -319,120 +346,29 @@ def resolve_openai_image_size(aspect_ratio: str = "1:1", image_size: str = "1K")
         width = height * ratio
 
     pixel_count = width * height
-    if pixel_count < _OPENAI_MIN_PIXELS:
-        scale = math.sqrt(_OPENAI_MIN_PIXELS / pixel_count)
+    if pixel_count < _STANDARD_IMAGE_MIN_PIXELS:
+        scale = math.sqrt(_STANDARD_IMAGE_MIN_PIXELS / pixel_count)
         width *= scale
         height *= scale
-    elif pixel_count > _OPENAI_MAX_PIXELS:
-        scale = math.sqrt(_OPENAI_MAX_PIXELS / pixel_count)
+    elif pixel_count > _STANDARD_IMAGE_MAX_PIXELS:
+        scale = math.sqrt(_STANDARD_IMAGE_MAX_PIXELS / pixel_count)
         width *= scale
         height *= scale
 
-    width_i = min(_OPENAI_MAX_EDGE, _round_openai_edge(width))
-    height_i = min(_OPENAI_MAX_EDGE, _round_openai_edge(height))
+    width_i = min(_STANDARD_IMAGE_MAX_EDGE, _round_standard_edge(width))
+    height_i = min(_STANDARD_IMAGE_MAX_EDGE, _round_standard_edge(height))
 
-    if width_i * height_i < _OPENAI_MIN_PIXELS:
-        scale = math.sqrt(_OPENAI_MIN_PIXELS / max(1, width_i * height_i))
-        width_i = min(_OPENAI_MAX_EDGE, _round_openai_edge(width_i * scale))
-        height_i = min(_OPENAI_MAX_EDGE, _round_openai_edge(height_i * scale))
+    if width_i * height_i < _STANDARD_IMAGE_MIN_PIXELS:
+        scale = math.sqrt(_STANDARD_IMAGE_MIN_PIXELS / max(1, width_i * height_i))
+        width_i = min(_STANDARD_IMAGE_MAX_EDGE, _round_standard_edge(width_i * scale))
+        height_i = min(_STANDARD_IMAGE_MAX_EDGE, _round_standard_edge(height_i * scale))
 
     return f"{width_i}x{height_i}"
 
 
-def normalize_openai_quality(value: str | None, default: str = "medium") -> str:
+def normalize_image_quality(value: str | None, default: str = "medium") -> str:
     quality = str(value or default or "medium").strip().lower()
-    return quality if quality in _OPENAI_VALID_QUALITIES else default
-
-
-def _extract_openai_unknown_parameter(error_detail: str) -> str:
-    match = re.search(r"Unknown parameter:\s*'([^']+)'", error_detail or "")
-    if match:
-        return match.group(1)
-    match = re.search(r'Unknown parameter:\s*"([^"]+)"', error_detail or "")
-    if match:
-        return match.group(1)
-    match = re.search(r"Unsupported parameter:\s*'([^']+)'", error_detail or "")
-    if match:
-        return match.group(1)
-    match = re.search(r'Unsupported parameter:\s*"([^"]+)"', error_detail or "")
-    if match:
-        return match.group(1)
-    match = re.search(r"'param':\s*'([^']+)'", error_detail or "")
-    if match:
-        return match.group(1)
-    match = re.search(r'"param":\s*"([^"]+)"', error_detail or "")
-    if match:
-        return match.group(1)
-    for parameter in ("output_format", "quality", "input_fidelity"):
-        if parameter in (error_detail or ""):
-            return parameter
-    if "input_fidelity" in (error_detail or ""):
-        return "input_fidelity"
-    return ""
-
-
-def _truncate_openrouter_debug(value: object, limit: int = 240) -> str:
-    """截断 OpenRouter 调试字段，避免日志过长。"""
-    text = str(value or "")
-    if len(text) <= limit:
-        return text
-    return f"{text[:limit]}..."
-
-
-async def _check_openrouter_image_capability(api_key: str, model: str) -> tuple[bool, str]:
-    """检查 OpenRouter 模型是否声明支持 image output。"""
-    import httpx
-
-    cache_key = f"{model}:{hashlib.sha1((api_key or '').encode('utf-8')).hexdigest()[:8]}"
-    cached = _OPENROUTER_IMAGE_CAPABILITY_CACHE.get(cache_key)
-    if cached is not None:
-        return cached
-
-    base_url = "https://openrouter.ai/api/v1"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://ai_anime.ai",
-        "X-Title": "AI anime Studio",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(f"{base_url}/models", headers=headers)
-            response.raise_for_status()
-            result = response.json()
-
-        models = result.get("data", [])
-        model_info = next((item for item in models if item.get("id") == model), None)
-        if not model_info:
-            detail = f"模型 {model} 不在 OpenRouter /models 列表中，跳过 image capability 预检"
-            print(f"[OpenRouter] {detail}")
-            outcome = (True, detail)
-            _OPENROUTER_IMAGE_CAPABILITY_CACHE[cache_key] = outcome
-            return outcome
-
-        output_modalities = (model_info.get("architecture") or {}).get("output_modalities") or []
-        supports_image = "image" in output_modalities
-        detail = (
-            f"model={model}, output_modalities={output_modalities}"
-            if output_modalities
-            else f"model={model}, output_modalities=[]"
-        )
-        outcome = (supports_image, detail)
-        _OPENROUTER_IMAGE_CAPABILITY_CACHE[cache_key] = outcome
-        return outcome
-    except Exception as exc:
-        detail = "image capability 预检失败，跳过阻断: " f"{type(exc).__name__}: {exc!r}"
-        print(f"[OpenRouter] {detail}")
-        outcome = (True, detail)
-        _OPENROUTER_IMAGE_CAPABILITY_CACHE[cache_key] = outcome
-        return outcome
-
-
-def clamp_image_size(size: str) -> str:
-    """Clamp image_size to values accepted by Gemini image APIs."""
-    normalized = normalize_image_size(size, provider="google")
-    return normalized if normalized in _VALID_IMAGE_SIZES else "1K"
+    return quality if quality in _STANDARD_IMAGE_VALID_QUALITIES else default
 
 
 # =============================================================================
@@ -456,7 +392,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_1:1 1K",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_9-16": {
         "rows": 1,
@@ -465,7 +400,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_9:16 1K",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_2-3": {
         "rows": 1,
@@ -474,7 +408,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_2:3 1K",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_16-9": {
         "rows": 1,
@@ -483,7 +416,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_16:9 1K",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x2_4-3": {
         "rows": 1,
@@ -492,7 +424,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x2_4:3 1K",
         "capacity": 2,
-        "model": "nanobanana",
     },
     "1x2_16-9": {
         "rows": 1,
@@ -501,7 +432,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x2_16:9 1K",
         "capacity": 2,
-        "model": "nanobanana",
     },
     "1x3_16-9": {
         "rows": 1,
@@ -510,7 +440,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x3_16:9 1K",
         "capacity": 3,
-        "model": "nanobanana",
     },
     "1x3_21-9": {
         "rows": 1,
@@ -519,7 +448,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x3_21:9 1K",
         "capacity": 3,
-        "model": "nanobanana",
     },
     "1x4_21-9": {
         "rows": 1,
@@ -528,7 +456,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x4_21:9 1K",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "1x6_4-1": {
         "rows": 1,
@@ -537,7 +464,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x6_4:1 1K",
         "capacity": 6,
-        "model": "nanobanana",
     },
     "2x2_1-1": {
         "rows": 2,
@@ -546,7 +472,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x2_1:1 2K",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "2x2_9-16": {
         "rows": 2,
@@ -555,7 +480,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x2_9:16 2K",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "2x3_1-1": {
         "rows": 2,
@@ -564,7 +488,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x3_1:1 2K",
         "capacity": 6,
-        "model": "nanobanana",
     },
     "2x4_4-3": {
         "rows": 2,
@@ -573,7 +496,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x4_4:3 2K",
         "capacity": 8,
-        "model": "nanobanana",
     },
     "2x2_2-3": {
         "rows": 2,
@@ -582,7 +504,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x2_2:3 2K",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "2x2_16-9": {
         "rows": 2,
@@ -591,7 +512,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "2x2_16:9 2K",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "3x2_9-16": {
         "rows": 3,
@@ -600,7 +520,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "3x2_9:16 2K",
         "capacity": 6,
-        "model": "nanobanana",
     },
     "3x2_2-3": {
         "rows": 3,
@@ -609,7 +528,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "3x2_2:3 2K",
         "capacity": 6,
-        "model": "nanobanana",
     },
     "3x3_1-1": {
         "rows": 3,
@@ -618,7 +536,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "3x3_1:1 4K",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_9-16": {
         "rows": 3,
@@ -627,7 +544,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "3x3_9:16 4K",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_2-3": {
         "rows": 3,
@@ -636,7 +552,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "2K",
         "label": "3x3_2:3 2K",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_16-9": {
         "rows": 3,
@@ -645,7 +560,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "3x3_16:9 4K",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "4x3_9-16": {
         "rows": 4,
@@ -654,7 +568,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "4x3_9:16 4K",
         "capacity": 12,
-        "model": "nanobanana",
     },
     "4x3_3-4": {
         "rows": 4,
@@ -663,7 +576,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "4x3_3:4 4K",
         "capacity": 12,
-        "model": "nanobanana",
     },
     "4x4_1-1": {
         "rows": 4,
@@ -672,7 +584,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "4x4_1:1 4K",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "4x4_16-9": {
         "rows": 4,
@@ -681,7 +592,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "4x4_16:9 4K",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "5x4_9-16": {
         "rows": 5,
@@ -690,7 +600,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "5x4_9:16 4K",
         "capacity": 20,
-        "model": "nanobanana",
     },
     "5x5_1-1": {
         "rows": 5,
@@ -699,7 +608,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "4K",
         "label": "5x5_1:1 4K",
         "capacity": 25,
-        "model": "nanobanana",
     },
     # Sketch 专用
     "1x1_1-1_sketch": {
@@ -709,7 +617,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_1:1 Sketch",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_9-16_sketch": {
         "rows": 1,
@@ -718,7 +625,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_9:16 Sketch",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_2-3_sketch": {
         "rows": 1,
@@ -727,7 +633,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_2:3 Sketch",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x1_16-9_sketch": {
         "rows": 1,
@@ -736,7 +641,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x1_16:9 Sketch",
         "capacity": 1,
-        "model": "nanobanana",
     },
     "1x2_4-3_sketch": {
         "rows": 1,
@@ -745,7 +649,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "1x2_4:3 Sketch",
         "capacity": 2,
-        "model": "nanobanana",
     },
     "2x2_2-3_sketch": {
         "rows": 2,
@@ -754,7 +657,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "2x2_2:3 Sketch",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "2x2_16-9_sketch": {
         "rows": 2,
@@ -763,7 +665,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "2x2_16:9 Sketch",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "2x2_9-16_sketch": {
         "rows": 2,
@@ -772,7 +673,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "2x2_9:16 Sketch",
         "capacity": 4,
-        "model": "nanobanana",
     },
     "3x3_1-1_sketch": {
         "rows": 3,
@@ -781,7 +681,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "3x3_1:1 Sketch",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_9-16_sketch": {
         "rows": 3,
@@ -790,7 +689,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "3x3_9:16 Sketch",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_3-4_sketch": {
         "rows": 3,
@@ -799,7 +697,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "3x3_3:4 Sketch",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_2-3_sketch": {
         "rows": 3,
@@ -808,7 +705,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "3x3_2:3 Sketch",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "3x3_16-9_sketch": {
         "rows": 3,
@@ -817,7 +713,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "3x3_16:9 Sketch",
         "capacity": 9,
-        "model": "nanobanana",
     },
     "2x3_1-1_sketch": {
         "rows": 2,
@@ -826,7 +721,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "2x3_1:1 Sketch",
         "capacity": 6,
-        "model": "nanobanana",
     },
     "2x4_4-3_sketch": {
         "rows": 2,
@@ -835,7 +729,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "2x4_4:3 Sketch",
         "capacity": 8,
-        "model": "nanobanana",
     },
     "4x3_3-4_sketch": {
         "rows": 4,
@@ -844,7 +737,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "4x3_3:4 Sketch",
         "capacity": 12,
-        "model": "nanobanana",
     },
     "4x4_1-1_sketch": {
         "rows": 4,
@@ -853,7 +745,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "4x4_1:1 Sketch",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "4x4_9-16_sketch": {
         "rows": 4,
@@ -862,7 +753,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "4x4_9:16 Sketch",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "4x4_2-3_sketch": {
         "rows": 4,
@@ -871,7 +761,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "4x4_2:3 Sketch",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "4x4_16-9_sketch": {
         "rows": 4,
@@ -880,7 +769,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "4x4_16:9 Sketch",
         "capacity": 16,
-        "model": "nanobanana",
     },
     "5x5_1-1_sketch": {
         "rows": 5,
@@ -889,7 +777,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "5x5_1:1 Sketch",
         "capacity": 25,
-        "model": "nanobanana",
     },
     "5x5_2-3_sketch": {
         "rows": 5,
@@ -898,7 +785,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "5x5_2:3 Sketch",
         "capacity": 25,
-        "model": "nanobanana",
     },
     "5x5_16-9_sketch": {
         "rows": 5,
@@ -907,7 +793,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "5x5_16:9 Sketch",
         "capacity": 25,
-        "model": "nanobanana",
     },
     "5x5_9-16_sketch": {
         "rows": 5,
@@ -916,7 +801,6 @@ REGEN_MODE_CONFIGS: Dict[str, dict] = {
         "image_size": "1K",
         "label": "5x5_9:16 Sketch",
         "capacity": 25,
-        "model": "nanobanana",
     },
 }
 
@@ -2253,16 +2137,9 @@ def build_regen_plan(
     aspect_mode: str,
     character_map: dict | None = None,
     force_one_by_one: bool = False,
-    image_generation_selection: str | None = None,
 ) -> list[PlanEntry]:
     """Build the canonical render plan for a selected beat set."""
-    single_cell_reason = ""
     if force_one_by_one:
-        single_cell_reason = "force-1x1"
-    elif image_generation_selection_forces_single_cell(image_generation_selection):
-        single_cell_reason = HUIMENG_IMAGE2_SINGLE_CELL_REASON
-
-    if single_cell_reason:
         mode_key = _single_cell_render_mode_key(aspect_mode)
         return [
             PlanEntry(
@@ -2271,7 +2148,7 @@ def build_regen_plan(
                 cols=1,
                 beat_numbers=(int(beat["beat_number"]),),
                 location=str(beat_scene_id(beat) or beat.get("location") or ""),
-                reasons=(single_cell_reason,),
+                reasons=("force-1x1",),
             )
             for beat in selected_beats
         ]
@@ -2558,15 +2435,9 @@ async def generate_text_to_image(
     aspect_ratio: str = "1:1",
     image_size: str = "2K",
     quality: str | None = None,
-    api_key: Optional[str] = None,
     config: Optional[dict] = None,
 ) -> Path:
-    """Generate one image from a prompt only — no reference images.
-
-    Routes through the same 4 providers as `generate_reference_edit_image`
-    (google / openrouter / huimeng / openai). Use `config` to override the
-    provider/model picked from env defaults.
-    """
+    """Generate one image through the current commercial model access."""
     return await _generate_image(
         prompt=prompt,
         reference_image_paths=[],
@@ -2574,7 +2445,6 @@ async def generate_text_to_image(
         aspect_ratio=aspect_ratio,
         image_size=image_size,
         quality=quality,
-        api_key=api_key,
         config=config,
     )
 
@@ -2587,15 +2457,9 @@ async def generate_reference_edit_image(
     aspect_ratio: str = "2:3",
     image_size: str = "2K",
     quality: str | None = None,
-    api_key: Optional[str] = None,
     config: Optional[dict] = None,
 ) -> Path:
-    """Generate one edited image from reference images plus a free-form edit prompt.
-
-    `config` lets callers override the provider / model selection (passed through
-    to `NanoBananaGridGenerator`); when None, falls back to env-var defaults via
-    `get_grid_generation_config()`.
-    """
+    """Edit one image through the current commercial model access."""
     ref_paths = [path for path in reference_images if path and os.path.exists(path)]
     if not ref_paths:
         raise FileNotFoundError("No valid reference images provided for edit generation")
@@ -2606,7 +2470,6 @@ async def generate_reference_edit_image(
         aspect_ratio=aspect_ratio,
         image_size=image_size,
         quality=quality,
-        api_key=api_key,
         config=config,
     )
 
@@ -2619,115 +2482,26 @@ async def _generate_image(
     aspect_ratio: str,
     image_size: str,
     quality: str | None,
-    api_key: Optional[str],
     config: Optional[dict],
 ) -> Path:
     """Shared body for text-only and image-edit single-image generation."""
-    generator = NanoBananaGridGenerator(api_key=api_key, config=config)
+    generator = NanoBananaGridGenerator(config=config)
     ref_paths = list(reference_image_paths or [])
-
-    if generator.provider == "openrouter":
-        ref_bytes = [Path(path).read_bytes() for path in ref_paths]
-        image_bytes, _, error_detail = await _call_openrouter_image_api(
-            api_key=generator.api_key,
-            model=generator.model,
-            prompt=prompt,
-            reference_images=ref_bytes,
-            image_config={"aspect_ratio": aspect_ratio, "image_size": image_size},
+    ref_bytes = [Path(path).read_bytes() for path in ref_paths]
+    image_bytes, _, error_detail = await _call_newapi_image_api(
+        model=generator.model,
+        prompt=prompt,
+        reference_images=ref_bytes or None,
+        image_config={
+            "aspect_ratio": aspect_ratio,
+            "image_size": image_size,
+            "quality": quality or generator.image_quality,
+        },
+    )
+    if not image_bytes:
+        raise ValueError(
+            f"Commercial image generation failed: {error_detail or 'empty image'}"
         )
-        if not image_bytes:
-            raise ValueError(
-                f"OpenRouter edit image generation failed: {error_detail or 'empty image'}"
-            )
-    elif generator.provider == "huimeng":
-        ref_bytes = [Path(path).read_bytes() for path in ref_paths]
-        image_bytes, _, error_detail = await _call_huimeng_image_api(
-            api_key=generator.api_key,
-            model=generator.model,
-            prompt=prompt,
-            reference_images=ref_bytes,
-            image_config={
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "quality": quality or generator.huimeng_image_quality,
-                "huimeng_image_quality": quality or generator.huimeng_image_quality,
-            },
-        )
-        if not image_bytes:
-            raise ValueError(
-                f"HuiMeng edit image generation failed: {error_detail or 'empty image'}"
-            )
-    elif generator.provider == "openai":
-        ref_bytes = [Path(path).read_bytes() for path in ref_paths]
-        image_bytes, _, error_detail = await _call_openai_image_api(
-            api_key=generator.api_key,
-            model=generator.model,
-            prompt=prompt,
-            reference_images=ref_bytes,
-            image_config={
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "quality": quality or generator.openai_image_quality,
-                "output_format": "png",
-            },
-        )
-        if not image_bytes:
-            raise ValueError(
-                f"OpenAI edit image generation failed: {error_detail or 'empty image'}"
-            )
-    elif generator.provider == "newapi":
-        ref_bytes = [Path(path).read_bytes() for path in ref_paths]
-        image_bytes, _, error_detail = await _call_newapi_image_api(
-            api_key=generator.api_key,
-            model=generator.model,
-            prompt=prompt,
-            reference_images=ref_bytes or None,
-            image_config={
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "quality": quality or generator.openai_image_quality,
-            },
-            base_url=generator.base_url,
-        )
-        if not image_bytes:
-            raise ValueError(f"AI anime API image generation failed: {error_detail or 'empty image'}")
-    else:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=generator.api_key)
-        contents = [prompt]
-        for ref_path in ref_paths:
-            ref_image = generator._load_image_as_part(ref_path)
-            if ref_image:
-                contents.append(ref_image)
-
-        is_gemini3 = "gemini-3" in generator.model
-        if is_gemini3:
-            image_config = types.ImageConfig(
-                aspect_ratio=aspect_ratio,
-                image_size=image_size,
-            )
-        else:
-            image_config = types.ImageConfig(aspect_ratio=aspect_ratio)
-
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=generator.model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-                image_config=image_config,
-            ),
-        )
-        image_bytes = None
-        if response.candidates and response.candidates[0].content:
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "inline_data") and part.inline_data:
-                    image_bytes = part.inline_data.data
-                    break
-        if not image_bytes:
-            raise ValueError("Google edit image generation returned no image data")
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -2847,358 +2621,33 @@ def find_sketch_for_beat_range(
     return path, rows, cols
 
 
-async def _call_openrouter_image_api(
-    api_key: str,
-    model: str,
-    prompt: str,
-    reference_images: list[bytes] | None = None,
-    image_config: dict | None = None,
-) -> tuple[bytes | None, str, str]:
-    """通过 OpenRouter API 调用 Gemini 图像生成。
-
-    Returns:
-        (image_bytes, text_response, error_detail)
-        - image_bytes: 生成的图像 bytes，失败返回 None
-        - text_response: provider 返回的文本内容（如 panel hints JSON）
-        - error_detail: 失败原因摘要，成功时为空字符串
-
-    Args:
-        api_key: OpenRouter API Key
-        model: 模型名称（如 google/gemini-3-pro-image-preview）
-        prompt: 图像生成提示词
-        reference_images: 参考图像列表（bytes 格式）
-        image_config: 图像配置（aspect_ratio, image_size）
-    """
-    import httpx
-
-    base_url = "https://openrouter.ai/api/v1"
-
-    # 构建 content 数组（按 OpenRouter 官方建议：文本在前，图片在后）
-    content = []
-
-    # 先添加文本提示词
-    content.append({"type": "text", "text": prompt})
-
-    # 再添加参考图（如果有）
-    if reference_images:
-        for img_bytes in reference_images:
-            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-            content.append(
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
-            )
-
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": content}],
-        "modalities": ["image", "text"],
-    }
-
-    # 添加 image_config
-    if image_config:
-        effective_image_size = normalize_image_size(
-            image_config.get("image_size", "1K"),
-            provider="openrouter",
-        )
-        payload["image_config"] = {
-            "aspect_ratio": image_config.get("aspect_ratio", "1:1"),
-            "image_size": effective_image_size,
-        }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://ai_anime.ai",
-        "X-Title": "AI anime Studio",
-    }
-
-    try:
-        supports_image, capability_detail = await _check_openrouter_image_capability(api_key, model)
-        if not supports_image:
-            detail = f"OpenRouter 模型未声明 image output 支持: {capability_detail}"
-            print(f"[OpenRouter] {detail}")
-            return None, "", detail
-
-        async with httpx.AsyncClient(timeout=300.0) as client:
-            response = await client.post(
-                f"{base_url}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
-
-            result = response.json()
-
-            # 提取图像
-            choices = result.get("choices", [])
-            if not choices:
-                print(f"[OpenRouter] 响应无 choices: {_truncate_openrouter_debug(result)}")
-                return None, "", "响应无 choices"
-
-            message = choices[0].get("message", {})
-
-            # 提取文本和图像（兼容多种 OpenRouter 响应格式）
-            text_content = ""
-            image_data_url = ""
-
-            content = message.get("content", "")
-            if isinstance(content, list):
-                # content 是 list[{type, text/image_url}]
-                text_parts = []
-                for part in content:
-                    if not isinstance(part, dict):
-                        continue
-                    if part.get("type") == "text":
-                        text_parts.append(part.get("text", ""))
-                    elif part.get("type") == "image_url":
-                        url = part.get("image_url", {}).get("url", "")
-                        if url.startswith("data:image"):
-                            image_data_url = url
-                text_content = " ".join(text_parts)
-            elif isinstance(content, str):
-                text_content = content
-
-            if text_content:
-                print(f"[OpenRouter] 文本响应: {text_content[:500]}")
-
-            # 优先从 message.images 取图（旧格式）
-            images = message.get("images", [])
-            if images:
-                url = images[0].get("image_url", {}).get("url", "")
-                if url.startswith("data:image"):
-                    image_data_url = url
-
-            if not image_data_url:
-                print(f"[OpenRouter] 响应无图像: {_truncate_openrouter_debug(message)}")
-                detail = "模型未返回图像"
-                if text_content:
-                    detail = f"{detail}，仅返回文本: {text_content[:200]}"
-                return None, text_content or "", detail
-
-            # 提取 base64 部分
-            _, b64_data = image_data_url.split(",", 1)
-            return base64.b64decode(b64_data), text_content or "", ""
-
-    except httpx.HTTPStatusError as e:
-        print(
-            "[OpenRouter] HTTP 错误: "
-            f"{e.response.status_code} - {_truncate_openrouter_debug(e.response.text, limit=500)}"
-        )
-        body = _truncate_openrouter_debug(e.response.text, limit=280)
-        return (
-            None,
-            "",
-            f"HTTP {e.response.status_code}: {body}" if body else f"HTTP {e.response.status_code}",
-        )
-    except Exception as e:
-        if is_insufficient_credits_error(e):
-            raise
-        detail = f"{type(e).__name__}: {e!r}"
-        print(f"[OpenRouter] 请求异常: {detail}")
-        return None, "", f"请求异常: {detail}"
-
-
-async def _call_openai_image_api(
-    *,
-    api_key: str,
-    model: str,
-    prompt: str,
-    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
-    image_config: dict | None = None,
-) -> tuple[bytes | None, str, str]:
-    """Call OpenAI Image API using GPT Image models.
-
-    Returns:
-        (image_bytes, text_response, error_detail)
-    """
-
-    try:
-        from openai import AsyncOpenAI
-    except ImportError:
-        return None, "", "openai SDK not installed; install openai>=2.14.0"
-
-    if not api_key:
-        return None, "", "OPENAI_API_KEY is missing"
-
-    image_config = image_config or {}
-    image_size = normalize_image_size(str(image_config.get("image_size") or "1K"), "openai")
-    size = resolve_openai_image_size(
-        image_config.get("aspect_ratio", "1:1"),
-        image_size,
-    )
-    request_options: dict[str, object] = {"size": size}
-    is_gpt_image_2 = str(model or "").strip().lower().startswith("gpt-image-2")
-    quality = normalize_openai_quality(str(image_config.get("quality") or ""), default="medium")
-    if quality:
-        request_options["quality"] = quality
-    output_format = str(image_config.get("output_format") or "png").strip().lower()
-    # The current Image Edit endpoint rejects output_format for some gpt-image-2
-    # reference-image requests. Edits return PNG-compatible b64 output by default.
-    if output_format and not reference_images:
-        request_options["output_format"] = output_format
-    input_fidelity = str(image_config.get("input_fidelity") or "").strip().lower()
-    # gpt-image-2 always processes image inputs at high fidelity; the API rejects
-    # attempts to change input_fidelity for that model.
-    if input_fidelity and not is_gpt_image_2:
-        request_options["input_fidelity"] = input_fidelity
-
-    async def _reserve(source: str) -> str:
-        return await get_usage_meter().reserve_current_model_call_credit(
-            model=model,
-            billing_kind="image",
-            billing_params=_image_credit_billing_params(
-                image_size=image_size,
-                quality=quality,
-            ),
-            metadata={"source": source},
-        )
-
-    async def _refund(reservation_id: str, source: str, error: str) -> None:
-        if not reservation_id:
-            return
-        try:
-            await get_usage_meter().refund_model_call_credit_reservation(
-                reservation_id,
-                metadata={"source": source, "error": error[:200]},
-            )
-        except Exception:
-            pass
-
-    async def _confirm(
-        reservation_id: str,
-        *,
-        provider_request_id: str = "",
-        response_id: str = "",
-    ) -> None:
-        try:
-            await get_usage_meter().bump_model_call(
-                user_id=None,
-                model=model,
-                provider_request_id=provider_request_id,
-                credit_reservation_id=reservation_id,
-                metadata={"response_id": response_id} if response_id else None,
-            )
-        except Exception:
-            pass
-
-    reservation_id = ""
-    try:
-        reservation_id = await _reserve("openai_image_api")
-
-        client = AsyncOpenAI(api_key=api_key, timeout=300.0)
-        result = None
-        for _attempt in range(4):
-            try:
-                if reference_images:
-                    image_files = []
-                    for idx, image_ref in enumerate(reference_images):
-                        filename = f"reference_{idx + 1}.png"
-                        mime_type = "image/png"
-                        image_bytes: bytes
-                        if isinstance(image_ref, tuple):
-                            if len(image_ref) == 3:
-                                filename, image_bytes, mime_type = image_ref
-                            elif len(image_ref) == 2:
-                                image_bytes, mime_type = image_ref
-                                ext = "jpg" if mime_type == "image/jpeg" else "png"
-                                filename = f"reference_{idx + 1}.{ext}"
-                            else:
-                                image_bytes = bytes(image_ref[0])
-                        else:
-                            image_bytes = bytes(image_ref)
-                        image_files.append((filename, bytes(image_bytes), mime_type))
-                    result = await client.images.edit(
-                        model=model,
-                        image=image_files,
-                        prompt=prompt,
-                        **request_options,
-                    )
-                else:
-                    result = await client.images.generate(
-                        model=model,
-                        prompt=prompt,
-                        **request_options,
-                    )
-                break
-            except Exception as exc:
-                detail = f"{type(exc).__name__}: {exc!r}"
-                unknown_parameter = _extract_openai_unknown_parameter(detail)
-                if unknown_parameter and unknown_parameter in request_options:
-                    print(
-                        f"[OpenAI Image] 参数 {unknown_parameter!r} 不被当前端点接受，" "移除后重试"
-                    )
-                    request_options.pop(unknown_parameter, None)
-                    continue
-                transient_error = any(
-                    token in detail
-                    for token in (
-                        "InternalServerError",
-                        "APIConnectionError",
-                        "APITimeoutError",
-                        "server_error",
-                        "Connection error",
-                    )
-                )
-                if transient_error and _attempt < 3:
-                    wait_seconds = 2**_attempt
-                    print(
-                        f"[OpenAI Image] 暂时性错误，{wait_seconds}s 后重试 "
-                        f"({_attempt + 1}/4): {detail}"
-                    )
-                    await asyncio.sleep(wait_seconds)
-                    continue
-                raise
-
-        if result is None:
-            await _refund(reservation_id, "openai_image_api", "empty_response")
-            return None, "", "OpenAI Image API returned no response"
-
-        if not result.data:
-            await _refund(reservation_id, "openai_image_api", "missing_data")
-            return None, "", "OpenAI Image API returned no data"
-
-        image_item = result.data[0]
-        image_base64 = getattr(image_item, "b64_json", None) or ""
-        if not image_base64:
-            await _refund(reservation_id, "openai_image_api", "missing_b64_json")
-            return None, "", f"OpenAI Image API returned no b64_json: {image_item}"
-
-        image_bytes = base64.b64decode(image_base64)
-        response_id = str(getattr(result, "id", "") or "").strip()
-        await _confirm(
-            reservation_id,
-            provider_request_id=str(getattr(result, "_request_id", "") or "").strip(),
-            response_id=response_id,
-        )
-        return image_bytes, "", ""
-    except Exception as exc:
-        await _refund(reservation_id, "openai_image_api", type(exc).__name__)
-        if is_insufficient_credits_error(exc):
-            raise
-        detail = f"{type(exc).__name__}: {exc!r}"
-        print(f"[OpenAI Image] 请求异常: {detail}")
-        return None, "", f"请求异常: {detail}"
-
-
 async def _call_newapi_image_api(
     *,
-    api_key: str,
     model: str,
     prompt: str,
     reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
     image_config: dict | None = None,
-    base_url: str | None = None,
     trace: dict[str, str] | None = None,
 ) -> tuple[bytes | None, str, str]:
     """Call newAPI's OpenAI-compatible Images API."""
     import httpx
 
-    if not api_key:
-        return None, "", "AI anime API key is missing"
+    from ai_anime.config import get_model_access_json_transport
+    from ai_anime.model_access_policy import require_model_role
+
+    clean_model = str(model or "").strip()
+    model_role = "IMAGE_EDIT" if reference_images else "IMAGE_GENERATION"
+    require_model_role(clean_model, model_role)
+
+    try:
+        endpoint, headers = get_model_access_json_transport()
+    except ValueError as exc:
+        return None, "", str(exc)
 
     image_config = image_config or {}
     aspect_ratio = str(image_config.get("aspect_ratio") or "1:1").strip() or "1:1"
-    image_size = normalize_image_size(str(image_config.get("image_size") or "1K"), "newapi")
-    size = resolve_openai_image_size(aspect_ratio, image_size)
+    image_size = normalize_image_size(str(image_config.get("image_size") or "1K"))
+    size = resolve_standard_image_size(aspect_ratio, image_size)
     extra_fields: dict[str, object] = {
         "aspect_ratio": aspect_ratio,
         "image_size": image_size,
@@ -3208,48 +2657,42 @@ async def _call_newapi_image_api(
         extra_fields["resolution"] = resolution
 
     payload: dict[str, object] = {
-        "model": model,
+        "model": clean_model,
         "prompt": prompt,
         "size": size,
         "n": 1,
         "response_format": "b64_json",
         "extra_fields": extra_fields,
     }
-    if _newapi_image_model_supports_quality(model):
-        quality = normalize_openai_quality(
+    if _newapi_image_model_supports_quality(clean_model):
+        quality = normalize_image_quality(
             str(image_config.get("quality") or ""),
             default="medium",
         )
         payload["quality"] = quality
         extra_fields["quality"] = quality
 
+    request_path = "images/generations"
+    multipart_files: list[tuple[str, tuple[str, bytes, str]]] = []
     if reference_images:
+        request_path = "images/edits"
         try:
-            payload["images"] = await _relay_reference_images_for_newapi(reference_images)
-        except Exception as exc:
-            return None, "", f"media relay upload failed: {exc}"
+            multipart_files = _newapi_image_multipart_files(reference_images)
+        except (TypeError, ValueError) as exc:
+            return None, "", str(exc)
 
-    if base_url:
-        endpoint = base_url.rstrip("/")
-    else:
-        from ai_anime.config import get_effective_newapi_gateway_config
-
-        endpoint = get_effective_newapi_gateway_config().base_url.rstrip("/")
     request_context = _newapi_safe_request_context(
         endpoint=endpoint,
-        model=model,
+        request_path=request_path,
+        model=clean_model,
         payload=payload,
         prompt=prompt,
+        reference_image_count=len(multipart_files),
     )
     logger.info("AI anime API image request: %s", request_context)
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
     async def _reserve(source: str) -> str:
         return await get_usage_meter().reserve_current_model_call_credit(
-            model=model,
+            model=clean_model,
             billing_kind="image",
             billing_params=_image_credit_billing_params(
                 image_size=image_size,
@@ -3293,7 +2736,7 @@ async def _call_newapi_image_api(
         try:
             await get_usage_meter().bump_model_call(
                 user_id=None,
-                model=model,
+                model=clean_model,
                 provider_request_id=provider_request_id,
                 credit_reservation_id=reservation_id,
                 metadata={"response_id": response_id} if response_id else None,
@@ -3317,17 +2760,36 @@ async def _call_newapi_image_api(
     provider_request_id = ""
     try:
         reservation_id = await _reserve("newapi_image_api")
+        request_headers = dict(headers)
+        request_headers["Idempotency-Key"] = str(uuid.uuid4())
 
         async with httpx.AsyncClient(
             timeout=NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS,
             follow_redirects=True,
         ) as client:
             logger.info("AI anime API image POST start: %s", request_context.get("endpoint"))
-            response = await client.post(
-                f"{endpoint}/images/generations",
-                headers=headers,
-                json=payload,
-            )
+            if multipart_files:
+                request_headers.pop("Content-Type", None)
+                form_fields = {
+                    key: (
+                        json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+                        if isinstance(value, (dict, list))
+                        else str(value)
+                    )
+                    for key, value in payload.items()
+                }
+                response = await client.post(
+                    f"{endpoint}/{request_path}",
+                    headers=request_headers,
+                    data=form_fields,
+                    files=multipart_files,
+                )
+            else:
+                response = await client.post(
+                    f"{endpoint}/{request_path}",
+                    headers=request_headers,
+                    json=payload,
+                )
             logger.info(
                 "AI anime API image POST response: status=%s bytes=%s",
                 getattr(response, "status_code", "?"),
@@ -3336,7 +2798,24 @@ async def _call_newapi_image_api(
             response.raise_for_status()
             response_headers = getattr(response, "headers", {}) or {}
             provider_request_id = _newapi_request_id_from_headers(response_headers)
-            result = response.json()
+            try:
+                result = response.json()
+            except (TypeError, ValueError) as exc:
+                await _refund(
+                    reservation_id,
+                    "newapi_image_api",
+                    "invalid_json",
+                    request_id=provider_request_id,
+                )
+                return None, "", f"AI anime API Images response is not valid JSON: {exc}"
+            if not isinstance(result, dict):
+                await _refund(
+                    reservation_id,
+                    "newapi_image_api",
+                    "invalid_response_shape",
+                    request_id=provider_request_id,
+                )
+                return None, "", "AI anime API Images response must be an object"
             logger.info(
                 "AI anime API image POST parsed: data_count=%d keys=%s",
                 len(result.get("data") or []),
@@ -3348,9 +2827,26 @@ async def _call_newapi_image_api(
             )
             response_id = str(result.get("id") or "").strip()
             _record_trace(provider_request_id=provider_request_id, response_id=response_id)
+            protocol_error = _newapi_protocol_error_message(result)
+            if protocol_error:
+                await _refund(
+                    reservation_id,
+                    "newapi_image_api",
+                    "protocol_error",
+                    request_id=provider_request_id,
+                )
+                request_context_text = (
+                    f"request_id={provider_request_id}; " if provider_request_id else ""
+                )
+                return (
+                    None,
+                    "",
+                    f"AI anime API Images protocol error: "
+                    f"{request_context_text}{protocol_error}",
+                )
 
             data = result.get("data") or []
-            if not data:
+            if not isinstance(data, list) or not data:
                 await _refund(
                     reservation_id,
                     "newapi_image_api",
@@ -3360,6 +2856,14 @@ async def _call_newapi_image_api(
                 return None, "", f"AI anime API Images response missing data: {sorted(result.keys())}"
 
             first = data[0] or {}
+            if not isinstance(first, dict):
+                await _refund(
+                    reservation_id,
+                    "newapi_image_api",
+                    "invalid_image_item",
+                    request_id=provider_request_id,
+                )
+                return None, "", "AI anime API Images data[0] must be an object"
             image_b64 = first.get("b64_json") or ""
             if image_b64:
                 image_bytes = base64.b64decode(image_b64)
@@ -3455,133 +2959,6 @@ async def _call_newapi_image_api(
         return None, "", f"请求异常: {detail}"
 
 
-async def _relay_reference_images_for_newapi(
-    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]],
-) -> list[str]:
-    """Upload reference image bytes to OSS relay for URL-only upstream channels."""
-
-    def _image_bytes(image_ref) -> bytes:
-        if isinstance(image_ref, tuple):
-            if len(image_ref) == 3:
-                return bytes(image_ref[1])
-            if len(image_ref) == 2:
-                return bytes(image_ref[0])
-            return bytes(image_ref[0])
-        return bytes(image_ref)
-
-    def _image_ext(image_ref) -> str:
-        if isinstance(image_ref, tuple):
-            if len(image_ref) == 3:
-                filename = str(image_ref[0] or "")
-                mime_type = str(image_ref[2] or "")
-                suffix = Path(filename).suffix.lstrip(".")
-                if suffix:
-                    return suffix
-                if mime_type.startswith("image/"):
-                    return mime_type.split("/", 1)[1]
-            if len(image_ref) == 2:
-                hint = str(image_ref[1] or "")
-                if hint.startswith("image/"):
-                    return hint.split("/", 1)[1]
-                suffix = Path(hint).suffix.lstrip(".")
-                if suffix:
-                    return suffix
-        return "png"
-
-    def upload_all() -> list[str]:
-        urls: list[str] = []
-        for image_ref in reference_images:
-            urls.append(
-                upload_image_bytes(
-                    _image_bytes(image_ref),
-                    ext=_image_ext(image_ref),
-                    image_transform=IMAGE_TRANSFORM_AI_REFERENCE_JPEG,
-                )
-            )
-        return urls
-
-    return await asyncio.to_thread(upload_all)
-
-
-async def _call_huimeng_image_api(
-    *,
-    api_key: str,
-    model: str,
-    prompt: str,
-    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
-    image_config: dict | None = None,
-) -> tuple[bytes | None, str, str]:
-    """Call HuiMeng's async task API for image generation/editing."""
-    import httpx
-
-    if not api_key:
-        return None, "", "HUIMENGI_API_KEY is missing"
-
-    image_config = image_config or {}
-    ratio = str(image_config.get("aspect_ratio") or "1:1").strip() or "1:1"
-    resolution = _huimeng_image_resolution_for_model(model, image_config.get("image_size"))
-    params: dict[str, object] = {"prompt": prompt, "ratio": ratio}
-    if resolution:
-        params["resolution"] = resolution
-    if model == "image-2-official":
-        quality = (
-            str(
-                image_config.get("quality") or image_config.get("huimeng_image_quality") or "medium"
-            )
-            .strip()
-            .lower()
-        )
-        params["quality"] = quality if quality in {"low", "medium", "high"} else "medium"
-    if reference_images:
-        ref_urls = []
-        for image_ref in reference_images[:9]:
-            if isinstance(image_ref, tuple):
-                if len(image_ref) == 3:
-                    image_bytes = image_ref[1]
-                elif len(image_ref) == 2:
-                    image_bytes = image_ref[0]
-                else:
-                    image_bytes = bytes(image_ref[0])
-            else:
-                image_bytes = bytes(image_ref)
-            ref_urls.append(bytes_to_data_url(bytes(image_bytes)))
-        params["image"] = ref_urls[0] if len(ref_urls) == 1 else ref_urls
-
-    request_context = f"model={model}, ratio={ratio}, refs={len(reference_images or [])}"
-    try:
-        client = HuimengiTaskClient(api_key=api_key)
-        submit = await client.submit_task(model=model, params=params)
-        task_id = submit["task_id"]
-        print(f"[HuiMeng Images] submitted task_id={task_id} ({request_context})")
-        task = await client.wait_for_completion(
-            task_id,
-            poll_interval=_HUIMENG_IMAGE_POLL_INTERVAL_SECONDS,
-            max_polls=_HUIMENG_IMAGE_MAX_POLLS,
-        )
-        result = task.get("result") or {}
-        image_url = extract_huimeng_result_url(result, "image_url", "image_urls")
-        if not image_url:
-            return None, "", f"HuiMeng result missing image_url: {result}"
-
-        async with httpx.AsyncClient(timeout=180.0, follow_redirects=True) as http_client:
-            response = await http_client.get(image_url)
-        response.raise_for_status()
-        validate_huimeng_media_download(
-            response.content,
-            response.headers.get("content-type"),
-            expected_media_type="image",
-            url=image_url,
-        )
-        return response.content, "", ""
-    except httpx.HTTPStatusError as exc:
-        body = (exc.response.text or "")[:500]
-        return None, "", f"{request_context} | HTTP {exc.response.status_code}: {body}"
-    except HuimengTaskFailed as exc:
-        return None, "", f"{request_context} | HuiMeng task failed: {exc}"
-    except Exception as exc:
-        return None, "", f"{request_context} | request failed: {exc}"
-
-
 class NanoBananaGridGenerator:
     """NanoBananaPro 网格生成器。
 
@@ -3593,10 +2970,10 @@ class NanoBananaGridGenerator:
     - "4x4": 中等平衡
     - "5x5": 批量生成，最大 25 个分镜（动态优化）
 
-    使用 Google AI Studio 的 Gemini Pro Image 模型生成分镜网格。
+    通过当前商业模型访问生成分镜网格。
 
     示例:
-        >>> generator = NanoBananaGridGenerator()
+        >>> generator = NanoBananaGridGenerator(config=generator_config)
         >>> # 3x3 模式批量生成
         >>> results = await generator.generate_grid_batch(
         ...     all_beats=beats_data,
@@ -3605,20 +2982,21 @@ class NanoBananaGridGenerator:
         ... )
     """
 
-    def __init__(self, api_key: Optional[str] = None, config: Optional[dict] = None):
-        """初始化生成器。
-
-        Args:
-            api_key: Google AI API Key，默认从环境变量读取
-        """
-        config = config or get_grid_generation_config()
-        self.provider = config.get("provider", "google")
-        self.api_key = api_key or config["api_key"]
+    def __init__(self, config: Optional[dict] = None):
+        """初始化生成器。"""
+        if config is None:
+            raise ValueError("grid generator config with an explicit model is required")
+        if not str(config.get("model") or "").strip():
+            raise ValueError("grid generator model is required")
+        self.access_mode = str(config.get("access_mode") or "cloud").strip().lower()
+        if self.access_mode not in {"cloud", "byok"}:
+            raise ValueError("商业模型访问模式必须是 cloud 或 byok")
         self.model = config["model"]
-        self.base_url = config.get("base_url", "")
-        self.openai_image_quality = config.get("openai_image_quality", "medium")
-        self.openai_sketch_image_quality = config.get("openai_sketch_image_quality", "low")
-        self.huimeng_image_quality = config.get("huimeng_image_quality", "medium")
+        self.image_quality = config.get("image_quality", config.get("openai_image_quality", "medium"))
+        self.sketch_image_quality = config.get(
+            "sketch_image_quality",
+            config.get("openai_sketch_image_quality", "low"),
+        )
         self.default_image_size = config.get("image_size", "1K")
         self.mode = config.get("mode", "3x3")
         self.rows = config["rows"]
@@ -3626,20 +3004,7 @@ class NanoBananaGridGenerator:
         self.batch_size = config.get("batch_size", self.rows * self.cols)
         self.total_panels = config["total_panels"]
 
-        if not self.api_key:
-            if self.provider == "openrouter":
-                key_name = "OPENROUTER_API_KEY"
-            elif self.provider == "huimeng":
-                key_name = "HUIMENGI_API_KEY"
-            elif self.provider == "openai":
-                key_name = "OPENAI_API_KEY"
-            elif self.provider == "newapi":
-                key_name = "NEWAPI_API_KEY"
-            else:
-                key_name = "GOOGLE_AI_API_KEY"
-            raise ValueError(f"API key not set. " f"Set {key_name} environment variable.")
-
-        print(f"[NanoBanana Grid] Provider: {self.provider}, Model: {self.model}")
+        print(f"[NanoBanana Grid] Model: {self.model}")
 
     async def generate_grid(
         self,
@@ -3739,15 +3104,6 @@ class NanoBananaGridGenerator:
                 )
 
         try:
-            types = None
-            client = None
-            # 初始化客户端（仅 Google 直连需要）
-            if self.provider == "google":
-                from google.genai import types
-                from google import genai
-
-                client = genai.Client(api_key=self.api_key)
-
             # 验证参考图存在 - 信任上游 reference_mode，只做文件存在性确认
             valid_character_map = {}
             for char_name, info in character_map.items():
@@ -3914,7 +3270,6 @@ class NanoBananaGridGenerator:
                     style_family=style_family,
                     animation_subtype=animation_subtype,
                     project_dir=str(project_dir) if project_dir else "",
-                    image_provider=self.provider,
                     image_model=self.model,
                 )
                 from ai_anime.verification.failure_registry import (
@@ -4114,7 +3469,7 @@ class NanoBananaGridGenerator:
                 record_image_request(
                     project_output_dir=project_output_dir,
                     request_id=usage_request_id,
-                    provider=self.provider,
+                    provider=self.access_mode,
                     model_name=self.model,
                     task_type=task_type,
                     scope=scope,
@@ -4202,7 +3557,7 @@ class NanoBananaGridGenerator:
                 grid_basename = Path(output_path).stem
                 submitted_file = prompts_dir / f"{grid_basename}.submitted.json"
                 submitted_payload = {
-                    "provider": self.provider,
+                    "access_mode": self.access_mode,
                     "model": self.model,
                     "prompt": prompt,
                     "reference_images": submitted_refs,
@@ -4255,200 +3610,30 @@ class NanoBananaGridGenerator:
             if force_image_size:
                 image_size = force_image_size
 
-            if self.provider == "openrouter":
-                # ===== OpenRouter 分支 =====
-                effective_image_size = normalize_image_size(image_size, provider="openrouter")
-                print(
-                    f"[NanoBananaPro] 调用 OpenRouter ({self.model}) 生成网格图 (分辨率: {effective_image_size}, 比例: {aspect_ratio})..."
-                )
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, or_text, or_error = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": aspect_ratio, "image_size": effective_image_size},
-                )
-                if not image_bytes:
-                    message = "OpenRouter API 未返回图像数据"
-                    if or_error:
-                        message = f"{message}: {or_error}"
-                    return _usage_fail(message)
-            elif self.provider == "huimeng":
-                print(f"[HuiMeng Images] 调用 {self.model} 生成网格图 (比例: {aspect_ratio})...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _text, huimeng_error = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "huimeng_image_quality": self.huimeng_image_quality,
-                    },
-                )
-                if not image_bytes:
-                    message = "HuiMeng Images 未返回图像数据"
-                    if huimeng_error:
-                        message = f"{message}: {huimeng_error}"
-                    return _usage_fail(message)
-            elif self.provider == "openai":
-                # ===== OpenAI Image API 分支 =====
-                openai_image_size = "1K" if sketch else image_size
-                openai_size = resolve_openai_image_size(aspect_ratio, openai_image_size)
-                print(
-                    f"[NanoBananaPro] 调用 OpenAI Image API ({self.model}) 生成网格图 "
-                    f"(size: {openai_size}, 比例: {aspect_ratio})..."
-                )
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _openai_text, openai_error = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": openai_image_size,
-                        "quality": (
-                            self.openai_sketch_image_quality
-                            if sketch
-                            else self.openai_image_quality
-                        ),
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes:
-                    message = "OpenAI Image API 未返回图像数据"
-                    if openai_error:
-                        message = f"{message}: {openai_error}"
-                    return _usage_fail(message)
-            elif self.provider == "newapi":
-                effective_image_size = normalize_image_size(image_size, provider="newapi")
-                print(
-                    f"[AI anime API Images] 调用 {self.model} 生成网格图 "
-                    f"(分辨率: {effective_image_size}, 比例: {aspect_ratio})..."
-                )
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _text, newapi_error = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": effective_image_size,
-                        "quality": (
-                            self.openai_sketch_image_quality
-                            if sketch
-                            else self.openai_image_quality
-                        ),
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes:
-                    message = "AI anime API Images 未返回图像数据"
-                    if newapi_error:
-                        message = f"{message}: {newapi_error}"
-                    return _usage_fail(message)
-            else:
-                # ===== Google 直连分支 =====
-                # 根据模型选择配置：gemini-3 支持 image_size，gemini-2.5 不支持
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    effective_image_size = normalize_image_size(image_size, provider="google")
-                    print(
-                        f"[NanoBananaPro] 调用 {self.model} 生成网格图 (分辨率: {effective_image_size}, 比例: {aspect_ratio})..."
-                    )
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                        image_size=effective_image_size,
-                    )
-                else:
-                    # gemini-2.5-flash-image 不支持 image_size 参数
-                    print(f"[NanoBananaPro] 调用 {self.model} 生成网格图 (比例: {aspect_ratio})...")
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                    )
-
-                # 配置 thinking（网页版默认开启，API 需要显式配置）
-                # 注意: image-preview 模型不支持 thinking
-                is_image_model = "image-preview" in self.model
-                if is_image_model:
-                    # image-preview 模型不支持 thinking
-                    thinking_config = None
-                elif is_gemini3:
-                    # Gemini 3 用 thinking_level
-                    thinking_config = types.ThinkingConfig(thinking_level=types.ThinkingLevel.HIGH)
-                else:
-                    # Gemini 2.5 模型使用 thinking_budget（最小 128）
-                    thinking_config = types.ThinkingConfig(thinking_budget=1024)
-
-                # 构建配置
-                gen_config = types.GenerateContentConfig(
-                    response_modalities=["IMAGE", "TEXT"],
-                    image_config=image_config,
-                )
-                if thinking_config:
-                    gen_config = types.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"],
-                        image_config=image_config,
-                        thinking_config=thinking_config,
-                    )
-
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    config=gen_config,
-                )
-
-                # 4. 提取图像数据
-                image_bytes = None
-
-                # 检查响应结构
-                if not response.candidates:
-                    print(f"[NanoBananaPro] API 响应无 candidates: {response}")
-                    return _usage_fail(f"API 响应无 candidates: {response}")
-
-                candidate = response.candidates[0]
-                if not candidate.content:
-                    print(
-                        f"[NanoBananaPro] candidate 无 content: finish_reason={getattr(candidate, 'finish_reason', 'unknown')}"
-                    )
-                    # 打印安全评级（如果有）
-                    if hasattr(candidate, "safety_ratings") and candidate.safety_ratings:
-                        for rating in candidate.safety_ratings:
-                            print(f"[NanoBananaPro] safety_rating: {rating}")
-                    return _usage_fail(
-                        f"API 响应无 content, finish_reason={getattr(candidate, 'finish_reason', 'unknown')}"
-                    )
-
-                if not candidate.content.parts:
-                    print(
-                        f"[NanoBananaPro] content 无 parts: {candidate.content}, finish_reason={getattr(candidate, 'finish_reason', 'unknown')}"
-                    )
-                    # 打印完整 candidate 对象以便调试
-                    print(f"[NanoBananaPro] 完整 candidate: {candidate}")
-                    return _usage_fail("API 响应 content 无 parts")
-
-                text_parts = []
-                for part in candidate.content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        image_bytes = part.inline_data.data
-                    # 收集文本响应
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-                        print(f"[NanoBananaPro] API 文本响应: {part.text[:500]}")
-
-                if not image_bytes:
-                    return _usage_fail("API 未返回图像数据")
+            effective_image_size = normalize_image_size(image_size)
+            print(
+                f"[Commercial Images] 调用 {self.model} 生成网格图 "
+                f"(分辨率: {effective_image_size}, 比例: {aspect_ratio})..."
+            )
+            prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
+                contents,
+                include_mime=True,
+            )
+            image_bytes, _text, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt_text,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": aspect_ratio,
+                    "image_size": effective_image_size,
+                    "quality": self.sketch_image_quality if sketch else self.image_quality,
+                },
+            )
+            if not image_bytes:
+                message = "商业图片模型未返回图像数据"
+                if error_detail:
+                    message = f"{message}: {error_detail}"
+                return _usage_fail(message)
 
             # 5. 保存文件
             if output_path:
@@ -4479,12 +3664,6 @@ class NanoBananaGridGenerator:
 
             return _usage_success(output_path, image_bytes)
 
-        except ImportError:
-            return GridGenerationResult(
-                success=False,
-                error="请安装 google-genai: pip install google-genai",
-                generation_time=time.time() - start_time,
-            )
         except Exception as e:
             if (
                 "usage_recorded" in locals()
@@ -4595,109 +3774,26 @@ class NanoBananaGridGenerator:
             # 调用 API
             image_size = mode_cfg.get("image_size", "1K")
             aspect_ratio = mode_cfg.get("aspect_ratio", "2:3")
-            if self.provider == "openrouter":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, error_detail = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "huimeng_image_quality": self.huimeng_image_quality,
-                    },
+            prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
+                contents,
+                include_mime=True,
+            )
+            image_bytes, _, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt_text,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": aspect_ratio,
+                    "image_size": image_size,
+                    "quality": self.sketch_image_quality,
+                },
+            )
+            if not image_bytes:
+                return GridGenerationResult(
+                    success=False,
+                    error=f"商业图片模型未返回图片: {error_detail or ''}".strip(),
+                    generation_time=time.time() - start_time,
                 )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=f"OpenRouter API 未返回图片: {error_detail or ''}".strip(),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "huimeng":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, error_detail = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": aspect_ratio, "image_size": image_size},
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=f"HuiMeng Images 未返回图片: {error_detail or ''}".strip(),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "openai":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": self.openai_sketch_image_quality,
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=f"OpenAI Image API 未返回图片: {error_detail or ''}".strip(),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "newapi":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": self.openai_sketch_image_quality,
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=f"AI anime API Images 未返回图片: {error_detail or ''}".strip(),
-                        generation_time=time.time() - start_time,
-                    )
-            else:
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=self.api_key)
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["TEXT", "IMAGE"],
-                        image_generation_config=types.ImageGenerationConfig(
-                            image_size=image_size,
-                        ),
-                    ),
-                )
-
-                # 提取图片
-                image_bytes = None
-                for part in response.candidates[0].content.parts:
-                    if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                        image_bytes = part.inline_data.data
-                        break
 
             if not image_bytes:
                 return GridGenerationResult(
@@ -4832,158 +3928,31 @@ class NanoBananaGridGenerator:
             ref_image = self._load_image_as_part(source_path)
             contents = [prompt, ref_image]
 
-            if self.provider == "openrouter":
-                # ===== OpenRouter 分支 =====
-                print(f"[Reformat] 调用 OpenRouter ({self.model}) 转换 → {target_aspect} ...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _or_text, _or_error = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect,
-                        "image_size": target_size,
-                        "huimeng_image_quality": self.huimeng_image_quality,
-                    },
+            print(f"[Reformat] 调用商业图片模型 ({self.model}) 转换 → {target_aspect} ...")
+            prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
+                contents,
+                include_mime=True,
+            )
+            image_bytes, _text, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt_text,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": target_aspect,
+                    "image_size": target_size,
+                    "quality": self.image_quality,
+                },
+            )
+            if not image_bytes:
+                return GridGenerationResult(
+                    success=False,
+                    error=(
+                        f"[Reformat] 商业图片模型未返回图像数据: {error_detail}"
+                        if error_detail
+                        else "[Reformat] 商业图片模型未返回图像数据"
+                    ),
+                    generation_time=time.time() - start_time,
                 )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=(
-                            f"[Reformat] OpenRouter API 未返回图像数据: {_or_error}"
-                            if _or_error
-                            else "[Reformat] OpenRouter API 未返回图像数据"
-                        ),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "huimeng":
-                print(f"[Reformat] 调用 HuiMeng Images ({self.model}) 转换 → {target_aspect} ...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _text, huimeng_error = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": target_aspect, "image_size": target_size},
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=(
-                            f"[Reformat] HuiMeng Images 未返回图像数据: {huimeng_error}"
-                            if huimeng_error
-                            else "[Reformat] HuiMeng Images 未返回图像数据"
-                        ),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "openai":
-                # ===== OpenAI Image API 分支 =====
-                print(f"[Reformat] 调用 OpenAI Image API ({self.model}) 转换 → {target_aspect} ...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _openai_text, openai_error = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect,
-                        "image_size": target_size,
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=(
-                            f"[Reformat] OpenAI Image API 未返回图像数据: {openai_error}"
-                            if openai_error
-                            else "[Reformat] OpenAI Image API 未返回图像数据"
-                        ),
-                        generation_time=time.time() - start_time,
-                    )
-            elif self.provider == "newapi":
-                print(f"[Reformat] 调用 AI anime API Images ({self.model}) 转换 → {target_aspect} ...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _text, newapi_error = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect,
-                        "image_size": target_size,
-                        "quality": self.openai_image_quality,
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error=(
-                            f"[Reformat] AI anime API Images 未返回图像数据: {newapi_error}"
-                            if newapi_error
-                            else "[Reformat] AI anime API Images 未返回图像数据"
-                        ),
-                        generation_time=time.time() - start_time,
-                    )
-            else:
-                # ===== Google 直连分支 =====
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=self.api_key)
-
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=target_aspect,
-                        image_size=target_size,
-                    )
-                else:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=target_aspect,
-                    )
-
-                gen_config = types.GenerateContentConfig(
-                    response_modalities=["IMAGE", "TEXT"],
-                    image_config=image_config,
-                )
-
-                print(f"[Reformat] 调用 {self.model} 转换 → {target_aspect} ...")
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    config=gen_config,
-                )
-
-                # 提取图像
-                image_bytes = None
-                if not response.candidates or not response.candidates[0].content:
-                    return GridGenerationResult(
-                        success=False,
-                        error=f"[Reformat] API 响应无有效内容",
-                        generation_time=time.time() - start_time,
-                    )
-
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        image_bytes = part.inline_data.data
-                        break
-
-                if not image_bytes:
-                    return GridGenerationResult(
-                        success=False,
-                        error="[Reformat] API 未返回图像数据",
-                        generation_time=time.time() - start_time,
-                    )
 
             # 保存
             output_dir = os.path.dirname(output_path)
@@ -5009,7 +3978,7 @@ class NanoBananaGridGenerator:
                 generation_time=time.time() - start_time,
             )
 
-    async def prepare_batch_request(
+    async def prepare_concurrent_request(
         self,
         beats: List[dict],
         character_map: Dict[str, dict] = None,
@@ -5033,10 +4002,10 @@ class NanoBananaGridGenerator:
         use_director_refs: bool = False,
         director_control_frames_dir: str | Path | None = None,
     ) -> dict:
-        """准备单个 Batch API 请求（构建 prompt + contents，不调用 API）。
+        """准备单个并发图片请求（构建 prompt + contents，不调用 API）。
 
         复用 generate_grid() 的 prompt 构建和参考图逻辑，返回 dict 格式
-        供 generate_batch_api() 批量提交。
+        供 generate_prepared_requests() 并发执行。
 
         Returns:
             {
@@ -5065,9 +4034,6 @@ class NanoBananaGridGenerator:
             detection_error = render_ai_detection_error(beats[:grid_capacity])
             if detection_error:
                 raise RuntimeError(detection_error)
-
-        from google import genai
-        from google.genai import types
 
         # 验证参考图
         valid_character_map = {}
@@ -5150,7 +4116,6 @@ class NanoBananaGridGenerator:
                 style_family=style_family,
                 animation_subtype=animation_subtype,
                 project_dir=str(project_dir) if project_dir else "",
-                image_provider=self.provider,
                 image_model=self.model,
             )
             from ai_anime.verification.failure_registry import (
@@ -5228,7 +4193,7 @@ class NanoBananaGridGenerator:
                     f"Render 模式需要草图但未找到覆盖 beat {beat_range_start}-{beat_range_end} 的草图"
                 )
         else:
-            raise RuntimeError("prepare_batch_request() 需要 sketch 或 sketch_dir 参数")
+            raise RuntimeError("prepare_concurrent_request() 需要 sketch 或 sketch_dir 参数")
 
         # 构建 contents
         contents = [prompt]
@@ -5311,173 +4276,86 @@ class NanoBananaGridGenerator:
             "actual_beat_count": actual_beat_count,
         }
 
-    async def generate_batch_api(
+    async def generate_prepared_requests(
         self,
         requests: List[dict],
-        poll_interval: int = 15,
-        timeout: int = 3600,
         on_status_change: callable = None,
     ) -> List[GridGenerationResult]:
-        """通过 Google Batch API 一次提交所有网格生成请求。
+        """通过当前商业模型访问并发执行已准备的网格请求。"""
+        if on_status_change:
+            on_status_change("RUNNING")
 
-        费用为标准 API 的 50%，但需要等待异步处理（通常几分钟到几十分钟）。
-
-        Args:
-            requests: prepare_batch_request() 返回的 dict 列表
-            poll_interval: 轮询间隔（秒）
-            timeout: 最大等待时间（秒）
-            on_status_change: 状态变化回调
-
-        Returns:
-            每个请求对应的 GridGenerationResult 列表
-        """
-        if self.provider != "google":
-            raise NotImplementedError(
-                "Google Batch API 只支持 google provider，请使用标准模式 (generate_grid) 或切换到 google provider。"
+        async def execute(index: int, request: dict) -> GridGenerationResult:
+            start_time = time.time()
+            prompt, references = self._extract_ref_bytes_from_contents(
+                request["contents"],
+                include_mime=True,
             )
-
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=self.api_key)
-
-        # 构建 InlinedRequest 列表
-        is_gemini3 = "gemini-3" in self.model
-        is_image_model = "image-preview" in self.model
-
-        batch_requests = []
-        for req in requests:
-            if is_gemini3:
-                image_config = types.ImageConfig(
-                    aspect_ratio=req["aspect_ratio"],
-                    image_size=req["image_size"],
+            try:
+                image_bytes, _, error_detail = await _call_newapi_image_api(
+                    model=self.model,
+                    prompt=prompt,
+                    reference_images=references or None,
+                    image_config={
+                        "aspect_ratio": request["aspect_ratio"],
+                        "image_size": normalize_image_size(request["image_size"]),
+                        "quality": self.image_quality,
+                    },
                 )
-            else:
-                image_config = types.ImageConfig(
-                    aspect_ratio=req["aspect_ratio"],
-                )
-
-            if is_image_model:
-                thinking_config = None
-            elif is_gemini3:
-                thinking_config = types.ThinkingConfig(thinking_level=types.ThinkingLevel.HIGH)
-            else:
-                thinking_config = types.ThinkingConfig(thinking_budget=1024)
-
-            gen_config_kwargs = {
-                "response_modalities": ["IMAGE", "TEXT"],
-                "image_config": image_config,
-            }
-            if thinking_config:
-                gen_config_kwargs["thinking_config"] = thinking_config
-
-            gen_config = types.GenerateContentConfig(**gen_config_kwargs)
-
-            batch_requests.append(
-                {
-                    "contents": req["contents"],
-                    "config": gen_config,
-                }
-            )
-
-        print(f"[BatchAPI] 提交 {len(batch_requests)} 个请求到 Google Batch API...")
-
-        # 提交 Batch
-        batch_job = client.batches.create(
-            model=self.model,
-            src=batch_requests,
-            config={"display_name": f"grid_batch_{int(time.time())}"},
-        )
-
-        print(f"[BatchAPI] Batch 已提交: {batch_job.name}")
-
-        # 轮询等待
-        elapsed = 0
-        last_state = None
-        while elapsed < timeout:
-            batch = client.batches.get(name=batch_job.name)
-            if batch.state != last_state:
-                last_state = batch.state
-                print(f"[BatchAPI] 状态: {batch.state}")
-                if on_status_change:
-                    on_status_change(batch.state)
-
-            if batch.state == "JOB_STATE_SUCCEEDED":
-                break
-            elif batch.state in ("JOB_STATE_FAILED", "JOB_STATE_CANCELLED"):
-                raise RuntimeError(f"Batch 失败: {batch.state}")
-
-            await asyncio.sleep(poll_interval)
-            elapsed += poll_interval
-
-        if elapsed >= timeout:
-            raise RuntimeError(f"Batch 超时（{timeout}s）")
-
-        # 提取结果
-        results = []
-        for i, response in enumerate(batch.dest.inlined_responses):
-            req = requests[i]
-            output_path = req["output_path"]
-
-            if hasattr(response, "error") and response.error:
-                results.append(
-                    GridGenerationResult(
+                if not image_bytes:
+                    return GridGenerationResult(
                         success=False,
-                        error=str(response.error),
+                        error=f"并发图片请求 {index} 未返回图像数据: {error_detail or ''}".strip(),
+                        generation_time=time.time() - start_time,
                     )
-                )
-                continue
 
-            # 提取图像
-            image_bytes = None
-            if (
-                response.response
-                and response.response.candidates
-                and response.response.candidates[0].content
-            ):
-                for part in response.response.candidates[0].content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        image_bytes = part.inline_data.data
-                        break
+                output_path = request["output_path"]
+                if output_path:
+                    output = Path(output_path)
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_bytes(image_bytes)
+                    try:
+                        from ai_anime.generators.grid_splitter import remove_grid_gaps
+                        from PIL import Image as PILImage
 
-            if not image_bytes:
-                results.append(
-                    GridGenerationResult(
-                        success=False,
-                        error=f"Batch 响应 {i} 未返回图像数据",
-                    )
-                )
-                continue
+                        grid_img = PILImage.open(output_path)
+                        grid_img = remove_grid_gaps(
+                            grid_img,
+                            request["rows"],
+                            request["cols"],
+                        )
+                        grid_img.save(output_path)
+                        image_bytes = output.read_bytes()
+                    except Exception as exc:
+                        print(f"[ConcurrentImages] Grid {index} gap removal 失败: {exc}")
 
-            # 保存文件
-            if output_path:
-                output_dir = os.path.dirname(output_path)
-                if output_dir:
-                    os.makedirs(output_dir, exist_ok=True)
-                with open(output_path, "wb") as f:
-                    f.write(image_bytes)
-
-                # 后处理：gap removal
-                try:
-                    from ai_anime.generators.grid_splitter import remove_grid_gaps
-                    from PIL import Image as PILImage
-
-                    grid_img = PILImage.open(output_path)
-                    grid_img = remove_grid_gaps(grid_img, req["rows"], req["cols"])
-                    grid_img.save(output_path)
-                except Exception as e:
-                    print(f"[BatchAPI] Grid {i} gap removal 失败: {e}")
-
-            results.append(
-                GridGenerationResult(
+                return GridGenerationResult(
                     success=True,
                     grid_image_path=output_path,
                     grid_image_bytes=image_bytes,
+                    generation_time=time.time() - start_time,
+                    grid_rows=request["rows"],
+                    grid_cols=request["cols"],
                 )
-            )
+            except Exception as exc:
+                if is_insufficient_credits_error(exc):
+                    raise
+                return GridGenerationResult(
+                    success=False,
+                    error=str(exc),
+                    generation_time=time.time() - start_time,
+                )
 
-        print(f"[BatchAPI] 完成: {sum(1 for r in results if r.success)}/{len(results)} 成功")
-        return results
+        results = await asyncio.gather(
+            *(execute(index, request) for index, request in enumerate(requests, start=1))
+        )
+        if on_status_change:
+            on_status_change("SUCCEEDED")
+        print(
+            f"[ConcurrentImages] 完成: "
+            f"{sum(1 for result in results if result.success)}/{len(results)} 成功"
+        )
+        return list(results)
 
     async def generate_grid_batch(
         self,
@@ -5836,7 +4714,7 @@ class NanoBananaGridGenerator:
         compress_quality: int = 60,
         min_short_side: int = 0,
     ):
-        """加载图像作为 Gemini API 的 Part（带 JPEG 压缩）。
+        """加载并压缩商业图片请求的参考图。
 
         Args:
             image_path: 图像路径
@@ -5844,15 +4722,14 @@ class NanoBananaGridGenerator:
             min_short_side: 提交前放大参考图，避免小尺寸空间图被模型读丢
 
         Returns:
-            Gemini Part 对象
+            统一的内联图片对象
         """
         try:
             from PIL import Image
             import io
 
-            # OpenAI director refs are line-art geometry anchors. JPEG compression can erase
-            # subtle table/window/stool lines, so keep those references lossless.
-            if self.provider == "openai" and Path(image_path).name in {
+            # Director refs are geometry anchors; JPEG compression can erase subtle lines.
+            if Path(image_path).name in {
                 "director_sketch_ref.png",
                 "director_color_ref.png",
             }:
@@ -5915,20 +4792,7 @@ class NanoBananaGridGenerator:
                     else:
                         mime_type = "image/jpeg"
 
-            if self.provider != "google":
-                return _InlineImagePart(image_data, mime_type)
-
-            from google.genai import types
-
-            try:
-                return types.Part.from_bytes(
-                    data=image_data,
-                    mime_type=mime_type,
-                    media_resolution=types.MediaResolution.MEDIA_RESOLUTION_HIGH,
-                )
-            except (TypeError, AttributeError):
-                # Gemini 2.x SDK 不支持 media_resolution
-                return types.Part.from_bytes(data=image_data, mime_type=mime_type)
+            return _InlineImagePart(image_data, mime_type)
 
         except Exception as e:
             print(f"[NanoBananaPro] 加载参考图失败: {image_path}, {e}")
@@ -6064,7 +4928,7 @@ class NanoBananaGridGenerator:
     def _extract_ref_bytes_from_contents(
         self, contents: list, *, include_mime: bool = False
     ) -> tuple:
-        """从 contents 列表提取 prompt 文本和参考图 bytes（用于 OpenRouter）。"""
+        """从 contents 提取提示词和统一参考图载荷。"""
         prompt_text = ""
         ref_bytes = []
         for item in contents:
@@ -6092,7 +4956,7 @@ class NanoBananaGridGenerator:
         return img.crop((panel_w, 0, panel_w * 2, h))
 
     def _merge_character_panels(self, panels: list, compress_quality: int = 60):
-        """将多个角色参考图水平拼接，压缩后返回 Gemini Part。"""
+        """将多个角色参考图水平拼接并返回统一内联图片对象。"""
         from PIL import Image
 
         if not panels:
@@ -6127,19 +4991,7 @@ class NanoBananaGridGenerator:
             f"{total_w}x{max_h}px, {len(image_data)/1024:.0f}KB"
         )
 
-        if self.provider != "google":
-            return _InlineImagePart(image_data, "image/jpeg")
-
-        from google.genai import types
-
-        try:
-            return types.Part.from_bytes(
-                data=image_data,
-                mime_type="image/jpeg",
-                media_resolution=types.MediaResolution.MEDIA_RESOLUTION_HIGH,
-            )
-        except (TypeError, AttributeError):
-            return types.Part.from_bytes(data=image_data, mime_type="image/jpeg")
+        return _InlineImagePart(image_data, "image/jpeg")
 
     async def _generate_render_from_sketch(
         self,
@@ -6216,12 +5068,6 @@ class NanoBananaGridGenerator:
 
         except Exception as e:
             return GridGenerationResult(success=False, error_message=f"Failed to slice sketch: {e}")
-
-        # 2. 准备并行任务
-        from ai_anime.generators import create_image_generator
-
-        # 假设我们总是使用 VolcengineImageGenerator (Seedream)
-        image_gen = create_image_generator("volcengine")
 
         if not output_path:
             # Default path if none provided
@@ -6315,8 +5161,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                 f"[Render] Panel {panel_idx}: {len(panel_char_refs)} character refs, prompt: {simple_prompt[:60]}..."
             )
 
-            # 使用 Gemini 渲染单张（传入角色参考图）
-            task = self._render_single_panel_gemini(
+            task = self._render_single_panel(
                 sketch_path=slice_path,
                 prompt=simple_prompt,
                 output_path=panel_output_path,
@@ -6325,8 +5170,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
             )
             tasks.append(task)
 
-        # 4. 执行并行渲染 (Gemini 可能会有速率限制，建议用 semaphore 控制)
-        # 简单起见，这里先全部并发，如果遇到资源耗尽再调整
+        # 4. 执行并行渲染
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 5. 收集结果并拼合
@@ -6339,7 +5183,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                 rendered_panels.append(panels[idx])  # 回退到草图
             elif (
                 not res
-            ):  # res is success bool or path? _render_single_panel_gemini returns path if success
+            ):
                 print(f"[Render] Panel {idx+1} failed (Empty result)")
                 rendered_panels.append(panels[idx])
             else:
@@ -6374,22 +5218,22 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
 
         return GridGenerationResult(success=True, grid_image_path=output_path)
 
-    async def _render_single_panel_gemini(
+    async def _render_single_panel(
         self,
         sketch_path: str,
         prompt: str,
         output_path: str,
         character_refs: List[str] = None,  # 角色参考图路径列表
-        target_aspect_ratio: str = None,  # 保留参数但不传 ImageConfig（edit 模式靠补白，不靠 resize）
+        target_aspect_ratio: str = None,
     ) -> Optional[str]:
-        """使用 Gemini 渲染单个分镜切片。
+        """通过当前商业模型访问渲染单个分镜切片。
 
         Args:
             sketch_path: 草图切片路径
             prompt: 渲染提示词
             output_path: 输出路径
             character_refs: 当前 panel 出现的角色参考图路径列表（用于一致性）
-            target_aspect_ratio: 保留参数（未来扩展），当前不使用
+            target_aspect_ratio: 输出宽高比
         """
         # 加载草图
         sketch_part = self._load_image_as_part(sketch_path)
@@ -6408,117 +5252,28 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                     contents.append(ref_part)
 
         try:
-            if self.provider == "openrouter":
-                # ===== OpenRouter 分支 =====
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, _ = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                )
-                if image_bytes:
-                    with open(output_path, "wb") as f:
-                        f.write(image_bytes)
-                    return output_path
-                return None
-            elif self.provider == "huimeng":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, error_detail = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect_ratio or "9:16",
-                        "image_size": "1K",
-                    },
-                )
-                if image_bytes:
-                    with open(output_path, "wb") as f:
-                        f.write(image_bytes)
-                    return output_path
+            prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
+                contents,
+                include_mime=True,
+            )
+            image_bytes, _, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt_text,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": target_aspect_ratio or "9:16",
+                    "image_size": "1K",
+                    "quality": self.image_quality,
+                },
+            )
+            if not image_bytes:
                 if error_detail:
-                    print(f"[HuiMeng Render] 失败: {error_detail}")
+                    print(f"[Commercial Render] 失败: {error_detail}")
                 return None
-            elif self.provider == "openai":
-                # ===== OpenAI Image API 分支 =====
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect_ratio or "9:16",
-                        "image_size": "1K",
-                        "output_format": "png",
-                    },
-                )
-                if image_bytes:
-                    with open(output_path, "wb") as f:
-                        f.write(image_bytes)
-                    return output_path
-                if error_detail:
-                    print(f"[OpenAI Render] 失败: {error_detail}")
-                return None
-            elif self.provider == "newapi":
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": target_aspect_ratio or "9:16",
-                        "image_size": "1K",
-                        "quality": self.openai_image_quality,
-                    },
-                    base_url=self.base_url,
-                )
-                if image_bytes:
-                    with open(output_path, "wb") as f:
-                        f.write(image_bytes)
-                    return output_path
-                if error_detail:
-                    print(f"[AI anime API Render] 失败: {error_detail}")
-                return None
-            else:
-                # ===== Google 直连分支 =====
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=self.api_key)
-                model_name = self.model
-
-                # 注意：edit 模式不传 ImageConfig(aspect_ratio)，
-                # 否则 Gemini 会拉伸而非 outpaint。补白后的草图已经是目标比例。
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=model_name,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE"],
-                    ),
-                )
-
-                if response.candidates:
-                    # 提取图像
-                    for part in response.candidates[0].content.parts:
-                        if part.inline_data:
-                            image_bytes = base64.b64decode(part.inline_data.data)
-                            with open(output_path, "wb") as f:
-                                f.write(image_bytes)
-                            return output_path
-                return None
+            Path(output_path).write_bytes(image_bytes)
+            return output_path
         except Exception as e:
-            print(f"Gemini Render Error: {e}")
+            print(f"Commercial Render Error: {e}")
             return None
 
     async def upscale_with_nanobanana(
@@ -6581,186 +5336,39 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
 
         try:
             print(f"[NanoBananaPro Upscale] 处理: {input_path}")
-
-            if self.provider == "openrouter":
-                # ===== OpenRouter 分支 =====
-                # 提取参考图 bytes
-                ref_bytes = []
-                if hasattr(ref_image, "inline_data") and ref_image.inline_data:
-                    ref_bytes.append(ref_image.inline_data.data)
-                image_bytes, _, or_error = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": "9:16", "image_size": "1K"},
+            ref_bytes = []
+            if hasattr(ref_image, "inline_data") and ref_image.inline_data:
+                ref_bytes.append(
+                    (
+                        ref_image.inline_data.data,
+                        getattr(ref_image.inline_data, "mime_type", "image/png") or "image/png",
+                    )
                 )
-                if not image_bytes:
-                    raise ValueError(
-                        f"OpenRouter API 未返回图像数据: {or_error}"
-                        if or_error
-                        else "OpenRouter API 未返回图像数据"
-                    )
-
-                # 保存为临时文件并缩放
-                temp_path = output_path + ".tmp.png"
-                with open(temp_path, "wb") as f:
-                    f.write(image_bytes)
-                img = Image.open(temp_path)
-                img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                img.save(output_path)
-                Path(temp_path).unlink()
-                print(f"[NanoBananaPro Upscale] 完成: {output_path}")
-                return Path(output_path)
-            elif self.provider == "huimeng":
-                ref_bytes = []
-                if hasattr(ref_image, "inline_data") and ref_image.inline_data:
-                    ref_bytes.append(ref_image.inline_data.data)
-                image_bytes, _, huimeng_error = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": "9:16", "image_size": "1K"},
-                )
-                if not image_bytes:
-                    raise ValueError(
-                        f"HuiMeng Images 未返回图像数据: {huimeng_error}"
-                        if huimeng_error
-                        else "HuiMeng Images 未返回图像数据"
-                    )
-
-                temp_path = output_path + ".tmp.png"
-                with open(temp_path, "wb") as f:
-                    f.write(image_bytes)
-                img = Image.open(temp_path)
-                img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                img.save(output_path)
-                Path(temp_path).unlink()
-                print(f"[NanoBananaPro Upscale] 完成: {output_path}")
-                return Path(output_path)
-            elif self.provider == "openai":
-                ref_bytes = []
-                if hasattr(ref_image, "inline_data") and ref_image.inline_data:
-                    ref_bytes.append(
-                        (
-                            ref_image.inline_data.data,
-                            getattr(ref_image.inline_data, "mime_type", "image/png") or "image/png",
-                        )
-                    )
-                image_bytes, _, openai_error = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": "9:16",
-                        "image_size": "1K",
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes:
-                    raise ValueError(
-                        f"OpenAI Image API 未返回图像数据: {openai_error}"
-                        if openai_error
-                        else "OpenAI Image API 未返回图像数据"
-                    )
-
-                temp_path = output_path + ".tmp.png"
-                with open(temp_path, "wb") as f:
-                    f.write(image_bytes)
-                img = Image.open(temp_path)
-                img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                img.save(output_path)
-                Path(temp_path).unlink()
-                print(f"[NanoBananaPro Upscale] 完成: {output_path}")
-                return Path(output_path)
-            elif self.provider == "newapi":
-                ref_bytes = []
-                if hasattr(ref_image, "inline_data") and ref_image.inline_data:
-                    ref_bytes.append(
-                        (
-                            ref_image.inline_data.data,
-                            getattr(ref_image.inline_data, "mime_type", "image/png") or "image/png",
-                        )
-                    )
-                image_bytes, _, newapi_error = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": "9:16",
-                        "image_size": "1K",
-                        "quality": self.openai_image_quality,
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes:
-                    raise ValueError(
-                        f"AI anime API Images 未返回图像数据: {newapi_error}"
-                        if newapi_error
-                        else "AI anime API Images 未返回图像数据"
-                    )
-
-                temp_path = output_path + ".tmp.png"
-                with open(temp_path, "wb") as f:
-                    f.write(image_bytes)
-                img = Image.open(temp_path)
-                img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                img.save(output_path)
-                Path(temp_path).unlink()
-                print(f"[NanoBananaPro Upscale] 完成: {output_path}")
-                return Path(output_path)
-            else:
-                # ===== Google 直连分支 =====
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=self.api_key)
-
-                # gemini-3 支持 image_size，gemini-2.5 不支持
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    image_config = types.ImageConfig(
-                        aspect_ratio="9:16",
-                        image_size="1K",  # 768x1376 (接近目标 720x1280)
-                    )
-                else:
-                    image_config = types.ImageConfig(
-                        aspect_ratio="9:16",
-                    )
-
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=[prompt, ref_image],
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"],
-                        image_config=image_config,
-                    ),
+            image_bytes, _, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": "9:16",
+                    "image_size": "1K",
+                    "quality": self.image_quality,
+                },
+            )
+            if not image_bytes:
+                raise ValueError(
+                    f"商业图片模型未返回图像数据: {error_detail}"
+                    if error_detail
+                    else "商业图片模型未返回图像数据"
                 )
 
-                # 提取图像
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        # 保存为临时文件
-                        temp_path = output_path + ".tmp.png"
-                        with open(temp_path, "wb") as f:
-                            f.write(part.inline_data.data)
-
-                        # 缩放到目标尺寸 (768x1376 → 720x1280)
-                        img = Image.open(temp_path)
-                        img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                        img.save(output_path)
-
-                        # 删除临时文件
-                        Path(temp_path).unlink()
-
-                        print(f"[NanoBananaPro Upscale] 完成: {output_path}")
-                        return Path(output_path)
-
-                raise ValueError("API 未返回图像数据")
+            temp_path = output_path + ".tmp.png"
+            Path(temp_path).write_bytes(image_bytes)
+            img = Image.open(temp_path)
+            img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            img.save(output_path)
+            Path(temp_path).unlink()
+            print(f"[NanoBananaPro Upscale] 完成: {output_path}")
+            return Path(output_path)
 
         except Exception as e:
             print(f"[NanoBananaPro Upscale] 失败: {e}")
@@ -6822,107 +5430,23 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                             contents.append(ref_image)
                             print(f"[StylePreview] 添加参考图: {ref_path}")
 
-            if self.provider == "openrouter":
-                # ===== OpenRouter 分支 =====
-                print(f"[StylePreview] 调用 OpenRouter ({self.model}) 生成预览图...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, _ = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": "9:16", "image_size": "1K"},
-                )
-            elif self.provider == "huimeng":
-                print(f"[StylePreview] 调用 HuiMeng Images ({self.model}) 生成预览图...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(contents)
-                image_bytes, _, error_detail = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={"aspect_ratio": "9:16", "image_size": "1K"},
-                )
-                if not image_bytes and error_detail:
-                    print(f"[StylePreview] HuiMeng 失败详情: {error_detail}")
-            elif self.provider == "openai":
-                # ===== OpenAI Image API 分支 =====
-                print(f"[StylePreview] 调用 OpenAI Image API ({self.model}) 生成预览图...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": "9:16",
-                        "image_size": "1K",
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes and error_detail:
-                    print(f"[StylePreview] OpenAI 失败详情: {error_detail}")
-            elif self.provider == "newapi":
-                print(f"[StylePreview] 调用 AI anime API Images ({self.model}) 生成预览图...")
-                prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
-                    contents,
-                    include_mime=True,
-                )
-                image_bytes, _, error_detail = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt_text,
-                    reference_images=ref_bytes or None,
-                    image_config={
-                        "aspect_ratio": "9:16",
-                        "image_size": "1K",
-                        "quality": self.openai_image_quality,
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes and error_detail:
-                    print(f"[StylePreview] AI anime API 失败详情: {error_detail}")
-            else:
-                # ===== Google 直连分支 =====
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=self.api_key)
-
-                # 调用 API - 使用 1x1 竖屏模式
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    image_config = types.ImageConfig(
-                        aspect_ratio="9:16",
-                        image_size="1K",
-                    )
-                else:
-                    image_config = types.ImageConfig(
-                        aspect_ratio="9:16",
-                    )
-
-                print(f"[StylePreview] 调用 {self.model} 生成预览图...")
-
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"],
-                        image_config=image_config,
-                    ),
-                )
-
-                # 提取图像数据
-                image_bytes = None
-                if response.candidates and response.candidates[0].content:
-                    for part in response.candidates[0].content.parts:
-                        if hasattr(part, "inline_data") and part.inline_data:
-                            image_bytes = part.inline_data.data
-                            break
+            print(f"[StylePreview] 调用商业图片模型 ({self.model}) 生成预览图...")
+            prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
+                contents,
+                include_mime=True,
+            )
+            image_bytes, _, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt_text,
+                reference_images=ref_bytes or None,
+                image_config={
+                    "aspect_ratio": "9:16",
+                    "image_size": "1K",
+                    "quality": self.image_quality,
+                },
+            )
+            if not image_bytes and error_detail:
+                print(f"[StylePreview] 商业图片模型失败详情: {error_detail}")
 
             if not image_bytes:
                 raise ValueError("API 未返回图像数据")
@@ -7029,107 +5553,6 @@ async def regenerate_selected_beats(
     ethnicity: str = "Chinese",
     is_sketch: bool = False,
     sketch_dir: str = "",
-    api_key: Optional[str] = None,
-    episode_grids_dir: str = "",
-) -> List[GridGenerationResult]:
-    """再生选中的 beats（支持 render 和 sketch 模式）。
-
-    从 REGEN_MODE_CONFIGS[mode_key] 读取 rows, cols, aspect_ratio, image_size，
-    使用 perfect_grid_split 分割后逐 grid 调用 generate_grid。
-
-    Args:
-        selected_beats: 选中的 beat 数据列表
-        mode_key: 再生模式 key，如 "1x1_9-16", "2x2_1-1"
-        character_map: 角色映射
-        style: 风格
-        output_dir: 输出目录
-        ethnicity: 种族
-        is_sketch: 是否为草图模式
-        sketch_dir: 草图目录
-        api_key: API key
-
-    Returns:
-        GridGenerationResult 列表
-    """
-    rows, cols, aspect_ratio, image_size = parse_regen_mode(mode_key)
-    capacity = rows * cols
-
-    # 分割 beats
-    grid_splits = perfect_grid_split(
-        len(selected_beats), max_grid=capacity, is_portrait=(rows != cols)
-    )
-    print(
-        f"[RegenBeats] mode={mode_key}, beats={len(selected_beats)}, "
-        f"splits={grid_splits}, aspect_ratio={aspect_ratio}"
-    )
-
-    generator = create_grid_generator(api_key)
-    results = []
-    beat_offset = 0
-
-    for grid_idx, (g_rows, g_cols) in enumerate(grid_splits, start=1):
-        grid_beat_count = g_rows * g_cols
-        grid_beats = selected_beats[beat_offset : beat_offset + grid_beat_count]
-        beat_offset += grid_beat_count
-
-        # UUID 命名避免多次再生时文件名冲突
-        output_path = str(Path(output_dir) / f"regen_{uuid.uuid4().hex[:12]}.png")
-
-        # 提取 beat 编号用于 location_beat_numbers
-        beat_numbers = [_generation_beat_number(b, i) for i, b in enumerate(grid_beats)]
-
-        # 从图片池构建 per-beat 草图路径
-        grid_beat_sketch_paths = None
-        if episode_grids_dir and not is_sketch:
-            from ai_anime.generators.pool_indexer import build_beat_sketch_paths
-
-            grid_beat_sketch_paths = build_beat_sketch_paths(episode_grids_dir, beat_numbers)
-
-        result = await generator.generate_grid(
-            beats=grid_beats,
-            character_map=character_map,
-            scene_menu=scene_menu,
-            prop_menu=prop_menu,
-            sketch_colors=sketch_colors,
-            style=style,
-            output_path=output_path,
-            ethnicity=ethnicity,
-            rows=g_rows,
-            cols=g_cols,
-            sketch=is_sketch,
-            sketch_dir=sketch_dir if not is_sketch else "",
-            location_beat_numbers=beat_numbers,
-            aspect_ratio_override=aspect_ratio,
-            image_size_override=image_size,
-            beat_sketch_paths=grid_beat_sketch_paths,
-        )
-        result.beat_start_index = beat_offset - grid_beat_count
-        result.beat_count = len(grid_beats)
-        result.grid_rows = g_rows
-        result.grid_cols = g_cols
-        results.append(result)
-
-        if result.success:
-            print(f"[RegenBeats] Grid {grid_idx} 成功: {result.grid_image_path}")
-        else:
-            print(f"[RegenBeats] Grid {grid_idx} 失败: {result.error}")
-
-    return results
-
-
-async def regenerate_selected_beats(
-    selected_beats: List[dict],
-    mode_key: str,
-    character_map: Dict[str, dict],
-    style: str,
-    output_dir: str,
-    scene_menu: list[dict] | list | None = None,
-    prop_menu: list[dict] | list | None = None,
-    sketch_colors: dict[str, str] | None = None,
-    ethnicity: str = "Chinese",
-    is_sketch: bool = False,
-    sketch_dir: str = "",
-    api_key: Optional[str] = None,
     episode_grids_dir: str = "",
     beat_sketch_paths_override: dict[int, str] | None = None,
     scene_refs_override: dict[int, list[Any]] | None = None,
@@ -7152,7 +5575,6 @@ async def regenerate_selected_beats(
         ethnicity: 种族
         is_sketch: 是否为草图模式
         sketch_dir: 草图目录
-        api_key: API key
         sketch_aspect_padding: 草图补白到目标比例
 
     Returns:
@@ -7169,7 +5591,7 @@ async def regenerate_selected_beats(
         f"splits={grid_splits}, aspect_ratio={aspect_ratio}"
     )
 
-    generator = create_grid_generator(api_key, config=generator_config)
+    generator = create_grid_generator(config=generator_config)
     results = []
     beat_offset = 0
 
@@ -7234,16 +5656,6 @@ async def regenerate_selected_beats(
     return results
 
 
-def create_grid_generator(
-    api_key: Optional[str] = None,
-    config: Optional[dict] = None,
-) -> NanoBananaGridGenerator:
-    """创建网格生成器。
-
-    Args:
-        api_key: Google AI API Key
-
-    Returns:
-        NanoBananaGridGenerator 实例
-    """
-    return NanoBananaGridGenerator(api_key=api_key, config=config)
+def create_grid_generator(config: Optional[dict] = None) -> NanoBananaGridGenerator:
+    """使用当前商业模型访问配置创建网格生成器。"""
+    return NanoBananaGridGenerator(config=config)

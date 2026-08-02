@@ -6,7 +6,7 @@ import { TaskPanel } from "@/components/task-center/panel";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
 import type { AppLayoutController } from "@/app/use-app-layout-controller";
 import { VersionUpdateDialog } from "@/modules/platform_release/public";
-import { TaskCenterProvider } from "@/task-center/provider";
+import { TaskCenterProvider } from "@/modules/task_execution/public";
 
 export function AppLayoutView({
   controller,

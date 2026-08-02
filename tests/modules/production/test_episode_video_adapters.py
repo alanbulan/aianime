@@ -12,8 +12,9 @@ from ai_anime.modules.production.infrastructure import episode_video
 from ai_anime.modules.production.infrastructure.episode_video import (
     LocalFinalEpisodeVideoCatalog,
     SqliteEpisodeBeatSource,
-    TaskBackendEpisodeVideoScheduler,
+    TaskExecutionEpisodeVideoScheduler,
 )
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 @pytest.mark.asyncio
@@ -69,10 +70,9 @@ async def test_task_scheduler_preserves_backend_payload_and_queue() -> None:
         resolution="720x1280",
     )
 
-    receipt = await TaskBackendEpisodeVideoScheduler(lambda: _Backend()).enqueue(
-        context,
-        task,
-    )
+    receipt = await TaskExecutionEpisodeVideoScheduler(
+        ProjectTaskSubmissionUseCases(lambda: _Backend())
+    ).enqueue(context, task)
 
     assert receipt.task_id == "task-1"
     assert receipt.task_key == "task:compose_episode:project:proj-1:2"

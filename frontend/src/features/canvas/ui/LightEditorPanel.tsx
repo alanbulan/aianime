@@ -16,7 +16,7 @@ import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
-import type { CanvasRelightKeyLightDirection } from "@/features/canvas/domain/relight";
+import type { CanvasRelightKeyLightDirection } from "@/modules/creative_canvas/public";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -119,8 +119,6 @@ const KELVIN_GRADIENT = `linear-gradient(to right, ${[
   .map((k) => kelvinToHex(k))
   .join(", ")})`;
 
-export type LightProviderId = "huimeng" | "openrouter" | "openai";
-
 export const LIGHT_IMAGE_SIZES = ["1K", "2K", "4K"] as const;
 export type LightImageSize = (typeof LIGHT_IMAGE_SIZES)[number];
 const DEFAULT_LIGHT_IMAGE_SIZE: LightImageSize = "2K";
@@ -152,11 +150,11 @@ export interface LightEditorSubmitPayload {
   rimLight: boolean;
   smartMode: LightSmartModeDescriptor;
   apiModel: string;
-  providerId: LightProviderId;
   imageSize: LightImageSize;
 }
 
 interface LightEditorPanelProps {
+  projectId: string;
   imageSource: string;
   onClose: () => void;
   onSubmit: (payload: LightEditorSubmitPayload) => void;
@@ -849,6 +847,7 @@ function Toggle({ checked, onChange }: ToggleProps) {
 }
 
 export function LightEditorPanel({
+  projectId,
   imageSource,
   onClose,
   onSubmit,
@@ -874,7 +873,7 @@ export function LightEditorPanel({
   const [imageSize, setImageSize] = useState<LightImageSize>(
     DEFAULT_LIGHT_IMAGE_SIZE,
   );
-  const { models: imageModels } = useFreezoneImageModels();
+  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost("image_selection", selectedModel?.apiModel ?? null, {
     surface: "canvas",
@@ -959,9 +958,7 @@ export function LightEditorPanel({
       presetLabel: smartMode ? presetLabel : null,
       presetPrompt: smartMode ? presetPrompt : null,
     };
-    // No model picker in this panel — just use the first model from the
-    // shared API store. The store falls back to SHARED_MODELS on failure,
-    // so this is only ever undefined if the URL has no project.
+    // No model picker in this panel: use the first authorized catalog SKU.
     if (!selectedModel) return;
     onSubmit({
       prompt,
@@ -973,7 +970,6 @@ export function LightEditorPanel({
       rimLight,
       smartMode: smart,
       apiModel: selectedModel.apiModel,
-      providerId: selectedModel.providerId as LightProviderId,
       imageSize,
     });
   }, [

@@ -34,7 +34,6 @@ class DetectCreativeCanvasMarkCommand:
 class DetectedCreativeCanvasMark:
     label: str
     note: str
-    provider: str
     model: str
 
 
@@ -44,7 +43,6 @@ class CreativeCanvasMarkDetectionResult:
     selection: CreativeCanvasMarkSelection
     label: str
     note: str
-    provider: str
     model: str
 
 
@@ -93,6 +91,5 @@ class CreativeCanvasMarkDetectionUseCases:
             selection=command.selection,
             label=detected.label,
             note=detected.note,
-            provider=detected.provider,
             model=detected.model,
         )

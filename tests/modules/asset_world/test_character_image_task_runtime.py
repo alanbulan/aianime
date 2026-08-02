@@ -12,9 +12,19 @@ class _Store:
     instances: list[_Store] = []
     character = SimpleNamespace(name="秦")
 
-    def __init__(self, project_label: str, *, output_dir: str) -> None:
+    def __init__(
+        self,
+        project_label: str,
+        *,
+        output_dir: str,
+        state_dir: str,
+        text_model: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimensions: int | None = None,
+    ) -> None:
         self.project_label = project_label
         self.output_dir = output_dir
+        self.state_dir = state_dir
         self.initialized = False
         self.loaded = False
         self.closed = False
@@ -55,6 +65,8 @@ def _context(tmp_path: Path):
         owner_username="alice",
         owner_project_label="alice/demo",
         output_dir=tmp_path,
+        state_dir=tmp_path / "state",
+        is_home_node=True,
     )
 
 

@@ -1,5 +1,5 @@
-import { ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, UserRound } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, RefreshCw, UserRound } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { gsap } from "gsap";
@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { clusterConfig } from "@/lib/cluster-config";
-import { useAuthStore } from "@/modules/identity_access/public";
+import {
+  useAuthStore,
+  useCommercialAuthStore,
+} from "@/modules/identity_access/public";
 import { useRegionStore } from "@/stores/region-store";
 
 type AuthView = "login" | "authorize";
@@ -21,15 +24,65 @@ export function LoginPage() {
   const reducedMotion = useReducedMotion();
   const login = useAuthStore((state) => state.login);
   const authorize = useAuthStore((state) => state.authorize);
+  const getCurrentUser = useAuthStore((state) => state.getCurrentUser);
+  const commercialAvailability = useCommercialAuthStore(
+    (state) => state.availability,
+  );
+  const tenantCode = useCommercialAuthStore((state) => state.tenantCode);
+  const initialTenantCodeRef = useRef(tenantCode);
+  const commercialPublicConfig = useCommercialAuthStore(
+    (state) => state.publicConfig,
+  );
+  const commercialCaptcha = useCommercialAuthStore((state) => state.captcha);
+  const initializeCommercial = useCommercialAuthStore(
+    (state) => state.initialize,
+  );
+  const setTenantCode = useCommercialAuthStore((state) => state.setTenantCode);
+  const loadCommercialPublicConfig = useCommercialAuthStore(
+    (state) => state.loadPublicConfig,
+  );
+  const refreshCommercialCaptcha = useCommercialAuthStore(
+    (state) => state.refreshCaptcha,
+  );
+  const commercialLogin = useCommercialAuthStore((state) => state.login);
   const regionId = useRegionStore((state) => state.selectedRegionId);
   const [view, setView] = useState<AuthView>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [authorizationCode, setAuthorizationCode] = useState("");
+  const [captchaCode, setCaptchaCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const needsRegion = clusterConfig.mode === "multi-region" && !regionId;
+  const commercialConfigured = commercialAvailability === "configured";
+
+  useEffect(() => {
+    void initializeCommercial().catch((reason: unknown) => {
+      setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
+    });
+  }, [initializeCommercial, t]);
+
+  useEffect(() => {
+    if (
+      !commercialConfigured ||
+      !initialTenantCodeRef.current ||
+      !tenantCode ||
+      commercialPublicConfig ||
+      tenantCode !== initialTenantCodeRef.current
+    ) {
+      return;
+    }
+    void loadCommercialPublicConfig().catch((reason: unknown) => {
+      setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
+    });
+  }, [
+    commercialConfigured,
+    commercialPublicConfig,
+    loadCommercialPublicConfig,
+    t,
+    tenantCode,
+  ]);
 
   useLayoutEffect(() => {
     const page = pageRef.current;
@@ -59,8 +112,23 @@ export function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      if (view === "login") await login(username.trim(), password);
-      else await authorize(authorizationCode.trim());
+      if (commercialConfigured) {
+        await commercialLogin({
+          tenantCode,
+          username: username.trim(),
+          password,
+          rememberMe: true,
+          ...(commercialPublicConfig?.login.captchaEnabled
+            ? { captchaCode }
+            : {}),
+        });
+        const user = await getCurrentUser({ clearOnNetworkFailure: false });
+        if (!user) throw new Error(t("auth.workspaceSessionFailed"));
+      } else if (view === "login") {
+        await login(username.trim(), password);
+      } else {
+        await authorize(authorizationCode.trim());
+      }
       await navigate({ to: "/", replace: true });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
@@ -100,34 +168,68 @@ export function LoginPage() {
         <div className="w-full">
           <div className="mb-7">
             <h1 className="text-2xl font-semibold">{t("auth.accessTitle")}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{t("auth.accessSubtitle")}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t(
+                commercialConfigured
+                  ? "auth.commercialAccessSubtitle"
+                  : "auth.accessSubtitle",
+              )}
+            </p>
           </div>
 
           <RegionSelector />
 
-          <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
-            <AuthModeButton
-              active={view === "login"}
-              icon={<UserRound className="size-4" />}
-              label={t("auth.passwordLogin")}
-              onClick={() => {
-                setView("login");
-                setError(null);
-              }}
-            />
-            <AuthModeButton
-              active={view === "authorize"}
-              icon={<KeyRound className="size-4" />}
-              label={t("auth.codeAuthorization")}
-              onClick={() => {
-                setView("authorize");
-                setError(null);
-              }}
-            />
-          </div>
+          {commercialConfigured ? null : (
+            <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
+              <AuthModeButton
+                active={view === "login"}
+                icon={<UserRound className="size-4" />}
+                label={t("auth.passwordLogin")}
+                onClick={() => {
+                  setView("login");
+                  setError(null);
+                }}
+              />
+              <AuthModeButton
+                active={view === "authorize"}
+                icon={<KeyRound className="size-4" />}
+                label={t("auth.codeAuthorization")}
+                onClick={() => {
+                  setView("authorize");
+                  setError(null);
+                }}
+              />
+            </div>
+          )}
 
-          <form className="space-y-4" onSubmit={submit}>
-            {view === "login" ? (
+          <form className={commercialConfigured ? "mt-6 space-y-4" : "space-y-4"} onSubmit={submit}>
+            {commercialConfigured ? (
+              <Field label={t("auth.tenantCode")} htmlFor="tenant-code">
+                <Input
+                  id="tenant-code"
+                  autoComplete="organization"
+                  value={tenantCode}
+                  onChange={(event) => {
+                    setTenantCode(event.target.value);
+                    setCaptchaCode("");
+                    setError(null);
+                  }}
+                  onBlur={() => {
+                    if (!tenantCode.trim() || commercialPublicConfig) return;
+                    void loadCommercialPublicConfig().catch((reason: unknown) => {
+                      setError(
+                        reason instanceof Error
+                          ? reason.message
+                          : t("auth.loginFailed"),
+                      );
+                    });
+                  }}
+                  placeholder={t("auth.tenantCodePlaceholder")}
+                  required
+                />
+              </Field>
+            ) : null}
+            {commercialConfigured || view === "login" ? (
               <>
                 <Field label={t("auth.username")} htmlFor="username">
                   <Input
@@ -161,6 +263,48 @@ export function LoginPage() {
                     </button>
                   </div>
                 </Field>
+                {commercialPublicConfig?.login.captchaEnabled ? (
+                  <Field label={t("auth.captcha")} htmlFor="captcha-code">
+                    <div className="grid grid-cols-[minmax(0,1fr)_136px] gap-2">
+                      <Input
+                        id="captcha-code"
+                        autoComplete="off"
+                        value={captchaCode}
+                        onChange={(event) => setCaptchaCode(event.target.value)}
+                        placeholder={t("auth.captchaPlaceholder")}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="relative flex h-9 items-center justify-center overflow-hidden rounded-md border border-input bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                        onClick={() => {
+                          setCaptchaCode("");
+                          void refreshCommercialCaptcha().catch(
+                            (reason: unknown) => {
+                              setError(
+                                reason instanceof Error
+                                  ? reason.message
+                                  : t("auth.captchaRefreshFailed"),
+                              );
+                            },
+                          );
+                        }}
+                        aria-label={t("auth.refreshCaptcha")}
+                        title={t("auth.refreshCaptcha")}
+                      >
+                        {commercialCaptcha ? (
+                          <img
+                            src={commercialCaptcha.imageDataUrl}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-full min-w-0 flex-1 object-contain"
+                          />
+                        ) : null}
+                        <RefreshCw className="mr-2 size-3.5 shrink-0" />
+                      </button>
+                    </div>
+                  </Field>
+                ) : null}
               </>
             ) : (
               <Field label={t("auth.authorizationCode")} htmlFor="authorization-code">
@@ -182,13 +326,19 @@ export function LoginPage() {
             <Button
               type="submit"
               className="h-10 w-full"
-              disabled={submitting || needsRegion}
+              disabled={
+                submitting ||
+                needsRegion ||
+                commercialAvailability === "unknown" ||
+                (commercialConfigured && !tenantCode) ||
+                (commercialPublicConfig?.login.captchaEnabled && !captchaCode.trim())
+              }
               title={needsRegion ? t("region.picker.required") : undefined}
             >
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               {submitting
                 ? t("auth.authenticating")
-                : view === "login"
+                : commercialConfigured || view === "login"
                   ? t("auth.loginButton")
                   : t("auth.authorizeButton")}
             </Button>

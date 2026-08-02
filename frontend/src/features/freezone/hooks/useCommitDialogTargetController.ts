@@ -1,12 +1,24 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useState } from "react";
 
-import type {
-  ImpactBeat,
-  PushTarget,
-  PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
-import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
+import {
+  type CanvasCommitMediaType,
+  GLOBAL_SLOT_KINDS,
+  KIND_LABELS,
+  SCENE_SLOT_KINDS,
+  buildCommitTarget,
+  firstIdentityOptionValue,
+  getFreezoneAssetImpact as previewAssetImpact,
+  identityOptionValue,
+  identityOptionsForSelect,
+  isUserSelectableCommitKind,
+  modelSlotKindsForNodeData,
+  renderCommitTargetLabel,
+  sceneOptionValue,
+  type ImpactBeat,
+  type PushTarget,
+  type PushTargetKind,
+} from "@/modules/creative_canvas/public";
 import {
   listCharacterIdentities,
   listCharacters,
@@ -21,25 +33,10 @@ import {
   type Episode,
 } from "@/modules/narrative_planning/public";
 
-import { getFreezoneAssetImpact as previewAssetImpact } from "../composition";
-import {
-  GLOBAL_SLOT_KINDS,
-  KIND_LABELS,
-  SCENE_SLOT_KINDS,
-  buildCommitTarget,
-  firstIdentityOptionValue,
-  identityOptionValue,
-  identityOptionsForSelect,
-  isUserSelectableCommitKind,
-  modelSlotKindsForNodeData,
-  renderCommitTargetLabel,
-  sceneOptionValue,
-} from "../presentation/commitDialogViewModel";
-
 export interface CommitDialogTargetControllerOptions {
   project: string;
   sourceUrl: string;
-  mediaType: DropMediaType;
+  mediaType: CanvasCommitMediaType;
   defaultTarget?: Partial<PushTarget> & { kind: PushTargetKind };
   nodeData?: Record<string, unknown> | null;
 }

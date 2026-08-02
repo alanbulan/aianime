@@ -35,9 +35,6 @@ from ai_anime.modules.ai_assistant.domain.display_fallback import (
     project_scene_image_specs,
     project_sketch_candidate_specs,
 )
-from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
-    codex_mcp_config_overrides,
-)
 from ai_anime.modules.ai_assistant.domain.project_media import (
     canonical_media_path,
     content_media_urls,
@@ -61,7 +58,6 @@ from ai_anime.modules.ai_assistant.domain.tool_errors import tool_chat_error
 __all__ = [
     "ChatScope",
     "canonical_media_path",
-    "codex_mcp_config_overrides",
     "completion_text_or_existing",
     "compose_agent_prompt",
     "character_identity_requests",

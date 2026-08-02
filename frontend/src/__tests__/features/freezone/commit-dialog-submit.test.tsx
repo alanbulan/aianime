@@ -2,12 +2,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PushTarget } from "@/features/freezone/public";
+import type { PushTarget } from "@/modules/creative_canvas/public";
 import { CommitDialog } from "@/features/freezone/presentation/CommitDialog";
 import {
   commitFreezoneAsset as promoteToAsset,
   getFreezoneAssetImpact as previewAssetImpact,
-} from "@/features/freezone/composition";
+} from "@/modules/creative_canvas/public";
 
 vi.mock("@/modules/asset_world/public", () => ({
   clearSceneDirectorWorld: vi.fn(),
@@ -25,8 +25,8 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   listBeats: vi.fn(async () => []),
 }));
 
-vi.mock("@/features/freezone/composition", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/features/freezone/composition")>()),
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   commitFreezoneAsset: vi.fn(),
   getFreezoneAssetImpact: vi.fn(async () => ({
     target: { kind: "scene_3gs_reverse_ply", scene_id: "公寓楼电梯间" },

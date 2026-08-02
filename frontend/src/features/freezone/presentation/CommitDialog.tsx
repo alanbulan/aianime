@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import type {
+  CanvasCommitMediaType,
   PushResult,
   PushTarget,
   PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
-import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
+} from "@/modules/creative_canvas/public";
 
 import { useCommitDialogSubmitController } from "../hooks/useCommitDialogSubmitController";
 import { useCommitDialogTargetController } from "../hooks/useCommitDialogTargetController";
@@ -19,7 +19,7 @@ interface CommitDialogProps {
   /** Optional human label from the canvas node; avoids exposing raw generated file names. */
   sourceLabelOverride?: string | null;
   /** 来源节点的媒体类型;决定预览方式与可选提交目标。默认 image。 */
-  mediaType?: DropMediaType;
+  mediaType?: CanvasCommitMediaType;
   /** Optional default target inferred from where the source came from. */
   defaultTarget?: Partial<PushTarget> & { kind: PushTargetKind };
   /** Complete director bundle, if this image is still the original Director render asset. */

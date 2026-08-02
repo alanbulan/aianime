@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
 import { app } from "electron";
+import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 
 const EVENT_PREFIX = "AI_ANIME_DESKTOP ";
 const TOKEN_HEADER = "X-AI-Anime-Desktop-Token";
@@ -27,12 +28,15 @@ interface BackendLaunch {
 interface LocalBackendOptions {
   repositoryRoot?: string;
   serveFrontend?: boolean;
+  environment?: Readonly<Record<string, string>>;
 }
 
 export class LocalBackend {
   readonly token = randomBytes(32).toString("hex");
+  readonly modelAdminToken = randomBytes(32).toString("hex");
   private readonly configuredRepoRoot: string | undefined;
   private readonly serveFrontend: boolean;
+  private readonly environment: Readonly<Record<string, string>>;
   private child: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
   private stopping = false;
@@ -41,6 +45,7 @@ export class LocalBackend {
   constructor(options: LocalBackendOptions = {}) {
     this.configuredRepoRoot = options.repositoryRoot;
     this.serveFrontend = options.serveFrontend ?? true;
+    this.environment = options.environment ?? {};
   }
 
   get baseUrl(): string {
@@ -55,6 +60,11 @@ export class LocalBackend {
   async start(): Promise<void> {
     if (this.child) return;
     const launch = this.resolveLaunch();
+    const hermesRuntime = resolveHermesRuntimePaths({
+      packaged: app.isPackaged,
+      repositoryRoot: this.repoRoot(),
+      resourcesPath: process.resourcesPath,
+    });
     const userData = app.getPath("userData");
     const dataRoot = join(userData, "data");
     const logDir = join(userData, "logs");
@@ -81,7 +91,11 @@ export class LocalBackend {
       cwd: app.isPackaged ? app.getPath("userData") : this.repoRoot(),
       env: {
         ...process.env,
+        ...this.environment,
         AI_ANIME_DESKTOP_TOKEN: this.token,
+        AI_ANIME_MODEL_ADMIN_TOKEN: this.modelAdminToken,
+        HERMES_CLI_PATH: hermesRuntime.cliPath,
+        AI_ANIME_HERMES_ASSETS_DIR: hermesRuntime.assetsPath,
         PYTHONUNBUFFERED: "1",
       },
       windowsHide: true,
@@ -124,6 +138,32 @@ export class LocalBackend {
       this.logStream?.end();
       this.logStream = null;
       this.stopping = false;
+    }
+  }
+
+  async configureModelAccess(input: {
+    allowsCustomModels: boolean;
+    mode: "cloud" | "byok";
+    byokBaseUrl?: string;
+    byokApiKey?: string;
+    modelAssignments?: Array<{ modelId: string; role: string }>;
+    cloudModelAssignments?: Array<{ modelId: string; role: string }>;
+  }): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/model-gateway/internal/capability`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          [TOKEN_HEADER]: this.token,
+          "X-AI-Anime-Model-Admin-Token": this.modelAdminToken,
+        },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`model capability update returned HTTP ${response.status}`);
     }
   }
 

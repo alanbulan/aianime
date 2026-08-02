@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 from ai_anime.modules.asset_world.public import BeatViewerQuery, beat_viewer_use_cases
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlFrameStatus,
@@ -15,7 +12,10 @@ from ai_anime.modules.production.application.sketch_generation import (
     SKETCH_GENERATION_TASK_TYPE,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import project_task_state_key
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 
 
 class AssetWorldDirectorControlFrameSource:
@@ -36,33 +36,28 @@ class AssetWorldDirectorControlFrameSource:
         )
 
 
-class TaskBackendDirectorControlSketchScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionDirectorControlSketchScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: DirectorControlSketchTask,
     ) -> DirectorControlSketchTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=SKETCH_GENERATION_TASK_TYPE,
-            queue_kind="default",
-            episode=task.episode_num,
-            beat_num=task.beat_num,
-            scope=task.scope,
-            payload=task.backend_payload(),
-        )
-        return DirectorControlSketchTaskReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                SKETCH_GENERATION_TASK_TYPE,
-                context.project_id,
-                task.episode_num,
+            ProjectTaskSubmission(
+                task_type=SKETCH_GENERATION_TASK_TYPE,
+                episode=task.episode_num,
                 beat_num=task.beat_num,
                 scope=task.scope,
+                payload=task.backend_payload(),
             ),
-            backend=queued.backend,
-            queue=queued.queue,
+        )
+        return DirectorControlSketchTaskReceipt(
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

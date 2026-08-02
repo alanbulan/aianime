@@ -6,8 +6,18 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasSaveResult,
+    CanvasStoreError,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    canvas_request_hash,
+    read_canvas,
+    relative_project_path,
+    utc_now_iso,
+)
 from ai_anime.modules.creative_canvas.application.canvas_projections import (
     CreativeCanvasProjectionBuild,
     CreativeCanvasProjectionCanvasNotFound,
@@ -35,7 +45,7 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 
-SaveCanvas = Callable[..., canvas_store.CanvasSaveResult]
+SaveCanvas = Callable[..., CanvasSaveResult]
 ReadCanvas = Callable[[Path, str], dict | None]
 RequestHash = Callable[[dict], str]
 UtcNow = Callable[[], str]
@@ -186,7 +196,7 @@ class LocalCreativeCanvasProjectionGateway:
                 save_source="from_preset",
                 allow_empty_overwrite=True,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         payload = saved_canvas.payload
@@ -215,7 +225,7 @@ class LocalCreativeCanvasProjectionGateway:
                 "node_count": len(payload.get("nodes") or []),
                 "edge_count": len(payload.get("edges") or []),
                 "backup_path": (
-                    canvas_store.relative_project_path(
+                    relative_project_path(
                         state_dir,
                         saved_canvas.backup_path,
                     )
@@ -289,7 +299,7 @@ class LocalCreativeCanvasProjectionGateway:
                 save_source="projection_remove",
                 allow_empty_overwrite=True,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
         payload = saved_canvas.payload
@@ -325,18 +335,18 @@ class LocalCreativeCanvasProjectionGateway:
         canvas_id: str,
     ) -> Mapping[str, Any] | None:
         try:
-            return (self._read_canvas or canvas_store.read_canvas)(
+            return (self._read_canvas or read_canvas)(
                 Path(context.state_dir),
                 canvas_id,
             )
-        except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
+        except (CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
 
     def _hash(self, payload: dict[str, Any]) -> str:
-        return (self._request_hash or canvas_store.canvas_request_hash)(payload)
+        return (self._request_hash or canvas_request_hash)(payload)
 
     def _now(self) -> str:
-        return (self._utc_now or canvas_store.utc_now_iso)()
+        return (self._utc_now or utc_now_iso)()
 
 
 __all__ = ["LocalCreativeCanvasProjectionGateway"]

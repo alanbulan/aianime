@@ -57,26 +57,15 @@ def test_scene_reference_prompt_keeps_variant_delta_out_of_scene_description():
     assert "地面湿润有积水" not in scene_description
 
 
-async def test_scene_reference_newapi_uses_effective_gateway_base_url(monkeypatch, tmp_path):
-    from types import SimpleNamespace
-
-    from ai_anime import config as app_config
+async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch, tmp_path):
     from ai_anime.generators import scene_reference_images
 
-    captured: dict[str, str | None] = {}
+    captured: dict[str, object] = {}
 
     async def fake_call_newapi_image_api(**kwargs):
-        captured["base_url"] = kwargs.get("base_url")
+        captured.update(kwargs)
         return b"image-bytes", "", ""
 
-    monkeypatch.setattr(
-        app_config,
-        "get_effective_newapi_gateway_config",
-        lambda: SimpleNamespace(
-            api_key="test-key",
-            base_url="https://gateway.example.com/v1",
-        ),
-    )
     monkeypatch.setattr(
         scene_reference_images,
         "_call_newapi_image_api",
@@ -89,4 +78,5 @@ async def test_scene_reference_newapi_uses_effective_gateway_base_url(monkeypatc
         kind="master",
     )
 
-    assert captured["base_url"] == "https://gateway.example.com/v1"
+    assert "api_key" not in captured
+    assert "base_url" not in captured

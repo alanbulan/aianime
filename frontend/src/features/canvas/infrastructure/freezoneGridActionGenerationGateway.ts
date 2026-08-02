@@ -15,6 +15,7 @@ export const freezoneGridActionGenerationGateway: CanvasGridActionGenerationGate
           mode: command.mode,
           prompt: command.prompt,
           image_size: "2K",
+          model: command.model,
         },
       },
     );

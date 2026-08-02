@@ -135,7 +135,12 @@ describe("ingest query error contract", () => {
     );
 
     const { result } = renderHook(() => useStartIngest("demo"), { wrapper });
-    result.current.mutate({ filename: "missing.txt", rebuild: true });
+    result.current.mutate({
+      filename: "missing.txt",
+      textModel: "cloud-text-standard",
+      embeddingModel: "cloud-embedding-standard",
+      rebuild: true,
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeInstanceOf(Error);
@@ -161,7 +166,12 @@ describe("ingest query error contract", () => {
     );
 
     const { result } = renderHook(() => useStartIngest("demo"), { wrapper });
-    result.current.mutate({ filename: "novel.txt", rebuild: true });
+    result.current.mutate({
+      filename: "novel.txt",
+      textModel: "cloud-text-standard",
+      embeddingModel: "cloud-embedding-standard",
+      rebuild: true,
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);

@@ -1,2339 +1,414 @@
 from __future__ import annotations
 
+import hashlib
 import json
-import os
+import sqlite3
+import sys
+import uuid
 
 import pytest
-import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from httpx import Response
 
 from ai_anime import config
 from ai_anime.api.routes import model_gateway
-from ai_anime.official_defaults import OFFICIAL_NEWAPI_BASE_URL
+from ai_anime.model_access_policy import (
+    configure_model_access,
+    require_model_role,
+    resolve_internal_model_for_role,
+    resolve_model_for_role,
+    runtime_model_access,
+)
 from ai_anime.model_gateway_settings import (
-    MODE_CUSTOM,
-    MODE_OFFICIAL,
-    build_newapi_database_status,
+    MODE_BYOK,
+    MODE_CLOUD,
     build_model_gateway_status,
     get_effective_cognee_embedding_config,
     get_effective_newapi_config,
-    normalize_relay_base_url,
-    save_official_newapi_key,
-    save_custom_newapi_gateway,
-    save_newapi_embedding_model_config,
-    save_media_relay_config,
-    save_newapi_database_config,
-    save_newapi_provider_channels,
-    set_model_gateway_mode,
 )
-from ai_anime.model_gateway_runtime import refresh_model_gateway_runtime
-from ai_anime.newapi_provisioner import (
-    AdminToken,
-    build_channel_payload,
-    ensure_newapi_setup,
-    get_provisioner_config,
-    NewApiSetupCredentials,
-    NewApiProvisionerConfig,
-    normalize_admin_base_url,
-    open_newapi_db,
-    require_provisioner_enabled,
-    update_provider_channel_credentials,
-    upsert_channel,
-)
+from ai_anime.modules.task_execution.public import run_project_model_subprocess
 
 
-def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path):
+@pytest.fixture(autouse=True)
+def _reset_model_access() -> None:
+    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    yield
+    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+
+
+def _isolate_runtime(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     monkeypatch.setattr(config, "STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
-    for key in (
-        "AI_ANIME_CONTROL_PLANE_DSN",
-        "MODEL_GATEWAY_MODE",
-        "MODEL_GATEWAY_RUNTIME_VERSION",
-        "NEWAPI_API_KEY",
-        "NEWAPI_BASE_URL",
-    ):
-        monkeypatch.delenv(key, raising=False)
-
-
-def test_model_gateway_uses_explicit_custom_mode(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-
-    save_custom_newapi_gateway(
-        base_url="http://127.0.0.1:3000",
-        api_key="sk-custom-secret",
-        admin_base_url="http://127.0.0.1:3000",
-        token_name="ai-anime-ce-runtime",
-        token_id=3,
-        activate=True,
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv(
+        "AI_ANIME_CLOUD_PROXY_BASE_URL",
+        "http://127.0.0.1:45678/v1",
     )
-
-    effective = get_effective_newapi_config(
-        official_base_url="https://official.example/v1",
-        official_api_key="sk-official-secret",
-    )
-    assert effective.mode == MODE_CUSTOM
-    assert effective.base_url == "http://127.0.0.1:3000/v1"
-    assert effective.api_key == "sk-custom-secret"
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "desktop-proxy-token")
+    monkeypatch.setenv("AI_ANIME_MODEL_ADMIN_TOKEN", "desktop-admin-token")
 
 
-def test_newapi_runtime_credentials_prefer_saved_custom_gateway(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-env-secret")
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://env.example/v1")
-
-    save_custom_newapi_gateway(
-        base_url="http://127.0.0.1:3000",
-        api_key="sk-custom-secret",
-        admin_base_url="http://127.0.0.1:3000",
-        token_name="ai-anime-ce-runtime",
-        token_id=3,
-        activate=True,
-    )
-
-    api_key, base_url = config.get_newapi_runtime_credentials()
-
-    assert api_key == "sk-custom-secret"
-    assert base_url == "http://127.0.0.1:3000/v1"
-
-
-def test_newapi_runtime_credentials_allow_explicit_override(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_custom_newapi_gateway(
-        base_url="http://127.0.0.1:3000",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-
-    api_key, base_url = config.get_newapi_runtime_credentials(
-        api_key_override="sk-request-secret",
-        base_url_override="https://request.example/v1",
-    )
-
-    assert api_key == "sk-request-secret"
-    assert base_url == "https://request.example/v1"
-
-
-def test_legacy_pydantic_factory_uses_ce_gateway_settings(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("MODEL_API_KEY", "sk-stale-env-secret")
-    monkeypatch.setenv("MODEL_BASE_URL", "https://stale-env.example/v1")
-    save_custom_newapi_gateway(
-        base_url="http://new-api:3000",
-        api_key="sk-database-secret",
-        activate=True,
-    )
-    captured: dict[str, object] = {}
-
-    def fake_model(model_name, **kwargs):
-        captured.update(model_name=model_name, **kwargs)
-        return "newapi-model"
-
-    monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
-
-    result = config.get_pydantic_model(
-        provider_override="openrouter",
-        model_name_override="openrouter/ai-anime-legacy-agent-LLM",
-    )
-
-    assert result == "newapi-model"
-    assert captured["model_name"] == "ai-anime-legacy-agent-LLM"
-    assert captured["api_key"] == "sk-database-secret"
-    assert captured["base_url"] == "http://new-api:3000/v1"
-    assert captured["timeout_seconds"] == 300.0
-
-
-def test_legacy_pydantic_factory_uses_ee_deployment_gateway(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-ee-secret")
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://ee-gateway.example/v1")
-    monkeypatch.setattr(config, "NEWAPI_API_KEY", "sk-ee-secret")
-    monkeypatch.setattr(config, "NEWAPI_BASE_URL", "https://ee-gateway.example/v1")
-    captured: dict[str, object] = {}
-
-    def fake_model(model_name, **kwargs):
-        captured.update(model_name=model_name, **kwargs)
-        return "newapi-model"
-
-    monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
-
-    result = config.get_pydantic_model(model_name_override="ai-anime-legacy-agent-LLM")
-
-    assert result == "newapi-model"
-    assert captured["model_name"] == "ai-anime-legacy-agent-LLM"
-    assert captured["api_key"] == "sk-ee-secret"
-    assert captured["base_url"] == "https://ee-gateway.example/v1"
-
-
-def test_legacy_pydantic_model_settings_match_newapi_transport(monkeypatch):
-    monkeypatch.setenv("MODEL_PROVIDER", "openrouter")
-
-    settings = config.get_pydantic_model_settings(
-        provider_override="openrouter",
-        thinking_level_override="low",
-    )
-
-    assert settings == {"openai_reasoning_effort": "low"}
-
-
-def test_cognee_newapi_resolution_prefers_saved_gateway(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.delenv("COGNEE_LLM_PROVIDER", raising=False)
-    monkeypatch.delenv("COGNEE_LLM_MODEL", raising=False)
-    monkeypatch.delenv("NEWAPI_BASE_URL", raising=False)
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-env-secret")
-
-    save_custom_newapi_gateway(
-        base_url="https://custom.example",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-
-    from ai_anime.cognee import config as cognee_config
-
-    assert cognee_config._resolve_llm_provider() == "newapi"
-    assert (
-        cognee_config._resolve_llm_api_key("newapi", "openai/ai-anime-model")
-        == "sk-custom-secret"
-    )
-    assert (
-        cognee_config._get_endpoint_env("newapi", "COGNEE_LLM_ENDPOINT", "LLM_ENDPOINT")
-        == "https://custom.example/v1"
-    )
-
-
-def test_cognee_provider_env_cannot_bypass_newapi(monkeypatch):
-    from ai_anime.cognee import config as cognee_config
-
-    monkeypatch.setenv("COGNEE_LLM_PROVIDER", "gemini")
-    monkeypatch.setenv("COGNEE_LLM_API_KEY", "direct-secret")
-    monkeypatch.setattr(
-        cognee_config,
-        "_effective_newapi_gateway",
-        lambda: ("gateway-secret", "https://gateway.example/v1"),
-    )
-
-    assert cognee_config._resolve_llm_provider() == "newapi"
-    assert (
-        cognee_config._resolve_llm_api_key("newapi", "ai-anime-cognee-LLM")
-        == "gateway-secret"
-    )
-
-
-def test_cognee_embedding_provider_env_cannot_bypass_newapi(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("COGNEE_EMBEDDING_PROVIDER", "gemini")
-    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "ai-anime-cognee-embedding")
-
-    effective = get_effective_cognee_embedding_config(llm_provider="gemini")
-
-    assert effective.provider == "newapi"
-    assert effective.model == "ai-anime-cognee-embedding"
-
-
-def test_ee_cognee_embedding_ignores_ce_database_config(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_newapi_embedding_model_config(
-        provider="openai",
-        upstream_model="stale-ce-embedding",
-        dimension=3072,
-    )
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "ai-anime-ee-embedding")
-    monkeypatch.setenv("COGNEE_EMBEDDING_DIM", "1536")
-
-    effective = get_effective_cognee_embedding_config()
-
-    assert effective.source == "environment"
-    assert effective.provider == "newapi"
-    assert effective.model == "ai-anime-ee-embedding"
-    assert effective.dimensions == "1536"
-    assert effective.upstream_model == ""
-
-
-def test_model_gateway_can_switch_back_to_official(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_official_newapi_key(
-        api_key="sk-official-secret",
-        activate=True,
-    )
-    save_custom_newapi_gateway(
-        base_url="http://127.0.0.1:3000/v1",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-    set_model_gateway_mode(MODE_OFFICIAL)
-
-    effective = get_effective_newapi_config(
-        official_base_url="https://official.example/v1",
-        official_api_key="sk-official-secret",
-    )
-    assert effective.mode == MODE_OFFICIAL
-    assert effective.base_url == OFFICIAL_NEWAPI_BASE_URL
-    assert effective.api_key == "sk-official-secret"
-
-    status = build_model_gateway_status(
-        official_base_url="https://official.example/v1",
-        official_api_key="sk-official-secret",
-    )
-    assert status["custom"]["configured"] is True
-    assert status["effective"]["source"] == "official"
-
-
-def test_model_gateway_status_keeps_official_section_when_custom_is_active(
-    monkeypatch,
+def test_standard_edition_always_uses_the_electron_cloud_proxy(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_official_newapi_key(
-        api_key="sk-official-secret",
-        activate=True,
-    )
-    save_custom_newapi_gateway(
-        base_url="http://new-api:3000",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    monkeypatch.setenv("NEWAPI_BASE_URL", "https://legacy.example/v1")
+    monkeypatch.setenv("NEWAPI_API_KEY", "legacy-secret")
 
-    status = build_model_gateway_status(
-        official_base_url="https://env.example/v1",
-        official_api_key="sk-env-secret",
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_BYOK,
+        byok_base_url="https://bypass.example/v1",
+        byok_api_key="bypass-secret",
     )
 
-    assert status["mode"] == MODE_CUSTOM
-    assert status["effective"]["source"] == "custom"
-    assert status["effective"]["baseUrl"] == "http://new-api:3000/v1"
-    assert status["official"]["baseUrl"] == OFFICIAL_NEWAPI_BASE_URL
-    assert status["official"]["source"] == "database"
+    access = runtime_model_access()
+    effective = get_effective_newapi_config()
+    assert access.mode == MODE_CLOUD
+    assert effective.mode == MODE_CLOUD
+    assert effective.source == "cloud_proxy"
+    assert effective.base_url == "http://127.0.0.1:45678/v1"
+    assert effective.api_key == "desktop-proxy-token"
 
 
-def test_model_gateway_official_database_key_overrides_env(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_official_newapi_key(
-        api_key="sk-user-official-secret",
-        activate=True,
+def test_professional_byok_uses_only_the_user_standard_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="https://models.example.test/openai/v1/",
+        byok_api_key="user-secret",
     )
-
-    effective = get_effective_newapi_config(
-        official_base_url="https://env-official.example/v1",
-        official_api_key="sk-env-official-secret",
-    )
-    assert effective.mode == MODE_OFFICIAL
-    assert effective.base_url == OFFICIAL_NEWAPI_BASE_URL
-    assert effective.api_key == "sk-user-official-secret"
-
-    status = build_model_gateway_status(
-        official_base_url="https://env-official.example/v1",
-        official_api_key="sk-env-official-secret",
-    )
-    assert status["official"]["source"] == "database"
-    assert status["official"]["environment"]["configured"] is False
-
-
-def test_model_gateway_official_url_ignores_newapi_base_url_env(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_official_newapi_key(api_key="sk-database-secret", activate=True)
-    monkeypatch.setenv("MODEL_GATEWAY_MODE", MODE_OFFICIAL)
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://malicious.example/v1")
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-env-secret")
 
     effective = get_effective_newapi_config()
+    assert effective.mode == MODE_BYOK
+    assert effective.source == "byok"
+    assert effective.base_url == "https://models.example.test/openai/v1"
+    assert effective.api_key == "user-secret"
 
-    assert effective.mode == MODE_OFFICIAL
-    assert effective.base_url == OFFICIAL_NEWAPI_BASE_URL
-    assert effective.api_key == "sk-database-secret"
 
+def test_professional_byok_accepts_a_keyless_standard_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
 
-def test_ce_gateway_does_not_fall_back_to_env_after_database_is_initialized(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    set_model_gateway_mode(MODE_OFFICIAL)
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-later-secret")
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="http://127.0.0.1:11434/v1",
+        byok_api_key="",
+    )
 
     effective = get_effective_newapi_config()
+    status = build_model_gateway_status()
+    assert effective.mode == MODE_BYOK
+    assert effective.base_url == "http://127.0.0.1:11434/v1"
+    assert effective.api_key == ""
+    assert status["effective"]["configured"] is True
+    assert status["byok"]["configured"] is True
+
+
+def test_legacy_environment_credentials_cannot_override_selected_access(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="https://models.example.test/v1",
+        byok_api_key="selected-secret",
+    )
+
+    monkeypatch.setenv("OPENAI_API_KEY", "legacy-secret")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://legacy.example/v1")
     api_key, base_url = config.get_newapi_runtime_credentials()
 
-    assert effective.api_key == ""
-    assert api_key == ""
-    assert base_url == OFFICIAL_NEWAPI_BASE_URL
+    assert api_key == "selected-secret"
+    assert base_url == "https://models.example.test/v1"
 
 
-def test_ee_gateway_uses_environment_and_ignores_ce_settings(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_official_newapi_key(api_key="sk-ce-secret", activate=True)
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-ee-secret")
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://ee-gateway.example/v1")
+def test_internal_capability_endpoint_requires_the_electron_admin_token(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    app = FastAPI()
+    app.include_router(model_gateway.router)
+    client = TestClient(app)
+    body = {
+        "allowsCustomModels": True,
+        "mode": MODE_BYOK,
+        "byokBaseUrl": "https://models.example.test/v1",
+        "byokApiKey": "user-secret",
+    }
 
-    effective = get_effective_newapi_config()
+    denied = client.post("/model-gateway/internal/capability", json=body)
+    accepted = client.post(
+        "/model-gateway/internal/capability",
+        json=body,
+        headers={"X-AI-Anime-Model-Admin-Token": "desktop-admin-token"},
+    )
 
-    assert effective.mode == MODE_OFFICIAL
-    assert effective.source == "environment"
-    assert effective.base_url == "https://ee-gateway.example/v1"
-    assert effective.api_key == "sk-ee-secret"
+    assert denied.status_code == 403
+    assert accepted.status_code == 200
+    status_response = client.get("/model-gateway/config")
+    assert status_response.status_code == 200
+    payload = status_response.json()
+    assert payload["data"]["mode"] == MODE_BYOK
+    assert payload["data"]["byok"]["allowed"] is True
+    assert payload["data"]["byok"]["apiKeyPreview"] == "user...cret"
+    assert "user-secret" not in status_response.text
+
+
+def test_model_gateway_status_never_exposes_cloud_proxy_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
 
     status = build_model_gateway_status()
-    assert status["effective"]["baseUrl"] == "https://ee-gateway.example/v1"
-    assert status["official"]["source"] == "environment"
 
-
-def test_ee_cannot_mutate_ce_model_gateway_settings(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    response = TestClient(app).post(
-        "/model-gateway/official/config",
-        json={"newApiApiKey": "sk-should-not-be-saved"},
-    )
-
-    assert response.status_code == 403
-    assert "only available in CE" in response.json()["detail"]
-
-
-def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_path):
-    from ai_anime.agents import global_video_optimizer
-    from ai_anime.modules.creative_canvas.infrastructure import text_generation
-
-    _isolate_settings_db(monkeypatch, tmp_path)
-    tracked = {
-        "MODEL_GATEWAY_RUNTIME_VERSION": "startup-version",
-        "NEWAPI_API_KEY": "startup-newapi-key",
-        "NEWAPI_BASE_URL": "https://startup.example/v1",
-        "OPENAI_API_KEY": "startup-openai-key",
-        "OPENAI_BASE_URL": "https://startup-openai.example/v1",
-        "LLM_API_KEY": "startup-llm-key",
-        "LLM_ENDPOINT": "https://startup-llm.example/v1",
-        "EMBEDDING_API_KEY": "startup-embedding-key",
-        "EMBEDDING_ENDPOINT": "https://startup-embedding.example/v1",
-    }
-    for key, value in tracked.items():
-        monkeypatch.setenv(key, value)
-    monkeypatch.setattr(global_video_optimizer, "_global_video_optimizer", object())
-    monkeypatch.setattr(text_generation, "_translation_agent", object())
-    monkeypatch.setattr(text_generation, "_story_script_agent", object())
-    save_official_newapi_key(api_key="sk-database-secret", activate=True)
-
-    runtime = refresh_model_gateway_runtime()
-
-    assert runtime["configured"] is True
-    assert {key: os.environ.get(key) for key in tracked} == tracked
-    assert global_video_optimizer._global_video_optimizer is None
-    assert text_generation._translation_agent is None
-    assert text_generation._story_script_agent is None
-    assert (
-        "ai_anime.agents.global_video_optimizer._global_video_optimizer"
-        in runtime["clearedCaches"]
-    )
-    assert (
-        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
-        "_translation_agent"
-        in runtime["clearedCaches"]
-    )
-    assert (
-        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
-        "_story_script_agent"
-        in runtime["clearedCaches"]
-    )
-
-
-def test_newapi_base_url_normalizers_keep_admin_and_relay_urls_separate():
-    assert normalize_admin_base_url("http://new-api:3000/v1") == "http://new-api:3000"
-    assert normalize_admin_base_url("http://new-api:3000/") == "http://new-api:3000"
-    assert normalize_relay_base_url("http://new-api:3000") == "http://new-api:3000/v1"
-    assert (
-        normalize_relay_base_url("http://new-api:3000/v1") == "http://new-api:3000/v1"
-    )
-
-
-def test_build_channel_payload_maps_dc_models_to_upstream_models():
-    payload = build_channel_payload(
-        provider="ali",
-        name="user-supplied-name-is-ignored",
-        upstream_key="sk-upstream",
-        model_mapping={
-            "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
-            "ai-anime-staging-prop-planner-LLM": "qwen-max",
-        },
-        group="default,drama",
-        priority=2,
-    )
-
-    channel = payload["channel"]
-    assert payload["mode"] == "single"
-    assert channel["name"] == "ai-anime-ali"
-    assert channel["type"] == 17
-    assert (
-        channel["models"] == "ai-anime-screenplay-normalizer-LLM,ai-anime-staging-prop-planner-LLM"
-    )
-    assert channel["group"] == ",default,drama,"
-    assert channel["test_model"] == "ai-anime-screenplay-normalizer-LLM"
-    assert channel["model_mapping"] == (
-        '{"ai-anime-screenplay-normalizer-LLM":"qwen-plus",'
-        '"ai-anime-staging-prop-planner-LLM":"qwen-max"}'
-    )
-
-
-@respx.mock
-def test_ensure_newapi_setup_creates_root_when_instance_is_fresh():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    respx.get("http://new-api:3000/api/setup").mock(
-        side_effect=[
-            Response(200, json={"success": True, "data": {"status": False}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": False,
-                        "root_init": False,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-            Response(200, json={"success": True, "data": {"status": True}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": True,
-                        "root_init": True,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-        ]
-    )
-    setup_request = respx.post("http://new-api:3000/api/setup").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    status = ensure_newapi_setup(
-        cfg,
-        NewApiSetupCredentials(
-            username="admin",
-            password="strongpass",
-            confirm_password="strongpass",
-        ),
-    )
-
-    assert status.initialized is True
-    assert status.root_initialized is True
-    assert status.setup_performed is True
-    assert status.already_initialized is False
-    assert setup_request.calls.last.request.content
-    assert json.loads(setup_request.calls.last.request.content) == {
-        "SelfUseModeEnabled": True,
-        "DemoSiteEnabled": False,
-        "username": "admin",
-        "password": "strongpass",
-        "confirmPassword": "strongpass",
-    }
-
-
-@respx.mock
-def test_ensure_newapi_setup_requires_credentials_for_fresh_instance():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    respx.get("http://new-api:3000/api/setup").mock(
-        side_effect=[
-            Response(200, json={"success": True, "data": {"status": False}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": False,
-                        "root_init": False,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-        ]
-    )
-
-    with pytest.raises(ValueError, match="setupUsername"):
-        ensure_newapi_setup(cfg, NewApiSetupCredentials(username="admin"))
-
-
-@respx.mock
-def test_ensure_newapi_setup_finishes_setup_when_root_already_exists():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    respx.get("http://new-api:3000/api/setup").mock(
-        side_effect=[
-            Response(200, json={"success": True, "data": {"status": False}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": False,
-                        "root_init": True,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-            Response(200, json={"success": True, "data": {"status": True}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": True,
-                        "root_init": True,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-        ]
-    )
-    setup_request = respx.post("http://new-api:3000/api/setup").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    status = ensure_newapi_setup(cfg)
-
-    assert status.initialized is True
-    assert status.setup_performed is True
-    assert status.already_initialized is False
-    assert json.loads(setup_request.calls.last.request.content) == {
-        "SelfUseModeEnabled": True,
-        "DemoSiteEnabled": False,
-    }
-
-
-@respx.mock
-def test_ensure_newapi_setup_skips_post_when_instance_is_initialized():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    respx.get("http://new-api:3000/api/setup").mock(
-        side_effect=[
-            Response(200, json={"success": True, "data": {"status": True}}),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "status": True,
-                        "root_init": True,
-                        "database_type": "postgres",
-                    },
-                },
-            ),
-        ]
-    )
-    setup_request = respx.post("http://new-api:3000/api/setup").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    status = ensure_newapi_setup(
-        cfg,
-        NewApiSetupCredentials(
-            username="root",
-            password="strongpass",
-            confirm_password="strongpass",
-        ),
-    )
-
-    assert status.initialized is True
-    assert status.root_initialized is True
-    assert status.setup_performed is False
-    assert status.already_initialized is True
-    assert not setup_request.called
-
-
-@respx.mock
-def test_upsert_channel_merges_existing_dc_provider_channel():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    admin = AdminToken(
-        admin_user_id=1,
-        admin_username="root",
-        access_token="admin-secret",
-        token_created=False,
-    )
-    payload = build_channel_payload(
-        provider="ali",
-        upstream_key="sk-upstream-new",
-        model_mapping={"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
-        base_url="https://dashscope-new.example.com",
-    )
-
-    respx.get("http://new-api:3000/api/channel/").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
-                    "total": 1,
-                },
-            },
-        )
-    )
-    respx.get("http://new-api:3000/api/channel/3").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "id": 3,
-                    "name": "ai-anime-ali",
-                    "type": 17,
-                    "key": "sk-upstream-old",
-                    "base_url": "https://dashscope-old.example.com",
-                    "models": "ai-anime-old-model",
-                    "model_mapping": json.dumps({"ai-anime-old-model": "qwen-old"}),
-                    "group": ",default,",
-                    "status": 1,
-                },
-            },
-        )
-    )
-    update_route = respx.put("http://new-api:3000/api/channel/").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    result = upsert_channel(cfg, admin, payload)
-
-    assert result["ok"] is True
-    assert result["action"] == "update"
-    assert result["channelId"] == 3
-    channel = json.loads(update_route.calls.last.request.content)
-    assert channel["id"] == 3
-    assert channel["name"] == "ai-anime-ali"
-    assert channel["key"] == "sk-upstream-new"
-    assert channel["base_url"] == "https://dashscope-new.example.com"
-    assert channel["models"] == "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM"
-    assert json.loads(channel["model_mapping"]) == {
-        "ai-anime-old-model": "qwen-old",
-        "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
-    }
-
-
-@respx.mock
-def test_update_provider_channel_credentials_preserves_models_and_mapping():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    admin = AdminToken(
-        admin_user_id=1,
-        admin_username="root",
-        access_token="admin-secret",
-        token_created=False,
-    )
-
-    respx.get("http://new-api:3000/api/channel/").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
-                    "total": 1,
-                },
-            },
-        )
-    )
-    respx.get("http://new-api:3000/api/channel/3").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "id": 3,
-                    "name": "ai-anime-ali",
-                    "type": 17,
-                    "key": "sk-upstream-old",
-                    "base_url": "https://dashscope-old.example.com",
-                    "models": "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM",
-                    "model_mapping": json.dumps(
-                        {
-                            "ai-anime-old-model": "qwen-old",
-                            "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
-                        }
-                    ),
-                    "group": ",default,",
-                    "priority": 2,
-                    "weight": 3,
-                    "test_model": "ai-anime-old-model",
-                },
-            },
-        )
-    )
-    update_route = respx.put("http://new-api:3000/api/channel/").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    result = update_provider_channel_credentials(
-        cfg,
-        admin,
-        provider="ali",
-        upstream_key="sk-upstream-new",
-        base_url="https://dashscope-new.example.com/",
-    )
-
-    assert result["ok"] is True
-    assert result["action"] == "update"
-    assert result["channelId"] == 3
-    channel = json.loads(update_route.calls.last.request.content)
-    assert channel["key"] == "sk-upstream-new"
-    assert channel["base_url"] == "https://dashscope-new.example.com"
-    assert channel["models"] == "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM"
-    assert json.loads(channel["model_mapping"]) == {
-        "ai-anime-old-model": "qwen-old",
-        "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
-    }
-    assert channel["priority"] == 2
-    assert channel["weight"] == 3
-    assert channel["test_model"] == "ai-anime-old-model"
-
-
-@respx.mock
-def test_update_provider_channel_credentials_clears_base_url_override():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    admin = AdminToken(
-        admin_user_id=1,
-        admin_username="root",
-        access_token="admin-secret",
-        token_created=False,
-    )
-
-    respx.get("http://new-api:3000/api/channel/").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
-                    "total": 1,
-                },
-            },
-        )
-    )
-    respx.get("http://new-api:3000/api/channel/3").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "id": 3,
-                    "name": "ai-anime-ali",
-                    "type": 17,
-                    "key": "sk-upstream-old",
-                    "base_url": "https://dashscope-old.example.com",
-                    "models": "ai-anime-old-model",
-                    "model_mapping": json.dumps({"ai-anime-old-model": "qwen-old"}),
-                    "group": ",default,",
-                    "test_model": "ai-anime-old-model",
-                },
-            },
-        )
-    )
-    update_route = respx.put("http://new-api:3000/api/channel/").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    result = update_provider_channel_credentials(
-        cfg,
-        admin,
-        provider="ali",
-        upstream_key="sk-upstream-new",
-        base_url="",
-    )
-
-    assert result["ok"] is True
-    channel = json.loads(update_route.calls.last.request.content)
-    assert channel["key"] == "sk-upstream-new"
-    assert channel["base_url"] == ""
-    assert channel["models"] == "ai-anime-old-model"
-    assert json.loads(channel["model_mapping"]) == {"ai-anime-old-model": "qwen-old"}
-
-
-@respx.mock
-def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
-    cfg = NewApiProvisionerConfig(
-        admin_base_url="http://new-api:3000",
-        sql_dsn="local",
-        sqlite_path="/tmp/one-api.db",
-        admin_username="root",
-        init_timeout_ms=1000,
-        relay_token_name="ai-anime-ce-runtime",
-    )
-    admin = AdminToken(
-        admin_user_id=1,
-        admin_username="root",
-        access_token="admin-secret",
-        token_created=False,
-    )
-    payload = build_channel_payload(
-        provider="openrouter",
-        upstream_key="sk-openrouter",
-        model_mapping={"ai-anime-assistant-LLM": "google/gemini-2.5-flash"},
-    )
-
-    respx.get("http://new-api:3000/api/channel/").mock(
-        side_effect=[
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "items": [
-                            {"id": 4, "name": "ai-anime-openrouter", "type": 20},
-                            {"id": 3, "name": "ai-anime-ali", "type": 17},
-                        ],
-                    },
-                },
-            ),
-            Response(
-                200,
-                json={
-                    "success": True,
-                    "data": {
-                        "items": [
-                            {"id": 4, "name": "ai-anime-openrouter", "type": 20},
-                            {"id": 3, "name": "ai-anime-ali", "type": 17},
-                        ],
-                    },
-                },
-            ),
-        ]
-    )
-    respx.get("http://new-api:3000/api/channel/4").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "id": 4,
-                    "name": "ai-anime-openrouter",
-                    "type": 20,
-                    "key": "sk-old-openrouter",
-                    "base_url": "https://openrouter.ai/api",
-                    "models": "ai-anime-old-openrouter-model",
-                    "model_mapping": json.dumps(
-                        {"ai-anime-old-openrouter-model": "openrouter/old"}
-                    ),
-                    "group": ",default,",
-                    "status": 1,
-                },
-            },
-        )
-    )
-    respx.get("http://new-api:3000/api/channel/3").mock(
-        return_value=Response(
-            200,
-            json={
-                "success": True,
-                "data": {
-                    "id": 3,
-                    "name": "ai-anime-ali",
-                    "type": 17,
-                    "key": "sk-ali",
-                    "base_url": "https://dashscope.aliyuncs.com",
-                    "models": "ai-anime-assistant-LLM,ai-anime-screenplay-normalizer-LLM",
-                    "model_mapping": json.dumps(
-                        {
-                            "ai-anime-assistant-LLM": "qwen-plus",
-                            "ai-anime-screenplay-normalizer-LLM": "qwen-max",
-                        }
-                    ),
-                    "group": ",default,",
-                    "status": 1,
-                    "test_model": "ai-anime-assistant-LLM",
-                },
-            },
-        )
-    )
-    update_route = respx.put("http://new-api:3000/api/channel/").mock(
-        return_value=Response(200, json={"success": True})
-    )
-
-    result = upsert_channel(cfg, admin, payload)
-
-    assert result["ok"] is True
-    assert result["action"] == "update"
-    assert result["dedupedChannels"] == [
-        {
-            "channelId": 3,
-            "name": "ai-anime-ali",
-            "ok": True,
-            "httpStatus": 200,
-            "removedModels": ["ai-anime-assistant-LLM"],
-        }
-    ]
-    target_update = json.loads(update_route.calls[0].request.content)
-    assert target_update["id"] == 4
-    assert json.loads(target_update["model_mapping"]) == {
-        "ai-anime-old-openrouter-model": "openrouter/old",
-        "ai-anime-assistant-LLM": "google/gemini-2.5-flash",
-    }
-    stale_update = json.loads(update_route.calls[1].request.content)
-    assert stale_update["id"] == 3
-    assert stale_update["models"] == "ai-anime-screenplay-normalizer-LLM"
-    assert stale_update["test_model"] == "ai-anime-screenplay-normalizer-LLM"
-    assert json.loads(stale_update["model_mapping"]) == {
-        "ai-anime-screenplay-normalizer-LLM": "qwen-max",
-    }
-
-
-def test_provisioner_enabled_by_default_and_can_be_disabled(monkeypatch):
-    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
-    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.delenv("NEWAPI_PROVISIONER_ENABLED", raising=False)
-    require_provisioner_enabled()
-
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "false")
-    with pytest.raises(PermissionError, match="not enabled"):
-        require_provisioner_enabled()
-
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    require_provisioner_enabled()
-
-
-def test_provisioner_is_always_disabled_in_ee(monkeypatch):
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    with pytest.raises(PermissionError, match="not enabled"):
-        require_provisioner_enabled()
-
-
-def test_newapi_db_defaults_to_managed_ce_sqlite_and_does_not_create_empty_file(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("NEWAPI_SQL_DSN", raising=False)
-    monkeypatch.delenv("NEWAPI_SQLITE_PATH", raising=False)
-
-    cfg = model_gateway.get_provisioner_config()
-
-    assert cfg.admin_base_url == "http://127.0.0.1:3000"
-    assert cfg.sql_dsn == "local"
-    assert cfg.sqlite_path == str(tmp_path / "state" / "newapi" / "one-api.db")
-    with pytest.raises(RuntimeError, match="does not exist"):
-        open_newapi_db(cfg)
-
-    assert not (tmp_path / "state" / "newapi" / "one-api.db").exists()
-
-
-def test_newapi_db_rejects_missing_sqlite_file(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    missing = tmp_path / "missing-one-api.db"
-    monkeypatch.setenv("NEWAPI_SQL_DSN", "local")
-    monkeypatch.setenv("NEWAPI_SQLITE_PATH", str(missing))
-
-    with pytest.raises(RuntimeError, match="does not exist"):
-        open_newapi_db(model_gateway.get_provisioner_config())
-
-    assert not missing.exists()
-
-
-def test_provisioner_config_prefers_saved_database_settings(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv(
-        "NEWAPI_SQL_DSN", "postgresql://env:envpass@127.0.0.1:5432/envdb"
-    )
-    monkeypatch.setenv("NEWAPI_SQLITE_PATH", "/env/one-api.db")
-    monkeypatch.setenv("NEWAPI_ADMIN_USERNAME", "env-root")
-    monkeypatch.setenv("NEWAPI_ADMIN_BASE_URL", "http://env-new-api:3000")
-    save_custom_newapi_gateway(
-        base_url="http://saved-new-api:3000/v1",
-        api_key="sk-custom-secret",
-        admin_base_url="http://saved-new-api:3000",
-        activate=True,
-    )
-    save_newapi_database_config(
-        sql_dsn="local",
-        sqlite_path="/saved/one-api.db",
-        admin_username="saved-root",
-    )
-
-    cfg = get_provisioner_config()
-
-    assert cfg.admin_base_url == "http://saved-new-api:3000"
-    assert cfg.sql_dsn == "local"
-    assert cfg.sqlite_path == "/saved/one-api.db"
-    assert cfg.admin_username == "saved-root"
-
-
-def test_provisioner_config_request_database_overrides_saved_settings(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_newapi_database_config(
-        sql_dsn="local",
-        sqlite_path="/saved/one-api.db",
-        admin_username="saved-root",
-    )
-
-    cfg = get_provisioner_config(
-        "http://request-new-api:3000",
-        sql_dsn="postgresql://request:secret@127.0.0.1:5432/newapi",
-        sqlite_path="",
-        admin_username="request-root",
-    )
-
-    assert cfg.admin_base_url == "http://request-new-api:3000"
-    assert cfg.sql_dsn == "postgresql://request:secret@127.0.0.1:5432/newapi"
-    assert cfg.sqlite_path == ""
-    assert cfg.admin_username == "request-root"
-
-
-def test_database_status_does_not_expose_database_credentials(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_newapi_database_config(
-        sql_dsn="postgresql://root:secret@127.0.0.1:5432/newapi",
-        admin_username="root",
-    )
-
-    status = build_newapi_database_status()
-
-    assert status["configured"] is True
-    assert status["source"] == "database"
-    assert status["databaseType"] == "external"
-    assert "sqlDsnPreview" not in status
-    assert "sqlitePath" not in status
-    assert "adminUsername" not in status
-    assert "secret" not in str(status)
-
-
-def test_model_gateway_config_route_masks_effective_key(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_BASE_URL", "https://official.example/v1"
-    )
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_API_KEY", "sk-official-secret"
-    )
-    save_official_newapi_key(
-        api_key="sk-official-secret",
-        activate=True,
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.get("/model-gateway/config")
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["mode"] == MODE_OFFICIAL
-    assert data["effective"]["apiKeyPreview"] == "sk-o...cret"
-    assert "sk-official-secret" not in response.text
-
-
-def test_model_gateway_config_excludes_closed_source_provider_presets(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.get("/model-gateway/config")
-
-    assert response.status_code == 200
-    providers = response.json()["data"]["provisioner"]["providers"]
-    assert "ali" in providers
-    assert "openrouter" in providers
-    assert "deepseek" in providers
-    assert "openai" in providers
-    assert providers["azure"]["type"] == 3
-    assert providers["gemini"]["type"] == 24
-    assert providers["volcengine"]["type"] == 45
-    assert providers["codex"]["type"] == 57
-    assert "huimeng" not in providers
-    assert "fal" not in providers
-
-
-def test_enable_official_gateway_route_switches_mode_when_enabled(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_BASE_URL", "https://official.example/v1"
-    )
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_API_KEY", "sk-official-secret"
-    )
-    save_official_newapi_key(
-        api_key="sk-official-secret",
-        activate=True,
-    )
-    save_custom_newapi_gateway(
-        base_url="http://new-api:3000",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post("/model-gateway/official/enable")
-
-    assert response.status_code == 200
-    assert response.json()["data"]["mode"] == MODE_OFFICIAL
-    assert (
-        get_effective_newapi_config(
-            official_base_url="https://official.example/v1",
-            official_api_key="sk-official-secret",
-        ).mode
-        == MODE_OFFICIAL
-    )
-
-
-def test_save_official_gateway_route_persists_user_registered_key(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_BASE_URL", "https://env.example/v1"
-    )
-    monkeypatch.setattr(model_gateway.app_config, "NEWAPI_API_KEY", "sk-env-secret")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/official/config",
-        json={
-            "newApiApiKey": "sk-user-registered-secret",
-        },
-    )
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["mode"] == MODE_OFFICIAL
-    assert data["official"]["baseUrl"] == OFFICIAL_NEWAPI_BASE_URL
-    assert data["official"]["source"] == "database"
-    assert data["official"]["apiKeyPreview"] == "sk-u...cret"
-    assert "sk-user-registered-secret" not in response.text
-
-    effective = get_effective_newapi_config(
-        official_base_url="https://env.example/v1",
-        official_api_key="sk-env-secret",
-    )
-    assert effective.base_url == OFFICIAL_NEWAPI_BASE_URL
-    assert effective.api_key == "sk-user-registered-secret"
-
-
-def test_save_official_gateway_route_ignores_submitted_gateway_url(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    monkeypatch.setattr(
-        model_gateway.app_config, "NEWAPI_BASE_URL", "https://env.example/v1"
-    )
-    monkeypatch.setattr(model_gateway.app_config, "NEWAPI_API_KEY", "sk-env-secret")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/official/config",
-        json={
-            "newApiBaseUrl": "https://official-user.example",
-            "newApiApiKey": "sk-user-registered-secret",
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["data"]["official"]["baseUrl"] == OFFICIAL_NEWAPI_BASE_URL
-    effective = get_effective_newapi_config(
-        official_base_url="https://env.example/v1",
-        official_api_key="sk-env-secret",
-    )
-    assert effective.base_url == OFFICIAL_NEWAPI_BASE_URL
-    assert effective.api_key == "sk-user-registered-secret"
-
-
-def test_custom_newapi_init_route_accepts_empty_body(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    calls = {}
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    def fake_get_config(base_url=None, **_kwargs):
-        calls["base_url"] = base_url
-        return type(
-            "Cfg",
-            (),
-            {
-                "admin_base_url": "http://new-api:3000",
-                "relay_token_name": "ai-anime-ce-runtime",
-            },
-        )()
-
-    monkeypatch.setattr(model_gateway, "get_provisioner_config", fake_get_config)
-    monkeypatch.setattr(
-        model_gateway,
-        "ensure_newapi_setup",
-        lambda *_args, **_kwargs: type(
-            "SetupStatus",
-            (),
-            {
-                "initialized": True,
-                "root_initialized": True,
-                "database_type": "sqlite",
-                "setup_performed": False,
-                "already_initialized": True,
-            },
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-    monkeypatch.setattr(
-        model_gateway,
-        "create_or_reuse_relay_token",
-        lambda *_args, **_kwargs: {
-            "created": False,
-            "tokenId": 2,
-            "name": "ai-anime-ce-runtime",
-            "key": "sk-runtime-secret",
-            "keyPreview": "sk-r...cret",
-        },
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post("/model-gateway/custom/newapi/init")
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert calls["base_url"] is None
-    assert data["mode"] == MODE_CUSTOM
-    assert data["newApiAdminBaseUrl"] == "http://new-api:3000"
-    assert data["newApiBaseUrl"] == "http://new-api:3000/v1"
-    assert "sk-runtime-secret" not in response.text
-
-
-def test_custom_newapi_init_route_persists_request_database_config(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    calls = {}
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    def fake_get_config(base_url=None, **kwargs):
-        calls["base_url"] = base_url
-        calls["kwargs"] = kwargs
-        return type(
-            "Cfg",
-            (),
-            {
-                "admin_base_url": "http://new-api:3000",
-                "relay_token_name": "ai-anime-ce-runtime",
-                "sql_dsn": kwargs["sql_dsn"],
-                "sqlite_path": kwargs["sqlite_path"],
-                "admin_username": kwargs["admin_username"],
-            },
-        )()
-
-    monkeypatch.setattr(model_gateway, "get_provisioner_config", fake_get_config)
-    monkeypatch.setattr(
-        model_gateway,
-        "ensure_newapi_setup",
-        lambda *_args, **_kwargs: type(
-            "SetupStatus",
-            (),
-            {
-                "initialized": True,
-                "root_initialized": True,
-                "database_type": "sqlite",
-                "setup_performed": False,
-                "already_initialized": True,
-            },
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-    monkeypatch.setattr(
-        model_gateway,
-        "create_or_reuse_relay_token",
-        lambda *_args, **_kwargs: {
-            "created": True,
-            "tokenId": 7,
-            "name": "ai-anime-ce-runtime",
-            "key": "sk-runtime-secret",
-            "keyPreview": "sk-r...cret",
-        },
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/init",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "database": {
-                "sqlDsn": "local",
-                "sqlitePath": "/Users/hg/data/new-api/one-api.db",
-                "adminUsername": "root",
-            },
-        },
-    )
-
-    assert response.status_code == 200
-    assert calls["base_url"] == "http://new-api:3000"
-    assert calls["kwargs"] == {
-        "sql_dsn": "local",
-        "sqlite_path": "/Users/hg/data/new-api/one-api.db",
-        "admin_username": "root",
-    }
-    data = response.json()["data"]
-    assert data["database"]["configured"] is True
-    assert data["database"]["source"] == "database"
-    assert data["database"]["databaseType"] == "sqlite"
-    assert "sqlitePath" not in data["database"]
-    cfg = get_provisioner_config()
-    assert cfg.sql_dsn == "local"
-    assert cfg.sqlite_path == "/Users/hg/data/new-api/one-api.db"
-    assert cfg.admin_username == "root"
-    assert cfg.admin_base_url == "http://new-api:3000"
-
-
-def test_custom_newapi_channels_batch_reuses_admin_and_masks_keys(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    calls: dict[str, list[object] | int] = {"payloads": [], "ensure_admin": 0}
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    def fake_get_config(base_url=None, **_kwargs):
-        assert base_url == "http://new-api:3000"
-        return type("Cfg", (), {"admin_base_url": "http://new-api:3000"})()
-
-    def fake_ensure_admin(_cfg):
-        calls["ensure_admin"] = int(calls["ensure_admin"]) + 1
-        return Admin()
-
-    def fake_upsert_channel(_cfg, _admin, payload):
-        calls["payloads"].append(payload)
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "action": "create",
-            "channelId": None,
-        }
-
-    monkeypatch.setattr(model_gateway, "get_provisioner_config", fake_get_config)
-    monkeypatch.setattr(model_gateway, "ensure_admin_access_token", fake_ensure_admin)
-    monkeypatch.setattr(model_gateway, "upsert_channel", fake_upsert_channel)
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/channels/batch",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "channels": [
-                {
-                    "provider": "ali",
-                    "name": "ali-text",
-                    "upstreamKey": "sk-upstream-one",
-                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
-                },
-                {
-                    "provider": "deepseek",
-                    "name": "deepseek-text",
-                    "upstreamKey": "sk-upstream-two",
-                    "modelMapping": {"ai-anime-assistant-LLM": "deepseek-chat"},
-                    "priority": 3,
-                },
-            ],
-        },
-    )
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert response.json()["ok"] is True
-    assert data["succeeded"] == 2
-    assert data["failed"] == 0
-    assert calls["ensure_admin"] == 1
-    assert len(calls["payloads"]) == 2
-    assert (
-        data["results"][0]["sentPayload"]["channel"]["models"]
-        == "ai-anime-screenplay-normalizer-LLM"
-    )
-    assert data["results"][1]["sentPayload"]["channel"]["type"] == 43
-    assert "sk-upstream-one" not in response.text
-    assert "sk-upstream-two" not in response.text
-
-
-def test_custom_newapi_provider_channels_route_persists_and_masks_keys(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/provider-channels",
-        json={
-            "channels": [
-                {
-                    "provider": "ali",
-                    "upstreamKey": "sk-ali-upstream-secret",
-                    "baseUrl": "https://dashscope.example.com/",
-                },
-                {
-                    "provider": "deepseek",
-                    "upstreamKey": "sk-deepseek-upstream-secret",
-                },
-            ]
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert "sk-ali-upstream-secret" not in response.text
-    assert "sk-deepseek-upstream-secret" not in response.text
-
-    config_response = client.get("/model-gateway/config")
-    channels = config_response.json()["data"]["provisioner"]["providerChannels"]
-    assert channels == [
-        {
-            "provider": "ali",
-            "configured": True,
-            "upstreamKeyPreview": "sk-a...cret",
-            "baseUrl": "https://dashscope.example.com",
-        },
-        {
-            "provider": "deepseek",
-            "configured": True,
-            "upstreamKeyPreview": "sk-d...cret",
-            "baseUrl": "",
-        },
-    ]
-    assert "sk-ali-upstream-secret" not in config_response.text
-    assert "sk-deepseek-upstream-secret" not in config_response.text
-
-
-def test_custom_newapi_provider_channel_sync_updates_newapi_and_local_config(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    calls: dict[str, object] = {}
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-
-    def fake_update_credentials(_cfg, _admin, *, provider, upstream_key, base_url=None):
-        calls["provider"] = provider
-        calls["upstream_key"] = upstream_key
-        calls["base_url"] = base_url
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "sentPayload": {
-                "mode": "single",
-                "channel": {
-                    "id": 7,
-                    "name": "ai-anime-ali",
-                    "key": upstream_key,
-                    "base_url": base_url,
-                },
-            },
-            "channelId": 7,
-        }
-
-    monkeypatch.setattr(
-        model_gateway,
-        "update_provider_channel_credentials",
-        fake_update_credentials,
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/provider-channel/sync",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "provider": "ali",
-            "upstreamKey": "sk-ali-new-upstream-secret",
-            "baseUrl": "https://dashscope-new.example.com/",
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert calls == {
-        "provider": "ali",
-        "upstream_key": "sk-ali-new-upstream-secret",
-        "base_url": "https://dashscope-new.example.com/",
-    }
-    assert "sk-ali-new-upstream-secret" not in response.text
-    assert response.json()["data"]["savedChannel"] == {
-        "provider": "ali",
+    assert status["mode"] == MODE_CLOUD
+    assert status["cloud"] == {"configured": True, "managed": True}
+    assert status["effective"] == {
+        "source": "cloud_proxy",
         "configured": True,
-        "upstreamKeyPreview": "sk-a...cret",
-        "baseUrl": "https://dashscope-new.example.com",
     }
-
-    config_response = client.get("/model-gateway/config")
-    channels = config_response.json()["data"]["provisioner"]["providerChannels"]
-    assert channels == [
-        {
-            "provider": "ali",
-            "configured": True,
-            "upstreamKeyPreview": "sk-a...cret",
-            "baseUrl": "https://dashscope-new.example.com",
-        }
-    ]
-    assert "sk-ali-new-upstream-secret" not in config_response.text
+    assert "desktop-proxy-token" not in json.dumps(status)
 
 
-def test_custom_newapi_provider_channel_sync_allows_clearing_saved_base_url(
-    monkeypatch,
+def test_embedding_configuration_uses_only_the_selected_model_access_transport(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    save_newapi_provider_channels(
-        [
-            {
-                "provider": "ali",
-                "upstreamKey": "sk-ali-old-upstream-secret",
-                "baseUrl": "https://dashscope-old.example.com",
-            }
-        ]
-    )
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    calls: dict[str, object] = {}
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-
-    def fake_update_credentials(_cfg, _admin, *, provider, upstream_key, base_url=None):
-        calls["provider"] = provider
-        calls["upstream_key"] = upstream_key
-        calls["base_url"] = base_url
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "sentPayload": {
-                "mode": "single",
-                "channel": {
-                    "id": 7,
-                    "name": "ai-anime-ali",
-                    "key": upstream_key,
-                    "base_url": base_url,
-                },
-            },
-            "channelId": 7,
-        }
-
-    monkeypatch.setattr(
-        model_gateway,
-        "update_provider_channel_credentials",
-        fake_update_credentials,
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/provider-channel/sync",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "provider": "ali",
-            "upstreamKey": "sk-ali-new-upstream-secret",
-            "baseUrl": "",
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert calls == {
-        "provider": "ali",
-        "upstream_key": "sk-ali-new-upstream-secret",
-        "base_url": "",
-    }
-    assert "https://dashscope-old.example.com" not in response.text
-
-    config_response = client.get("/model-gateway/config")
-    channels = config_response.json()["data"]["provisioner"]["providerChannels"]
-    assert channels == [
-        {
-            "provider": "ali",
-            "configured": True,
-            "upstreamKeyPreview": "sk-a...cret",
-            "baseUrl": "",
-        }
-    ]
-
-
-def test_custom_newapi_provider_channel_sync_does_not_save_when_newapi_update_fails(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-    monkeypatch.setattr(
-        model_gateway,
-        "update_provider_channel_credentials",
-        lambda *_args, **_kwargs: {
-            "ok": False,
-            "httpStatus": 400,
-            "newApiResponse": {"success": False, "message": "invalid key"},
-            "sentPayload": {
-                "mode": "single",
-                "channel": {
-                    "id": 7,
-                    "name": "ai-anime-ali",
-                    "key": "sk-ali-new-upstream-secret",
-                },
-            },
-            "channelId": 7,
-        },
-    )
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/provider-channel/sync",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "provider": "ali",
-            "upstreamKey": "sk-ali-new-upstream-secret",
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is False
-    assert response.json()["data"]["savedChannel"] is None
-    assert "sk-ali-new-upstream-secret" not in response.text
-
-    config_response = client.get("/model-gateway/config")
-    assert config_response.json()["data"]["provisioner"]["providerChannels"] == []
-
-
-def test_custom_newapi_channels_batch_uses_saved_provider_channel_config(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    save_newapi_provider_channels(
-        [
-            {
-                "provider": "ali",
-                "upstreamKey": "sk-saved-upstream-secret",
-                "baseUrl": "https://saved-dashscope.example.com",
-            }
-        ]
-    )
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    payloads: list[dict] = []
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-
-    def fake_upsert_channel(_cfg, _admin, payload):
-        payloads.append(payload)
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "action": "create",
-            "channelId": None,
-        }
-
-    monkeypatch.setattr(model_gateway, "upsert_channel", fake_upsert_channel)
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/channels/batch",
-        json={
-            "channels": [
-                {
-                    "provider": "ali",
-                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
-                }
-            ]
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert payloads[0]["channel"]["key"] == "sk-saved-upstream-secret"
-    assert payloads[0]["channel"]["base_url"] == "https://saved-dashscope.example.com"
-    assert "sk-saved-upstream-secret" not in response.text
-
-
-def test_custom_newapi_media_models_groups_by_provider_and_persists_mapping(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    save_newapi_provider_channels(
-        [
-            {
-                "provider": "openai",
-                "upstreamKey": "sk-openai-upstream-secret",
-                "baseUrl": "",
-            },
-            {
-                "provider": "volcengine",
-                "upstreamKey": "sk-volc-upstream-secret",
-                "baseUrl": "https://ark.example.com",
-            },
-        ]
-    )
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    payloads: list[dict] = []
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-
-    def fake_upsert_channel(_cfg, _admin, payload):
-        payloads.append(payload)
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "action": "update",
-            "channelId": 3,
-        }
-
-    monkeypatch.setattr(model_gateway, "upsert_channel", fake_upsert_channel)
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/media-models",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "models": {
-                "LingShan-G2": {
-                    "provider": "openai",
-                    "upstreamModel": "gpt-image-upstream",
-                },
-                "seedance-1.5-pro": {
-                    "provider": "volcengine",
-                    "upstreamModel": "doubao-seedance-1-5",
-                },
-                "seedance-2.0-fast": {
-                    "provider": "volcengine",
-                    "upstreamModel": "",
-                },
-                "index-tts-2": {
-                    "provider": "volcengine",
-                    "upstreamModel": "index-tts-2-upstream",
-                },
-                "LingShan-MU-11": {
-                    "provider": "volcengine",
-                    "upstreamModel": "lingshan-mu-upstream",
-                },
-            },
-        },
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert body["data"]["succeeded"] == 2
-    assert len(payloads) == 2
-    by_name = {payload["channel"]["name"]: payload["channel"] for payload in payloads}
-    assert json.loads(by_name["ai-anime-openai"]["model_mapping"]) == {
-        "LingShan-G2": "gpt-image-upstream",
-    }
-    assert json.loads(by_name["ai-anime-volcengine"]["model_mapping"]) == {
-        "seedance-1.5-pro": "doubao-seedance-1-5",
-        "seedance-2.0-fast": "seedance-2.0-fast",
-        "index-tts-2": "index-tts-2-upstream",
-        "LingShan-MU-11": "lingshan-mu-upstream",
-    }
-    assert by_name["ai-anime-openai"]["key"] == "sk-openai-upstream-secret"
-    assert by_name["ai-anime-volcengine"]["base_url"] == "https://ark.example.com"
-    assert "sk-openai-upstream-secret" not in response.text
-    assert "sk-volc-upstream-secret" not in response.text
-
-    config_response = client.get("/model-gateway/config")
-    media_models = config_response.json()["data"]["provisioner"]["mediaModels"]
-    assert media_models == {
-        "LingShan-G2": {
-            "provider": "openai",
-            "upstreamModel": "gpt-image-upstream",
-        },
-        "seedance-1.5-pro": {
-            "provider": "volcengine",
-            "upstreamModel": "doubao-seedance-1-5",
-        },
-        "seedance-2.0-fast": {
-            "provider": "volcengine",
-            "upstreamModel": "",
-        },
-        "index-tts-2": {
-            "provider": "volcengine",
-            "upstreamModel": "index-tts-2-upstream",
-        },
-        "LingShan-MU-11": {
-            "provider": "volcengine",
-            "upstreamModel": "lingshan-mu-upstream",
-        },
-    }
-
-
-def test_custom_newapi_media_models_rejects_official_value_models(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/media-models",
-        json={
-            "models": {
-                "seedance-2.0-value": {
-                    "provider": "volcengine",
-                    "upstreamModel": "seedance-2.0-value",
-                }
-            }
-        },
-    )
-
-    assert response.status_code == 400
-    assert "official-channel only" in response.text
-
-
-def test_custom_newapi_embedding_model_writes_mapping_and_persists_dimension(
-    monkeypatch,
-    tmp_path,
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    save_newapi_provider_channels(
-        [
-            {
-                "provider": "openai",
-                "upstreamKey": "sk-openai-upstream-secret",
-                "baseUrl": "",
-            }
-        ]
-    )
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    payloads: list[dict] = []
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
-    )
-
-    def fake_upsert_channel(_cfg, _admin, payload):
-        payloads.append(payload)
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "action": "update",
-            "channelId": 7,
-        }
-
-    monkeypatch.setattr(model_gateway, "upsert_channel", fake_upsert_channel)
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/embedding-model",
-        json={
-            "newApiBaseUrl": "http://new-api:3000",
-            "provider": "openai",
-            "upstreamModel": "text-embedding-3-large",
-            "dimension": 3072,
-            "batchSize": 36,
-        },
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert payloads[0]["channel"]["name"] == "ai-anime-openai"
-    assert payloads[0]["channel"]["key"] == "sk-openai-upstream-secret"
-    assert json.loads(payloads[0]["channel"]["model_mapping"]) == {
-        "ai-anime-cognee-embedding": "text-embedding-3-large",
-    }
-    assert "dimension" not in payloads[0]["channel"]
-    assert "3072" not in payloads[0]["channel"]["model_mapping"]
-    assert "sk-openai-upstream-secret" not in response.text
-
-    config_response = client.get("/model-gateway/config")
-    embedding = config_response.json()["data"]["provisioner"]["embeddingModel"]
-    assert embedding == {
-        "provider": "openai",
-        "upstreamModel": "text-embedding-3-large",
-        "dimension": 3072,
-        "batchSize": 36,
-        "internalModel": "ai-anime-cognee-embedding",
-    }
-
-
-def test_effective_cognee_embedding_prefers_saved_custom_config(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
     monkeypatch.setenv("COGNEE_EMBEDDING_PROVIDER", "gemini")
-    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "gemini-embedding-001")
-    monkeypatch.setenv("COGNEE_EMBEDDING_DIM", "768")
+    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "ignored-legacy-model")
 
-    save_newapi_embedding_model_config(
-        provider="openai",
-        upstream_model="text-embedding-3-large",
-        dimension=3072,
+    effective = get_effective_cognee_embedding_config(
+        model="cloud-embedding-standard",
+        dimensions=1024,
     )
 
-    effective = get_effective_cognee_embedding_config(llm_provider="gemini")
-
-    assert effective.source == "database"
-    assert effective.provider == "newapi"
-    assert effective.model == "ai-anime-cognee-embedding"
-    assert effective.dimensions == "3072"
-    assert effective.upstream_provider == "openai"
-    assert effective.upstream_model == "text-embedding-3-large"
+    assert effective.source == "model_access"
+    assert effective.provider == "custom"
+    assert effective.model == "cloud-embedding-standard"
 
 
-def test_effective_cognee_embedding_keeps_saved_batch_size(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-
-    save_newapi_embedding_model_config(
-        provider="ali",
-        upstream_model="text-embedding-v3",
-        dimension=1024,
-        batch_size=10,
+def test_byok_model_roles_are_enforced_from_the_encrypted_assignment_snapshot() -> None:
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="https://models.example.test/v1",
+        model_assignments=[
+            {"modelId": "text-model", "role": "TEXT"},
+            {"modelId": "embedding-model", "role": "EMBEDDING"},
+        ],
     )
 
-    effective = get_effective_cognee_embedding_config(llm_provider="newapi")
-
-    assert effective.source == "database"
-    assert effective.provider == "newapi"
-    assert effective.model == "ai-anime-cognee-embedding"
-    assert effective.dimensions == "1024"
-    assert effective.batch_size == "10"
+    require_model_role("text-model", "TEXT")
+    require_model_role("embedding-model", "EMBEDDING")
+    with pytest.raises(PermissionError, match="not assigned"):
+        require_model_role("text-model", "EMBEDDING")
 
 
-def test_cognee_apply_embedding_env_sets_saved_batch_size(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.delenv("EMBEDDING_BATCH_SIZE", raising=False)
-
-    save_custom_newapi_gateway(
-        base_url="https://custom.example",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-    save_newapi_embedding_model_config(
-        provider="ali",
-        upstream_model="text-embedding-v3",
-        dimension=1024,
-        batch_size=10,
+def test_cloud_task_model_keeps_the_gateway_catalog_code() -> None:
+    assert resolve_model_for_role("cloud-text-task-sku", "TEXT") == (
+        "cloud-text-task-sku"
     )
 
-    from ai_anime.cognee import config as cognee_config
 
-    cognee_config._apply_embedding_env("newapi", "sk-custom-secret")
-
-    assert os.environ["EMBEDDING_BATCH_SIZE"] == "10"
-
-
-def test_custom_newapi_channels_batch_reports_partial_failure(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-
-    class Admin:
-        admin_user_id = 1
-        admin_username = "root"
-        token_created = False
-        access_token = "admin-secret"
-
-    monkeypatch.setattr(
-        model_gateway,
-        "get_provisioner_config",
-        lambda _base_url=None, **_kwargs: type(
-            "Cfg",
-            (),
-            {"admin_base_url": "http://new-api:3000"},
-        )(),
-    )
-    monkeypatch.setattr(
-        model_gateway, "ensure_admin_access_token", lambda _cfg: Admin()
+def test_cloud_internal_text_model_resolves_to_the_bootstrap_catalog_default() -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[
+            {"modelId": "cloud-text-default", "role": "TEXT"},
+        ],
     )
 
-    def fake_upsert_channel(_cfg, _admin, payload):
-        if "ai-anime-staging-prop-planner-LLM" in payload["channel"]["models"]:
-            return {
-                "ok": False,
-                "httpStatus": 400,
-                "newApiResponse": {"success": False, "message": "bad model"},
-                "action": "update",
-                "channelId": 7,
-            }
-        return {
-            "ok": True,
-            "httpStatus": 200,
-            "newApiResponse": {"success": True},
-            "action": "create",
-            "channelId": None,
-        }
+    assert resolve_model_for_role("cloud-text-default", "TEXT") == (
+        "cloud-text-default"
+    )
+    assert resolve_internal_model_for_role("legacy-internal-default", "TEXT") == (
+        "cloud-text-default"
+    )
+    assert resolve_model_for_role("cloud-text-alternate", "TEXT") == (
+        "cloud-text-alternate"
+    )
+    assert resolve_model_for_role("explicit-image-model", "IMAGE_GENERATION") == (
+        "explicit-image-model"
+    )
 
-    monkeypatch.setattr(model_gateway, "upsert_channel", fake_upsert_channel)
+
+def test_cloud_internal_text_model_requires_a_catalog_default() -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[],
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Cloud has no default model assigned to role TEXT",
+    ):
+        resolve_internal_model_for_role("legacy-internal-default", "TEXT")
+
+
+def test_cloud_text_model_factory_uses_the_bootstrap_catalog_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "AI_ANIME_CLOUD_PROXY_BASE_URL",
+        "http://127.0.0.1:45678/v1",
+    )
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "desktop-proxy-token")
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[
+            {"modelId": "cloud-text-default", "role": "TEXT"},
+        ],
+    )
+    captured: dict[str, object] = {}
+
+    def fake_model(model_name: str, **kwargs):
+        captured.update({"model": model_name, **kwargs})
+        return object()
+
+    monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
+
+    config.get_newapi_text_pydantic_model(
+        "STYLE_ANALYZER_MODEL",
+        "legacy-style-analyzer-default",
+    )
+
+    assert captured["model"] == "cloud-text-default"
+
+    config.get_newapi_text_pydantic_model(
+        "STYLE_ANALYZER_MODEL",
+        "legacy-style-analyzer-default",
+        model_name_override="cloud-text-alternate",
+    )
+
+    assert captured["model"] == "cloud-text-alternate"
+
+    config.get_pydantic_model("legacy-internal-override")
+
+    assert captured["model"] == "cloud-text-default"
+
+
+def test_synchronous_text_operation_owns_one_idempotency_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    client = config.get_model_access_openai_client()
+    try:
+        idempotency_key = client.default_headers["Idempotency-Key"]
+    finally:
+        client.close()
+
+    assert str(uuid.UUID(idempotency_key)) == idempotency_key
+
+
+def test_byok_task_model_uses_an_explicit_assignment_or_the_normalized_default() -> None:
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="https://models.example.test/v1",
+        model_assignments=[
+            {"modelId": "z-text-model", "role": "TEXT"},
+            {"modelId": "a-text-model", "role": "TEXT"},
+            {"modelId": "embedding-model", "role": "EMBEDDING"},
+        ],
+    )
+
+    assert resolve_model_for_role("z-text-model", "TEXT") == "z-text-model"
+    assert resolve_model_for_role("cloud-text-task-sku", "TEXT") == "a-text-model"
+    with pytest.raises(PermissionError, match="no model assigned"):
+        resolve_model_for_role("cloud-rerank-task-sku", "RERANK")
+
+
+def test_text_model_factory_never_sends_a_cloud_task_sku_to_byok(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="https://models.example.test/v1",
+        byok_api_key="user-secret",
+        model_assignments=[{"modelId": "user-text-model", "role": "TEXT"}],
+    )
+    captured: dict[str, object] = {}
+
+    def fake_model(model_name: str, **kwargs):
+        captured.update({"model": model_name, **kwargs})
+        return object()
+
+    monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
+
+    config.get_newapi_text_pydantic_model(
+        "STYLE_ANALYZER_MODEL",
+        "cloud-style-analyzer-sku",
+    )
+
+    assert captured["model"] == "user-text-model"
+    assert captured["base_url"] == "https://models.example.test/v1"
+    assert captured["api_key"] == "user-secret"
+
+
+def test_model_gateway_status_purges_retired_local_gateway_secrets(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    database = tmp_path / "state" / "local" / "settings.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "CREATE TABLE runtime_settings ("
+            "key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)"
+        )
+        connection.executemany(
+            "INSERT INTO runtime_settings(key, value, updated_at) VALUES (?, ?, ?)",
+            [
+                ("model_gateway_mode", "custom", "now"),
+                ("official_newapi_api_key", "official-secret", "now"),
+                ("custom_newapi_api_key", "custom-secret", "now"),
+                ("media_relay_provider", "aliyun_oss", "now"),
+            ],
+        )
 
     app = FastAPI()
     app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/custom/newapi/channels/batch",
-        json={
-            "channels": [
-                {
-                    "provider": "ali",
-                    "name": "ok-channel",
-                    "upstreamKey": "sk-upstream-one",
-                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
-                },
-                {
-                    "provider": "ali",
-                    "name": "bad-channel",
-                    "upstreamKey": "sk-upstream-two",
-                    "modelMapping": {"ai-anime-staging-prop-planner-LLM": "qwen-plus"},
-                },
-            ],
-        },
-    )
-
+    response = TestClient(app).get("/model-gateway/config")
     assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is False
-    assert body["data"]["succeeded"] == 1
-    assert body["data"]["failed"] == 1
-    assert body["data"]["results"][0]["ok"] is True
-    assert body["data"]["results"][1]["ok"] is False
-    assert body["data"]["results"][1]["httpStatus"] == 400
+
+    with sqlite3.connect(database) as connection:
+        keys = {
+            row[0]
+            for row in connection.execute("SELECT key FROM runtime_settings").fetchall()
+        }
+    assert "model_gateway_mode" not in keys
+    assert not any(key.startswith("official_newapi_") for key in keys)
+    assert not any(key.startswith("custom_newapi_") for key in keys)
+    assert not any("relay" in key for key in keys)
+    assert "model_access_v2_migrated" not in keys
 
 
-def test_media_relay_config_route_persists_and_masks_oss_keys(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    monkeypatch.setattr(model_gateway.app_config, "MEDIA_RELAY_PROVIDER", "aliyun_oss")
-    monkeypatch.setattr(model_gateway.app_config, "MEDIA_RELAY_TTL_SECONDS", 1800)
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_ENDPOINT", "env.endpoint")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_BUCKET", "env-bucket")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_AK", "env-ak-secret")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_SK", "env-sk-secret")
-
+def test_model_gateway_has_no_user_managed_media_storage_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
     app = FastAPI()
     app.include_router(model_gateway.router)
     client = TestClient(app)
@@ -2342,112 +417,89 @@ def test_media_relay_config_route_persists_and_masks_oss_keys(monkeypatch, tmp_p
         "/model-gateway/media-relay/config",
         json={
             "provider": "aliyun_oss",
-            "ttlSeconds": 900,
-            "endpoint": "oss-cn-shanghai.aliyuncs.com",
-            "bucket": "user-relay",
-            "accessKeyId": "LTAI-user-secret",
-            "accessKeySecret": "SK-user-secret",
+            "endpoint": "oss.example.test",
+            "bucket": "user-bucket",
+            "accessKeyId": "user-access-id",
+            "accessKeySecret": "user-access-secret",
         },
     )
+    status = client.get("/model-gateway/config")
 
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["source"] == "database"
-    assert data["ttlSeconds"] == 900
-    assert data["endpoint"] == "oss-cn-shanghai.aliyuncs.com"
-    assert data["bucket"] == "user-relay"
-    assert data["accessKeyIdPreview"] == "LTAI...cret"
-    assert data["accessKeySecretPreview"] == "SK-u...cret"
-    assert "LTAI-user-secret" not in response.text
-    assert "SK-user-secret" not in response.text
+    assert response.status_code == 404
+    assert status.status_code == 200
+    assert "mediaRelay" not in status.json()["data"]
 
 
-def test_media_relay_config_route_persists_and_masks_cloudinary_keys(
-    monkeypatch, tmp_path
-):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
-    monkeypatch.setattr(model_gateway.app_config, "MEDIA_RELAY_PROVIDER", "aliyun_oss")
-    monkeypatch.setattr(model_gateway.app_config, "MEDIA_RELAY_TTL_SECONDS", 1800)
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_ENDPOINT", "env.endpoint")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_BUCKET", "env-bucket")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_AK", "env-ak-secret")
-    monkeypatch.setattr(model_gateway.app_config, "OSS_RELAY_SK", "env-sk-secret")
-    monkeypatch.setattr(model_gateway.app_config, "CLOUDINARY_RELAY_CLOUD_NAME", "")
-    monkeypatch.setattr(model_gateway.app_config, "CLOUDINARY_RELAY_API_KEY", "")
-    monkeypatch.setattr(model_gateway.app_config, "CLOUDINARY_RELAY_API_SECRET", "")
-    monkeypatch.setattr(model_gateway.app_config, "CLOUDINARY_RELAY_FOLDER", "relay")
-
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    client = TestClient(app)
-
-    response = client.post(
-        "/model-gateway/media-relay/config",
-        json={
-            "provider": "cloudinary",
-            "ttlSeconds": 900,
-            "cloudName": "demo-cloud",
-            "apiKey": "cloudinary-api-key-secret",
-            "apiSecret": "cloudinary-api-secret",
-            "apiFolder": "ai-anime-relay",
-        },
+@pytest.mark.parametrize(
+    ("mode", "allows_custom_models", "base_url", "api_key"),
+    [
+        (MODE_CLOUD, False, "http://127.0.0.1:45678/v1", "cloud-proxy-secret"),
+        (MODE_BYOK, True, "https://models.example.test/v1", "user-byok-secret"),
+    ],
+)
+def test_model_subprocess_receives_only_the_selected_runtime_over_stdin(
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+    allows_custom_models: bool,
+    base_url: str,
+    api_key: str,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", base_url)
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", api_key)
+    monkeypatch.setenv("OPENAI_API_KEY", "legacy-openai-secret")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "legacy-openrouter-secret")
+    monkeypatch.setenv("MODEL_API_KEY", "legacy-model-secret")
+    configure_model_access(
+        allows_custom_models=allows_custom_models,
+        mode=mode,
+        byok_base_url=base_url if mode == MODE_BYOK else "",
+        byok_api_key=api_key if mode == MODE_BYOK else "",
+        model_assignments=(
+            [{"modelId": "byok-text", "role": "TEXT"}]
+            if mode == MODE_BYOK
+            else []
+        ),
+        cloud_model_assignments=(
+            [{"modelId": "cloud-text", "role": "TEXT"}]
+            if mode == MODE_CLOUD
+            else []
+        ),
+    )
+    script = "\n".join(
+        [
+            "import hashlib, json, os",
+            "from ai_anime.model_access_policy import load_model_access_from_stdin, runtime_model_access",
+            "loaded = load_model_access_from_stdin()",
+            "access = runtime_model_access()",
+            "legacy = ['AI_ANIME_CLOUD_PROXY_TOKEN', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'MODEL_API_KEY']",
+            "print(json.dumps({'loaded': loaded, 'mode': access.mode, 'baseUrl': access.base_url, "
+            "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
+            "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
+            "'legacyPresent': any(os.environ.get(name) for name in legacy), "
+            "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
+        ]
     )
 
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["source"] == "database"
-    assert data["provider"] == "cloudinary"
-    assert data["ttlSeconds"] == 900
-    assert data["cloudName"] == "demo-cloud"
-    assert data["apiFolder"] == "ai-anime-relay"
-    assert data["cloudinaryApiKeyPreview"] == "clou...cret"
-    assert data["cloudinaryApiSecretPreview"] == "clou...cret"
-    assert data["configured"] is True
-    assert "cloudinary-api-key-secret" not in response.text
-    assert "cloudinary-api-secret" not in response.text
-
-
-def test_media_relay_status_prefers_database_config(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_media_relay_config(
-        provider="aliyun_oss",
-        ttl_seconds=600,
-        endpoint="db.endpoint",
-        bucket="db-bucket",
-        access_key_id="db-ak-secret",
-        access_key_secret="db-sk-secret",
+    completed = run_project_model_subprocess(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=10,
     )
 
-    status = model_gateway._media_relay_status()
-
-    assert status["source"] == "database"
-    assert status["ttlSeconds"] == 600
-    assert status["endpoint"] == "db.endpoint"
-    assert status["bucket"] == "db-bucket"
-    assert status["configured"] is True
-
-
-def test_ee_media_relay_ignores_ce_database_config(monkeypatch, tmp_path):
-    _isolate_settings_db(monkeypatch, tmp_path)
-    save_media_relay_config(
-        provider="aliyun_oss",
-        ttl_seconds=600,
-        endpoint="stale-ce.endpoint",
-        bucket="stale-ce-bucket",
-        access_key_id="stale-ce-ak",
-        access_key_secret="stale-ce-sk",
-    )
-    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setattr(config, "OSS_RELAY_ENDPOINT", "ee.endpoint")
-    monkeypatch.setattr(config, "OSS_RELAY_BUCKET", "ee-bucket")
-    monkeypatch.setattr(config, "OSS_RELAY_AK", "ee-ak")
-    monkeypatch.setattr(config, "OSS_RELAY_SK", "ee-sk")
-
-    status = model_gateway._media_relay_status()
-
-    assert status["source"] == "environment"
-    assert status["endpoint"] == "ee.endpoint"
-    assert status["bucket"] == "ee-bucket"
-    assert status["configured"] is True
+    payload = json.loads(completed.stdout)
+    assert payload == {
+        "loaded": True,
+        "mode": mode,
+        "baseUrl": base_url,
+        "apiKeyHash": hashlib.sha256(api_key.encode()).hexdigest(),
+        "modelAssignments": (
+            [["byok-text", "TEXT"]]
+            if mode == MODE_BYOK
+            else [["cloud-text", "TEXT"]]
+        ),
+        "legacyPresent": False,
+        "stdinMarkerPresent": False,
+    }
+    assert api_key not in " ".join(completed.args)

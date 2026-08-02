@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 import yaml
 
 from ai_anime import config as app_config
 from ai_anime.chat import hermes_sdk
 from ai_anime.chat import hermes_workspace as hw
-from ai_anime.model_gateway_settings import (
-    save_custom_newapi_gateway,
-    save_official_newapi_key,
-)
+from ai_anime.model_access_policy import configure_model_access
+from ai_anime.model_gateway_settings import MODE_BYOK, MODE_CLOUD
 
 
 def _enabled_toolsets(config: str) -> list[str]:
@@ -50,6 +50,18 @@ def isolated_workspace(tmp_path, monkeypatch):
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))
+    monkeypatch.setenv(
+        "AI_ANIME_CLOUD_PROXY_BASE_URL",
+        "http://127.0.0.1:45678/v1",
+    )
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "root-key")
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[
+            {"modelId": "cloud-text-default", "role": "TEXT"},
+        ],
+    )
     for key in (
         "NEWAPI_API_KEY",
         "NEWAPI_BASE_URL",
@@ -69,6 +81,7 @@ def isolated_workspace(tmp_path, monkeypatch):
     monkeypatch.delenv("HERMES_MODEL_API_MODE", raising=False)
     monkeypatch.delenv("HERMES_MODEL_CONTEXT_LENGTH", raising=False)
     yield repo_root
+    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
 
 
 @pytest.fixture
@@ -198,10 +211,16 @@ def test_state_root_falls_back_to_repo(monkeypatch, tmp_path):
     assert hw._state_root() == tmp_path / "repo" / "state"
 
 
-def test_fresh_config_uses_model_env_but_keeps_newapi_transport(
+def test_hermes_assets_root_prefers_bundled_directory(monkeypatch, tmp_path):
+    assets = tmp_path / "bundled-hermes-assets"
+    monkeypatch.setenv("AI_ANIME_HERMES_ASSETS_DIR", str(assets))
+
+    assert hw._hermes_assets_root() == assets
+
+
+def test_fresh_config_uses_cloud_catalog_and_keeps_newapi_transport(
     isolated_workspace, repo_skills, repo_plugins, monkeypatch
 ):
-    save_official_newapi_key(api_key="root-key", activate=True)
     (isolated_workspace / ".env").write_text(
         "\n".join(
             [
@@ -220,16 +239,16 @@ def test_fresh_config_uses_model_env_but_keeps_newapi_transport(
     home = hw.ensure_user_hermes_workspace("admin")
     config = (home / "config.yaml").read_text(encoding="utf-8")
 
-    assert "  default: gemini-3.5-flash" in config
+    assert "  default: cloud-text-default" in config
     parsed = yaml.safe_load(config)
     assert parsed["model"]["provider"] == "custom:ai_anime"
-    assert parsed["model"]["default"] == "gemini-3.5-flash"
+    assert parsed["model"]["default"] == "cloud-text-default"
     assert parsed["model"]["context_length"] == 65536
     assert "api_key" not in parsed["model"]
     provider = _ai_anime_provider(parsed)
     assert provider == {
         "name": "ai_anime",
-        "base_url": app_config.OFFICIAL_NEWAPI_BASE_URL,
+        "base_url": "http://127.0.0.1:45678/v1",
         "key_env": "NEWAPI_API_KEY",
         "api_mode": "responses",
     }
@@ -238,10 +257,12 @@ def test_fresh_config_uses_model_env_but_keeps_newapi_transport(
 def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     isolated_workspace, repo_skills, repo_plugins
 ):
-    save_custom_newapi_gateway(
-        base_url="http://old-gateway/v1",
-        api_key="old-key",
-        activate=True,
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="http://old-gateway/v1",
+        byok_api_key="old-key",
+        model_assignments=[{"modelId": "old-text", "role": "TEXT"}],
     )
     home = hw.ensure_user_hermes_workspace("admin")
     config_path = home / "config.yaml"
@@ -252,10 +273,12 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
 
     config = config_path.read_text(encoding="utf-8") + "\ncustom_block:\n  keep: true\n"
     config_path.write_text(config, encoding="utf-8")
-    save_custom_newapi_gateway(
-        base_url="http://new-gateway/v1",
-        api_key="rotated-key",
-        activate=True,
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="http://new-gateway/v1",
+        byok_api_key="rotated-key",
+        model_assignments=[{"modelId": "new-text", "role": "TEXT"}],
     )
 
     hw.ensure_user_hermes_workspace("admin")
@@ -276,17 +299,19 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     assert reparsed["enabled_toolsets"] == ["hermes-acp", "memory"]
 
 
-def test_hermes_uses_settings_db_newapi_before_root_env(
+def test_hermes_uses_selected_byok_before_root_env(
     isolated_workspace, repo_skills, repo_plugins
 ):
     (isolated_workspace / ".env").write_text(
         "NEWAPI_API_KEY=root-key\nNEWAPI_BASE_URL=http://root-gateway/v1\n",
         encoding="utf-8",
     )
-    save_custom_newapi_gateway(
-        base_url="http://custom-gateway/v1",
-        api_key="custom-key",
-        activate=True,
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="http://custom-gateway/v1",
+        byok_api_key="custom-key",
+        model_assignments=[{"modelId": "custom-text", "role": "TEXT"}],
     )
 
     home = hw.ensure_user_hermes_workspace("admin")
@@ -296,9 +321,51 @@ def test_hermes_uses_settings_db_newapi_before_root_env(
     assert "api_key" not in parsed["model"]
     assert _ai_anime_provider(parsed)["base_url"] == "http://custom-gateway/v1"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert parsed["model"]["default"] == "custom-text"
     assert "custom-key" not in (home / "config.yaml").read_text(encoding="utf-8")
     assert "OPENAI_API_KEY" not in env_text
     assert "root-key" not in env_text
+
+
+def test_hermes_uses_the_cloud_catalog_text_default(
+    isolated_workspace, repo_skills, repo_plugins
+):
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[
+            {"modelId": "cloud-text-default", "role": "TEXT"},
+        ],
+    )
+
+    home = hw.ensure_user_hermes_workspace("admin")
+    parsed = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
+
+    assert parsed["model"]["default"] == "cloud-text-default"
+    assert _ai_anime_provider(parsed)["base_url"] == (
+        "http://127.0.0.1:45678/v1"
+    )
+
+
+def test_hermes_keyless_byok_omits_key_environment_contract(
+    isolated_workspace, repo_skills, repo_plugins
+):
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_BYOK,
+        byok_base_url="http://127.0.0.1:11434/v1",
+        byok_api_key="",
+        model_assignments=[{"modelId": "local-text", "role": "TEXT"}],
+    )
+
+    home = hw.ensure_user_hermes_workspace("admin")
+    parsed = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
+    provider = _ai_anime_provider(parsed)
+
+    assert provider["base_url"] == "http://127.0.0.1:11434/v1"
+    assert "key_env" not in provider
+    assert "api_key" not in provider
+    assert parsed["model"]["default"] == "local-text"
 
 
 def test_idempotent_rerun(isolated_workspace, repo_skills, repo_plugins):
@@ -322,7 +389,7 @@ def test_fresh_workspace_does_not_persist_newapi_key(
         "NEWAPI_API_KEY=test-newapi-key\n",
         encoding="utf-8",
     )
-    save_official_newapi_key(api_key="test-newapi-key", activate=True)
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "test-newapi-key")
 
     home = hw.ensure_user_hermes_workspace("admin")
     env_text = (home / ".env").read_text(encoding="utf-8")
@@ -337,7 +404,6 @@ def test_fresh_workspace_does_not_persist_newapi_key(
 def test_existing_inline_key_is_removed_automatically(
     isolated_workspace, repo_skills, repo_plugins
 ):
-    save_official_newapi_key(api_key="current-key", activate=True)
     home = isolated_workspace / "state" / "admin" / ".hermes"
     home.mkdir(parents=True)
     (home / "config.yaml").write_text(
@@ -397,7 +463,7 @@ def test_legacy_config_gets_default_plugin_block(isolated_workspace, repo_skills
     parsed = yaml.safe_load(config)
     assert _enabled_toolsets(config) == ["hermes-acp"]
     assert "plugins:\n  enabled:\n    - ai_anime" in config
-    assert parsed["model"]["default"] == "ai-anime-assistant-LLM"
+    assert parsed["model"]["default"] == "cloud-text-default"
     assert parsed["model"]["provider"] == "custom:ai_anime"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
 
@@ -449,6 +515,29 @@ def test_no_repo_skills_dir(isolated_workspace):
     assert (home / "skills" / "_user").is_dir()
     # but no symlinks
     assert not any(p.is_symlink() for p in (home / "skills").iterdir())
+
+
+def test_symlink_failure_materializes_managed_asset_copies(
+    isolated_workspace,
+    repo_skills,
+    repo_plugins,
+    monkeypatch,
+):
+    def reject_symlink(*_args, **_kwargs):
+        raise OSError("symlinks unavailable")
+
+    monkeypatch.setattr(Path, "symlink_to", reject_symlink)
+
+    home = hw.ensure_user_hermes_workspace("admin")
+    skill = home / "skills" / "ai_anime"
+    plugin = home / "plugins" / "ai_anime"
+
+    assert skill.is_dir() and not skill.is_symlink()
+    assert plugin.is_dir() and not plugin.is_symlink()
+    assert (skill / "SKILL.md").is_file()
+    assert (plugin / "plugin.yaml").is_file()
+    assert (skill / hw._MANAGED_ASSET_MARKER).is_file()
+    assert (plugin / hw._MANAGED_ASSET_MARKER).is_file()
 
 
 def test_user_skill_dir_not_clobbered(isolated_workspace, repo_skills, repo_plugins):

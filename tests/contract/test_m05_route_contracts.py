@@ -350,7 +350,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(episodes, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(verification_routes, "resolve_project_scope", resolve_scope)
-    monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)
 
     class QueueRepository:
         def __init__(self) -> None:
@@ -405,7 +404,10 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         production_composition.ProjectConfigProductionSettings,
         "load",
-        lambda *_: {},
+        lambda *_: {
+            "render_image_selection": "cloud-image-standard",
+            "sketch_image_selection": "cloud-image-standard",
+        },
     )
     monkeypatch.setattr(
         image_settings_adapter,
@@ -422,8 +424,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         nonlocal task_backend
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(ai_anime_ports, "get_task_backend", lambda: task_backend)
-        monkeypatch.setattr(episodes, "get_task_backend", lambda: task_backend)
-        monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)
 
         app = FastAPI()
         app.include_router(scenes.router, prefix="/api/v1")
@@ -576,7 +576,6 @@ def test_scene_stage_generation_uses_world_queue_and_owned_payload(
         json={
             "source": "text",
             "style": "ink",
-            "provider": "newapi",
             "model": "image-model",
             "image_size": "2K",
             "quality": "high",
@@ -595,7 +594,6 @@ def test_scene_stage_generation_uses_world_queue_and_owned_payload(
             "description": call["payload"]["params"]["description"],
             "style": "ink",
             "timeout_seconds": 900,
-            "provider": "newapi",
             "model": "image-model",
             "image_size": "2K",
             "quality": "high",
@@ -639,12 +637,18 @@ def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
         )
     )
     _assert_task_shape(
-        client.post(f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/master/generate-async").json(),
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/master/generate-async",
+            json={"model": "cloud-image-standard"},
+        ).json(),
         backend="inline",
         task_type="scene_reference_asset",
     )
     _assert_task_shape(
-        client.post(f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/reverse/generate-async").json(),
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/reverse/generate-async",
+            json={"model": "cloud-image-standard"},
+        ).json(),
         backend="inline",
         task_type="scene_reference_asset",
     )
@@ -678,7 +682,7 @@ def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
     _assert_task_shape(
         client.post(
             f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/pano/generate-async",
-            json={"source": "text"},
+            json={"source": "text", "model": "cloud-image-standard"},
         ).json(),
         backend="inline",
         task_type="stage_asset",

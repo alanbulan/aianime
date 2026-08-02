@@ -8,15 +8,24 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import { generateCanvasAudio } from '@/features/canvas/audioComposition';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
-import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
+
+export interface AudioGenerationOptions {
+  projectId: string;
+  nodeId: string;
+  data: AudioNodeData;
+}
 
 /**
  * 音频节点的生成逻辑——提交按钮（面板）和失败重试（节点本体）共用。
  * 把生成放进 hook 而非面板组件，是因为面板只在节点被选中时渲染；节点本体需要
  * 在未选中时也能触发重试，且失败信息持久化在节点数据里跨虚拟化重挂存活。
  */
-export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
+export function useAudioGeneration({
+  projectId,
+  nodeId,
+  data,
+}: AudioGenerationOptions) {
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
   const { isGenerating } = useNodeGenerationTaskState(data);
   const upstreamContents = useUpstreamContents(nodeId);
@@ -33,9 +42,9 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
     if (isGenerating) return;
     const trimmed = effectivePrompt;
     if (trimmed.length === 0) return;
-    const project = readUrl().project;
-    if (!project) {
-      updateNodeData(nodeId, { generationError: '当前 URL 缺少 project 参数' });
+    const model = String(data.model ?? '').trim();
+    if (!model) {
+      updateNodeData(nodeId, { generationError: '请选择可用的音频模型' });
       return;
     }
     updateNodeData(nodeId, {
@@ -48,7 +57,8 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
         isMusic
           ? {
               kind: 'music',
-              projectId: project,
+              model,
+              projectId,
               prompt: trimmed,
               musicLengthMs: data.musicLengthMs,
               forceInstrumental: data.forceInstrumental,
@@ -56,7 +66,8 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
             }
           : {
               kind: 'speech',
-              projectId: project,
+              model,
+              projectId,
               prompt: trimmed,
               emotionPrompt: data.emotionPrompt,
               voiceRef: data.voiceRef,
@@ -90,8 +101,10 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
     data.respectSectionsDurations,
     data.voiceRef,
     data.emotionPrompt,
+    data.model,
     effectivePrompt,
     nodeId,
+    projectId,
     updateNodeData,
   ]);
 

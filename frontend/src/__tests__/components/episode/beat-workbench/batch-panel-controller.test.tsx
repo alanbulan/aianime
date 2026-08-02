@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
 import type { SketchRegenQueueItem } from "@/modules/production/public";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
+import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 const hookMocks = vi.hoisted(() => ({
   audioStart: vi.fn(),
@@ -67,10 +68,20 @@ const saveQueueMutation = {
 const queueQuery: {
   data?: { ok: true; data: { items: SketchRegenQueueItem[] } };
 } = {};
-const taskQuery: { data?: { data: Task[] } } = {};
+const taskQuery: { data?: { data: TaskState[] } } = {};
 
 const useBatchPanelController = createUseBatchPanelController(
   {
+    useAudioModels: () => ({
+      data: [
+        {
+          value: "audio-speech-test",
+          label: "Audio Speech Test",
+          supportedModes: ["speech"],
+        },
+      ],
+      isLoading: false,
+    }),
     useGenerateAudio: () => generateAudioMutation,
     useRegenerateSketches: () => regenerateSketchesMutation,
     useSaveSketchRegenQueue: () => saveQueueMutation,
@@ -188,6 +199,7 @@ describe("BatchPanel controller", () => {
 
     expect(generateAudio).toHaveBeenCalledWith({
       beatNumbers: [1, 2],
+      model: "audio-speech-test",
       mode: "redo_selected",
     });
     expect(hookMocks.audioStart).toHaveBeenCalledWith({
@@ -214,7 +226,7 @@ describe("BatchPanel controller", () => {
   it("disables Render while a selected single-video task is active", () => {
     taskQuery.data = {
       data: [
-        {
+        sampleTask({
           task_type: "single_video",
           username: "u",
           project: "demo",
@@ -222,7 +234,7 @@ describe("BatchPanel controller", () => {
           beat_num: 2,
           status: "running",
           progress: 50,
-        },
+        }),
       ],
     };
 

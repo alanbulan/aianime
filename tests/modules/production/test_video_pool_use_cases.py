@@ -41,7 +41,7 @@ def _entry() -> VideoPoolEntry:
         generated_at=datetime(2026, 5, 29, 12, 0, 0),
         duration=6.0,
         video_mode="keyframe",
-        backend="seedance2",
+        video_model="cloud-video-test",
         prompt="test prompt",
     )
 
@@ -110,7 +110,7 @@ def test_list_pool_projects_entries_and_assignments(tmp_path: Path) -> None:
                 "generated_at": "2026-05-29T12:00:00",
                 "duration": 6.0,
                 "video_mode": "keyframe",
-                "backend": "seedance2",
+                "video_model": "cloud-video-test",
                 "prompt": "test prompt",
                 "video_url": (
                     "/static/projects/proj_video_123/videos/beats/ep001/pool/"
@@ -141,7 +141,7 @@ def test_select_and_add_generated_video(tmp_path: Path) -> None:
         beat_num=6,
         source_video_path=tmp_path / "source.mp4",
         duration=7.0,
-        backend="mock",
+        video_model="cloud-video-test",
     )
 
     selected = use_cases.select(context, 1, 6, "pool-6")

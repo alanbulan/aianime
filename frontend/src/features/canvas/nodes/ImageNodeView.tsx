@@ -16,7 +16,7 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import { CandidateBindingBadges } from '@/features/freezone/public';
+import { CandidateBindingBadges } from '@/modules/creative_canvas/public';
 
 export function ImageNodeView({
   controller,

@@ -12,10 +12,13 @@ import {
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
+import {
+  useCommercialModelCatalog,
+  useGenerationCreditCost,
+} from "@/modules/model_usage/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useStyles } from "@/modules/asset_world/public";
-import { useCancelTask, useTasks } from "@/task-center/public";
+import { useCancelTask, useTasks } from "@/modules/task_execution/public";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import type { StoryIntakeQueryHooks } from "@/modules/story_intake/application/query-hooks";
@@ -38,6 +41,7 @@ import {
   type InputMode,
   type UploadedFileSource,
 } from "@/modules/story_intake/domain/ingestion";
+import { knowledgeModelOptions } from "@/modules/story_intake/domain/knowledge-model-selection";
 import type {
   FormatCheck,
   UploadResult,
@@ -91,6 +95,37 @@ export function createUseStoryIntakeController(
 
     const uploadMutation = useUploadNovel(project);
     const startIngestMutation = useStartIngest(project);
+    const textModelCatalog = useCommercialModelCatalog("TEXT");
+    const embeddingModelCatalog = useCommercialModelCatalog("EMBEDDING");
+    const textModelOptions = useMemo(
+      () => knowledgeModelOptions(textModelCatalog.data?.items ?? [], "TEXT"),
+      [textModelCatalog.data?.items],
+    );
+    const embeddingModelOptions = useMemo(
+      () =>
+        knowledgeModelOptions(
+          embeddingModelCatalog.data?.items ?? [],
+          "EMBEDDING",
+        ),
+      [embeddingModelCatalog.data?.items],
+    );
+    const [textModel, setTextModel] = useState("");
+    const [embeddingModel, setEmbeddingModel] = useState("");
+
+    useEffect(() => {
+      setTextModel((current) =>
+        textModelOptions.some((item) => item.code === current)
+          ? current
+          : (textModelOptions[0]?.code ?? ""),
+      );
+    }, [textModelOptions]);
+    useEffect(() => {
+      setEmbeddingModel((current) =>
+        embeddingModelOptions.some((item) => item.code === current)
+          ? current
+          : (embeddingModelOptions[0]?.code ?? ""),
+      );
+    }, [embeddingModelOptions]);
 
     useEffect(() => {
       setHideImportedPreview(readHiddenImportedPreview(project));
@@ -453,6 +488,8 @@ export function createUseStoryIntakeController(
         setIngestError(null);
         await startIngestMutation.mutateAsync({
           filename: sourceFile.filename,
+          textModel,
+          embeddingModel,
           rebuild: true,
           spine_template: resolveIngestSettings(getValues(), normalizeLegacyDefaults(config))
             .spine_template,
@@ -477,6 +514,8 @@ export function createUseStoryIntakeController(
       startIngestMutation,
       getValues,
       config,
+      textModel,
+      embeddingModel,
       project,
       t,
     ]);
@@ -521,8 +560,10 @@ export function createUseStoryIntakeController(
       [t],
     );
 
+    const modelSelectionReady = Boolean(textModel && embeddingModel);
     const canStartFromCurrentInput =
-      inputMode === "upload" ? !!uploadedFile : pastedText.trim().length > 0;
+      modelSelectionReady &&
+      (inputMode === "upload" ? !!uploadedFile : pastedText.trim().length > 0);
     const hasPastedText = pastedText.trim().length > 0;
     const hasUserUploadedFile = uploadedFileSource === "upload" && !!uploadedFile;
     const sourceHint =
@@ -587,6 +628,16 @@ export function createUseStoryIntakeController(
       chapterTitle,
       canStartFromCurrentInput,
       sourceHint,
+      textModelOptions,
+      embeddingModelOptions,
+      textModel,
+      setTextModel,
+      embeddingModel,
+      setEmbeddingModel,
+      modelCatalogLoading:
+        textModelCatalog.isLoading || embeddingModelCatalog.isLoading,
+      modelCatalogError:
+        textModelCatalog.error ?? embeddingModelCatalog.error ?? null,
     };
   };
 }

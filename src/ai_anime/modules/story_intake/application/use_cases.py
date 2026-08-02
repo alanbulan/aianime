@@ -119,17 +119,20 @@ class StartIngestion:
             spine_template=command.spine_template,
         )
         task_config = options.task_config()
-        if command.spine_template is not None:
-            self._project_settings.set_spine_template(
-                scope.owner_username,
-                scope.project_name,
-                command.spine_template,
-            )
+        self._project_settings.set_ingestion_configuration(
+            scope.owner_username,
+            scope.project_name,
+            text_model=command.text_model,
+            embedding_model=command.embedding_model,
+            spine_template=command.spine_template,
+        )
 
         scheduled = await self._task_scheduler.enqueue_ingestion(
             scope,
             IngestionTask(
                 novel_path=document.path,
+                text_model=command.text_model,
+                embedding_model=command.embedding_model,
                 config=task_config,
                 billable_chars=billable_chars,
             ),

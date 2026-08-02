@@ -11,22 +11,6 @@ const awaitCompletion = vi.hoisted(() => vi.fn());
 const fetchResultUrl = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("@/lib/url-params", () => ({
-  readUrl: () => ({ project: "project/1", canvas: "canvas-1" }),
-}));
-vi.mock("@/features/freezone/public", () => ({
-  composeCapability: vi.fn(),
-  getFreezoneCanvasMetadata: vi.fn(),
-  resolveCurrentShotMetadataPrompt: (prompt: string) => ({
-    cleanedPrompt: prompt,
-    suffix: "",
-  }),
-  resolvePromptReferenceRoles: (prompt: string, references: string[]) => ({
-    cleanedPrompt: prompt,
-    references,
-    suffix: "",
-  }),
-}));
 vi.mock("./freezoneAssetGateway", () => ({
   ensureBackendImageUrl: vi.fn(),
   ensureBackendImageUrls: vi.fn(),
@@ -38,7 +22,23 @@ vi.mock("./freezoneImageGenerationGateway", () => ({
   freezoneImageGenerationGateway: { submit: vi.fn() },
 }));
 
-import { freezoneAiGateway } from "./freezoneAiGateway";
+import { createFreezoneAiGateway } from "./freezoneAiGateway";
+
+function gateway() {
+  return createFreezoneAiGateway({
+    composeCapability: vi.fn(),
+    getCanvasMetadata: () => null,
+    resolveShotMetadataPrompt: (prompt) => ({
+      cleanedPrompt: prompt,
+      suffix: "",
+    }),
+    resolvePromptReferenceRoles: (prompt, references) => ({
+      cleanedPrompt: prompt,
+      references,
+      suffix: "",
+    }),
+  });
+}
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
@@ -64,17 +64,20 @@ describe("freezoneAiGateway", () => {
     });
 
     await expect(
-      freezoneAiGateway.generateImage({
-        prompt: "Edit prompt",
-        model: "openai/gpt-image-2",
-        modelId: "registry-model",
-        generationMode: "image_reference",
-        size: "4K",
-        aspectRatio: "16:9",
-        referenceImages: ["base-data", "extra-data"],
-        extraParams: { quality: "high" },
-        nodeId: "node-1",
-      }),
+      gateway().generateImage(
+        { projectId: "project/1", canvasId: "canvas-1" },
+        {
+          prompt: "Edit prompt",
+          model: "cloud-image-standard",
+          modelId: "registry-model",
+          generationMode: "image_reference",
+          size: "4K",
+          aspectRatio: "16:9",
+          referenceImages: ["base-data", "extra-data"],
+          extraParams: { quality: "high" },
+          nodeId: "node-1",
+        },
+      ),
     ).resolves.toBe("/static/result.png");
 
     expect(ensureBackendImageUrl).toHaveBeenCalledWith(
@@ -94,8 +97,7 @@ describe("freezoneAiGateway", () => {
           extra_reference_urls: ["/static/extra.png"],
           aspect_ratio: "16:9",
           image_size: "4K",
-          provider: "openai",
-          model: "gpt-image-2",
+          model: "cloud-image-standard",
           model_id: "registry-model",
           gen_mode: "image_reference",
           quality: "high",

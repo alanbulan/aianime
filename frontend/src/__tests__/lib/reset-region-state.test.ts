@@ -9,11 +9,18 @@ import { useAuthStore } from "@/modules/identity_access/public";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
 import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
+
+const clearCommercialModelCatalogCache = vi.hoisted(() => vi.fn());
+
+vi.mock("@/modules/model_usage/public", () => ({
+  clearCommercialModelCatalogCache,
+}));
 
 describe("resetRegionState", () => {
   beforeEach(() => {
     localStorage.clear();
+    clearCommercialModelCatalogCache.mockClear();
   });
 
   it("calls reset() on auth, save-status, seen-pool, episode-workbench, task-center stores", () => {
@@ -35,6 +42,12 @@ describe("resetRegionState", () => {
     qc.setQueryData(["x"], { ok: true });
     resetRegionState({ queryClient: qc });
     expect(qc.getQueryData(["x"])).toBeUndefined();
+  });
+
+  it("clears the process-wide commercial model catalog cache", () => {
+    resetRegionState({ queryClient: new QueryClient() });
+
+    expect(clearCommercialModelCatalogCache).toHaveBeenCalledOnce();
   });
 
   it("localStorage sweep removes ai-anime-* and legacy episode workbench keys", () => {
@@ -63,6 +76,7 @@ describe("resetRegionState", () => {
 describe("resetUserSessionState", () => {
   beforeEach(() => {
     localStorage.clear();
+    clearCommercialModelCatalogCache.mockClear();
   });
 
   it("clears queryClient cache so the next account never sees stale data", () => {
@@ -72,6 +86,7 @@ describe("resetUserSessionState", () => {
     qc.setQueryData(["projectSummaries"], ["A 的项目"]);
     resetUserSessionState({ queryClient: qc });
     expect(qc.getQueryData(["projectSummaries"])).toBeUndefined();
+    expect(clearCommercialModelCatalogCache).toHaveBeenCalledOnce();
   });
 
   it("sweeps user-scoped localStorage keys like the region reset does", () => {

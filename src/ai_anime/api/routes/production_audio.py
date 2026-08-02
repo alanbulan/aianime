@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.production_audio_schemas import (
+    EpisodeAudioGenerateRequest,
+    EpisodeAudioModelRequest,
     TTSGenerateRequest,
     TTSPreviewRequest,
 )
@@ -62,7 +64,7 @@ async def list_tts_voices(project: str, user: dict = Depends(get_api_user)):
 async def generate_audio(
     project: str,
     episode_num: int,
-    body: TTSGenerateRequest = TTSGenerateRequest(),
+    body: EpisodeAudioGenerateRequest,
     user: dict = Depends(get_api_user),
 ):
     """Generate episode audio with IndexTTS2."""
@@ -72,6 +74,7 @@ async def generate_audio(
             resolved.ctx,
             GenerateEpisodeAudioCommand(
                 episode_num=episode_num,
+                model=body.model,
                 mode=body.mode,
                 beat_numbers=body.beat_numbers,
             ),
@@ -88,6 +91,7 @@ async def regenerate_beat_audio(
     project: str,
     episode_num: int,
     beat_num: int,
+    body: EpisodeAudioModelRequest,
     user: dict = Depends(get_api_user),
 ):
     """Regenerate one Beat's IndexTTS2 audio."""
@@ -97,6 +101,7 @@ async def regenerate_beat_audio(
             resolved.ctx,
             episode_num,
             beat_num,
+            body.model,
         )
     except EpisodeAudioBeatMissing as exc:
         return {"ok": False, "error": str(exc)}

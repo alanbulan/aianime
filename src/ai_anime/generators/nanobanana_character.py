@@ -13,8 +13,6 @@
 - https://replicate.com/blog/how-to-prompt-nano-banana-pro
 """
 
-import asyncio
-import base64
 import mimetypes
 import os
 import time
@@ -36,13 +34,8 @@ from ai_anime.image_request_usage import (
 )
 from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.generators.nanobanana_grid import (
-    _InlineImagePart,
-    _call_huimeng_image_api,
     _call_newapi_image_api,
-    _call_openai_image_api,
-    _call_openrouter_image_api,
-    normalize_openai_quality,
-    normalize_image_size,
+    normalize_image_quality,
 )
 
 
@@ -146,38 +139,22 @@ class NanoBananaCharacterGenerator:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
         config: Optional[dict] = None,
-        selection: Optional[str] = None,
+        model: Optional[str] = None,
     ):
-        """初始化生成器。
-
-        Args:
-            api_key: API Key，默认从环境变量读取
-        """
-        config = config or get_grid_generation_config(selection_override=selection)
-        self.provider = config.get(
-            "provider", "google"
-        )  # google / openrouter / openai / huimeng / newapi
-        self.api_key = api_key or config["api_key"]
+        """使用当前商业模型访问配置初始化生成器。"""
+        if config is None:
+            resolved_model = str(model or "").strip()
+            if not resolved_model:
+                raise ValueError("character image model is required")
+            config = get_grid_generation_config(model_override=resolved_model)
+        self.access_mode = str(config.get("access_mode") or "cloud").strip().lower()
+        if self.access_mode not in {"cloud", "byok"}:
+            raise ValueError("商业模型访问模式必须是 cloud 或 byok")
         self.model = config["model"]
-        self.base_url = config.get("base_url", "")
         self.openai_image_quality = config.get("openai_image_quality", "medium")
 
-        if not self.api_key:
-            if self.provider == "openrouter":
-                key_name = "OPENROUTER_API_KEY"
-            elif self.provider == "huimeng":
-                key_name = "HUIMENGI_API_KEY"
-            elif self.provider == "newapi":
-                key_name = "NEWAPI_API_KEY"
-            elif self.provider == "openai":
-                key_name = "OPENAI_API_KEY"
-            else:
-                key_name = "GOOGLE_AI_API_KEY"
-            raise ValueError(f"API key not set. " f"Set {key_name} environment variable.")
-
-        print(f"[NanoBanana Character] Provider: {self.provider}, Model: {self.model}")
+        print(f"[NanoBanana Character] Model: {self.model}")
 
     async def generate_character_portrait(
         self,
@@ -221,12 +198,6 @@ class NanoBananaCharacterGenerator:
         usage_recorded = False
 
         try:
-            client = None
-            if self.provider == "google":
-                from google import genai
-
-                client = genai.Client(api_key=self.api_key)
-
             # 获取风格预设
             style_preset = get_style_preset(style, project_dir=project_dir)
             style_keywords = style_preset.get("style_instructions", "")
@@ -276,7 +247,7 @@ class NanoBananaCharacterGenerator:
                 record_image_request(
                     project_output_dir=project_output_dir,
                     request_id=request_id,
-                    provider=self.provider,
+                    provider=self.access_mode,
                     model_name=self.model,
                     task_type=usage_task_type,
                     scope=usage_scope or f"character:{character_name}:portrait",
@@ -289,7 +260,6 @@ class NanoBananaCharacterGenerator:
                 os.path.join(output_dir, "reference_portrait.png") if output_dir else None
             )
             portrait_bytes = await self._generate_single_image(
-                client=client,
                 prompt=front_prompt,
                 output_path=portrait_ref_path,
                 image_size="0.5K",
@@ -331,20 +301,6 @@ class NanoBananaCharacterGenerator:
                 generation_time=generation_time,
             )
 
-        except ImportError:
-            if usage_recorded and project_output_dir:
-                update_image_request_status(
-                    project_output_dir=project_output_dir,
-                    request_id=request_id,
-                    status="failed",
-                    error_message="请安装 google-genai: pip install google-genai",
-                )
-            return CharacterReferenceResult(
-                success=False,
-                character_name=character_name,
-                error="请安装 google-genai: pip install google-genai",
-                generation_time=time.time() - start_time,
-            )
         except Exception as e:
             if is_insufficient_credits_error(e):
                 raise
@@ -440,12 +396,6 @@ class NanoBananaCharacterGenerator:
         usage_recorded = False
 
         try:
-            client = None
-            if self.provider == "google":
-                from google import genai
-
-                client = genai.Client(api_key=self.api_key)
-
             # 获取风格预设
             style_preset = get_style_preset(style, project_dir=project_dir)
             style_keywords = style_preset.get("style_instructions", "")
@@ -508,7 +458,7 @@ class NanoBananaCharacterGenerator:
                 record_image_request(
                     project_output_dir=project_output_dir,
                     request_id=request_id,
-                    provider=self.provider,
+                    provider=self.access_mode,
                     model_name=self.model,
                     task_type=usage_task_type,
                     scope=usage_scope
@@ -519,27 +469,16 @@ class NanoBananaCharacterGenerator:
                 usage_recorded = True
 
             # 加载参考图（年龄变体等无参考图场景允许为空）
-            ref_image = None
             ref_image_bytes = None
             if reference_image_path and os.path.exists(reference_image_path):
-                ref_image = self._load_image_as_part(reference_image_path)
-                if not ref_image and self.provider == "google":
-                    return CharacterReferenceResult(
-                        success=False,
-                        character_name=character_name,
-                        error=f"无法加载参考图: {reference_image_path}",
-                        generation_time=time.time() - start_time,
-                    )
                 with open(reference_image_path, "rb") as f:
                     ref_image_bytes = f.read()
             else:
                 print(f"[NanoBanana Character] 无参考图，从文字描述独立生成")
 
             # 加载服装参考图（如果有）
-            costume_image = None
             costume_image_bytes = None
             if costume_image_path and os.path.exists(costume_image_path):
-                costume_image = self._load_image_as_part(costume_image_path)
                 with open(costume_image_path, "rb") as f:
                     costume_image_bytes = f.read()
                 print(f"[NanoBanana Character] 已加载服装参考图: {costume_image_path}")
@@ -553,15 +492,12 @@ class NanoBananaCharacterGenerator:
             print(f"[NanoBanana Character] 生成{body_label}到临时文件: {temp_body_path}")
 
             image_bytes = await self._generate_with_reference(
-                client=client,
                 prompt=prompt,
-                reference_image=ref_image,
                 output_path=temp_body_path,
                 reference_image_bytes=ref_image_bytes,
                 reference_image_name=reference_image_path,
                 aspect_ratio=aspect_ratio,
                 image_size=image_size,
-                additional_images=[costume_image] if costume_image else None,
                 additional_image_bytes=[costume_image_bytes] if costume_image_bytes else None,
                 additional_image_names=[costume_image_path] if costume_image_bytes else None,
             )
@@ -662,12 +598,6 @@ class NanoBananaCharacterGenerator:
             os.makedirs(output_dir, exist_ok=True)
 
         try:
-            client = None
-            if self.provider == "google":
-                from google import genai
-
-                client = genai.Client(api_key=self.api_key)
-
             # 获取风格预设
             style_preset = get_style_preset(style, project_dir=project_dir)
             style_keywords = style_preset.get("style_instructions", "")
@@ -751,7 +681,6 @@ MUST AVOID:
             )
 
             image_bytes = await self._generate_single_image(
-                client=client,
                 prompt=prompt,
                 output_path=composite_path,
                 aspect_ratio="16:9",
@@ -778,13 +707,6 @@ MUST AVOID:
                 generation_time=generation_time,
             )
 
-        except ImportError:
-            return CharacterReferenceResult(
-                success=False,
-                character_name=character_name,
-                error="请安装 google-genai: pip install google-genai",
-                generation_time=time.time() - start_time,
-            )
         except Exception as e:
             return CharacterReferenceResult(
                 success=False,
@@ -1087,162 +1009,32 @@ STRICT REQUIREMENTS (MUST AVOID):
 
     async def _generate_single_image(
         self,
-        client,
         prompt: str,
         output_path: Optional[str] = None,
         aspect_ratio: str = "3:4",
         image_size: str = "1K",
     ) -> Optional[bytes]:
-        """生成单张图像（无参考图）。
-
-        Args:
-            client: Google AI 客户端（OpenRouter 模式下可为 None）
-            prompt: 生成 Prompt
-            output_path: 输出路径
-            aspect_ratio: 图像宽高比（默认 "3:4"）
-            image_size: 图像尺寸（默认 "1K"）
-
-        Returns:
-            图像字节数据，失败返回 None
-        """
+        """通过当前商业模型访问生成单张无参考图图像。"""
         try:
-            image_bytes = None
-
-            if self.provider == "openrouter":
-                # OpenRouter 模式
-                print(f"[NanoBanana Character] 调用 OpenRouter ({self.model}) 生成图像...")
-                openrouter_image_config = {
+            print(f"[NanoBanana Character] 调用商业图片模型 ({self.model})...")
+            image_bytes, _text_response, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt,
+                reference_images=None,
+                image_config={
                     "aspect_ratio": aspect_ratio,
-                    "image_size": normalize_image_size(image_size, provider="openrouter"),
-                }
-                result = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=None,
-                    image_config=openrouter_image_config,
-                )
-                print(
-                    f"[NanoBanana Character] _generate_single_image OpenRouter 返回类型: {type(result)}, 值: {str(result)[:200]}"
-                )
-                if isinstance(result, tuple):
-                    image_bytes, _text_response, error_detail = result
-                    if not image_bytes and error_detail:
-                        print(f"[NanoBanana Character] OpenRouter 失败详情: {error_detail}")
-                        raise RuntimeError(error_detail)
-                else:
-                    image_bytes = result
-            elif self.provider == "huimeng":
-                print(f"[NanoBanana Character] 调用 HuiMeng ({self.model}) 生成图像...")
-                image_bytes, _text_response, error_detail = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                    },
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] HuiMeng 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            elif self.provider == "openai":
-                print(f"[NanoBanana Character] 调用 OpenAI Image API ({self.model}) 生成图像...")
-                image_bytes, _text_response, error_detail = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": normalize_openai_quality(
-                            self.openai_image_quality, default="medium"
-                        ),
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] OpenAI 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            elif self.provider == "newapi":
-                print(f"[NanoBanana Character] 调用 AI anime API ({self.model}) 生成图像...")
-                image_bytes, _text_response, error_detail = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": normalize_openai_quality(
-                            self.openai_image_quality, default="medium"
-                        ),
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] AI anime API 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            else:
-                # Google 直连模式
-                from google.genai import types
-
-                # gemini-3 支持 image_size，gemini-2.5 不支持
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                        image_size=normalize_image_size(image_size, provider="google"),
-                    )
-                else:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                    )
-
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"],
-                        image_config=image_config,
+                    "image_size": image_size,
+                    "quality": normalize_image_quality(
+                        self.openai_image_quality,
+                        default="medium",
                     ),
-                )
-
-                # 提取图像数据
-                if not response.candidates:
-                    print(f"[NanoBanana Character] API 响应无 candidates: {response}")
-                    return None
-
-                candidate = response.candidates[0]
-                if not candidate.content:
-                    finish_reason = getattr(candidate, "finish_reason", "unknown")
-                    print(
-                        f"[NanoBanana Character] API 响应无 content, finish_reason={finish_reason}"
-                    )
-                    if hasattr(candidate, "safety_ratings") and candidate.safety_ratings:
-                        for rating in candidate.safety_ratings:
-                            print(f"[NanoBanana Character] safety_rating: {rating}")
-                    return None
-
-                if not candidate.content.parts:
-                    print(
-                        f"[NanoBanana Character] API 响应 content.parts 为空: {candidate.content}"
-                    )
-                    return None
-
-                for part in candidate.content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        image_bytes = part.inline_data.data
-                        break
-                    # 打印文本响应（如果有）
-                    if hasattr(part, "text") and part.text:
-                        print(f"[NanoBanana Character] API 文本响应: {part.text[:300]}")
+                },
+            )
+            if not image_bytes and error_detail:
+                raise RuntimeError(error_detail)
 
             if not image_bytes:
-                print(f"[NanoBanana Character] API 未返回图像数据")
+                print("[NanoBanana Character] API 未返回图像数据")
                 return None
 
             # 保存文件
@@ -1265,33 +1057,16 @@ STRICT REQUIREMENTS (MUST AVOID):
 
     async def _generate_with_reference(
         self,
-        client,
         prompt: str,
-        reference_image,
         output_path: Optional[str] = None,
-        reference_image_bytes: bytes = None,  # OpenRouter 模式需要原始字节
+        reference_image_bytes: bytes = None,
         reference_image_name: str = "",
         aspect_ratio: str = "3:4",
         image_size: str = "1K",
-        additional_images: list = None,  # 额外参考图 Part 对象列表（Google 模式）
-        additional_image_bytes: list = None,  # 额外参考图字节列表（OpenRouter 模式）
+        additional_image_bytes: list = None,
         additional_image_names: list[str] = None,
     ) -> Optional[bytes]:
-        """使用参考图生成图像（Identity Locking）。
-
-        Args:
-            client: Google AI 客户端（OpenRouter 模式下可为 None）
-            prompt: 生成 Prompt
-            reference_image: 参考图 Part 对象（Google 模式用）
-            output_path: 输出路径
-            reference_image_bytes: 参考图原始字节（OpenRouter 模式用）
-            reference_image_name: 参考图文件名或路径（OpenAI/newAPI 用于保留后缀/MIME）
-            aspect_ratio: 图像宽高比（默认 "3:4"）
-            image_size: 图像尺寸（默认 "1K"）
-
-        Returns:
-            图像字节数据，失败返回 None
-        """
+        """通过当前商业模型访问执行带参考图的身份锁定生成。"""
 
         def _named_image_ref(data: bytes, name: str) -> tuple[str, bytes, str]:
             filename = Path(str(name or "")).name or "reference.png"
@@ -1301,189 +1076,36 @@ STRICT REQUIREMENTS (MUST AVOID):
             return filename, data, mime_type
 
         try:
-            image_bytes = None
-
-            if self.provider == "openrouter":
-                # OpenRouter 模式
-                print(
-                    f"[NanoBanana Character] 调用 OpenRouter ({self.model}) 生成图像（带参考图）..."
+            ref_images = []
+            if reference_image_bytes:
+                ref_images.append(_named_image_ref(reference_image_bytes, reference_image_name))
+            additional_names = list(additional_image_names or [])
+            for idx, image_bytes_item in enumerate(additional_image_bytes or []):
+                ref_images.append(
+                    _named_image_ref(
+                        image_bytes_item,
+                        additional_names[idx] if idx < len(additional_names) else "",
+                    )
                 )
-                openrouter_image_config = {
+            print(f"[NanoBanana Character] 调用商业图片模型 ({self.model})（带参考图）...")
+            image_bytes, _text_response, error_detail = await _call_newapi_image_api(
+                model=self.model,
+                prompt=prompt,
+                reference_images=ref_images or None,
+                image_config={
                     "aspect_ratio": aspect_ratio,
-                    "image_size": normalize_image_size(image_size, provider="openrouter"),
-                }
-                ref_images = []
-                if reference_image_bytes:
-                    ref_images.append(reference_image_bytes)
-                if additional_image_bytes:
-                    ref_images.extend(additional_image_bytes)
-                ref_images = ref_images if ref_images else None
-                result = await _call_openrouter_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_images,
-                    image_config=openrouter_image_config,
-                )
-                print(
-                    f"[NanoBanana Character] _generate_with_reference OpenRouter 返回类型: {type(result)}, 值: {str(result)[:200]}"
-                )
-                if isinstance(result, tuple):
-                    image_bytes, _text_response, error_detail = result
-                    if not image_bytes and error_detail:
-                        print(f"[NanoBanana Character] OpenRouter 失败详情: {error_detail}")
-                        raise RuntimeError(error_detail)
-                else:
-                    image_bytes = result
-            elif self.provider == "huimeng":
-                print(f"[NanoBanana Character] 调用 HuiMeng ({self.model}) 生成图像（带参考图）...")
-                ref_images = []
-                if reference_image_bytes:
-                    ref_images.append(reference_image_bytes)
-                if additional_image_bytes:
-                    ref_images.extend(additional_image_bytes)
-                image_bytes, _text_response, error_detail = await _call_huimeng_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_images or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                    },
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] HuiMeng 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            elif self.provider == "openai":
-                print(
-                    f"[NanoBanana Character] 调用 OpenAI Image API ({self.model}) 生成图像（带参考图）..."
-                )
-                ref_images = []
-                if reference_image_bytes:
-                    ref_images.append(_named_image_ref(reference_image_bytes, reference_image_name))
-                if additional_image_bytes:
-                    additional_names = list(additional_image_names or [])
-                    for idx, image_bytes_item in enumerate(additional_image_bytes):
-                        ref_images.append(
-                            _named_image_ref(
-                                image_bytes_item,
-                                additional_names[idx] if idx < len(additional_names) else "",
-                            )
-                        )
-                image_bytes, _text_response, error_detail = await _call_openai_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_images or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": normalize_openai_quality(
-                            self.openai_image_quality, default="medium"
-                        ),
-                        "output_format": "png",
-                    },
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] OpenAI 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            elif self.provider == "newapi":
-                print(f"[NanoBanana Character] 调用 AI anime API ({self.model}) 生成图像（带参考图）...")
-                ref_images = []
-                if reference_image_bytes:
-                    ref_images.append(_named_image_ref(reference_image_bytes, reference_image_name))
-                if additional_image_bytes:
-                    additional_names = list(additional_image_names or [])
-                    for idx, image_bytes_item in enumerate(additional_image_bytes):
-                        ref_images.append(
-                            _named_image_ref(
-                                image_bytes_item,
-                                additional_names[idx] if idx < len(additional_names) else "",
-                            )
-                        )
-                image_bytes, _text_response, error_detail = await _call_newapi_image_api(
-                    api_key=self.api_key,
-                    model=self.model,
-                    prompt=prompt,
-                    reference_images=ref_images or None,
-                    image_config={
-                        "aspect_ratio": aspect_ratio,
-                        "image_size": image_size,
-                        "quality": normalize_openai_quality(
-                            self.openai_image_quality, default="medium"
-                        ),
-                    },
-                    base_url=self.base_url,
-                )
-                if not image_bytes and error_detail:
-                    print(f"[NanoBanana Character] AI anime API 失败详情: {error_detail}")
-                    raise RuntimeError(error_detail)
-            else:
-                # Google 直连模式
-                from google.genai import types
-
-                # 统一先文后图，和 Google 官方示例及其他生成链保持一致
-                contents = [prompt]
-                if reference_image:
-                    contents.append(reference_image)
-                if additional_images:
-                    contents.extend(additional_images)
-
-                # gemini-3 支持 image_size，gemini-2.5 不支持
-                is_gemini3 = "gemini-3" in self.model
-                if is_gemini3:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                        image_size=normalize_image_size(image_size, provider="google"),
-                    )
-                else:
-                    image_config = types.ImageConfig(
-                        aspect_ratio=aspect_ratio,
-                    )
-
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"],
-                        image_config=image_config,
+                    "image_size": image_size,
+                    "quality": normalize_image_quality(
+                        self.openai_image_quality,
+                        default="medium",
                     ),
-                )
-
-                # 提取图像数据
-                if not response.candidates:
-                    print(f"[NanoBanana Character] API 响应无 candidates: {response}")
-                    return None
-
-                candidate = response.candidates[0]
-                if not candidate.content:
-                    finish_reason = getattr(candidate, "finish_reason", "unknown")
-                    print(
-                        f"[NanoBanana Character] API 响应无 content, finish_reason={finish_reason}"
-                    )
-                    if hasattr(candidate, "safety_ratings") and candidate.safety_ratings:
-                        for rating in candidate.safety_ratings:
-                            print(f"[NanoBanana Character] safety_rating: {rating}")
-                    return None
-
-                if not candidate.content.parts:
-                    print(
-                        f"[NanoBanana Character] API 响应 content.parts 为空: {candidate.content}"
-                    )
-                    return None
-
-                for part in candidate.content.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        image_bytes = part.inline_data.data
-                        break
-                    # 打印文本响应（如果有）
-                    if hasattr(part, "text") and part.text:
-                        print(f"[NanoBanana Character] API 文本响应: {part.text[:300]}")
+                },
+            )
+            if not image_bytes and error_detail:
+                raise RuntimeError(error_detail)
 
             if not image_bytes:
-                print(f"[NanoBanana Character] API 未返回图像数据")
+                print("[NanoBanana Character] API 未返回图像数据")
                 return None
 
             # 保存文件
@@ -1503,75 +1125,3 @@ STRICT REQUIREMENTS (MUST AVOID):
                 raise
             print(f"[NanoBanana Character] 生成失败: {e}")
             return None
-
-    def _load_image_as_part(self, image_path: str, compress_quality: int = 60):
-        """加载图像作为 Gemini API 的 Part（带 JPEG 压缩）。
-
-        Args:
-            image_path: 图像路径
-            compress_quality: JPEG 压缩质量 (1-100)，设为 0 或 None 禁用压缩
-
-        Returns:
-            Gemini Part 对象
-        """
-        try:
-            from PIL import Image
-            import io
-
-            # 加载图片
-            img = Image.open(image_path)
-            original_size = os.path.getsize(image_path)
-
-            # 压缩为 JPEG（如果启用）
-            if compress_quality and compress_quality > 0:
-                # 转为 RGB（JPEG 不支持 alpha）
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-
-                # 压缩到内存
-                buffer = io.BytesIO()
-                img.save(buffer, format="JPEG", quality=compress_quality, optimize=True)
-                image_data = buffer.getvalue()
-                mime_type = "image/jpeg"
-
-                compressed_size = len(image_data)
-                ratio = (1 - compressed_size / original_size) * 100
-                print(
-                    f"[压缩] {os.path.basename(image_path)}: "
-                    f"{original_size/1024:.0f}KB → {compressed_size/1024:.0f}KB "
-                    f"({ratio:.0f}% 压缩)"
-                )
-            else:
-                # 不压缩，直接读取原文件
-                with open(image_path, "rb") as f:
-                    image_data = f.read()
-
-                if image_path.lower().endswith(".png"):
-                    mime_type = "image/png"
-                elif image_path.lower().endswith(".webp"):
-                    mime_type = "image/webp"
-                else:
-                    mime_type = "image/jpeg"
-
-            if self.provider != "google":
-                return _InlineImagePart(image_data, mime_type)
-
-            from google.genai import types
-
-            return types.Part.from_bytes(data=image_data, mime_type=mime_type)
-
-        except Exception as e:
-            print(f"[NanoBanana Character] 加载参考图失败: {image_path}, {e}")
-            return None
-
-
-def create_character_generator(api_key: Optional[str] = None) -> NanoBananaCharacterGenerator:
-    """创建角色生成器。
-
-    Args:
-        api_key: Google AI API Key
-
-    Returns:
-        NanoBananaCharacterGenerator 实例
-    """
-    return NanoBananaCharacterGenerator(api_key=api_key)

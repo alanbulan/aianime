@@ -15,10 +15,13 @@ from ai_anime.modules.production.infrastructure.render_planning import (
     EnvironmentRenderPlanAvailability,
     LocalRenderPlanningPreparer,
     NanoBananaRenderPlanEngine,
-    TaskBackendRenderPlanScheduler,
+    TaskExecutionRenderPlanScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmissionUseCases,
+    selection_scope,
+)
 
 
 class _Store:
@@ -332,7 +335,11 @@ async def test_scheduler_preserves_selected_regen_task_contract(
     class Backend:
         async def enqueue_project_task(self, context, **kwargs):
             calls.append((context, kwargs))
-            return SimpleNamespace(task_state=SimpleNamespace(task_id="task-1"))
+            return SimpleNamespace(
+                task_state=SimpleNamespace(task_id="task-1"),
+                backend="celery",
+                queue="default",
+            )
 
     context = _context(tmp_path)
     grid = RenderPlanGrid(
@@ -348,8 +355,8 @@ async def test_scheduler_preserves_selected_regen_task_contract(
         base_config={"beats": [{"beat_number": 2}]},
     )
 
-    receipt = await TaskBackendRenderPlanScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionRenderPlanScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

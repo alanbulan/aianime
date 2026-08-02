@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -8,23 +8,31 @@ const SRC_ROOT = resolve(process.cwd(), "src");
 describe("SuperChat boundaries", () => {
   it("keeps message cache persistence outside the controller hook", () => {
     const cache = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/message-cache.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/messageCache.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
+      "utf8",
+    );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/message-cache.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/messageCache.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain(
-      'from "@/features/superchat/message-cache";',
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/messageCache";',
     );
+    expect(hook).not.toContain("/infrastructure/");
     expect(tests).toContain(
-      'from "@/features/superchat/message-cache";',
+      'from "@/modules/ai_assistant/public";',
     );
     for (const ownedOperation of [
       "function denestRaw(",
@@ -41,57 +49,101 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("MESSAGE_CACHE_PREFIX");
   });
 
-  it("keeps active turn persistence and status rules outside the controller hook", () => {
-    const activeTurn = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/active-turn.ts"),
+  it("keeps active turn status rules in domain and persistence in infrastructure", () => {
+    const statusRules = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/activeTurn.ts"),
+      "utf8",
+    );
+    const storage = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/activeTurnStorage.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
       "utf8",
     );
-    const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/active-turn.test.ts"),
+    const frameController = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/application/useFrameController.ts"),
+      "utf8",
+    );
+    const statusTests = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/activeTurn.test.ts"),
+      "utf8",
+    );
+    const storageTests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/infrastructure/activeTurnStorage.test.ts",
+      ),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/active-turn";');
-    expect(tests).toContain('from "@/features/superchat/active-turn";');
-    for (const ownedOperation of [
+    expect(hook).toContain(
+      'from "@/modules/ai_assistant/domain/activeTurn";',
+    );
+    expect(frameController).toContain(
+      'from "@/modules/ai_assistant/domain/activeTurn";',
+    );
+    expect(statusTests).toContain('from "@/modules/ai_assistant/public";');
+    expect(storageTests).toContain('from "@/modules/ai_assistant/public";');
+    for (const ownedRule of [
+      "export function activeTurnIsPending(",
+      "export function currentTurnIsLive(",
+    ]) {
+      expect(statusRules).toContain(ownedRule);
+      expect(hook).not.toContain(ownedRule);
+      expect(frameController).not.toContain(ownedRule);
+    }
+    for (const ownedStorageOperation of [
       "function activeTurnKey(",
       "function loadActiveTurn(",
       "export function saveActiveTurn(",
       "export function clearActiveTurn(",
-      "export function activeTurnIsPending(",
       "export function loadPendingActiveTurn(",
-      "export function currentTurnIsLive(",
     ]) {
-      expect(activeTurn).toContain(ownedOperation);
-      expect(hook).not.toContain(ownedOperation);
+      expect(storage).toContain(ownedStorageOperation);
+      expect(hook).not.toContain(ownedStorageOperation);
     }
-    expect(activeTurn).not.toContain("export function activeTurnKey(");
-    expect(activeTurn).not.toContain("export function loadActiveTurn(");
-    expect(activeTurn).toContain('const ACTIVE_TURN_PREFIX = "superchat:active-turn:";');
+    expect(storage).not.toContain("export function activeTurnKey(");
+    expect(storage).not.toContain("export function loadActiveTurn(");
+    expect(storage).toContain('const ACTIVE_TURN_PREFIX = "superchat:active-turn:";');
+    expect(storage).toContain(
+      'from "@/modules/ai_assistant/domain/activeTurn";',
+    );
+    expect(statusRules).not.toContain("localStorage");
     expect(hook).not.toContain("ACTIVE_TURN_PREFIX");
     expect(hook).not.toContain("hasStructuredContent");
   });
 
   it("keeps local preference persistence outside the controller hook", () => {
     const storage = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/preferences-storage.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/preferencesStorage.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
+      "utf8",
+    );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/preferences-storage.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/preferencesStorage.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/preferences-storage";');
-    expect(tests).toContain('from "@/features/superchat/preferences-storage";');
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/preferencesStorage";',
+    );
+    expect(hook).not.toContain("/infrastructure/");
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
     for (const ownedOperation of [
       "function messageSetKey(",
       "export function loadSuperChatSettings(",
@@ -111,41 +163,36 @@ describe("SuperChat boundaries", () => {
 
   it("keeps ingest upload persistence outside the SuperChat panel", () => {
     const storage = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/ingest-upload-storage.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/ingestUploadStorage.ts"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const controller = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/superchat/use-ingest-automation-controller.ts",
-      ),
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/ingest-upload-storage.test.ts",
+        "modules/ai_assistant/infrastructure/ingestUploadStorage.test.ts",
       ),
       "utf8",
     );
 
     expect(controller).toContain(
-      'from "@/features/superchat/ingest-upload-storage";',
+      'from "@/modules/ai_assistant/infrastructure/ingestUploadStorage";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/ingest-upload-storage";',
+      'from "@/modules/ai_assistant/infrastructure/ingestUploadStorage";',
     );
     for (const ownedOperation of [
       "function uploadedIngestFilesKey(",
       "function isUploadedIngestFile(",
       "export function loadUploadedIngestFiles(",
       "export function saveUploadedIngestFiles(",
-      "export function mergeUploadedIngestFiles(",
-      "export function uploadedIngestFileFromUpload(",
     ]) {
       expect(storage).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
@@ -153,42 +200,45 @@ describe("SuperChat boundaries", () => {
     expect(storage).toContain(
       'const UPLOADED_INGEST_FILES_PREFIX = "superchat:ingest-uploads:";',
     );
+    expect(storage).toContain(
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
+    );
     expect(panel).not.toContain("UPLOADED_INGEST_FILES_PREFIX");
     expect(panel).not.toContain("localStorage.");
   });
 
   it("keeps ingest automation rules outside the SuperChat panel", () => {
     const domain = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/ingest-automation-domain.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/ingestAutomation.ts"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const attachmentsController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-composer-attachments-controller.ts",
+        "modules/ai_assistant/presentation/useComposerAttachmentsController.ts",
       ),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/ingest-automation-domain.test.ts",
+        "modules/ai_assistant/domain/ingestAutomation.test.ts",
       ),
       "utf8",
     );
 
     expect(attachmentsController).toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
     );
-    expect(panel).not.toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+    expect(panel).toContain(
+      'from "@/modules/ai_assistant/presentation/useComposerAttachmentsController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
     );
     for (const ownedOperation of [
       "function extensionOf(",
@@ -207,6 +257,8 @@ describe("SuperChat boundaries", () => {
       "export function buildAttachmentAnalysisContext(",
       "export function appendIngestAutomationContext(",
       "export function appendAttachmentAnalysisContext(",
+      "export function mergeUploadedIngestFiles(",
+      "export function uploadedIngestFileFromUpload(",
     ]) {
       expect(domain).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
@@ -224,37 +276,36 @@ describe("SuperChat boundaries", () => {
     expect(domain).not.toContain("uploadStoryDocument");
     expect(domain).not.toContain("startStoryIngestion");
     expect(domain).not.toContain("readPipelineStatus");
+    expect(domain).not.toContain("localStorage");
+    expect(domain).not.toContain("ingestUploadStorage");
   });
 
   it("keeps ingest infrastructure calls outside the SuperChat panel", () => {
     const gateway = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/ingest-automation-gateway.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/ingestAutomationGateway.ts"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const controller = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/superchat/use-ingest-automation-controller.ts",
-      ),
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/ingest-automation-gateway.test.ts",
+        "modules/ai_assistant/infrastructure/ingestAutomationGateway.test.ts",
       ),
       "utf8",
     );
 
     expect(controller).toContain(
-      'from "@/features/superchat/ingest-automation-gateway";',
+      'from "@/modules/ai_assistant/infrastructure/ingestAutomationGateway";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/ingest-automation-gateway";',
+      'from "@/modules/ai_assistant/infrastructure/ingestAutomationGateway";',
     );
     for (const operation of [
       "export async function uploadNovelForIngest(",
@@ -275,52 +326,62 @@ describe("SuperChat boundaries", () => {
     expect(gateway).not.toContain("toast.");
     expect(gateway).not.toContain("TFunction");
     expect(gateway).not.toContain("backendErrorToastMessage");
+    expect(gateway).toContain(
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
+    );
   });
 
   it("keeps ingest application orchestration outside the SuperChat panel", () => {
     const controller = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-ingest-automation-controller.ts",
+        "modules/ai_assistant/application/useIngestAutomationController.ts",
       ),
       "utf8",
     );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
+      "utf8",
+    );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-ingest-automation-controller.test.tsx",
+        "modules/ai_assistant/application/useIngestAutomationController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-ingest-automation-controller";',
+      'from "@/modules/ai_assistant/composition";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-ingest-automation-controller";',
+      'from "@/modules/ai_assistant/application/useIngestAutomationController";',
     );
     for (const ownedOperation of [
       "function surfaceFormatCheckWarnings(",
       "async function uploadAttachmentsForIngest(",
-      "export function useIngestAutomationController(",
+      "export function useIngestAutomationControllerWithPorts(",
       "const recordUploadedFiles = useCallback(",
     ]) {
       expect(controller).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
     expect(controller).toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
     );
-    expect(controller).toContain(
-      'from "@/features/superchat/ingest-automation-gateway";',
+    expect(controller).not.toContain("/infrastructure/");
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/ingestAutomationGateway";',
     );
-    expect(controller).toContain(
-      'from "@/features/superchat/ingest-upload-storage";',
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/ingestUploadStorage";',
     );
+    expect(composition).toContain("const ingestAutomationPorts:");
+    expect(composition).toContain("useIngestAutomationControllerWithPorts({");
     expect(panel).not.toContain("backendErrorToastMessage");
     expect(panel).not.toContain("reingestConfirmation");
     expect(panel).not.toContain("uploadedIngestFiles");
@@ -328,34 +389,43 @@ describe("SuperChat boundaries", () => {
 
   it("keeps timeline projection and interaction in a dedicated view", () => {
     const timeline = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-timeline.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatTimeline.tsx"),
+      "utf8",
+    );
+    const scrollRule = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/timelineScroll.ts"),
       "utf8",
     );
     const messageArea = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageArea.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-timeline.test.tsx",
+        "modules/ai_assistant/presentation/ChatTimeline.test.tsx",
+      ),
+      "utf8",
+    );
+    const scrollTests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/timelineScroll.test.ts",
       ),
       "utf8",
     );
 
     expect(messageArea).toContain(
-      'from "@/features/superchat/chat-timeline";',
+      'from "@/modules/ai_assistant/presentation/ChatTimeline";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-timeline";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-timeline";',
-    );
+    expect(tests).toContain('from "./ChatTimeline";');
     for (const ownedOperation of [
       "type TimelineTurn =",
       "function buildTimelineTurns(",
@@ -369,8 +439,14 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation);
     }
     expect(timeline).toContain(
-      'from "@/features/superchat/timeline-scroll";',
+      'from "@/modules/ai_assistant/presentation/timelineScroll";',
     );
+    expect(timeline).not.toContain('from "@/modules/ai_assistant/public";');
+    expect(scrollTests).toContain('from "@/modules/ai_assistant/public";');
+    expect(scrollRule).toContain("export function calculateTimelineContextDelta(");
+    expect(scrollRule).not.toContain('from "react"');
+    expect(scrollRule).not.toContain("document.");
+    expect(scrollRule).not.toContain("window.");
     expect(timeline).toContain('import { createPortal } from "react-dom";');
     expect(messageArea).not.toContain("calculateTimelineContextDelta");
     expect(panel).not.toContain("calculateTimelineContextDelta");
@@ -378,34 +454,41 @@ describe("SuperChat boundaries", () => {
 
   it("keeps UiSpec media projection outside the SuperChat panel", () => {
     const projection = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/spec-media-projection.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/domain/specMediaProjection.ts",
+      ),
       "utf8",
     );
     const gallery = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/spec-media-gallery.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/SpecMediaGallery.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/spec-media-projection.test.ts",
+        "modules/ai_assistant/domain/specMediaProjection.test.ts",
       ),
       "utf8",
     );
 
     expect(gallery).toContain(
-      'from "@/features/superchat/spec-media-projection";',
+      'from "@/modules/ai_assistant/domain/specMediaProjection";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/spec-media-projection";',
     );
-    expect(tests).toContain(
+    expect(gallery).not.toContain(
       'from "@/features/superchat/spec-media-projection";',
     );
+    expect(tests).toContain('from "./specMediaProjection";');
     for (const ownedOperation of [
       "function elementProps(",
       "function textProp(",
@@ -421,38 +504,43 @@ describe("SuperChat boundaries", () => {
     expect(projection).not.toContain('from "react"');
     expect(projection).not.toContain("document.");
     expect(projection).not.toContain("window.");
+    expect(projection).not.toContain('from "@/modules/ai_assistant/public";');
   });
 
   it("keeps UiSpec media gallery presentation outside the SuperChat panel", () => {
     const gallery = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/spec-media-gallery.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/SpecMediaGallery.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const messageView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/spec-media-gallery.test.tsx",
+        "modules/ai_assistant/presentation/SpecMediaGallery.test.tsx",
       ),
       "utf8",
     );
 
     expect(messageView).toContain(
-      'from "@/features/superchat/spec-media-gallery";',
+      'from "@/modules/ai_assistant/presentation/SpecMediaGallery";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/spec-media-gallery";',
     );
-    expect(tests).toContain(
+    expect(messageView).not.toContain(
       'from "@/features/superchat/spec-media-gallery";',
     );
+    expect(tests).toContain('from "./SpecMediaGallery";');
     for (const ownedOperation of [
       "function resolveSpecMediaUrl(",
       "function useResolvedSpecUrl(",
@@ -467,45 +555,59 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation);
     }
     expect(gallery).toContain(
-      'from "@/features/superchat/spec-media-projection";',
+      'from "@/modules/ai_assistant/domain/specMediaProjection";',
     );
     expect(gallery).toContain(
-      'from "@/features/superchat/spec-media-modals";',
+      'from "@/modules/ai_assistant/presentation/SpecMediaModals";',
     );
     expect(gallery).toContain('from "@/lib/media-url";');
+    expect(gallery).not.toContain('from "@/modules/ai_assistant/public";');
     expect(gallery).not.toContain("useSuperChat");
   });
 
   it("keeps recursive structured JSON rendering in a dedicated view", () => {
     const jsonView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/structured-json-view.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/StructuredJsonView.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const messageView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageView.tsx"),
+      "utf8",
+    );
+    const gallery = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/SpecMediaGallery.tsx",
+      ),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/structured-json-view.test.tsx",
+        "modules/ai_assistant/presentation/StructuredJsonView.test.tsx",
       ),
       "utf8",
     );
 
     expect(messageView).toContain(
-      'from "@/features/superchat/structured-json-view";',
+      'from "@/modules/ai_assistant/presentation/StructuredJsonView";',
     );
-    expect(panel).not.toContain(
-      'from "@/features/superchat/structured-json-view";',
+    expect(gallery).toContain(
+      'from "@/modules/ai_assistant/presentation/StructuredJsonView";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/structured-json-view";',
-    );
+    for (const consumer of [messageView, gallery, panel]) {
+      expect(consumer).not.toContain(
+        'from "@/features/superchat/structured-json-view";',
+      );
+    }
+    expect(tests).toContain('from "./StructuredJsonView";');
     for (const ownedOperation of [
       "function renderJsonScalar(",
       "export function JsonNode(",
@@ -518,36 +620,79 @@ describe("SuperChat boundaries", () => {
     expect(jsonView).not.toContain("useSuperChat");
   });
 
-  it("keeps chat message presentation in a dedicated view", () => {
+  it("keeps the shared AI avatar source in AI Assistant presentation", () => {
+    const avatarSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/useAiAvatarUrl.ts",
+      ),
+      "utf8",
+    );
+    const publicApi = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/public.ts"),
+      "utf8",
+    );
     const messageView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
-      "utf8",
-    );
-    const messageArea = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
-      "utf8",
-    );
-    const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-message-view.test.tsx",
+        "modules/ai_assistant/presentation/ChatMessageView.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(publicApi).toContain(
+      'from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+    );
+    expect(messageView).toContain(
+      'from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+    );
+    expect(messageView).toContain(
+      'import { useAiAvatarUrl } from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+    );
+    expect(tests).toContain(
+      'vi.mock("@/modules/ai_assistant/presentation/useAiAvatarUrl"',
+    );
+    expect(avatarSource).toContain("export function loadAiAvatarUrl(");
+    expect(avatarSource).toContain("export function useAiAvatarUrl(");
+    expect(avatarSource).toContain("let avatarUrlPromise:");
+    expect(avatarSource).toContain("indexedDB.open(DB_NAME, 1)");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/ai-avatar.ts")),
+    ).toBe(false);
+  });
+
+  it("keeps chat message presentation in a dedicated view", () => {
+    const messageView = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageView.tsx"),
+      "utf8",
+    );
+    const messageArea = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageArea.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatMessageView.test.tsx",
       ),
       "utf8",
     );
 
     expect(messageArea).toContain(
-      'from "@/features/superchat/chat-message-view";',
+      'from "@/modules/ai_assistant/presentation/ChatMessageView";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-message-view";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-message-view";',
-    );
+    expect(tests).toContain('from "./ChatMessageView";');
     for (const ownedOperation of [
       "function PlainMessageText(",
       "function MarkdownMessageText(",
@@ -568,10 +713,11 @@ describe("SuperChat boundaries", () => {
       expect(messageArea).not.toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
+    expect(messageView).not.toContain('from "@/modules/ai_assistant/public";');
     expect(messageView).toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      'from "@/modules/ai_assistant/domain/messagePresentationRules";',
     );
-    expect(messageView).toContain(
+    expect(messageView).not.toContain(
       'from "@/features/superchat/spec-media-gallery";',
     );
     expect(messageView).not.toContain("useSuperChat");
@@ -579,34 +725,32 @@ describe("SuperChat boundaries", () => {
 
   it("keeps chat header controls in a controller-independent view", () => {
     const controls = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-control-bar.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatControlBar.tsx"),
       "utf8",
     );
     const header = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-header.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatPanelHeader.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-control-bar.test.tsx",
+        "modules/ai_assistant/presentation/ChatControlBar.test.tsx",
       ),
       "utf8",
     );
 
     expect(header).toContain(
-      'from "@/features/superchat/chat-control-bar";',
+      'from "@/modules/ai_assistant/presentation/ChatControlBar";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-control-bar";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-control-bar";',
-    );
+    expect(tests).toContain('from "./ChatControlBar";');
     for (const ownedOperation of [
       "export type ChatControlBarModel =",
       "export function ControlBar(",
@@ -623,34 +767,32 @@ describe("SuperChat boundaries", () => {
 
   it("keeps complete chat panel header presentation outside the panel", () => {
     const header = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-header.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatPanelHeader.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const panelView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-panel-header.test.tsx",
+        "modules/ai_assistant/presentation/ChatPanelHeader.test.tsx",
       ),
       "utf8",
     );
 
     expect(panelView).toContain(
-      'from "@/features/superchat/chat-panel-header";',
+      'from "@/modules/ai_assistant/presentation/ChatPanelHeader";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-header";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-panel-header";',
-    );
+    expect(tests).toContain('from "./ChatPanelHeader";');
     expect(header).toContain("export function ChatPanelHeader(");
     for (const ownedPresentation of [
       "<HeaderControlPortal",
@@ -669,142 +811,164 @@ describe("SuperChat boundaries", () => {
 
   it("keeps approval presentation outside the SuperChat panel", () => {
     const approvalCard = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/approval-card.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ApprovalCard.tsx"),
       "utf8",
     );
     const contextViews = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelContextViews.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/approval-card.test.tsx",
+        "modules/ai_assistant/presentation/ApprovalCard.test.tsx",
       ),
       "utf8",
     );
 
     expect(contextViews).toContain(
+      'from "@/modules/ai_assistant/presentation/ApprovalCard";',
+    );
+    expect(contextViews).not.toContain(
       'from "@/features/superchat/approval-card";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/approval-card";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/approval-card";',
-    );
+    expect(tests).toContain('from "./ApprovalCard";');
     expect(approvalCard).toContain("export function ApprovalCard(");
     expect(panel).not.toContain("function ApprovalCard(");
     expect(approvalCard).toContain(
-      'import type { ApprovalRequest } from "@/features/superchat/types";',
+      'import type { ApprovalRequest } from "@/modules/ai_assistant/domain/contracts";',
     );
     expect(approvalCard).not.toContain("useSuperChat");
   });
 
   it("keeps secondary panel views outside the SuperChat panel", () => {
     const searchBar = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-search-bar.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SearchBar.tsx"),
       "utf8",
     );
     const pinnedPanel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/pinned-messages-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/PinnedPanel.tsx"),
+      "utf8",
+    );
+    const searchTests = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SearchBar.test.tsx"),
+      "utf8",
+    );
+    const pinnedTests = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/PinnedPanel.test.tsx"),
       "utf8",
     );
     const detailPanel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/message-detail-panel.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/MessageDetailPanel.tsx",
+      ),
       "utf8",
     );
     const contextViews = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelContextViews.tsx",
+      ),
       "utf8",
     );
     const detailOverlays = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelDetailOverlays.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/panel-secondary-views.test.tsx",
+        "modules/ai_assistant/presentation/MessageDetailPanel.test.tsx",
       ),
       "utf8",
     );
 
-    for (const [moduleSource, importPath, ownedOperation] of [
-      [searchBar, "chat-search-bar", "export function SearchBar("],
-      [pinnedPanel, "pinned-messages-panel", "export function PinnedPanel("],
+    for (const [moduleSource, moduleTests, component, importPath, ownedOperation] of [
+      [searchBar, searchTests, "SearchBar", "chat-search-bar", "export function SearchBar("],
+      [pinnedPanel, pinnedTests, "PinnedPanel", "pinned-messages-panel", "export function PinnedPanel("],
     ]) {
       expect(contextViews).toContain(
+        `from "@/modules/ai_assistant/presentation/${component}";`,
+      );
+      expect(contextViews).not.toContain(
         `from "@/features/superchat/${importPath}";`,
       );
       expect(panel).not.toContain(
         `from "@/features/superchat/${importPath}";`,
       );
-      expect(tests).toContain(
-        `from "@/features/superchat/${importPath}";`,
-      );
+      expect(moduleTests).toContain(`from "./${component}";`);
       expect(moduleSource).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation.replace("export ", ""));
       expect(moduleSource).not.toContain("useSuperChat");
     }
     expect(detailOverlays).toContain(
-      'from "@/features/superchat/message-detail-panel";',
+      'from "@/modules/ai_assistant/presentation/MessageDetailPanel";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/message-detail-panel";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/message-detail-panel";',
-    );
+    expect(tests).toContain('from "./MessageDetailPanel";');
     expect(detailPanel).toContain("export function MessageDetailPanel(");
     expect(panel).not.toContain("function MessageDetailPanel(");
     expect(detailPanel).not.toContain("useSuperChat");
     expect(detailPanel).toContain(
-      'from "@/features/superchat/chat-message-view";',
+      'from "@/modules/ai_assistant/presentation/ChatMessageView";',
     );
-    expect(detailPanel).toContain(
-      'from "@/features/superchat/spec-extract";',
-    );
+    expect(detailPanel).not.toContain('from "@/modules/ai_assistant/public";');
   });
 
   it("keeps panel context presentation outside the SuperChat panel", () => {
     const contextViews = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-context-views.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelContextViews.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const panelView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-panel-context-views.test.tsx",
+        "modules/ai_assistant/presentation/ChatPanelContextViews.test.tsx",
       ),
       "utf8",
     );
 
     expect(panelView).toContain(
+      'from "@/modules/ai_assistant/presentation/ChatPanelContextViews";',
+    );
+    expect(panelView).not.toContain(
       'from "@/features/superchat/chat-panel-context-views";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-context-views";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-panel-context-views";',
-    );
+    expect(tests).toContain('from "./ChatPanelContextViews";');
     expect(contextViews).toContain("export function ChatPanelContextViews(");
     for (const ownedPresentation of [
       "border-destructive/20 bg-destructive/8",
@@ -819,33 +983,36 @@ describe("SuperChat boundaries", () => {
     }
     expect(contextViews).not.toContain("useSuperChat");
     expect(contextViews).not.toContain("ReturnType<");
+    expect(contextViews).not.toContain(
+      'from "@/modules/ai_assistant/public";',
+    );
   });
 
   it("keeps browser speech recognition in a dedicated controller", () => {
     const speechController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-speech-input-controller.ts",
+        "modules/ai_assistant/presentation/useSpeechInputController.ts",
       ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-speech-input-controller.test.tsx",
+        "modules/ai_assistant/presentation/useSpeechInputController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-speech-input-controller";',
+      'from "@/modules/ai_assistant/presentation/useSpeechInputController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-speech-input-controller";',
+      'from "@/modules/ai_assistant/public";',
     );
     for (const ownedOperation of [
       "type SpeechRecognitionLike =",
@@ -866,26 +1033,26 @@ describe("SuperChat boundaries", () => {
 
   it("keeps panel message selection and render projection in a pure module", () => {
     const projection = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/panel-message-projection.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/panelMessageProjection.ts"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/panel-message-projection.test.ts",
+        "modules/ai_assistant/application/panelMessageProjection.test.ts",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/panel-message-projection";',
+      'from "@/modules/ai_assistant/application/panelMessageProjection";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/panel-message-projection";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(projection).toContain("type PanelMessageProjectionOptions =");
     expect(projection).toContain("export function projectPanelMessages(");
@@ -901,10 +1068,10 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedRule);
     }
     expect(projection).toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      'from "@/modules/ai_assistant/domain/messagePresentationRules";',
     );
     expect(panel).not.toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      "messagePresentationRules",
     );
     expect(projection).not.toContain('from "react"');
     expect(projection).not.toContain("document.");
@@ -915,27 +1082,27 @@ describe("SuperChat boundaries", () => {
     const controller = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-task-completion-notifications.ts",
+        "modules/ai_assistant/presentation/useTaskCompletionNotifications.ts",
       ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "__tests__/features/superchat/use-task-completion-notifications.test.tsx",
-      ),
+        resolve(
+          SRC_ROOT,
+          "modules/ai_assistant/presentation/useTaskCompletionNotifications.test.tsx",
+        ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-task-completion-notifications";',
+      'from "@/modules/ai_assistant/presentation/useTaskCompletionNotifications";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-task-completion-notifications";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(controller).toContain(
       "export function useTaskCompletionNotifications(",
@@ -953,41 +1120,52 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation);
     }
     expect(controller).toContain(
-      'from "@/task-center/event-bus-context";',
+      'from "@/modules/task_execution/public";',
     );
     expect(controller).toContain(
-      'from "@/features/superchat/task-notification-label";',
+      'from "@/modules/ai_assistant/presentation/taskNotificationLabel";',
     );
     expect(panel).not.toContain(
-      'from "@/task-center/event-bus-context";',
+      'from "@/modules/task_execution/public";',
     );
     expect(panel).not.toContain(
-      'from "@/features/superchat/task-notification-label";',
+      'from "@/modules/ai_assistant/presentation/taskNotificationLabel";',
     );
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/superchat/use-task-completion-notifications.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/superchat/task-notification-label.ts")),
+    ).toBe(false);
   });
 
   it("keeps message-area scrolling orchestration outside the SuperChat panel", () => {
     const controller = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-chat-scroll-controller.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/useChatScrollController.ts",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-chat-scroll-controller.test.tsx",
+        "modules/ai_assistant/presentation/useChatScrollController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-chat-scroll-controller";',
+      'from "@/modules/ai_assistant/presentation/useChatScrollController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-chat-scroll-controller";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(controller).toContain("export function useChatScrollController(");
     for (const ownedOperation of [
@@ -1009,26 +1187,29 @@ describe("SuperChat boundaries", () => {
 
   it("keeps queued-message state transitions outside the SuperChat panel", () => {
     const controller = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-chat-queue-controller.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatQueueController.ts",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-chat-queue-controller.test.tsx",
+        "modules/ai_assistant/application/useChatQueueController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-chat-queue-controller";',
+      'from "@/modules/ai_assistant/application/useChatQueueController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-chat-queue-controller";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(controller).toContain("export function useChatQueueController(");
     for (const ownedOperation of [
@@ -1050,26 +1231,29 @@ describe("SuperChat boundaries", () => {
 
   it("keeps Composer border-beam lifecycle outside the SuperChat panel", () => {
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-composer-border-beam.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/useComposerBorderBeam.ts",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-composer-border-beam.test.tsx",
+        "modules/ai_assistant/presentation/useComposerBorderBeam.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-composer-border-beam";',
+      'from "@/modules/ai_assistant/presentation/useComposerBorderBeam";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-composer-border-beam";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(hook).toContain("export function useComposerBorderBeam(");
     for (const ownedOperation of [
@@ -1089,27 +1273,27 @@ describe("SuperChat boundaries", () => {
     const hook = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-composer-history-navigation.ts",
+        "modules/ai_assistant/presentation/useComposerHistoryNavigation.ts",
       ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-composer-history-navigation.test.tsx",
+        "modules/ai_assistant/presentation/useComposerHistoryNavigation.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-composer-history-navigation";',
+      'from "@/modules/ai_assistant/presentation/useComposerHistoryNavigation";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-composer-history-navigation";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(hook).toContain("export function useComposerHistoryNavigation(");
     for (const ownedOperation of [
@@ -1128,34 +1312,38 @@ describe("SuperChat boundaries", () => {
 
   it("keeps queued-message presentation outside the SuperChat panel", () => {
     const view = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/queued-messages-panel.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/QueuedMessagesPanel.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const composer = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-composer.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatComposer.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/queued-messages-panel.test.tsx",
+        "modules/ai_assistant/presentation/QueuedMessagesPanel.test.tsx",
       ),
       "utf8",
     );
 
     expect(composer).toContain(
+      'from "@/modules/ai_assistant/presentation/QueuedMessagesPanel";',
+    );
+    expect(composer).not.toContain(
       'from "@/features/superchat/queued-messages-panel";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/queued-messages-panel";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/queued-messages-panel";',
-    );
+    expect(tests).toContain('from "./QueuedMessagesPanel";');
     expect(view).toContain("export function QueuedMessagesPanel(");
     for (const ownedPresentation of [
       't("aiAssistant.queuedCount"',
@@ -1175,27 +1363,27 @@ describe("SuperChat boundaries", () => {
     const controller = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-composer-attachments-controller.ts",
+        "modules/ai_assistant/presentation/useComposerAttachmentsController.ts",
       ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-composer-attachments-controller.test.tsx",
+        "modules/ai_assistant/presentation/useComposerAttachmentsController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-composer-attachments-controller";',
+      'from "@/modules/ai_assistant/presentation/useComposerAttachmentsController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-composer-attachments-controller";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(controller).toContain(
       "export function useComposerAttachmentsController(",
@@ -1216,10 +1404,10 @@ describe("SuperChat boundaries", () => {
       expect(panel).not.toContain(ownedOperation);
     }
     expect(controller).toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+      'from "@/modules/ai_assistant/domain/ingestAutomation";',
     );
-    expect(panel).not.toContain(
-      'from "@/features/superchat/ingest-automation-domain";',
+    expect(panel).toContain(
+      'from "@/modules/ai_assistant/presentation/useComposerAttachmentsController";',
     );
     expect(controller).not.toContain("useSuperChat");
   });
@@ -1228,27 +1416,27 @@ describe("SuperChat boundaries", () => {
     const controller = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/superchat/use-composer-submit-controller.ts",
+        "modules/ai_assistant/application/useComposerSubmitController.ts",
       ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/use-composer-submit-controller.test.tsx",
+        "modules/ai_assistant/application/useComposerSubmitController.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/use-composer-submit-controller";',
+      'from "@/modules/ai_assistant/application/useComposerSubmitController";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/use-composer-submit-controller";',
+      'from "@/modules/ai_assistant/public";',
     );
     expect(controller).toContain(
       "export function useComposerSubmitController(",
@@ -1272,31 +1460,35 @@ describe("SuperChat boundaries", () => {
 
   it("keeps complete Composer presentation outside the SuperChat panel", () => {
     const view = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-composer.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatComposer.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const panelView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/chat-composer.test.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatComposer.test.tsx",
+      ),
       "utf8",
     );
 
     expect(panelView).toContain(
+      'from "@/modules/ai_assistant/presentation/ChatComposer";',
+    );
+    expect(panelView).not.toContain(
       'from "@/features/superchat/chat-composer";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-composer";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-composer";',
-    );
+    expect(tests).toContain('from "./ChatComposer";');
     expect(view).toContain("type ChatComposerProps =");
     expect(view).toContain("export function ChatComposer(");
     for (const ownedPresentation of [
@@ -1319,6 +1511,13 @@ describe("SuperChat boundaries", () => {
     expect(panel).not.toContain(
       'from "@/features/superchat/queued-messages-panel";',
     );
+    expect(view).not.toContain(
+      'from "@/features/superchat/composer-waiting-status";',
+    );
+    expect(view).not.toContain(
+      'from "@/features/superchat/queued-messages-panel";',
+    );
+    expect(view).not.toContain('from "@/modules/ai_assistant/public";');
     expect(view).not.toContain("useSuperChat");
     expect(view).not.toContain("useChatQueueController");
     expect(view).not.toContain("useComposerAttachmentsController");
@@ -1327,31 +1526,29 @@ describe("SuperChat boundaries", () => {
 
   it("keeps complete message-area presentation outside the SuperChat panel", () => {
     const view = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-area.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageArea.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const panelView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/chat-message-area.test.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageArea.test.tsx"),
       "utf8",
     );
 
     expect(panelView).toContain(
-      'from "@/features/superchat/chat-message-area";',
+      'from "@/modules/ai_assistant/presentation/ChatMessageArea";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-message-area";',
     );
-    expect(tests).toContain(
-      'from "@/features/superchat/chat-message-area";',
-    );
+    expect(tests).toContain('from "./ChatMessageArea";');
     expect(view).toContain("type ChatMessageAreaProps =");
     expect(view).toContain("export function ChatMessageArea(");
     for (const ownedPresentation of [
@@ -1375,37 +1572,45 @@ describe("SuperChat boundaries", () => {
     expect(view).not.toContain("useSuperChat");
     expect(view).not.toContain("useChatScrollController");
     expect(view).not.toContain("ReturnType<");
+    expect(view).not.toContain('from "@/modules/ai_assistant/public";');
   });
 
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/SpecMediaModals.tsx",
+      ),
       "utf8",
     );
     const detailOverlays = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelDetailOverlays.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/spec-media-modals.test.tsx",
+        "modules/ai_assistant/presentation/SpecMediaModals.test.tsx",
       ),
       "utf8",
     );
 
     expect(detailOverlays).toContain(
-      'from "@/features/superchat/spec-media-modals";',
+      '} from "@/modules/ai_assistant/presentation/SpecMediaModals";',
     );
     expect(panel).toContain(
-      'import type { SpecMediaDetail } from "@/features/superchat/spec-media-modals";',
+      'from "@/modules/ai_assistant/presentation/SpecMediaModals";',
     );
     expect(panel).not.toContain("SpecMediaDetailModal");
-    expect(tests).toContain(
+    expect(tests).toContain('from "./SpecMediaModals";');
+    expect(detailOverlays).not.toContain(
       'from "@/features/superchat/spec-media-modals";',
     );
     for (const ownedOperation of [
@@ -1426,33 +1631,36 @@ describe("SuperChat boundaries", () => {
 
   it("keeps panel detail overlays outside the SuperChat panel", () => {
     const detailOverlays = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-panel-detail-overlays.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/presentation/ChatPanelDetailOverlays.tsx",
+      ),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const panelView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/chat-panel-detail-overlays.test.tsx",
+        "modules/ai_assistant/presentation/ChatPanelDetailOverlays.test.tsx",
       ),
       "utf8",
     );
 
     expect(panelView).toContain(
-      'from "@/features/superchat/chat-panel-detail-overlays";',
+      'from "@/modules/ai_assistant/presentation/ChatPanelDetailOverlays";',
     );
     expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-detail-overlays";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/chat-panel-detail-overlays";',
+      'from "./ChatPanelDetailOverlays";',
     );
     expect(detailOverlays).toContain(
       "export function ChatPanelDetailOverlays(",
@@ -1472,26 +1680,26 @@ describe("SuperChat boundaries", () => {
 
   it("keeps complete panel layout outside the SuperChat controller", () => {
     const view = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanelView.tsx"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/superchat-panel-view.test.tsx",
+        "modules/ai_assistant/presentation/SuperChatPanelView.test.tsx",
       ),
       "utf8",
     );
 
     expect(panel).toContain(
-      'from "@/features/superchat/superchat-panel-view";',
+      'from "@/modules/ai_assistant/presentation/SuperChatPanelView";',
     );
     expect(tests).toContain(
-      'from "@/features/superchat/superchat-panel-view";',
+      'from "./SuperChatPanelView";',
     );
     expect(view).toContain("export type SuperChatPanelViewProps =");
     expect(view).toContain("export function SuperChatPanelView(");
@@ -1511,25 +1719,29 @@ describe("SuperChat boundaries", () => {
     expect(view).not.toContain("useSuperChat");
     expect(view).not.toContain("useChatScrollController");
     expect(view).not.toContain("ReturnType<");
+    expect(view).not.toContain('from "@/modules/ai_assistant/public";');
     expect(panel).not.toContain('from "@/lib/utils";');
   });
 
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/scope.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/scope.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/scope.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/scope.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/scope";');
-    expect(tests).toContain('from "@/features/superchat/scope";');
+    expect(hook).toContain("@/modules/ai_assistant/domain/scope");
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
     for (const ownedOperation of [
       "export function scopeForProject(",
       "export function scopeSessionKey(",
@@ -1547,20 +1759,25 @@ describe("SuperChat boundaries", () => {
 
   it("keeps message timeline reconciliation outside the controller hook", () => {
     const timeline = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/message-timeline.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/messageTimeline.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/message-timeline.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/messageTimeline.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/message-timeline";');
-    expect(tests).toContain('from "@/features/superchat/message-timeline";');
+    expect(hook).toContain(
+      'from "@/modules/ai_assistant/application/messageTimeline";',
+    );
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
     expect(tests).not.toContain('from "@/features/superchat/use-superchat";');
     for (const ownedOperation of [
       "export function normalizeHistory(",
@@ -1584,20 +1801,25 @@ describe("SuperChat boundaries", () => {
 
   it("keeps assistant and tool message projection outside the controller hook", () => {
     const projection = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/message-projection.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/messageProjection.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/message-projection.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/messageProjection.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/message-projection";');
-    expect(tests).toContain('from "@/features/superchat/message-projection";');
+    expect(hook).toContain(
+      'from "@/modules/ai_assistant/application/messageProjection";',
+    );
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
     for (const ownedOperation of [
       "export function upsertAssistantMessage(",
       "export function upsertServerAssistantMessage(",
@@ -1623,40 +1845,40 @@ describe("SuperChat boundaries", () => {
 
   it("keeps message presentation rules outside the SuperChat panel", () => {
     const rules = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/message-presentation-rules.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/messagePresentationRules.ts"),
       "utf8",
     );
     const panel = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/SuperChatPanel.tsx"),
       "utf8",
     );
     const messageView = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/presentation/ChatMessageView.tsx"),
       "utf8",
     );
     const panelProjection = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/panel-message-projection.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/panelMessageProjection.ts"),
       "utf8",
     );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "__tests__/features/superchat/message-presentation-rules.test.ts",
+        "modules/ai_assistant/domain/messagePresentationRules.test.ts",
       ),
       "utf8",
     );
 
     expect(messageView).toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      'from "@/modules/ai_assistant/domain/messagePresentationRules";',
     );
     expect(panelProjection).toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      'from "@/modules/ai_assistant/domain/messagePresentationRules";',
     );
     expect(panel).not.toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      "messagePresentationRules",
     );
     expect(tests).toContain(
-      'from "@/features/superchat/message-presentation-rules";',
+      'from "@/modules/ai_assistant/public";',
     );
     for (const ownedRule of [
       "const ASSISTANT_ERROR_TEXT_PATTERNS",
@@ -1679,20 +1901,36 @@ describe("SuperChat boundaries", () => {
 
   it("keeps WebSocket lifecycle infrastructure outside the controller hook", () => {
     const socketSession = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/socket-session.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/socketSession.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
+      "utf8",
+    );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/socket-session.test.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/infrastructure/socketSession.test.ts",
+      ),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/socket-session";');
-    expect(tests).toContain('from "@/features/superchat/socket-session";');
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/socketSession";',
+    );
+    expect(hook).not.toContain("/infrastructure/");
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
+    expect(socketSession).toContain(
+      'from "@/modules/ai_assistant/domain/contracts";',
+    );
     expect(socketSession).toContain("export function createSuperChatSocketSession(");
     expect(hook).not.toContain("function createSuperChatSocketSession(");
     for (const transportDetail of [
@@ -1720,20 +1958,25 @@ describe("SuperChat boundaries", () => {
 
   it("keeps server frame state transitions in a dedicated controller", () => {
     const frameController = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-frame-controller.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/useFrameController.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/use-frame-controller.test.tsx"),
+      resolve(SRC_ROOT, "modules/ai_assistant/application/useFrameController.test.tsx"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/use-frame-controller";');
-    expect(tests).toContain('from "@/features/superchat/use-frame-controller";');
+    expect(hook).toContain(
+      'from "@/modules/ai_assistant/application/useFrameController";',
+    );
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
     expect(frameController).toContain("export function useSuperChatFrameController(");
     expect(hook).not.toContain("function useSuperChatFrameController(");
     expect(frameController).toContain("switch (frame.type)");
@@ -1758,20 +2001,33 @@ describe("SuperChat boundaries", () => {
 
   it("keeps notification and cancellation HTTP commands outside the controller hook", () => {
     const commands = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/chat-commands.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/chatCommands.ts"),
       "utf8",
     );
     const hook = readFileSync(
-      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/application/useChatSessionController.ts",
+      ),
+      "utf8",
+    );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/composition.ts"),
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "__tests__/features/superchat/chat-commands.test.ts"),
+      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/chatCommands.test.ts"),
       "utf8",
     );
 
-    expect(hook).toContain('from "@/features/superchat/chat-commands";');
-    expect(tests).toContain('from "@/features/superchat/chat-commands";');
+    expect(composition).toContain(
+      'from "@/modules/ai_assistant/infrastructure/chatCommands";',
+    );
+    expect(hook).not.toContain("/infrastructure/");
+    expect(tests).toContain('from "@/modules/ai_assistant/public";');
+    expect(commands).toContain(
+      'from "@/modules/ai_assistant/domain/message";',
+    );
     for (const operation of [
       "export async function appendChatNotification(",
       "export async function cancelChatBestEffort(",

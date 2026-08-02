@@ -8,6 +8,7 @@ import { useStoryboardNodeController } from '@/features/canvas/hooks/useStoryboa
 import { StoryboardNodeView } from './StoryboardNodeView';
 
 type StoryboardNodeProps = NodeProps & {
+  projectId: string;
   id: string;
   data: StoryboardSplitNodeData;
   selected?: boolean;

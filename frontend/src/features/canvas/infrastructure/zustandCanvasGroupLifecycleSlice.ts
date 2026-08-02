@@ -12,7 +12,7 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
-import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
 import type {
   ActiveToolDialog,
   CanvasEdge,

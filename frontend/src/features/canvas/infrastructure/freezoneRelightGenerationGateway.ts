@@ -27,7 +27,7 @@ export const freezoneRelightGenerationGateway: CanvasRelightGenerationGateway = 
           rim_light: command.rimLight,
           prompt: command.prompt,
           image_size: command.imageSize,
-          ...(command.model ? { model: command.model } : {}),
+          model: command.model,
         },
       },
     );

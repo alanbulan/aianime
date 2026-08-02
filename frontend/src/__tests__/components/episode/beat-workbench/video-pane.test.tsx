@@ -529,14 +529,14 @@ vi.mock("@/modules/production/composition", async () => {
         ? [
             {
               active: true,
-              backendLabel: "Seedance2.0 Fast",
+              modelLabel: "Seedance2.0 Fast",
               id: "vid-2",
               previewSource: "/static/new.mp4#t=0.1",
               timeLabel: "1h",
             },
             {
               active: false,
-              backendLabel: "Seedance2.0 Fast",
+              modelLabel: "Seedance2.0 Fast",
               id: "vid-1",
               previewSource: "/static/old.mp4#t=0.1",
               timeLabel: "2h",
@@ -560,80 +560,74 @@ vi.mock("@/modules/production/composition", async () => {
       },
     };
   };
-  const useVideoBackends = () => ({
-    data: {
-      ok: true as const,
-      data: [
-        {
-          value: "newapi_seedance-1.0-pro-fast",
-          label: "Seedance 1.0 Pro Fast",
-          is_default: true,
-          is_seedance2: false,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 12,
-        },
-        {
-          value: "newapi_seedance-1.5-pro",
-          label: "Seedance 1.5 Pro",
-          is_default: false,
-          is_seedance2: false,
-          dialogue_only: true,
-          min_duration: 4,
-          max_duration: 12,
-        },
-        {
-          value: "huimeng_seedance-2.0-fast",
-          label: "HuiMeng Seedance 2.0 Fast",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-fast",
-          label: "Seedance2.0 Fast",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0",
-          label: "Seedance2.0",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-value",
-          label: "Seedance2.0 Value",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-fast-value",
-          label: "Seedance2.0 Fast Value",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-      ],
-    },
+  const useVideoModels = () => ({
+    data: [
+      {
+        value: "seedance-1.0-pro-fast",
+        label: "Seedance 1.0 Pro Fast",
+        profile: "standard" as const,
+        supportsAdvancedConfig: false,
+        supportsNativeAudio: false,
+        dialogueOnly: false,
+        minDuration: 4,
+        maxDuration: 12,
+      },
+      {
+        value: "seedance-1.5-pro",
+        label: "Seedance 1.5 Pro",
+        profile: "standard" as const,
+        supportsAdvancedConfig: false,
+        supportsNativeAudio: false,
+        dialogueOnly: true,
+        minDuration: 4,
+        maxDuration: 12,
+      },
+      {
+        value: "seedance-2.0-fast",
+        label: "Seedance 2.0 Fast",
+        profile: "seedance2" as const,
+        supportsAdvancedConfig: true,
+        supportsNativeAudio: true,
+        dialogueOnly: false,
+        minDuration: 4,
+        maxDuration: 15,
+      },
+      {
+        value: "seedance-2.0",
+        label: "Seedance 2.0",
+        profile: "seedance2" as const,
+        supportsAdvancedConfig: true,
+        supportsNativeAudio: true,
+        dialogueOnly: false,
+        minDuration: 4,
+        maxDuration: 15,
+      },
+      {
+        value: "seedance-2.0-value",
+        label: "Seedance 2.0 Value",
+        profile: "seedance2" as const,
+        supportsAdvancedConfig: true,
+        supportsNativeAudio: true,
+        dialogueOnly: false,
+        minDuration: 4,
+        maxDuration: 15,
+      },
+      {
+        value: "seedance-2.0-fast-value",
+        label: "Seedance 2.0 Fast Value",
+        profile: "seedance2" as const,
+        supportsAdvancedConfig: true,
+        supportsNativeAudio: true,
+        dialogueOnly: false,
+        minDuration: 4,
+        maxDuration: 15,
+      },
+    ],
   });
   const useVideoPaneController = createUseVideoPaneController(
     {
       useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
-      useVideoBackends,
+      useVideoModels,
     },
     {
       useBeatVideoGenerationController,
@@ -727,7 +721,7 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 
 function renderPane(
   beat: Beat = makeBeat(),
-  options: { showAudioMediaStatus?: boolean; defaultBackend?: string } = {},
+  options: { showAudioMediaStatus?: boolean; defaultModel?: string } = {},
 ) {
   return render(
     <I18nextProvider i18n={i18n}>
@@ -736,7 +730,7 @@ function renderPane(
         project="demo"
         episode={1}
         state="ready"
-        defaultBackend={options.defaultBackend ?? "huimeng_seedance-2.0-fast"}
+        defaultModel={options.defaultModel ?? "seedance-2.0-fast"}
         showAudioMediaStatus={options.showAudioMediaStatus}
       />
     </I18nextProvider>,
@@ -818,7 +812,7 @@ describe("VideoPane Seedance2 inspector", () => {
         video_mode: "first_frame",
         video_prompt: "base video prompt",
       }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
 
     expect(screen.queryByText("Seedance2 Inspector")).not.toBeInTheDocument();
@@ -848,7 +842,7 @@ describe("VideoPane Seedance2 inspector", () => {
         video_mode: "first_frame",
         video_prompt: "base video prompt",
       }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
     expandSeedance2References();
 
@@ -863,7 +857,7 @@ describe("VideoPane Seedance2 inspector", () => {
     const user = userEvent.setup();
     renderPane(
       makeBeat({ video_mode: "first_frame", video_prompt: "" }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
 
     const promptButton = screen.getByRole("button", {
@@ -889,7 +883,7 @@ describe("VideoPane Seedance2 inspector", () => {
     });
     renderPane(
       makeBeat({ video_mode: "first_frame", video_prompt: "" }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
 
     await user.click(screen.getByRole("button", { name: "生成本 Beat 提示词" }));
@@ -911,7 +905,7 @@ describe("VideoPane Seedance2 inspector", () => {
         video_prompt: "first frame prompt",
         keyframe_prompt: "transition prompt",
       }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
 
     expect(screen.getByLabelText("单个 Beat 视频提示词")).toHaveValue(
@@ -941,7 +935,7 @@ describe("VideoPane Seedance2 inspector", () => {
     const user = userEvent.setup();
     renderPane(
       makeBeat({ video_url: null, video_mode: "first_frame", video_prompt: "" }),
-      { defaultBackend: "newapi_seedance-1.0-pro-fast" },
+      { defaultModel: "newapi_seedance-1.0-pro-fast" },
     );
 
     await user.click(screen.getByRole("button", { name: "重新生成" }));
@@ -1118,7 +1112,7 @@ describe("VideoPane Seedance2 inspector", () => {
   it("shows scene optimize styles only for Seedance2 value models", async () => {
     const user = userEvent.setup();
     renderPane(makeBeat({ seedance2_config_json: "" }), {
-      defaultBackend: "newapi_seedance-2.0-value",
+      defaultModel: "newapi_seedance-2.0-value",
     });
 
     expect(screen.getByRole("radiogroup", { name: "风格" })).toBeInTheDocument();
@@ -1138,7 +1132,7 @@ describe("VideoPane Seedance2 inspector", () => {
   it("uses model-specific Seedance2 resolution options", async () => {
     const user = userEvent.setup();
     renderPane(makeBeat({ seedance2_config_json: "" }), {
-      defaultBackend: "newapi_seedance-2.0",
+      defaultModel: "newapi_seedance-2.0",
     });
 
     await user.click(screen.getByRole("combobox", { name: "分辨率" }));
@@ -1150,7 +1144,7 @@ describe("VideoPane Seedance2 inspector", () => {
   it("hides unsupported Seedance2 value resolution options", async () => {
     const user = userEvent.setup();
     renderPane(makeBeat({ seedance2_config_json: "" }), {
-      defaultBackend: "newapi_seedance-2.0-value",
+      defaultModel: "newapi_seedance-2.0-value",
     });
 
     await waitFor(() =>
@@ -1173,7 +1167,7 @@ describe("VideoPane Seedance2 inspector", () => {
           final_prompt: "existing seedance2 prompt",
         }),
       }),
-      { defaultBackend: "newapi_seedance-2.0-value" },
+      { defaultModel: "newapi_seedance-2.0-value" },
     );
 
     await waitForSeedance2Autosave();
@@ -1196,7 +1190,7 @@ describe("VideoPane Seedance2 inspector", () => {
       }),
     });
     const view = renderPane(beat, {
-      defaultBackend: "newapi_seedance-2.0",
+      defaultModel: "newapi_seedance-2.0",
     });
 
     view.rerender(
@@ -1206,7 +1200,7 @@ describe("VideoPane Seedance2 inspector", () => {
           project="demo"
           episode={1}
           state="ready"
-          defaultBackend="newapi_seedance-2.0-fast"
+          defaultModel="newapi_seedance-2.0-fast"
         />
       </I18nextProvider>,
     );
@@ -1997,7 +1991,7 @@ describe("VideoPane Seedance2 inspector", () => {
           project="demo"
           episode={1}
           state="ready"
-          defaultBackend="huimeng_seedance-2.0-fast"
+          defaultModel="huimeng_seedance-2.0-fast"
         />
       </I18nextProvider>,
     );

@@ -1,0 +1,16 @@
+[project]
+name = "ai-anime-hermes-runtime"
+version = "0.1.0"
+description = "Isolated Hermes ACP runtime bundled with AI anime desktop"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "hermes-agent[acp]==0.19.0",
+]
+
+[dependency-groups]
+build = [
+    "pyinstaller>=6.16.0,<7.0.0",
+]
+
+[tool.uv]
+package = false

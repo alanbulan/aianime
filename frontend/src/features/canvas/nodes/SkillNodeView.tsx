@@ -17,6 +17,7 @@ import {
 import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
+import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -29,8 +30,8 @@ import {
   translateSkillParameterLabel,
   translateSkillParameterOption,
   translateSkillRequirement,
-  type SkillProvider,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import type { SkillProvider } from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PROVIDER_LABELS: Record<SkillProvider, string> = {
@@ -121,6 +122,7 @@ export function SkillNodeView({
     data,
     resolvedWidth,
     skill,
+    imageModels,
     parameterEntries,
     skillParameters,
     incomingEdges,
@@ -222,6 +224,30 @@ export function SkillNodeView({
                     entry.label,
                     t,
                   );
+                  if (entry.type === 'image_model') {
+                    const selectedApiModel = String(currentValue || '');
+                    const selectedModel = imageModels.find(
+                      (model) => model.apiModel === selectedApiModel,
+                    ) ?? imageModels[0];
+                    return (
+                      <div key={entry.key} className={SKILL_CARD_CLASS}>
+                        <div className="mb-2 text-xs font-medium text-foreground">
+                          {parameterLabel}
+                        </div>
+                        <ProviderModelPicker
+                          selectedModelId={selectedModel?.id ?? ''}
+                          models={imageModels}
+                          popoverPlacement="bottom"
+                          onChange={(modelId) => {
+                            const model = imageModels.find(
+                              (candidate) => candidate.id === modelId,
+                            );
+                            changeParameter(entry.key, model?.apiModel ?? '');
+                          }}
+                        />
+                      </div>
+                    );
+                  }
                   if (entry.type === 'boolean') {
                     const isSelected = currentValue === true;
                     return (

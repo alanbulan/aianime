@@ -44,18 +44,17 @@ const useSingleBeatPanelController = createUseSingleBeatPanelController(
       assignments: { "29": "render-29" },
       byBeat: new Map([[29, [sketchImage, renderImage]]]),
     }),
-    useVideoBackends: () => ({
-      data: {
-        data: [
-          {
-            value: "seedance2",
-            label: "Seedance 2",
-            is_default: true,
-            is_seedance2: true,
-            dialogue_only: false,
-          },
-        ],
-      },
+    useVideoModels: () => ({
+      data: [
+        {
+          value: "seedance2",
+          label: "Seedance 2",
+          profile: "seedance2" as const,
+          supportsAdvancedConfig: true,
+          supportsNativeAudio: true,
+          dialogueOnly: false,
+        },
+      ],
     }),
   },
   {
@@ -67,15 +66,15 @@ const useSingleBeatPanelController = createUseSingleBeatPanelController(
 );
 
 describe("SingleBeatPanel controller", () => {
-  it("projects media, save, backend, and section status", () => {
-    const onDefaultBackendChange = vi.fn();
+  it("projects media, save, model, and section status", () => {
+    const onDefaultModelChange = vi.fn();
     const onToggleSection = vi.fn();
     const { result } = renderHook(() =>
       useSingleBeatPanelController({
         beat,
-        defaultBackend: "seedance2",
+        defaultModel: "seedance2",
         episode: 3,
-        onDefaultBackendChange,
+        onDefaultModelChange,
         onToggleSection,
         openSections: new Set(["text", "video"]),
         project: "demo",
@@ -119,17 +118,16 @@ describe("SingleBeatPanel controller", () => {
         statusKey: "episode.beat.notGenerated",
       },
     ]);
-    expect(result.current.videoBackends).toEqual([
+    expect(result.current.videoModels).toEqual([
       {
         dialogueOnly: false,
-        isDefault: true,
         isSeedance2: true,
         label: "Seedance 2",
         value: "seedance2",
       },
     ]);
-    expect(result.current.onDefaultBackendChange).toBe(
-      onDefaultBackendChange,
+    expect(result.current.onDefaultModelChange).toBe(
+      onDefaultModelChange,
     );
     expect(result.current.onToggleSection).toBe(onToggleSection);
     expect(result.current.onConfigureVoice).toBe(onConfigureVoice);
@@ -139,9 +137,9 @@ describe("SingleBeatPanel controller", () => {
     const { result } = renderHook(() =>
       useSingleBeatPanelController({
         beat,
-        defaultBackend: "seedance2",
+        defaultModel: "seedance2",
         episode: 3,
-        onDefaultBackendChange: vi.fn(),
+        onDefaultModelChange: vi.fn(),
         onToggleSection: vi.fn(),
         openSections: new Set(),
         project: "demo",

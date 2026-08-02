@@ -31,14 +31,8 @@ class _Repository:
 
 
 class _Selections:
-    def options(self) -> dict[str, str]:
-        return {"image-a": "Image A", "image-b": "Image B"}
-
-    def normalize_render(self, value: str | None) -> str:
-        return {"legacy": "image-a"}.get(value or "", value or "image-b")
-
-    def normalize_sketch(self, value: str | None) -> str:
-        return {"legacy": "image-b"}.get(value or "", value or "image-a")
+    def normalize(self, value: str | None) -> str:
+        return str(value or "").strip()
 
 
 def _use_cases(
@@ -57,13 +51,11 @@ def test_settings_project_normalized_values_and_defaults() -> None:
     )
 
     assert use_cases.render_settings("alice", "demo") == {
-        "render_image_selection": "image-a",
-        "options": {"image-a": "Image A", "image-b": "Image B"},
+        "render_image_selection": "legacy",
         "sketch_aspect_padding": True,
     }
     assert use_cases.sketch_settings("alice", "demo") == {
-        "sketch_image_selection": "image-b",
-        "options": {"image-a": "Image A", "image-b": "Image B"},
+        "sketch_image_selection": "legacy",
     }
 
 
@@ -98,17 +90,17 @@ def test_update_settings_persists_only_requested_values() -> None:
     [
         (
             "render",
-            UpdateRenderImageSettingsCommand(render_image_selection="unknown"),
-            "Invalid render_image_selection: unknown",
+            UpdateRenderImageSettingsCommand(render_image_selection="   "),
+            "render_image_selection must be a non-empty platform SKU",
         ),
         (
             "sketch",
-            UpdateSketchImageSettingsCommand(sketch_image_selection="unknown"),
-            "Invalid sketch_image_selection: unknown",
+            UpdateSketchImageSettingsCommand(sketch_image_selection="   "),
+            "sketch_image_selection must be a non-empty platform SKU",
         ),
     ],
 )
-def test_update_settings_rejects_unknown_selections(
+def test_update_settings_rejects_empty_selections(
     method: str,
     command: Any,
     message: str,

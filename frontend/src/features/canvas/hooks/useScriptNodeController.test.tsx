@@ -17,8 +17,6 @@ const mocks = vi.hoisted(() => ({
   upstreamNodes: [] as CanvasNode[],
   selectedNodeId: null as string | null,
   isGenerating: false,
-  project: 'project-a' as string | undefined,
-  canvas: 'canvas-a' as string | undefined,
   historyRecords: [] as Array<{ id: string; result: unknown }>,
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -89,9 +87,10 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.translateCanvasText(command),
 }));
 
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project, canvas: mocks.canvas }),
-}));
+const NODE_CONTEXT = {
+  projectId: 'project-a',
+  canvasId: 'canvas-a',
+} as const;
 
 function data(patch: Partial<ScriptNodeData> = {}): ScriptNodeData {
   return {
@@ -133,8 +132,6 @@ describe('useScriptNodeController', () => {
     mocks.historyRecords.splice(0);
     mocks.selectedNodeId = null;
     mocks.isGenerating = false;
-    mocks.project = 'project-a';
-    mocks.canvas = 'canvas-a';
     mocks.setSelectedNode.mockReset();
     mocks.updateNodeData.mockReset();
     let nextNode = 0;
@@ -164,6 +161,7 @@ describe('useScriptNodeController', () => {
     );
     const { result } = renderHook(() =>
       useScriptNodeController({
+        ...NODE_CONTEXT,
         id: 'script-a',
         data: data({
           scriptResult: {
@@ -215,7 +213,11 @@ describe('useScriptNodeController', () => {
       }),
     );
     const { result } = renderHook(() =>
-      useScriptNodeController({ id: 'script-a', data: data() }),
+      useScriptNodeController({
+        ...NODE_CONTEXT,
+        id: 'script-a',
+        data: data(),
+      }),
     );
 
     act(() => result.current.pickAction('fromScript'));
@@ -252,6 +254,7 @@ describe('useScriptNodeController', () => {
     );
     const { result } = renderHook(() =>
       useScriptNodeController({
+        ...NODE_CONTEXT,
         id: 'script-a',
         data: data({ prompt: ' 生成一段剧情 ' }),
       }),
@@ -294,6 +297,7 @@ describe('useScriptNodeController', () => {
     };
     const { result } = renderHook(() =>
       useScriptNodeController({
+        ...NODE_CONTEXT,
         id: 'script-a',
         data: data({ prompt: '待翻译' }),
         selected: true,
@@ -332,6 +336,7 @@ describe('useScriptNodeController', () => {
     );
     const { result, rerender } = renderHook(() =>
       useScriptNodeController({
+        ...NODE_CONTEXT,
         id: 'script-a',
         data: data({ prompt: '剧情' }),
         selected,

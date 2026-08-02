@@ -12,7 +12,7 @@ import type { CanvasToolImageGateway } from '../application/ports';
 import {
   resolveMaxAllowedLineThickness,
   splitIntoSegments,
-} from '../domain/toolImageGeometry';
+} from '@/modules/creative_canvas/public';
 import { drawAnnotations, parseAnnotationItems } from '../tools/annotation';
 import {
   browserImageRuntimeGateway,

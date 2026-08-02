@@ -12,29 +12,20 @@
 - https://www.51cto.com/article/837277.html（纳米漫剧流水线 - 道具建模）
 """
 
-import asyncio
 import os
 import time
-from pathlib import Path
 from typing import Optional
 
 from ai_anime.config import (
-    IMAGE_GENERATION_SELECTIONS,
     get_grid_generation_config,
     get_style_preset,
     IMAGE_DEFAULT_STYLE,
-    NEWAPI_IMAGE_MODEL,
-    PROP_REF_IMAGE_MODEL,
-    PROP_REF_IMAGE_PROVIDER,
-    normalize_image_generation_selection,
 )
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.generators.nanobanana_grid import (
     _call_newapi_image_api,
-    _call_openai_image_api,
-    clamp_image_size,
     normalize_image_size,
-    normalize_openai_quality,
+    normalize_image_quality,
 )
 
 
@@ -42,23 +33,11 @@ PROP_REF_ASPECT_RATIO = "16:9"
 PROP_REF_IMAGE_SIZE = "0.5K"
 
 
-def resolve_prop_reference_image_model() -> str:
-    """Return the model used by prop reference generation."""
-    config = get_grid_generation_config()
-    prop_provider = (PROP_REF_IMAGE_PROVIDER or "").strip().lower()
-    provider = prop_provider or str(config.get("provider") or "google").strip().lower()
-    if provider == "newapi":
-        return (PROP_REF_IMAGE_MODEL or NEWAPI_IMAGE_MODEL).strip()
-    return str(config.get("model") or "").strip()
-
-
-def _prop_reference_image_source(selection: str | None) -> tuple[str | None, str | None]:
-    selection = str(selection or "").strip()
-    if not selection:
-        return None, None
-    normalized = normalize_image_generation_selection(selection)
-    image_source = IMAGE_GENERATION_SELECTIONS[normalized]
-    return image_source["provider"], image_source["model"]
+def _prop_reference_image_model(model: str | None) -> str:
+    resolved = str(model or "").strip()
+    if not resolved:
+        raise ValueError("prop reference image model is required")
+    return resolved
 
 
 def build_prop_reference_prompt(
@@ -148,38 +127,8 @@ async def generate_prop_reference(
     if style is None:
         style = IMAGE_DEFAULT_STYLE
 
-    config = get_grid_generation_config()
-    selected_provider, selected_model = _prop_reference_image_source(model)
-    prop_provider = (PROP_REF_IMAGE_PROVIDER or "").strip().lower()
-    provider = (
-        selected_provider
-        or prop_provider
-        or str(config.get("provider") or "google").strip().lower()
-    )
-    if provider == "newapi":
-        from ai_anime.config import get_effective_newapi_gateway_config
-
-        gateway = get_effective_newapi_gateway_config()
-        api_key = gateway.api_key
-        model = selected_model or resolve_prop_reference_image_model()
-        base_url = gateway.base_url
-    else:
-        api_key = config.get("api_key")
-        model = selected_model or resolve_prop_reference_image_model()
-        base_url = ""
-
-    if not api_key:
-        if provider == "openrouter":
-            key_name = "OPENROUTER_API_KEY"
-        elif provider == "openai":
-            key_name = "OPENAI_API_KEY"
-        elif provider == "newapi":
-            key_name = "NEWAPI_API_KEY"
-        else:
-            key_name = "GOOGLE_AI_API_KEY"
-        print(f"[PropRefGen] API key not set. Set {key_name} environment variable.")
-        return None
-
+    resolved_model = _prop_reference_image_model(model)
+    config = get_grid_generation_config(model_override=resolved_model)
     prompt = build_prop_reference_prompt(
         visual_prompt=visual_prompt,
         style_keywords=style_keywords,
@@ -188,40 +137,15 @@ async def generate_prop_reference(
     )
 
     print(f"[PropRefGen] 生成道具三视图: {visual_prompt[:60]}...")
-    print(f"[PropRefGen] Provider: {provider}, Model: {model}")
+    print(f"[PropRefGen] Model: {resolved_model}")
 
     try:
-        if provider == "openrouter":
-            result_path = await _generate_via_openrouter(
-                prompt=prompt,
-                output_path=output_path,
-                api_key=api_key,
-                model=model,
-            )
-        elif provider == "openai":
-            result_path = await _generate_via_openai(
-                prompt=prompt,
-                output_path=output_path,
-                api_key=api_key,
-                model=model,
-                quality=config.get("openai_image_quality", "medium"),
-            )
-        elif provider == "newapi":
-            result_path = await _generate_via_newapi(
-                prompt=prompt,
-                output_path=output_path,
-                api_key=api_key,
-                model=model,
-                base_url=base_url,
-                quality=config.get("openai_image_quality", "medium"),
-            )
-        else:
-            result_path = await _generate_via_google(
-                prompt=prompt,
-                output_path=output_path,
-                api_key=api_key,
-                model=model,
-            )
+        result_path = await _generate_via_newapi(
+            prompt=prompt,
+            output_path=output_path,
+            model=resolved_model,
+            quality=config.get("openai_image_quality", "medium"),
+        )
 
         elapsed = time.time() - start_time
         if result_path:
@@ -238,140 +162,23 @@ async def generate_prop_reference(
         return None
 
 
-async def _generate_via_google(
-    prompt: str,
-    output_path: str,
-    api_key: str,
-    model: str,
-) -> Optional[str]:
-    """通过 Google AI Studio 直连生成图像。"""
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        print("[PropRefGen] 请安装 google-genai: pip install google-genai")
-        return None
-
-    client = genai.Client(api_key=api_key)
-
-    is_gemini3 = "gemini-3" in model
-    if is_gemini3:
-        image_config = types.ImageConfig(
-            aspect_ratio=PROP_REF_ASPECT_RATIO,
-            image_size=clamp_image_size(PROP_REF_IMAGE_SIZE),
-        )
-    else:
-        image_config = types.ImageConfig(
-            aspect_ratio=PROP_REF_ASPECT_RATIO,
-        )
-
-    response = await asyncio.to_thread(
-        client.models.generate_content,
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE", "TEXT"],
-            image_config=image_config,
-        ),
-    )
-
-    return _extract_and_save_image(response, output_path)
-
-
-async def _generate_via_openrouter(
-    prompt: str,
-    output_path: str,
-    api_key: str,
-    model: str,
-) -> Optional[str]:
-    """通过 OpenRouter 代理生成图像。"""
-    from ai_anime.generators.nanobanana_grid import _call_openrouter_image_api
-
-    requested_size = normalize_image_size(PROP_REF_IMAGE_SIZE, provider="openrouter")
-    image_bytes, _text_content, error_text = await _call_openrouter_image_api(
-        api_key=api_key,
-        model=model,
-        prompt=prompt,
-        image_config={
-            "aspect_ratio": PROP_REF_ASPECT_RATIO,
-            "image_size": requested_size,
-        },
-    )
-
-    if not image_bytes and requested_size == "0.5K":
-        print("[PropRefGen] OpenRouter 0.5K 被 provider 拒绝，回退到 1K 重试")
-        image_bytes, _text_content, error_text = await _call_openrouter_image_api(
-            api_key=api_key,
-            model=model,
-            prompt=prompt,
-            image_config={
-                "aspect_ratio": PROP_REF_ASPECT_RATIO,
-                "image_size": "1K",
-            },
-        )
-
-    if image_bytes:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "wb") as f:
-            f.write(image_bytes)
-        return output_path
-
-    print(f"[PropRefGen] OpenRouter 生成失败: {error_text or 'No response'}")
-    return None
-
-
-async def _generate_via_openai(
-    prompt: str,
-    output_path: str,
-    api_key: str,
-    model: str,
-    quality: str = "medium",
-) -> Optional[str]:
-    """通过 OpenAI Image API 生成图像。"""
-
-    image_bytes, _text_content, error_text = await _call_openai_image_api(
-        api_key=api_key,
-        model=model,
-        prompt=prompt,
-        image_config={
-            "aspect_ratio": PROP_REF_ASPECT_RATIO,
-            "image_size": PROP_REF_IMAGE_SIZE,
-            "quality": normalize_openai_quality(quality, default="medium"),
-            "output_format": "png",
-        },
-    )
-
-    if image_bytes:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "wb") as f:
-            f.write(image_bytes)
-        return output_path
-
-    print(f"[PropRefGen] OpenAI 生成失败: {error_text or 'No response'}")
-    return None
-
-
 async def _generate_via_newapi(
     prompt: str,
     output_path: str,
-    api_key: str,
     model: str,
-    base_url: str,
     quality: str = "medium",
 ) -> Optional[str]:
-    """通过 newAPI 生成道具参考图。"""
+    """通过当前商业图片模型生成道具参考图。"""
 
     image_bytes, _text_content, error_text = await _call_newapi_image_api(
-        api_key=api_key,
         model=model,
         prompt=prompt,
         image_config={
             "aspect_ratio": PROP_REF_ASPECT_RATIO,
-            "image_size": normalize_image_size(PROP_REF_IMAGE_SIZE, provider="newapi"),
-            "quality": normalize_openai_quality(quality, default="medium"),
+            "image_size": normalize_image_size(PROP_REF_IMAGE_SIZE),
+            "quality": normalize_image_quality(quality, default="medium"),
             "output_format": "png",
         },
-        base_url=base_url,
     )
 
     if image_bytes:
@@ -381,31 +188,4 @@ async def _generate_via_newapi(
         return output_path
 
     print(f"[PropRefGen] AI anime API 生成失败: {error_text or 'No response'}")
-    return None
-
-
-def _extract_and_save_image(response, output_path: str) -> Optional[str]:
-    """从 Gemini API 响应中提取图像并保存。"""
-    if not response.candidates:
-        print(f"[PropRefGen] API 响应无 candidates")
-        return None
-
-    candidate = response.candidates[0]
-    if not candidate.content or not candidate.content.parts:
-        finish_reason = getattr(candidate, "finish_reason", "unknown")
-        print(f"[PropRefGen] API 响应无 content, finish_reason={finish_reason}")
-        return None
-
-    for part in candidate.content.parts:
-        if hasattr(part, "inline_data") and part.inline_data:
-            image_bytes = part.inline_data.data
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "wb") as f:
-                f.write(image_bytes)
-            return output_path
-
-        if hasattr(part, "text") and part.text:
-            print(f"[PropRefGen] API 文本响应: {part.text[:200]}")
-
-    print("[PropRefGen] API 未返回图像数据")
     return None

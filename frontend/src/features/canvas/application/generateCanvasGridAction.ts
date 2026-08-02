@@ -14,6 +14,7 @@ export interface CanvasGridActionGenerationCommand {
   readonly sourceUrl: string;
   readonly mode: CanvasTemplateEditMode;
   readonly prompt: string;
+  readonly model: string;
 }
 
 export interface CanvasGridActionGenerationGateway {
@@ -28,6 +29,7 @@ export interface GenerateCanvasGridActionParams {
   readonly sourceUrl: string;
   readonly actionKey: GridActionKey;
   readonly prompt: string;
+  readonly model: string;
 }
 
 export interface GenerateCanvasGridActionDependencies {
@@ -49,6 +51,7 @@ export async function generateCanvasGridAction(
     sourceUrl: params.sourceUrl.split("?")[0],
     mode: resolveGridActionTemplateMode(params.actionKey),
     prompt: params.prompt,
+    model: params.model,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

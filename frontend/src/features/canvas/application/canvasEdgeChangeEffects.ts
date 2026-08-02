@@ -8,7 +8,7 @@ import {
 import {
   trackEdit,
   type CanvasMutationState,
-} from '../domain/canvasMutation';
+} from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import { hasMeaningfulCanvasEdgeChange } from './canvasChangeIntent';
 

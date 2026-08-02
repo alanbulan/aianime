@@ -19,11 +19,11 @@ from PIL import Image
 from pydantic_ai import Agent, BinaryContent
 
 from ai_anime.config import get_pydantic_model, get_pydantic_model_settings
+from ai_anime.official_defaults import DEFAULT_SCENE_VOXEL_MODEL
 
 _log = logging.getLogger(__name__)
 
-_PROVIDER = os.environ.get("VOXEL_VLM_PROVIDER", "openrouter")
-_MODEL = os.environ.get("VOXEL_VLM_MODEL", "openai/gpt-5.5")
+_MODEL = os.environ.get("VOXEL_VLM_MODEL", DEFAULT_SCENE_VOXEL_MODEL)
 
 
 SYSTEM_PROMPT = """You are an expert 3D voxel scene designer for a comic-drama (漫剧) production pipeline.
@@ -306,17 +306,11 @@ async def generate_build_script(
         - defines build(output_vox_path)
         - has an __main__ block calling build(sys.argv[1])
     """
-    model = get_pydantic_model(
-        provider_override=_PROVIDER,
-        model_name_override=_MODEL,
-    )
+    model = get_pydantic_model(model_name_override=_MODEL)
     agent = Agent(
         model,
         system_prompt=SYSTEM_PROMPT,
-        model_settings=get_pydantic_model_settings(
-            provider_override=_PROVIDER,
-            model_name_override=_MODEL,
-        ),
+        model_settings=get_pydantic_model_settings(),
         output_type=str,
         name="Scene Voxel Codegen",
     )

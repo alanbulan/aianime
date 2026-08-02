@@ -40,6 +40,7 @@ class StartCreativeCanvasTextTranslationCommand:
     context: ProjectContext
     project_dir: Path
     text: str
+    model: str
     node_type: Literal["generic", "image", "video", "audio", "text"]
     canvas_id: str | None = None
     node_id: str | None = None
@@ -76,6 +77,9 @@ class CreativeCanvasTextProcessingUseCases:
     ) -> CreativeCanvasTaskReceipt:
         if not command.text.strip():
             raise InvalidCreativeCanvasTextProcessingRequest("text is required")
+        model = command.model.strip()
+        if not model:
+            raise InvalidCreativeCanvasTextProcessingRequest("model is required")
 
         return await self._scheduler.enqueue(
             command.context,
@@ -86,6 +90,7 @@ class CreativeCanvasTextProcessingUseCases:
                 project_dir=command.project_dir,
                 payload={
                     "text": command.text,
+                    "model": model,
                     "node_type": command.node_type,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
@@ -97,6 +102,10 @@ class CreativeCanvasTextProcessingUseCases:
         self,
         command: StartCreativeCanvasStoryScriptCommand,
     ) -> CreativeCanvasTaskReceipt:
+        model = command.model.strip()
+        if not model:
+            raise InvalidCreativeCanvasTextProcessingRequest("model is required")
+
         source_text = command.source_text.strip()
         if not source_text and command.source_url:
             source_path = self._resolve_source(command.project_dir, command.source_url)
@@ -122,7 +131,7 @@ class CreativeCanvasTextProcessingUseCases:
                 payload={
                     "source_text": source_text,
                     "prompt": command.prompt,
-                    "model": command.model,
+                    "model": model,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                 },

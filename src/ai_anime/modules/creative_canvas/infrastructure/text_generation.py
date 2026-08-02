@@ -9,16 +9,11 @@ from pydantic_ai import Agent
 
 from ai_anime.modules.creative_canvas.domain.text_generation import (
     CREATIVE_CANVAS_STORY_SCRIPT_SYSTEM_PROMPT,
-    CREATIVE_CANVAS_TRANSLATION_MODEL,
     CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
     CreativeCanvasTextNodeType,
     build_creative_canvas_story_script_task,
     build_creative_canvas_translation_task,
-    resolve_creative_canvas_story_script_model,
 )
-
-_translation_agent: Agent | None = None
-_story_script_agent: Agent | None = None
 
 
 class _CreativeCanvasTranslationResult(BaseModel):
@@ -58,35 +53,34 @@ class _CreativeCanvasStoryScriptResult(BaseModel):
     )
 
 
-def _create_translation_agent() -> Agent:
+def _create_translation_agent(model: str) -> Agent:
     from ai_anime.config import get_newapi_text_pydantic_model
+    from ai_anime.model_access_policy import require_model_role
 
-    model = get_newapi_text_pydantic_model(
+    clean_model = str(model or "").strip()
+    require_model_role(clean_model, "TEXT")
+    transport_model = get_newapi_text_pydantic_model(
         "FREEZONE_TRANSLATION_MODEL",
-        CREATIVE_CANVAS_TRANSLATION_MODEL,
+        clean_model,
+        model_name_override=clean_model,
     )
     return Agent(
-        model,
+        transport_model,
         system_prompt=CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
         output_type=_CreativeCanvasTranslationResult,
         name="Freezone Prompt Translator",
     )
 
-
-def _get_translation_agent() -> Agent:
-    global _translation_agent
-    if _translation_agent is None:
-        _translation_agent = _create_translation_agent()
-    return _translation_agent
-
-
-def _create_story_script_agent(model: str | None = None) -> Agent:
+def _create_story_script_agent(model: str) -> Agent:
     from ai_anime.config import get_newapi_text_pydantic_model
+    from ai_anime.model_access_policy import require_model_role
 
-    resolved = resolve_creative_canvas_story_script_model(model)
+    clean_model = str(model or "").strip()
+    require_model_role(clean_model, "TEXT")
     llm_model = get_newapi_text_pydantic_model(
         "FREEZONE_STORY_SCRIPT_MODEL",
-        resolved["model"],
+        clean_model,
+        model_name_override=clean_model,
     )
     return Agent(
         llm_model,
@@ -97,18 +91,10 @@ def _create_story_script_agent(model: str | None = None) -> Agent:
         name="Freezone Story Script Generator",
     )
 
-
-def _get_story_script_agent(model: str | None = None) -> Agent:
-    global _story_script_agent
-    resolved = resolve_creative_canvas_story_script_model(model)
-    if _story_script_agent is None:
-        _story_script_agent = _create_story_script_agent(resolved["id"])
-    return _story_script_agent
-
-
 async def translate_creative_canvas_text(
     *,
     text: str,
+    model: str,
     node_type: CreativeCanvasTextNodeType = "generic",
 ) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
     if not text or not text.strip():
@@ -118,7 +104,7 @@ async def translate_creative_canvas_text(
         text=text,
         node_type=node_type,
     )
-    response = await _get_translation_agent().run(task)
+    response = await _create_translation_agent(model).run(task)
     result = response.output
     target_language: Literal["zh", "en"] = result.target_language
     if target_language == result.source_language:
@@ -134,7 +120,7 @@ async def generate_creative_canvas_story_script(
     *,
     source_text: str,
     prompt: str = "",
-    model: str | None = None,
+    model: str,
 ) -> dict[str, Any]:
     if not source_text or not source_text.strip():
         raise ValueError("source_text is required")
@@ -143,5 +129,5 @@ async def generate_creative_canvas_story_script(
         source_text=source_text,
         prompt=prompt,
     )
-    response = await _get_story_script_agent(model).run(task)
+    response = await _create_story_script_agent(model).run(task)
     return response.output.model_dump()

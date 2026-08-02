@@ -24,8 +24,11 @@ from ai_anime.modules.production.application.ports import (
     ProductionSettingsRepository,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key
 
 
 class NanoBananaGridRegenerationPlanner:
@@ -136,6 +139,8 @@ class LocalGridRegenerationPreparer:
             project_config,
             command.image_generation_selection,
         )
+        if not image_selection:
+            raise GridRegenerationRejected("请先选择渲染图片模型")
         store = await project_stores.make_sqlite_store_for_context(context)
         try:
             beats = await store.get_beats_as_dicts(command.episode_num)
@@ -171,8 +176,7 @@ class LocalGridRegenerationPreparer:
                     "beats": beats,
                     "character_map": character_map,
                     "style": style,
-                    "model": command.model,
-                    "image_generation_selection": image_selection,
+                    "model": image_selection,
                     "render_mode": "Render",
                     "scene_grouping": command.scene_grouping,
                     "character_grouping": command.character_grouping,
@@ -188,32 +192,28 @@ class LocalGridRegenerationPreparer:
             await store.close()
 
 
-class TaskBackendGridRegenerationScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionGridRegenerationScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: GridRegenerationTask,
     ) -> GridRegenerationTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=GRID_REGENERATION_TASK_TYPE,
-            queue_kind="default",
-            episode=task.episode_num,
-            scope=task.scope,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=GRID_REGENERATION_TASK_TYPE,
+                episode=task.episode_num,
+                scope=task.scope,
+                payload=task.backend_payload(),
+            ),
         )
         return GridRegenerationTaskReceipt(
             scope=task.scope,
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                GRID_REGENERATION_TASK_TYPE,
-                context.project_id,
-                task.episode_num,
-                scope=task.scope,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

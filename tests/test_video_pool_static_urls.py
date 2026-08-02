@@ -55,7 +55,7 @@ def _write_video_pool(ctx: ProjectContext, episode: int = 1) -> tuple[Path, Vide
             episode_num=episode,
             beat_num=6,
             source_video_path=source_video,
-            backend="seedance2",
+            video_model="cloud-video-test",
             prompt="test",
         ),
     )

@@ -8,7 +8,7 @@ import {
   selectLastCompletion,
   selectFilteredTasks,
   selectCountByStatus,
-} from "@/task-center/store";
+} from "@/modules/task_execution/public";
 
 beforeEach(() => {
   useTaskCenterStore.getState().reset();

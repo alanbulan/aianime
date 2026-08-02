@@ -19,9 +19,9 @@ import {
   matteInWorker,
   preloadMatteWorker,
 } from "@/features/canvas/infrastructure/matteClient";
-import { readUrl } from "@/lib/url-params";
 
 export interface ImageMatteControllerOptions {
+  projectId: string;
   nodeId: string;
   nodeData: CanvasNodeData;
   imageSource: string | null;
@@ -29,6 +29,7 @@ export interface ImageMatteControllerOptions {
 }
 
 export function useImageMatteController({
+  projectId,
   nodeId,
   nodeData,
   imageSource,
@@ -56,13 +57,6 @@ export function useImageMatteController({
 
   const matte = useCallback(() => {
     if (!imageSource) return;
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.warn(
-        "[matte] no project_id in URL (?p=<project_id>) — cannot persist matted PNG",
-      );
-      return;
-    }
 
     const nextNodeId = addNode(
       CANVAS_NODE_TYPES.exportImage,
@@ -108,6 +102,7 @@ export function useImageMatteController({
     imageSource,
     nodeData,
     nodeId,
+    projectId,
     setSelectedNode,
     updateNodeData,
   ]);

@@ -13,13 +13,14 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
-from ai_anime.freezone.paths import freezone_root, resolve_static_url_to_path
-from ai_anime.freezone.slots import (
+from ai_anime.modules.creative_canvas.domain.slot_targets import (
     SlotTarget,
+    validate_source_for_slot,
+)
+from ai_anime.modules.creative_canvas.infrastructure.slots import (
     backup_slot_if_exists,
     slot_target_path,
     sync_slot_after_write,
-    validate_source_for_slot,
 )
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_commits import (
@@ -29,6 +30,7 @@ from ai_anime.modules.creative_canvas.application.canvas_commits import (
     CreativeCanvasSlotSourceNotFound,
     InvalidCreativeCanvasSlotCommit,
 )
+from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
 from ai_anime.modules.creative_canvas.domain.canvas_commits import (
     CreativeCanvasImpactBeat,
     compute_creative_canvas_slot_impact,
@@ -39,7 +41,10 @@ from ai_anime.shared.infrastructure.project_stores import (
     make_cognee_store_for_context,
     make_sqlite_store_for_context,
 )
-from ai_anime.shared.project_media import make_static_url_for_context
+from ai_anime.shared.project_media import (
+    make_static_url_for_context,
+    resolve_project_media_path,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -71,7 +76,7 @@ class LocalCreativeCanvasSlotCommitGateway:
     ) -> CreativeCanvasSlotCopyResult:
         target = self._target(command.target)
         try:
-            source_path = resolve_static_url_to_path(
+            source_path = resolve_project_media_path(
                 command.source_url,
                 command.project_dir,
             )
@@ -134,7 +139,10 @@ class LocalCreativeCanvasSlotCommitGateway:
         context: ProjectContext,
         target: Mapping[str, Any],
     ) -> Sequence[Mapping[str, Any]]:
-        target_payload = self._target(target).model_dump(mode="json")
+        target_payload = _SLOT_TARGET_ADAPTER.dump_python(
+            self._target(target),
+            mode="json",
+        )
         store = await (self._store_factory or make_sqlite_store_for_context)(context)
         try:
             beats = await store.list_visual_beats()
@@ -167,7 +175,10 @@ class LocalCreativeCanvasSlotCommitGateway:
     ) -> int:
         if not impacted:
             return 0
-        target_payload = self._target(target).model_dump(mode="json")
+        target_payload = _SLOT_TARGET_ADAPTER.dump_python(
+            self._target(target),
+            mode="json",
+        )
         path = freezone_root(project_dir) / "stale_marks.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -231,7 +242,10 @@ class LocalCreativeCanvasSlotCommitGateway:
         context: ProjectContext,
         target: Mapping[str, Any],
     ) -> None:
-        target_payload = self._target(target).model_dump(mode="json")
+        target_payload = _SLOT_TARGET_ADAPTER.dump_python(
+            self._target(target),
+            mode="json",
+        )
         episode = int(target_payload["episode"])
         beat = int(target_payload["beat"])
         store = await (self._store_factory or make_sqlite_store_for_context)(context)
@@ -267,7 +281,10 @@ class LocalCreativeCanvasSlotCommitGateway:
         target: Mapping[str, Any],
         target_path: Path,
     ) -> None:
-        target_payload = self._target(target).model_dump(mode="json")
+        target_payload = _SLOT_TARGET_ADAPTER.dump_python(
+            self._target(target),
+            mode="json",
+        )
         try:
             store = await (self._cognee_store_factory or make_cognee_store_for_context)(
                 context

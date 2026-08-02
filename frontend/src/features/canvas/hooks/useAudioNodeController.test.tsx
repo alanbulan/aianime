@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
   updateNodeInternals: vi.fn(),
   generate: vi.fn(async () => undefined),
+  useAudioGeneration: vi.fn(),
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
   uploadCanvasAsset: vi.fn(),
@@ -23,7 +24,6 @@ const mocks = vi.hoisted(() => ({
     task: null as unknown,
   },
   isBoxSelecting: false,
-  project: '',
   nodes: [] as Array<{ id: string; data: unknown }>,
 }));
 
@@ -60,7 +60,8 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
 }));
 
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
-  useAudioGeneration: () => ({ generate: mocks.generate }),
+  useAudioGeneration: (...args: unknown[]) =>
+    mocks.useAudioGeneration(...args),
 }));
 
 vi.mock('@/features/canvas/application/canvasServices', () => ({
@@ -84,12 +85,8 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.uploadCanvasAsset(project, file, filename),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project }),
 }));
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {
@@ -117,6 +114,9 @@ describe('useAudioNodeController', () => {
     mocks.updateNodeData.mockReset();
     mocks.updateNodeInternals.mockReset();
     mocks.generate.mockReset().mockResolvedValue(undefined);
+    mocks.useAudioGeneration
+      .mockReset()
+      .mockReturnValue({ generate: mocks.generate });
     mocks.subscribe.mockReset().mockReturnValue(mocks.unsubscribe);
     mocks.unsubscribe.mockReset();
     mocks.uploadCanvasAsset.mockReset();
@@ -126,7 +126,6 @@ describe('useAudioNodeController', () => {
     mocks.taskState.isGenerating = false;
     mocks.taskState.task = null;
     mocks.isBoxSelecting = false;
-    mocks.project = '';
     mocks.nodes.splice(0);
   });
 
@@ -141,6 +140,8 @@ describe('useAudioNodeController', () => {
       mainline_context: [{ id: 'context-a' }],
     });
     const { result } = renderHook(() => useAudioNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'audio-a',
       data: nodeData,
       selected: true,
@@ -149,6 +150,8 @@ describe('useAudioNodeController', () => {
     }));
 
     expect(result.current).toMatchObject({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'audio-a',
       selected: true,
       title: '音频节点',
@@ -164,6 +167,11 @@ describe('useAudioNodeController', () => {
         maxWidth: 900,
         maxHeight: 360,
       },
+    });
+    expect(mocks.useAudioGeneration).toHaveBeenCalledWith({
+      projectId: 'project-a',
+      nodeId: 'audio-a',
+      data: nodeData,
     });
     expect(mocks.updateNodeInternals).toHaveBeenCalledWith('audio-a');
 
@@ -191,6 +199,8 @@ describe('useAudioNodeController', () => {
   it('persists task failures and projects the stored error state', () => {
     mocks.taskState.task = { status: 'failed', error: '任务失败' };
     const { result } = renderHook(() => useAudioNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'audio-failed',
       data: data({
         generationError: '  旧错误  ',
@@ -209,9 +219,10 @@ describe('useAudioNodeController', () => {
   });
 
   it('validates and uploads matching external audio files', async () => {
-    mocks.project = 'project-upload-551';
     mocks.uploadCanvasAsset.mockResolvedValue({ url: '/uploaded/voice.m4a' });
     const { unmount } = renderHook(() => useAudioNodeController({
+      projectId: 'project-upload-551',
+      canvasId: 'canvas-a',
       id: 'audio-upload',
       data: data(),
     }));
@@ -255,9 +266,10 @@ describe('useAudioNodeController', () => {
 
   it('clears the upload flag when an external upload fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    mocks.project = 'project-upload-failure-551';
     mocks.uploadCanvasAsset.mockRejectedValue(new Error('upload failed'));
     renderHook(() => useAudioNodeController({
+      projectId: 'project-upload-failure-551',
+      canvasId: 'canvas-a',
       id: 'audio-upload-failed',
       data: data(),
     }));
@@ -279,7 +291,6 @@ describe('useAudioNodeController', () => {
   });
 
   it('initializes one default voice under StrictMode with a shared request', async () => {
-    mocks.project = 'project-default-voice-551';
     const nodeData = data({ voiceRef: null });
     mocks.nodes.push({ id: 'audio-default', data: nodeData });
     mocks.loadCanvasAudioReferences.mockResolvedValue([{
@@ -291,6 +302,8 @@ describe('useAudioNodeController', () => {
     }]);
 
     renderHook(() => useAudioNodeController({
+      projectId: 'project-default-voice-551',
+      canvasId: 'canvas-a',
       id: 'audio-default',
       data: nodeData,
     }), { wrapper: StrictModeWrapper });
@@ -312,7 +325,6 @@ describe('useAudioNodeController', () => {
   });
 
   it('does not rewrite an equivalent narrator fallback', async () => {
-    mocks.project = 'project-equivalent-voice-551';
     const nodeData = data({
       voiceRef: { scope: 'project_narrator' },
       voiceLabel: '',
@@ -328,6 +340,8 @@ describe('useAudioNodeController', () => {
     }]);
 
     renderHook(() => useAudioNodeController({
+      projectId: 'project-equivalent-voice-551',
+      canvasId: 'canvas-a',
       id: 'audio-equivalent',
       data: nodeData,
     }));

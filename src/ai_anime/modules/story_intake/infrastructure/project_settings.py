@@ -20,13 +20,19 @@ class ProjectConfigSettings:
         self._save_config = save_config
         self._default_aspect_ratio = default_aspect_ratio
 
-    def set_spine_template(
+    def set_ingestion_configuration(
         self,
         username: str,
         project_name: str,
-        spine_template: SpineTemplate,
+        *,
+        text_model: str,
+        embedding_model: str,
+        spine_template: SpineTemplate | None,
     ) -> None:
         config = self._load_config(username, project_name)
-        config["spine_template"] = spine_template
-        config["aspect_ratio"] = self._default_aspect_ratio(spine_template)
+        config["knowledge_text_model"] = text_model
+        config["knowledge_embedding_model"] = embedding_model
+        if spine_template is not None:
+            config["spine_template"] = spine_template
+            config["aspect_ratio"] = self._default_aspect_ratio(spine_template)
         self._save_config(username, project_name, config)

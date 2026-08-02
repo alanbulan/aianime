@@ -1,16 +1,14 @@
 """Runtime composition for AI Assistant."""
 
 from ai_anime.modules.ai_assistant.application import (
-    AgentBackendPrewarmer,
-    AgentBackendService,
     AgentPromptContext,
-    AgentThreadReplies,
     ChatPresentation,
     ChatWorkerLifecycle,
     DisplayFallbacks,
     DeterministicProjectReplies,
     HermesHomeReplies,
     HermesProjectReplies,
+    HermesRuntimePrewarmer,
     PageAgentSessions,
     ProjectAssistantReplies,
     ProjectChatTurns,
@@ -19,37 +17,22 @@ from ai_anime.modules.ai_assistant.application import (
     ScopedChatMessages,
 )
 from ai_anime.modules.ai_assistant.infrastructure import (
-    FileAgentThreadSessions,
     FileChatRunLocks,
     FileJsonRenderErrors,
     FileUserPreferences,
     HttpDisplayFallbackGateway,
-    LocalAgentBackendRuntime,
-    LocalAgentThreadRuntime,
-    LocalAgentToolConfiguration,
-    LocalAgentWorkspace,
     LocalHermesRuntime,
     LocalProjectMediaFiles,
     SQLiteChatHistory,
 )
 
-_agent_backend = AgentBackendService(LocalAgentBackendRuntime())
-_agent_tool_configuration = LocalAgentToolConfiguration()
-_agent_workspace = LocalAgentWorkspace()
 _agent_prompt_context = AgentPromptContext(FileUserPreferences())
-_agent_thread_sessions = FileAgentThreadSessions()
-_agent_thread_runtime = LocalAgentThreadRuntime(
-    _agent_backend,
-    _agent_thread_sessions,
-    _agent_workspace,
-    _agent_tool_configuration,
-)
 _chat_history = SQLiteChatHistory()
 _chat_presentation = ChatPresentation(FileJsonRenderErrors())
 _chat_run_locks = FileChatRunLocks()
 _hermes_runtime = LocalHermesRuntime()
 _chat_worker_lifecycle = ChatWorkerLifecycle(_hermes_runtime, _chat_run_locks)
-_agent_backend_prewarmer = AgentBackendPrewarmer(_agent_backend, _hermes_runtime)
+_hermes_runtime_prewarmer = HermesRuntimePrewarmer(_hermes_runtime)
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
@@ -57,14 +40,6 @@ _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
 _scoped_chat_messages = ScopedChatMessages(_chat_history, _project_chat_messages)
 _deterministic_project_replies = DeterministicProjectReplies(_project_chat_messages)
 _hermes_home_replies = HermesHomeReplies(_hermes_runtime, _chat_history)
-_agent_thread_replies = AgentThreadReplies(
-    _agent_thread_runtime,
-    _agent_prompt_context,
-    _page_agent_sessions,
-    _project_media,
-    _project_chat_messages,
-    _chat_presentation,
-)
 _hermes_project_replies = HermesProjectReplies(
     _hermes_runtime,
     _agent_prompt_context,
@@ -75,8 +50,6 @@ _hermes_project_replies = HermesProjectReplies(
     _display_fallbacks,
 )
 _project_assistant_replies = ProjectAssistantReplies(
-    _agent_backend,
-    _agent_thread_replies,
     _chat_run_locks,
     _deterministic_project_replies,
     _hermes_project_replies,
@@ -87,8 +60,8 @@ _project_chat_turns = ProjectChatTurns(
 )
 
 
-def get_agent_backend_prewarmer() -> AgentBackendPrewarmer:
-    return _agent_backend_prewarmer
+def get_hermes_runtime_prewarmer() -> HermesRuntimePrewarmer:
+    return _hermes_runtime_prewarmer
 
 
 def get_agent_prompt_context() -> AgentPromptContext:

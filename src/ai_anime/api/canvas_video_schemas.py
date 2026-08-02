@@ -15,7 +15,6 @@ class FreezoneExtractFramesRequest(BaseModel):
 
 class FreezoneAnalyzeShotsRequest(BaseModel):
     frame_urls: list[str]
-    provider: Optional[str] = None
     model: Optional[str] = None
     analysis_mode: Literal["shots", "video_story"] = "shots"
     duration_sec: Optional[float] = None
@@ -114,15 +113,14 @@ class FreezoneVideoGenRequest(BaseModel):
     generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
-        description="是否开启 HuiMeng 真人素材审核/加白流程，用于可能包含真人人脸的素材",
+        description="是否请求真人素材审核；仅在所选模型声明支持时使用",
     )
     scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
         default=None,
         description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
-        default="newapi_seedance-2.0-fast",
-        description="视频模型名称。请传 `/api/v1/projects/{project}/freezone/video/models` 返回值之一。",
+        description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
@@ -172,15 +170,14 @@ class FreezoneImageToVideoRequest(BaseModel):
     generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
-        description="是否开启 HuiMeng 真人素材审核/加白流程，用于可能包含真人人脸的素材",
+        description="是否请求真人素材审核；仅在所选模型声明支持时使用",
     )
     scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
         default=None,
         description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
-        default="newapi_seedance-2.0-fast",
-        description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
+        description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
@@ -232,15 +229,14 @@ class FreezoneKeyframeVideoRequest(BaseModel):
     generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
-        description="是否开启 HuiMeng 真人素材审核/加白流程，用于可能包含真人人脸的素材",
+        description="是否请求真人素材审核；仅在所选模型声明支持时使用",
     )
     scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
         default=None,
         description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
-        default="newapi_seedance-2.0-fast",
-        description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
+        description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
@@ -296,8 +292,7 @@ class FreezoneVideoEditRequest(BaseModel):
         description="是否开启真人素材审核/加白流程",
     )
     model: str = Field(
-        default="newapi_happyhorse-1.0",
-        description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
+        description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
@@ -359,15 +354,14 @@ class FreezoneVideoOmniGenRequest(BaseModel):
     generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
-        description="是否开启 HuiMeng 真人素材审核/加白流程，用于可能包含真人人脸的素材",
+        description="是否请求真人素材审核；仅在所选模型声明支持时使用",
     )
     scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
         default=None,
         description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
-        default="newapi_seedance-2.0-fast",
-        description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
+        description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"

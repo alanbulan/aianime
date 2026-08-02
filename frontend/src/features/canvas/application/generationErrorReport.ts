@@ -3,7 +3,6 @@ import type { GenerationRuntimeDiagnostics } from './ports';
 
 export interface GenerationDebugContext extends Partial<GenerationRuntimeDiagnostics> {
   sourceType: 'imageEdit' | 'storyboardGen' | 'imageGen' | 'unknown';
-  providerId?: string;
   requestModel?: string;
   requestSize?: string;
   requestAspectRatio?: string;
@@ -114,9 +113,6 @@ export function buildGenerationErrorReport(
   sections.push('');
   sections.push('## Request Context');
   sections.push(`- Source: ${context.sourceType ?? 'unknown'}`);
-  if (context.providerId) {
-    sections.push(`- Provider: ${context.providerId}`);
-  }
   if (context.requestModel) {
     sections.push(`- Model: ${context.requestModel}`);
   }

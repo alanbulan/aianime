@@ -6,9 +6,42 @@ from typing import Literal
 
 CreativeCanvasVideoEraseMode = Literal["smart_subtitle", "box"]
 
+CREATIVE_CANVAS_VIDEO_RESOLUTIONS: dict[str, tuple[int, int]] = {
+    "720p": (1280, 720),
+    "1080p": (1920, 1080),
+}
+
+CREATIVE_CANVAS_VIDEO_UPSCALE_LONG_EDGE: dict[str, int] = {
+    "1080p": 1920,
+    "2k": 2560,
+    "4k": 3840,
+}
+
 
 class InvalidCreativeCanvasVideoComposition(ValueError):
     pass
+
+
+def build_creative_canvas_video_upscale_filter(
+    resolution: str,
+    denoise_strength: str,
+) -> str:
+    target = CREATIVE_CANVAS_VIDEO_UPSCALE_LONG_EDGE.get(resolution.lower())
+    if not target:
+        raise ValueError(f"unsupported video upscale resolution: {resolution}")
+    filters = [
+        f"scale='if(gte(iw,ih),{target},-2)':'if(gte(iw,ih),-2,{target})':flags=lanczos"
+    ]
+    denoise = (denoise_strength or "1x").lower()
+    if denoise == "1x":
+        filters.append("hqdn3d=1.2:1.2:4:4")
+    elif denoise == "2x":
+        filters.append("hqdn3d=2.0:2.0:6:6")
+    elif denoise != "none":
+        raise ValueError(f"unsupported denoise_strength: {denoise_strength}")
+    filters.append("unsharp=5:5:0.55:3:3:0.25")
+    filters.append("format=yuv420p")
+    return ",".join(filters)
 
 
 def validate_video_erase_box(

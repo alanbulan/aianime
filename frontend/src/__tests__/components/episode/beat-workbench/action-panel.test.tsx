@@ -61,7 +61,7 @@ vi.mock("@/modules/narrative_planning/composition", async () => {
   const useSingleBeatPanelController = createUseSingleBeatPanelController(
     {
       useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
-      useVideoBackends: () => ({ data: { data: [] } }),
+      useVideoModels: () => ({ data: [] }),
     },
     {
       beatTextScope: () => "beat-text",
@@ -132,8 +132,8 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultBackend="huimeng_seedance-2.0-fast"
-          onDefaultBackendChange={vi.fn()}
+          defaultModel="huimeng_seedance-2.0-fast"
+          onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
     );
@@ -158,8 +158,8 @@ describe("ActionPanel", () => {
       states,
       project: "demo",
       episode: 1,
-      defaultBackend: "huimeng_seedance-2.0-fast",
-      onDefaultBackendChange: vi.fn(),
+      defaultModel: "huimeng_seedance-2.0-fast",
+      onDefaultModelChange: vi.fn(),
     };
 
     const { unmount } = render(
@@ -210,8 +210,8 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultBackend="huimeng_seedance-2.0-fast"
-          onDefaultBackendChange={vi.fn()}
+          defaultModel="huimeng_seedance-2.0-fast"
+          onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
     );
@@ -228,8 +228,8 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultBackend="huimeng_seedance-2.0-fast"
-          onDefaultBackendChange={vi.fn()}
+          defaultModel="huimeng_seedance-2.0-fast"
+          onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
     );
@@ -255,8 +255,8 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultBackend="huimeng_seedance-2.0-fast"
-          onDefaultBackendChange={vi.fn()}
+          defaultModel="huimeng_seedance-2.0-fast"
+          onDefaultModelChange={vi.fn()}
           targetSection="sketch"
         />
       </I18nextProvider>,

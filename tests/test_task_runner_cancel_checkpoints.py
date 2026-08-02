@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.task_backend.cancel import TaskCancelled
+from ai_anime.modules.task_execution.public import TaskCancelled
 
 
 class _FakeTaskManager:
@@ -25,7 +25,7 @@ def _write_beat_video(project_dir: Path, episode: int, beat_num: int) -> None:
 
 
 def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypatch):
-    from ai_anime.task_backend.runners import stage_asset
+    from ai_anime.modules.task_execution.infrastructure.runners import stage_asset
 
     check_count = 0
 
@@ -60,7 +60,7 @@ def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypa
 
 
 def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, monkeypatch):
-    from ai_anime.task_backend.runners import stage_asset
+    from ai_anime.modules.task_execution.infrastructure.runners import stage_asset
 
     source = tmp_path / "source.png"
     source.write_bytes(b"image")
@@ -105,7 +105,7 @@ def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, 
 def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkeypatch):
     import time
 
-    from ai_anime.task_backend.runners import stage_asset
+    from ai_anime.modules.task_execution.infrastructure.runners import stage_asset
 
     captured: dict[str, int] = {}
 
@@ -138,7 +138,7 @@ def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkey
 
 
 def test_compose_episode_checks_cancel_after_final_ffmpeg_returns(tmp_path, monkeypatch):
-    from ai_anime.task_backend.runners import video
+    from ai_anime.modules.task_execution.infrastructure.runners import video
 
     _write_beat_video(tmp_path, episode=1, beat_num=1)
     cancel_after_final = False
@@ -177,7 +177,7 @@ def test_compose_episode_checks_cancel_after_final_ffmpeg_returns(tmp_path, monk
 def test_compose_episode_passes_deadline_timeout_to_ffmpeg(tmp_path, monkeypatch):
     import time
 
-    from ai_anime.task_backend.runners import video
+    from ai_anime.modules.task_execution.infrastructure.runners import video
 
     _write_beat_video(tmp_path, episode=1, beat_num=1)
     timeouts: list[int | None] = []
@@ -218,8 +218,8 @@ def test_compose_episode_passes_deadline_timeout_to_ffmpeg(tmp_path, monkeypatch
 def test_video_ffprobe_timeout_maps_to_task_timeout(monkeypatch, tmp_path):
     import subprocess
 
-    from ai_anime.task_backend.cancel import TaskTimedOut
-    from ai_anime.task_backend.runners import video
+    from ai_anime.modules.task_execution.public import TaskTimedOut
+    from ai_anime.modules.task_execution.infrastructure.runners import video
 
     media = tmp_path / "beat.mp4"
     media.write_bytes(b"video")

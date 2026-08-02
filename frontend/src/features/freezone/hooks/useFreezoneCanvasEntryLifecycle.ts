@@ -9,8 +9,8 @@ import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/us
 import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import { currentCanvasParam } from "@/lib/app-router";
 import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
+import type { CanvasSyncStatus } from "@/modules/creative_canvas/public";
 
-import type { CanvasSyncStatus } from "../application/canvasSyncStorage";
 
 export interface FreezoneCanvasEntryLifecycleOptions {
   projectId: string;

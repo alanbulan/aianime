@@ -20,5 +20,7 @@ node_modules/
 /desktop/release/
 /desktop/backend-dist/
 /desktop/.pyinstaller/
+/desktop/hermes-runtime/.pyinstaller/
+/desktop/hermes-runtime/dist/
 /desktop/.ffmpeg-cache/
 /desktop/runtime/

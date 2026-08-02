@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { DragEvent as ReactDragEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_ASSET_DRAG_MIME } from '../domain/assetDrag';
+import { CANVAS_ASSET_DRAG_MIME } from '@/modules/creative_canvas/public';
 import { useCanvasDropIndicator } from './useCanvasDropIndicator';
 
 function dragEvent(types: string[]) {

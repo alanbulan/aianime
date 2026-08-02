@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { LibraryAsset } from "../domain/assetLibraryModel";
+import type { LibraryAsset } from "@/modules/creative_canvas/public";
 import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
 
 vi.mock("./CanvasesTab", () => ({

@@ -3,7 +3,7 @@
 import uuid
 from pathlib import Path
 
-from ai_anime.freezone.paths import (
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
     output_path_for_job,
     safe_upload_filename,
     uploads_dir,

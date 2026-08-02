@@ -4,7 +4,7 @@ import {
   type SkillRunRequest,
   type SkillRunResponse,
   type SkillRunResult,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 
 const DEFAULT_RESULT_POLL_DELAY_MS = 700;
 const DEFAULT_RESULT_POLL_ATTEMPTS = 30;

@@ -13,14 +13,6 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.paths import (
-    CANVAS_ID_RE,
-    freezone_root,
-    output_path_for_job,
-    resolve_static_url_to_path,
-)
-from ai_anime.freezone.slots import SlotTarget, slot_target_path
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     ResolvedSkillInput,
@@ -35,6 +27,18 @@ from ai_anime.modules.creative_canvas.application.skill_run_contracts import (
     CreativeCanvasSkillTaskSnapshot,
     CreativeCanvasSkillWorkspace,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_identity import (
+    is_valid_creative_canvas_id,
+)
+from ai_anime.modules.creative_canvas.domain.slot_targets import SlotTarget
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    freezone_root,
+    output_path_for_job,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    read_canvas,
+)
+from ai_anime.modules.creative_canvas.infrastructure.slots import slot_target_path
 from ai_anime.modules.creative_canvas.domain.canvas_documents import (
     first_text_value,
     is_preset_managed_canvas_node,
@@ -50,7 +54,10 @@ from ai_anime.modules.creative_canvas.domain.skill_runs import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
-from ai_anime.shared.project_media import make_static_url_for_context
+from ai_anime.shared.project_media import (
+    make_static_url_for_context,
+    resolve_project_media_path,
+)
 from ai_anime.task_state import get_task_manager
 from ai_anime.utils.background_anchor import copy_to_beat_selected_background
 from ai_anime.utils.path_resolver import PathResolver
@@ -171,10 +178,10 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
     ) -> bool:
         canvas = (canvas_id or "").strip()
         node_id = (skill_node_id or "").strip()
-        if not canvas or not node_id or not CANVAS_ID_RE.match(canvas):
+        if not canvas or not node_id or not is_valid_creative_canvas_id(canvas):
             return False
         try:
-            payload = canvas_store.read_canvas(Path(context.state_dir), canvas)
+            payload = read_canvas(Path(context.state_dir), canvas)
         except Exception:
             logger.exception("failed to inspect canvas node for skill auto-commit")
             return False
@@ -186,7 +193,7 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
         return False
 
     def resolve_media_path(self, project_dir: Path, image_url: str) -> Path:
-        return resolve_static_url_to_path(image_url, project_dir)
+        return resolve_project_media_path(image_url, project_dir)
 
     def media_url(
         self,
@@ -251,7 +258,6 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
             sketch_colors=standalone_sketch_colors(beat_context),
             prop_marker_colors=standalone_prop_marker_colors(beat_context),
             project_dir=str(project_dir),
-            image_provider="",
             image_model=model,
         )
         return UnifiedPromptBuilder(prompt_context).build()

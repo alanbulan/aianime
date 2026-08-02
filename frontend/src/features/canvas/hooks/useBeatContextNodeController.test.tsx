@@ -38,8 +38,12 @@ const mocks = vi.hoisted(() => ({
   }>,
   episodeData: null as unknown,
   beatsData: null as unknown,
-  url: { project: 'project-url', canvas: 'canvas-a' },
 }));
+
+const routeContext = {
+  projectId: 'project-url',
+  canvasId: 'canvas-a',
+} as const;
 
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ fetchQuery: mocks.fetchQuery }),
@@ -73,10 +77,22 @@ vi.mock('@/features/canvas/domain/beatContextRoleBindings', () => ({
     mocks.syncMainlineEdges(...args),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
+  applyRemoteFreezoneCanvas: (...args: unknown[]) =>
+    mocks.applyRemoteCanvas(...args),
+  createCanvasFromPreset: (...args: unknown[]) =>
+    mocks.createCanvasFromPreset(...args),
   extractMainlineContextsFromNode: ({ data }: { data: BeatContextNodeData }) =>
     Array.isArray(data.mainline_context) ? data.mainline_context : [],
+  flushFreezoneCanvasRuntime: (...args: unknown[]) =>
+    mocks.flushRuntime(...args),
+  getFreezoneCanvas: (...args: unknown[]) => mocks.getCanvas(...args),
+  getFreezoneCanvasMetadata: () => mocks.getMetadata(),
   isCanonicalPushTarget: () => false,
+  listFreezoneBeatContext: (...args: unknown[]) =>
+    mocks.listBeatContext(...args),
+  openPresetProjectionInMyCanvas: (...args: unknown[]) =>
+    mocks.openWorkbench(...args),
   parseBeatContextVisualMarkers: (value: string) => ({
     identities: Array.from(value.matchAll(/\{\{([^}]+)\}\}/g)).map(
       (match) => match[1],
@@ -85,15 +101,6 @@ vi.mock('@/features/freezone/public', () => ({
       (match) => match[1],
     ),
   }),
-  applyRemoteFreezoneCanvas: (...args: unknown[]) =>
-    mocks.applyRemoteCanvas(...args),
-  flushFreezoneCanvasRuntime: (...args: unknown[]) =>
-    mocks.flushRuntime(...args),
-  getFreezoneCanvasMetadata: () => mocks.getMetadata(),
-  listFreezoneBeatContext: (...args: unknown[]) =>
-    mocks.listBeatContext(...args),
-  openPresetProjectionInMyCanvas: (...args: unknown[]) =>
-    mocks.openWorkbench(...args),
   presetRequestFromMetadata: (...args: unknown[]) =>
     mocks.presetRequest(...args),
 }));
@@ -110,12 +117,6 @@ vi.mock('@/modules/narrative_planning/public', () => ({
   },
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
-  createCanvasFromPreset: (...args: unknown[]) =>
-    mocks.createCanvasFromPreset(...args),
-  getFreezoneCanvas: (...args: unknown[]) => mocks.getCanvas(...args),
-}));
-
 vi.mock('@/features/canvas/application/beatContextRefreshProjection', () => ({
   buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>
     mocks.buildRefreshPatch(...args),
@@ -130,10 +131,6 @@ vi.mock('@/lib/query-keys', () => ({
       beat,
     ],
   },
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => mocks.url,
 }));
 
 function mainlineData(
@@ -249,6 +246,7 @@ describe('useBeatContextNodeController', () => {
     mocks.syncMainlineEdges.mockReturnValue(nextEdges);
     const { result } = renderHook(() =>
       useBeatContextNodeController({
+        ...routeContext,
         id: 'beat-a',
         data,
         selected: true,
@@ -308,7 +306,12 @@ describe('useBeatContextNodeController', () => {
       },
     };
     const { result } = renderHook(() =>
-      useBeatContextNodeController({ id: 'beat-a', data, selected: true }),
+      useBeatContextNodeController({
+        ...routeContext,
+        id: 'beat-a',
+        data,
+        selected: true,
+      }),
     );
     mocks.updateNodeData.mockClear();
 
@@ -332,7 +335,12 @@ describe('useBeatContextNodeController', () => {
   it('inserts mentions and persists the current visual draft on blur', () => {
     const data = mainlineData({ content: '@Al', snapshot: { visualDescription: '@Al' } });
     const { result } = renderHook(() =>
-      useBeatContextNodeController({ id: 'beat-a', data, selected: true }),
+      useBeatContextNodeController({
+        ...routeContext,
+        id: 'beat-a',
+        data,
+        selected: true,
+      }),
     );
     const textarea = document.createElement('textarea');
     textarea.value = '@Al';
@@ -369,7 +377,12 @@ describe('useBeatContextNodeController', () => {
     ];
     mocks.syncMainlineEdges.mockReturnValue(refreshedEdges);
     const { result } = renderHook(() =>
-      useBeatContextNodeController({ id: 'beat-a', data, selected: true }),
+      useBeatContextNodeController({
+        ...routeContext,
+        id: 'beat-a',
+        data,
+        selected: true,
+      }),
     );
 
     await act(async () => result.current.syncToMainline());
@@ -431,7 +444,12 @@ describe('useBeatContextNodeController', () => {
       });
     mocks.applyRemoteCanvas.mockReturnValue(false);
     const { result } = renderHook(() =>
-      useBeatContextNodeController({ id: 'beat-a', data, selected: true }),
+      useBeatContextNodeController({
+        ...routeContext,
+        id: 'beat-a',
+        data,
+        selected: true,
+      }),
     );
 
     await act(async () => result.current.syncToMainline());
@@ -470,7 +488,11 @@ describe('useBeatContextNodeController', () => {
     });
 
     const missing = renderHook(() =>
-      useBeatContextNodeController({ id: 'missing', data: {} }),
+      useBeatContextNodeController({
+        ...routeContext,
+        id: 'missing',
+        data: {},
+      }),
     );
     act(() => missing.result.current.changeTime('night'));
     expect(mocks.updateNodeData).toHaveBeenCalledWith('missing', {

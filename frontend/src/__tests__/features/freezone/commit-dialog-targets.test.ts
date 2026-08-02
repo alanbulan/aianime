@@ -12,7 +12,7 @@ import {
   modelSlotKindsForNodeData,
   renderCommitTargetLabel,
   sceneOptionLabel,
-} from "@/features/freezone/presentation/commitDialogViewModel";
+} from "@/modules/creative_canvas/public";
 
 describe("CommitDialog target kinds", () => {
   it("hides deprecated and auxiliary scene asset kinds from user selection", () => {
@@ -71,7 +71,7 @@ describe("CommitDialog target kinds", () => {
 
   it("routes scene 360 candidates to Director Pano 360 instead of the old scene_360 slot", () => {
     const source = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/domain/capabilities/candidateCapabilities.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/domain/capabilities/candidateCapabilities.ts"),
       "utf8",
     );
 
@@ -143,7 +143,7 @@ describe("CommitDialog target kinds", () => {
 
   it("keeps custom 3D world sources on the normal slot commit path", () => {
     const viewModelSource = readFileSync(
-      resolve(process.cwd(), "src/features/freezone/presentation/commitDialogViewModel.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/commitDialogViewModel.ts"),
       "utf8",
     );
     const controllerSource = readFileSync(

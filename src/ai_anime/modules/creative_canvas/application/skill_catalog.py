@@ -229,6 +229,10 @@ _REGISTRY: dict[str, SkillDefinition] = {
             "Generate a mainline sketch candidate from beat context and selected background."
         ),
         parameters={
+            "model": {
+                "type": "image_model",
+                "label": "模型",
+            },
             "aspect_ratio": {
                 "type": "enum",
                 "label": "比例",
@@ -277,6 +281,10 @@ _REGISTRY: dict[str, SkillDefinition] = {
         display_name="从导演合成图生成草图",
         description="从 Beat 上下文和导演合成图生成主线草图候选。",
         parameters={
+            "model": {
+                "type": "image_model",
+                "label": "模型",
+            },
             "aspect_ratio": {
                 "type": "enum",
                 "label": "比例",
@@ -321,6 +329,10 @@ _REGISTRY: dict[str, SkillDefinition] = {
         display_name="Frame From Context",
         description="Render a mainline frame candidate from beat context, sketch, and references.",
         parameters={
+            "model": {
+                "type": "image_model",
+                "label": "模型",
+            },
             "quality": {
                 "type": "enum",
                 "label": "质量",
@@ -494,6 +506,12 @@ _REGISTRY: dict[str, SkillDefinition] = {
         capabilities=_FREEZONE_MAINLINE_CAPABILITIES,
         display_name="Scene 360",
         description="Generate a 2:1 scene panorama candidate from a scene master.",
+        parameters={
+            "model": {
+                "type": "image_model",
+                "label": "模型",
+            },
+        },
         inputs=[
             _input(
                 "scene",

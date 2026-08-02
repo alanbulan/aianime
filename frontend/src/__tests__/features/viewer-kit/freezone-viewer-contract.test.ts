@@ -41,7 +41,10 @@ describe("freezone viewer contracts", () => {
     expect(registry).toContain("node.menu.pano360Viewer");
     expect(nodeSelectionMenuModel).toContain("CANVAS_NODE_TYPES.pano360Viewer");
     expect(spawnOverlay).toContain("CANVAS_NODE_TYPES.pano360Viewer");
-    expect(nodesIndex).toContain("pano360ViewerNode: Pano360ViewerNode");
+    expect(nodesIndex).toContain("pano360ViewerNode: BoundPano360ViewerNode");
+    expect(nodesIndex).toContain(
+      "createElement(Pano360ViewerNode, { ...props, projectId })",
+    );
     expect(nodesIndex).toContain("Pano360ViewerNode");
   });
 
@@ -102,10 +105,10 @@ describe("freezone viewer contracts", () => {
       "src/features/freezone/presentation/AssetLibraryPanel.tsx",
     );
     const assetLibraryModel = read(
-      "src/features/freezone/domain/assetLibraryModel.ts",
+      "src/modules/creative_canvas/domain/assetLibraryModel.ts",
     );
     const assetLibraryInsertion = read(
-      "src/features/freezone/application/assetLibraryCanvasInsertion.ts",
+      "src/modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
     );
     const assetLibraryInsertionComposition = read(
       "src/features/freezone/assetLibraryCanvasInsertionComposition.ts",
@@ -459,8 +462,8 @@ describe("freezone viewer contracts", () => {
   });
 
   it("commits scene director worlds only through the explicit structured commit path", () => {
-    const push = read("src/features/freezone/domain/assetCommit.ts");
-    const target = read("src/features/freezone/domain/pushTarget.ts");
+    const push = read("src/modules/creative_canvas/domain/assetCommit.ts");
+    const target = read("src/modules/creative_canvas/domain/pushTarget.ts");
     const submitController = read(
       "src/features/freezone/hooks/useCommitDialogSubmitController.ts",
     );
@@ -468,7 +471,10 @@ describe("freezone viewer contracts", () => {
       "src/features/freezone/hooks/useFreezoneShellController.ts",
     );
     const commitController = read(
-      "src/features/freezone/hooks/useCanvasCommitController.ts",
+      "src/modules/creative_canvas/presentation/useCanvasCommitController.ts",
+    );
+    const commitComposition = read(
+      "src/modules/creative_canvas/canvasCommitControllerComposition.ts",
     );
 
     expect(push).toContain('"scene_director_world"');
@@ -481,9 +487,9 @@ describe("freezone viewer contracts", () => {
     expect(commitController).toContain("nodeData: latestData");
     expect(commitController).toContain("nodeDataPatchAfterCommittedTarget");
     expect(commitController).toContain("sceneDirectorWorldDataForManifest");
-    expect(commitController).toContain("invalidateCommittedTargetQueries(target)");
-    expect(commitController).toContain(
-      "queryKeys.sceneDirectorStageManifest(projectId, target.scene_id)",
+    expect(commitController).toContain("invalidateCommittedTarget(target)");
+    expect(commitComposition).toContain(
+      "queryKeys.sceneDirectorStageManifest(",
     );
     expect(commitController).not.toContain("updateNodeData(nodeId, manifestNodeData)");
     expect(shell).not.toContain("saveOpenDirectorWorldScene");
@@ -532,7 +538,7 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps freezone 3GS commit roles for generated PLY source kinds", () => {
-    const commit = read("src/features/freezone/application/assetCommit.ts");
+    const commit = read("src/modules/creative_canvas/application/assetCommit.ts");
 
     expect(commit).toContain("scene_3gs_master_ply");
     expect(commit).toContain("scene_3gs_reverse_ply");
@@ -546,7 +552,7 @@ describe("freezone viewer contracts", () => {
     );
 
     expect(imageGenController).toContain("autoCommitOnGenerate");
-    expect(imageGenController).toContain("canvasEventBus.publish('freezone/commit-node'");
+    expect(imageGenController).toContain("publishCanvasCommitRequested({");
     expect(imageGenController).toContain("auto: true");
   });
 
@@ -562,10 +568,16 @@ describe("freezone viewer contracts", () => {
       "src/features/freezone/hooks/useFreezoneShellController.ts",
     );
     const commandController = read(
-      "src/features/freezone/hooks/useCanvasProjectionCommandController.ts",
+      "src/modules/creative_canvas/presentation/useCanvasProjectionCommandController.ts",
+    );
+    const commandApplication = read(
+      "src/modules/creative_canvas/application/canvasProjection.ts",
+    );
+    const commandComposition = read(
+      "src/modules/creative_canvas/canvasProjectionCommandComposition.ts",
     );
     const statusLifecycle = read(
-      "src/features/freezone/hooks/useCanvasProjectionStatusLifecycle.ts",
+      "src/modules/creative_canvas/canvasProjectionStatusLifecycleComposition.ts",
     );
     const ports = read("src/features/canvas/application/ports.ts");
     const groupNodeController = read(
@@ -577,13 +589,20 @@ describe("freezone viewer contracts", () => {
 
     expect(toolbar).toContain("<NodeManagementToolbarActions node={node} />");
     expect(managementModel).toContain("isProtectedProjectionGroupNode(node)");
-    expect(managementController).toContain('"freezone/projection-sync"');
-    expect(managementController).toContain('"freezone/projection-remove"');
+    expect(managementController).toContain(
+      "publishCanvasProjectionSyncRequested(projection.projectionKey)",
+    );
+    expect(managementController).toContain(
+      "publishCanvasProjectionRemovalRequested(projection.projectionKey)",
+    );
     expect(managementController).toContain("useCanvasProjectionStatus(");
     expect(commandController).toContain('"freezone/projection-sync"');
     expect(commandController).toContain("handleSyncProjection(projectionKey)");
     expect(commandController).toContain('"freezone/projection-remove"');
     expect(commandController).toContain("handleRemoveProjection(projectionKey)");
+    expect(commandApplication).toContain("requestFromProjectionMetadata(");
+    expect(commandApplication).toContain("dependencies.queueProjection(");
+    expect(commandComposition).toContain("removeLocalFreezoneProjection");
     expect(shell).not.toContain("<ProjectionPanel");
     expect(shell).toContain("useCanvasProjectionCommandController({");
     expect(shell).toContain("useCanvasProjectionStatusLifecycle({");
@@ -595,8 +614,8 @@ describe("freezone viewer contracts", () => {
     expect(groupNodeView).toContain("projection-stale-frame");
     expect(groupNodeView).toContain("projection-stale-banner");
     expect(groupNodeView).toContain("freezone.projections.staleBadge");
-    expect(ports).toContain("'freezone/projection-sync'");
-    expect(ports).toContain("'freezone/projection-remove'");
+    expect(ports).not.toContain("'freezone/projection-sync'");
+    expect(ports).not.toContain("'freezone/projection-remove'");
   });
 
   it("uses the backend scene Director World manifest as the single source of truth", () => {

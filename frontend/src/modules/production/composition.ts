@@ -7,10 +7,12 @@ import { useNow } from "@/hooks/use-now";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
+  useCommercialModelCatalog,
+  loadCommercialModelCatalog,
   useGenerationCreditCost,
   useGenerationCreditCosts,
 } from "@/modules/model_usage/public";
-import { useTasks } from "@/task-center/public";
+import { useTasks } from "@/modules/task_execution/public";
 import {
   useEpisodeBeats,
   useEpisodeDetail,
@@ -23,13 +25,16 @@ import {
 import { useAppStore } from "@/stores/app-store";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
+import { createAuthorizedProductionImageGateway } from "@/modules/production/application/authorized-image-generation-gateway";
+import { createUseAudioModels } from "@/modules/production/application/audio-model-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
+import { createUseImageModels } from "@/modules/production/application/image-model-query-hooks";
 import { createImageGridQueryHooks } from "@/modules/production/application/image-grid-query-hooks";
 import { createImagePoolQueryHooks } from "@/modules/production/application/image-pool-query-hooks";
 import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
 import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
-import { createVideoBackendQueryHooks } from "@/modules/production/application/video-backend-query-hooks";
+import { createUseVideoModels } from "@/modules/production/application/video-model-query-hooks";
 import { createVideoGenerationQueryHooks } from "@/modules/production/application/video-generation-query-hooks";
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
 import { createSeedance2PanelQueryHooks } from "@/modules/production/application/seedance2-panel-query-hooks";
@@ -76,9 +81,14 @@ import type { BeatStageState } from "@/modules/production/domain/beat-state";
 const audioGenerationQueries = createAudioGenerationQueryHooks(
   httpProductionVideoGateway,
 );
+const authorizedProductionImageGateway =
+  createAuthorizedProductionImageGateway(httpProductionVideoGateway, {
+    load: () => loadCommercialModelCatalog("IMAGE"),
+  });
+const useAudioModels = createUseAudioModels(useCommercialModelCatalog);
 const useAudioPaneController = createUseAudioPaneController(
   audioGenerationQueries,
-  { useGenerationCreditCost },
+  { useAudioModels, useGenerationCreditCost },
 );
 const videoPoolQueries = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
@@ -95,11 +105,12 @@ const imageGridQueries = createImageGridQueryHooks(
 const imageSettingsQueries = createImageSettingsQueryHooks(
   httpProductionVideoGateway,
 );
+const useImageModels = createUseImageModels(useCommercialModelCatalog);
 const renderPlanQueries = createRenderPlanQueryHooks(
-  httpProductionVideoGateway,
+  authorizedProductionImageGateway,
 );
 const sketchGenerationQueries = createSketchGenerationQueryHooks(
-  httpProductionVideoGateway,
+  authorizedProductionImageGateway,
 );
 const sketchRegenQueueQueries = createSketchRegenQueueQueryHooks(
   httpProductionVideoGateway,
@@ -112,9 +123,7 @@ const videoGenerationQueries = createVideoGenerationQueryHooks({
   currentPromptLanguage: () =>
     promptLanguageFromLocale(useAppStore.getState().language),
 });
-const videoBackendQueries = createVideoBackendQueryHooks(
-  httpProductionVideoGateway,
-);
+const useVideoModels = createUseVideoModels(useCommercialModelCatalog);
 const sketchMarkerQueries = createSketchMarkerQueryHooks(
   httpProductionVideoGateway,
 );
@@ -186,7 +195,7 @@ export const useVideoPaneMediaController = createUseVideoPaneMediaController(
 export const useVideoPaneController = createUseVideoPaneController(
   {
     useSeedance2BeatStatus: seedance2PanelQueries.useSeedance2BeatStatus,
-    useVideoBackends: videoBackendQueries.useVideoBackends,
+    useVideoModels,
   },
   {
     useBeatVideoGenerationController,
@@ -241,7 +250,9 @@ export const useBatchBarController = createUseBatchBarController(
     useSketchSettings: imageSettingsQueries.useSketchSettings,
     useUpdateRenderSettings: imageSettingsQueries.useUpdateRenderSettings,
     useUpdateSketchSettings: imageSettingsQueries.useUpdateSketchSettings,
-    useVideoBackends: videoBackendQueries.useVideoBackends,
+    useAudioModels,
+    useImageModels,
+    useVideoModels,
   },
   { formatCreditCost, useGenerationCreditCost },
 );
@@ -253,6 +264,7 @@ export const useBatchPanelController = createUseBatchPanelController(
       sketchRegenQueueQueries.useSaveSketchRegenQueue,
     useSketchRegenQueue: sketchRegenQueueQueries.useSketchRegenQueue,
     useSketchSettings: imageSettingsQueries.useSketchSettings,
+    useAudioModels,
   },
   {
     formatCreditCost,
@@ -300,7 +312,7 @@ export const useSketchPoseEditorDialogController =
     },
     { resolveMediaUrl },
   );
-export const { useVideoBackends } = videoBackendQueries;
+export { useVideoModels };
 export const { useVideoPool, useVideoPoolSelect } = videoPoolQueries;
 export const {
   useGrids,
@@ -376,7 +388,7 @@ export interface BatchBarProps {
   project: string;
   sketchAspectRatio: SketchAspectRatio;
   spineTemplate?: "drama" | "narrated";
-  videoBackend: string;
+  videoModel: string;
 }
 
 export function BatchBar({
@@ -386,7 +398,7 @@ export function BatchBar({
   project,
   sketchAspectRatio,
   spineTemplate = "drama",
-  videoBackend,
+  videoModel,
 }: BatchBarProps) {
   const controller = useBatchBarController({
     beats,
@@ -395,7 +407,7 @@ export function BatchBar({
     project,
     sketchAspectRatio,
     spineTemplate,
-    videoBackend,
+    videoModel,
   });
 
   return createElement(BatchBarView, { controller });

@@ -41,11 +41,10 @@ class StartCreativeCanvasImageGenerationCommand:
     prompt: str
     aspect_ratio: str
     image_size: str
+    model: str
     reference_urls: tuple[str, ...] = ()
     camera: CreativeCanvasImageCameraConfig | None = None
     style: CreativeCanvasImageStyleConfig | None = None
-    provider: str | None = None
-    model: str | None = None
     quality: str | None = None
     canvas_id: str | None = None
     node_id: str | None = None
@@ -66,9 +65,8 @@ class CreativeCanvasImageGenerationPromptComposer(Protocol):
 class CreativeCanvasImageGenerationModelRouter(Protocol):
     def resolve(
         self,
-        provider: str | None,
-        model: str | None,
-    ) -> tuple[str, str | None]: ...
+        model: str,
+    ) -> str: ...
 
 
 class CreativeCanvasImageGenerationUseCases:
@@ -96,7 +94,7 @@ class CreativeCanvasImageGenerationUseCases:
         )
         job_id = self._job_ids.new_id()
         try:
-            provider, model = self._models.resolve(command.provider, command.model)
+            model = self._models.resolve(command.model)
         except ValueError as exc:
             raise InvalidCreativeCanvasImageGenerationRequest(str(exc)) from exc
         try:
@@ -121,7 +119,6 @@ class CreativeCanvasImageGenerationUseCases:
                     "aspect_ratio": command.aspect_ratio,
                     "image_size": command.image_size,
                     "reference_paths": [path.as_posix() for path in reference_paths],
-                    "provider": provider,
                     "model": model,
                     "quality": command.quality,
                     "canvas_id": command.canvas_id or "",

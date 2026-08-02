@@ -6,13 +6,13 @@ import { Position } from '@xyflow/react';
 import {
   useAssetDropStore,
 } from '@/features/canvas/assetDropStore';
-import { deriveNodeDropInfo } from '@/features/canvas/domain/assetDropInfo';
 import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from '@/features/canvas/ui/NodeSideActionRail';
+import { deriveNodeDropInfo } from '@/modules/creative_canvas/public';
 
 /**
  * 节点左侧的「拖到素材库替换」抓手。从抓手上按住拖拽时,

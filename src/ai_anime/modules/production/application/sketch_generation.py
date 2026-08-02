@@ -24,7 +24,6 @@ class GenerateSketchesCommand:
     episode_num: int
     grid_index: int = 0
     style: str | None = None
-    model: str = "nanobanana"
     sketch_scene_grouping: bool = True
     aspect_ratio: str = "2:3"
     image_generation_selection: str | None = None

@@ -8,7 +8,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuthStore, useCurrentUser } from "@/modules/identity_access/public";
+import {
+  useAuthStore,
+  useCommercialAuthStore,
+  useCommercialEntitlementStore,
+  useCurrentUser,
+} from "@/modules/identity_access/public";
+import { useCommercialQuota } from "@/modules/model_usage/public";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
@@ -22,11 +28,30 @@ export function CreditBalanceBadge() {
   const ce = isCeRuntime();
   const { t, i18n } = useTranslation();
   const username = useAuthStore((s) => s.username);
-  const { data, isLoading, isError } = useCurrentUser(Boolean(username) && !ce);
-  const balance = data?.data.credit_balance;
+  const commercialAvailability = useCommercialAuthStore((s) => s.availability);
+  const commercialSession = useCommercialAuthStore((s) => s.session);
+  const entitlement = useCommercialEntitlementStore((s) => s.entitlement);
+  const commercial = commercialAvailability === "configured";
+  const cloudEnabled = Boolean(
+    commercial &&
+      commercialSession &&
+      entitlement?.capabilities.allowsCloudModels,
+  );
+  const currentUser = useCurrentUser(Boolean(username) && !ce && !commercial);
+  const cloudQuota = useCommercialQuota(cloudEnabled);
+  const balance = commercial
+    ? cloudQuota.data?.spendableUnits
+    : currentUser.data?.data.credit_balance;
+  const isLoading = commercial ? cloudQuota.isLoading : currentUser.isLoading;
+  const isError = commercial ? cloudQuota.isError : currentUser.isError;
   const language = i18n?.resolvedLanguage ?? i18n?.language ?? "en";
 
-  if (ce || !username || isError) return null;
+  if (
+    isError ||
+    (commercial ? !cloudEnabled : ce || !username)
+  ) {
+    return null;
+  }
 
   const tooltipLabel =
     balance === undefined

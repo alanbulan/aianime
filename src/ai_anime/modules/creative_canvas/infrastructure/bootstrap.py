@@ -1,13 +1,20 @@
 """Local Creative Canvas bootstrap storage."""
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
-from ai_anime.freezone.paths import canvases_dir, freezone_root, uploads_dir
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapBusy,
     CreativeCanvasBootstrapCorrupt,
     CreativeCanvasBootstrapResult,
     InitializeCreativeCanvasCommand,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasCorruptError,
+)
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    canvases_dir,
+    freezone_root,
+    uploads_dir,
 )
 
 
@@ -26,7 +33,7 @@ class LocalCreativeCanvasBootstrapStorage:
                 project_id=command.project_id,
                 actor_id=command.actor_id,
             )
-        except canvas_store.CanvasCorruptError as exc:
+        except CanvasCorruptError as exc:
             raise CreativeCanvasBootstrapCorrupt(str(exc)) from exc
         except CanvasLockBusy as exc:
             raise CreativeCanvasBootstrapBusy(exc.canvas_id) from exc

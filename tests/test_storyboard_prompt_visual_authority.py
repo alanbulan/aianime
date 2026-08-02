@@ -494,8 +494,7 @@ def test_batch_scene_refs_are_deduped_across_panels():
 
 
 @pytest.mark.asyncio
-async def test_prepare_batch_request_sketch_attaches_scene_refs(tmp_path):
-    pytest.importorskip("google.genai")
+async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
     from PIL import Image
 
     from ai_anime.generators.nanobanana_grid import NanoBananaGridGenerator
@@ -508,7 +507,7 @@ async def test_prepare_batch_request_sketch_attaches_scene_refs(tmp_path):
 
     generator = NanoBananaGridGenerator(
         config={
-            "provider": "openrouter",
+            "access_mode": "cloud",
             "api_key": "test",
             "model": "test-model",
             "rows": 1,
@@ -517,7 +516,7 @@ async def test_prepare_batch_request_sketch_attaches_scene_refs(tmp_path):
         }
     )
 
-    req = await generator.prepare_batch_request(
+    req = await generator.prepare_concurrent_request(
         beats=[
             {
                 "beat_number": 1,

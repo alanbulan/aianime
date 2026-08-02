@@ -4,12 +4,12 @@ import type { Connection } from '@xyflow/react';
 import type { CanvasEdge, CanvasNode } from './canvasNodes';
 import { isPresetManagedEdge } from './mainlineNodeFlags';
 import {
-  getCurrentBeatContextFromNode,
   inferSkillConnectionRole,
   inputAcceptsNode,
   type SkillDefinition,
   type SkillInputRole,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import { getCurrentBeatContextFromNode } from '@/modules/creative_canvas/public';
 
 export interface SkillRoleBindingEdgeData {
   edgeKind: 'role_binding';

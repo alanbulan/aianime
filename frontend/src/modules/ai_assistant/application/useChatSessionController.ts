@@ -1,0 +1,427 @@
+// Copyright (c) 2026 AI anime
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { activeTurnIsPending } from "@/modules/ai_assistant/domain/activeTurn";
+import type {
+  ApprovalRequest,
+  ChatAttachment,
+  ChatMessage,
+  ChatScope,
+  ClientFrame,
+  ModelEntry,
+  RelayInstanceInfo,
+  ServerFrame,
+  SessionControlCommand,
+  SuperChatSettings,
+} from "@/modules/ai_assistant/domain/contracts";
+import { buildLocalUserMessage } from "@/modules/ai_assistant/domain/message";
+import {
+  scopeForProject,
+  scopeSessionKey,
+} from "@/modules/ai_assistant/domain/scope";
+import { upsertAssistantMessage } from "@/modules/ai_assistant/application/messageProjection";
+import { sortMessages } from "@/modules/ai_assistant/application/messageTimeline";
+import { useSuperChatFrameController } from "@/modules/ai_assistant/application/useFrameController";
+
+export type ChatSessionSocketOptions = {
+  scope: ChatScope;
+  onFrame: (frame: ServerFrame) => void;
+  hasActiveTurn: () => boolean;
+  onConnectedChange: (connected: boolean) => void;
+  onConnectingChange: (connecting: boolean) => void;
+  onErrorChange: (error: string | null) => void;
+  onActiveTurnDisconnect: () => void;
+};
+
+export type ChatSessionSocket = {
+  connect: () => void;
+  disconnect: () => void;
+  send: (frame: ClientFrame) => void;
+  close: (code?: number, reason?: string) => void;
+};
+
+export type ChatSessionPorts = {
+  appendChatNotification: (
+    scope: ChatScope,
+    text: string,
+  ) => Promise<{ delivered: boolean; message: ChatMessage | null }>;
+  cancelChatBestEffort: () => Promise<void>;
+  clearActiveTurn: (scopeKey: string, turnId?: string | null) => void;
+  createSuperChatSocketSession: (
+    options: ChatSessionSocketOptions,
+  ) => ChatSessionSocket;
+  loadCachedMessages: (scopeKey: string) => ChatMessage[];
+  loadPendingActiveTurn: (
+    scopeKey: string,
+    messages: ChatMessage[],
+  ) => { turnId: string; startedAt: number } | null;
+  loadScopedMessageIds: (scopeKey: string) => {
+    pinnedIds: Set<string>;
+    deletedIds: Set<string>;
+  };
+  loadSuperChatSettings: () => SuperChatSettings;
+  pruneOldMessageCaches: () => void;
+  saveActiveTurn: (scopeKey: string, turnId: string) => void;
+  saveCachedMessages: (scopeKey: string, messages: ChatMessage[]) => void;
+  saveScopedMessageIds: (
+    scopeKey: string,
+    kind: "pinned" | "deleted",
+    ids: Set<string>,
+  ) => void;
+  saveSuperChatSettings: (settings: SuperChatSettings) => void;
+};
+
+export type UseChatSessionOptions = {
+  project?: string;
+  displayName: string;
+};
+
+export function useChatSessionController({
+  project,
+  displayName,
+  ports,
+}: UseChatSessionOptions & { ports: ChatSessionPorts }) {
+  const {
+    appendChatNotification,
+    cancelChatBestEffort,
+    clearActiveTurn,
+    createSuperChatSocketSession,
+    loadCachedMessages,
+    loadPendingActiveTurn,
+    loadScopedMessageIds,
+    loadSuperChatSettings,
+    pruneOldMessageCaches,
+    saveActiveTurn,
+    saveCachedMessages,
+    saveScopedMessageIds,
+    saveSuperChatSettings,
+  } = ports;
+  const desiredScope = useMemo(() => scopeForProject(project), [project]);
+  const scopeKey = useMemo(() => scopeSessionKey(desiredScope), [desiredScope]);
+  const initialScopeSnapshot = useMemo(() => {
+    const cachedMessages = loadCachedMessages(scopeKey);
+    const activeTurn = loadPendingActiveTurn(scopeKey, cachedMessages);
+    return {
+      cachedMessages,
+      activeTurnId: activeTurn?.turnId ?? null,
+    };
+  }, [loadCachedMessages, loadPendingActiveTurn, scopeKey]);
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => initialScopeSnapshot.cachedMessages,
+  );
+  const [historyReady, setHistoryReady] = useState(false);
+  const [streamText, setStreamText] = useState("");
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [relayInstances, setRelayInstances] = useState<RelayInstanceInfo[]>([]);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
+  const [models, setModels] = useState<ModelEntry[]>([]);
+  const [activeModel, setActiveModel] = useState<string | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set());
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
+  const [settings, setSettingsState] = useState<SuperChatSettings>(
+    () => loadSuperChatSettings(),
+  );
+  const [busy, setBusy] = useState(
+    () => Boolean(initialScopeSnapshot.activeTurnId),
+  );
+  const [activeTurnId, setActiveTurnId] = useState<string | null>(
+    initialScopeSnapshot.activeTurnId,
+  );
+  const streamTextRef = useRef("");
+  const messagesRef = useRef<ChatMessage[]>(initialScopeSnapshot.cachedMessages);
+  const activeTurnIdRef = useRef<string | null>(initialScopeSnapshot.activeTurnId);
+  const pendingClientTurnIdRef = useRef<string | null>(null);
+  const recentlyCompletedTurnIdRef = useRef<string | null>(null);
+  const cancelledTurnIdsRef = useRef<Set<string>>(new Set());
+  const socketSessionRef = useRef<ChatSessionSocket | null>(null);
+
+  const sendFrame = useCallback((frame: ClientFrame) => {
+    socketSessionRef.current?.send(frame);
+  }, []);
+
+  const requestHistory = useCallback(() => {
+    sendFrame({ type: "scope.set", scope: desiredScope });
+  }, [desiredScope, sendFrame]);
+
+  const markTurnActive = useCallback((turnId: string | null) => {
+    if (!turnId) return;
+    activeTurnIdRef.current = turnId;
+    setActiveTurnId(turnId);
+    recentlyCompletedTurnIdRef.current = null;
+    saveActiveTurn(scopeKey, turnId);
+    setBusy(true);
+  }, [saveActiveTurn, scopeKey]);
+
+  const markTurnInactive = useCallback((turnId?: string | null) => {
+    clearActiveTurn(scopeKey, turnId);
+    streamTextRef.current = "";
+    activeTurnIdRef.current = null;
+    setActiveTurnId(null);
+    pendingClientTurnIdRef.current = null;
+    recentlyCompletedTurnIdRef.current = turnId ?? null;
+    setStreamText("");
+    setBusy(false);
+  }, [clearActiveTurn, scopeKey]);
+
+  const setSettings = useCallback((patch: Partial<SuperChatSettings>) => {
+    setSettingsState((current) => {
+      const next = { ...current, ...patch };
+      saveSuperChatSettings(next);
+      return next;
+    });
+  }, [saveSuperChatSettings]);
+
+  const finalizeStream = useCallback(() => {
+    const turnId = activeTurnIdRef.current ?? `turn-${Date.now()}`;
+    if (cancelledTurnIdsRef.current.has(turnId)) {
+      markTurnInactive(turnId);
+      return;
+    }
+    setMessages((current) => {
+      if (!streamTextRef.current.trim()) return current;
+      return upsertAssistantMessage(current, turnId, streamTextRef.current);
+    });
+    markTurnInactive(turnId);
+  }, [markTurnInactive]);
+
+  const handleFrame = useSuperChatFrameController({
+    desiredScope,
+    showToolEvents: settings.showToolEvents,
+    messagesRef,
+    activeTurnIdRef,
+    pendingClientTurnIdRef,
+    recentlyCompletedTurnIdRef,
+    cancelledTurnIdsRef,
+    streamTextRef,
+    setConnected,
+    setConnecting,
+    setError,
+    setHistoryReady,
+    setMessages,
+    setBusy,
+    setStreamText,
+    markTurnActive,
+    markTurnInactive,
+    finalizeStream,
+  });
+
+  useEffect(() => {
+    setRelayInstances([]);
+    setSelectedInstanceId("");
+    setModels([]);
+    setActiveModel(null);
+    setModelsLoading(false);
+    setHistoryReady(false);
+    streamTextRef.current = "";
+    pendingClientTurnIdRef.current = null;
+    recentlyCompletedTurnIdRef.current = null;
+    setStreamText("");
+    const cachedMessages = loadCachedMessages(scopeKey);
+    setMessages(cachedMessages);
+    messagesRef.current = cachedMessages;
+    const activeTurn = loadPendingActiveTurn(scopeKey, cachedMessages);
+    activeTurnIdRef.current = activeTurn?.turnId ?? null;
+    setActiveTurnId(activeTurn?.turnId ?? null);
+    setBusy(Boolean(activeTurn));
+  }, [loadCachedMessages, loadPendingActiveTurn, scopeKey]);
+
+  useEffect(() => {
+    pruneOldMessageCaches();
+  }, [pruneOldMessageCaches]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+    saveCachedMessages(scopeKey, messages);
+  }, [messages, saveCachedMessages, scopeKey]);
+
+  useEffect(() => {
+    const currentActiveTurnId = activeTurnIdRef.current;
+    if (
+      !currentActiveTurnId
+      || busy
+      || activeTurnIsPending(messages, currentActiveTurnId)
+    ) {
+      return;
+    }
+    clearActiveTurn(scopeKey, currentActiveTurnId);
+    activeTurnIdRef.current = null;
+    setActiveTurnId(null);
+    pendingClientTurnIdRef.current = null;
+    setBusy(false);
+  }, [busy, clearActiveTurn, messages, scopeKey]);
+
+  useEffect(() => {
+    const scopedIds = loadScopedMessageIds(scopeKey);
+    setPinnedIds(scopedIds.pinnedIds);
+    setDeletedIds(scopedIds.deletedIds);
+  }, [loadScopedMessageIds, scopeKey]);
+
+  useEffect(() => {
+    const session = createSuperChatSocketSession({
+      scope: desiredScope,
+      onFrame: handleFrame,
+      hasActiveTurn: () => Boolean(
+        activeTurnIdRef.current ?? pendingClientTurnIdRef.current,
+      ),
+      onConnectedChange: setConnected,
+      onConnectingChange: setConnecting,
+      onErrorChange: setError,
+      onActiveTurnDisconnect: () => setBusy(true),
+    });
+    socketSessionRef.current = session;
+    const connectTimer = window.setTimeout(session.connect, 50);
+    return () => {
+      window.clearTimeout(connectTimer);
+      session.disconnect();
+      if (socketSessionRef.current === session) {
+        socketSessionRef.current = null;
+      }
+    };
+  }, [createSuperChatSocketSession, desiredScope, handleFrame]);
+
+  const send = useCallback((
+    text: string,
+    attachments: ChatAttachment[] = [],
+    transportText?: string,
+  ) => {
+    const trimmed = text.trim();
+    if (!trimmed || !connected) return false;
+    const outboundText = transportText?.trim() || trimmed;
+    const turnId = `turn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    pendingClientTurnIdRef.current = turnId;
+    markTurnActive(turnId);
+    setMessages((current) => [
+      ...current,
+      buildLocalUserMessage(trimmed, turnId, displayName, attachments),
+    ]);
+    streamTextRef.current = "";
+    setStreamText("");
+    sendFrame({
+      type: "chat.message",
+      scope: desiredScope,
+      text: outboundText,
+      turn_id: turnId,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    });
+    return true;
+  }, [connected, desiredScope, displayName, markTurnActive, sendFrame]);
+
+  const appendNotification = useCallback(async (text: string): Promise<boolean> => {
+    const result = await appendChatNotification(desiredScope, text);
+    if (result.message) {
+      setMessages((current) => sortMessages([...current, result.message!]));
+    }
+    return result.delivered;
+  }, [appendChatNotification, desiredScope]);
+
+  const abort = useCallback(() => {
+    const turnId = activeTurnIdRef.current ?? pendingClientTurnIdRef.current;
+    if (turnId) {
+      cancelledTurnIdsRef.current.add(turnId);
+    }
+    markTurnInactive(turnId);
+    void cancelChatBestEffort();
+    socketSessionRef.current?.close(4000, "client abort");
+  }, [cancelChatBestEffort, markTurnInactive]);
+
+  const resolveApproval = useCallback((
+    _approval: ApprovalRequest,
+    _decision: "allow-once" | "allow-always" | "deny",
+  ) => {
+    setApprovals([]);
+  }, []);
+
+  const refreshRelayInstances = useCallback(() => {
+    setRelayInstances([]);
+  }, []);
+
+  const selectRelayInstance = useCallback((_instanceId: string) => {
+    setSelectedInstanceId("");
+  }, []);
+
+  const refreshModels = useCallback(() => {
+    setModels([]);
+    setActiveModel(null);
+    setModelsLoading(false);
+  }, []);
+
+  const switchModel = useCallback((_modelId: string) => {
+    setModelsLoading(false);
+  }, []);
+
+  const sessionControl = useCallback((
+    _command: SessionControlCommand,
+    _args?: string,
+  ) => {
+    // The native chat endpoint does not expose external session-control commands.
+  }, []);
+
+  const togglePin = useCallback((id: string) => {
+    setPinnedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      saveScopedMessageIds(scopeKey, "pinned", next);
+      return next;
+    });
+  }, [saveScopedMessageIds, scopeKey]);
+
+  const deleteMessage = useCallback((id: string) => {
+    setDeletedIds((current) => {
+      const next = new Set(current);
+      next.add(id);
+      saveScopedMessageIds(scopeKey, "deleted", next);
+      return next;
+    });
+    setPinnedIds((current) => {
+      if (!current.has(id)) return current;
+      const next = new Set(current);
+      next.delete(id);
+      saveScopedMessageIds(scopeKey, "pinned", next);
+      return next;
+    });
+  }, [saveScopedMessageIds, scopeKey]);
+
+  const clearPinned = useCallback(() => {
+    const next = new Set<string>();
+    setPinnedIds(next);
+    saveScopedMessageIds(scopeKey, "pinned", next);
+  }, [saveScopedMessageIds, scopeKey]);
+
+  return {
+    abort,
+    approvals,
+    activeTurnId,
+    busy,
+    connected,
+    connecting,
+    error,
+    activeModel,
+    appendNotification,
+    clearPinned,
+    deleteMessage,
+    deletedIds,
+    historyReady,
+    messages,
+    models,
+    modelsLoading,
+    requestHistory,
+    refreshModels,
+    refreshRelayInstances,
+    relayInstances,
+    resolveApproval,
+    selectRelayInstance,
+    send,
+    selectedInstanceId,
+    sessionControl,
+    setSettings,
+    settings,
+    pinnedIds,
+    streamText,
+    switchModel,
+    togglePin,
+  };
+}

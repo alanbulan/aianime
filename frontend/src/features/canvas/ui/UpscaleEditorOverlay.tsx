@@ -12,16 +12,11 @@ import {
   resolveCanvasUpscaleScaleFactor,
   type CanvasUpscaleImageSize,
   type CanvasUpscaleScaleFactor,
-} from '@/features/canvas/domain/upscale';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
-import {
-  ProviderModelPicker,
-  SHARED_MODELS,
-} from '@/features/canvas/ui/ProviderModelPicker';
-import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
+import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
@@ -53,6 +48,7 @@ interface UpscalePersistedFields {
 }
 
 interface UpscaleEditorOverlayProps {
+  projectId: string;
   /**
    * The upscale-result ExportImage node. The panel is always anchored beneath it
    * while the node is selected — settings are persisted on `node.data` so they
@@ -61,7 +57,10 @@ interface UpscaleEditorOverlayProps {
   node: CanvasNode;
 }
 
-export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) => {
+export const UpscaleEditorOverlay = memo(({
+  projectId,
+  node,
+}: UpscaleEditorOverlayProps) => {
   const { t } = useTranslation();
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
   const deleteNode = useCanvasStore((state) => state.deleteNode);
@@ -70,8 +69,8 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
   const persisted = node.data as UpscalePersistedFields;
   const sourceUrl = persisted.upscaleSourceUrl ?? '';
   const persistedModelId =
-    typeof persisted.upscaleModelId === 'string' ? persisted.upscaleModelId : DEFAULT_SHARED_MODEL_ID;
-  const { models: availableModels } = useFreezoneImageModels();
+    typeof persisted.upscaleModelId === 'string' ? persisted.upscaleModelId : '';
+  const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
   const persistedImageSize = resolveCanvasUpscaleImageSize(persisted.upscaleImageSize);
   const persistedScaleFactor = resolveCanvasUpscaleScaleFactor(
     persisted.upscaleScaleFactor,
@@ -80,8 +79,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedModel =
     availableModels.find((m) => m.id === persistedModelId)
-    ?? availableModels[0]
-    ?? SHARED_MODELS.find((m) => m.id === persistedModelId);
+    ?? availableModels[0];
   const creditCost = useGenerationCreditCost(
     'image_selection',
     selectedModel?.apiModel ?? null,
@@ -120,20 +118,12 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
   }, [deleteNode, node.id, setSelectedNode]);
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !selectedModel) return;
     if (!sourceUrl) {
       console.error('[upscale] missing upscaleSourceUrl on node.data — cannot submit');
       return;
     }
-    const project = readUrl().project;
-    if (!project) {
-      console.error('[upscale] no project in URL — cannot submit');
-      return;
-    }
-
-    const apiModel =
-      selectedModel?.apiModel
-      ?? persistedModelId;
+    const apiModel = selectedModel.apiModel;
 
     setIsSubmitting(true);
     const generationStartedAt = Date.now();
@@ -146,7 +136,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
     try {
       const { url } = await generateCanvasUpscale(
         {
-          projectId: project,
+          projectId,
           sourceUrl,
           scaleFactor: persistedScaleFactor,
           imageSize: persistedImageSize,
@@ -178,8 +168,8 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
     isSubmitting,
     node.id,
     persistedImageSize,
-    persistedModelId,
     persistedScaleFactor,
+    projectId,
     selectedModel,
     sourceUrl,
     updateNodeData,
@@ -216,10 +206,12 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
         </div>
 
         <div className="space-y-3">
-          <PanelRow label={t('upscaleEditor.providerLabel')}>
+          <PanelRow label={t('modelParams.model')}>
             <ProviderModelPicker
               selectedModelId={persistedModelId}
               onChange={handleModelChange}
+              models={availableModels}
+              imageMode="edit"
             />
           </PanelRow>
 
@@ -240,7 +232,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedModel}
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
             title={t('upscaleEditor.submit')}
           >

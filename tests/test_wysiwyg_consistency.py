@@ -323,7 +323,7 @@ def simulate_api_attachment_order(
     character_map: Dict[str, CharacterConfig],
     include_sketch: bool = True,
 ) -> Dict[int, str]:
-    """Simulate the attachment ordering in generate_grid / _prepare_batch_request.
+    """Simulate attachment ordering in generate_grid / prepare_concurrent_request.
 
     Returns {1-based index: label} matching what build_reference_map should produce.
     """

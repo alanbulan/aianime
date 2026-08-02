@@ -210,7 +210,6 @@ class PromptContext:
         default_factory=dict
     )  # global prop_id -> marker color
     registry_negative_clause: str = ""  # registry-driven negative prompt clauses
-    image_provider: str = ""
     image_model: str = ""
 
 
@@ -3824,13 +3823,8 @@ class UnifiedPromptBuilder:
 
 def _uses_gpt_image_sketch_profile(ctx: PromptContext) -> bool:
     """Whether this sketch should use the rough GPT-image prompt profile."""
-    provider = (ctx.image_provider or "").strip().lower()
     model = (ctx.image_model or "").strip().lower()
-    if not provider or not model:
-        return False
-    if provider in {"openai", "huimeng"} and model == "image-2":
-        return True
-    return provider == "openrouter" and "gpt" in model and "image" in model
+    return model in {"image-2", "image-2-official"} or "gpt-image" in model
 
 
 def create_prompt_context(
@@ -3852,7 +3846,6 @@ def create_prompt_context(
     style_family: str = "",
     animation_subtype: str = "",
     project_dir: str = "",
-    image_provider: str = "",
     image_model: str = "",
 ) -> PromptContext:
     """创建提示词上下文的便捷函数。
@@ -3949,6 +3942,5 @@ def create_prompt_context(
         prop_asset_refs=prop_asset_refs or {},
         sketch_colors=sketch_colors or {},
         prop_marker_colors=prop_marker_colors or {},
-        image_provider=image_provider,
         image_model=image_model,
     )

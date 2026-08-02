@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from ai_anime.modules.production.application.video_pool import (
     AddGeneratedVideoCommand,
@@ -32,7 +32,10 @@ class _StoredVideoPoolEntry(BaseModel):
     generated_at: datetime
     duration: float = 5.0
     video_mode: str = "first_frame"
-    backend: str = "comfyui"
+    video_model: str = Field(
+        default="",
+        validation_alias=AliasChoices("video_model", "backend"),
+    )
     prompt: str = ""
 
     def to_domain(self) -> VideoPoolEntry:
@@ -139,7 +142,7 @@ class LocalVideoPoolStorage:
             generated_at=generated_at,
             duration=command.duration,
             video_mode=command.video_mode,
-            backend=command.backend,
+            video_model=command.video_model,
             prompt=command.prompt,
         )
         index_path = self._index_path(episode_dir)

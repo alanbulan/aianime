@@ -3,16 +3,12 @@ import { useSyncExternalStore } from "react";
 
 import type { CanvasVideoModel } from "@/features/canvas/application/generationCatalog";
 import { loadCanvasVideoModels } from "@/features/canvas/catalogComposition";
-import { readUrl } from "@/lib/url-params";
-import {
-  VIDEO_MODELS,
-  type ModelOption,
-} from "@/features/canvas/ui/ProviderModelPicker";
+import type { ModelOption } from "@/features/canvas/ui/ProviderModelPicker";
+import { COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT } from "@/modules/model_usage/public";
 
 export interface UseFreezoneVideoModelsResult {
   models: ModelOption[];
   isLoading: boolean;
-  isFallback: boolean;
   error: Error | null;
 }
 
@@ -21,16 +17,16 @@ export interface UseFreezoneVideoModelsResult {
 // per project per tab lifetime.
 const states = new Map<string, UseFreezoneVideoModelsResult>();
 const listeners = new Map<string, Set<() => void>>();
+let accessChangeListenerInstalled = false;
 
-// Lazy singleton — circular import with `ProviderModelPicker.tsx` means we
-// can't touch `VIDEO_MODELS` at module top level (TDZ).
 let noProjectStateMemo: UseFreezoneVideoModelsResult | null = null;
+const NO_MODELS: ModelOption[] = [];
+
 function getNoProjectState(): UseFreezoneVideoModelsResult {
   if (!noProjectStateMemo) {
     noProjectStateMemo = {
-      models: VIDEO_MODELS,
+      models: NO_MODELS,
       isLoading: false,
-      isFallback: true,
       error: null,
     };
   }
@@ -39,6 +35,17 @@ function getNoProjectState(): UseFreezoneVideoModelsResult {
 
 function emit(project: string) {
   listeners.get(project)?.forEach((fn) => fn());
+}
+
+function installAccessChangeListener() {
+  if (accessChangeListenerInstalled || typeof window === "undefined") return;
+  accessChangeListenerInstalled = true;
+  window.addEventListener(COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT, () => {
+    const projects = [...states.keys()];
+    states.clear();
+    noProjectStateMemo = null;
+    projects.forEach(emit);
+  });
 }
 
 function writeState(project: string, next: UseFreezoneVideoModelsResult) {
@@ -53,26 +60,15 @@ function toModelOptions(models: CanvasVideoModel[]): ModelOption[] {
 function ensureLoaded(project: string) {
   if (states.has(project)) return;
   states.set(project, {
-    models: VIDEO_MODELS,
+    models: NO_MODELS,
     isLoading: true,
-    isFallback: true,
     error: null,
   });
   loadCanvasVideoModels(project)
     .then((models) => {
-      if (models.length === 0) {
-        writeState(project, {
-          models: VIDEO_MODELS,
-          isLoading: false,
-          isFallback: true,
-          error: null,
-        });
-        return;
-      }
       writeState(project, {
         models: toModelOptions(models),
         isLoading: false,
-        isFallback: false,
         error: null,
       });
     })
@@ -80,13 +76,12 @@ function ensureLoaded(project: string) {
       const normalized =
         error instanceof Error ? error : new Error(String(error));
       console.warn(
-        "[freezone] video models fetch failed, using hardcoded fallback:",
+        "[freezone] video models fetch failed:",
         normalized.message,
       );
       writeState(project, {
-        models: VIDEO_MODELS,
+        models: NO_MODELS,
         isLoading: false,
-        isFallback: true,
         error: normalized,
       });
     });
@@ -98,6 +93,7 @@ function ensureLoaded(project: string) {
  */
 export function prefetchFreezoneVideoModels(project: string): void {
   if (!project) return;
+  installAccessChangeListener();
   ensureLoaded(project);
 }
 
@@ -118,15 +114,13 @@ function subscribe(project: string | null, callback: () => void) {
 /**
  * Read the video model list from a shared module-level store.
  *
- * Mirrors `useFreezoneImageModels` but hits
- * `GET /api/v1/projects/{project}/freezone/video/models`. Failures fall back
- * to the hardcoded `VIDEO_MODELS` so the picker is never empty.
+ * Reads the entitlement-filtered commercial VIDEO catalog. There is no local
+ * static fallback because the catalog is the authority for both cloud and BYOK.
  */
 export function useFreezoneVideoModels(
-  projectOverride?: string | null,
+  project: string | null,
 ): UseFreezoneVideoModelsResult {
-  const project =
-    projectOverride !== undefined ? projectOverride : readUrl().project;
+  installAccessChangeListener();
 
   if (project) ensureLoaded(project);
 

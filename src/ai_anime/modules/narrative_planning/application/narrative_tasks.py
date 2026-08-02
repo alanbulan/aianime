@@ -9,6 +9,8 @@ from ai_anime.modules.narrative_planning.application.ports import (
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeAssetPlanningTask,
+    EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScheduledNarrativeTask,
     ScriptGenerationTask,
@@ -118,4 +120,56 @@ class ScheduleBeatVideoPrompt:
             message=(
                 f"第 {task.episode} 集 Beat {task.beat_num} 提示词生成已入队"
             ),
+        )
+
+
+class ScheduleEpisodeAssetPlanning:
+    def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
+        self._task_scheduler = task_scheduler
+
+    async def execute(
+        self,
+        *,
+        task_context: ProjectContext | None,
+        episode_num: int,
+        asset_kind: str,
+    ) -> ScheduledNarrativeTask:
+        if task_context is None:
+            raise ProjectContextRequired("单集资产规划需要 project context")
+        task = EpisodeAssetPlanningTask(
+            episode=episode_num,
+            asset_kind=asset_kind,
+        )
+        receipt = await self._task_scheduler.enqueue_episode_asset_planning(
+            task_context,
+            task,
+        )
+        return ScheduledNarrativeTask.from_receipt(
+            receipt,
+            task_type=task.task_type,
+            scope=task.scope,
+            message=f"第 {episode_num} 集{task.label}规划已进入队列",
+        )
+
+
+class ScheduleEpisodeIdentityPlanning:
+    def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
+        self._task_scheduler = task_scheduler
+
+    async def execute(
+        self,
+        *,
+        task_context: ProjectContext | None,
+        episode_num: int,
+    ) -> ScheduledNarrativeTask:
+        if task_context is None:
+            raise ProjectContextRequired("单集身份规划需要 project context")
+        receipt = await self._task_scheduler.enqueue_episode_identity_planning(
+            task_context,
+            EpisodeIdentityPlanningTask(episode=episode_num),
+        )
+        return ScheduledNarrativeTask.from_receipt(
+            receipt,
+            task_type="identity_planner",
+            message=f"第 {episode_num} 集身份规划已进入队列",
         )

@@ -33,7 +33,7 @@ async def freezone_impact(
         data = await creative_canvas_slot_commit_use_cases().impact(
             GetCreativeCanvasSlotImpactQuery(
                 context=resolved.ctx,
-                target=body.target.model_dump(mode="json"),
+                target=body.model_dump(mode="json")["target"],
             )
         )
     except InvalidCreativeCanvasSlotCommit as exc:
@@ -58,7 +58,7 @@ async def freezone_push(
                 project_id=project,
                 project_dir=resolved.project_dir,
                 source_url=body.source_url,
-                target=body.target.model_dump(mode="json"),
+                target=body.model_dump(mode="json")["target"],
                 mark_stale=body.mark_stale,
                 event_actor=canvas_event_actor(user),
             )

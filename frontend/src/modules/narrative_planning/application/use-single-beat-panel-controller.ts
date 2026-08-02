@@ -3,7 +3,7 @@ import { resolveImage } from "@/lib/resolve-image";
 import type { Beat } from "@/modules/narrative_planning/domain/types";
 import type {
   PoolImage,
-  VideoBackendOption,
+  VideoModelOption,
   VoiceConfigurationTarget,
 } from "@/modules/production/public";
 import type { BeatStageState } from "@/modules/production/public";
@@ -17,9 +17,8 @@ export interface SingleBeatSectionViewModel {
   statusKey: string;
 }
 
-export interface VideoBackendHeaderOption {
+export interface VideoModelHeaderOption {
   dialogueOnly: boolean;
-  isDefault: boolean;
   isSeedance2: boolean;
   label: string;
   value: string;
@@ -30,8 +29,8 @@ interface GridsByBeatQuery {
   byBeat: Map<number, PoolImage[]>;
 }
 
-interface VideoBackendsQuery {
-  data?: { data: VideoBackendOption[] };
+interface VideoModelsQuery {
+  data: VideoModelOption[];
 }
 
 interface SaveStateQuery {
@@ -40,7 +39,7 @@ interface SaveStateQuery {
 
 export interface SingleBeatPanelControllerQueries {
   useGridsByBeat(project: string, episode: number): GridsByBeatQuery;
-  useVideoBackends(project: string): VideoBackendsQuery;
+  useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
 export interface SingleBeatPanelControllerDependencies {
@@ -53,9 +52,9 @@ export interface SingleBeatPanelControllerDependencies {
 
 export interface SingleBeatPanelControllerOptions {
   beat: Beat;
-  defaultBackend: string;
+  defaultModel: string;
   episode: number;
-  onDefaultBackendChange(backend: string): void;
+  onDefaultModelChange(model: string): void;
   onToggleSection(id: SectionId): void;
   openSections: ReadonlySet<SectionId>;
   project: string;
@@ -68,12 +67,12 @@ export interface SingleBeatPanelController {
   beatTextScope: string;
   images: PoolImage[];
   onConfigureVoice(target: VoiceConfigurationTarget): void;
-  onDefaultBackendChange(backend: string): void;
+  onDefaultModelChange(model: string): void;
   onToggleSection(id: SectionId): void;
   sections: readonly SingleBeatSectionViewModel[];
   textSaveStatus: string;
-  videoBackend: string;
-  videoBackends: readonly VideoBackendHeaderOption[];
+  videoModel: string;
+  videoModels: readonly VideoModelHeaderOption[];
 }
 
 const SECTION_IDS: readonly SectionId[] = [
@@ -139,9 +138,9 @@ export function createUseSingleBeatPanelController(
 ) {
   return function useSingleBeatPanelController({
     beat,
-    defaultBackend,
+    defaultModel,
     episode,
-    onDefaultBackendChange,
+    onDefaultModelChange,
     onToggleSection,
     openSections,
     project,
@@ -151,7 +150,7 @@ export function createUseSingleBeatPanelController(
     const onConfigureVoice =
       dependencies.useAssetWorkspaceNavigation(project);
     const { assignments, byBeat } = queries.useGridsByBeat(project, episode);
-    const { data: videoBackendsResponse } = queries.useVideoBackends(project);
+    const { data: videoModelOptions } = queries.useVideoModels(Boolean(project));
     const images = byBeat.get(beat.beat_number) ?? [];
     const resolvedSketch = resolveImage(
       images,
@@ -198,13 +197,12 @@ export function createUseSingleBeatPanelController(
         statusKey,
       };
     });
-    const videoBackends = (videoBackendsResponse?.data ?? []).map(
-      (backend) => ({
-        dialogueOnly: backend.dialogue_only,
-        isDefault: backend.is_default,
-        isSeedance2: backend.is_seedance2,
-        label: backend.label,
-        value: backend.value,
+    const videoModels = videoModelOptions.map(
+      (model) => ({
+        dialogueOnly: model.dialogueOnly,
+        isSeedance2: model.profile === "seedance2",
+        label: model.label,
+        value: model.value,
       }),
     );
 
@@ -213,12 +211,12 @@ export function createUseSingleBeatPanelController(
       beatTextScope,
       images,
       onConfigureVoice,
-      onDefaultBackendChange,
+      onDefaultModelChange,
       onToggleSection,
       sections,
       textSaveStatus: textSaveState.status,
-      videoBackend: defaultBackend,
-      videoBackends,
+      videoModel: defaultModel,
+      videoModels,
     };
   };
 }

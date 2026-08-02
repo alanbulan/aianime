@@ -2,76 +2,192 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
+import { loadCommercialModelCatalog } from "@/modules/model_usage/public";
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+vi.mock("@/modules/model_usage/public", () => ({
+  loadCommercialModelCatalog: vi.fn(),
+}));
 
-import { freezoneGenerationCatalogGateway } from "./freezoneGenerationCatalogGateway";
+import {
+  commercialImageModels,
+  commercialVideoModels,
+  freezoneGenerationCatalogGateway,
+} from "./freezoneGenerationCatalogGateway";
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
+  vi.mocked(loadCommercialModelCatalog).mockReset();
 });
 
 describe("freezoneGenerationCatalogGateway", () => {
-  it("normalizes image and video model transport records", async () => {
-    vi.mocked(apiCall)
-      .mockResolvedValueOnce({
-        openai: [
-          {
-            id: "openai/gpt-image-2",
-            model: "gpt-image-2",
-            display_name: "GPT Image 2",
+  it("maps Commercial Gateway SKU codes without exposing upstream providers", () => {
+    const catalog = {
+      catalogVersion: "catalog-v1",
+      items: [
+        {
+          id: "sku-1",
+          code: "cloud-generation-standard",
+          displayName: "Cloud Generation Standard",
+          operation: "IMAGE",
+          capabilities: {
+            resolutions: ["720p", "1080p"],
+            minSeconds: 4,
+            maxSeconds: 15,
+            supportedModes: ["TEXT_TO_VIDEO", "VIDEO_EDIT"],
+            supportsHumanReview: true,
+            supportsReferenceVideos: true,
+            referenceLimits: {
+              images: 5,
+              videos: 1,
+              audios: 0,
+              total: 6,
+              audioDurationSeconds: 15.2,
+            },
+            sceneOptimizeOptions: ["ANIME", "realistic"],
+            defaultSceneOptimize: "realistic",
           },
-        ],
+          parameterSchema: {},
+        },
+      ],
+    };
+
+    expect(commercialImageModels(catalog)).toEqual([
+      {
+        id: "cloud-generation-standard",
+        apiModel: "cloud-generation-standard",
+        label: "Cloud Generation Standard",
+        capabilities: {
+          resolutions: ["720p", "1080p"],
+          minSeconds: 4,
+          maxSeconds: 15,
+          supportedModes: ["TEXT_TO_VIDEO", "VIDEO_EDIT"],
+          supportsHumanReview: true,
+          supportsReferenceVideos: true,
+          referenceLimits: {
+            images: 5,
+            videos: 1,
+            audios: 0,
+            total: 6,
+            audioDurationSeconds: 15.2,
+          },
+          sceneOptimizeOptions: ["ANIME", "realistic"],
+          defaultSceneOptimize: "realistic",
+        },
+        parameterSchema: {},
+      },
+    ]);
+    expect(commercialVideoModels(catalog)).toEqual([
+      {
+        id: "cloud-generation-standard",
+        apiModel: "cloud-generation-standard",
+        label: "Cloud Generation Standard",
+        supportedModes: ["textToVideo", "videoEdit"],
+        supportsHumanReview: true,
+        supportsReferenceVideos: true,
+        maxReferenceImages: 5,
+        maxReferenceVideos: 1,
+        maxReferenceAudios: 0,
+        maxReferenceTotal: 6,
+        maxReferenceAudioDurationSeconds: 15.2,
+        resolutionOptions: ["720p", "1080p"],
+        minDuration: 4,
+        maxDuration: 15,
+        sceneOptimizeOptions: ["anime", "realistic"],
+        defaultSceneOptimize: "realistic",
+      },
+    ]);
+  });
+
+  it("projects explicit image generation and edit capabilities", () => {
+    const catalog = {
+      catalogVersion: "image-roles-v1",
+      items: [
+        {
+          id: "generation-only",
+          code: "cloud/image-generation",
+          displayName: "Generation",
+          operation: "IMAGE",
+          capabilities: { supportedModes: ["TEXT_TO_IMAGE"] },
+          parameterSchema: {},
+        },
+        {
+          id: "edit-only",
+          code: "cloud/image-edit",
+          displayName: "Edit",
+          operation: "IMAGE",
+          capabilities: { supportedModes: ["IMAGE_EDIT"] },
+          parameterSchema: {},
+        },
+      ],
+    };
+
+    expect(
+      commercialImageModels(catalog).map(({ apiModel, imageModes }) => ({
+        apiModel,
+        imageModes,
+      })),
+    ).toEqual([
+      { apiModel: "cloud/image-generation", imageModes: ["generation"] },
+      { apiModel: "cloud/image-edit", imageModes: ["edit"] },
+    ]);
+  });
+
+  it("uses the authenticated commercial catalog as the only model source", async () => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: { commercial: {} },
+    });
+    vi.mocked(loadCommercialModelCatalog)
+      .mockResolvedValueOnce({
+        catalogVersion: "image-v1",
+        items: [{
+          id: "image-sku",
+          code: "image-standard",
+          displayName: "Image Standard",
+          operation: "IMAGE",
+          capabilities: {},
+          parameterSchema: {},
+        }],
       })
       .mockResolvedValueOnce({
-        data: [
-          {
-            id: "seedance-2",
-            provider: "seedance",
-            model: "seedance-2",
-            display_name: "Seedance 2",
-            resolution_options: ["720P", "1080p", "4k"],
-            min_duration: "4",
-            maxDuration: 15,
-            scene_optimize_options: ["ANIME", "realistic", "invalid"],
-            default_scene_optimize: "ANIME",
-          },
-        ],
+        catalogVersion: "video-v1",
+        items: [{
+          id: "video-sku",
+          code: "video-standard",
+          displayName: "Video Standard",
+          operation: "VIDEO",
+          capabilities: { resolutions: ["720p", "1080p"] },
+          parameterSchema: {},
+        }],
       });
 
     await expect(
       freezoneGenerationCatalogGateway.listImageModels("project/1"),
     ).resolves.toEqual([
       {
-        id: "openai/gpt-image-2",
-        providerId: "openai",
-        apiModel: "gpt-image-2",
-        label: "GPT Image 2",
+        id: "image-standard",
+        apiModel: "image-standard",
+        label: "Image Standard",
+        capabilities: {},
+        parameterSchema: {},
       },
     ]);
     await expect(
       freezoneGenerationCatalogGateway.listVideoModels("project/1"),
     ).resolves.toEqual([
       {
-        id: "seedance-2",
-        providerId: "seedance",
-        apiModel: "seedance-2",
-        label: "Seedance 2",
+        id: "video-standard",
+        apiModel: "video-standard",
+        label: "Video Standard",
         resolutionOptions: ["720p", "1080p"],
-        minDuration: 4,
-        maxDuration: 15,
-        sceneOptimizeOptions: ["anime", "realistic"],
-        defaultSceneOptimize: "anime",
+        minDuration: null,
+        maxDuration: null,
       },
     ]);
-    expect(apiCall).toHaveBeenNthCalledWith(
-      1,
-      "projects/project%2F1/freezone/image/models",
-    );
-    expect(apiCall).toHaveBeenNthCalledWith(
-      2,
-      "projects/project%2F1/freezone/video/models",
-    );
+    expect(loadCommercialModelCatalog).toHaveBeenNthCalledWith(1, "IMAGE");
+    expect(loadCommercialModelCatalog).toHaveBeenNthCalledWith(2, "VIDEO");
+    expect(apiCall).not.toHaveBeenCalled();
   });
 
   it("maps camera and style transport fields to application DTOs", async () => {

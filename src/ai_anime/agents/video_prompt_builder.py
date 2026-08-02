@@ -81,7 +81,6 @@ def create_video_prompt_builder_agent(language: str = "en") -> Agent:
     from ai_anime.config import get_superpower_pydantic_model
 
     model = get_superpower_pydantic_model(
-        feature_provider_env="VIDEO_PROMPT_PROVIDER",
         feature_model_env="VIDEO_PROMPT_MODEL",
     )
     return Agent(model, system_prompt=VIDEO_PROMPT_BUILDER_INSTRUCTIONS_EN, output_type=str, name="Video Prompt Builder")

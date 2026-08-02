@@ -1,8 +1,7 @@
-"""Task-backend adapter for Asset & World jobs."""
+"""Adapter from Asset & World tasks to Task Execution."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 from ai_anime.modules.asset_world.application.dto import (
@@ -16,12 +15,15 @@ from ai_anime.modules.asset_world.application.dto import (
     SceneStageGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import project_task_state_key
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 
 
-class TaskBackendAssetTaskScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionAssetTaskScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue_build_characters(
         self,
@@ -114,26 +116,18 @@ class TaskBackendAssetTaskScheduler:
         scope: str | None = None,
         queue_kind: str = "default",
     ) -> AssetTaskQueueReceipt:
-        task_options: dict[str, Any] = {
-            "task_type": task_type,
-            "queue_kind": queue_kind,
-            "episode": 0,
-            "payload": payload,
-        }
-        if scope is not None:
-            task_options["scope"] = scope
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             task_context,
-            **task_options,
+            ProjectTaskSubmission(
+                task_type=task_type,
+                queue_kind=queue_kind,
+                scope=scope,
+                payload=payload,
+            ),
         )
         return AssetTaskQueueReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                task_type,
-                task_context.project_id,
-                0,
-                scope=scope,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

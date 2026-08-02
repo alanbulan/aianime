@@ -1,9 +1,7 @@
 export {
-  BeatsPageContent,
   episodeBeatsQueryOptions,
   episodeDetailQueryOptions,
   episodesQueryOptions,
-  EpisodesPageContent,
   isPlanEpisodeAssetsResult,
   listBeats,
   listEpisodes,
@@ -11,7 +9,6 @@ export {
   prefetchEpisodeBeats,
   prefetchEpisodeDetail,
   readPipelineStatus,
-  ScriptPageContent,
   updateBeat,
   useDeleteManualShot,
   useEpisodeBeats,
@@ -29,7 +26,7 @@ export {
   useScript,
   useUpdateBeat,
   useUpdateEpisode,
-} from "@/modules/narrative_planning/composition";
+} from "@/modules/narrative_planning/query-composition";
 export {
   deriveEpisodeStats,
   derivePipelineEpisodeStatuses,
@@ -70,5 +67,3 @@ export type {
 } from "@/modules/narrative_planning/domain/types";
 export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
 export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";
-export { TextPane } from "@/modules/narrative_planning/text-pane-composition";
-export type { TextPaneProps } from "@/modules/narrative_planning/text-pane-composition";

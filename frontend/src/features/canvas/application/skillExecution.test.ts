@@ -5,7 +5,7 @@ import type {
   SkillRunRequest,
   SkillRunResponse,
   SkillRunResult,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 
 import {
   awaitCanvasSkillRunResult,

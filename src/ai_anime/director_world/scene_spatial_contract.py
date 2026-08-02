@@ -12,10 +12,16 @@ import re
 from pathlib import Path
 from typing import Any
 
-import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from ai_anime.config import OUTPUT_DIR
+from ai_anime.model_access_policy import (
+    load_model_access_from_stdin,
+    resolve_internal_model_for_role,
+    resolve_model_for_role,
+)
+from ai_anime.model_text_transport import request_model_chat_content
+from ai_anime.official_defaults import DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 
 # Demo defaults for standalone/manual runs. In production stage_asset_tasks
 # always passes absolute --master/--reverse/--output-dir, so these are never used.
@@ -25,7 +31,7 @@ DEFAULT_SCENE_DIR = PROJECT_DIR / "assets/scenes" / DEFAULT_SCENE_NAME
 DEFAULT_MASTER = DEFAULT_SCENE_DIR / "master.png"
 DEFAULT_REVERSE = DEFAULT_SCENE_DIR / "reverse_master.png"
 DEFAULT_OUTPUT_DIR = DEFAULT_SCENE_DIR / "scene_spatial_contract"
-DEFAULT_MODEL = "openai/gpt-5.5"
+DEFAULT_MODEL = DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 SPATIAL_CONTRACT_SCHEMA_VERSION = "scene_spatial_contract_v8_topology_only_locks"
 
 
@@ -264,20 +270,32 @@ of inventing a confident wall.
 """.strip()
 
 
-async def ask_openrouter(
+async def ask_model_access(
     *,
     image_path: Path,
     prompt: str,
-    api_key: str,
     model: str,
     max_tokens: int,
+    use_catalog_default: bool = False,
 ) -> str:
+    effective_model = (
+        resolve_internal_model_for_role(model, "TEXT")
+        if use_catalog_default
+        else resolve_model_for_role(model, "TEXT")
+    )
     data_url = "data:image/jpeg;base64," + base64.b64encode(image_path.read_bytes()).decode("ascii")
-    payload = {
-        "model": model,
-        "temperature": 0.0,
-        "max_tokens": max_tokens,
-        "messages": [
+    response_format = (
+        {"type": "json_object"}
+        if effective_model.lower().startswith("openai/")
+        else None
+    )
+    return await request_model_chat_content(
+        model=effective_model,
+        temperature=0.0,
+        max_tokens=max_tokens,
+        timeout_seconds=120.0,
+        response_format=response_format,
+        messages=[
             {
                 "role": "user",
                 "content": [
@@ -286,34 +304,7 @@ async def ask_openrouter(
                 ],
             }
         ],
-    }
-    if model.lower().startswith("openai/"):
-        payload["response_format"] = {"type": "json_object"}
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://ai_anime.local/scene-spatial-contract",
-        "X-Title": "AI anime Scene Spatial Contract",
-    }
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
-    choices = data.get("choices") or []
-    if not choices:
-        return ""
-    content = (choices[0].get("message") or {}).get("content")
-    if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
-        return "".join(
-            str(part.get("text") or "") for part in content if isinstance(part, dict)
-        ).strip()
-    return ""
+    )
 
 
 def parse_json(text: str) -> dict[str, Any]:
@@ -988,6 +979,7 @@ def synthesize_prompt_insert(contract: dict[str, Any]) -> str:
 
 async def run(args: argparse.Namespace) -> None:
     load_env()
+    load_model_access_from_stdin()
     master = repo_path(args.master)
     reverse = repo_path(args.reverse)
     output_dir = repo_path(args.output_dir)
@@ -1006,15 +998,18 @@ async def run(args: argparse.Namespace) -> None:
     prompt = build_prompt(args.scene_name, overlap_analysis=overlap_analysis)
     (output_dir / "scene_spatial_contract.prompt.txt").write_text(prompt, encoding="utf-8")
 
-    api_key = args.api_key or os.environ.get("OPENROUTER_API_KEY") or ""
-    if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is missing")
-    raw_text = await ask_openrouter(
+    explicit_model = str(args.model or "").strip()
+    selected_model = (
+        explicit_model
+        or os.environ.get("SCENE_SPATIAL_CONTRACT_MODEL", "").strip()
+        or DEFAULT_MODEL
+    )
+    raw_text = await ask_model_access(
         image_path=sheet_path,
         prompt=prompt,
-        api_key=api_key,
-        model=args.model,
+        model=selected_model,
         max_tokens=max(4000, int(args.max_tokens)),
+        use_catalog_default=not bool(explicit_model),
     )
     (output_dir / "scene_spatial_contract.raw_response.txt").write_text(raw_text, encoding="utf-8")
     contract = parse_json(raw_text)
@@ -1027,8 +1022,8 @@ async def run(args: argparse.Namespace) -> None:
         "reverse": str(reverse),
         "sheet": str(sheet_path),
         "overlap_analysis": str(overlap_analysis_path) if overlap_analysis_path else "",
-        "provider": "openrouter",
-        "model": args.model,
+        "provider": "model_access",
+        "model": selected_model,
     }
     contract_path = output_dir / "scene_spatial_contract.json"
     contract_path.write_text(json.dumps(contract, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1051,18 +1046,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default=(
-            os.environ.get("SCENE_SPATIAL_CONTRACT_MODEL")
-            or os.environ.get("OPENROUTER_VISION_MODEL")
-            or DEFAULT_MODEL
-        ),
+        default="",
     )
     parser.add_argument(
         "--max-tokens",
         type=int,
         default=int(os.environ.get("SCENE_SPATIAL_CONTRACT_MAX_TOKENS") or "16000"),
     )
-    parser.add_argument("--api-key", default="")
     return parser.parse_args()
 
 

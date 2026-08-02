@@ -12,6 +12,7 @@ export const freezoneCanvasTextTranslationGateway: CanvasTextTranslationGateway 
         method: "POST",
         json: {
           text: submission.text,
+          model: submission.model,
           node_type: submission.nodeType ?? "generic",
           ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
           ...(submission.nodeId ? { node_id: submission.nodeId } : {}),

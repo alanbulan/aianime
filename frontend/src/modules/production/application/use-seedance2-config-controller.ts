@@ -12,26 +12,26 @@ import { toast } from "sonner";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { Seedance2PromptResponse } from "@/modules/production/application/ports";
 import type { BeatVideoGenerationInput } from "@/modules/production/domain/beat-video-generation";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type { VideoModelOption } from "@/modules/production/domain/video-model";
 import type { GenerateSeedance2PromptCommand } from "@/modules/production/domain/video-generation";
 import {
   clampDuration,
   getSeedance2ConfigSaveKey,
-  grokVideoRatioOptionsForBackend,
-  grokVideoResolutionOptionsForBackend,
-  happyHorseRatioOptionsForBackend,
-  happyHorseResolutionOptionsForBackend,
-  isSeedance15ProBackend,
-  isSeedance2ValueBackend,
-  normalizeGrokVideoDraftForBackend,
-  normalizeHappyHorseDraftForBackend,
-  normalizeSeedance2DraftForBackend,
+  grokVideoRatioOptionsForModel,
+  grokVideoResolutionOptionsForModel,
+  happyHorseRatioOptionsForModel,
+  happyHorseResolutionOptionsForModel,
+  isSeedance15ProModel,
+  isSeedance2ValueModel,
+  normalizeGrokVideoDraftForModel,
+  normalizeHappyHorseDraftForModel,
+  normalizeSeedance2DraftForModel,
   normalizeSeedance2Resolution,
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
-  seedance2DurationBoundsForBackend,
-  seedance2ResolutionOptionsForBackend,
+  seedance2ResolutionOptionsForModel,
+  videoDurationBoundsForModel,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
@@ -80,12 +80,12 @@ export interface Seedance2ConfigUpdateCommand {
 }
 
 export interface Seedance2ConfigControllerOptions {
-  backend: string;
+  model: string;
   beat: Beat;
   episode: number;
   project: string;
   projectAspect: "2:3" | "16:9";
-  selectedBackend?: VideoBackendOption;
+  selectedModel?: VideoModelOption;
   showGrokVideoConfig: boolean;
   showHappyHorseConfig: boolean;
   showSeedance2Config: boolean;
@@ -148,33 +148,33 @@ export function createUseSeedance2ConfigController(
       options.showHappyHorseConfig ||
       options.showGrokVideoConfig;
     const isValueStyle =
-      options.showSeedance2Config && isSeedance2ValueBackend(options.backend);
+      options.showSeedance2Config && isSeedance2ValueModel(options.model);
     const seedance2ResolutionOptions = useMemo(
-      () => seedance2ResolutionOptionsForBackend(options.backend),
-      [options.backend],
+      () => seedance2ResolutionOptionsForModel(options.model),
+      [options.model],
     );
     const seedance2DurationBounds = useMemo(
-      () => seedance2DurationBoundsForBackend(options.selectedBackend),
-      [options.selectedBackend],
+      () => videoDurationBoundsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const happyHorseResolutionOptions = useMemo(
-      () => happyHorseResolutionOptionsForBackend(options.selectedBackend),
-      [options.selectedBackend],
+      () => happyHorseResolutionOptionsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const happyHorseRatioOptions = useMemo(
-      () => happyHorseRatioOptionsForBackend(options.selectedBackend),
-      [options.selectedBackend],
+      () => happyHorseRatioOptionsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const grokResolutionOptions = useMemo(
-      () => grokVideoResolutionOptionsForBackend(options.selectedBackend),
-      [options.selectedBackend],
+      () => grokVideoResolutionOptionsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const grokRatioOptions = useMemo(
-      () => grokVideoRatioOptionsForBackend(options.selectedBackend),
-      [options.selectedBackend],
+      () => grokVideoRatioOptionsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const isSeedance15ProConfig =
-      !options.showSeedance2Config && isSeedance15ProBackend(options.backend);
+      !options.showSeedance2Config && isSeedance15ProModel(options.model);
     const audioFloorSeconds =
       typeof options.beat.audio_duration_seconds === "number" &&
       options.beat.audio_duration_seconds > 0
@@ -324,21 +324,21 @@ export function createUseSeedance2ConfigController(
       if (!showPromptConfig) return;
       const current = draftRef.current;
       const next = options.showGrokVideoConfig
-        ? normalizeGrokVideoDraftForBackend(
+        ? normalizeGrokVideoDraftForModel(
             current,
             grokResolutionOptions,
             grokRatioOptions,
           )
         : options.showHappyHorseConfig
-          ? normalizeHappyHorseDraftForBackend(
+          ? normalizeHappyHorseDraftForModel(
               current,
               happyHorseResolutionOptions,
               happyHorseRatioOptions,
             )
-          : normalizeSeedance2DraftForBackend(
+          : normalizeSeedance2DraftForModel(
               current,
               seedance2ResolutionOptions,
-              options.backend,
+              options.model,
               isValueStyle,
             );
       if (!sameSeedance2Config(current, next)) applyDraft(next);
@@ -349,7 +349,7 @@ export function createUseSeedance2ConfigController(
       happyHorseRatioOptions,
       happyHorseResolutionOptions,
       isValueStyle,
-      options.backend,
+      options.model,
       options.showGrokVideoConfig,
       options.showHappyHorseConfig,
       seedance2ResolutionOptions,
@@ -453,13 +453,13 @@ export function createUseSeedance2ConfigController(
           seedance2DefaultRatioForProjectAspect(options.projectAspect),
         );
         const nextDraft = options.showGrokVideoConfig
-          ? normalizeGrokVideoDraftForBackend(
+          ? normalizeGrokVideoDraftForModel(
               parsedDraft,
               grokResolutionOptions,
               grokRatioOptions,
             )
           : options.showHappyHorseConfig
-            ? normalizeHappyHorseDraftForBackend(
+            ? normalizeHappyHorseDraftForModel(
                 parsedDraft,
                 happyHorseResolutionOptions,
                 happyHorseRatioOptions,
@@ -510,7 +510,7 @@ export function createUseSeedance2ConfigController(
 
     const generationInput: BeatVideoGenerationInput = options.showSeedance2Config
       ? {
-          backend: options.backend,
+          model: options.model,
           beatNumber: options.beat.beat_number,
           kind: "seedance2",
           dirty,
@@ -521,7 +521,7 @@ export function createUseSeedance2ConfigController(
         }
       : options.showHappyHorseConfig
         ? {
-            backend: options.backend,
+            model: options.model,
             beatNumber: options.beat.beat_number,
             kind: "happyhorse",
             draft,
@@ -531,7 +531,7 @@ export function createUseSeedance2ConfigController(
           }
         : options.showGrokVideoConfig
           ? {
-              backend: options.backend,
+              model: options.model,
               beatNumber: options.beat.beat_number,
               kind: "grok",
               draft,
@@ -540,7 +540,7 @@ export function createUseSeedance2ConfigController(
               sourceConfig: config,
             }
           : {
-              backend: options.backend,
+              model: options.model,
               beatNumber: options.beat.beat_number,
               kind: "legacy",
               ...(isSeedance15ProConfig

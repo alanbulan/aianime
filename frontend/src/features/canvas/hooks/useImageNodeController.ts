@@ -39,9 +39,11 @@ import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGener
 import {
   collectCandidateBindingsForNode,
   hasMainlineContexts,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 
 export interface ImageNodeControllerOptions {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: ImageEditNodeData | ExportImageNodeData;
   selected?: boolean;
@@ -51,6 +53,8 @@ export interface ImageNodeControllerOptions {
 }
 
 export function useImageNodeController({
+  projectId,
+  canvasId,
   id,
   data,
   selected,
@@ -271,6 +275,8 @@ export function useImageNodeController({
     rename: (displayName: string) => updateNodeData(id, { displayName }),
     handleImageLoad,
     retry: () => regenerateExportImageNode({
+      projectId,
+      canvasId,
       nodeData: data as Record<string, unknown>,
       nodeId: id,
       updateNodeData,

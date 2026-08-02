@@ -11,9 +11,10 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.infrastructure.global_video_optimization import (
     LocalEpisodeSketchCatalog,
     SqliteGlobalVideoOptimizationSource,
-    TaskBackendGlobalVideoOptimizationScheduler,
+    TaskExecutionGlobalVideoOptimizationScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 def _context(tmp_path: Path) -> ProjectContext:
@@ -145,7 +146,9 @@ def test_local_sketch_catalog_requires_matching_png(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_preserves_payload_and_identity(tmp_path: Path) -> None:
+async def test_task_execution_scheduler_preserves_payload_and_identity(
+    tmp_path: Path,
+) -> None:
     calls = []
 
     class Backend:
@@ -166,8 +169,8 @@ async def test_task_backend_scheduler_preserves_payload_and_identity(tmp_path: P
         language="en",
     )
 
-    receipt = await TaskBackendGlobalVideoOptimizationScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionGlobalVideoOptimizationScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

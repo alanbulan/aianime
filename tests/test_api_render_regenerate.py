@@ -63,7 +63,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.task_identity import selection_scope
+    from ai_anime.modules.task_execution.public import selection_scope
     from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
@@ -325,7 +325,6 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
         "/api/v1/projects/demo/episodes/2/grids/0/regenerate",
         json={
             "style": "cinematic",
-            "model": "nanobanana-pro",
             "scene_grouping": True,
             "character_grouping": False,
             "image_generation_selection": "newapi_nanobanana2",
@@ -343,7 +342,6 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     assert command.episode_num == 2
     assert command.grid_index == 0
     assert command.style == "cinematic"
-    assert command.model == "nanobanana-pro"
     assert command.scene_grouping is True
     assert command.character_grouping is False
     assert command.image_generation_selection == "newapi_nanobanana2"

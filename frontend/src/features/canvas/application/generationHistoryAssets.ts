@@ -11,7 +11,7 @@ import {
   historyRecordPrompt,
   historyRecordStrictWorldUrl,
   historyRecordWorldUrl,
-} from '@/features/canvas/domain/generationHistoryRecord';
+} from '@/modules/creative_canvas/public';
 
 export interface HistoryNodeMeta {
   cover: string | null;

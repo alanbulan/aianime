@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
 import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
-import { setFreezoneCanvasMetadata } from "@/features/freezone/application/canvasMetadataState";
+import { setFreezoneCanvasMetadata } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 const updateBeat = vi.fn().mockResolvedValue({ ok: true, data: null });
@@ -38,48 +38,23 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/freezone/public", async () => {
-  const mainlineContext = await vi.importActual<
-    typeof import("@/features/freezone/domain/mainlineContext")
-  >("@/features/freezone/domain/mainlineContext");
-  const currentBeatContext = await vi.importActual<
-    typeof import("@/features/freezone/domain/currentBeatContext")
-  >("@/features/freezone/domain/currentBeatContext");
-  const pushTarget = await vi.importActual<
-    typeof import("@/features/freezone/domain/pushTarget")
-  >("@/features/freezone/domain/pushTarget");
-  const skillContract = await vi.importActual<
-    typeof import("@/features/freezone/domain/skillContract")
-  >("@/features/freezone/domain/skillContract");
-  const canvasPreset = await vi.importActual<
-    typeof import("@/features/freezone/application/canvasPreset")
-  >("@/features/freezone/application/canvasPreset");
-  const canvasMetadata = await vi.importActual<
-    typeof import("@/features/freezone/application/canvasMetadataState")
-  >("@/features/freezone/application/canvasMetadataState");
+vi.mock("@/modules/creative_canvas/public", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/modules/creative_canvas/public")
+  >("@/modules/creative_canvas/public");
   return {
+    ...actual,
     applyRemoteFreezoneCanvas: () => false,
-    extractMainlineContextsFromNode:
-      mainlineContext.extractMainlineContextsFromNode,
+    createCanvasFromPreset: (...args: unknown[]) =>
+      createCanvasFromPreset(...args),
     flushFreezoneCanvasRuntime: async () => true,
-    getFreezoneCanvasMetadata: canvasMetadata.getFreezoneCanvasMetadata,
-    isCanonicalPushTarget: pushTarget.isCanonicalPushTarget,
+    getFreezoneCanvas: (...args: unknown[]) => getFreezoneCanvas(...args),
     listFreezoneBeatContext: (...args: unknown[]) =>
       listFreezoneBeatContext(...args),
     NodeContextBadges: () => null,
     openPresetProjectionInMyCanvas: vi.fn(),
-    parseBeatContextVisualMarkers:
-      currentBeatContext.parseBeatContextVisualMarkers,
-    presetRequestFromMetadata: canvasPreset.presetRequestFromMetadata,
-    SKILL_SCHEMA_VERSION: skillContract.SKILL_SCHEMA_VERSION,
   };
 });
-
-vi.mock("@/features/canvas/composition", () => ({
-  createCanvasFromPreset: (...args: unknown[]) =>
-    createCanvasFromPreset(...args),
-  getFreezoneCanvas: (...args: unknown[]) => getFreezoneCanvas(...args),
-}));
 
 vi.mock("@/features/canvas/ui/NodeResizeHandle", () => ({
   NodeResizeHandle: () => <div data-testid="resize-handle" />,
@@ -171,6 +146,8 @@ function renderNode(data: BeatContextNodeData = makeData()) {
         id="context_beat"
         type="beatContextNode"
         data={data}
+        projectId="demo"
+        canvasId="default"
         selected={false}
         dragging={false}
         draggable={true}

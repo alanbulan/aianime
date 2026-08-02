@@ -14,6 +14,7 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 from pathlib import Path
 
 import yaml
@@ -26,6 +27,7 @@ DEFAULT_HERMES_SKILLS = {"ai_anime"}
 DEFAULT_HERMES_PLUGINS = {"ai_anime"}
 DEFAULT_HERMES_TOOLSETS = {"hermes-acp"}
 _warned_repo_state_fallback = False
+_MANAGED_ASSET_MARKER = ".ai-anime-managed-asset"
 
 
 _DEFAULT_HERMES_MODEL = "ai-anime-assistant-LLM"
@@ -103,6 +105,13 @@ def _state_root() -> Path:
     return AI_ANIME_ROOT / "state"
 
 
+def _hermes_assets_root() -> Path:
+    configured = os.environ.get("AI_ANIME_HERMES_ASSETS_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return AI_ANIME_ROOT / ".hermes"
+
+
 def _root_value(*names: str) -> str:
     """Read the first non-empty value among ``names`` from root .env then env."""
     env_path = AI_ANIME_ROOT / ".env"
@@ -118,19 +127,10 @@ def _root_value(*names: str) -> str:
 
 
 def _effective_newapi_gateway() -> tuple[str, str]:
-    """Return effective NewAPI ``(api_key, base_url)`` for Hermes.
-
-    CE resolves the UI-selected gateway from settings.db. EE has no CE settings
-    database and therefore resolves its deployment-level NEWAPI_API_KEY and the
-    fixed official gateway URL.
-    """
+    """Return effective model-access ``(api_key, base_url)`` for Hermes."""
     from ai_anime.model_gateway_settings import get_effective_newapi_config
-    from ai_anime.official_defaults import OFFICIAL_NEWAPI_BASE_URL
 
-    gateway = get_effective_newapi_config(
-        official_base_url=OFFICIAL_NEWAPI_BASE_URL,
-        official_api_key=os.environ.get("NEWAPI_API_KEY", ""),
-    )
+    gateway = get_effective_newapi_config()
     return gateway.api_key, gateway.base_url
 
 
@@ -151,11 +151,14 @@ def effective_gateway_credentials() -> tuple[str, str]:
 
 
 def _hermes_model_default() -> str:
-    return _root_value(
+    logical_model = _root_value(
         "HERMES_MODEL",
         "HERMES_MODEL_DEFAULT",
         "AI_ANIME_HERMES_MODEL",
     ) or _DEFAULT_HERMES_MODEL
+    from ai_anime.model_access_policy import resolve_internal_model_for_role
+
+    return resolve_internal_model_for_role(logical_model, "TEXT")
 
 
 def _hermes_model_api_mode() -> str:
@@ -246,7 +249,7 @@ def ensure_user_hermes_workspace(username: str) -> Path:
         tmp/                per-user TMPDIR (sandbox writable)
         skills/
             _user/          per-user / hermes-learned skills (writable)
-            <name>/         softlink → repo .hermes/skills/<name>
+            <name>/         managed link/copy from bundled Hermes assets
 
     Returns the HERMES_HOME path (caller passes as ``HERMES_HOME`` env var).
     """
@@ -264,6 +267,9 @@ def ensure_user_hermes_workspace(username: str) -> Path:
         tmp_dir.chmod(0o700)
     except OSError:
         pass
+
+    for appdata_dir in (home / "appdata" / "roaming", home / "appdata" / "local"):
+        appdata_dir.mkdir(parents=True, exist_ok=True)
 
     # skills layout
     skills_dir = home / "skills"
@@ -348,6 +354,78 @@ def _ensure_identity_context(home: Path) -> None:
         _log.warning("failed to ensure hermes MEMORY.md under %s", memories_dir)
 
 
+def _asset_tree_digest(source: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(item for item in source.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(source).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _materialize_managed_asset(link: Path, target: Path, *, kind: str) -> None:
+    if link.is_symlink():
+        try:
+            if link.resolve() == target:
+                return
+            link.unlink()
+        except OSError:
+            return
+    elif link.exists():
+        marker = link / _MANAGED_ASSET_MARKER
+        try:
+            if (
+                marker.is_file()
+                and marker.read_text(encoding="utf-8")
+                == _asset_tree_digest(target)
+            ):
+                return
+            if marker.is_file():
+                shutil.rmtree(link)
+            else:
+                _log.warning(
+                    "%s name collision at %s (not managed by AI anime); leaving as-is",
+                    kind,
+                    link,
+                )
+                return
+        except OSError as exc:
+            _log.warning("failed to inspect managed %s at %s: %s", kind, link, exc)
+            return
+    try:
+        link.symlink_to(target, target_is_directory=True)
+        return
+    except OSError as link_error:
+        try:
+            shutil.copytree(target, link)
+            (link / _MANAGED_ASSET_MARKER).write_text(
+                _asset_tree_digest(target),
+                encoding="utf-8",
+            )
+        except OSError as copy_error:
+            if link.exists():
+                shutil.rmtree(link, ignore_errors=True)
+            _log.warning(
+                "failed to materialize %s %s from %s (link: %s; copy: %s)",
+                kind,
+                link,
+                target,
+                link_error,
+                copy_error,
+            )
+
+
+def _remove_stale_managed_asset(entry: Path) -> None:
+    try:
+        if entry.is_symlink():
+            entry.unlink()
+        elif (entry / _MANAGED_ASSET_MARKER).is_file():
+            shutil.rmtree(entry)
+    except OSError:
+        pass
+
+
 def _materialize_skill_links(skills_dir: Path) -> None:
     """Create / refresh symlinks from skills_dir/<name> → repo-pinned skills.
 
@@ -357,7 +435,7 @@ def _materialize_skill_links(skills_dir: Path) -> None:
     Idempotent: stale links to dirs that no longer exist in the source are
     removed; new skills are added; existing real directories are left alone.
     """
-    src_skills = AI_ANIME_ROOT / ".hermes" / "skills"
+    src_skills = _hermes_assets_root() / "skills"
     if not src_skills.is_dir():
         _log.info(
             "hermes skills source not found at %s — skipping skill links",
@@ -383,35 +461,14 @@ def _materialize_skill_links(skills_dir: Path) -> None:
     for name, target in want.items():
         if name.startswith("_"):
             continue  # reserve `_user` for hermes-learned
-        link = skills_dir / name
-        if link.is_symlink():
-            try:
-                if link.resolve() == target:
-                    continue
-                link.unlink()  # stale → recreate
-            except OSError:
-                continue
-        elif link.exists():
-            # User-installed real dir with same name; do not clobber.
-            _log.warning(
-                "skill name collision at %s (not a symlink); leaving as-is",
-                link,
-            )
-            continue
-        try:
-            link.symlink_to(target)
-        except OSError as e:
-            _log.warning("failed to link %s → %s: %s", link, target, e)
+        _materialize_managed_asset(skills_dir / name, target, kind="skill")
 
     # Remove stale symlinks (skill removed from repo mirror)
     for entry in skills_dir.iterdir():
-        if entry.name == "_user" or not entry.is_symlink():
+        if entry.name == "_user":
             continue
         if entry.name not in want:
-            try:
-                entry.unlink()
-            except OSError:
-                pass
+            _remove_stale_managed_asset(entry)
 
 
 def _ensure_default_plugin_enabled(config_yaml: Path) -> None:
@@ -507,7 +564,7 @@ def _migrate_acp_toolsets(text: str) -> str:
 
 
 def _ensure_model_gateway_config(config_yaml: Path) -> None:
-    """Reconcile the managed NewAPI provider without persisting its secret.
+    """Reconcile the managed model endpoint without persisting its secret.
 
     Hermes 0.18 resolves ``custom_providers[].key_env`` from the subprocess
     environment. Existing workspaces are normalized lazily on their next spawn,
@@ -562,12 +619,14 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
         managed_provider = {"name": _AI_ANIME_HERMES_PROVIDER_NAME}
         providers.append(managed_provider)
         changed = True
+    api_key, base_url = _effective_newapi_gateway()
     desired_provider = {
         "name": _AI_ANIME_HERMES_PROVIDER_NAME,
-        "base_url": _newapi_base_url(),
-        "key_env": _AI_ANIME_HERMES_KEY_ENV,
+        "base_url": base_url,
         "api_mode": _hermes_model_api_mode(),
     }
+    if api_key:
+        desired_provider["key_env"] = _AI_ANIME_HERMES_KEY_ENV
     for key, value in desired_provider.items():
         if managed_provider.get(key) != value:
             managed_provider[key] = value
@@ -576,6 +635,9 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
         if secret_key in managed_provider:
             managed_provider.pop(secret_key, None)
             changed = True
+    if not api_key and "key_env" in managed_provider:
+        managed_provider.pop("key_env", None)
+        changed = True
     if not changed:
         return
     try:
@@ -599,11 +661,8 @@ def _dump_hermes_config_yaml(config: dict) -> str:
 
 
 def _ensure_model_config_from_env(config_yaml: Path) -> None:
-    """Apply explicit Hermes model env overrides to existing config.yaml files."""
-    overrides: dict[str, object] = {}
-    model = _root_value("HERMES_MODEL", "HERMES_MODEL_DEFAULT", "AI_ANIME_HERMES_MODEL")
-    if model:
-        overrides["default"] = model
+    """Reconcile Hermes with the selected cloud catalog or BYOK text model."""
+    overrides: dict[str, object] = {"default": _hermes_model_default()}
     api_mode = _root_value("HERMES_MODEL_API_MODE")
     if api_mode:
         overrides["api_mode"] = api_mode
@@ -642,7 +701,7 @@ def _ensure_model_config_from_env(config_yaml: Path) -> None:
 
 def _materialize_plugin_links(plugins_dir: Path) -> None:
     """Create / refresh symlinks from plugins_dir/<name> → repo-pinned plugins."""
-    src_plugins = AI_ANIME_ROOT / ".hermes" / "plugins"
+    src_plugins = _hermes_assets_root() / "plugins"
     if not src_plugins.is_dir():
         _log.info(
             "hermes plugins source not found at %s — skipping plugin links",
@@ -667,33 +726,11 @@ def _materialize_plugin_links(plugins_dir: Path) -> None:
     for name, target in want.items():
         if name.startswith("_"):
             continue
-        link = plugins_dir / name
-        if link.is_symlink():
-            try:
-                if link.resolve() == target:
-                    continue
-                link.unlink()
-            except OSError:
-                continue
-        elif link.exists():
-            _log.warning(
-                "plugin name collision at %s (not a symlink); leaving as-is",
-                link,
-            )
-            continue
-        try:
-            link.symlink_to(target)
-        except OSError as e:
-            _log.warning("failed to link %s → %s: %s", link, target, e)
+        _materialize_managed_asset(plugins_dir / name, target, kind="plugin")
 
     for entry in plugins_dir.iterdir():
-        if not entry.is_symlink():
-            continue
         if entry.name not in want:
-            try:
-                entry.unlink()
-            except OSError:
-                pass
+            _remove_stale_managed_asset(entry)
 
 
 __all__ = [

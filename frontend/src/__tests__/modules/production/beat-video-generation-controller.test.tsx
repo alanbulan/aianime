@@ -60,7 +60,7 @@ function makeDraft(
 function makeGenerationInput(): BeatVideoGenerationInput {
   const sourceConfig = makeDraft({ resolution: "1080p" });
   return {
-    backend: "newapi_seedance-2.0-fast",
+    model: "seedance-2.0-fast",
     beatNumber: 1,
     kind: "seedance2",
     dirty: false,
@@ -157,7 +157,7 @@ describe("beat video generation controller", () => {
     );
     expect(regenerate).toHaveBeenCalledWith({
       beatNum: 1,
-      videoBackend: "newapi_seedance-2.0-fast",
+      model: "seedance-2.0-fast",
     });
     expect(taskStart).toHaveBeenCalledTimes(1);
     expect(toastSuccess).toHaveBeenCalledWith(
@@ -165,7 +165,7 @@ describe("beat video generation controller", () => {
     );
   });
 
-  it("does not start a task after a backend rejection", async () => {
+  it("does not start a task after a generation rejection", async () => {
     regenerate.mockResolvedValueOnce({ ok: false, error: "生成被拒绝" });
     const { result } = renderController();
 

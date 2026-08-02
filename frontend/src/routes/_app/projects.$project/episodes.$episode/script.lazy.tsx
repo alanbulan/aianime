@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { ScriptPageContent } from "@/modules/narrative_planning/public";
+import { ScriptPageContent } from "@/app/workspace-composition";
 
 function ScriptRouteAdapter() {
   const { project, episode } = Route.useParams();

@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 
 import type { CanvasCameraOptions } from "@/features/canvas/application/generationCatalog";
 import { loadCanvasCameraOptions } from "@/features/canvas/catalogComposition";
-import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneCameraOptionsResult {
   options: CanvasCameraOptions | null;
@@ -69,11 +68,8 @@ function subscribe(project: string | null, callback: () => void) {
 }
 
 export function useFreezoneCameraOptions(
-  projectOverride?: string | null,
+  project: string | null,
 ): UseFreezoneCameraOptionsResult {
-  const project =
-    projectOverride !== undefined ? projectOverride : readUrl().project;
-
   if (project) ensureLoaded(project);
 
   return useSyncExternalStore(

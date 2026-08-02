@@ -106,7 +106,7 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         SketchRegenQueueUseCases,
     )
     from ai_anime.modules.production.infrastructure.image_settings import (
-        ConfiguredProductionImageSelections,
+        ExplicitProductionImageModelPolicy,
     )
 
     class SettingsRepository:
@@ -121,7 +121,7 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     settings_repository = SettingsRepository()
     image_settings = ProductionImageSettingsUseCases(
         settings_repository,
-        ConfiguredProductionImageSelections(),
+        ExplicitProductionImageModelPolicy(),
     )
     monkeypatch.setattr(
         production_settings,
@@ -160,7 +160,7 @@ def _selected_background_path(project_dir):
 
 
 @pytest.mark.m09
-def test_render_settings_returns_current_selection_and_options(monkeypatch, tmp_path):
+def test_render_settings_returns_current_platform_sku(monkeypatch, tmp_path):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
@@ -176,22 +176,17 @@ def test_render_settings_returns_current_selection_and_options(monkeypatch, tmp_
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["render_image_selection"] == "newapi_nanobanana2"
-    assert body["data"]["options"] == {
-        "newapi_gpt_image2": "LingShan-G2",
-        "newapi_nanobanana2": "LingShan-NB-2",
-    }
+    assert "options" not in body["data"]
     assert body["data"]["sketch_aspect_padding"] is True
     assert "force_half_k" not in body["data"]
 
 
 @pytest.mark.m09
-def test_render_settings_maps_legacy_selection_to_visible_newapi_option(
-    monkeypatch, tmp_path
-):
+def test_render_settings_does_not_rewrite_stored_platform_sku(monkeypatch, tmp_path):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
-        {"render_image_selection": "huimeng_gpt_image2"},
+        {"render_image_selection": "byok-image-custom"},
     )
 
     response = client.get("/api/v1/projects/demo/render-settings")
@@ -199,8 +194,7 @@ def test_render_settings_maps_legacy_selection_to_visible_newapi_option(
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["render_image_selection"] == "newapi_gpt_image2"
-    assert body["data"]["render_image_selection"] in body["data"]["options"]
+    assert body["data"]["render_image_selection"] == "byok-image-custom"
 
 
 @pytest.mark.m09
@@ -228,22 +222,22 @@ def test_render_settings_patch_persists_valid_settings(monkeypatch, tmp_path):
 
 
 @pytest.mark.m09
-def test_render_settings_patch_rejects_unknown_selection(monkeypatch, tmp_path):
+def test_render_settings_patch_rejects_empty_model_sku(monkeypatch, tmp_path):
     client, saved = _client(monkeypatch, tmp_path)
 
     response = client.patch(
         "/api/v1/projects/demo/render-settings",
-        json={"render_image_selection": "unknown"},
+        json={"render_image_selection": "  "},
     )
 
     assert response.status_code == 400
     body = response.json()
     assert body["ok"] is False
-    assert "Invalid render_image_selection" in body["error"]
+    assert "non-empty platform SKU" in body["error"]
     assert saved == []
 
 
-def test_sketch_settings_returns_current_selection_and_options(monkeypatch, tmp_path):
+def test_sketch_settings_returns_current_platform_sku(monkeypatch, tmp_path):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
@@ -256,19 +250,14 @@ def test_sketch_settings_returns_current_selection_and_options(monkeypatch, tmp_
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["sketch_image_selection"] == "newapi_nanobanana2"
-    assert body["data"]["options"] == {
-        "newapi_gpt_image2": "LingShan-G2",
-        "newapi_nanobanana2": "LingShan-NB-2",
-    }
+    assert "options" not in body["data"]
 
 
-def test_sketch_settings_maps_legacy_selection_to_visible_newapi_option(
-    monkeypatch, tmp_path
-):
+def test_sketch_settings_does_not_rewrite_stored_platform_sku(monkeypatch, tmp_path):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
-        {"sketch_image_selection": "huimeng_image2_official"},
+        {"sketch_image_selection": "byok-sketch-custom"},
     )
 
     response = client.get("/api/v1/projects/demo/sketch-settings")
@@ -276,8 +265,7 @@ def test_sketch_settings_maps_legacy_selection_to_visible_newapi_option(
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["sketch_image_selection"] == "newapi_gpt_image2"
-    assert body["data"]["sketch_image_selection"] in body["data"]["options"]
+    assert body["data"]["sketch_image_selection"] == "byok-sketch-custom"
 
 
 def test_sketch_settings_patch_persists_valid_selection(monkeypatch, tmp_path):
@@ -295,18 +283,18 @@ def test_sketch_settings_patch_persists_valid_selection(monkeypatch, tmp_path):
     assert body["data"]["sketch_image_selection"] == "newapi_nanobanana2"
 
 
-def test_sketch_settings_patch_rejects_unknown_selection(monkeypatch, tmp_path):
+def test_sketch_settings_patch_rejects_empty_model_sku(monkeypatch, tmp_path):
     client, saved = _client(monkeypatch, tmp_path)
 
     response = client.patch(
         "/api/v1/projects/demo/sketch-settings",
-        json={"sketch_image_selection": "unknown"},
+        json={"sketch_image_selection": ""},
     )
 
     assert response.status_code == 400
     body = response.json()
     assert body["ok"] is False
-    assert "Invalid sketch_image_selection" in body["error"]
+    assert "non-empty platform SKU" in body["error"]
     assert saved == []
 
 
@@ -349,7 +337,16 @@ def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_pa
     context = object()
 
     async def resolve(*_args, **_kwargs):
-        return SimpleNamespace(ctx=context)
+        return SimpleNamespace(
+            ctx=context,
+            username="alice",
+            project_name="demo",
+        )
+
+    class ImageSettings:
+        def sketch_settings(self, username, project_name):
+            assert (username, project_name) == ("alice", "demo")
+            return {"sketch_image_selection": "sketch-model"}
 
     status = DirectorControlFrameStatus(
         ready=True,
@@ -383,6 +380,11 @@ def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_pa
     monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     monkeypatch.setattr(
         production_sketch,
+        "production_image_settings_use_cases",
+        lambda: ImageSettings(),
+    )
+    monkeypatch.setattr(
+        production_sketch,
         "director_control_sketch_use_cases",
         lambda: UseCases(),
     )
@@ -402,6 +404,7 @@ def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_pa
     assert calls[0][0] is context
     assert calls[0][1].episode_num == 1
     assert calls[0][1].beat_num == 4
+    assert calls[0][1].model == "sketch-model"
 
 
 def test_director_control_to_sketch_rejects_missing_control_frame(
@@ -413,7 +416,16 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
     context = object()
 
     async def resolve(*_args, **_kwargs):
-        return SimpleNamespace(ctx=context)
+        return SimpleNamespace(
+            ctx=context,
+            username="alice",
+            project_name="demo",
+        )
+
+    class ImageSettings:
+        def sketch_settings(self, username, project_name):
+            assert (username, project_name) == ("alice", "demo")
+            return {"sketch_image_selection": "sketch-model"}
 
     status = DirectorControlFrameStatus(
         ready=False,
@@ -434,6 +446,11 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
             )
 
     monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
+    monkeypatch.setattr(
+        production_sketch,
+        "production_image_settings_use_cases",
+        lambda: ImageSettings(),
+    )
     monkeypatch.setattr(
         production_sketch,
         "director_control_sketch_use_cases",

@@ -14,6 +14,7 @@ import {
   useAssetImageSourceSelection,
   useUpdateAssetImageSourceSelection,
 } from "@/modules/asset_world/public";
+import { useCommercialModelCatalog } from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
 
 export type CharacterImageSourceSelectProps = {
@@ -33,15 +34,25 @@ export function CharacterImageSourceSelect({
 }: CharacterImageSourceSelectProps) {
   const { t } = useTranslation();
   const selectionQuery = useAssetImageSourceSelection(project, kind);
+  const catalogQuery = useCommercialModelCatalog("IMAGE", Boolean(project));
   const updateSelection = useUpdateAssetImageSourceSelection(project, kind);
-  const selection = selectionQuery.data?.data.image_source_selection ?? "";
-  const options = selectionQuery.data?.data.options ?? {};
-  const optionEntries = Object.entries(options);
-  const selectedLabel = options[selection] ?? selection;
+  const savedSelection = selectionQuery.data?.data.image_source_selection ?? "";
+  const optionEntries = (catalogQuery.data?.items ?? []).map((item) => [
+    item.code,
+    item.displayName,
+  ] as const);
+  const selectedOption = optionEntries.find(([value]) => value === savedSelection);
+  const selection = selectedOption?.[0] ?? "";
+  const selectedLabel = selectedOption?.[1] ?? "";
+  const loadFailed = Boolean(selectionQuery.error || catalogQuery.error);
+  const loading = selectionQuery.isLoading || catalogQuery.isLoading;
   const isDisabled =
     disabled ||
-    selectionQuery.isLoading ||
+    loading ||
+    loadFailed ||
+    optionEntries.length === 0 ||
     (selectionQuery.isFetching && !selectionQuery.data) ||
+    (catalogQuery.isFetching && !catalogQuery.data) ||
     updateSelection.isPending;
 
   const handleValueChange = async (value: string | null) => {
@@ -73,7 +84,14 @@ export function CharacterImageSourceSelect({
         </span>
         <span className="shrink-0 text-muted-foreground">&nbsp;·&nbsp;</span>
         <SelectValue>
-          {selectedLabel || t("characters.imageSource.loading")}
+          {selectedLabel ||
+            (loading
+              ? t("characters.imageSource.loading")
+              : loadFailed
+                ? t("characters.imageSource.loadFailed")
+                : optionEntries.length === 0
+                  ? t("characters.imageSource.empty")
+                  : t("characters.imageSource.selectModel"))}
         </SelectValue>
       </SelectTrigger>
       <SelectContent

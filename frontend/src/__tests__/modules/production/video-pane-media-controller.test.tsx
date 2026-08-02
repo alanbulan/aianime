@@ -38,7 +38,7 @@ const useVideoPaneMediaController = createUseVideoPaneMediaController(
               generated_at: "2026-07-25T08:00:00Z",
               duration: 5,
               video_mode: "first_frame",
-              backend: "newapi_seedance-2.0-fast",
+              video_model: "seedance-2.0-fast",
               prompt: "old",
             },
             {
@@ -49,7 +49,7 @@ const useVideoPaneMediaController = createUseVideoPaneMediaController(
               generated_at: "2026-07-25T09:00:00Z",
               duration: 5,
               video_mode: "first_frame",
-              backend: "configured",
+              video_model: "configured",
               prompt: "new",
             },
             {
@@ -60,7 +60,7 @@ const useVideoPaneMediaController = createUseVideoPaneMediaController(
               generated_at: "2026-07-25T10:00:00Z",
               duration: 5,
               video_mode: "first_frame",
-              backend: "configured",
+              video_model: "configured",
               prompt: "other",
             },
           ],
@@ -81,7 +81,7 @@ const options = {
   project: "demo",
   state: "ready" as const,
   videoActive: true,
-  videoBackends: [{ value: "configured", label: "配置模型" }],
+  videoModels: [{ value: "configured", label: "配置模型" }],
   videoProgress: 0.426,
   videoUrl: "/static/current.mp4",
   useSeedance2Preview: true,
@@ -106,14 +106,14 @@ describe("Production video pane media controller", () => {
     expect(result.current.candidates).toEqual([
       expect.objectContaining({
         active: true,
-        backendLabel: "配置模型",
+        modelLabel: "配置模型",
         id: "new",
         previewSource: "/static/new.mp4#t=0.1",
         timeLabel: "1.0h",
       }),
       expect.objectContaining({
         active: false,
-        backendLabel: "Seedance 2.0-fast",
+        modelLabel: "Seedance 2.0-fast",
         id: "old",
         timeLabel: "2.0h",
       }),

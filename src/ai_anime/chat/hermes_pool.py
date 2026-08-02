@@ -20,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import shutil
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -59,19 +58,13 @@ HERMES_DEFAULT_SCOPES = [
 ]
 
 
-def _hermes_cli_path() -> Path:
-    """Resolve the hermes binary. uv-tool install puts it in ~/.local/bin."""
-    override = os.environ.get("HERMES_CLI_PATH", "").strip()
-    if override:
-        return Path(override)
-    resolved = shutil.which("hermes")
-    if resolved:
-        return Path(resolved)
-    return Path.home() / ".local" / "bin" / "hermes"
-
-
-def is_hermes_backend_available() -> bool:
-    return _hermes_cli_path().exists()
+def _hermes_cli_path() -> Path | None:
+    """Resolve the absolute Hermes ACP path injected by the desktop host."""
+    configured = os.environ.get("HERMES_CLI_PATH", "").strip()
+    if not configured:
+        return None
+    path = Path(configured).expanduser()
+    return path if path.is_absolute() else None
 
 
 @dataclass
@@ -191,10 +184,11 @@ class HermesPool:
         resume_session_id: str | None = None,
     ) -> _WorkerSlot:
         cli_path = _hermes_cli_path()
-        if not cli_path.exists():
+        if cli_path is None or not cli_path.is_file():
+            location = str(cli_path) if cli_path is not None else "not injected"
             raise RuntimeError(
-                f"hermes CLI not found at {cli_path}. "
-                "Run `uv tool install 'hermes-agent[acp]'`."
+                f"bundled Hermes ACP runtime not found ({location}). "
+                "Restart or reinstall the desktop application."
             )
         home = ensure_user_hermes_workspace(username)
         worker_id = f"hermes-{uuid.uuid4().hex}"
@@ -209,7 +203,12 @@ class HermesPool:
         )
         project_env = await self._project_env(username, project_id)
         env = self._build_env(
-            home, username, token, project_id=project_id, project_env=project_env
+            home,
+            username,
+            token,
+            cli_path=cli_path,
+            project_id=project_id,
+            project_env=project_env,
         )
         client = HermesSdkClient(
             cli_path=cli_path,
@@ -365,12 +364,22 @@ class HermesPool:
         username: str,
         token: AgentSessionToken,
         *,
+        cli_path: Path,
         project_id: str | None,
         project_env: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """Build the strict environment passed only to this Hermes worker."""
+        cli_dir = cli_path.parent
+        path_entries = [str(cli_dir)]
+        system_root = os.environ.get("SYSTEMROOT", "").strip()
+        if os.name == "nt" and system_root:
+            path_entries.extend([str(Path(system_root) / "System32"), system_root])
         env = {
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "PATH": (
+                os.pathsep.join(path_entries)
+                if os.name == "nt"
+                else "/usr/local/bin:/usr/bin:/bin"
+            ),
             "LANG": os.environ.get("LANG", "C.UTF-8"),
             "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
             "HOME": str(home),
@@ -383,6 +392,27 @@ class HermesPool:
             "AI_ANIME_AGENT_TOKEN_EXPIRES_AT": str(token.exp),
             "AI_ANIME_API_URL": self._api_url,
         }
+        if os.name == "nt":
+            env.update(
+                {
+                    "USERPROFILE": str(home),
+                    "APPDATA": str(home / "appdata" / "roaming"),
+                    "LOCALAPPDATA": str(home / "appdata" / "local"),
+                    "TEMP": str(home / "tmp"),
+                    "TMP": str(home / "tmp"),
+                }
+            )
+            for name in (
+                "COMSPEC",
+                "NUMBER_OF_PROCESSORS",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
+                "SYSTEMROOT",
+                "WINDIR",
+            ):
+                value = os.environ.get(name, "").strip()
+                if value:
+                    env[name] = value
         if project_id:
             env["AI_ANIME_PROJECT_ID"] = project_id
             env["AI_ANIME_PROJECT"] = project_id
@@ -514,4 +544,4 @@ class HermesPool:
 pool = HermesPool()
 
 
-__all__ = ["HermesPool", "pool", "is_hermes_backend_available", "_hermes_cli_path"]
+__all__ = ["HermesPool", "pool", "_hermes_cli_path"]

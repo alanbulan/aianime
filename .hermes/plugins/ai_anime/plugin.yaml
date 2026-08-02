@@ -1,0 +1,5 @@
+name: ai_anime
+version: 0.1.0
+description: "AI anime API tools for AI anime 助手. Uses direct HTTP client calls with the injected agent token; no shell, subprocess, or curl."
+author: "AI anime"
+kind: backend

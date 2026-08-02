@@ -5,7 +5,7 @@ import {
   deriveEpisodeCounts,
 } from "@/modules/production/domain/beat-state";
 import type { Beat } from "@/modules/narrative_planning/public";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
 
 function makeBeat(overrides: Partial<Beat>): Beat {
   return {
@@ -16,7 +16,7 @@ function makeBeat(overrides: Partial<Beat>): Beat {
   };
 }
 
-function makeTask(overrides: Partial<Task>): Task {
+function makeTask(overrides: Partial<TaskState>): TaskState {
   return {
     task_type: "sketch_generation",
     project: "p",
@@ -24,7 +24,7 @@ function makeTask(overrides: Partial<Task>): Task {
     status: "running",
     created_at: "2026-04-14T00:00:00Z",
     ...overrides,
-  } as Task;
+  } as TaskState;
 }
 
 describe("deriveBeatStates", () => {

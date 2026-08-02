@@ -17,15 +17,16 @@ import {
 import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
-} from "@/features/freezone/public";
-import { readUrl } from "@/lib/url-params";
+} from "@/modules/creative_canvas/public";
 
 export interface NodeMainlineToolbarControllerOptions {
+  projectId: string;
   node: CanvasNode;
   isPresetLocked: boolean;
 }
 
 export function useNodeMainlineToolbarController({
+  projectId,
   node,
   isPresetLocked,
 }: NodeMainlineToolbarControllerOptions) {
@@ -39,8 +40,8 @@ export function useNodeMainlineToolbarController({
     [node.data],
   );
   const extractableBeatContext = useMemo(
-    () => resolveNodeActionBeatContext(node, readUrl().project),
-    [node],
+    () => resolveNodeActionBeatContext(node, projectId),
+    [node, projectId],
   );
   const canOpenWorkbench = isPresetLocked && Boolean(workbenchTarget);
   const canEnsureBeatContext =
@@ -48,11 +49,6 @@ export function useNodeMainlineToolbarController({
 
   const openWorkbench = useCallback(() => {
     if (!canOpenWorkbench || !workbenchTarget || openingWorkbench) return;
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.warn("[freezone] no project_id in URL (?p=<project_id>)");
-      return;
-    }
     setOpeningWorkbench(true);
     void (async () => {
       try {
@@ -68,7 +64,7 @@ export function useNodeMainlineToolbarController({
         setOpeningWorkbench(false);
       }
     })();
-  }, [canOpenWorkbench, openingWorkbench, workbenchTarget]);
+  }, [canOpenWorkbench, openingWorkbench, projectId, workbenchTarget]);
 
   const ensureBeatContextNode = useCallback(() => {
     if (!canEnsureBeatContext || !extractableBeatContext) return;

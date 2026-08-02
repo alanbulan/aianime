@@ -31,6 +31,24 @@ const feedState = vi.hoisted<{ feed: ReleaseFeed }>(() => ({
 
 vi.mock("@/modules/platform_release/public", () => ({
   useReleaseNotifications: () => ({ data: feedState.feed, isLoading: false }),
+  useCommercialAnnouncements: () => ({
+    data: {
+      items: [
+        {
+          id: "announcement-1",
+          title: "Maintenance notice",
+          body: "Maintenance at 02:00.",
+          level: "WARNING",
+          pinned: true,
+          publishAt: "2026-07-30T18:00:00Z",
+          expiresAt: null,
+        },
+      ],
+      total: 1,
+    },
+    isLoading: false,
+    error: null,
+  }),
   markUpgradeSeen: (tag: string) =>
     localStorage.setItem(`ai-anime:release-upgrade:${tag}`, "seen"),
   markUpgradeSkipped: (tag: string) =>
@@ -44,6 +62,7 @@ vi.mock("react-i18next", () => ({
         "notifications.title": "Notification Center",
         "notifications.close": "Close notifications",
         "notifications.empty": "No notifications",
+        "notifications.loadFailed": "Notifications failed to load",
         "notifications.upgrade.title": `New version ${vars?.version} available`,
         "notifications.upgrade.body": "Open the release page to update.",
         "notifications.upgrade.open": "Update",
@@ -81,6 +100,7 @@ describe("NotificationDrawer release feed behavior", () => {
 
     expect(await screen.findByText("New version v1.0.5 available")).toBeInTheDocument();
     expect(screen.getByText("Current highlight")).toBeInTheDocument();
+    expect(screen.getByText("Maintenance notice")).toBeInTheDocument();
     expect(localStorage.getItem("ai-anime:release-upgrade:v1.0.5")).toBe("seen");
     expect(onUpgradeStateChange).toHaveBeenCalled();
   });

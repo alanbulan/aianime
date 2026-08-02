@@ -8,7 +8,7 @@ from pydantic import BaseModel
 class StylePreviewRequest(BaseModel):
     project: Optional[str] = None
     prompt: str = "A beautiful woman standing in a garden"
-    model: str = "nanobanana"
+    model: str
 
 
 __all__ = ["StylePreviewRequest"]

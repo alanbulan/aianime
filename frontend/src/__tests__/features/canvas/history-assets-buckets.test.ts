@@ -6,7 +6,7 @@ import {
   historyRecordInputImageUrl,
   historyRecordPreviewImageUrl,
   historyRecordStrictWorldUrl,
-} from "@/features/canvas/domain/generationHistoryRecord";
+} from "@/modules/creative_canvas/public";
 import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 
 function record(

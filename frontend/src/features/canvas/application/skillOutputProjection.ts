@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { SkillRunOutput } from "@/features/freezone/public";
+import type { SkillRunOutput } from "@/modules/creative_canvas/public";
 
 import {
   CANVAS_NODE_TYPES,

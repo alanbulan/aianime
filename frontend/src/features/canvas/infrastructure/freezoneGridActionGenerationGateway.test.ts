@@ -23,6 +23,7 @@ describe("freezoneGridActionGenerationGateway", () => {
       sourceUrl: "/static/source.png",
       mode: "storyboard_25_grid" as const,
       prompt: "Storyboard 25-grid",
+      model: "cloud-image-standard",
     };
 
     await expect(
@@ -37,6 +38,7 @@ describe("freezoneGridActionGenerationGateway", () => {
           mode: "storyboard_25_grid",
           prompt: "Storyboard 25-grid",
           image_size: "2K",
+          model: "cloud-image-standard",
         },
       },
     );

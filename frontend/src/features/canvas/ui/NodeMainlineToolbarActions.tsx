@@ -7,6 +7,7 @@ import { useNodeMainlineToolbarController } from "@/features/canvas/hooks/useNod
 import { NodeMainlineToolbarActionsView } from "./NodeMainlineToolbarActionsView";
 
 export interface NodeMainlineToolbarActionsProps {
+  projectId: string;
   node: CanvasNode;
   isPresetLocked: boolean;
 }

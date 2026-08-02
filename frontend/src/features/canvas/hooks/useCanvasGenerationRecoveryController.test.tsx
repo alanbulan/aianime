@@ -88,13 +88,14 @@ describe('useCanvasGenerationRecoveryController', () => {
     );
 
     expect(generationMocks.pollExportImageGeneration).toHaveBeenCalledWith(
+      'project-1',
       expect.objectContaining({
         nodeId: 'export-node',
         errorTitle: '生成失败',
         updateNodeData: useCanvasStore.getState().updateNodeData,
       }),
     );
-    const pollParams = generationMocks.pollExportImageGeneration.mock.calls[0]?.[0];
+    const pollParams = generationMocks.pollExportImageGeneration.mock.calls[0]?.[1];
     expect(pollParams?.getNodeData('export-node')).toBe(currentExportNode?.data);
     expect(generationMocks.resumeNodeGeneration).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -107,7 +108,7 @@ describe('useCanvasGenerationRecoveryController', () => {
     expect(resumeParams?.getNodeData('resume-node')).toBe(currentResumeNode?.data);
   });
 
-  it('keeps export polling active but does not resume tasks without a project', () => {
+  it('does not poll or resume tasks without an explicit project', () => {
     useCanvasStore.getState().setCanvasData([
       generationNode('export-node', CANVAS_NODE_TYPES.exportImage, {
         generationJobId: 'job-1',
@@ -126,7 +127,7 @@ describe('useCanvasGenerationRecoveryController', () => {
       }),
     );
 
-    expect(generationMocks.pollExportImageGeneration).toHaveBeenCalledOnce();
+    expect(generationMocks.pollExportImageGeneration).not.toHaveBeenCalled();
     expect(generationMocks.resumeNodeGeneration).not.toHaveBeenCalled();
   });
 

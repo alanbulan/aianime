@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Box, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { VideoGenMode } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasImageMode } from '@/features/canvas/domain/imageModelCapability';
 
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
@@ -18,25 +20,23 @@ const MODEL_PICKER_POPOVER_CLASS =
 const MODEL_PICKER_OPTION_BASE_CLASS =
   'inline-flex h-8 w-full items-center gap-2 rounded-[6px] px-3 text-left text-xs font-medium transition-colors';
 
-export type ProviderId =
-  | 'huimeng'
-  | 'openrouter'
-  | 'openai'
-  | 'seedance'
-  | 'minimax'
-  | 'eleven'
-  | 'mureka';
-
-export interface ProviderOption {
-  id: ProviderId;
-  label: string;
-}
-
 export interface ModelOption {
   id: string;
-  providerId: ProviderId;
   apiModel: string;
   label: string;
+  capabilities?: Record<string, unknown>;
+  imageModes?: ReadonlyArray<CanvasImageMode>;
+  parameterSchema?: Record<string, unknown>;
+  supportedModes?: VideoGenMode[];
+  supportsHumanReview?: boolean;
+  supportsReferenceImages?: boolean;
+  supportsReferenceVideos?: boolean;
+  supportsReferenceAudios?: boolean;
+  maxReferenceImages?: number | null;
+  maxReferenceVideos?: number | null;
+  maxReferenceAudios?: number | null;
+  maxReferenceTotal?: number | null;
+  maxReferenceAudioDurationSeconds?: number | null;
   resolutionOptions?: string[];
   minDuration?: number | null;
   maxDuration?: number | null;
@@ -44,113 +44,14 @@ export interface ModelOption {
   defaultSceneOptimize?: 'anime' | 'realistic' | null;
 }
 
-export const SHARED_PROVIDERS: ProviderOption[] = [
-  { id: 'huimeng', label: '绘梦 / HuiMeng' },
-  { id: 'openrouter', label: 'OpenRouter' },
-  { id: 'openai', label: 'OpenAI' },
-];
-
-export const SHARED_MODELS: ModelOption[] = [
-  {
-    id: 'huimeng/gpt-image-2',
-    providerId: 'huimeng',
-    apiModel: 'huimeng_gpt_image2',
-    label: 'LingShan-G2',
-  },
-  {
-    id: 'openrouter/gemini-2.5-flash-image',
-    providerId: 'openrouter',
-    apiModel: 'google/gemini-2.5-flash-image-preview',
-    label: 'Gemini 2.5 Flash Image',
-  },
-  {
-    id: 'openai/gpt-image-2',
-    providerId: 'openai',
-    apiModel: 'gpt-image-2',
-    label: 'GPT Image 2',
-  },
-];
-
-// Video generation models. `id` is the raw backend model id sent to
-// /freezone/video/gen so we don't need a separate apiModel mapping.
-export const VIDEO_PROVIDERS: ProviderOption[] = [
-  { id: 'seedance', label: 'Seedance' },
-  { id: 'huimeng', label: '绘梦 / HuiMeng' },
-];
-
-export const VIDEO_MODELS: ModelOption[] = [
-  {
-    id: 'newapi_seedance-2.0-fast',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-2.0-fast',
-    label: 'Seedance2.0 Fast',
-    resolutionOptions: ['480p', '720p'],
-    minDuration: 4,
-    maxDuration: 15,
-  },
-  {
-    id: 'newapi_seedance-2.0',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-2.0',
-    label: 'Seedance2.0',
-    resolutionOptions: ['480p', '720p', '1080p'],
-    minDuration: 4,
-    maxDuration: 15,
-  },
-  {
-    id: 'newapi_seedance-2.0-value',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-2.0-value',
-    label: 'Seedance2.0 Value',
-    resolutionOptions: ['720p', '1080p'],
-    minDuration: 4,
-    maxDuration: 15,
-    sceneOptimizeOptions: ['anime', 'realistic'],
-    defaultSceneOptimize: 'anime',
-  },
-  {
-    id: 'newapi_seedance-2.0-fast-value',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-2.0-fast-value',
-    label: 'Seedance2.0 Fast Value',
-    resolutionOptions: ['720p', '1080p'],
-    minDuration: 4,
-    maxDuration: 15,
-    sceneOptimizeOptions: ['anime', 'realistic'],
-    defaultSceneOptimize: 'realistic',
-  },
-  {
-    id: 'newapi_seedance-1.5-pro',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-1.5-pro',
-    label: 'Seedance1.5 Pro',
-    minDuration: 4,
-    maxDuration: 12,
-  },
-  {
-    id: 'newapi_seedance-1.0-pro-fast',
-    providerId: 'seedance',
-    apiModel: 'newapi_seedance-1.0-pro-fast',
-    label: 'Seedance1.0 Pro Fast',
-    minDuration: 2,
-    maxDuration: 12,
-  },
-];
-
 export type ProviderModelDomain = 'image' | 'video';
 
-interface ProviderModelPickerProps {
+interface ProviderModelPickerBaseProps {
   selectedModelId: string;
   onChange: (modelId: string) => void;
-  providers?: ProviderOption[];
-  models?: ModelOption[];
-  /**
-   * Selects which freezone models endpoint backs the picker when no explicit
-   * `models` prop is provided (`image` → /freezone/image/models, `video` →
-   * /freezone/video/models). Defaults to `image` so existing image-node call
-   * sites are unaffected.
-   */
+  /** Selects the authenticated commercial catalog operation. */
   domain?: ProviderModelDomain;
+  imageMode?: CanvasImageMode;
   className?: string;
   popoverPlacement?: 'top' | 'bottom';
   /**
@@ -162,12 +63,19 @@ interface ProviderModelPickerProps {
   getOptionDisabledReason?: (model: ModelOption) => string | null;
 }
 
+type ProviderModelPickerProps = ProviderModelPickerBaseProps &
+  (
+    | { models: ModelOption[]; projectId?: never }
+    | { models?: undefined; projectId: string }
+  );
+
 export function ProviderModelPicker({
   selectedModelId,
   onChange,
-  providers: _providers = SHARED_PROVIDERS,
   models,
+  projectId,
   domain = 'image',
+  imageMode,
   className,
   popoverPlacement = 'top',
   getOptionDisabledReason,
@@ -175,14 +83,22 @@ export function ProviderModelPicker({
   const { t } = useTranslation();
   // When the caller supplies an explicit `models` prop we don't fire any API
   // request — pass `null` to both hooks so they no-op. Otherwise the active
-  // hook is picked by `domain`, and the inactive one is fed `null` to stay
+  // hook receives the explicit project, and the inactive one is fed `null` to stay
   // dormant. (React still calls both hooks unconditionally so the call order
   // is stable across renders.)
-  const skipFetch = models ? null : undefined;
-  const imageHook = useFreezoneImageModels(domain === 'image' ? skipFetch : null);
-  const videoHook = useFreezoneVideoModels(domain === 'video' ? skipFetch : null);
-  const apiModels = domain === 'video' ? videoHook.models : imageHook.models;
+  const catalogProjectId = models === undefined ? projectId : null;
+  const imageHook = useFreezoneImageModels(
+    domain === 'image' ? catalogProjectId : null,
+    imageMode,
+  );
+  const videoHook = useFreezoneVideoModels(
+    domain === 'video' ? catalogProjectId : null,
+  );
+  const activeHook = domain === 'video' ? videoHook : imageHook;
+  const apiModels = activeHook.models;
   const effectiveModels = models ?? apiModels;
+  const loading = models === undefined && activeHook.isLoading;
+  const loadFailed = models === undefined && Boolean(activeHook.error);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -242,14 +158,24 @@ export function ProviderModelPicker({
       <button
         ref={triggerRef}
         type="button"
+        disabled={effectiveModels.length === 0}
         onClick={(event) => {
           event.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className={NODE_TEXT_CONTROL_TRIGGER_CLASS}
+        className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
       >
         <Box className={NODE_TEXT_CONTROL_ICON_CLASS} />
-        <span className="font-medium">{selectedModel?.label ?? selectedModelId}</span>
+        <span className="font-medium">
+          {selectedModel?.label ??
+            t(
+              loading
+                ? 'modelPicker.loading'
+                : loadFailed
+                  ? 'modelPicker.loadFailed'
+                  : 'modelPicker.empty',
+            )}
+        </span>
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && popoverPosition && createPortal(
@@ -325,7 +251,13 @@ export function ProviderModelPicker({
             })}
             {effectiveModels.length === 0 && (
               <span className="px-3 py-2 text-xs text-text-muted">
-                {t('modelPicker.empty')}
+                {t(
+                  loading
+                    ? 'modelPicker.loading'
+                    : loadFailed
+                      ? 'modelPicker.loadFailed'
+                      : 'modelPicker.empty',
+                )}
               </span>
             )}
           </div>

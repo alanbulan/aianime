@@ -31,7 +31,6 @@ from ai_anime.modules.production.public import (
     global_video_optimization_use_cases,
     seedance2_panel_use_cases,
     single_video_use_cases,
-    video_backend_catalog_use_cases,
 )
 
 router = APIRouter()
@@ -182,22 +181,6 @@ async def trim_seedance2_audio_asset(
         return {"ok": False, "error": str(exc)}
 
 
-@router.get("/projects/{project}/video-backends")
-async def get_video_backend_options(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """Return the available video generation backends."""
-    await resolve_project_scope(project, user, required_role="viewer")
-    return {
-        "ok": True,
-        "data": [
-            item.as_dict()
-            for item in video_backend_catalog_use_cases().list_options()
-        ],
-    }
-
-
 @router.post("/projects/{project}/episodes/{episode_num}/optimize/video-global")
 async def global_optimize_video(
     project: str,
@@ -239,7 +222,7 @@ async def generate_single_video(
             GenerateSingleVideoCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                video_backend=body.video_backend,
+                video_model=body.model,
                 resolution=body.resolution,
                 use_director_render=body.use_director_render,
                 seedance2_config_json=body.seedance2_config_json,

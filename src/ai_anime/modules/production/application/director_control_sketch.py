@@ -22,6 +22,7 @@ DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND = "director_control_to_sketch"
 class GenerateDirectorControlSketchCommand:
     episode_num: int
     beat_num: int
+    model: str
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,7 @@ class DirectorControlSketchTask:
     scope: str
     output_dir: str | Path
     state_dir: str | Path
+    model: str
 
     def backend_payload(self) -> dict[str, Any]:
         return {
@@ -46,6 +48,7 @@ class DirectorControlSketchTask:
             "beat_num": self.beat_num,
             "output_dir": str(self.output_dir),
             "state_dir": str(self.state_dir),
+            "model": self.model,
         }
 
 
@@ -107,6 +110,12 @@ class DirectorControlSketchUseCases:
             command.episode_num,
             command.beat_num,
         )
+        model = str(command.model or "").strip()
+        if not model:
+            raise DirectorControlSketchUnavailable(
+                "请先选择草图图片模型",
+                status,
+            )
         if not status.ready:
             raise DirectorControlSketchUnavailable(
                 f"Beat {command.beat_num} 缺少 Direct Render combined.png，"
@@ -120,6 +129,7 @@ class DirectorControlSketchUseCases:
             scope=status.scope,
             output_dir=context.output_dir,
             state_dir=context.state_dir,
+            model=model,
         )
         receipt = await self._scheduler.enqueue(context, task)
         return ScheduledDirectorControlSketch(

@@ -50,7 +50,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
     monkeypatch,
 ):
     from ai_anime.generators.video_generator import VideoGenStatus
-    from ai_anime.task_backend.runners import video as video_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import video as video_runner
 
     class FakeTaskManager:
         def update_progress_for_project(self, *_args, **_kwargs):
@@ -67,7 +67,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
             return SimpleNamespace(
                 status=VideoGenStatus.DONE,
                 error=None,
-                provider_task_id="provider-task-1",
+                task_id="invocation-1",
                 last_frame_path=last_frame_path.as_posix(),
                 last_frame_url="https://example.com/last-frame.png",
             )
@@ -75,7 +75,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
         "ai_anime.generators.video_generator.create_video_generator",
-        lambda backend: FakeVideoGenerator(),
+        lambda **_kwargs: FakeVideoGenerator(),
     )
     pool_calls = _patch_video_pool(monkeypatch, video_runner)
     context = _ctx(tmp_path)
@@ -89,14 +89,15 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
                 "config": {
                     "frame_path": "",
                     "prompt": "test",
-                    "video_backend": "mock",
+                    "video_model": "cloud-video-standard",
                 }
             },
         },
         context,
     )
 
-    assert result["provider_task_id"] == "provider-task-1"
+    assert result["invocation_id"] == "invocation-1"
+    assert "provider_task_id" not in result
     assert result["last_frame_path"].endswith(
         "videos/beats/ep001/returned_last_frames/beat_01.png"
     )
@@ -112,7 +113,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
 ):
     from ai_anime.generators.video_generator import VideoGenStatus
     from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.task_backend.runners import video as video_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import video as video_runner
 
     prepare_calls = []
     generate_calls = []
@@ -130,7 +131,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
             return SimpleNamespace(
                 status=VideoGenStatus.DONE,
                 error=None,
-                provider_task_id="provider-task-1",
+                task_id="invocation-1",
                 last_frame_path="",
                 last_frame_url="",
             )
@@ -151,7 +152,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
         "ai_anime.generators.video_generator.create_video_generator",
-        lambda backend: FakeVideoGenerator(),
+        lambda **_kwargs: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
         "ai_anime.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
@@ -175,7 +176,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
                     },
                     "frame_path": "https://example.com/first.png",
                     "prompt": "configured prompt",
-                    "video_backend": "newapi_seedance-2.0",
+                    "video_model": "seedance-2.0",
                     "video_duration": 6,
                 }
             },
@@ -183,7 +184,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
         _ctx(tmp_path),
     )
 
-    assert result["provider_task_id"] == "provider-task-1"
+    assert result["invocation_id"] == "invocation-1"
     assert prepare_calls[0]["resolution"] is None
     assert '"duration":8' in generate_calls[0]["seedance2_config"]
     assert '"resolution":"1080p"' in generate_calls[0]["seedance2_config"]
@@ -196,7 +197,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
     monkeypatch,
 ):
     from ai_anime.generators.video_generator import ShotReference, VideoGenStatus
-    from ai_anime.task_backend.runners import video as video_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import video as video_runner
 
     generate_calls = []
 
@@ -213,7 +214,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
             return SimpleNamespace(
                 status=VideoGenStatus.DONE,
                 error=None,
-                provider_task_id="provider-task-1",
+                task_id="invocation-1",
                 last_frame_path="",
                 last_frame_url="",
             )
@@ -221,7 +222,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
         "ai_anime.generators.video_generator.create_video_generator",
-        lambda backend, **_kwargs: FakeVideoGenerator(),
+        lambda **_kwargs: FakeVideoGenerator(),
     )
     _patch_video_pool(monkeypatch, video_runner)
 
@@ -235,7 +236,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
                     "beat": {"beat_number": 1},
                     "frame_path": None,
                     "prompt": "happyhorse prompt",
-                    "video_backend": "newapi_happyhorse-1.0",
+                    "video_model": "happyhorse-1.0",
                     "video_duration": 7,
                     "ratio": "1:1",
                     "audio_setting": "origin",
@@ -244,6 +245,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
                             "type": "image",
                             "path": "https://example.com/ref.png",
                             "role": "图片1",
+                            "field": "reference_images",
                         }
                     ],
                 }
@@ -252,10 +254,15 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
         _ctx(tmp_path),
     )
 
-    assert result["provider_task_id"] == "provider-task-1"
+    assert result["invocation_id"] == "invocation-1"
     assert generate_calls[0]["image_path"] is None
     assert generate_calls[0]["aspect_ratio"] == "1:1"
     assert generate_calls[0]["audio_setting"] == "origin"
     assert generate_calls[0]["references"] == [
-        ShotReference("image", "https://example.com/ref.png", "图片1")
+        ShotReference(
+            "image",
+            "https://example.com/ref.png",
+            "图片1",
+            field="reference_images",
+        )
     ]

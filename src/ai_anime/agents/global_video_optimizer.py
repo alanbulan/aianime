@@ -168,7 +168,6 @@ def create_global_video_reviewer_agent(language: str = "en") -> Agent:
     from ai_anime.config import get_superpower_pydantic_model
 
     model = get_superpower_pydantic_model(
-        feature_provider_env="GLOBAL_VIDEO_PROVIDER",
         feature_model_env="GLOBAL_VIDEO_MODEL",
     )
     return Agent(

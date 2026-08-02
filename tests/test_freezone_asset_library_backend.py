@@ -8,21 +8,30 @@ from ai_anime.modules.creative_canvas.domain.canvas_assets import (
     is_creative_canvas_scene_library_role,
     project_creative_canvas_beat_context_asset,
 )
+from ai_anime.modules.creative_canvas.domain.preset_aspect_ratio import (
+    nearest_preset_image_aspect_ratio,
+    project_preset_sketch_aspect_ratio,
+)
 from ai_anime.modules.creative_canvas.infrastructure.canvas_assets import (
     LocalCreativeCanvasAssetRecordFactory,
 )
-from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.freezone import presets as freezone_presets
-from ai_anime.freezone.presets import (
-    _add_file_ref,
-    _add_scene_refs,
-    _is_asset_library_reference,
-    _nearest_supported_image_aspect_ratio,
-    _project_sketch_aspect_ratio,
-    build_episode_preset_context,
+from ai_anime.modules.creative_canvas.infrastructure import (
+    preset_contexts,
+    preset_payload,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_contexts import (
     build_asset_preset_context,
+    build_episode_preset_context,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_payload import (
+    _is_asset_library_reference,
     build_canvas_payload_from_context,
 )
+from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
+    _add_file_ref,
+    _add_scene_refs,
+)
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
 from ai_anime.modules.creative_canvas.public import default_push_target_for_preset
 
@@ -49,7 +58,9 @@ def _project_context(project_dir: Path, project_id: str = "proj_1") -> ProjectCo
     )
 
 
-def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: Path) -> None:
+def test_preset_file_refs_include_media_type_for_beat_video_and_audio(
+    tmp_path: Path,
+) -> None:
     project_dir = tmp_path / "project"
     video_path = project_dir / "videos" / "beats" / "ep001" / "beat_02.mp4"
     audio_path = project_dir / "audio" / "ep001" / "beat_02.mp3"
@@ -82,7 +93,7 @@ def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: 
         rel_path="audio/ep001/beat_02.mp3",
     )
 
-    payload = [ref.model_dump() for ref in refs]
+    payload = [ref.to_payload() for ref in refs]
     assert payload[0]["media_type"] == "video"
     assert payload[0]["aspect_ratio"] == "16:9"
     assert payload[0]["mainline_context"][0]["kind"] == "video"
@@ -167,7 +178,12 @@ def test_scene_asset_records_include_push_targets() -> None:
     project_dir = Path(__file__).resolve().parents[1]
     existing_file = Path(__file__).resolve()
     cases = [
-        ("scene", "scene_master", existing_file, {"kind": "scene_master", "scene_id": "小区"}),
+        (
+            "scene",
+            "scene_master",
+            existing_file,
+            {"kind": "scene_master", "scene_id": "小区"},
+        ),
         (
             "scene",
             "scene_reverse_master",
@@ -287,7 +303,9 @@ def test_director_combined_asset_record_carries_control_bundle(tmp_path: Path) -
     bundle_dir.mkdir(parents=True)
     (bundle_dir / "combined.png").write_bytes(b"combined")
     (bundle_dir / "env_only.png").write_bytes(b"env")
-    (bundle_dir / "frame_meta.json").write_text('{"frame_aspect": "16:9"}', encoding="utf-8")
+    (bundle_dir / "frame_meta.json").write_text(
+        '{"frame_aspect": "16:9"}', encoding="utf-8"
+    )
 
     record = ASSET_RECORD_FACTORY.from_path(
         context=_project_context(project_dir),
@@ -351,7 +369,7 @@ def test_scene_preset_refs_include_all_scene_reference_images(tmp_path: Path) ->
         scene_info={"environment_prompt": "小区内院，白色楼房，绿化很好"},
     )
 
-    payload_refs = [ref.model_dump() for ref in refs]
+    payload_refs = [ref.to_payload() for ref in refs]
     assert [ref["role"] for ref in payload_refs] == [
         "scene_master",
         "scene_reverse_master",
@@ -364,7 +382,8 @@ def test_scene_preset_refs_include_all_scene_reference_images(tmp_path: Path) ->
     assert all(ref["meta"]["scene_id"] == "小区" for ref in payload_refs)
     assert all(ref["mainline_context"][0]["kind"] == "scene" for ref in payload_refs)
     assert all(
-        ref["meta"]["environment_prompt"] == "小区内院，白色楼房，绿化很好" for ref in payload_refs
+        ref["meta"]["environment_prompt"] == "小区内院，白色楼房，绿化很好"
+        for ref in payload_refs
     )
 
 
@@ -588,7 +607,9 @@ def test_derived_scene_asset_preset_projects_base_master_dependency() -> None:
     base_node_id = "ref_scene_base_master_bathroom_leak"
     assert nodes[base_node_id]["type"] == "imageGenNode"
     assert nodes[base_node_id]["data"]["displayName"] == "bathroom base master"
-    assert nodes[base_node_id]["data"]["imageUrl"].endswith("assets/scenes/bathroom/master.png")
+    assert nodes[base_node_id]["data"]["imageUrl"].endswith(
+        "assets/scenes/bathroom/master.png"
+    )
     assert (base_node_id, "ref_scene_master_1") in edges
     assert ("prompt_scene_bathroom_leak_master", "ref_scene_master_1") in edges
 
@@ -645,13 +666,24 @@ def test_scene_asset_preset_folds_existing_3gs_sources_into_director_world() -> 
     world = nodes["director_world_scene_lanzhou"]
     assert ("ref_scene_director_pano_360_1", "director_world_scene_lanzhou") in edges
     assert world["data"]["activeSourceId"] == "scene-sog:pano:lanzhou"
-    assert world["data"]["plyUrl"] == "/static/admin/demo/director_worlds/lanzhou/v1/world.sog"
-    assert world["data"]["panoUrl"] == "/static/admin/demo/director_worlds/lanzhou/v1/pano_360.png"
-    assert [source["source_type"] for source in world["data"]["sources"]] == ["pano360", "sog"]
+    assert (
+        world["data"]["plyUrl"]
+        == "/static/admin/demo/director_worlds/lanzhou/v1/world.sog"
+    )
+    assert (
+        world["data"]["panoUrl"]
+        == "/static/admin/demo/director_worlds/lanzhou/v1/pano_360.png"
+    )
+    assert [source["source_type"] for source in world["data"]["sources"]] == [
+        "pano360",
+        "sog",
+    ]
 
 
 @pytest.mark.asyncio
-async def test_scene_asset_preset_emits_missing_scene_slot_placeholders(tmp_path: Path) -> None:
+async def test_scene_asset_preset_emits_missing_scene_slot_placeholders(
+    tmp_path: Path,
+) -> None:
     class Store:
         async def get_scene(self, scene_id: str):
             return {
@@ -675,7 +707,9 @@ async def test_scene_asset_preset_emits_missing_scene_slot_placeholders(tmp_path
     refs_by_role = {ref["role"]: ref for ref in context["refs"]}
     assert refs_by_role["scene_master"]["exists"] is False
     assert refs_by_role["scene_master"]["url"] is None
-    assert refs_by_role["scene_master"]["rel_path"] == "assets/scenes/lanzhou/master.png"
+    assert (
+        refs_by_role["scene_master"]["rel_path"] == "assets/scenes/lanzhou/master.png"
+    )
     assert refs_by_role["scene_reverse_master"]["exists"] is False
     assert refs_by_role["scene_reverse_master"]["url"] is None
     assert (
@@ -715,7 +749,8 @@ async def test_scene_asset_preset_emits_missing_scene_slot_placeholders(tmp_path
     assert nodes["ref_scene_director_pano_360_1"]["type"] == "imageGenNode"
     assert nodes["ref_scene_director_pano_360_1"]["data"]["media_kind"] == "pano360"
     assert (
-        nodes["ref_scene_director_pano_360_1"]["data"]["output_role"] == "scene_director_pano_360"
+        nodes["ref_scene_director_pano_360_1"]["data"]["output_role"]
+        == "scene_director_pano_360"
     )
     assert nodes["ref_scene_director_pano_360_1"]["data"]["slot_target"] == {
         "kind": "scene_director_pano_360",
@@ -773,8 +808,12 @@ def _write_fake_image(path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_episode_preset_creates_overview_context_graph(tmp_path: Path) -> None:
-    _write_fake_image(tmp_path / "director_control_frames/ep001/beat_01/selected_background.png")
-    _write_fake_image(tmp_path / "director_control_frames/ep001/beat_02/selected_background.png")
+    _write_fake_image(
+        tmp_path / "director_control_frames/ep001/beat_01/selected_background.png"
+    )
+    _write_fake_image(
+        tmp_path / "director_control_frames/ep001/beat_02/selected_background.png"
+    )
 
     context = await build_episode_preset_context(
         project_id="proj_demo",
@@ -816,14 +855,18 @@ async def test_episode_preset_creates_overview_context_graph(tmp_path: Path) -> 
     identity_nodes = [
         node
         for node in nodes.values()
-        if (node.get("data") or {}).get("mainline_context", [{}])[0].get("kind") == "identity"
+        if (node.get("data") or {}).get("mainline_context", [{}])[0].get("kind")
+        == "identity"
     ]
     prop_nodes = [
         node
         for node in nodes.values()
-        if (node.get("data") or {}).get("mainline_context", [{}])[0].get("kind") == "prop"
+        if (node.get("data") or {}).get("mainline_context", [{}])[0].get("kind")
+        == "prop"
     ]
-    assert {node["data"]["mainline_context"][0]["identityId"] for node in identity_nodes} == {
+    assert {
+        node["data"]["mainline_context"][0]["identityId"] for node in identity_nodes
+    } == {
         "杜晨_正装",
         "陈默_青年时期",
     }
@@ -848,17 +891,24 @@ async def test_episode_preset_creates_overview_context_graph(tmp_path: Path) -> 
         "preset_managed": True,
     }
     assert any(
-        edge[0] == "context_beat_001" and edge[1].startswith("context_identity_") for edge in edges
+        edge[0] == "context_beat_001" and edge[1].startswith("context_identity_")
+        for edge in edges
     )
     assert any(
-        edge[0] == "context_beat_001" and edge[1].startswith("context_prop_") for edge in edges
+        edge[0] == "context_beat_001" and edge[1].startswith("context_prop_")
+        for edge in edges
     )
     assert payload["metadata"]["preset"]["scope"] == "episode"
-    assert payload["metadata"]["default_push_target"] == {"kind": "manual", "episode": 1}
+    assert payload["metadata"]["default_push_target"] == {
+        "kind": "manual",
+        "episode": 1,
+    }
 
 
 @pytest.mark.asyncio
-async def test_episode_preset_uses_one_best_ref_per_context_asset(tmp_path: Path) -> None:
+async def test_episode_preset_uses_one_best_ref_per_context_asset(
+    tmp_path: Path,
+) -> None:
     # 陈默 has a canonical identity image (assets/characters/陈默/identities/...).
     # 杜晨 has only portrait + deprecated reference_front — i.e. canonical identity is
     # MISSING. EP preset now skips portrait fallback for
@@ -874,8 +924,12 @@ async def test_episode_preset_uses_one_best_ref_per_context_asset(tmp_path: Path
     _write_fake_image(tmp_path / "assets/scenes/小区/master.png")
     _write_fake_image(tmp_path / "assets/scenes/小区/reverse_master.png")
     _write_fake_image(tmp_path / "assets/scenes/办公室/master.png")
-    _write_fake_image(tmp_path / "director_control_frames/ep001/beat_01/selected_background.png")
-    _write_fake_image(tmp_path / "director_control_frames/ep001/beat_02/selected_background.png")
+    _write_fake_image(
+        tmp_path / "director_control_frames/ep001/beat_01/selected_background.png"
+    )
+    _write_fake_image(
+        tmp_path / "director_control_frames/ep001/beat_02/selected_background.png"
+    )
 
     context = await build_episode_preset_context(
         project_id="proj_demo",
@@ -945,9 +999,11 @@ async def test_beat_preset_keeps_minimal_context_refs(tmp_path: Path) -> None:
     _write_fake_image(tmp_path / "sketches/ep001/beat_02.png")
     _write_fake_image(tmp_path / "frames/ep001/beat_02.png")
     _write_fake_image(tmp_path / "director_control_frames/ep001/beat_02/combined.png")
-    _write_fake_image(tmp_path / "director_control_frames/ep001/beat_02/selected_background.png")
+    _write_fake_image(
+        tmp_path / "director_control_frames/ep001/beat_02/selected_background.png"
+    )
 
-    context = await freezone_presets.build_beat_preset_context(
+    context = await preset_contexts.build_beat_preset_context(
         project_id="proj_demo",
         username="admin",
         project="demo",
@@ -961,7 +1017,9 @@ async def test_beat_preset_keeps_minimal_context_refs(tmp_path: Path) -> None:
     refs = context["refs"]
     identity_refs = [ref for ref in refs if ref["kind"] == "identity"]
     scene_refs = [ref for ref in refs if ref["kind"] == "scene"]
-    selected_background_refs = [ref for ref in refs if ref["role"] == "selected_background"]
+    selected_background_refs = [
+        ref for ref in refs if ref["role"] == "selected_background"
+    ]
     roles = [ref["role"] for ref in refs]
 
     assert [
@@ -979,7 +1037,8 @@ async def test_beat_preset_keeps_minimal_context_refs(tmp_path: Path) -> None:
     assert "character_reference" not in roles
     assert "director_combined" in roles
     assert [
-        (ref["role"], ref["label"], ref["meta"].get("beat")) for ref in selected_background_refs
+        (ref["role"], ref["label"], ref["meta"].get("beat"))
+        for ref in selected_background_refs
     ] == [("selected_background", "当前背景 · Beat 2", 2)]
 
 
@@ -1023,7 +1082,7 @@ async def test_beat_preset_current_sketch_ignores_pool_fallback(
         encoding="utf-8",
     )
 
-    context = await freezone_presets.build_beat_preset_context(
+    context = await preset_contexts.build_beat_preset_context(
         project_id="proj_demo",
         username="admin",
         project="demo",
@@ -1034,9 +1093,13 @@ async def test_beat_preset_current_sketch_ignores_pool_fallback(
         primary_slot="sketch",
     )
 
-    current_sketch_refs = [ref for ref in context["refs"] if ref["role"] == "current_sketch"]
+    current_sketch_refs = [
+        ref for ref in context["refs"] if ref["role"] == "current_sketch"
+    ]
     assert current_sketch_refs == []
-    assert all("grids/ep001/sketch" not in str(ref.get("rel_path")) for ref in context["refs"])
+    assert all(
+        "grids/ep001/sketch" not in str(ref.get("rel_path")) for ref in context["refs"]
+    )
 
 
 @pytest.mark.asyncio
@@ -1046,7 +1109,7 @@ async def test_beat_preset_falls_back_to_scene_master_for_missing_selected_backg
     _write_fake_image(tmp_path / "assets/scenes/小区/master.png")
     _write_fake_image(tmp_path / "sketches/ep001/beat_02.png")
 
-    context = await freezone_presets.build_beat_preset_context(
+    context = await preset_contexts.build_beat_preset_context(
         project_id="proj_demo",
         username="admin",
         project="demo",
@@ -1066,7 +1129,10 @@ async def test_beat_preset_falls_back_to_scene_master_for_missing_selected_backg
     assert selected_background["exists"] is True
     assert "assets/scenes/%E5%B0%8F%E5%8C%BA/master.png" in selected_background["url"]
     assert selected_background["meta"]["fallback_source"] == "scene_master"
-    assert selected_background["meta"]["fallback_rel_path"] == "assets/scenes/小区/master.png"
+    assert (
+        selected_background["meta"]["fallback_rel_path"]
+        == "assets/scenes/小区/master.png"
+    )
 
     payload = build_canvas_payload_from_context(
         context=context,
@@ -1185,13 +1251,19 @@ def test_beat_preset_includes_refs_as_workflow_nodes() -> None:
     assert nodes["context_beat"]["type"] == "beatContextNode"
     assert nodes["context_beat"]["measured"] == {"width": 420, "height": 560}
     assert nodes["context_beat"]["data"]["displayName"] == "EP1 / Beat 2 / render"
-    assert nodes["context_beat"]["data"]["content"] == "陈默拿起[[业主守则]]，站在小区门口。"
+    assert (
+        nodes["context_beat"]["data"]["content"]
+        == "陈默拿起[[业主守则]]，站在小区门口。"
+    )
     assert "Episode:" not in nodes["context_beat"]["data"]["content"]
     assert "Video Prompt" not in nodes["context_beat"]["data"]["content"]
     assert nodes["context_beat"]["data"]["mainline_context"][0]["kind"] == "beat"
     assert nodes["context_beat"]["data"]["mainline_context"][0]["episode"] == 1
     assert nodes["context_beat"]["data"]["mainline_context"][0]["beat"] == 2
-    assert "陈默拿起[[业主守则]]" in nodes["context_beat"]["data"]["snapshot"]["visualDescription"]
+    assert (
+        "陈默拿起[[业主守则]]"
+        in nodes["context_beat"]["data"]["snapshot"]["visualDescription"]
+    )
     assert "ref_current_frame_1" in nodes
     assert "ref_character_identity_1" in nodes
     assert "ref_prop_reference_1" in nodes
@@ -1215,15 +1287,23 @@ def test_beat_preset_includes_refs_as_workflow_nodes() -> None:
     assert "workflow_kind" not in frame_data
     assert "typed_backend_action" not in frame_data
     assert "default_push_target" not in payload["metadata"]
-    assert payload["metadata"]["workbench"] == {"kind": "beat", "primary_slot": "render"}
+    assert payload["metadata"]["workbench"] == {
+        "kind": "beat",
+        "primary_slot": "render",
+    }
     assert nodes["ref_character_identity_1"]["type"] == "imageGenNode"
     assert nodes["ref_prop_reference_1"]["type"] == "imageGenNode"
-    assert nodes["ref_current_frame_1"]["data"]["mainline_context"][0]["kind"] == "frame"
+    assert (
+        nodes["ref_current_frame_1"]["data"]["mainline_context"][0]["kind"] == "frame"
+    )
     assert not any(
         ctx.get("kind") == "beat"
         for ctx in nodes["ref_current_frame_1"]["data"]["mainline_context"]
     )
-    assert nodes["ref_character_identity_1"]["data"]["mainline_context"][0]["kind"] == "identity"
+    assert (
+        nodes["ref_character_identity_1"]["data"]["mainline_context"][0]["kind"]
+        == "identity"
+    )
     assert ("context_beat", "prompt_beat_visual") in edges
     role_edges = {
         (edge["source"], edge["target"], (edge.get("data") or {}).get("role"))
@@ -1232,40 +1312,58 @@ def test_beat_preset_includes_refs_as_workflow_nodes() -> None:
     }
     assert ("context_beat", "skill_frame_from_context", "beat_context") in role_edges
     assert ("ref_current_sketch_1", "skill_frame_from_context", "sketch") in role_edges
-    assert ("ref_selected_background_1", "skill_frame_from_context", "background") in role_edges
-    assert ("ref_character_identity_1", "skill_frame_from_context", "identity") not in role_edges
-    assert ("ref_prop_reference_1", "skill_frame_from_context", "prop") not in role_edges
+    assert (
+        "ref_selected_background_1",
+        "skill_frame_from_context",
+        "background",
+    ) in role_edges
+    assert (
+        "ref_character_identity_1",
+        "skill_frame_from_context",
+        "identity",
+    ) not in role_edges
+    assert (
+        "ref_prop_reference_1",
+        "skill_frame_from_context",
+        "prop",
+    ) not in role_edges
     assert ("skill_frame_from_context", "ref_current_frame_1") in edges
     assert ("prompt_beat_visual", "ref_current_frame_1") not in edges
     assert ("ref_current_sketch_1", "ref_current_frame_1") not in edges
-    frame_output_edge = edge_by_pair[("skill_frame_from_context", "ref_current_frame_1")]
+    frame_output_edge = edge_by_pair[
+        ("skill_frame_from_context", "ref_current_frame_1")
+    ]
     assert frame_output_edge["sourceHandle"] == "current_frame_candidate"
     assert frame_output_edge["data"]["role"] == "current_frame_candidate"
 
 
-def test_freezone_preset_maps_unknown_image_ratios_to_supported_generation_ratios() -> None:
-    assert _nearest_supported_image_aspect_ratio("17:25") == "2:3"
-    assert _nearest_supported_image_aspect_ratio("75:112") == "2:3"
-    assert _nearest_supported_image_aspect_ratio("56:75") == "3:4"
-    assert _nearest_supported_image_aspect_ratio("43:24") == "16:9"
+def test_freezone_preset_maps_unknown_image_ratios_to_supported_generation_ratios() -> (
+    None
+):
+    assert nearest_preset_image_aspect_ratio("17:25") == "2:3"
+    assert nearest_preset_image_aspect_ratio("75:112") == "2:3"
+    assert nearest_preset_image_aspect_ratio("56:75") == "3:4"
+    assert nearest_preset_image_aspect_ratio("43:24") == "16:9"
 
 
-def test_project_sketch_aspect_ratio_uses_episode_config_and_supported_fallback() -> None:
+def test_project_sketch_aspect_ratio_uses_episode_config_and_supported_fallback() -> (
+    None
+):
     assert (
-        _project_sketch_aspect_ratio(
+        project_preset_sketch_aspect_ratio(
             {"sketch_aspect_ratio_by_episode": {"1": "16:9"}},
             1,
         )
         == "16:9"
     )
     assert (
-        _project_sketch_aspect_ratio(
+        project_preset_sketch_aspect_ratio(
             {"sketch_aspect_ratio_by_episode": {"1": "17:25"}},
             1,
         )
         == "2:3"
     )
-    assert _project_sketch_aspect_ratio({}, 1) == "2:3"
+    assert project_preset_sketch_aspect_ratio({}, 1) == "2:3"
 
 
 def test_beat_context_asset_omits_beat_director_control_frames() -> None:
@@ -1373,12 +1471,13 @@ def test_beat_frame_preset_uses_readable_backend_layout(
         render_context["_freezone_render_reference_paths"] = [
             str(tmp_path / "assets/characters/陈默/portrait.png"),
             str(
-                tmp_path / "freezone/director_control_frames/ep001/beat_03/selected_background.png"
+                tmp_path
+                / "freezone/director_control_frames/ep001/beat_03/selected_background.png"
             ),
         ]
         return "render prompt"
 
-    monkeypatch.setattr(freezone_presets, "_beat_render_prompt", _fake_render_prompt)
+    monkeypatch.setattr(preset_payload, "_beat_render_prompt", _fake_render_prompt)
     context = {
         "scope": "beat",
         "project_dir": str(tmp_path),
@@ -1550,10 +1649,16 @@ def test_beat_frame_preset_uses_readable_backend_layout(
     assert nodes["ref_director_env_1"]["position"] == {"x": -1500, "y": 1560}
     assert nodes["ref_actor_mask_1"]["position"] == {"x": -1060, "y": 1940}
     assert nodes["ref_sketch_candidate_1"]["position"] == {"x": 520, "y": 1040}
-    assert nodes["skill_set_selected_background"]["position"] == {"x": -1560, "y": -1240}
+    assert nodes["skill_set_selected_background"]["position"] == {
+        "x": -1560,
+        "y": -1240,
+    }
     assert nodes["skill_set_director_combined"]["position"] == {"x": -1560, "y": -620}
     assert nodes["skill_sketch_from_background"]["position"] == {"x": -360, "y": -1040}
-    assert nodes["skill_sketch_from_director_combined"]["position"] == {"x": -360, "y": -360}
+    assert nodes["skill_sketch_from_director_combined"]["position"] == {
+        "x": -360,
+        "y": -360,
+    }
     assert nodes["skill_frame_from_context"]["position"] == {"x": 1020, "y": 260}
     assert not any(node_id.startswith("prompt_scene_") for node_id in nodes)
     assert nodes["ref_current_frame_1"]["data"]["aspectRatio"] == "2:3"
@@ -1571,10 +1676,16 @@ def test_beat_frame_preset_uses_readable_backend_layout(
         if (edge.get("data") or {}).get("edgeKind") == "role_binding"
     }
     assert ("context_beat", "skill_frame_from_context", "beat_context") in role_edges
-    assert ("ref_selected_background_1", "skill_frame_from_context", "background") in role_edges
+    assert (
+        "ref_selected_background_1",
+        "skill_frame_from_context",
+        "background",
+    ) in role_edges
     assert ("ref_director_env_1", "context_beat") not in edges
     slot_target = "ref_current_frame_1"
-    slot_inputs = {edge["source"] for edge in payload["edges"] if edge["target"] == slot_target}
+    slot_inputs = {
+        edge["source"] for edge in payload["edges"] if edge["target"] == slot_target
+    }
     assert slot_inputs == {"skill_frame_from_context"}
     assert (
         nodes["ref_current_sketch_1"]["position"]["x"]
@@ -1593,14 +1704,22 @@ def test_beat_frame_preset_uses_readable_backend_layout(
         > nodes["skill_frame_from_context"]["position"]["x"]
     )
     reference_paths = {
-        ref.get("rel_path") for ref in payload["metadata"]["references"] if ref.get("rel_path")
+        ref.get("rel_path")
+        for ref in payload["metadata"]["references"]
+        if ref.get("rel_path")
     }
     assert (
         "freezone/director_control_frames/ep001/beat_03/selected_background.png"
         not in reference_paths
     )
-    assert "freezone/director_control_frames/ep001/beat_03/env_only.png" not in reference_paths
-    assert "freezone/director_control_frames/ep001/beat_03/combined.png" not in reference_paths
+    assert (
+        "freezone/director_control_frames/ep001/beat_03/env_only.png"
+        not in reference_paths
+    )
+    assert (
+        "freezone/director_control_frames/ep001/beat_03/combined.png"
+        not in reference_paths
+    )
 
 
 def test_beat_sketch_preset_uses_current_sketch_as_primary() -> None:
@@ -1662,7 +1781,10 @@ def test_beat_sketch_preset_uses_current_sketch_as_primary() -> None:
     assert ("skill_sketch_from_director_combined", "ref_current_sketch_1") in edges
     assert ("prompt_beat_visual", "ref_current_sketch_1") not in edges
     assert "default_push_target" not in payload["metadata"]
-    assert payload["metadata"]["workbench"] == {"kind": "beat", "primary_slot": "sketch"}
+    assert payload["metadata"]["workbench"] == {
+        "kind": "beat",
+        "primary_slot": "sketch",
+    }
 
 
 def test_beat_sketch_preset_uses_marker_prompt_not_image_refs() -> None:
@@ -1920,9 +2042,9 @@ def test_beat_preset_selected_background_placeholder_when_file_missing() -> None
         default_push_target={"kind": "frame", "episode": 1, "beat": 7},
     )
     nodes = {node["id"]: node for node in payload["nodes"]}
-    assert (
-        "ref_selected_background_1" in nodes
-    ), "缺文件时也要给 selected_background 站位节点,用户才知道 commit 到哪"
+    assert "ref_selected_background_1" in nodes, (
+        "缺文件时也要给 selected_background 站位节点,用户才知道 commit 到哪"
+    )
     # placeholder 节点是 imageGenNode(没 url 走的空生成框);有文件时才是 imageNode/asset。
     assert nodes["ref_selected_background_1"]["type"] == "imageGenNode"
     assert nodes["ref_selected_background_1"]["data"]["slot_target"] == {
@@ -2170,8 +2292,14 @@ def test_character_preset_keeps_portrait_as_identity_workflow_source() -> None:
     assert nodes["ref_character_portrait_1"]["type"] == "imageGenNode"
     assert nodes["ref_character_identity_1"]["type"] == "imageGenNode"
     assert "ref_character_reference_1" not in nodes
-    assert nodes["ref_character_portrait_1"]["data"]["__freezone_source"]["kind"] == "portrait"
-    assert nodes["ref_character_identity_1"]["data"]["__freezone_source"]["kind"] == "identity"
+    assert (
+        nodes["ref_character_portrait_1"]["data"]["__freezone_source"]["kind"]
+        == "portrait"
+    )
+    assert (
+        nodes["ref_character_identity_1"]["data"]["__freezone_source"]["kind"]
+        == "identity"
+    )
     assert (
         nodes["ref_character_identity_1"]["data"]["referenceImageUrl"]
         == "/static/admin/demo/assets/characters/林昭/portrait.png"
@@ -2182,7 +2310,10 @@ def test_character_preset_keeps_portrait_as_identity_workflow_source() -> None:
     identity_prompt = nodes["ref_character_identity_1"]["data"]["prompt"]
     assert "Character identity reference sheet" in identity_prompt
     assert "黑色作战服，身形挺拔" in identity_prompt
-    assert "create a 4-panel character reference sheet arranged LEFT to RIGHT" in identity_prompt
+    assert (
+        "create a 4-panel character reference sheet arranged LEFT to RIGHT"
+        in identity_prompt
+    )
     assert (
         node_positions["prompt_character_portrait"]["x"]
         < node_positions["ref_character_portrait_1"]["x"]
@@ -2267,7 +2398,9 @@ def test_prop_preset_builds_prompt_to_reference_workflow() -> None:
 
 
 @pytest.mark.asyncio
-async def test_prop_asset_preset_emits_missing_reference_placeholder(tmp_path: Path) -> None:
+async def test_prop_asset_preset_emits_missing_reference_placeholder(
+    tmp_path: Path,
+) -> None:
     class Store:
         _episodes = {}
 
@@ -2295,7 +2428,10 @@ async def test_prop_asset_preset_emits_missing_reference_placeholder(tmp_path: P
     refs_by_role = {ref["role"]: ref for ref in context["refs"]}
     assert refs_by_role["prop_reference"]["exists"] is False
     assert refs_by_role["prop_reference"]["url"] is None
-    assert refs_by_role["prop_reference"]["rel_path"] == "assets/props/账单/reference_3view.png"
+    assert (
+        refs_by_role["prop_reference"]["rel_path"]
+        == "assets/props/账单/reference_3view.png"
+    )
 
     payload = build_canvas_payload_from_context(
         context=context,
@@ -2356,7 +2492,10 @@ async def test_prop_asset_context_prefers_episode_visual_prompt_over_profile_des
     )
 
     prop_context = context["generation_context"]["prop"]
-    assert prop_context["visual_prompt"] == "一张白色的A4打印纸，上方印有醒目的黑色标题“业主守则”。"
+    assert (
+        prop_context["visual_prompt"]
+        == "一张白色的A4打印纸，上方印有醒目的黑色标题“业主守则”。"
+    )
     assert "Generate a 3-PANEL product reference sheet" in prop_context["prompt"]
     assert (
         "PROP DESCRIPTION:\n一张白色的A4打印纸，上方印有醒目的黑色标题“业主守则”。"
@@ -2446,7 +2585,9 @@ async def test_character_asset_preset_emits_missing_identity_slot_placeholders(
     }
     assert nodes["ref_character_identity_1"]["data"]["autoCommitOnGenerate"] is True
     portrait_prompt = nodes["ref_character_portrait_1"]["data"]["prompt"]
-    assert "Generate a face-only character identity reference portrait" in portrait_prompt
+    assert (
+        "Generate a face-only character identity reference portrait" in portrait_prompt
+    )
     assert "FACIAL FEATURES TO CAPTURE" in portrait_prompt
     assert "二十多岁男性，眼神冷静" in portrait_prompt
     assert "VISUAL STYLE:" in portrait_prompt
@@ -2571,7 +2712,7 @@ async def test_scene_asset_preset_context_preserves_project_style_in_prompts(
             }
 
     monkeypatch.setattr(
-        freezone_presets,
+        preset_contexts,
         "_project_style_meta",
         lambda _username, _project, _project_dir: {
             "style_name": "电影写实 (cinematic)",
@@ -2740,7 +2881,10 @@ async def test_character_asset_preset_emits_age_variant_portrait_placeholder(
     }
     assert nodes["ref_identity_portrait_1"]["data"]["autoCommitOnGenerate"] is True
     identity_portrait_prompt = nodes["ref_identity_portrait_1"]["data"]["prompt"]
-    assert "Generate a face-only character identity reference portrait" in identity_portrait_prompt
+    assert (
+        "Generate a face-only character identity reference portrait"
+        in identity_portrait_prompt
+    )
     assert "FACIAL FEATURES TO CAPTURE" in identity_portrait_prompt
     assert "中年形态，眼角有细纹" in identity_portrait_prompt
     assert "VISUAL STYLE:" in identity_portrait_prompt
@@ -2748,14 +2892,18 @@ async def test_character_asset_preset_emits_age_variant_portrait_placeholder(
     assert ("ref_identity_portrait_1", "ref_character_identity_1") in edges
 
 
-def test_portrait_preset_does_not_duplicate_portrait_as_identity(tmp_path: Path) -> None:
+def test_portrait_preset_does_not_duplicate_portrait_as_identity(
+    tmp_path: Path,
+) -> None:
     project_dir = tmp_path / "project"
     portrait_path = project_dir / "assets" / "characters" / "周牧野" / "portrait.png"
     portrait_path.parent.mkdir(parents=True)
     portrait_path.write_bytes(b"fake portrait")
 
     refs = []
-    from ai_anime.freezone.presets import _add_character_refs
+    from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
+        _add_character_refs,
+    )
 
     _add_character_refs(
         refs,
@@ -2767,7 +2915,7 @@ def test_portrait_preset_does_not_duplicate_portrait_as_identity(tmp_path: Path)
         identity_id=None,
     )
 
-    payload_refs = [ref.model_dump() for ref in refs]
+    payload_refs = [ref.to_payload() for ref in refs]
     assert [ref["role"] for ref in payload_refs] == ["character_portrait"]
 
     payload = build_canvas_payload_from_context(

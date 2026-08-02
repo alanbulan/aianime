@@ -3,7 +3,7 @@ import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   extractMainlineContextsFromNode,
   type MainlineContext,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 
 export type NodeActionBeatContext = MainlineContext & {
   projectId: string;

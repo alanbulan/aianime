@@ -15,7 +15,7 @@ function renderCanvas() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <Canvas />
+      <Canvas projectId="project-1" canvasId="canvas-1" />
     </QueryClientProvider>,
   );
 }
@@ -150,7 +150,7 @@ vi.mock("@/features/canvas/catalogComposition", () => ({
 }));
 
 vi.mock("@/features/canvas/nodes", () => ({
-  nodeTypes: {},
+  createCanvasNodeTypes: () => ({}),
 }));
 
 vi.mock("@/features/canvas/edges", () => ({

@@ -23,7 +23,7 @@ from ai_anime.modules.model_usage.public import (
     billing_rule_not_configured_payload,
     insufficient_credits_payload,
 )
-from ai_anime.task_backend.limits import (
+from ai_anime.modules.task_execution.public import (
     GlobalLaneQueueLimitExceeded,
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,

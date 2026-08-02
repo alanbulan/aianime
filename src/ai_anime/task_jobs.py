@@ -9,7 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from ai_anime.task_identity import task_config_scope
+from ai_anime.modules.task_execution.public import task_config_scope
 from ai_anime.task_state import get_task_manager
 from ai_anime.verification.sketch_edit_execute import resolve_labels_jsonl
 from ai_anime.verification.sketch_edit_label_validation import validate_labels_jsonl

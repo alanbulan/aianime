@@ -16,7 +16,6 @@ from ai_anime.modules.story_intake.public import (
     create_story_intake_application,
     get_knowledge_graph_snapshot,
 )
-from ai_anime.ports import get_task_backend
 from ai_anime.project_config import (
     default_aspect_ratio_for_spine_template,
     load_project_config,
@@ -29,7 +28,6 @@ router = APIRouter()
 
 def _application():
     return create_story_intake_application(
-        task_backend_provider=get_task_backend,
         load_project_config=load_project_config,
         save_project_config=save_project_config,
         default_aspect_ratio=default_aspect_ratio_for_spine_template,
@@ -78,6 +76,8 @@ async def start_ingest(
             resolved.ctx,
             StartIngestionCommand(
                 filename=body.filename,
+                text_model=body.text_model,
+                embedding_model=body.embedding_model,
                 rebuild=body.rebuild,
                 spine_template=body.spine_template,
             ),

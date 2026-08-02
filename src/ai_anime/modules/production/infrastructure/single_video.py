@@ -25,21 +25,21 @@ from ai_anime.modules.production.application.single_video import (
     SingleVideoTaskReceipt,
 )
 from ai_anime.modules.production.domain.single_video import (
-    legacy_video_prompt,
+    dialogue_only_video_model_error,
     missing_video_prompt_error,
     seedance2_initial_prompt,
-    seedance_pro_dialogue_error,
+    standard_video_prompt,
 )
-from ai_anime.modules.production.domain.video_backend import (
+from ai_anime.modules.production.domain.video_model import (
     grok_video_ratio,
     grok_video_resolution,
     happyhorse_ratio,
     happyhorse_resolution,
-    is_grok_video_backend,
-    is_happyhorse_backend,
-    is_seedance2_backend,
-    seedance2_api_resolution,
-    seedance2_resolution,
+    is_grok_video_model,
+    is_happyhorse_model,
+    is_seedance2_model,
+    video_api_resolution,
+    video_resolution,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.seedance2_i2v.assets import (
@@ -55,8 +55,11 @@ from ai_anime.seedance2_i2v.models import (
 from ai_anime.seedance2_i2v.pipeline import (
     prepare_seedance2_generation_inputs,
 )
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.utils.media_io import get_audio_duration_async
 from ai_anime.utils.path_resolver import PathResolver
 
@@ -105,9 +108,18 @@ def _merge_seedance2_request_config(
     return saved_json
 
 
+def _seedance2_video_model_role(mode: Seedance2I2VMode) -> str:
+    return {
+        Seedance2I2VMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
+        Seedance2I2VMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
+        Seedance2I2VMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
+        Seedance2I2VMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
+    }[mode]
+
+
 def _prepare_reference_video_beat(
     *,
-    backend_label: str,
+    model_label: str,
     max_reference_images: int,
     resolution_resolver: Callable[[str | None], str],
     ratio_resolver: Callable[[str | None], str],
@@ -127,7 +139,7 @@ def _prepare_reference_video_beat(
     mode = config.mode
     if mode == Seedance2I2VMode.FIRST_LAST_FRAME or video_mode == "keyframe":
         raise ValueError(
-            f"{backend_label} 不支持首尾帧模式，请改用首帧模式或多参模式"
+            f"{model_label} 不支持首尾帧模式，请改用首帧模式或多参模式"
         )
 
     final_prompt = str(config.final_prompt or prompt or "").strip()
@@ -166,7 +178,12 @@ def _prepare_reference_video_beat(
         ]
         config.reference_audio_paths = []
         references = [
-            {"type": "image", "path": path, "role": f"图片{index}"}
+            {
+                "type": "image",
+                "path": path,
+                "role": f"图片{index}",
+                "field": "reference_images",
+            }
             for index, path in enumerate(config.reference_image_paths, 1)
         ]
 
@@ -246,7 +263,7 @@ class LocalSingleVideoPreparer:
             beat.get("seedance2_config_json")
         )
         requested_resolution = (
-            seedance2_api_resolution(command.resolution)
+            video_api_resolution(command.resolution)
             if command.was_provided("resolution")
             else current_config.resolution
         )
@@ -258,8 +275,8 @@ class LocalSingleVideoPreparer:
             video_mode=video_mode,
             prompt=seedance2_initial_prompt(beat, video_mode),
             duration=duration,
-            resolution=seedance2_resolution(
-                command.video_backend,
+            resolution=video_resolution(
+                command.video_model,
                 requested_resolution,
             ),
             ratio=command.ratio if command.was_provided("ratio") else None,
@@ -309,16 +326,16 @@ class LocalSingleVideoPreparer:
         if beat is None:
             raise SingleVideoRejected(f"Beat {command.beat_num} not found")
 
-        backend_error = seedance_pro_dialogue_error(
+        model_error = dialogue_only_video_model_error(
             [beat],
-            command.video_backend,
+            command.video_model,
         )
-        if backend_error:
-            raise SingleVideoRejected(backend_error)
+        if model_error:
+            raise SingleVideoRejected(model_error)
 
-        is_seedance2 = is_seedance2_backend(command.video_backend)
-        is_happyhorse = is_happyhorse_backend(command.video_backend)
-        is_grok_video = is_grok_video_backend(command.video_backend)
+        is_seedance2 = is_seedance2_model(command.video_model)
+        is_happyhorse = is_happyhorse_model(command.video_model)
+        is_grok_video = is_grok_video_model(command.video_model)
         output_dir = Path(context.output_dir)
         paths = PathResolver(output_dir, command.episode_num)
         frame_path = paths.first_frame_for_video(
@@ -331,7 +348,12 @@ class LocalSingleVideoPreparer:
             )
 
         video_mode = beat.get("video_mode", "first_frame")
-        prompt = legacy_video_prompt(beat, video_mode)
+        model_role = (
+            "VIDEO_FIRST_LAST_FRAME"
+            if video_mode == "keyframe"
+            else "VIDEO_IMAGE_TO_VIDEO"
+        )
+        prompt = standard_video_prompt(beat, video_mode)
         audio_duration = await self._audio_durations.for_beat(
             context,
             command.episode_num,
@@ -349,7 +371,8 @@ class LocalSingleVideoPreparer:
                 last_frame_path = str(next_frame)
             else:
                 video_mode = "first_frame"
-                prompt = legacy_video_prompt(beat, video_mode)
+                prompt = standard_video_prompt(beat, video_mode)
+                model_role = "VIDEO_IMAGE_TO_VIDEO"
 
         seedance2_config_json = None
         single_video_resolution: str | None = None
@@ -408,12 +431,13 @@ class LocalSingleVideoPreparer:
                     )
                     last_frame_path = prepared.last_frame_path
                     seedance2_config_json = prepared.seedance2_config_json
+                    model_role = _seedance2_video_model_role(prepared.mode)
                     video_mode = (
                         "keyframe" if prepared.last_frame_path else "first_frame"
                     )
                 else:
                     prepared_reference = _prepare_reference_video_beat(
-                        backend_label=(
+                        model_label=(
                             "HappyHorse 1.0" if is_happyhorse else "Grok Video"
                         ),
                         max_reference_images=9 if is_happyhorse else 7,
@@ -455,6 +479,11 @@ class LocalSingleVideoPreparer:
                     single_video_resolution = prepared_reference.resolution
                     reference_ratio = prepared_reference.ratio
                     references = prepared_reference.references
+                    model_role = (
+                        "VIDEO_IMAGE_REFERENCE"
+                        if references
+                        else "VIDEO_IMAGE_TO_VIDEO"
+                    )
                     video_mode = "first_frame"
             except ValueError as exc:
                 raise SingleVideoRejected(str(exc)) from exc
@@ -474,8 +503,8 @@ class LocalSingleVideoPreparer:
                     float(math.ceil(float(audio_duration))),
                 )
             if command.was_provided("resolution"):
-                single_video_resolution = seedance2_resolution(
-                    command.video_backend,
+                single_video_resolution = video_resolution(
+                    command.video_model,
                     command.resolution,
                 )
 
@@ -485,7 +514,8 @@ class LocalSingleVideoPreparer:
             "video_mode": video_mode,
             "prompt": prompt,
             "video_duration": video_duration,
-            "video_backend": command.video_backend,
+            "video_model": command.video_model,
+            "model_role": model_role,
             "use_director_render": command.use_director_render,
             "last_frame_path": last_frame_path,
             "cognee_store_project": (
@@ -513,31 +543,28 @@ class LocalSingleVideoPreparer:
         )
 
 
-class TaskBackendSingleVideoScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionSingleVideoScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: SingleVideoTask,
     ) -> SingleVideoTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=SINGLE_VIDEO_TASK_TYPE,
-            queue_kind="video",
-            episode=task.episode_num,
-            beat_num=task.beat_num,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=SINGLE_VIDEO_TASK_TYPE,
+                queue_kind="video",
+                episode=task.episode_num,
+                beat_num=task.beat_num,
+                payload=task.backend_payload(),
+            ),
         )
         return SingleVideoTaskReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                SINGLE_VIDEO_TASK_TYPE,
-                context.project_id,
-                task.episode_num,
-                beat_num=task.beat_num,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

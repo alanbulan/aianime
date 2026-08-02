@@ -4,21 +4,11 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
 import type {
+  CanvasCommitMediaType,
   ImpactBeat,
   PushTarget,
   PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
-import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
-import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
-import { UI_DIALOG_TRANSITION_MS } from "@/components/ui/motion";
-import { useDialogTransition } from "@/components/ui/useDialogTransition";
-import type {
-  Character,
-  Identity,
-  SceneAsset,
-} from "@/modules/asset_world/public";
-import type { Episode } from "@/modules/narrative_planning/public";
-
+} from "@/modules/creative_canvas/public";
 import {
   BEAT_SLOT_KINDS,
   directorWorldSourceDisplayName,
@@ -28,7 +18,16 @@ import {
   sceneOptionLabel,
   sceneOptionValue,
   shortKindLabel,
-} from "./commitDialogViewModel";
+} from "@/modules/creative_canvas/public";
+import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
+import { UI_DIALOG_TRANSITION_MS } from "@/components/ui/motion";
+import { useDialogTransition } from "@/components/ui/useDialogTransition";
+import type {
+  Character,
+  Identity,
+  SceneAsset,
+} from "@/modules/asset_world/public";
+import type { Episode } from "@/modules/narrative_planning/public";
 
 const COMMIT_FIELD_BORDER_CLASS =
   "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";
@@ -88,7 +87,7 @@ export interface CommitDialogViewProps {
   sourceUrl: string;
   previewUrl?: string | null;
   sourceLabelOverride?: string | null;
-  mediaType: DropMediaType;
+  mediaType: CanvasCommitMediaType;
   nodeData?: Record<string, unknown> | null;
   targetState: CommitDialogTargetViewState;
   submission: CommitDialogSubmissionViewState;

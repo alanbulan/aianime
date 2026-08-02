@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 class GridRegenerateRequest(BaseModel):
     style: Optional[str] = None
-    model: str = "nanobanana"
     scene_grouping: bool = False
     character_grouping: bool = False
     image_generation_selection: Optional[str] = None
@@ -17,7 +16,6 @@ class GridRegenerateRequest(BaseModel):
 class BeatsRegenerateRequest(BaseModel):
     beat_indices: list[int]
     style: Optional[str] = None
-    model: str = "nanobanana"
     mode_key: str = "1x1_2-3"
     image_generation_selection: Optional[str] = None
     sketch_aspect_padding: Optional[bool] = None
@@ -26,7 +24,6 @@ class BeatsRegenerateRequest(BaseModel):
 class SketchRegenerateRequest(BaseModel):
     beat_indices: list[int]
     style: Optional[str] = None
-    model: str = "nanobanana"
     mode_key: str = "1x1_2-3"
     image_generation_selection: Optional[str] = None
 

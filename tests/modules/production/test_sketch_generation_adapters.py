@@ -13,9 +13,10 @@ from ai_anime.modules.production.application.sketch_generation import (
 from ai_anime.modules.production.infrastructure.sketch_generation import (
     LocalSketchGenerationPreparer,
     NanoBananaSketchGridPlanner,
-    TaskBackendSketchGenerationScheduler,
+    TaskExecutionSketchGenerationScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 class _Store:
@@ -250,7 +251,6 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
         GenerateSketchesCommand(
             episode_num=3,
             grid_index=-1,
-            model="nanobanana",
             sketch_scene_grouping=True,
             aspect_ratio="16:9",
             image_generation_selection="openrouter_nanobanana2",
@@ -276,10 +276,9 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
         "beats": beats,
         "character_map": {"hero": {"sketch_color": "#3366ff"}},
         "style": "cinematic",
-        "model": "nanobanana",
+        "model": "newapi_nanobanana2",
         "sketch_scene_grouping": True,
         "aspect_ratio": "16:9",
-        "image_generation_selection": "newapi_nanobanana2",
         "sketch_colors": {"hero-young": "#3366ff"},
         "prop_menu": [{"prop_id": "prop-1"}],
     }
@@ -320,7 +319,7 @@ def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_preserves_sketch_generation_contract(
+async def test_task_execution_scheduler_preserves_sketch_generation_contract(
     tmp_path: Path,
 ) -> None:
     calls = []
@@ -342,8 +341,8 @@ async def test_task_backend_scheduler_preserves_sketch_generation_contract(
         config={"style": "cinematic"},
     )
 
-    receipt = await TaskBackendSketchGenerationScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionSketchGenerationScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

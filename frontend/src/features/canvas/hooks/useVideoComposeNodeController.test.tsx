@@ -20,8 +20,6 @@ const mocks = vi.hoisted(() => ({
   addEdge: vi.fn(),
   setResultSelectedNode: vi.fn(),
   requestFocusNode: vi.fn(),
-  project: 'project-a' as string | undefined,
-  canvas: 'canvas-a' as string | undefined,
   upstreamNodes: [] as CanvasNode[],
   translate: vi.fn((key: string, values?: { min?: number }) =>
     values?.min == null ? key : `${key}:${values.min}`),
@@ -56,10 +54,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
 
 vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project, canvas: mocks.canvas }),
 }));
 
 function data(patch: Partial<VideoComposeNodeData> = {}): VideoComposeNodeData {
@@ -102,8 +96,6 @@ describe('useVideoComposeNodeController', () => {
     mocks.addEdge.mockReset();
     mocks.setResultSelectedNode.mockReset();
     mocks.requestFocusNode.mockReset();
-    mocks.project = 'project-a';
-    mocks.canvas = 'canvas-a';
     mocks.upstreamNodes.splice(0);
     mocks.translate.mockClear();
   });
@@ -117,6 +109,8 @@ describe('useVideoComposeNodeController', () => {
     const { result } = renderHook(() => useVideoComposeNodeController({
       id: 'compose-a',
       data: data({ draftTimeline: timeline }),
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       selected: true,
     }));
 
@@ -145,7 +139,7 @@ describe('useVideoComposeNodeController', () => {
     });
   });
 
-  it('opens only with enough videos and a project, then closes explicitly', () => {
+  it('opens only with enough videos, then closes explicitly', () => {
     mocks.upstreamNodes.push(
       mediaNode({ id: 'video-a', type: CANVAS_NODE_TYPES.video, y: 0, url: '/a.mp4' }),
       mediaNode({ id: 'video-b', type: CANVAS_NODE_TYPES.video, y: 10, url: '/b.mp4' }),
@@ -153,27 +147,22 @@ describe('useVideoComposeNodeController', () => {
     const opened = renderHook(() => useVideoComposeNodeController({
       id: 'compose-open',
       data: data(),
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
     }));
     act(() => opened.result.current.openEditor());
     expect(opened.result.current.isEditorOpen).toBe(true);
     act(() => opened.result.current.closeEditor());
     expect(opened.result.current.isEditorOpen).toBe(false);
     opened.unmount();
-
-    mocks.project = undefined;
-    const missingProject = renderHook(() => useVideoComposeNodeController({
-      id: 'compose-missing-project',
-      data: data(),
-    }));
-    expect(missingProject.result.current.canOpen).toBe(true);
-    act(() => missingProject.result.current.openEditor());
-    expect(missingProject.result.current.isEditorOpen).toBe(false);
   });
 
   it('persists editor drafts through the node store', () => {
     const { result } = renderHook(() => useVideoComposeNodeController({
       id: 'compose-draft',
       data: data(),
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
     }));
 
     act(() => result.current.persistDraft(timeline));
@@ -183,13 +172,14 @@ describe('useVideoComposeNodeController', () => {
   });
 
   it('creates, connects, selects, and focuses the composed video result', () => {
-    mocks.canvas = undefined;
     const { result } = renderHook(() => useVideoComposeNodeController({
       id: 'compose-result',
       data: data(),
+      projectId: 'project-a',
+      canvasId: 'canvas-explicit',
     }));
 
-    expect(result.current.canvasId).toBe('default');
+    expect(result.current.canvasId).toBe('canvas-explicit');
     act(() => result.current.completeComposition(
       '/result.mp4',
       '/cover.jpg',

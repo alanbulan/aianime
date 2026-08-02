@@ -20,7 +20,6 @@ class RegenerateGridCommand:
     episode_num: int
     grid_index: int
     style: str | None = None
-    model: str = "nanobanana"
     scene_grouping: bool = False
     character_grouping: bool = False
     image_generation_selection: str | None = None

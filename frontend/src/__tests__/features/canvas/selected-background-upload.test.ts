@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasAssetGateway,
-  CanvasEventBus,
   CanvasGraphGateway,
 } from '@/features/canvas/application/ports';
 import {
@@ -30,11 +29,6 @@ const graphGateway: CanvasGraphGateway = {
   addNode: (type, position, data) => addNode(type, position, data),
   getSnapshot: () => ({ edges, nodes }),
   updateNodeData: (nodeId, data) => updateNodeData(nodeId, data),
-};
-
-const eventBus: CanvasEventBus = {
-  publish: (type, payload) => publish(type, payload),
-  subscribe: () => () => undefined,
 };
 
 const assetGateway: CanvasAssetGateway = {
@@ -73,7 +67,7 @@ describe('selected background staging', () => {
       uploadAndAutoCommitSelectedBackgroundCandidate(
         assetGateway,
         graphGateway,
-        eventBus,
+        publish,
         'proj',
         { episode: 2, beat: 3 },
         blob,
@@ -96,7 +90,7 @@ describe('selected background staging', () => {
     );
     expect(addNode).toHaveBeenCalledOnce();
     expect(addEdgeWithData).toHaveBeenCalledOnce();
-    expect(publish).toHaveBeenCalledWith('freezone/commit-node', {
+    expect(publish).toHaveBeenCalledWith({
       auto: true,
       nodeId: 'candidate-node',
       successMessage: '设置完成',
@@ -145,7 +139,7 @@ describe('selected background staging', () => {
       uploadAndAutoCommitSelectedBackgroundCandidate(
         assetGateway,
         graphGateway,
-        eventBus,
+        publish,
         null,
         { episode: 2, beat: 3 },
         new Blob(['image']),

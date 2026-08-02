@@ -232,11 +232,6 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(module, "make_cognee_store_for_context", make_store_for_context)
         monkeypatch.setattr(module, "make_sqlite_store", make_store)
         monkeypatch.setattr(module, "make_cognee_store", make_store)
-    monkeypatch.setattr(
-        episodes,
-        "get_task_backend",
-        lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
-    )
     import ai_anime.ports as runtime_ports
 
     monkeypatch.setattr(

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCanvasBrowserController } from "../hooks/useCanvasBrowserController";
+import { useCanvasBrowserController } from "@/modules/creative_canvas/public";
 import { CanvasBrowserView } from "./CanvasBrowserView";
 
 interface CanvasesTabProps {

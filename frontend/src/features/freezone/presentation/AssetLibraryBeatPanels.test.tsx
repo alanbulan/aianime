@@ -3,8 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { BeatContextPanel } from "./AssetLibraryBeatPanels";
-import type { FreezoneBeatContextResponse } from "../domain/beatContext";
-import type { LibraryAsset } from "../domain/assetLibraryModel";
+import type {
+  FreezoneBeatContextResponse,
+  LibraryAsset,
+} from "@/modules/creative_canvas/public";
 
 function libraryAsset(
   id: string,

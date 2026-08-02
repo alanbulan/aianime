@@ -4,15 +4,18 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Copy, Download, ExternalLink, XCircle } from "lucide-react";
 
-import { useCancelTask } from "@/task-center/public";
-import { isActive, originDeepLink } from "@/task-center/derivations";
-import type { TaskState } from "@/task-center/types";
+import { useCancelTask } from "@/modules/task_execution/public";
+import {
+  isActive,
+  taskOriginLink,
+  type TaskState,
+} from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 
 export function TaskActions({ task }: { task: TaskState }) {
   const { t } = useTranslation();
   const cancelMut = useCancelTask();
-  const deepLink = originDeepLink(task);
+  const deepLink = taskOriginLink(task);
 
   // useCancelTask now accepts `beatNum` + `scope`, so every active task is
   // precisely cancellable. The old "hide for scoped" guard is removed.

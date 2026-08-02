@@ -211,43 +211,27 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state", raising=False)
     monkeypatch.setattr(
         image_settings_adapter,
-        "character_image_selection_options",
-        lambda: {"mock": "Mock Image"},
-    )
-    monkeypatch.setattr(
-        image_settings_adapter,
-        "image_generation_selection_options",
-        lambda: {"mock": "Mock Image"},
-    )
-    monkeypatch.setattr(
-        image_settings_adapter,
-        "normalize_character_image_selection",
-        lambda _value: "mock",
-    )
-    monkeypatch.setattr(
-        image_settings_adapter,
-        "normalize_image_generation_selection",
-        lambda _value: "mock",
-    )
-    monkeypatch.setattr(
-        image_settings_adapter,
-        "get_character_image_selection",
-        lambda: "mock",
-    )
-    monkeypatch.setattr(
-        image_settings_adapter,
         "get_image_usage_summary",
         lambda **_: {"total": 0},
     )
+    project_image_config = {
+        "visual_style": "mock",
+        "ethnicity": "Chinese",
+    }
     monkeypatch.setattr(
         image_settings_adapter,
         "load_project_config",
-        lambda *_: {"visual_style": "mock", "ethnicity": "Chinese"},
+        lambda *_: dict(project_image_config),
     )
     monkeypatch.setattr(
         image_settings_adapter,
         "load_project_config_file",
-        lambda *_: {"visual_style": "mock"},
+        lambda *_: dict(project_image_config),
+    )
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "update_project_config_file",
+        lambda _username, _project, apply: apply(project_image_config),
     )
 
     ctx = SimpleNamespace(
@@ -456,22 +440,22 @@ def test_image_settings_preserve_validation_error_contracts(m04_client_factory):
 
     invalid_character = client.patch(
         f"/api/v1/projects/{_PROJECT}/character-image-selection",
-        json={"character_image_selection": "missing"},
+        json={"character_image_selection": "  "},
     )
     assert invalid_character.status_code == 400
     assert invalid_character.json() == {
         "ok": False,
-        "error": "Invalid character_image_selection: missing",
+        "error": "character image model is required",
     }
 
     invalid_scene = client.patch(
         f"/api/v1/projects/{_PROJECT}/image-source-selection/scene",
-        json={"image_source_selection": "missing"},
+        json={"image_source_selection": "  "},
     )
     assert invalid_scene.status_code == 400
     assert invalid_scene.json() == {
         "ok": False,
-        "error": "Invalid image_source_selection: missing",
+        "error": "asset image model is required",
     }
 
     unsupported_kind = client.get(
@@ -509,6 +493,12 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     _assert_ok(
         client.patch(
             f"/api/v1/projects/{_PROJECT}/image-source-selection/scene",
+            json={"image_source_selection": "mock"},
+        )
+    )
+    _assert_ok(
+        client.patch(
+            f"/api/v1/projects/{_PROJECT}/image-source-selection/prop",
             json={"image_source_selection": "mock"},
         )
     )
@@ -671,11 +661,15 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/props/铜令/delete"))
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"
+            f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
-        client.post(f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate")
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate",
+            json={"model": "mock"},
+        )
     )
 
     _assert_ok(client.get("/api/v1/styles", params={"project": _PROJECT}))
@@ -702,7 +696,8 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     assert (
         client.post(
-            "/api/v1/styles/custom_drama/preview", json={"project": _PROJECT}
+            "/api/v1/styles/custom_drama/preview",
+            json={"project": _PROJECT, "model": "image-platform-sku"},
         ).status_code
         == 200
     )
@@ -755,9 +750,17 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     assert client.get(f"/api/v1/projects/{_PROJECT}/tts/voices").status_code == 410
     _assert_ok(
-        client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={})
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
+            json={"model": "audio-platform-sku"},
+        )
     )
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio"))
+    _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio",
+            json={"model": "audio-platform-sku"},
+        )
+    )
 
 
 @pytest.mark.parametrize("backend", ["inline", "celery"])
@@ -774,34 +777,44 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
         (
             "character_portrait",
             client.post(
-                f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"
+                f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async",
+                json={"model": "image-platform-sku"},
             ),
         ),
         (
             "identity_image",
             client.post(
-                f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate-async"
+                f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate-async",
+                json={"model": "image-platform-sku"},
             ),
         ),
         (
             "prop_reference_asset",
             client.post(
-                f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"
+                f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async",
+                json={"model": "image-platform-sku"},
             ),
         ),
         (
             "batch_prop_ref",
-            client.post(f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate"),
-        ),
-        (
-            "audio_generation_indextts2",
             client.post(
-                f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={}
+                f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate",
+                json={"model": "image-platform-sku"},
             ),
         ),
         (
             "audio_generation_indextts2",
-            client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio"),
+            client.post(
+                f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
+                json={"model": "audio-platform-sku"},
+            ),
+        ),
+        (
+            "audio_generation_indextts2",
+            client.post(
+                f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio",
+                json={"model": "audio-platform-sku"},
+            ),
         ),
     ]
 

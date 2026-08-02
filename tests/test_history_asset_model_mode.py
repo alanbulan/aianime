@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_anime.freezone.history import read_generation_history
+from ai_anime.modules.creative_canvas.infrastructure.history import (
+    read_generation_history,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.runners.freezone import (
+from ai_anime.modules.task_execution.infrastructure.runners.freezone import (
     _append_node_history,
     _history_model_mode_extra,
 )
-from ai_anime.task_backend.runners.video import _append_freezone_video_node_history
+from ai_anime.modules.task_execution.infrastructure.runners.video import _append_freezone_video_node_history
 
 
 def _ctx(tmp_path: Path) -> ProjectContext:

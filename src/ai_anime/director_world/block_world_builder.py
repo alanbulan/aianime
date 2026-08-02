@@ -340,15 +340,19 @@ def call_openai_chat(
     image_path: Path | None = None,
     image_paths: list[Path] | None = None,
     model: str,
-    api_key: str,
-    base_url: str | None,
+    use_catalog_default: bool = False,
 ) -> str:
-    from openai import OpenAI
+    from ai_anime.config import get_model_access_openai_client
+    from ai_anime.model_access_policy import (
+        resolve_internal_model_for_role,
+        resolve_model_for_role,
+    )
 
-    kwargs: dict[str, Any] = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
-    client = OpenAI(**kwargs)
+    effective_model = (
+        resolve_internal_model_for_role(model, "TEXT")
+        if use_catalog_default
+        else resolve_model_for_role(model, "TEXT")
+    )
 
     user_content: str | list[dict[str, Any]]
     resolved_image_paths = image_paths or ([image_path] if image_path is not None else [])
@@ -361,13 +365,14 @@ def call_openai_chat(
     else:
         user_content = user_prompt
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-    )
+    with get_model_access_openai_client() as client:
+        response = client.chat.completions.create(
+            model=effective_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+        )
     message = response.choices[0].message.content
     if not message:
         raise RuntimeError("Model returned empty content")
@@ -797,45 +802,14 @@ def default_output_path(path: str) -> Path:
     return (Path.cwd() / output_path).resolve()
 
 
-def resolve_model_config(args: argparse.Namespace) -> tuple[str, str, str | None]:
-    provider = (
-        os.environ.get("BLOCK_WORLD_MODEL_PROVIDER") or os.environ.get("MODEL_PROVIDER") or "openai"
-    ).lower()
-    model = (
+def resolve_model(args: argparse.Namespace) -> str:
+    from ai_anime.official_defaults import DEFAULT_BLOCK_WORLD_MODEL
+
+    return (
         args.model
         or os.environ.get("BLOCK_WORLD_MODEL")
-        or os.environ.get("OPENAI_TEXT_MODEL")
-        or os.environ.get("MODEL_NAME")
-        or "gpt-5.4"
+        or DEFAULT_BLOCK_WORLD_MODEL
     )
-    base_url = (
-        args.base_url
-        or os.environ.get("BLOCK_WORLD_BASE_URL")
-        or os.environ.get("OPENAI_BASE_URL")
-        or os.environ.get("OPENAI_API_BASE")
-        or None
-    )
-
-    key_candidates = [args.api_key, os.environ.get("BLOCK_WORLD_API_KEY")]
-    if provider == "openrouter" or "/" in model:
-        base_url = base_url or "https://openrouter.ai/api/v1"
-        key_candidates.extend(
-            [
-                os.environ.get("OPENROUTER_API_KEY"),
-                os.environ.get("MODEL_API_KEY"),
-                os.environ.get("OPENAI_API_KEY"),
-            ]
-        )
-    else:
-        key_candidates.extend(
-            [
-                os.environ.get("OPENAI_API_KEY"),
-                os.environ.get("MODEL_API_KEY"),
-            ]
-        )
-
-    api_key = next((value for value in key_candidates if value), "")
-    return model, api_key, base_url
 
 
 def main() -> None:
@@ -862,8 +836,6 @@ def main() -> None:
     parser.add_argument("--scene-id", default="ai_block_world_scene")
     parser.add_argument("--display-name", default="AI Block World Scene")
     parser.add_argument("--model", default="")
-    parser.add_argument("--api-key", default="")
-    parser.add_argument("--base-url", default="")
     parser.add_argument("--raw-output", default="")
     parser.add_argument(
         "--prompt-only", action="store_true", help="Write the prompt and do not call AI."
@@ -874,6 +846,9 @@ def main() -> None:
     args = parser.parse_args()
 
     load_dotenv_files()
+    from ai_anime.model_access_policy import load_model_access_from_stdin
+
+    load_model_access_from_stdin()
 
     description = args.description or ""
     if args.description_file:
@@ -899,12 +874,7 @@ def main() -> None:
     if args.from_code:
         raw_text = Path(args.from_code).read_text(encoding="utf-8")
     else:
-        model, api_key, base_url = resolve_model_config(args)
-        if not api_key:
-            raise SystemExit(
-                "Model API key is missing; set BLOCK_WORLD_API_KEY / OPENROUTER_API_KEY / "
-                "OPENAI_API_KEY, or use --prompt-only / --from-code for offline testing"
-            )
+        model = resolve_model(args)
         image_path = Path(args.image) if args.image else None
         if image_path is not None and not image_path.exists():
             raise SystemExit(f"image not found: {image_path}")
@@ -921,8 +891,7 @@ def main() -> None:
             user_prompt=user_prompt,
             image_paths=all_image_paths,
             model=model,
-            api_key=api_key,
-            base_url=base_url,
+            use_catalog_default=not bool(str(args.model or "").strip()),
         )
 
     raw_output_path = args.raw_output

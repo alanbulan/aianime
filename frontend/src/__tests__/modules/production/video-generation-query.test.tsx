@@ -14,7 +14,6 @@ import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
-  DEFAULT_VIDEO_BACKEND,
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useGlobalOptimize,
@@ -290,7 +289,7 @@ describe("video generation commands", () => {
     expect(body).toEqual({ language: "en" });
   });
 
-  it("maps the complete beat video command and applies the default backend", async () => {
+  it("maps the complete beat video command with an explicit catalog SKU", async () => {
     let body: unknown = null;
     server.use(
       http.post(
@@ -311,6 +310,7 @@ describe("video generation commands", () => {
     });
     result.current.mutate({
       beatNum: 6,
+      model: "seedance-2.0-fast",
       useDirectorRender: true,
       resolution: "720p",
       duration: 5,
@@ -322,7 +322,7 @@ describe("video generation commands", () => {
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(body).toEqual({
-      video_backend: DEFAULT_VIDEO_BACKEND,
+      model: "seedance-2.0-fast",
       use_director_render: true,
       resolution: "720p",
       duration: 5,
@@ -333,7 +333,7 @@ describe("video generation commands", () => {
     });
   });
 
-  it("surfaces backend queue-limit errors for beat video generation", async () => {
+  it("surfaces queue-limit errors for beat video generation", async () => {
     server.use(
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/6/video",
@@ -359,7 +359,7 @@ describe("video generation commands", () => {
     });
     const promise = result.current.mutateAsync({
       beatNum: 6,
-      videoBackend: "huimeng_seedance-1.0-pro-fast",
+      model: "seedance-1.0-pro-fast",
     });
 
     await expect(promise).rejects.toMatchObject({

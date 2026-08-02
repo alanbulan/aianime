@@ -171,7 +171,8 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
   const {
     assignColorsPending,
     audioPending,
-    audioUnavailableForVideoBackend,
+    audioModelUnavailable,
+    audioUnavailableForVideoModel,
     detectIdentitiesCostDisplay,
     detectIdentitiesPending,
     episodeAudioCostDisplay,
@@ -298,7 +299,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (audioUnavailableForVideoBackend) return;
+                      if (audioUnavailableForVideoModel || audioModelUnavailable) return;
                       askConfirm(
                         t("episode.workbench.batch.genAudioTitle"),
                         t("episode.workbench.batch.genAudioDesc"),
@@ -307,12 +308,12 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                       );
                     }}
                     disabled={
-                      !audioUnavailableForVideoBackend && audioPending
+                      !audioUnavailableForVideoModel && !audioModelUnavailable && audioPending
                     }
-                    aria-disabled={audioUnavailableForVideoBackend}
+                    aria-disabled={audioUnavailableForVideoModel || audioModelUnavailable}
                     className={cn(
                       TOOLBAR_CONTROL_CLASS,
-                      audioUnavailableForVideoBackend &&
+                      (audioUnavailableForVideoModel || audioModelUnavailable) &&
                         "cursor-not-allowed border-border text-muted-foreground/45 hover:border-border hover:bg-muted hover:text-muted-foreground/45",
                     )}
                   />
@@ -330,21 +331,23 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                 >
                   <CreditCostPill
                     display={episodeAudioCostDisplay}
-                    disabled={audioUnavailableForVideoBackend}
+                    disabled={audioUnavailableForVideoModel || audioModelUnavailable}
                     className="h-4 bg-transparent px-0 text-[11px]"
                   />
                 </span>
               </TooltipTrigger>
-              {audioUnavailableForVideoBackend && (
+              {(audioUnavailableForVideoModel || audioModelUnavailable) && (
                 <TooltipContent
                   side="bottom"
                   sideOffset={8}
                   showArrow={false}
                   className="border border-border bg-popover text-popover-foreground shadow-lg"
                 >
-                  {t(
-                    "episode.workbench.batch.genAudioUnavailableForVideoModel",
-                  )}
+                  {audioModelUnavailable
+                    ? t("episode.workbench.audio.modelUnavailable")
+                    : t(
+                        "episode.workbench.batch.genAudioUnavailableForVideoModel",
+                      )}
                 </TooltipContent>
               )}
             </Tooltip>

@@ -31,7 +31,6 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { readUrl } from '@/lib/url-params';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const REFERENCE_PREVIEW_WIDTH = 240;
@@ -43,6 +42,8 @@ export interface ScriptNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
+  canvasId: string;
 }
 
 export function useScriptNodeController({
@@ -51,6 +52,8 @@ export function useScriptNodeController({
   selected,
   width,
   height,
+  projectId,
+  canvasId,
 }: ScriptNodeControllerOptions) {
   const updateNodeInternals = useUpdateNodeInternals();
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -108,7 +111,12 @@ export function useScriptNodeController({
     records: historyRecords,
     isLoading: historyLoading,
     refresh: refreshHistory,
-  } = useNodeGenerationHistory(id, { enabled: isNodeSelected });
+  } = useNodeGenerationHistory({
+    projectId,
+    canvasId,
+    nodeId: id,
+    enabled: isNodeSelected,
+  });
   const { isGenerating } = useNodeGenerationTaskState(data);
   const hasGenerationSource = hasScriptGenerationSource(prompt, references);
   const submitDisabled = isGenerating || !hasGenerationSource;
@@ -120,9 +128,8 @@ export function useScriptNodeController({
 
   const submit = useCallback(async () => {
     if (isGenerating) return;
-    const url = readUrl();
-    if (!url.project) {
-      console.error('[script-node] submit: no project in URL');
+    if (!projectId) {
+      console.error('[script-node] submit: missing project context');
       updateNodeData(id, { generationError: '缺少 project 参数' });
       return;
     }
@@ -130,7 +137,7 @@ export function useScriptNodeController({
     const command = buildCanvasStoryScriptCommand({
       references,
       prompt,
-      canvasId: url.canvas ?? 'default',
+      canvasId,
       nodeId: id,
     });
     if (!command) {
@@ -147,7 +154,7 @@ export function useScriptNodeController({
     });
     try {
       const result = await generateCanvasStoryScript(
-        { projectId: url.project, command },
+        { projectId, command },
         (task) => {
           updateNodeData(id, generationTaskDescriptor(task));
         },
@@ -169,7 +176,16 @@ export function useScriptNodeController({
     } finally {
       void refreshHistory();
     }
-  }, [id, isGenerating, prompt, references, refreshHistory, updateNodeData]);
+  }, [
+    canvasId,
+    id,
+    isGenerating,
+    projectId,
+    prompt,
+    references,
+    refreshHistory,
+    updateNodeData,
+  ]);
 
   const commitCell = useCallback(
     (rowIndex: number, columnKey: string, nextValue: string) => {
@@ -212,18 +228,17 @@ export function useScriptNodeController({
 
   const translate = useCallback(async () => {
     if (isGenerating || isTranslating || prompt.trim().length === 0) return;
-    const url = readUrl();
-    if (!url.project) {
-      console.error('[script-node] translate: no project in URL');
+    if (!projectId) {
+      console.error('[script-node] translate: missing project context');
       return;
     }
     setIsTranslating(true);
     try {
       const result = await translateCanvasText({
-        projectId: url.project,
+        projectId,
         text: prompt,
         nodeType: 'text',
-        canvasId: url.canvas ?? 'default',
+        canvasId,
         nodeId: id,
       });
       updateNodeData(id, { prompt: result.translatedText });
@@ -232,7 +247,15 @@ export function useScriptNodeController({
     } finally {
       setIsTranslating(false);
     }
-  }, [id, isGenerating, isTranslating, prompt, updateNodeData]);
+  }, [
+    canvasId,
+    id,
+    isGenerating,
+    isTranslating,
+    projectId,
+    prompt,
+    updateNodeData,
+  ]);
 
   const restoreHistory = useCallback(
     (record: CanvasGenerationHistoryRecord) => {

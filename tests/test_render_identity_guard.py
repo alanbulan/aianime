@@ -58,9 +58,8 @@ def test_render_guard_blocks_partial_unmarked_empty_beats():
 
 def _test_grid_generator() -> NanoBananaGridGenerator:
     return NanoBananaGridGenerator(
-        api_key="test-key",
         config={
-            "provider": "openai",
+            "access_mode": "cloud",
             "api_key": "test-key",
             "model": "gpt-image-1",
             "rows": 1,
@@ -95,11 +94,11 @@ async def test_generate_grid_render_without_detection_is_blocked(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_prepare_batch_request_render_without_detection_is_blocked(tmp_path):
+async def test_prepare_concurrent_request_render_without_detection_is_blocked(tmp_path):
     generator = _test_grid_generator()
 
     with pytest.raises(RuntimeError, match="AI 检测") as exc_info:
-        await generator.prepare_batch_request(
+        await generator.prepare_concurrent_request(
             beats=[{"beat_number": 1, "visual_description": "{{沈知薇}}"}],
             character_map={"沈知薇": {"reference_mode": "prompt_only"}},
             style="chinese_period_drama",

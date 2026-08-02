@@ -17,12 +17,10 @@ const mocks = vi.hoisted(() => ({
     text?: string;
   }>,
   detachUpstream: vi.fn(),
+  useAudioGeneration: vi.fn(),
   creditCost: vi.fn(),
+  modelCatalog: vi.fn(),
   translate: vi.fn(),
-  url: { project: 'project-a', canvas: 'canvas-a' } as {
-    project?: string;
-    canvas?: string;
-  },
 }));
 
 vi.mock('@/features/canvas/canvasStore', () => ({
@@ -32,11 +30,8 @@ vi.mock('@/features/canvas/canvasStore', () => ({
 }));
 
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
-  useAudioGeneration: () => ({
-    generate: mocks.generate,
-    effectivePrompt: mocks.effectivePrompt,
-    isGenerating: mocks.isGenerating,
-  }),
+  useAudioGeneration: (...args: unknown[]) =>
+    mocks.useAudioGeneration(...args),
 }));
 
 vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
@@ -47,16 +42,19 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
-vi.mock('@/modules/model_usage/public', () => ({
-  useGenerationCreditCost: (...args: unknown[]) => mocks.creditCost(...args),
-}));
+vi.mock('@/modules/model_usage/public', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/modules/model_usage/public')
+  >();
+  return {
+    ...actual,
+    useGenerationCreditCost: (...args: unknown[]) => mocks.creditCost(...args),
+    useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
+  };
+});
 
 vi.mock('@/features/canvas/composition', () => ({
   translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => mocks.url,
 }));
 
 describe('useAudioOperationsPanelController', () => {
@@ -67,11 +65,33 @@ describe('useAudioOperationsPanelController', () => {
     mocks.isGenerating = false;
     mocks.upstreamContents = [];
     mocks.detachUpstream.mockReset();
+    mocks.useAudioGeneration.mockReset().mockImplementation(() => ({
+      generate: mocks.generate,
+      effectivePrompt: mocks.effectivePrompt,
+      isGenerating: mocks.isGenerating,
+    }));
     mocks.creditCost.mockReset().mockReturnValue({
       data: { data: { display: '2 积分' } },
     });
+    mocks.modelCatalog.mockReset().mockReturnValue({
+      data: {
+        items: [
+          {
+            code: 'audio-speech-1',
+            displayName: 'Speech Model',
+            capabilities: { supportedModes: ['SPEECH'] },
+          },
+          {
+            code: 'audio-music-1',
+            displayName: 'Music Model',
+            capabilities: { supportedModes: ['MUSIC'] },
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
     mocks.translate.mockReset().mockResolvedValue({ translatedText: 'Hello' });
-    mocks.url = { project: 'project-a', canvas: 'canvas-a' };
   });
 
   afterEach(() => {
@@ -93,10 +113,13 @@ describe('useAudioOperationsPanelController', () => {
     ];
     const { result } = renderHook(() =>
       useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         nodeId: 'audio-a',
         data: {
           audioUrl: null,
           audioKind: 'music',
+          model: 'audio-music-1',
           musicLengthMs: 30_001,
         },
       }),
@@ -104,8 +127,14 @@ describe('useAudioOperationsPanelController', () => {
 
     expect(mocks.creditCost).toHaveBeenCalledWith(
       'freezone_audio_music',
-      null,
+      'audio-music-1',
       { surface: 'canvas', quantity: 31 },
+    );
+    expect(mocks.useAudioGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'project-a',
+        nodeId: 'audio-a',
+      }),
     );
     expect(result.current.upstreamTextContents).toHaveLength(1);
     expect(result.current.submitDisabled).toBe(false);
@@ -124,8 +153,15 @@ describe('useAudioOperationsPanelController', () => {
   it('keeps IME drafts local until composition ends', () => {
     const { result } = renderHook(() =>
       useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         nodeId: 'audio-a',
-        data: { audioUrl: null, text: '原文', emotionPrompt: '平静' },
+        data: {
+          audioUrl: null,
+          model: 'audio-speech-1',
+          text: '原文',
+          emotionPrompt: '平静',
+        },
       }),
     );
 
@@ -151,8 +187,10 @@ describe('useAudioOperationsPanelController', () => {
   it('translates the stored local text through the Canvas use case', async () => {
     const { result } = renderHook(() =>
       useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         nodeId: 'audio-a',
-        data: { audioUrl: null, text: ' 你好 ' },
+        data: { audioUrl: null, model: 'audio-speech-1', text: ' 你好 ' },
       }),
     );
 
@@ -179,9 +217,12 @@ describe('useAudioOperationsPanelController', () => {
     });
     const { result, unmount } = renderHook(() =>
       useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         nodeId: 'audio-a',
         data: {
           audioUrl: null,
+          model: 'audio-speech-1',
           voiceLabel: 'Voice A',
           voiceRef: { scope: 'user_custom', voiceId: 'voice-a' },
         },
@@ -213,8 +254,14 @@ describe('useAudioOperationsPanelController', () => {
   it('resets voice-local state when its child panel is hidden', async () => {
     const { result } = renderHook(() =>
       useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         nodeId: 'audio-a',
-        data: { audioUrl: null, audioKind: 'speech' },
+        data: {
+          audioUrl: null,
+          audioKind: 'speech',
+          model: 'audio-speech-1',
+        },
       }),
     );
 

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UI_POPOVER_TRANSITION_MS } from '@/components/ui/motion';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 import { useNodeSelectionMenuController } from './useNodeSelectionMenuController';
 

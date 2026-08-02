@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
 from ai_anime.modules.model_usage.infrastructure.registered_usage import (
@@ -226,51 +225,8 @@ def _extract_provider_ids(response_obj: object) -> tuple[str, str, str]:
     return request_id, task_id, response_id
 
 
-def _strip_model_provider_prefix(model: str) -> str:
-    value = (model or "").strip()
-    for prefix in ("openai/", "custom/", "google/", "gemini/"):
-        if value.startswith(prefix):
-            return value[len(prefix) :]
-    return value
-
-
 def _normalize_recorded_model_name(model: str) -> str:
-    raw = (model or "").strip()
-    if not raw:
-        return ""
-    plain = _strip_model_provider_prefix(raw)
-    for env_key in (
-        "COGNEE_LLM_MODEL",
-        "COGNEE_EMBEDDING_MODEL",
-        "IDENTITY_PLANNER_CAST_MODEL",
-        "IDENTITY_PLANNER_ANALYSIS_MODEL",
-        "IDENTITY_PLANNER_APPEARANCE_MODEL",
-        "EPISODE_SCENE_PLANNER_MODEL",
-        "EPISODE_PROP_PLANNER_MODEL",
-        "LITERAL_BEAT_META_MODEL",
-        "SCENE_BUILD_MODEL",
-        "NARRATED_SCENE_ASSET_MODEL",
-        "GLOBAL_VIDEO_IDENTITY_DETECTOR_MODEL",
-        "GLOBAL_VIDEO_OPTIMIZER_MODEL",
-        "SEEDANCE2_PROMPT_COMPOSER_MODEL",
-        "NEWAPI_IMAGE_MODEL",
-        "NEWAPI_NANOBANANA2_MODEL",
-        "PROP_REF_IMAGE_MODEL",
-        "SCENE_MASTER_IMAGE_MODEL",
-        "SCENE_REVERSE_MASTER_IMAGE_MODEL",
-        "SCENE_360_IMAGE_MODEL",
-        "SCENE_ASSET_MODEL",
-        "NEWAPI_VIDEO_MODEL",
-        "DEFAULT_VIDEO_MODEL",
-        "INDEXTTS2_NEWAPI_MODEL",
-    ):
-        configured = os.environ.get(env_key, "").strip()
-        if not configured:
-            continue
-        configured_plain = _strip_model_provider_prefix(configured)
-        if plain == configured_plain or plain.startswith(f"{configured_plain}-"):
-            return configured_plain
-    return plain
+    return (model or "").strip()
 
 
 def _extract_litellm_usage(kwargs: dict, response_obj: object) -> tuple[int, int, str]:

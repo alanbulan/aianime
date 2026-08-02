@@ -7,6 +7,8 @@ from typing import Any, Protocol
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeAssetPlanningTask,
+    EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
     TaskQueueReceipt,
@@ -134,6 +136,18 @@ class NarrativeTaskScheduler(Protocol):
         self,
         task_context: ProjectContext,
         task: BeatVideoPromptTask,
+    ) -> TaskQueueReceipt: ...
+
+    async def enqueue_episode_asset_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeAssetPlanningTask,
+    ) -> TaskQueueReceipt: ...
+
+    async def enqueue_episode_identity_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeIdentityPlanningTask,
     ) -> TaskQueueReceipt: ...
 
 

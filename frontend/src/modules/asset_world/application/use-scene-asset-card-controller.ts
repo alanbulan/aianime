@@ -11,7 +11,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   sceneReferenceAssetScope,
   stageAssetScope,
-} from "@/lib/task-scope";
+} from "@/modules/task_execution/public";
 import { isErrorDataResponse } from "@/modules/asset_world/application/response";
 import type { SceneQueryHooks } from "@/modules/asset_world/application/scene-query-hooks";
 import type {
@@ -19,6 +19,7 @@ import type {
   ScenePanoSource,
   SceneStagePlySource,
 } from "@/modules/asset_world/domain/scene";
+import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveMediaUrl } from "@/lib/media-url";
 
@@ -29,7 +30,11 @@ interface CreditCostQuery {
 export interface SceneAssetCardControllerDependencies {
   downloadBlob(blob: Blob, filename: string): void;
   openSceneFreezone(project: string, sceneName: string): Promise<void>;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
+  useGenerationCreditCost(
+    kind: string,
+    value: string,
+    options?: GenerationCreditCostOptions,
+  ): CreditCostQuery;
 }
 
 export interface SceneAssetCardControllerOptions {
@@ -114,16 +119,19 @@ export function createUseSceneAssetCardController(
       scene.name,
     );
     const masterCost = dependencies.useGenerationCreditCost(
-      "fixed_image",
-      "scene_master",
+      "image_selection",
+      imageSourceSelection,
+      { imageRole: "scene_master" },
     );
     const reverseCost = dependencies.useGenerationCreditCost(
-      "fixed_image",
-      "scene_reverse_master",
+      "image_selection",
+      imageSourceSelection,
+      { imageRole: "scene_reverse_master" },
     );
     const panoCost = dependencies.useGenerationCreditCost(
-      "fixed_image",
-      "scene_pano",
+      "image_selection",
+      imageSourceSelection,
+      { imageRole: "scene_pano" },
     );
 
     const hasMaster = Boolean(resolveMediaUrl(scene.master_url));

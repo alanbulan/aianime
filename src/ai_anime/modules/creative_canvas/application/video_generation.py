@@ -44,21 +44,17 @@ class CreativeCanvasVideoCharacterMissing(FileNotFoundError):
 
 
 class CreativeCanvasVideoGenerationModelPolicy(Protocol):
-    def resolve_backend(self, model: str | None) -> str: ...
-
-    def is_seedance2_backend(self, backend: str | None) -> bool: ...
-
-    def is_happyhorse_backend(self, backend: str | None) -> bool: ...
+    def resolve_model(self, model: str | None) -> str: ...
 
     def normalize_aspect_ratio(self, value: str | None) -> str: ...
 
-    def normalize_resolution(self, backend: str | None, value: str | None) -> str: ...
+    def normalize_resolution(self, model: str | None, value: str | None) -> str: ...
 
-    def normalize_duration(self, backend: str | None, value: int | None) -> int: ...
+    def normalize_duration(self, model: str | None, value: int | None) -> int: ...
 
     def normalize_scene_optimize(
         self,
-        backend: str | None,
+        model: str | None,
         value: str | None,
     ) -> str: ...
 
@@ -160,7 +156,7 @@ class CreativeCanvasVideoGenerationUseCases:
         if not options.prompt.strip():
             raise InvalidCreativeCanvasVideoGenerationRequest("prompt is required")
         self._validate_camera_template(options.camera_template_id)
-        backend = self._resolve_backend(options.model)
+        model = self._resolve_model(options.model)
 
         character_items = self._select_character_items(
             command.project_dir,
@@ -174,7 +170,12 @@ class CreativeCanvasVideoGenerationUseCases:
             if isinstance(url, str) and url
         ]
         reference_items = [
-            {"type": "image", "path": path, "role": "角色参考"}
+            {
+                "type": "image",
+                "path": path,
+                "role": "角色参考",
+                "field": "reference_images",
+            }
             for path in self._resolve_urls(command.project_dir, character_urls)
         ]
         prompt = build_freezone_video_prompt(
@@ -187,7 +188,8 @@ class CreativeCanvasVideoGenerationUseCases:
             command.context,
             command.project_dir,
             options,
-            backend=backend,
+            model=model,
+            model_role="VIDEO_TEXT_TO_VIDEO",
             prompt=prompt,
             reference_items=reference_items,
         )
@@ -198,7 +200,7 @@ class CreativeCanvasVideoGenerationUseCases:
     ) -> CreativeCanvasVideoGenerationResult:
         options = command.options
         self._validate_camera_template(options.camera_template_id)
-        backend = self._resolve_backend(options.model)
+        model = self._resolve_model(options.model)
         if not command.image_urls:
             raise InvalidCreativeCanvasVideoGenerationRequest("image_urls is required")
         if len(command.image_urls) > 9:
@@ -215,30 +217,16 @@ class CreativeCanvasVideoGenerationUseCases:
             raise InvalidCreativeCanvasVideoGenerationRequest(
                 "some image_urls could not be resolved"
             )
-        if (
-            len(source_paths) > 1
-            and not self._models.is_seedance2_backend(backend)
-            and not self._models.is_happyhorse_backend(backend)
-        ):
-            raise InvalidCreativeCanvasVideoGenerationRequest(
-                "multiple image references currently only support Seedance 2.0 or HappyHorse models"
-            )
-
-        happyhorse_reference_mode = (
-            self._models.is_happyhorse_backend(backend)
-            and options.gen_mode == "imageReference"
-        )
-        # HappyHorse uses the first-item role to distinguish r2v from first-frame i2v.
         reference_items: list[dict[str, object]] = []
         for index, path in enumerate(source_paths):
-            role = (
-                "图片参考"
-                if happyhorse_reference_mode
-                else "首帧"
-                if index == 0
-                else "图片参考"
+            reference_items.append(
+                {
+                    "type": "image",
+                    "path": path,
+                    "role": "首帧" if index == 0 else "图片参考",
+                    "field": "input_reference" if index == 0 else "reference_images",
+                }
             )
-            reference_items.append({"type": "image", "path": path, "role": role})
         prompt = build_freezone_image_to_video_prompt(
             user_prompt=options.prompt,
             camera_template_id=options.camera_template_id,
@@ -249,7 +237,12 @@ class CreativeCanvasVideoGenerationUseCases:
             command.context,
             command.project_dir,
             options,
-            backend=backend,
+            model=model,
+            model_role=(
+                "VIDEO_IMAGE_REFERENCE"
+                if options.gen_mode == "imageReference" or len(source_paths) > 1
+                else "VIDEO_IMAGE_TO_VIDEO"
+            ),
             prompt=prompt,
             reference_items=reference_items,
         )
@@ -264,7 +257,7 @@ class CreativeCanvasVideoGenerationUseCases:
             raise InvalidCreativeCanvasVideoGenerationRequest(
                 "first_frame_url or last_frame_url is required"
             )
-        backend = self._resolve_backend(options.model)
+        model = self._resolve_model(options.model)
 
         first_paths = self._resolve_urls(
             command.project_dir,
@@ -282,10 +275,18 @@ class CreativeCanvasVideoGenerationUseCases:
                 "type": "image",
                 "path": primary_first_path,
                 "role": "首帧" if first_path else "尾帧参考",
+                "field": "input_reference" if first_path else "last_frame",
             }
         ]
-        if self._models.is_seedance2_backend(backend) and last_path and first_path:
-            reference_items.append({"type": "image", "path": last_path, "role": "尾帧"})
+        if last_path and first_path:
+            reference_items.append(
+                {
+                    "type": "image",
+                    "path": last_path,
+                    "role": "尾帧",
+                    "field": "last_frame",
+                }
+            )
         prompt = build_freezone_keyframe_video_prompt(
             user_prompt=options.prompt,
             camera_template_id=options.camera_template_id,
@@ -297,7 +298,8 @@ class CreativeCanvasVideoGenerationUseCases:
             command.context,
             command.project_dir,
             options,
-            backend=backend,
+            model=model,
+            model_role="VIDEO_FIRST_LAST_FRAME",
             prompt=prompt,
             reference_items=reference_items,
             last_frame_path=last_path or None,
@@ -311,15 +313,7 @@ class CreativeCanvasVideoGenerationUseCases:
         if not options.prompt.strip():
             raise InvalidCreativeCanvasVideoGenerationRequest("prompt is required")
         self._validate_camera_template(options.camera_template_id)
-        backend = self._resolve_backend(options.model)
-        if self._models.is_happyhorse_backend(backend):
-            raise InvalidCreativeCanvasVideoGenerationRequest(
-                "HappyHorse video does not support omni reference mode"
-            )
-        if not self._models.is_seedance2_backend(backend):
-            raise InvalidCreativeCanvasVideoGenerationRequest(
-                "omni video currently only supports Seedance 2.0 models"
-            )
+        model = self._resolve_model(options.model)
 
         raw_references = [
             {
@@ -348,6 +342,7 @@ class CreativeCanvasVideoGenerationUseCases:
                     "type": str(reference.get("type") or "image"),
                     "path": paths[0],
                     "role": str(reference.get("role") or ""),
+                    "field": f"reference_{str(reference.get('type') or 'image')}s",
                 }
             )
         prompt = build_freezone_omni_video_prompt(
@@ -360,7 +355,8 @@ class CreativeCanvasVideoGenerationUseCases:
             command.context,
             command.project_dir,
             options,
-            backend=backend,
+            model=model,
+            model_role="VIDEO_ALL_REFERENCE",
             prompt=prompt,
             reference_items=reference_items,
             meta=summarize_omni_reference_counts(raw_references),
@@ -372,11 +368,7 @@ class CreativeCanvasVideoGenerationUseCases:
     ) -> CreativeCanvasVideoGenerationResult:
         options = command.options
         self._validate_camera_template(options.camera_template_id)
-        backend = self._resolve_backend(options.model)
-        if not self._models.is_happyhorse_backend(backend):
-            raise InvalidCreativeCanvasVideoGenerationRequest(
-                "video edit currently only supports HappyHorse models"
-            )
+        model = self._resolve_model(options.model)
         if not command.video_url.strip():
             raise InvalidCreativeCanvasVideoGenerationRequest("video_url is required")
 
@@ -396,10 +388,21 @@ class CreativeCanvasVideoGenerationUseCases:
             )
 
         reference_items: list[dict[str, object]] = [
-            {"type": "video", "path": video_paths[0], "role": "视频编辑源"}
+            {
+                "type": "video",
+                "path": video_paths[0],
+                "role": "视频编辑源",
+                "field": "input_reference",
+            }
         ]
         reference_items.extend(
-            {"type": "image", "path": path, "role": "图片参考"} for path in image_paths
+            {
+                "type": "image",
+                "path": path,
+                "role": "图片参考",
+                "field": "reference_images",
+            }
+            for path in image_paths
         )
         prompt = build_freezone_image_to_video_prompt(
             user_prompt=options.prompt,
@@ -411,7 +414,8 @@ class CreativeCanvasVideoGenerationUseCases:
             command.context,
             command.project_dir,
             options,
-            backend=backend,
+            model=model,
+            model_role="VIDEO_EDIT",
             prompt=prompt,
             reference_items=reference_items,
             audio_setting=command.audio_setting,
@@ -423,7 +427,8 @@ class CreativeCanvasVideoGenerationUseCases:
         project_dir: Path,
         options: CreativeCanvasVideoGenerationOptions,
         *,
-        backend: str,
+        model: str,
+        model_role: str,
         prompt: str,
         reference_items: list[dict[str, object]],
         last_frame_path: str | None = None,
@@ -441,7 +446,7 @@ class CreativeCanvasVideoGenerationUseCases:
                 payload={
                     "canvas_id": options.canvas_id or "",
                     "node_id": options.node_id or "",
-                    "model_id": options.model or "",
+                    "model_id": model,
                     "gen_mode": options.gen_mode or "",
                     "prompt": prompt,
                     "reference_items": reference_items,
@@ -449,20 +454,21 @@ class CreativeCanvasVideoGenerationUseCases:
                         options.aspect_ratio
                     ),
                     "resolution": self._models.normalize_resolution(
-                        backend,
+                        model,
                         options.resolution,
                     ),
                     "duration_seconds": self._models.normalize_duration(
-                        backend,
+                        model,
                         options.duration_seconds,
                     ),
                     "generate_audio": options.generate_audio,
                     "human_review": options.human_review,
                     "scene_optimize": self._models.normalize_scene_optimize(
-                        backend,
+                        model,
                         options.scene_optimize,
                     ),
-                    "backend": backend,
+                    "video_model": model,
+                    "model_role": model_role,
                     "last_frame_path": last_frame_path,
                     "audio_setting": audio_setting or "",
                 },
@@ -499,9 +505,9 @@ class CreativeCanvasVideoGenerationUseCases:
                 raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
         return paths
 
-    def _resolve_backend(self, model: str | None) -> str:
+    def _resolve_model(self, model: str | None) -> str:
         try:
-            return self._models.resolve_backend(model)
+            return self._models.resolve_model(model)
         except ValueError as exc:
             raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
 

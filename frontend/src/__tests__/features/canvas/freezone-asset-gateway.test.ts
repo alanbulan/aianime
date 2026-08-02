@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const uploadFreezoneAsset = vi.hoisted(() => vi.fn());
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   uploadFreezoneAsset,
 }));
 

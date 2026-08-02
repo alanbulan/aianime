@@ -6,8 +6,21 @@ import type { FreezoneShellController } from "../hooks/useFreezoneShellControlle
 import { FreezoneShellView } from "./FreezoneShellView";
 
 vi.mock("@/features/canvas/Canvas", () => ({
-  Canvas: ({ onBlankPaneClick }: { onBlankPaneClick(): void }) => (
-    <button type="button" onClick={onBlankPaneClick}>canvas</button>
+  Canvas: ({
+    projectId,
+    canvasId,
+    onBlankPaneClick,
+  }: {
+    projectId: string;
+    canvasId: string;
+    onBlankPaneClick(): void;
+  }) => (
+    <button
+      type="button"
+      data-project-id={projectId}
+      data-canvas-id={canvasId}
+      onClick={onBlankPaneClick}
+    >canvas</button>
   ),
 }));
 
@@ -146,7 +159,10 @@ describe("FreezoneShellView", () => {
     expect(screen.getByText("project-a:canvas-a:3")).toBeInTheDocument();
     expect(screen.getByText("drag-preview")).toBeInTheDocument();
     expect(screen.getByText("backup-status")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "canvas" }));
+    const canvas = screen.getByRole("button", { name: "canvas" });
+    expect(canvas).toHaveAttribute("data-project-id", "project-a");
+    expect(canvas).toHaveAttribute("data-canvas-id", "canvas-a");
+    fireEvent.click(canvas);
     fireEvent.click(screen.getByRole("button", { name: "expand-assets" }));
     fireEvent.click(screen.getByRole("button", { name: "restore-mainline" }));
     fireEvent.click(screen.getByRole("button", { name: "chat:false" }));

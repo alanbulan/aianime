@@ -9,13 +9,16 @@
     "build:main": "tsc -p tsconfig.json",
     "build:renderer": "pnpm --dir ../frontend build:ce",
     "build:backend": "uv run --project .. --group desktop pyinstaller --clean --noconfirm --distpath backend-dist --workpath .pyinstaller backend/ai_anime_backend.spec",
+    "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
+    "runtime:hermes": "uv sync --project hermes-runtime --locked",
     "runtime:icon": "electron scripts/generate-icon.cjs",
     "runtime:ffmpeg": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-ffmpeg.ps1",
     "build": "pnpm run build:renderer && pnpm run build:main",
-    "dev": "electron scripts/dev.mjs",
+    "dev": "electron scripts/dev-entry.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "package:dir": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && electron-builder --dir",
-    "package:win": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && electron-builder --win nsis"
+    "test": "node --import ./scripts/register-typescript.mjs --test tests/*.test.mjs",
+    "package:dir": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && pnpm run build:hermes && electron-builder --dir",
+    "package:win": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && pnpm run build:hermes && electron-builder --win nsis"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",

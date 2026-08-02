@@ -5,15 +5,15 @@ import {
   DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
   defaultSceneOptimizeForModel,
-  isHappyHorseVideoModel,
-  isSeedance20VideoModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
   qualityToResolution,
   sceneOptimizeOptionsForModel,
+  supportedVideoModesForModel,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
+  videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
 } from "./videoGenerationModel";
 
@@ -53,55 +53,46 @@ describe("videoGenerationModel", () => {
     expect(clampVideoDuration(20, { min: 5, max: 12 })).toBe(12);
   });
 
-  it("recognizes HappyHorse and projects its supported modes", () => {
-    expect(isHappyHorseVideoModel("Happy_Horse-1.0")).toBe(true);
-    expect(isHappyHorseVideoModel("seedance-2.0")).toBe(false);
-    expect(isVideoModeSupportedByModel("videoEdit", "happyhorse-1.0")).toBe(
-      true,
-    );
-    expect(
-      isVideoModeSupportedByModel("firstLastFrame", "happyhorse-1.0"),
-    ).toBe(false);
-    expect(isVideoModeSupportedByModel("videoEdit", "seedance-2.0")).toBe(
-      false,
-    );
-    expect(
-      isVideoModeSupportedByModel("firstLastFrame", "seedance-2.0"),
-    ).toBe(true);
+  it("uses explicit catalog capabilities for supported modes", () => {
+    const typedModel = {
+      supportedModes: [
+        "textToVideo",
+        "imageToVideo",
+        "imageReference",
+        "videoEdit",
+      ] as const,
+    };
+    expect(isVideoModeSupportedByModel("videoEdit", typedModel)).toBe(true);
+    expect(isVideoModeSupportedByModel("firstLastFrame", typedModel)).toBe(false);
+    expect(videoModelUsesTypedReferenceModes(typedModel)).toBe(true);
+    expect(isVideoModeSupportedByModel("videoEdit", undefined)).toBe(false);
+    expect(supportedVideoModesForModel(undefined)).toContain("allReference");
   });
 
-  it("recognizes Seedance 2.0 model id variants", () => {
-    expect(isSeedance20VideoModel("huimeng_seedance20_fast")).toBe(true);
-    expect(isSeedance20VideoModel("newapi-seedance-2.0-value")).toBe(true);
-    expect(isSeedance20VideoModel("seedance_2_0")).toBe(true);
-    expect(isSeedance20VideoModel("seedance-1.5-pro")).toBe(false);
-    expect(isSeedance20VideoModel(undefined)).toBe(false);
-  });
-
-  it("reports model-specific reference restrictions", () => {
+  it("reports capability-declared reference restrictions", () => {
     expect(
-      videoModelReferenceDisabledReason("grok_video-channel", {
+      videoModelReferenceDisabledReason({ supportsReferenceVideos: false }, {
         images: 1,
         videos: 1,
         audios: 0,
       }),
-    ).toBe("Grok Video Channel 仅支持图片素材");
+    ).toBe("该模型不支持视频参考素材");
     expect(
-      videoModelReferenceDisabledReason("grok-video-channel", {
+      videoModelReferenceDisabledReason({ maxReferenceImages: 8 }, {
         images: 9,
         videos: 0,
         audios: 0,
       }),
-    ).toBe("Grok Video Channel 最多支持 1 张首帧和 7 张参考图");
+    ).toBe("该模型最多支持 8 张参考图片");
     expect(
-      videoModelReferenceDisabledReason("seedance-1.5-pro", {
+      videoModelReferenceDisabledReason({ supportsReferenceImages: false }, {
         images: 1,
         videos: 0,
         audios: 0,
       }),
-    ).toBe("该模型不支持当前接入的素材");
+    ).toBe("该模型不支持图片参考素材");
     expect(
-      videoModelReferenceDisabledReason("seedance-2.0", {
+      videoModelReferenceDisabledReason({}, {
         images: 1,
         videos: 1,
         audios: 1,
@@ -117,17 +108,17 @@ describe("videoGenerationModel", () => {
     ).toEqual(["realistic"]);
     expect(
       sceneOptimizeOptionsForModel({
-        apiModel: "NEWAPI_SEEDANCE-2.0-FAST-VALUE",
+        sceneOptimizeOptions: ["anime", "realistic"],
       }),
     ).toEqual(["anime", "realistic"]);
-    expect(sceneOptimizeOptionsForModel({ id: "other" })).toEqual([]);
+    expect(sceneOptimizeOptionsForModel({})).toEqual([]);
     expect(
       defaultSceneOptimizeForModel({ defaultSceneOptimize: "anime" }),
     ).toBe("anime");
-    expect(defaultSceneOptimizeForModel({ id: "seedance-fast-value" })).toBe(
+    expect(defaultSceneOptimizeForModel({ sceneOptimizeOptions: ["realistic"] })).toBe(
       "realistic",
     );
-    expect(defaultSceneOptimizeForModel({ id: "seedance-value" })).toBe(
+    expect(defaultSceneOptimizeForModel({})).toBe(
       "anime",
     );
     expect(normalizeSceneOptimize("anime", ["realistic"], "realistic")).toBe(

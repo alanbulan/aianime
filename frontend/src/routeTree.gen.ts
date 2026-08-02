@@ -12,6 +12,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LicenseRouteImport } from './routes/license'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppProjectsProjectTasksRouteImport } from './routes/_app/projects.$project/tasks'
@@ -52,6 +53,11 @@ const AppProjectsProjectEpisodesEpisodeAudioLazyRouteImport = createFileRoute(
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LicenseRoute = LicenseRouteImport.update({
+  id: '/license',
+  path: '/license',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -195,6 +201,7 @@ const AppProjectsProjectEpisodesEpisodeAudioLazyRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/license': typeof LicenseRoute
   '/login': typeof LoginRoute
   '/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
   '/projects/$project/episodes': typeof AppProjectsProjectEpisodesRouteWithChildren
@@ -213,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/projects/$project/episodes/$episode/': typeof AppProjectsProjectEpisodesEpisodeIndexLazyRoute
 }
 export interface FileRoutesByTo {
+  '/license': typeof LicenseRoute
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
   '/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
@@ -234,6 +242,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/license': typeof LicenseRoute
   '/login': typeof LoginRoute
   '/_app/': typeof AppIndexRoute
   '/_app/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/license'
     | '/login'
     | '/projects/$project/assistant'
     | '/projects/$project/episodes'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/projects/$project/episodes/$episode/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/license'
     | '/login'
     | '/'
     | '/projects/$project/assistant'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/license'
     | '/login'
     | '/_app/'
     | '/_app/projects/$project/assistant'
@@ -315,6 +327,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  LicenseRoute: typeof LicenseRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/license': {
+      id: '/license'
+      path: '/license'
+      fullPath: '/license'
+      preLoaderRoute: typeof LicenseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -511,6 +531,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  LicenseRoute: LicenseRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

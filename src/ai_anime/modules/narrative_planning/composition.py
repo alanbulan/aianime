@@ -24,6 +24,8 @@ from ai_anime.modules.narrative_planning.application.manual_beats import (
 )
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ScheduleBeatVideoPrompt,
+    ScheduleEpisodeAssetPlanning,
+    ScheduleEpisodeIdentityPlanning,
     ScheduleEpisodePlanning,
     StartScriptGeneration,
 )
@@ -54,9 +56,10 @@ from ai_anime.modules.narrative_planning.infrastructure.manual_beat_assets impor
     choose_manual_sketch_mode_key,
 )
 from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
-    TaskBackendScheduler,
+    TaskExecutionScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import project_task_submission_use_cases
 
 
 def beat_video_prompts() -> BeatVideoPrompts:
@@ -109,10 +112,8 @@ def manual_sketch_mode_key(count: int) -> str:
     return choose_manual_sketch_mode_key(count)
 
 
-def narrative_task_scheduler() -> TaskBackendScheduler:
-    from ai_anime import ports
-
-    return TaskBackendScheduler(ports.get_task_backend)
+def narrative_task_scheduler() -> TaskExecutionScheduler:
+    return TaskExecutionScheduler(project_task_submission_use_cases())
 
 
 def start_script_generation() -> StartScriptGeneration:
@@ -128,6 +129,14 @@ def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
 
 def schedule_episode_planning() -> ScheduleEpisodePlanning:
     return ScheduleEpisodePlanning(narrative_task_scheduler())
+
+
+def schedule_episode_asset_planning() -> ScheduleEpisodeAssetPlanning:
+    return ScheduleEpisodeAssetPlanning(narrative_task_scheduler())
+
+
+def schedule_episode_identity_planning() -> ScheduleEpisodeIdentityPlanning:
+    return ScheduleEpisodeIdentityPlanning(narrative_task_scheduler())
 
 
 def generate_seedance_prompt() -> GenerateSeedancePrompt:

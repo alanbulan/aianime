@@ -91,7 +91,6 @@ from ai_anime.modules.asset_world.infrastructure.character_image_storage import 
     LocalCharacterImageFiles,
 )
 from ai_anime.modules.asset_world.infrastructure.image_settings import (
-    ConfiguredImageSelectionCatalog,
     ProjectConfigImageGenerationSettings,
     ProjectConfigImageSelectionStore,
     SqliteImageUsageReader,
@@ -118,9 +117,10 @@ from ai_anime.modules.asset_world.infrastructure.style_generation import (
     UnifiedStylePreviewGenerator,
 )
 from ai_anime.modules.asset_world.infrastructure.task_scheduler import (
-    TaskBackendAssetTaskScheduler,
+    TaskExecutionAssetTaskScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import project_task_submission_use_cases
 
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
@@ -240,10 +240,8 @@ def beat_viewer_use_cases() -> BeatViewerUseCases:
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:
-    from ai_anime import ports
-
     return SceneTaskUseCases(
-        TaskBackendAssetTaskScheduler(ports.get_task_backend),
+        TaskExecutionAssetTaskScheduler(project_task_submission_use_cases()),
         LocalSceneTaskAssets(),
     )
 
@@ -266,7 +264,6 @@ def character_image_use_cases() -> CharacterImageUseCases:
 
 def image_settings_use_cases() -> ImageSettingsUseCases:
     return ImageSettingsUseCases(
-        ConfiguredImageSelectionCatalog(),
         ProjectConfigImageSelectionStore(),
         ProjectConfigImageGenerationSettings(),
         SqliteImageUsageReader(),
@@ -274,15 +271,15 @@ def image_settings_use_cases() -> ImageSettingsUseCases:
 
 
 def character_task_use_cases() -> CharacterTaskUseCases:
-    from ai_anime import ports
-
-    return CharacterTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
+    return CharacterTaskUseCases(
+        TaskExecutionAssetTaskScheduler(project_task_submission_use_cases())
+    )
 
 
 def prop_task_use_cases() -> PropTaskUseCases:
-    from ai_anime import ports
-
-    return PropTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
+    return PropTaskUseCases(
+        TaskExecutionAssetTaskScheduler(project_task_submission_use_cases())
+    )
 
 
 async def execute_character_image_task(

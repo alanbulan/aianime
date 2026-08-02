@@ -33,7 +33,7 @@ import {
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { getFreezoneCanvasMetadata } from '@/features/freezone/public';
+import { getFreezoneCanvasMetadata } from '@/modules/creative_canvas/public';
 import {
   PANO_DEGREES_TO_RADIANS,
   PANO_FOV_MAX,
@@ -69,6 +69,7 @@ interface PanoPlanetBackup {
 }
 
 export interface Pano360ViewerNodeControllerOptions {
+  projectId: string;
   id: string;
   data: Pano360ViewerNodeData;
   selected?: boolean;
@@ -112,6 +113,7 @@ async function cropDataUrlTo16x9(
 }
 
 export function usePano360ViewerNodeController({
+  projectId,
   id,
   data,
   selected,
@@ -595,6 +597,7 @@ export function usePano360ViewerNodeController({
         canvas.height,
       );
       const uploadedUrl = await uploadLocalImageToBackend(
+        projectId,
         cropped.dataUrl,
         `pano-${id}-${Date.now()}.png`,
       );
@@ -608,7 +611,7 @@ export function usePano360ViewerNodeController({
     } finally {
       setIsCapturing(false);
     }
-  }, [addPanoCaptureGroup, data.imageUrl, getViewerCanvas, id]);
+  }, [addPanoCaptureGroup, data.imageUrl, getViewerCanvas, id, projectId]);
 
   const snapAsBackgroundAnchor = useCallback(async () => {
     const viewer = viewerRef.current;
@@ -635,6 +638,7 @@ export function usePano360ViewerNodeController({
       );
       const blob = dataUrlToBlob(cropped.dataUrl);
       await uploadAndAutoCommitSelectedBackgroundCandidate(
+        projectId,
         { episode, beat },
         blob,
         `background_pano360_${Date.now()}.png`,
@@ -651,7 +655,7 @@ export function usePano360ViewerNodeController({
     } finally {
       setIsCapturing(false);
     }
-  }, [data.imageUrl, getViewerCanvas]);
+  }, [data.imageUrl, getViewerCanvas, projectId]);
 
   const captureFrame = useCallback(
     async (yawDeg: number, pitchDeg: number, fovDeg: number) => {
@@ -712,6 +716,7 @@ export function usePano360ViewerNodeController({
         await Promise.all(
           captures.map(async (capture, index) => {
             capture.uploadedUrl = await uploadLocalImageToBackend(
+              projectId,
               capture.dataUrl,
               `pano-${id}-${Date.now()}-${index}.png`,
             );
@@ -733,7 +738,7 @@ export function usePano360ViewerNodeController({
         setIsCapturing(false);
       }
     },
-    [addPanoCaptureGroup, applyFov, captureFrame, data.imageUrl, id],
+    [addPanoCaptureGroup, applyFov, captureFrame, data.imageUrl, id, projectId],
   );
 
   const snap2x2 = useCallback(

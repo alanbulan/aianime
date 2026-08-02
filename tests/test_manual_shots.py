@@ -1,7 +1,7 @@
 import pytest
 
 from ai_anime.modules.narrative_planning.public import NovelEpisode
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import selection_scope
 
 
 def test_selection_scope_is_order_sensitive():

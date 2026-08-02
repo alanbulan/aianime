@@ -42,9 +42,6 @@ describe("Production render settings queries", () => {
             ok: true,
             data: {
               render_image_selection: "openrouter_nanobanana2",
-              options: {
-                openrouter_nanobanana2: "OpenRouter NanoBanana 2",
-              },
               sketch_aspect_padding: true,
             },
           });
@@ -77,9 +74,6 @@ describe("Production render settings queries", () => {
             ok: true,
             data: {
               render_image_selection: "openrouter_nanobanana2",
-              options: {
-                openrouter_nanobanana2: "OpenRouter NanoBanana 2",
-              },
               sketch_aspect_padding: true,
             },
           });
@@ -116,9 +110,6 @@ describe("Production sketch settings queries", () => {
             ok: true,
             data: {
               sketch_image_selection: "openrouter_nanobanana2",
-              options: {
-                openrouter_nanobanana2: "OpenRouter NanoBanana 2",
-              },
             },
           });
         },
@@ -149,9 +140,6 @@ describe("Production sketch settings queries", () => {
             ok: true,
             data: {
               sketch_image_selection: "openrouter_nanobanana2",
-              options: {
-                openrouter_nanobanana2: "OpenRouter NanoBanana 2",
-              },
             },
           });
         },

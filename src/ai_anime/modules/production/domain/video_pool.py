@@ -14,7 +14,7 @@ class VideoPoolEntry:
     generated_at: datetime
     duration: float = 5.0
     video_mode: str = "first_frame"
-    backend: str = "comfyui"
+    video_model: str = ""
     prompt: str = ""
 
 

@@ -52,10 +52,7 @@ class GenerationCreditQueries:
             raise InvalidGenerationCreditRequest("generation model is not configured")
 
         defaults: dict = {}
-        if clean_surface != "canvas" and clean_kind in {
-            "fixed_image",
-            "image_selection",
-        }:
+        if clean_surface != "canvas" and clean_kind == "image_selection":
             defaults = self._model_catalog.default_billing_params(
                 kind=clean_kind,
                 value=clean_value,

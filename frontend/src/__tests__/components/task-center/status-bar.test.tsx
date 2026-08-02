@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import enTranslation from "../../../../public/locales/en/translation.json";
 import zhTranslation from "../../../../public/locales/zh/translation.json";

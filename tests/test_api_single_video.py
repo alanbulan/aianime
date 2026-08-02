@@ -40,7 +40,7 @@ async def test_single_video_route_maps_request_to_application(
     monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
     monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
     request = SingleVideoRequest(
-        video_backend="huimeng_seedance-2.0-fast",
+        model="seedance-2.0-fast",
         resolution="1080p",
         duration=9,
         ratio="16:9",
@@ -70,7 +70,7 @@ async def test_single_video_route_maps_request_to_application(
     assert target_context is context
     assert command.episode_num == 3
     assert command.beat_num == 2
-    assert command.video_backend == "huimeng_seedance-2.0-fast"
+    assert command.video_model == "seedance-2.0-fast"
     assert command.resolution == "1080p"
     assert command.duration == 9
     assert command.ratio == "16:9"
@@ -101,7 +101,7 @@ async def test_single_video_route_preserves_rejection_envelope(
         project="demo",
         episode_num=3,
         beat_num=2,
-        body=SingleVideoRequest(),
+        body=SingleVideoRequest(model="cloud-video-standard"),
         user={"username": "alice"},
     )
 

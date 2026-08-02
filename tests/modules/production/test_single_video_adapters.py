@@ -13,9 +13,10 @@ from ai_anime.modules.production.application.single_video import (
 from ai_anime.modules.production.infrastructure.single_video import (
     LocalSingleVideoPreparer,
     MediaIoBeatAudioDurationSource,
-    TaskBackendSingleVideoScheduler,
+    TaskExecutionSingleVideoScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 from ai_anime.seedance2_i2v.models import (
     Seedance2I2VMode,
     parse_seedance2_config,
@@ -88,7 +89,7 @@ def _command(**overrides) -> GenerateSingleVideoCommand:
     values = {
         "episode_num": 3,
         "beat_num": 2,
-        "video_backend": "huimeng_seedance-1.0-pro-fast",
+        "video_model": "seedance-1.0-pro-fast",
         "resolution": "720x1280",
     }
     values.update(overrides)
@@ -151,7 +152,7 @@ async def test_missing_first_frame_rejects_and_closes_store(
 
 
 @pytest.mark.asyncio
-async def test_legacy_video_preserves_duration_resolution_and_task_payload(
+async def test_standard_video_preserves_duration_resolution_and_task_payload(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -209,7 +210,7 @@ async def test_legacy_video_preserves_duration_resolution_and_task_payload(
     ],
 )
 @pytest.mark.asyncio
-async def test_legacy_video_rejects_missing_mode_prompt(
+async def test_standard_video_rejects_missing_mode_prompt(
     monkeypatch,
     tmp_path: Path,
     beat: dict,
@@ -270,7 +271,7 @@ async def test_seedance2_uses_prepared_config_and_audio_duration(
 
     task = await preparer.prepare(
         _context(tmp_path),
-        _command(video_backend="huimeng_seedance-2.0-fast"),
+        _command(video_model="seedance-2.0-fast"),
     )
 
     assert calls[0]["duration"] == 6.4
@@ -320,7 +321,7 @@ async def test_seedance2_merges_inline_controls_before_preparation(
         prepare_inputs,
     )
     command = _command(
-        video_backend="huimeng_seedance-2.0-fast",
+        video_model="seedance-2.0-fast",
         mode="multimodal_reference",
         duration=9,
         ratio="16:9",
@@ -403,24 +404,24 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
     with pytest.raises(SingleVideoRejected, match="Seedance 2.0 最终提示词为空"):
         await preparer.prepare(
             _context(tmp_path),
-            _command(video_backend="huimeng_seedance-2.0-fast"),
+            _command(video_model="seedance-2.0-fast"),
         )
 
     assert store.close_calls == 1
 
 
 @pytest.mark.parametrize(
-    ("backend", "reference_limit", "expected_resolution", "audio_setting"),
+    ("model", "reference_limit", "expected_resolution", "audio_setting"),
     [
-        ("newapi_happyhorse-1.0", 9, "1080p", "origin"),
-        ("newapi_grok-video-channel", 7, "720p", None),
+        ("happyhorse-1.0", 9, "1080p", "origin"),
+        ("grok-video-channel", 7, "720p", None),
     ],
 )
 @pytest.mark.asyncio
-async def test_reference_video_backends_prepare_bounded_references(
+async def test_reference_video_models_prepare_bounded_references(
     monkeypatch,
     tmp_path: Path,
-    backend: str,
+    model: str,
     reference_limit: int,
     expected_resolution: str,
     audio_setting: str | None,
@@ -463,7 +464,7 @@ async def test_reference_video_backends_prepare_bounded_references(
     task = await preparer.prepare(
         _context(tmp_path),
         _command(
-            video_backend=backend,
+            video_model=model,
             mode="multimodal_reference",
             duration=7,
             resolution="1080p",
@@ -484,6 +485,7 @@ async def test_reference_video_backends_prepare_bounded_references(
         "type": "image",
         "path": "reference-1.png",
         "role": "图片1",
+        "field": "reference_images",
     }
     if audio_setting is not None:
         assert task.config["audio_setting"] == audio_setting
@@ -519,7 +521,7 @@ async def test_media_duration_source_reads_existing_audio(
 
 
 @pytest.mark.asyncio
-async def test_task_backend_scheduler_preserves_single_video_contract(
+async def test_task_execution_scheduler_preserves_single_video_contract(
     tmp_path: Path,
 ) -> None:
     calls = []
@@ -541,8 +543,8 @@ async def test_task_backend_scheduler_preserves_single_video_contract(
         output_dir=tmp_path,
     )
 
-    receipt = await TaskBackendSingleVideoScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionSingleVideoScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

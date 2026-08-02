@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  isSeedanceReferenceCropBackend,
+  isVideoReferenceCropModel,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
   videoInputCropAspectForProjectAspect,
@@ -46,11 +46,11 @@ describe("Production Seedance2 crop rules", () => {
     ).toBe("reference_image");
   });
 
-  it("recognizes Seedance reference crop backends", () => {
-    expect(isSeedanceReferenceCropBackend("newapi_seedance-1.0-pro-fast")).toBe(
+  it("recognizes Seedance reference crop models", () => {
+    expect(isVideoReferenceCropModel("seedance-1.0-pro-fast")).toBe(
       true,
     );
-    expect(isSeedanceReferenceCropBackend("seedance-1.5-pro")).toBe(true);
-    expect(isSeedanceReferenceCropBackend("grok-video")).toBe(false);
+    expect(isVideoReferenceCropModel("seedance-1.5-pro")).toBe(true);
+    expect(isVideoReferenceCropModel("grok-video")).toBe(false);
   });
 });

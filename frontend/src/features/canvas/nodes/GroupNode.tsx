@@ -10,6 +10,7 @@ import { GroupNodeView } from './GroupNodeView';
 type GroupNodeProps = NodeProps & {
   id: string;
   data: GroupNodeData;
+  projectId: string;
   selected?: boolean;
 };
 

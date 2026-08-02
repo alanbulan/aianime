@@ -7,8 +7,8 @@ import pytest
 from PIL import Image
 
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.runners import sketch as sketch_runner
-from ai_anime.task_backend.runners import render as render_runner
+from ai_anime.modules.task_execution.infrastructure.runners import sketch as sketch_runner
+from ai_anime.modules.task_execution.infrastructure.runners import render as render_runner
 
 
 pytestmark = pytest.mark.m09
@@ -88,6 +88,7 @@ async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sket
                 "output_dir": str(ctx.output_dir),
                 "mode_key": "1x1_16-9",
                 "config": {
+                    "model": "test-image-model",
                     "mode_key": "1x1_16-9",
                     "selected_beat_numbers": [3],
                     "beats": [
@@ -193,6 +194,7 @@ async def test_standalone_frame_skill_render_uses_zero_based_local_panel(
                 "output_dir": str(ctx.output_dir),
                 "mode_key": "1x1_16-9",
                 "config": {
+                    "model": "test-image-model",
                     "standalone_beat_context": True,
                     "mode_key": "1x1_16-9",
                     "selected_panel_indices": [0],
@@ -298,6 +300,7 @@ async def test_standalone_frame_skill_render_normalizes_legacy_local_panel_paylo
                 "output_dir": str(ctx.output_dir),
                 "mode_key": "1x1_16-9",
                 "config": {
+                    "model": "test-image-model",
                     "standalone_beat_context": True,
                     "mode_key": "1x1_16-9",
                     "selected_beat_numbers": [1],
@@ -334,7 +337,7 @@ async def test_sketch_runner_accepts_missing_generation_time(
     ctx = _project_ctx(tmp_path)
 
     class FakeGridGenerator:
-        provider = "test"
+        access_mode = "cloud"
         model = "fake"
 
         def __init__(self, **_kwargs):
@@ -365,6 +368,7 @@ async def test_sketch_runner_accepts_missing_generation_time(
             "payload": {
                 "output_dir": str(ctx.output_dir),
                 "config": {
+                    "model": "test-image-model",
                     "direct_sketch_beats": True,
                     "mode_key": "1x1_16-9",
                     "beat_numbers": [1],
@@ -462,7 +466,7 @@ async def test_generate_grid_render_accepts_standalone_zero_sketch_override(
     generator = nanobanana_grid.NanoBananaGridGenerator.__new__(
         nanobanana_grid.NanoBananaGridGenerator
     )
-    generator.provider = "test"
+    generator.access_mode = "cloud"
     generator.model = "fake"
     generator.api_key = ""
 

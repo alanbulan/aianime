@@ -52,6 +52,7 @@ describe("Production IndexTTS2 audio queries", () => {
     });
     result.current.mutate({
       beatNumbers: [2, 4],
+      model: "audio-speech-test",
       mode: "redo_selected",
     });
 
@@ -59,6 +60,7 @@ describe("Production IndexTTS2 audio queries", () => {
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/audio/generate");
     expect(receivedBody).toEqual({
       beat_numbers: [2, 4],
+      model: "audio-speech-test",
       mode: "redo_selected",
     });
     expect(result.current.data?.ok).toBe(true);
@@ -68,11 +70,13 @@ describe("Production IndexTTS2 audio queries", () => {
 
   it("maps single beat regeneration to the async task endpoint", async () => {
     let requestedPath = "";
+    let receivedBody: unknown = undefined;
     server.use(
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/audio",
-        ({ request }) => {
+        async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
+          receivedBody = await request.json();
           return HttpResponse.json({
             ok: true,
             task_type: "audio_generation_indextts2",
@@ -85,10 +89,14 @@ describe("Production IndexTTS2 audio queries", () => {
     const { result } = renderHook(() => useRegenerateBeatAudio("demo", 1), {
       wrapper,
     });
-    result.current.mutate(5);
+    result.current.mutate({
+      beatNumber: 5,
+      model: "audio-speech-test",
+    });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/beats/5/audio");
+    expect(receivedBody).toEqual({ model: "audio-speech-test" });
     expect(result.current.data?.ok).toBe(true);
     if (result.current.data?.ok !== true) throw new Error("expected task response");
     expect(result.current.data.task_type).toBe("audio_generation_indextts2");

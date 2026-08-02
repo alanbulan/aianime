@@ -15,6 +15,7 @@ import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuCont
 import { useImageMatteController } from "@/features/canvas/hooks/useImageMatteController";
 
 export interface ImageEditToolbarControllerOptions {
+  projectId: string;
   nodeId: string;
   nodeData: CanvasNodeData;
   imageSource: string | null;
@@ -26,6 +27,7 @@ export interface ImageEditToolbarControllerOptions {
 }
 
 export function useImageEditToolbarController({
+  projectId,
   nodeId,
   nodeData,
   imageSource,
@@ -40,6 +42,7 @@ export function useImageEditToolbarController({
     useState<ImageEditToolbarActionKey>("matting");
   const menu = useHoverMenuController();
   const { matte } = useImageMatteController({
+    projectId,
     nodeId,
     nodeData,
     imageSource,

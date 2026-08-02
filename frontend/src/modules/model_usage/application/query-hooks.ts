@@ -38,8 +38,9 @@ export function createGenerationCreditQueries(gateway: GenerationCreditGateway) 
     const requiresValue =
       cleanKind === "model" ||
       cleanKind === "image_selection" ||
-      cleanKind === "fixed_image" ||
-      cleanKind === "video_backend" ||
+      cleanKind === "video_model" ||
+      cleanKind === "beat_tts" ||
+      cleanKind === "freezone_audio_music" ||
       cleanKind === "feature";
 
     return queryOptions({

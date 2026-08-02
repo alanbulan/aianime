@@ -18,13 +18,15 @@ vi.mock("@/shared/api/transport", () => ({
 
 import { server } from "@/__mocks__/msw/server";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
-import { TaskCenterProvider } from "@/task-center/provider";
-import { useTaskCenterStore } from "@/task-center/store";
+import {
+  TaskCenterProvider,
+  useTaskCenterStore,
+  useTaskSubscribe,
+} from "@/modules/task_execution/public";
 import { useAppStore } from "@/stores/app-store";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useTaskSubscribe } from "@/task-center/use-task-subscribe";
 import { queryKeys } from "@/lib/query-keys";
-import type { TaskState } from "@/task-center/types";
+import type { TaskState } from "@/modules/task_execution/public";
 
 class MockEventSource {
   static instances: MockEventSource[] = [];

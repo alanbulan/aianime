@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type { VideoModelOption } from "@/modules/production/domain/video-model";
 
 const SEEDANCE2_DEFAULT_RESOLUTION_OPTIONS = ["480p", "720p"] as const;
 const HAPPYHORSE_RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
@@ -63,12 +63,12 @@ export interface Seedance2ConfigDraft {
   };
 }
 
-export type VideoBackendConfigCapabilities = Pick<
-  VideoBackendOption,
-  | "resolution_options"
-  | "ratio_options"
-  | "min_duration"
-  | "max_duration"
+export type VideoModelConfigCapabilities = Pick<
+  VideoModelOption,
+  | "resolutionOptions"
+  | "ratioOptions"
+  | "minDuration"
+  | "maxDuration"
 >;
 
 export function parseSeedance2Config(
@@ -105,25 +105,16 @@ export function normalizeSeedance2Mode(value: unknown): Seedance2Mode {
   return "multimodal_reference";
 }
 
-export function isSeedance2ValueBackend(value: string | null | undefined): boolean {
-  const text = String(value ?? "").trim().toLowerCase();
-  return (
-    text === "newapi_seedance-2.0-value" ||
-    text === "newapi_seedance-2.0-fast-value" ||
-    text === "huimeng_seedance-2.0-value" ||
-    text === "huimeng_seedance-2.0-fast-value"
-  );
+export function isSeedance2ValueModel(value: string | null | undefined): boolean {
+  const text = normalizeVideoModelId(value);
+  return text === "seedance-2.0-value" || text === "seedance-2.0-fast-value";
 }
 
-export function seedance2ModelFromBackend(value: string | null | undefined): string {
-  const text = String(value ?? "").trim().toLowerCase();
-  for (const prefix of ["newapi_", "huimeng_", "huimengi_"]) {
-    if (text.startsWith(prefix)) return text.slice(prefix.length);
-  }
-  return text;
+export function normalizeVideoModelId(value: string | null | undefined): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-export function videoBackendDisplayLabel(
+export function videoModelDisplayLabel(
   value: string | null | undefined,
   labels: ReadonlyMap<string, string>,
 ): string {
@@ -131,25 +122,21 @@ export function videoBackendDisplayLabel(
   if (!text) return "";
   const exact = labels.get(text);
   if (exact) return exact;
-  const model = seedance2ModelFromBackend(text);
+  const model = normalizeVideoModelId(text);
   if (model.startsWith("seedance-2.0")) {
     return `Seedance ${model.slice("seedance-".length)}`;
   }
-  return text
-    .replace(/^newapi_/, "")
-    .replace(/^huimengi?_/, "")
-    .replace(/_/g, " ");
+  return text;
 }
 
-export function isSeedance15ProBackend(value: string | null | undefined): boolean {
-  const model = seedance2ModelFromBackend(value);
-  return model === "seedance-1.5-pro" || model === "seedance_pro";
+export function isSeedance15ProModel(value: string | null | undefined): boolean {
+  return normalizeVideoModelId(value) === "seedance-1.5-pro";
 }
 
-export function seedance2ResolutionOptionsForBackend(
+export function seedance2ResolutionOptionsForModel(
   value: string | null | undefined,
 ): readonly Seedance2Resolution[] {
-  const model = seedance2ModelFromBackend(value);
+  const model = normalizeVideoModelId(value);
   return (
     SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL[
       model as keyof typeof SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL
@@ -157,10 +144,10 @@ export function seedance2ResolutionOptionsForBackend(
   );
 }
 
-export function normalizeSeedance2DraftForBackend(
+export function normalizeSeedance2DraftForModel(
   draft: Seedance2ConfigDraft,
   resolutionOptions: readonly Seedance2Resolution[],
-  backend: string | null | undefined,
+  model: string | null | undefined,
   isValueStyle: boolean,
 ): Seedance2ConfigDraft {
   const fallbackResolution = resolutionOptions.includes("720p")
@@ -170,7 +157,7 @@ export function normalizeSeedance2DraftForBackend(
     ? draft.resolution
     : fallbackResolution;
   const sceneOptimize = isValueStyle
-    ? draft.scene_optimize || defaultSeedance2ValueSceneOptimize(backend)
+    ? draft.scene_optimize || defaultSeedance2ValueSceneOptimize(model)
     : "";
   if (draft.resolution === resolution && draft.scene_optimize === sceneOptimize) {
     return draft;
@@ -182,20 +169,20 @@ export function normalizeSeedance2DraftForBackend(
   };
 }
 
-export function happyHorseResolutionOptionsForBackend(
-  backend: VideoBackendConfigCapabilities | null | undefined,
+export function happyHorseResolutionOptionsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
 ): readonly Seedance2Resolution[] {
-  const options = backend?.resolution_options?.filter(
+  const options = model?.resolutionOptions?.filter(
     (value): value is Seedance2Resolution =>
       value === "720p" || value === "1080p",
   );
   return options?.length ? options : HAPPYHORSE_RESOLUTION_OPTIONS;
 }
 
-export function happyHorseRatioOptionsForBackend(
-  backend: VideoBackendConfigCapabilities | null | undefined,
+export function happyHorseRatioOptionsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
 ): readonly HappyHorseRatio[] {
-  const options = backend?.ratio_options?.filter(
+  const options = model?.ratioOptions?.filter(
     (value): value is HappyHorseRatio =>
       value === "16:9" ||
       value === "9:16" ||
@@ -206,19 +193,19 @@ export function happyHorseRatioOptionsForBackend(
   return options?.length ? options : HAPPYHORSE_RATIO_OPTIONS;
 }
 
-export function grokVideoResolutionOptionsForBackend(
-  backend: VideoBackendConfigCapabilities | null | undefined,
+export function grokVideoResolutionOptionsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
 ): readonly Seedance2Resolution[] {
-  const options = backend?.resolution_options?.filter(
+  const options = model?.resolutionOptions?.filter(
     (value): value is Seedance2Resolution => value === "720p" || value === "480p",
   );
   return options?.length ? options : GROK_VIDEO_RESOLUTION_OPTIONS;
 }
 
-export function grokVideoRatioOptionsForBackend(
-  backend: VideoBackendConfigCapabilities | null | undefined,
+export function grokVideoRatioOptionsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
 ): readonly GrokVideoRatio[] {
-  const options = backend?.ratio_options?.filter(
+  const options = model?.ratioOptions?.filter(
     (value): value is GrokVideoRatio =>
       value === "16:9" ||
       value === "9:16" ||
@@ -251,7 +238,7 @@ export function normalizeGrokVideoRatio(
     : fallback;
 }
 
-export function normalizeHappyHorseDraftForBackend(
+export function normalizeHappyHorseDraftForModel(
   draft: Seedance2ConfigDraft,
   resolutionOptions: readonly Seedance2Resolution[],
   ratioOptions: readonly HappyHorseRatio[],
@@ -293,7 +280,7 @@ export function normalizeHappyHorseDraftForBackend(
   };
 }
 
-export function normalizeGrokVideoDraftForBackend(
+export function normalizeGrokVideoDraftForModel(
   draft: Seedance2ConfigDraft,
   resolutionOptions: readonly Seedance2Resolution[],
   ratioOptions: readonly GrokVideoRatio[],
@@ -335,11 +322,11 @@ export function normalizeGrokVideoDraftForBackend(
   };
 }
 
-export function seedance2DurationBoundsForBackend(
-  backend: VideoBackendConfigCapabilities | null | undefined,
+export function videoDurationBoundsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
 ): Seedance2DurationBounds {
-  const min = Number(backend?.min_duration);
-  const max = Number(backend?.max_duration);
+  const min = Number(model?.minDuration);
+  const max = Number(model?.maxDuration);
   const safeMin = Number.isFinite(min) && min > 0 ? Math.round(min) : 1;
   const safeMax = Number.isFinite(max) && max >= safeMin ? Math.round(max) : 15;
   return { min: safeMin, max: safeMax };

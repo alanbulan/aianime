@@ -13,7 +13,7 @@ export interface ProjectConfig {
   tts_voice?: string;
   grid_mode?: string;
   grid_model?: string;
-  video_backend?: string;
+  video_model?: string;
   use_director_render?: boolean;
   video_resolution?: string;
   add_subtitles?: boolean;

@@ -31,9 +31,9 @@ import {
   loadCanvasAudioReferences,
 } from '@/features/canvas/audioComposition';
 import type { AudioVoiceRef } from '@/features/canvas/domain/canvasNodes';
-import { readUrl } from '@/lib/url-params';
 
 export interface VoiceSelectionModalControllerOptions {
+  projectId: string;
   open: boolean;
   onClose: () => void;
   currentRef: AudioVoiceRef;
@@ -41,6 +41,7 @@ export interface VoiceSelectionModalControllerOptions {
 }
 
 export function useVoiceSelectionModalController({
+  projectId,
   open,
   onClose,
   currentRef,
@@ -60,21 +61,16 @@ export function useVoiceSelectionModalController({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
-    const project = readUrl().project;
-    if (!project) {
-      setError('当前 URL 缺少 project 参数');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      setItems(await loadCanvasAudioReferences(project));
+      setItems(await loadCanvasAudioReferences(projectId));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '加载声线失败');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     if (!open) return;
@@ -162,15 +158,10 @@ export function useVoiceSelectionModalController({
         toast.error(validationError);
         return;
       }
-      const project = readUrl().project;
-      if (!project) {
-        toast.error('当前 URL 缺少 project 参数');
-        return;
-      }
       setUploading(true);
       try {
         await createCanvasAudioVoice(
-          project,
+          projectId,
           file,
           voiceCloneFileStem(file.name),
         );
@@ -181,7 +172,7 @@ export function useVoiceSelectionModalController({
         setUploading(false);
       }
     },
-    [reload],
+    [projectId, reload],
   );
 
   const updateLibraryJumpValue = useCallback((value: string) => {

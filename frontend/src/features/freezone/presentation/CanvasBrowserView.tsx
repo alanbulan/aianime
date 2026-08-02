@@ -32,11 +32,11 @@ import {
   isConflictCopyCanvas,
   sourceCanvasIdFromSummary,
   type CanvasBrowserSections,
+  type CanvasBrowserKind,
   type CanvasDisplaySummary,
-  type CanvasKind,
-} from "./canvasBrowserViewModel";
+} from "@/modules/creative_canvas/public";
 
-const CANVAS_KIND_ICON: Record<CanvasKind, LucideIcon> = {
+const CANVAS_KIND_ICON: Record<CanvasBrowserKind, LucideIcon> = {
   default: Home,
   episode: Film,
   beat: Frame,

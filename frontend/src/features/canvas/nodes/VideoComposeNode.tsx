@@ -10,6 +10,8 @@ import { VideoComposeNodeView } from './VideoComposeNodeView';
 type VideoComposeNodeProps = NodeProps & {
   id: string;
   data: VideoComposeNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
 };
 

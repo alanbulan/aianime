@@ -69,11 +69,10 @@ class StartCreativeCanvasReferenceImageEditingCommand:
     base_url: str
     aspect_ratio: str
     image_size: str
+    model: str
     extra_reference_urls: tuple[str, ...] = ()
     camera: CreativeCanvasImageCameraConfig | None = None
     style: CreativeCanvasImageStyleConfig | None = None
-    provider: str | None = None
-    model: str | None = None
     quality: str | None = None
     canvas_id: str | None = None
     node_id: str | None = None
@@ -103,13 +102,7 @@ class CreativeCanvasImageEditingPromptComposer(Protocol):
 
 
 class CreativeCanvasImageModelRouter(Protocol):
-    def resolve(self, model: str) -> tuple[str, str | None]: ...
-
-    def resolve_reference_edit(
-        self,
-        provider: str | None,
-        model: str | None,
-    ) -> tuple[str, str | None]: ...
+    def resolve(self, model: str) -> str: ...
 
 
 class CreativeCanvasImageEditingUseCases:
@@ -211,8 +204,10 @@ class CreativeCanvasImageEditingUseCases:
                 "quality": command.quality or "medium",
             }
 
-        provider, model = self._models.resolve(command.model)
-        payload.update({"provider": provider, "model": model})
+        try:
+            payload["model"] = self._models.resolve(command.model)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
         job_id = self._job_ids.new_id()
         return await self._scheduler.enqueue(
             command.context,
@@ -243,10 +238,7 @@ class CreativeCanvasImageEditingUseCases:
         aspect_ratio = self.resolve_aspect_ratio(base_path, command.aspect_ratio)
         job_id = self._job_ids.new_id()
         try:
-            provider, model = self._models.resolve_reference_edit(
-                command.provider,
-                command.model,
-            )
+            model = self._models.resolve(command.model)
         except ValueError as exc:
             raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
         prompt = self._compose_prompt(command.prompt, command.style, command.camera)
@@ -265,7 +257,6 @@ class CreativeCanvasImageEditingUseCases:
                     ],
                     "aspect_ratio": aspect_ratio,
                     "image_size": command.image_size,
-                    "provider": provider,
                     "model": model,
                     "quality": command.quality,
                     "canvas_id": command.canvas_id or "",

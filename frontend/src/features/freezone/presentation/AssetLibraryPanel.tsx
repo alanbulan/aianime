@@ -1,13 +1,16 @@
 // Copyright (c) 2026 AI anime
+import {
+  hasLegacyPresetCanvasMetadata,
+  resolveCanvasKind,
+  useAssetLibraryCatalogController,
+} from "@/modules/creative_canvas/public";
+
 import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
-import { hasLegacyPresetCanvasMetadata } from "../domain/canvasProjectionMetadata";
 import {
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
 } from "../hooks/useAssetLibraryReplacementController";
-import { useAssetLibraryCatalogController } from "../hooks/useAssetLibraryCatalogController";
 import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
-import { resolveCanvasKind } from "./assetLibraryViewModel";
 
 interface AssetLibraryPanelProps {
   project: string;

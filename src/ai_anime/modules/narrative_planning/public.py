@@ -77,6 +77,7 @@ from ai_anime.modules.narrative_planning.application.seedance_prompts import (
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeAssetPlanningTask,
     ScheduledNarrativeTask,
 )
 from ai_anime.modules.narrative_planning.composition import (
@@ -90,6 +91,8 @@ from ai_anime.modules.narrative_planning.composition import (
     manual_sketch_catalog,
     manual_sketch_mode_key,
     schedule_beat_video_prompt,
+    schedule_episode_asset_planning,
+    schedule_episode_identity_planning,
     schedule_episode_planning,
     script_document_service,
     start_script_generation,
@@ -317,6 +320,30 @@ async def start_episode_planning(
     )
 
 
+async def start_episode_asset_planning(
+    task_context: ProjectContext | None,
+    *,
+    episode_num: int,
+    asset_kind: str,
+) -> ScheduledNarrativeTask:
+    return await schedule_episode_asset_planning().execute(
+        task_context=task_context,
+        episode_num=episode_num,
+        asset_kind=asset_kind,
+    )
+
+
+async def start_episode_identity_planning(
+    task_context: ProjectContext | None,
+    *,
+    episode_num: int,
+) -> ScheduledNarrativeTask:
+    return await schedule_episode_identity_planning().execute(
+        task_context=task_context,
+        episode_num=episode_num,
+    )
+
+
 async def enqueue_beat_video_prompt_generation(
     task_context: ProjectContext,
     *,
@@ -385,6 +412,7 @@ __all__ = [
     "EpisodeContentDocument",
     "EpisodeContentWriteFailed",
     "EpisodeNotFound",
+    "EpisodeAssetPlanningTask",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
     "GenerateSeedancePromptCommand",
@@ -445,6 +473,8 @@ __all__ = [
     "serialize_episode_items",
     "start_episode_script_generation",
     "start_episode_planning",
+    "start_episode_asset_planning",
+    "start_episode_identity_planning",
     "split_literal_source_text",
     "storyboard_beats_for_manual_sketches",
     "sync_beat_asset_refs",

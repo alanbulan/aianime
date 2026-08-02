@@ -43,8 +43,6 @@ def _install_fake_project_context(monkeypatch, ctx: ProjectContext) -> None:
 
 
 def _install_fake_task_manager(monkeypatch, tasks=None, task=None) -> None:
-    from ai_anime.api.routes import tasks as tasks_routes
-
     class _FakeTaskManager:
         def __init__(self, payload, single):
             self._payload = payload or []
@@ -56,11 +54,14 @@ def _install_fake_task_manager(monkeypatch, tasks=None, task=None) -> None:
         def get_task_for_project(self, ctx, task_type, episode, beat_num=None, scope=None):
             return self._single
 
-    monkeypatch.setattr(tasks_routes, "get_task_manager", lambda: _FakeTaskManager(tasks, task))
+    monkeypatch.setattr(
+        "ai_anime.task_state.get_task_manager",
+        lambda: _FakeTaskManager(tasks, task),
+    )
 
 
 def test_stage_asset_task_display_name_includes_scene_and_step():
-    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.modules.task_execution.public import serialize_project_task
     from ai_anime.task_state import TaskState
 
     task = TaskState(
@@ -73,14 +74,14 @@ def test_stage_asset_task_display_name_includes_scene_and_step():
         metadata={"scene_name": "咖啡馆", "step": "pano_from_master"},
     )
 
-    payload = _serialize_task(task)
+    payload = serialize_project_task(task)
 
     assert payload["task_type_label"] == "场景资产"
     assert payload["display_name"] == "场景资产 · 咖啡馆 · Master 生成全景"
 
 
 def test_serialize_task_rewrites_internal_result_paths_to_project_static_urls(tmp_path):
-    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.modules.task_execution.public import serialize_project_task
     from ai_anime.task_state import TaskState
 
     ctx = _ctx(tmp_path)
@@ -108,7 +109,7 @@ def test_serialize_task_rewrites_internal_result_paths_to_project_static_urls(tm
         },
     )
 
-    payload = _serialize_task(task, ctx=ctx)
+    payload = serialize_project_task(task, context=ctx)
     result = payload["result"]
 
     assert "output_path" not in result

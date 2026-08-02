@@ -40,10 +40,6 @@ describe("character image selection query hooks", () => {
             ok: true,
             data: {
               character_image_selection: "identity",
-              options: {
-                portrait: "Character portrait",
-                identity: "Identity image",
-              },
             },
           });
         },
@@ -57,10 +53,6 @@ describe("character image selection query hooks", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/character-image-selection");
     expect(result.current.data?.data.character_image_selection).toBe("identity");
-    expect(result.current.data?.data.options).toEqual({
-      portrait: "Character portrait",
-      identity: "Identity image",
-    });
   });
 
   it("fetches an asset-kind image source selection", async () => {
@@ -74,11 +66,7 @@ describe("character image selection query hooks", () => {
             ok: true,
             data: {
               asset_kind: "scene",
-              image_source_selection: "newapi_gpt_image2",
-              options: {
-                newapi_gpt_image2: "LingShan-G2",
-                newapi_nanobanana2: "LingShan-NB-2",
-              },
+              image_source_selection: "image-platform-sku",
             },
           });
         },
@@ -95,7 +83,7 @@ describe("character image selection query hooks", () => {
       "/api/v1/projects/demo/image-source-selection/scene",
     );
     expect(result.current.data?.data.image_source_selection).toBe(
-      "newapi_gpt_image2",
+      "image-platform-sku",
     );
   });
 

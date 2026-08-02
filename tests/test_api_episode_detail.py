@@ -24,12 +24,12 @@ def test_episode_plan_route_precedes_episode_detail_route():
 
 
 def test_episode_asset_task_scope_is_stable_per_episode_and_kind():
-    from ai_anime.api.routes.episodes import _episode_asset_task_scope
+    from ai_anime.modules.narrative_planning.public import EpisodeAssetPlanningTask
 
-    assert _episode_asset_task_scope("prop", 4) == "prop_run_ep004"
-    assert _episode_asset_task_scope("prop", 4) == "prop_run_ep004"
-    assert _episode_asset_task_scope("scene", 4) == "scene_run_ep004"
-    assert _episode_asset_task_scope("prop", 5) == "prop_run_ep005"
+    assert EpisodeAssetPlanningTask(4, "prop").scope == "prop_run_ep004"
+    assert EpisodeAssetPlanningTask(4, "prop").scope == "prop_run_ep004"
+    assert EpisodeAssetPlanningTask(4, "scene").scope == "scene_run_ep004"
+    assert EpisodeAssetPlanningTask(5, "prop").scope == "prop_run_ep005"
 
 
 class _EpisodeStore:
@@ -212,13 +212,14 @@ def _patch_celery_episode_asset_planner(
     async def fail_if_sync_store_is_used(*args, **kwargs):
         raise AssertionError("episode asset planning must enqueue a Celery task")
     monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
-    monkeypatch.setattr(module, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task))
-    monkeypatch.setattr(module, "make_cognee_store_for_context", fail_if_sync_store_is_used)
+    import ai_anime.ports as runtime_ports
+
     monkeypatch.setattr(
-        module,
-        "_episode_asset_task_scope",
-        lambda kind, episode_num: f"{kind}_run_test",
+        runtime_ports,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
     )
+    monkeypatch.setattr(module, "make_cognee_store_for_context", fail_if_sync_store_is_used)
     return calls
 
 
@@ -403,7 +404,13 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
     async def fail_if_sync_store_is_used(*args, **kwargs):
         raise AssertionError("identity planning API must enqueue a Celery task")
     monkeypatch.setattr(episodes, "resolve_project_scope", resolve_project_scope)
-    monkeypatch.setattr(episodes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task))
+    import ai_anime.ports as runtime_ports
+
+    monkeypatch.setattr(
+        runtime_ports,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
+    )
     monkeypatch.setattr(episodes, "make_cognee_store", fail_if_sync_store_is_used)
 
     response = await episodes.plan_episode_identities(
@@ -474,9 +481,9 @@ async def test_plan_episode_scenes_enqueues_celery_task(monkeypatch):
     assert response == {
         "ok": True,
         "task_type": "episode_scene_planner",
-        "scope": "scene_run_test",
+        "scope": "scene_run_ep004",
         "task_id": "task-123",
-        "task_key": "task:episode_scene_planner:project:proj_123:4:scene_run_test",
+        "task_key": "task:episode_scene_planner:project:proj_123:4:scene_run_ep004",
         "backend": "celery",
         "queue": "node.node_a.default",
         "data": {"target_episode": 4, "asset_kind": "scene"},
@@ -488,7 +495,7 @@ async def test_plan_episode_scenes_enqueues_celery_task(monkeypatch):
             "task_type": "episode_scene_planner",
             "queue_kind": "default",
             "episode": 4,
-            "scope": "scene_run_test",
+            "scope": "scene_run_ep004",
             "payload": {"episode": 4, "asset_kind": "scene"},
         }
     ]
@@ -552,9 +559,9 @@ async def test_plan_episode_props_enqueues_celery_task(monkeypatch):
     assert response == {
         "ok": True,
         "task_type": "episode_prop_planner",
-        "scope": "prop_run_test",
+        "scope": "prop_run_ep004",
         "task_id": "task-123",
-        "task_key": "task:episode_prop_planner:project:proj_123:4:prop_run_test",
+        "task_key": "task:episode_prop_planner:project:proj_123:4:prop_run_ep004",
         "backend": "celery",
         "queue": "node.node_a.default",
         "data": {"target_episode": 4, "asset_kind": "prop"},
@@ -566,7 +573,7 @@ async def test_plan_episode_props_enqueues_celery_task(monkeypatch):
             "task_type": "episode_prop_planner",
             "queue_kind": "default",
             "episode": 4,
-            "scope": "prop_run_test",
+            "scope": "prop_run_ep004",
             "payload": {"episode": 4, "asset_kind": "prop"},
         }
     ]

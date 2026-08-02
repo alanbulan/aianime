@@ -33,14 +33,13 @@ import {
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
-} from '@/features/canvas/domain/redraw';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   generateCanvasRedraw,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import {
@@ -53,6 +52,7 @@ import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImage
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
@@ -102,7 +102,12 @@ function imageModelSupportsQuality(apiModel: string | null | undefined): boolean
   );
 }
 
-export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayProps) => {
+export const EraseOverlay = memo(({
+  projectId,
+  node,
+  imageSource,
+  onClose,
+}: EraseOverlayProps) => {
   const addNode = useCanvasStore((state) => state.addNode);
   const addEdge = useCanvasStore((state) => state.addEdge);
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -133,7 +138,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
   );
   const [numImages, setNumImages] = useState<number>(1);
   const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>('16:9');
-  const { models: imageModels } = useFreezoneImageModels();
+  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
     surface: 'canvas',
@@ -462,6 +467,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
       sourceUrl: string,
       maskUrl: string,
       resultAspectRatio: CanvasRedrawAspectRatio,
+      model: string,
     ) => {
       // 失败后「重新生成」按钮据此重跑同一次擦除（走重绘接口）。
       updateNodeData(nodeId, {
@@ -470,6 +476,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
           maskUrl,
           aspectRatio: resultAspectRatio,
           imageSize,
+          model,
         },
       });
       try {
@@ -480,6 +487,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
             maskUrl,
             aspectRatio: resultAspectRatio,
             imageSize,
+            model,
           },
           (task) => {
             updateNodeData(nodeId, generationTaskDescriptor(task));
@@ -514,13 +522,12 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
-    const project = readUrl().project;
-    if (!project) {
-      setError('当前 URL 没有 project，无法提交');
-      return;
-    }
     if (!hasMask) {
       setError('请先在图上涂抹出要擦除的区域');
+      return;
+    }
+    if (!selectedModel) {
+      setError('当前没有可用的图片模型');
       return;
     }
     setError(null);
@@ -551,14 +558,21 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
         type: 'image/png',
       });
       const uploaded = await uploadCanvasAsset(
-        project,
+        projectId,
         maskFile,
         maskFile.name,
       );
       const maskUrl = uploaded.url.split('?')[0];
 
       nodeIds.forEach((id) =>
-        void runEraseGeneration(project, id, sourceUrl, maskUrl, resultAspectRatio),
+        void runEraseGeneration(
+          projectId,
+          id,
+          sourceUrl,
+          maskUrl,
+          resultAspectRatio,
+          selectedModel.apiModel,
+        ),
       );
     } catch (err) {
       // 蒙版上传等前置步骤失败：把所有占位节点标记为失败。
@@ -583,7 +597,9 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
     node,
     numImages,
     onClose,
+    projectId,
     runEraseGeneration,
+    selectedModel,
     setSelectedNode,
     submitting,
     updateNodeData,
@@ -755,7 +771,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !imageDims}
+            disabled={submitting || !imageDims || !selectedModel}
             className={`ml-1 shrink-0 ${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
             title="提交擦除"
           >

@@ -29,7 +29,7 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.task_backend.runners import freezone as freezone_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import freezone as freezone_runner
 
     ctx = _ctx(tmp_path)
     project_dir = Path(ctx.output_dir)
@@ -45,13 +45,14 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
         def update_progress_for_project(self, *_args, **_kwargs):
             pass
 
-    async def fake_run_freezone_audio_separate(**_kwargs):
-        return {"audio_path": audio_path, "mute_video_path": mute_video_path}
+    class FakeJobExecution:
+        async def separate_audio(self, _command):
+            return {"audio_path": audio_path, "mute_video_path": mute_video_path}
 
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.freezone.jobs.run_freezone_audio_separate",
-        fake_run_freezone_audio_separate,
+        "ai_anime.modules.creative_canvas.public.creative_canvas_job_execution_use_cases",
+        lambda: FakeJobExecution(),
     )
 
     result = await freezone_runner._run_freezone_audio_separate_async(

@@ -56,7 +56,7 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_path):
-    from ai_anime.task_backend.runners import script as runner
+    from ai_anime.modules.task_execution.infrastructure.runners import script as runner
 
     store = _ClosableStore()
 
@@ -91,7 +91,7 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
 async def test_script_writer_runner_closes_cognee_store(monkeypatch, tmp_path):
     import ai_anime.cognee as cognee
     from ai_anime import project_config
-    from ai_anime.task_backend.runners import script as runner
+    from ai_anime.modules.task_execution.infrastructure.runners import script as runner
 
     store = _ClosableStore()
 

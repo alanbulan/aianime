@@ -459,6 +459,8 @@ export interface AudioNodeData extends NodeDisplayData {
    * - 'music'：文字生成音乐(/freezone/audio/eleven-music),用 text 作为音乐描述 prompt。
    */
   audioKind?: 'speech' | 'music';
+  /** 当前 AUDIO 商业目录中选择的裸模型 SKU。 */
+  model?: string;
   /** music 模式：生成长度(毫秒),范围 3000–600000,缺省按后端默认 30000。 */
   musicLengthMs?: number;
   /** music 模式：是否强制纯音乐(force_instrumental),缺省 true。 */

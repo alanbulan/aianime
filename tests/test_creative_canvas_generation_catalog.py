@@ -15,9 +15,7 @@ class FakeGenerationCatalogSource:
     def __init__(self) -> None:
         self.camera_options = {"bodies": [{"id": "body-1"}]}
         self.style_templates = [{"id": "style-1"}]
-        self.image_model_options = [{"id": "image-1"}]
         self.camera_templates = [{"id": "camera-1"}]
-        self.video_model_options = [{"id": "video-1"}]
 
     def image_camera_options(self) -> dict[str, Any]:
         return self.camera_options
@@ -25,14 +23,8 @@ class FakeGenerationCatalogSource:
     def image_style_templates(self) -> list[dict[str, Any]]:
         return self.style_templates
 
-    def image_models(self) -> list[dict[str, Any]]:
-        return self.image_model_options
-
     def video_camera_templates(self) -> list[dict[str, Any]]:
         return self.camera_templates
-
-    def video_models(self) -> list[dict[str, Any]]:
-        return self.video_model_options
 
 
 def test_generation_catalog_queries_return_detached_payloads() -> None:
@@ -41,21 +33,15 @@ def test_generation_catalog_queries_return_detached_payloads() -> None:
 
     camera_options = queries.image_camera_options()
     style_templates = queries.image_style_templates()
-    image_models = queries.image_models()
     camera_templates = queries.video_camera_templates()
-    video_models = queries.video_models()
 
     camera_options["bodies"][0]["id"] = "changed"
     style_templates[0]["id"] = "changed"
-    image_models[0]["id"] = "changed"
     camera_templates[0]["id"] = "changed"
-    video_models[0]["id"] = "changed"
 
     assert source.camera_options["bodies"][0]["id"] == "body-1"
     assert source.style_templates[0]["id"] == "style-1"
-    assert source.image_model_options[0]["id"] == "image-1"
     assert source.camera_templates[0]["id"] == "camera-1"
-    assert source.video_model_options[0]["id"] == "video-1"
 
 
 def test_generation_catalog_subrouters_include_catalog_paths() -> None:
@@ -67,14 +53,14 @@ def test_generation_catalog_subrouters_include_catalog_paths() -> None:
     assert {
         "/projects/{project}/freezone/image/camera-options",
         "/projects/{project}/freezone/image/style-templates",
-        "/projects/{project}/freezone/image/models",
         "/projects/{project}/freezone/video/camera-templates",
-        "/projects/{project}/freezone/video/models",
     } <= paths
+    assert "/projects/{project}/freezone/image/models" not in paths
+    assert "/projects/{project}/freezone/video/models" not in paths
 
 
 @pytest.mark.asyncio
-async def test_video_models_route_uses_viewer_scope_and_catalog_query(
+async def test_video_camera_templates_route_uses_viewer_scope_and_catalog_query(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     resolved: list[tuple[str, dict, str, str]] = []
@@ -90,8 +76,8 @@ async def test_video_models_route_uses_viewer_scope_and_catalog_query(
         return object()
 
     class FakeQueries:
-        def video_models(self) -> list[dict[str, str]]:
-            return [{"id": "video-1"}]
+        def video_camera_templates(self) -> list[dict[str, str]]:
+            return [{"id": "camera-1"}]
 
     monkeypatch.setattr(
         video_routes, "resolve_project_scope", fake_resolve_project_scope
@@ -99,7 +85,9 @@ async def test_video_models_route_uses_viewer_scope_and_catalog_query(
     monkeypatch.setattr(video_routes, "generation_catalog_queries", FakeQueries)
 
     user = {"username": "admin"}
-    result = await video_routes.freezone_video_models(project="project-1", user=user)
+    result = await video_routes.freezone_video_camera_templates(
+        project="project-1", user=user
+    )
 
     assert resolved == [("project-1", user, "viewer", "access freezone project files")]
-    assert result == {"ok": True, "data": [{"id": "video-1"}]}
+    assert result == {"ok": True, "data": [{"id": "camera-1"}]}

@@ -67,18 +67,6 @@ VIDEO_CAMERA_TEMPLATES: tuple[dict[str, str], ...] = (
     },
 )
 
-SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL: dict[str, tuple[str, ...]] = {
-    "seedance-2.0-fast": ("480p", "720p"),
-    "seedance-2.0": ("480p", "720p", "1080p"),
-    "seedance-2.0-value": ("720p", "1080p"),
-    "seedance-2.0-fast-value": ("720p", "1080p"),
-}
-DEFAULT_VIDEO_RESOLUTION_OPTIONS = ("480p", "720p", "1080p")
-DEFAULT_SEEDANCE2_RESOLUTION_OPTIONS = ("480p", "720p")
-HAPPYHORSE_RESOLUTION_OPTIONS = ("720p", "1080p")
-GROK_VIDEO_CHANNEL_RESOLUTION_OPTIONS = ("720p", "480p")
-
-
 def get_video_camera_templates() -> list[dict[str, str]]:
     return [dict(item) for item in VIDEO_CAMERA_TEMPLATES]
 
@@ -104,68 +92,6 @@ def normalize_video_resolution(value: str | None) -> str:
     if not text:
         return "720p"
     return text
-
-
-def video_model_from_backend(backend: str | None) -> str:
-    text = str(backend or "").strip().lower()
-    for prefix in ("newapi_", "huimeng_", "huimengi_"):
-        if text.startswith(prefix):
-            return text[len(prefix) :].strip()
-    return text
-
-
-def video_resolution_options(backend: str | None) -> tuple[str, ...]:
-    model = video_model_from_backend(backend)
-    if model == "grok-video-channel":
-        return GROK_VIDEO_CHANNEL_RESOLUTION_OPTIONS
-    if model == "happyhorse-1.0":
-        return HAPPYHORSE_RESOLUTION_OPTIONS
-    if model.startswith("seedance-2.0"):
-        return SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL.get(
-            model,
-            DEFAULT_SEEDANCE2_RESOLUTION_OPTIONS,
-        )
-    return DEFAULT_VIDEO_RESOLUTION_OPTIONS
-
-
-def is_seedance2_value_video_backend(backend: str | None) -> bool:
-    return video_model_from_backend(backend) in {
-        "seedance-2.0-value",
-        "seedance-2.0-fast-value",
-    }
-
-
-def default_seedance2_scene_optimize(backend: str | None) -> str:
-    return (
-        "realistic"
-        if video_model_from_backend(backend) == "seedance-2.0-fast-value"
-        else "anime"
-    )
-
-
-def normalize_seedance2_scene_optimize(
-    backend: str | None,
-    value: str | None,
-) -> str:
-    if not is_seedance2_value_video_backend(backend):
-        return ""
-    text = str(value or "").strip().lower()
-    if text in {"anime", "realistic"}:
-        return text
-    return default_seedance2_scene_optimize(backend)
-
-
-def normalize_video_resolution_for_backend(
-    backend: str | None,
-    value: str | None,
-) -> str:
-    resolution = normalize_video_resolution(value)
-    options = video_resolution_options(backend)
-    if resolution in options:
-        return resolution
-    if "720p" in options:
-        return "720p"
-    return options[0]
 
 
 def _coarse_mark_region(mark: dict[str, Any]) -> str:

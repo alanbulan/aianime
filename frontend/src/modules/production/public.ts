@@ -55,7 +55,7 @@ export {
   useBeatVideoGenerationController,
   useUpdateRenderSettings,
   useUpdateSketchSettings,
-  useVideoBackends,
+  useVideoModels,
   useVideoPaneMediaController,
   useVideoPool,
   useVideoPoolSelect,
@@ -260,7 +260,7 @@ export type {
   Seedance2TrailingMention,
 } from "@/modules/production/domain/seedance2-mentions";
 export {
-  isSeedanceReferenceCropBackend,
+  isVideoReferenceCropModel,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
   videoInputCropAspectForProjectAspect,
@@ -274,8 +274,8 @@ export type {
   Seedance2BeatStatus,
   VideoInputCropTarget,
 } from "@/modules/production/domain/seedance2-panel";
-export { DEFAULT_VIDEO_BACKEND } from "@/modules/production/domain/video-backend";
-export type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+export { resolveAuthorizedVideoModel } from "@/modules/production/domain/video-model";
+export type { VideoModelOption } from "@/modules/production/domain/video-model";
 export type {
   VideoPoolData,
   VideoPoolEntry,
@@ -283,31 +283,30 @@ export type {
 export {
   clampDuration,
   getSeedance2ConfigSaveKey,
-  grokVideoRatioOptionsForBackend,
-  grokVideoResolutionOptionsForBackend,
-  happyHorseRatioOptionsForBackend,
-  happyHorseResolutionOptionsForBackend,
-  isSeedance15ProBackend,
-  isSeedance2ValueBackend,
-  normalizeGrokVideoDraftForBackend,
+  grokVideoRatioOptionsForModel,
+  grokVideoResolutionOptionsForModel,
+  happyHorseRatioOptionsForModel,
+  happyHorseResolutionOptionsForModel,
+  isSeedance15ProModel,
+  isSeedance2ValueModel,
+  normalizeGrokVideoDraftForModel,
   normalizeGrokVideoRatio,
-  normalizeHappyHorseDraftForBackend,
+  normalizeHappyHorseDraftForModel,
   normalizeHappyHorseMode,
   normalizeHappyHorseRatio,
-  normalizeSeedance2DraftForBackend,
+  normalizeSeedance2DraftForModel,
   normalizeSeedance2Mode,
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
-  seedance2DurationBoundsForBackend,
-  seedance2ModelFromBackend,
-  seedance2ResolutionOptionsForBackend,
+  seedance2ResolutionOptionsForModel,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
-  videoBackendDisplayLabel,
+  videoDurationBoundsForModel,
+  videoModelDisplayLabel,
 } from "@/modules/production/domain/video-config";
 export type {
   GrokVideoRatio,
@@ -317,7 +316,7 @@ export type {
   Seedance2Mode,
   Seedance2Ratio,
   Seedance2Resolution,
-  VideoBackendConfigCapabilities,
+  VideoModelConfigCapabilities,
 } from "@/modules/production/domain/video-config";
 export { RenderSection } from "@/modules/production/render-section-composition";
 export type { RenderSectionProps } from "@/modules/production/render-section-composition";

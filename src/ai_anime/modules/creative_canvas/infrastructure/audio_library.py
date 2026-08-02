@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone.audio_node import (
+from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     create_user_audio_voice,
     list_user_audio_voices,
     resolve_user_audio_voice,

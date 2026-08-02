@@ -28,7 +28,7 @@
  *     children inherit the same slot_target).
  */
 
-import type { MainlineContext } from "@/features/freezone/public";
+import type { MainlineContext } from "@/modules/creative_canvas/public";
 import type { SlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
 
 /** Read shape — what we look for on the source node's data. */

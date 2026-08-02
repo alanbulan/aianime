@@ -11,7 +11,7 @@ import {
 import { createSnapshot, pushSnapshot } from '../domain/canvasHistory';
 import { deleteCanvasEdge } from '../domain/canvasEdgeDeletion';
 import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
-import { trackEdit } from '../domain/canvasMutation';
+import { trackEdit } from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import { applyCanvasEdgeChangeEffects } from '../application/canvasEdgeChangeEffects';
 import {

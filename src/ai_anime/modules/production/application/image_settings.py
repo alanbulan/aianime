@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ai_anime.modules.production.application.ports import (
-    ProductionImageSelectionCatalog,
+    ProductionImageModelPolicy,
     ProductionSettingsRepository,
 )
 
@@ -30,16 +30,15 @@ class ProductionImageSettingsUseCases:
     def __init__(
         self,
         repository: ProductionSettingsRepository,
-        selections: ProductionImageSelectionCatalog,
+        models: ProductionImageModelPolicy,
     ) -> None:
         self._repository = repository
-        self._selections = selections
+        self._models = models
 
     def render_settings(self, username: str, project: str) -> dict[str, Any]:
         config = self._repository.load(username, project)
         return {
             "render_image_selection": self.resolve_render_selection(config),
-            "options": self._selections.options(),
             "sketch_aspect_padding": self.resolve_sketch_aspect_padding(
                 config,
                 None,
@@ -54,10 +53,10 @@ class ProductionImageSettingsUseCases:
     ) -> dict[str, Any]:
         updates: dict[str, Any] = {}
         if command.render_image_selection is not None:
-            selection = str(command.render_image_selection or "").strip()
-            if selection not in self._selections.options():
+            selection = self._models.normalize(command.render_image_selection)
+            if not selection:
                 raise ProductionImageSettingsRejected(
-                    f"Invalid render_image_selection: {selection}"
+                    "render_image_selection must be a non-empty platform SKU"
                 )
             updates["render_image_selection"] = selection
         if command.sketch_aspect_padding is not None:
@@ -72,7 +71,6 @@ class ProductionImageSettingsUseCases:
         config = self._repository.load(username, project)
         return {
             "sketch_image_selection": self.resolve_sketch_selection(config),
-            "options": self._selections.options(),
         }
 
     def update_sketch_settings(
@@ -83,10 +81,10 @@ class ProductionImageSettingsUseCases:
     ) -> dict[str, Any]:
         updates: dict[str, Any] = {}
         if command.sketch_image_selection is not None:
-            selection = str(command.sketch_image_selection or "").strip()
-            if selection not in self._selections.options():
+            selection = self._models.normalize(command.sketch_image_selection)
+            if not selection:
                 raise ProductionImageSettingsRejected(
-                    f"Invalid sketch_image_selection: {selection}"
+                    "sketch_image_selection must be a non-empty platform SKU"
                 )
             updates["sketch_image_selection"] = selection
         if updates:
@@ -98,9 +96,10 @@ class ProductionImageSettingsUseCases:
         project_config: dict[str, Any],
         requested_selection: str | None = None,
     ) -> str:
-        return self._selections.normalize_render(
+        return self._models.normalize(
             requested_selection
-            or project_config.get("render_image_selection")
+            if requested_selection is not None
+            else project_config.get("render_image_selection")
         )
 
     def resolve_sketch_selection(
@@ -108,9 +107,10 @@ class ProductionImageSettingsUseCases:
         project_config: dict[str, Any],
         requested_selection: str | None = None,
     ) -> str:
-        return self._selections.normalize_sketch(
+        return self._models.normalize(
             requested_selection
-            or project_config.get("sketch_image_selection")
+            if requested_selection is not None
+            else project_config.get("sketch_image_selection")
         )
 
     @staticmethod

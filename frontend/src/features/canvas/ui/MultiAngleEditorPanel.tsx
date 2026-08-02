@@ -21,7 +21,7 @@ import {
   type MultiAngleImageSize,
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
-} from '@/features/canvas/domain/multiAngle';
+} from '@/modules/creative_canvas/public';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -80,8 +80,6 @@ const ZOOM_LEVELS: MultiAngleZoomLevel[] = [
   'extreme_wide',
 ];
 
-export type MultiAngleProviderId = 'huimeng' | 'openrouter' | 'openai';
-
 export interface MultiAngleSubmitPayload {
   prompt: string;
   displayName: string;
@@ -91,11 +89,11 @@ export interface MultiAngleSubmitPayload {
   zoom: MultiAngleZoomLevel;
   promptOverride: string | null;
   apiModel: string;
-  providerId: MultiAngleProviderId;
   imageSize: MultiAngleImageSize;
 }
 
 interface MultiAngleEditorPanelProps {
+  projectId: string;
   imageSource: string;
   onClose: () => void;
   onSubmit: (payload: MultiAngleSubmitPayload) => void;
@@ -387,7 +385,12 @@ function SliderRow({ label, trailing, value, min, max, step = 1, onChange }: Sli
   );
 }
 
-export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiAngleEditorPanelProps) {
+export function MultiAngleEditorPanel({
+  projectId,
+  imageSource,
+  onClose,
+  onSubmit,
+}: MultiAngleEditorPanelProps) {
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
   const [activePreset, setActivePreset] = useState<MultiAnglePresetKey>('custom');
@@ -397,7 +400,7 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
   const [promptOverrideEnabled, setPromptOverrideEnabled] = useState(false);
   const [promptOverride, setPromptOverride] = useState('');
   const [imageSize, setImageSize] = useState<MultiAngleImageSize>(DEFAULT_MULTI_ANGLE_IMAGE_SIZE);
-  const { models: imageModels } = useFreezoneImageModels();
+  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
     surface: 'canvas',
@@ -511,9 +514,7 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
       activePreset === 'custom'
         ? `${t('nodeToolbar.multiDimension')} · ${horizontalDescription} ${verticalDescription}`
         : `${t('nodeToolbar.multiDimension')} · ${presetLabel}`;
-    // No model picker in this panel — just use the first model returned by
-    // the API (the shared store already falls back to SHARED_MODELS on
-    // failure, so this is always defined unless the URL has no project).
+    // No model picker in this panel: use the first authorized catalog SKU.
     if (!selectedModel) return;
     onSubmit({
       prompt,
@@ -524,7 +525,6 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
       zoom,
       promptOverride: promptOverrideEnabled && promptOverride.trim() ? promptOverride.trim() : null,
       apiModel: selectedModel.apiModel,
-      providerId: selectedModel.providerId as MultiAngleProviderId,
       imageSize,
     });
   }, [

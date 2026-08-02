@@ -6,7 +6,7 @@ import {
   type MultiAngleImageSize,
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
-} from "../domain/multiAngle";
+} from "@/modules/creative_canvas/public";
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,

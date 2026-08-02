@@ -4,7 +4,10 @@ import {
   type StageDef,
   type StageId,
 } from "@/lib/episode-stage-registry";
-import { SCOPED_TASK_TYPES } from "@/lib/task-types";
+import {
+  SCOPED_TASK_TYPES,
+  type TaskStatus,
+} from "@/modules/task_execution/public";
 
 const ACTIVE_STATUSES = new Set([
   "submitting",
@@ -79,8 +82,8 @@ export interface BeatStateSource {
 }
 
 export interface BeatStateTaskSource {
-  beat_num?: number;
-  status: string;
+  beat_num?: number | null;
+  status: TaskStatus;
   task_type: string;
 }
 

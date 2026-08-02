@@ -27,9 +27,14 @@ from typing import Any, Callable
 
 from ai_anime.director_world import block_world_builder, pano_sharp, stage_manifest
 from ai_anime.director_world.paths import safe_name, world_path
+from ai_anime.model_access_policy import model_access_configured
 from ai_anime.modules.model_usage.public import get_usage_meter
-from ai_anime.task_backend.cancel import TaskCancelled, TaskTimedOut
-from ai_anime.task_backend.subprocesses import run_project_subprocess
+from ai_anime.official_defaults import DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
+from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
+from ai_anime.modules.task_execution.public import (
+    run_project_model_subprocess,
+    run_project_subprocess,
+)
 from ai_anime.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,
@@ -40,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 SPATIAL_CONTRACT_SCHEMA_VERSION = "scene_spatial_contract_v8_topology_only_locks"
-SPATIAL_CONTRACT_DEFAULT_MODEL = "openai/gpt-5.5"
+SPATIAL_CONTRACT_DEFAULT_MODEL = DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 SAFE_SEAM_SPHERE_YAW_DEG = -90.0
 
 
@@ -201,53 +206,12 @@ def _confirm_scene_360_model_call(
         logger.debug("scene_360 credit confirm failed: %s", exc)
 
 
-def resolve_scene_360_image_provider(provider: str = "") -> str:
-    """Return the provider used by scene 360 image generation."""
-    return (
-        (
-            provider
-            or os.environ.get("SCENE_360_IMAGE_PROVIDER")
-            or os.environ.get("SCENE_360_PROVIDER")
-            or os.environ.get("NANOBANANA_PROVIDER")
-            or "newapi"
-        )
-        .strip()
-        .lower()
-    )
-
-
-def resolve_scene_360_image_model(provider: str = "", model: str = "") -> str:
+def resolve_scene_360_image_model(model: str = "") -> str:
     """Return the model used by scene 360 image generation."""
-    resolved_provider = resolve_scene_360_image_provider(provider)
     resolved_model = str(model or "").strip()
-    if resolved_model:
-        from ai_anime.config import IMAGE_GENERATION_SELECTIONS
-
-        selection = IMAGE_GENERATION_SELECTIONS.get(resolved_model)
-        if selection and selection.get("provider") == resolved_provider:
-            return str(selection.get("model") or "").strip()
-        return resolved_model
-    if resolved_provider in {"huimeng", "huimengi"}:
-        return (
-            os.environ.get("SCENE_360_HUIMENG_MODEL")
-            or os.environ.get("HUIMENG_IMAGE_MODEL")
-            or "image-2"
-        )
-    if resolved_provider == "openai":
-        return os.environ.get("OPENAI_IMAGE_MODEL") or "gpt-image-2"
-    if resolved_provider == "newapi":
-        return (
-            os.environ.get("SCENE_360_IMAGE_MODEL")
-            or os.environ.get("NEWAPI_IMAGE_MODEL")
-            or "gpt-image-2"
-        )
-    if resolved_provider == "openrouter":
-        return (
-            os.environ.get("SCENE_360_OPENROUTER_MODEL")
-            or os.environ.get("OPENROUTER_GPT_IMAGE2_MODEL")
-            or "openai/gpt-5.4-image-2"
-        )
-    return ""
+    if not resolved_model:
+        raise ValueError("scene 360 image model is required")
+    return resolved_model
 
 
 def _json_file_has_schema(path: Path, schema_version: str) -> bool:
@@ -1117,7 +1081,6 @@ def run_scene_360(
     *,
     source: str,
     description: str = "",
-    provider: str = "",
     model: str = "",
     style: str = "",
     image_size: str = "",
@@ -1147,8 +1110,8 @@ def run_scene_360(
     generation_dir = out_dir / "scene_360_generation"
     generation_dir.mkdir(parents=True, exist_ok=True)
 
-    provider = resolve_scene_360_image_provider(provider)
-    resolved_model = resolve_scene_360_image_model(provider=provider, model=model)
+    provider = "commercial"
+    resolved_model = resolve_scene_360_image_model(model=model)
     style = (style or os.environ.get("SCENE_360_STYLE") or "realistic").strip()
     image_size = (image_size or os.environ.get("SCENE_360_IMAGE_SIZE") or "2K").strip()
     quality = (
@@ -1178,8 +1141,6 @@ def run_scene_360(
         scene_id,
         "--output-dir",
         str(generation_dir),
-        "--provider",
-        provider,
         "--scene-description",
         description,
         "--style",
@@ -1189,8 +1150,7 @@ def run_scene_360(
         "--quality",
         quality,
     ]
-    if resolved_model:
-        cmd.extend(["--model", resolved_model])
+    cmd.extend(["--model", resolved_model])
 
     manifest_source = "text_to_360"
     master_path = ""
@@ -1199,7 +1159,6 @@ def run_scene_360(
     spatial_contract_path = ""
     spatial_contract_model = (
         os.environ.get("SCENE_SPATIAL_CONTRACT_MODEL")
-        or os.environ.get("OPENROUTER_VISION_MODEL")
         or SPATIAL_CONTRACT_DEFAULT_MODEL
     )
     pano_correction_payload: dict[str, Any] | None = None
@@ -1242,7 +1201,7 @@ def run_scene_360(
                 needs_analysis = (
                     not analysis_path.exists() or analysis_path.stat().st_mtime < latest_input_mtime
                 )
-                if needs_analysis and os.environ.get("OPENROUTER_API_KEY"):
+                if needs_analysis and model_access_configured():
                     report(0.12, "分析 master/reverse 侧边 overlap 和 continuation...")
                     analyzer_cmd = [
                         sys.executable,
@@ -1258,7 +1217,7 @@ def run_scene_360(
                         str(analysis_path.parent),
                     ]
                     try:
-                        analyzer_proc = run_project_subprocess(
+                        analyzer_proc = run_project_model_subprocess(
                             analyzer_cmd,
                             capture_output=True,
                             text=True,
@@ -1295,7 +1254,7 @@ def run_scene_360(
                         SPATIAL_CONTRACT_SCHEMA_VERSION,
                     )
                 )
-                if needs_contract and os.environ.get("OPENROUTER_API_KEY"):
+                if needs_contract and model_access_configured():
                     report(0.14, f"分析 master/reverse 空间合同 ({spatial_contract_model})...")
                     contract_cmd = [
                         sys.executable,
@@ -1311,11 +1270,9 @@ def run_scene_360(
                         str(contract_path.parent),
                         "--overlap-analysis",
                         str(analysis_path),
-                        "--model",
-                        spatial_contract_model,
                     ]
                     try:
-                        contract_proc = run_project_subprocess(
+                        contract_proc = run_project_model_subprocess(
                             contract_cmd,
                             capture_output=True,
                             text=True,
@@ -1364,7 +1321,7 @@ def run_scene_360(
         quality=quality,
     )
     try:
-        proc = run_project_subprocess(
+        proc = run_project_model_subprocess(
             cmd,
             capture_output=True,
             text=True,
@@ -1543,7 +1500,7 @@ def run_voxel_world_from_360(
 
     report(0.55, "正在生成 voxel world.json...")
     logger.info("running voxel world generator: %s", " ".join(cmd[:2] + ["..."]))
-    proc = run_project_subprocess(
+    proc = run_project_model_subprocess(
         cmd,
         capture_output=True,
         text=True,

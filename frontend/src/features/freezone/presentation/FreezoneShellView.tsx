@@ -42,6 +42,8 @@ export function FreezoneShellView({
             <CanvasLoadingScreen />
           ) : (
             <Canvas
+              projectId={controller.projectId}
+              canvasId={controller.canvasId}
               onBlankPaneClick={canvas.onBlankPaneClick}
               controlsPlacement="bottom-right"
             />

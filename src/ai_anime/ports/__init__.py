@@ -5,10 +5,6 @@ from __future__ import annotations
 from ai_anime.ports.registry import get_port
 
 
-def get_cloud_adapter():
-    return get_port("cloud_adapter")
-
-
 def get_task_backend():
     return get_port("task_backend")
 
@@ -28,7 +24,6 @@ def get_lifecycle_port():
 __all__ = [
     "get_audit_sink",
     "get_cancellation_store",
-    "get_cloud_adapter",
     "get_lifecycle_port",
     "get_task_backend",
 ]

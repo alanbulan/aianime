@@ -8,10 +8,15 @@ import uuid
 from collections.abc import Callable
 from pathlib import Path
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.paths import CANVAS_ID_RE, freezone_root
 from ai_anime.modules.creative_canvas.application.canvas_events import (
     RecordCreativeCanvasEventCommand,
+)
+from ai_anime.modules.creative_canvas.domain.canvas_identity import (
+    is_valid_creative_canvas_id,
+)
+from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    utc_now_iso,
 )
 
 
@@ -26,7 +31,7 @@ class LocalCreativeCanvasEventWriter:
         self,
         *,
         event_id_factory: EventIdFactory = lambda: uuid.uuid4().hex,
-        utc_now: UtcNow = canvas_store.utc_now_iso,
+        utc_now: UtcNow = utc_now_iso,
     ) -> None:
         self._event_id_factory = event_id_factory
         self._utc_now = utc_now
@@ -54,7 +59,7 @@ class LocalCreativeCanvasEventWriter:
     @staticmethod
     def _event_log_path(project_dir: Path, canvas_id: str | None) -> Path:
         event_canvas_id = (canvas_id or "").strip() or "_project"
-        if not CANVAS_ID_RE.match(event_canvas_id):
+        if not is_valid_creative_canvas_id(event_canvas_id):
             digest = hashlib.sha256(event_canvas_id.encode("utf-8")).hexdigest()[:16]
             event_canvas_id = f"canvas_{digest}"
         return freezone_root(project_dir) / "_canvas_events" / f"{event_canvas_id}.jsonl"

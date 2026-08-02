@@ -30,8 +30,8 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   listBeats: (...args: unknown[]) => mocks.listBeats(...args),
 }));
 
-vi.mock("../composition", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../composition")>()),
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   getFreezoneAssetImpact: (...args: unknown[]) =>
     mocks.previewAssetImpact(...args),
 }));

@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   submitGenerateImageJob: vi.fn(),
   resolvePickerAnchor: vi.fn(),
   backendErrorToastMessage: vi.fn(),
+  useFreezoneImageModels: vi.fn(),
   storeNodes: [] as Array<{
     id: string;
     position: { x: number; y: number };
@@ -49,7 +50,6 @@ const mocks = vi.hoisted(() => ({
     id: 'model-a',
     mediaType: 'image',
     displayName: '模型 A',
-    providerId: 'provider-a',
     description: '',
     eta: '',
     expectedDurationMs: 45000,
@@ -128,6 +128,11 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
+vi.mock('@/features/canvas/hooks/useFreezoneImageModels', () => ({
+  useFreezoneImageModels: (...args: unknown[]) =>
+    mocks.useFreezoneImageModels(...args),
+}));
+
 vi.mock('@/features/canvas/nodes/useReferenceMentionSync', () => ({
   useReferenceMentionSync: () => undefined,
 }));
@@ -138,8 +143,8 @@ vi.mock('@/features/canvas/application/graphContentResolver', () => ({
 }));
 
 vi.mock('@/features/canvas/models', () => ({
-  listImageModels: () => [mocks.imageModel],
-  getImageModel: () => mocks.imageModel,
+  imageModelDefinitions: () => [mocks.imageModel],
+  selectImageModel: () => mocks.imageModel,
   resolveImageModelResolutions: () => mocks.imageModel.resolutions,
   resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
 }));
@@ -148,7 +153,7 @@ vi.mock('@/features/canvas/pricing', () => ({
   resolveModelPriceDisplay: () => null,
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   coercePushTarget: (value: unknown) =>
     value && typeof value === 'object' && 'kind' in value ? value : null,
   defaultCapabilityParams: () => ({ strength: 50 }),
@@ -234,6 +239,9 @@ describe('useImageEditNodeController', () => {
     mocks.submitGenerateImageJob.mockReset().mockResolvedValue('job-a');
     mocks.resolvePickerAnchor.mockReset().mockReturnValue({ left: 12, top: 24 });
     mocks.backendErrorToastMessage.mockReset().mockReturnValue('可读生成错误');
+    mocks.useFreezoneImageModels
+      .mockReset()
+      .mockReturnValue({ models: [{ id: 'model-a' }] });
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);
       return 1;
@@ -250,6 +258,8 @@ describe('useImageEditNodeController', () => {
     });
     const { result } = renderHook(() =>
       useImageEditNodeController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         id: 'edit-a',
         data: data(),
         selected: true,
@@ -269,6 +279,11 @@ describe('useImageEditNodeController', () => {
     });
 
     expect(result.current.size).toEqual({ width: 520, height: 500 });
+    expect(result.current.assetLibraryProject).toBe('project-a');
+    expect(mocks.useFreezoneImageModels).toHaveBeenCalledWith(
+      'project-a',
+      'edit',
+    );
     expect(result.current.incomingImageItems[0]).toMatchObject({
       displayUrl: '/reference.png',
       sourceNodeId: 'source-a',
@@ -294,7 +309,12 @@ describe('useImageEditNodeController', () => {
   it('owns reference insertion, replacement picker anchoring, and prompt writes', () => {
     mocks.upstreamImages.push('/reference.png');
     const { result } = renderHook(() =>
-      useImageEditNodeController({ id: 'edit-a', data: data() }),
+      useImageEditNodeController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        id: 'edit-a',
+        data: data(),
+      }),
     );
     mocks.updateNodeData.mockClear();
 
@@ -338,6 +358,8 @@ describe('useImageEditNodeController', () => {
     mocks.storeEdges.push({ source: 'source-a', target: 'edit-a' });
     const { result } = renderHook(() =>
       useImageEditNodeController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         id: 'edit-a',
         data: data({ requestAspectRatio: 'auto' }),
       }),
@@ -358,6 +380,7 @@ describe('useImageEditNodeController', () => {
     );
     expect(mocks.addEdge).toHaveBeenCalledWith('edit-a', 'result-a');
     expect(mocks.submitGenerateImageJob).toHaveBeenCalledWith(
+      { projectId: 'project-a', canvasId: 'canvas-a' },
       expect.objectContaining({
         prompt: '上游脚本\n\n增强主体',
         aspectRatio: '16:9',
@@ -377,7 +400,12 @@ describe('useImageEditNodeController', () => {
   it('keeps the retry payload and diagnostics when submission fails', async () => {
     mocks.submitGenerateImageJob.mockRejectedValueOnce(new Error('offline'));
     const { result } = renderHook(() =>
-      useImageEditNodeController({ id: 'edit-a', data: data() }),
+      useImageEditNodeController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        id: 'edit-a',
+        data: data(),
+      }),
     );
 
     await act(async () => result.current.generate());
@@ -409,7 +437,12 @@ describe('useImageEditNodeController', () => {
       .mockReturnValueOnce('upload-a')
       .mockReturnValueOnce('upload-b');
     const { result } = renderHook(() =>
-      useImageEditNodeController({ id: 'edit-a', data: data() }),
+      useImageEditNodeController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        id: 'edit-a',
+        data: data(),
+      }),
     );
 
     act(() =>

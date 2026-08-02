@@ -9,7 +9,7 @@ import pytest
 from ai_anime.api.deps import make_static_url_for_context
 from ai_anime.api.app import create_app
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
-from ai_anime.freezone.canvas_static_urls import (
+from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
 )

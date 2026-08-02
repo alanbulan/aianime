@@ -6,7 +6,7 @@ import {
   resolveCanvasHistoryAssetPosition,
   type CanvasHistoryAssetPlacement,
 } from '../application/canvasHistoryAssetSpawn';
-import type { CanvasAssetDragPayload } from '../domain/assetDrag';
+import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
 import type { CanvasAsset } from '../domain/canvasAssets';
 
 export interface CanvasHistoryAssetControllerOptions {

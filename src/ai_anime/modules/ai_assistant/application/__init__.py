@@ -1,11 +1,5 @@
 """AI Assistant application contracts."""
 
-from ai_anime.modules.ai_assistant.application.agent_backend import (
-    AgentBackendService,
-)
-from ai_anime.modules.ai_assistant.application.agent_backend_prewarm import (
-    AgentBackendPrewarmer,
-)
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
@@ -25,14 +19,10 @@ from ai_anime.modules.ai_assistant.application.hermes_home_replies import (
 from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
     HermesProjectReplies,
 )
+from ai_anime.modules.ai_assistant.application.hermes_runtime_prewarm import (
+    HermesRuntimePrewarmer,
+)
 from ai_anime.modules.ai_assistant.application.ports import (
-    AgentBackend,
-    AgentBackendRuntime,
-    AgentThread,
-    AgentThreadRuntime,
-    AgentWorkspace,
-    AgentThreadSessions,
-    AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
     DisplayFallbackGateway,
@@ -59,22 +49,9 @@ from ai_anime.modules.ai_assistant.application.project_assistant_replies import 
 from ai_anime.modules.ai_assistant.application.project_chat_turns import (
     ProjectChatTurns,
 )
-from ai_anime.modules.ai_assistant.application.thread_replies import (
-    AgentThreadReplies,
-)
 
 __all__ = [
-    "AgentBackend",
-    "AgentBackendRuntime",
-    "AgentBackendPrewarmer",
-    "AgentBackendService",
-    "AgentThread",
-    "AgentThreadReplies",
-    "AgentThreadRuntime",
-    "AgentWorkspace",
     "AgentPromptContext",
-    "AgentThreadSessions",
-    "AgentToolConfiguration",
     "ChatHistory",
     "emit_chat_event_best_effort",
     "ChatPresentation",
@@ -85,6 +62,7 @@ __all__ = [
     "DeterministicProjectReplies",
     "HermesHomeReplies",
     "HermesRuntime",
+    "HermesRuntimePrewarmer",
     "HermesThread",
     "HermesProjectReplies",
     "JsonRenderErrors",

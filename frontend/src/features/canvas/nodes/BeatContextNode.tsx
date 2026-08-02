@@ -10,6 +10,8 @@ import { BeatContextNodeView } from './BeatContextNodeView';
 type BeatContextNodeProps = NodeProps & {
   id: string;
   data: BeatContextNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
 };
 

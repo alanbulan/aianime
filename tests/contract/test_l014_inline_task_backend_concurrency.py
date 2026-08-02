@@ -10,16 +10,19 @@ from pathlib import Path
 import pytest
 
 from ai_anime.ports import registry
-from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
+from ai_anime.modules.task_execution.public import (
+    build_in_memory_cancellation_store,
+    build_inline_task_backend,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.generators import tts_generator, video_composer, video_generator
-from ai_anime.generators.tts_generator import EdgeTTSGenerator, MockTTSGenerator
+from ai_anime.generators.tts_generator import CommercialTTSGenerator, MockTTSGenerator
 from ai_anime.generators.video_composer import SceneAsset, VideoComposer
 from ai_anime.generators.video_generator import MockVideoGenerator
-from ai_anime.task_backend.cancel import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
-from ai_anime.task_backend.limits import global_lane_concurrency
-from ai_anime.task_backend.registry import register_project_task_runner
-from ai_anime.task_backend.subprocesses import (
+from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
+from ai_anime.modules.task_execution.public import global_lane_concurrency
+from ai_anime.modules.task_execution.public import register_project_task_runner
+from ai_anime.modules.task_execution.public import (
     active_subprocess_count,
     kill_task_processes,
     run_project_subprocess,
@@ -53,9 +56,12 @@ def _ctx(tmp_path: Path, project_id: str = "proj_l014", requester: str = "editor
 def _task_ports(monkeypatch):
     manager = TaskStateManager()
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))
-    registry.register_port("cancellation_store", InMemoryCancellationStore())
+    registry.register_port("cancellation_store", build_in_memory_cancellation_store())
     monkeypatch.setattr("ai_anime.task_state._task_manager", manager)
-    monkeypatch.setattr("ai_anime.ports.local.tasks.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.inline_backend.get_task_manager",
+        lambda: manager,
+    )
     return manager
 
 
@@ -108,7 +114,7 @@ async def _wait_until_dead(pid: int, *, timeout: float = 3.0) -> bool:
     return not _pid_alive(pid)
 
 
-async def _wait_lane_idle(backend: InlineTaskBackend, lane: str, *, timeout: float = 3.0) -> None:
+async def _wait_lane_idle(backend, lane: str, *, timeout: float = 3.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if backend.lane_snapshot()[lane]["active"] == 0:
@@ -142,7 +148,7 @@ def _spawn_tree_script(tmp_path: Path) -> tuple[Path, Path]:
 @pytest.mark.asyncio
 async def test_gate1_cooperative_cancel_releases_lane_without_outer_task_cancel(_task_ports, tmp_path):
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     started = threading.Event()
     observed_cancel = threading.Event()
     finished = threading.Event()
@@ -176,7 +182,7 @@ async def test_gate1_cooperative_cancel_releases_lane_without_outer_task_cancel(
 @pytest.mark.asyncio
 async def test_gate2_cancel_kills_registered_process_group_and_unregisters_handle(_task_ports, tmp_path):
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     script, pidfile = _spawn_tree_script(tmp_path)
     started = threading.Event()
     task_type = "l014_gate2_cancel_kills_process_group"
@@ -220,7 +226,7 @@ async def test_gate2_cancel_kills_registered_process_group_and_unregisters_handl
 async def test_gate2_deadline_kills_process_group_and_marks_failed(monkeypatch, _task_ports, tmp_path):
     monkeypatch.setenv("AI_ANIME_PROJECT_TASK_TIMEOUT_S", "1")
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     script, pidfile = _spawn_tree_script(tmp_path)
     task_type = "l014_gate2_deadline_kills_process_group"
 
@@ -302,7 +308,7 @@ async def test_gate2_control_signals_are_not_swallowed_by_generator_fallbacks(mo
     monkeypatch.setattr(video_composer, "_run_video_subprocess", raise_cancelled)
 
     with pytest.raises(TaskCancelled):
-        await EdgeTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
+        await CommercialTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
 
     with pytest.raises(TaskCancelled):
         await MockTTSGenerator().generate("hello", str(tmp_path / "mock.mp3"))
@@ -334,7 +340,7 @@ async def test_gate2_timeout_signals_are_not_swallowed_by_generator_fallbacks(mo
     monkeypatch.setattr(video_composer, "_run_video_subprocess", raise_timeout)
 
     with pytest.raises(TaskTimedOut):
-        await EdgeTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
+        await CommercialTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
 
     with pytest.raises(TaskTimedOut):
         await MockTTSGenerator().generate("hello", str(tmp_path / "mock.mp3"))
@@ -365,7 +371,7 @@ async def test_gate3_world_lane_saturation_does_not_starve_default_lane(
     monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
     monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_DEFAULT_TASKS", "1")
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     world_release = threading.Event()
     default_done = threading.Event()
 
@@ -400,7 +406,7 @@ async def test_gate3_same_lane_overflow_is_explicitly_queued_and_cancelable(
     monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
     monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     release = threading.Event()
     started = []
 
@@ -440,7 +446,7 @@ async def test_gate3_global_lane_queue_overflow_raises_typed_limit_exception(
     monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
     monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
     ctx = _ctx(tmp_path)
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     release = threading.Event()
 
     def runner(envelope, run_ctx):
@@ -450,7 +456,7 @@ async def test_gate3_global_lane_queue_overflow_raises_typed_limit_exception(
     register_project_task_runner("l014_gate3_world_running_overflow", runner)
     register_project_task_runner("l014_gate3_world_queued_overflow", runner)
     register_project_task_runner("l014_gate3_world_rejected_overflow", runner)
-    from ai_anime.task_backend.limits import GlobalLaneQueueLimitExceeded
+    from ai_anime.modules.task_execution.public import GlobalLaneQueueLimitExceeded
 
     await backend.enqueue_project_task(
         ctx,
@@ -489,7 +495,7 @@ def test_gate3_global_lane_queue_limit_exception_maps_to_http_429():
     from fastapi.testclient import TestClient
 
     from ai_anime.api.app import create_app
-    from ai_anime.task_backend.limits import GlobalLaneQueueLimitExceeded
+    from ai_anime.modules.task_execution.public import GlobalLaneQueueLimitExceeded
 
     app = create_app()
 
@@ -533,7 +539,7 @@ async def test_gate3_multi_project_lane_dispatch_is_project_fair_fifo(
     monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
     monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
     monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
-    backend = InlineTaskBackend()
+    backend = build_inline_task_backend()
     ctx_a = _ctx(tmp_path, "proj_l014_a", requester="editor_a")
     ctx_b = _ctx(tmp_path, "proj_l014_b", requester="editor_b")
     release_first = threading.Event()

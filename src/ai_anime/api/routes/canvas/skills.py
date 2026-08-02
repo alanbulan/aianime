@@ -124,6 +124,7 @@ async def freezone_sketch_from_context(
                 source_kind=body.source_kind,
                 source_url=body.source_url,
                 aspect_ratio=body.aspect_ratio,
+                model=body.model,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
             )
@@ -166,6 +167,7 @@ async def freezone_frame_from_context(
                 prop_urls=tuple(body.prop_urls),
                 aspect_ratio=body.aspect_ratio,
                 quality=body.quality,
+                model=body.model,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
             )

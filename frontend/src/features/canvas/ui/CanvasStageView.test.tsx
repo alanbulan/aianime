@@ -11,9 +11,13 @@ import {
 const stageMocks = vi.hoisted(() => ({
   reactFlowProps: vi.fn(),
   minimapProps: vi.fn(),
+  selectedNodeOverlayProps: vi.fn(),
   nodeTypes: { uploadNode: vi.fn() },
+  createCanvasNodeTypes: vi.fn(),
   edgeTypes: { disconnectableEdge: vi.fn() },
 }));
+
+stageMocks.createCanvasNodeTypes.mockReturnValue(stageMocks.nodeTypes);
 
 vi.mock('@xyflow/react', () => ({
   BackgroundVariant: { Dots: 'dots' },
@@ -58,7 +62,9 @@ vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlay', () => ({
     <div data-testid="canvas-minimap-bookmarks" />
   ),
 }));
-vi.mock('../nodes', () => ({ nodeTypes: stageMocks.nodeTypes }));
+vi.mock('../nodes', () => ({
+  createCanvasNodeTypes: stageMocks.createCanvasNodeTypes,
+}));
 vi.mock('../edges', () => ({ edgeTypes: stageMocks.edgeTypes }));
 vi.mock('../NodeSelectionMenu', () => ({
   NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
@@ -111,7 +117,10 @@ vi.mock('./NodeToolDialog', () => ({
   NodeToolDialog: () => <div data-testid="node-tool-dialog" />,
 }));
 vi.mock('./SelectedNodeOverlay', () => ({
-  SelectedNodeOverlay: () => <div data-testid="selected-node-overlay" />,
+  SelectedNodeOverlay: (props: Record<string, unknown>) => {
+    stageMocks.selectedNodeOverlayProps(props);
+    return <div data-testid="selected-node-overlay" />;
+  },
 }));
 vi.mock('./VideoViewerModal', () => ({
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
@@ -122,6 +131,8 @@ function createProps(
 ): CanvasStageViewProps {
   const noop = vi.fn();
   return {
+    projectId: 'project-1',
+    canvasId: 'canvas-1',
     wrapperProps: {},
     flowProps: {
       nodes: [],
@@ -216,11 +227,19 @@ describe('CanvasStageView', () => {
         proOptions: { hideAttribution: true },
       }),
     );
+    expect(stageMocks.createCanvasNodeTypes).toHaveBeenLastCalledWith({
+      projectId: 'project-1',
+      canvasId: 'canvas-1',
+    });
     expect(screen.getByTestId('canvas-background')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-minimap')).toHaveAttribute(
       'data-position',
       'top-right',
     );
+    expect(stageMocks.selectedNodeOverlayProps).toHaveBeenLastCalledWith({
+      projectId: 'project-1',
+      canvasId: 'canvas-1',
+    });
 
     fireEvent.mouseEnter(screen.getByTestId('canvas-minimap'));
     fireEvent.mouseLeave(screen.getByTestId('canvas-minimap'));

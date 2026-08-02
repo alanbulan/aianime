@@ -25,7 +25,7 @@ import {
   type VideoStoryNodeData,
 } from './canvasNodes';
 import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
-import { SKILL_SCHEMA_VERSION } from '@/features/freezone/public';
+import { SKILL_SCHEMA_VERSION } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_IMAGE_MODEL_ID,
   DEFAULT_SHARED_MODEL_ID,
@@ -492,10 +492,6 @@ const videoComposeNodeDefinition: CanvasNodeDefinition<VideoComposeNodeData> = {
   }),
 };
 
-// 写死的脚本生成模型 id（脚本生成接口暂未提供 list）。和 ScriptNode 内的
-// SCRIPT_MODELS 保持同步，仅供 createDefaultData 选默认。
-const DEFAULT_SCRIPT_MODEL_ID = 'gvlm-3.1';
-
 const scriptNodeDefinition: CanvasNodeDefinition<ScriptNodeData> = {
   type: CANVAS_NODE_TYPES.script,
   menuLabelKey: 'node.menu.script',
@@ -516,7 +512,7 @@ const scriptNodeDefinition: CanvasNodeDefinition<ScriptNodeData> = {
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.script],
     prompt: '',
-    model: DEFAULT_SCRIPT_MODEL_ID,
+    model: DEFAULT_SHARED_MODEL_ID,
     lastAction: null,
     scriptResult: null,
     isGenerating: false,

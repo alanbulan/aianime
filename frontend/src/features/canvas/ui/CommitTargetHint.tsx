@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from 'react';
 
-import type { MainlineContext } from '@/features/freezone/public';
+import type { MainlineContext } from '@/modules/creative_canvas/public';
 
 interface Props {
   /** Resolved mainline contexts for this node (from `collectNodeMainlineContexts`). */

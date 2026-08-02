@@ -77,21 +77,20 @@ import {
   type VideoGenMode,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { DEFAULT_VIDEO_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
   defaultSceneOptimizeForModel,
-  isHappyHorseVideoModel,
-  isSeedance20VideoModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
   qualityToResolution,
   sceneOptimizeOptionsForModel,
+  supportedVideoModesForModel,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
+  videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
 } from '@/features/canvas/domain/videoGenerationModel';
 import {
@@ -129,13 +128,14 @@ import {
 import { resolveVideoGenerationModeOptions } from '@/features/canvas/nodes/videoGenerationModeOptions';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
-import { historyRecordOutputUrl } from '@/features/canvas/domain/generationHistoryRecord';
-import { hasMainlineContexts } from '@/features/freezone/public';
+import {
+  hasMainlineContexts,
+  historyRecordOutputUrl,
+} from '@/modules/creative_canvas/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
-import { readUrl } from '@/lib/url-params';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
 export interface VideoNodeControllerOptions {
@@ -144,6 +144,8 @@ export interface VideoNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
+  canvasId: string;
 }
 
 export function useVideoNodeController({
@@ -152,6 +154,8 @@ export function useVideoNodeController({
   selected,
   width,
   height,
+  projectId,
+  canvasId,
 }: VideoNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -195,7 +199,12 @@ export function useVideoNodeController({
     records: historyRecords,
     isLoading: historyLoading,
     refresh: refreshHistory,
-  } = useNodeGenerationHistory(id, { enabled: Boolean(selected) });
+  } = useNodeGenerationHistory({
+    projectId,
+    canvasId,
+    nodeId: id,
+    enabled: Boolean(selected),
+  });
 
   // 生成进行中时，点击历史记录走「非破坏性预览」：不覆写 videoUrl、不打断在途
   // 任务，仅把这条历史视频临时显示在主体上（见 isGenerating 渲染分支）。新视频
@@ -232,19 +241,17 @@ export function useVideoNodeController({
   const {
     models: availableVideoModels,
     isLoading: videoModelsLoading,
-    isFallback: videoModelsFallback,
-  } = useFreezoneVideoModels();
-  // Same fix as ImageGenNode: when no model is explicitly picked, default to
-  // the FIRST live model (what ProviderModelPicker displays) rather than the
-  // static DEFAULT_VIDEO_MODEL_ID, so the displayed model matches the value
-  // actually sent to /freezone/video/gen.
+  } = useFreezoneVideoModels(projectId);
+  // Reconcile persisted ids against the live catalog so the displayed model
+  // and submitted SKU remain identical after catalog changes.
   const selectedVideoModel = useMemo(
     () => resolveVideoNodeModel(availableVideoModels, data.model),
     [availableVideoModels, data.model],
   );
-  const modelId = selectedVideoModel?.id ?? DEFAULT_VIDEO_MODEL_ID;
-  const selectedVideoModelId = selectedVideoModel?.apiModel ?? selectedVideoModel?.id ?? modelId;
-  const isHappyHorseModel = isHappyHorseVideoModel(selectedVideoModelId);
+  const modelId = selectedVideoModel?.id ?? "";
+  const supportedVideoModes = supportedVideoModesForModel(selectedVideoModel);
+  const usesTypedReferenceModes =
+    videoModelUsesTypedReferenceModes(selectedVideoModel);
   // aspectRatio 只认合法的比例预设（含 "auto"）；历史上曾被写成像素串(如
   // "1248:704")的旧节点在这里吸附到最接近的合法视频比例，保证 chip 显示干净。
   const aspectRatio = resolveVideoNodeAspectRatio(data.aspectRatio);
@@ -277,7 +284,16 @@ export function useVideoNodeController({
     defaultSceneOptimizeForModel(selectedVideoModel),
   );
   const generateAudio = Boolean(data.generateAudio);
-  const isSeedance20Model = isSeedance20VideoModel(modelId);
+  const supportsHumanReview = selectedVideoModel?.supportsHumanReview === true;
+  const maxReferenceAudioDurationMs =
+    typeof selectedVideoModel?.maxReferenceAudioDurationSeconds === "number"
+      ? selectedVideoModel.maxReferenceAudioDurationSeconds * 1000
+      : null;
+  const maxReferenceImages = selectedVideoModel?.maxReferenceImages ??
+    (usesTypedReferenceModes ? 5 : 9);
+  const maxReferenceVideos = selectedVideoModel?.maxReferenceVideos ?? 3;
+  const maxReferenceAudios = selectedVideoModel?.maxReferenceAudios ?? 3;
+  const maxReferenceTotal = selectedVideoModel?.maxReferenceTotal ?? 12;
   const humanReview = Boolean(data.humanReview);
   const count: VideoGenCount = (data.count ?? 1) as VideoGenCount;
   useEffect(() => {
@@ -299,8 +315,8 @@ export function useVideoNodeController({
     quality,
     updateNodeData,
   ]);
-  const videoBackendForCost =
-    videoModelsLoading || videoModelsFallback
+  const videoModelForCost =
+    videoModelsLoading
       ? null
       : (selectedVideoModel?.apiModel ?? null);
   // Debounce the cost-estimate inputs: dragging the duration slider (and,
@@ -308,13 +324,13 @@ export function useVideoNodeController({
   // and TanStack Query aborts each in-flight request, spraying "Canceled"
   // rows across the Network tab. Coalesce to one request once the params
   // settle (~350ms). Primitives only — see useDebouncedValue's contract.
-  const debouncedBackend = useDebouncedValue(videoBackendForCost, 350);
+  const debouncedModel = useDebouncedValue(videoModelForCost, 350);
   const debouncedQuality = useDebouncedValue(quality, 350);
   const debouncedCount = useDebouncedValue(count, 350);
   const debouncedDurationSec = useDebouncedValue(durationSec, 350);
   const videoCreditCost = useGenerationCreditCost(
-    "video_backend",
-    debouncedBackend,
+    "video_model",
+    debouncedModel,
     {
       surface: "canvas",
       params: { resolution: qualityToResolution(debouncedQuality) },
@@ -331,7 +347,7 @@ export function useVideoNodeController({
   // Pull the camera-template catalog from `/freezone/video/camera-templates`.
   // Fall back to the bundled `CAMERA_MOVEMENT_PRESETS` while loading or if the
   // backend is unreachable so the chip never goes blank.
-  const cameraTemplatesQuery = useFreezoneVideoCameraTemplates();
+  const cameraTemplatesQuery = useFreezoneVideoCameraTemplates(projectId);
   const cameraTemplates = useMemo<ReadonlyArray<CameraMovementPreset>>(
     () =>
       cameraTemplatesQuery.templates.length > 0
@@ -570,9 +586,8 @@ export function useVideoNodeController({
     () => countVideoUpstreamMedia(upstreamNodes),
     [upstreamNodes],
   );
-  // HappyHorse 的模式可用性由「上游节点类型」决定，而非素材是否已填。空的图片
-  // 节点（尚未生成/上传图）也应让「首帧 / 图片参考」可选——用户先连节点、后填图
-  // 是正常顺序。所以这里按节点类型统计，区别于 upstreamCounts 的「已解析 URL」口径。
+  // Typed-reference modes use node types so an empty upstream image node can
+  // select a compatible mode before its media is generated.
   const upstreamTypeCounts = useMemo(
     () => countVideoUpstreamNodeTypes(upstreamNodes),
     [upstreamNodes],
@@ -580,13 +595,15 @@ export function useVideoNodeController({
   const generationModeOptions = useMemo(
     () =>
       resolveVideoGenerationModeOptions({
-        isHappyHorseModel,
-        // HappyHorse 按上游节点类型判断，空图片节点也算；其它模型按已解析素材判断。
-        upstreamCounts: isHappyHorseModel
+        supportedModes: supportedVideoModes,
+        usesTypedReferenceModes,
+        // Typed-reference models use node types so empty upstream image nodes
+        // can still select a compatible mode before media is generated.
+        upstreamCounts: usesTypedReferenceModes
           ? upstreamTypeCounts
           : upstreamCounts,
       }),
-    [isHappyHorseModel, upstreamCounts, upstreamTypeCounts],
+    [supportedVideoModes, upstreamCounts, upstreamTypeCounts, usesTypedReferenceModes],
   );
   const isClipMode = Boolean(data.isClipMode);
   const clipStartMs =
@@ -726,9 +743,8 @@ export function useVideoNodeController({
   const processFile = useCallback(
     async (file: File) => {
       if (!isVideoFile(file)) return;
-      const projectId = readUrl().project;
       if (!projectId) {
-        console.error("[video-node] no project in URL");
+        console.error("[video-node] missing project context");
         return;
       }
       clearTransientPreview();
@@ -766,7 +782,7 @@ export function useVideoNodeController({
         clearTransientPreview();
       }
     },
-    [clearTransientPreview, id, updateNodeData],
+    [clearTransientPreview, id, projectId, updateNodeData],
   );
 
   const handleFileChange = useCallback(
@@ -852,18 +868,17 @@ export function useVideoNodeController({
     if (isTranslatingPrompt || isGenerating) return;
     const trimmed = prompt.trim();
     if (trimmed.length === 0) return;
-    const project = readUrl().project;
-    if (!project) {
-      console.error("[video-node] translate: no project in URL");
+    if (!projectId) {
+      console.error("[video-node] translate: missing project context");
       return;
     }
     setIsTranslatingPrompt(true);
     try {
       const result = await translateCanvasText({
-        projectId: project,
+        projectId,
         text: prompt,
         nodeType: "video",
-        canvasId: readUrl().canvas ?? "default",
+        canvasId,
         nodeId: id,
       });
       if (result.translatedText) {
@@ -874,7 +889,15 @@ export function useVideoNodeController({
     } finally {
       setIsTranslatingPrompt(false);
     }
-  }, [id, isGenerating, isTranslatingPrompt, prompt, updateNodeData]);
+  }, [
+    canvasId,
+    id,
+    isGenerating,
+    isTranslatingPrompt,
+    projectId,
+    prompt,
+    updateNodeData,
+  ]);
 
   useEffect(() => {
     return canvasEventBus.subscribe("video-node/reupload", ({ nodeId }) => {
@@ -898,16 +921,15 @@ export function useVideoNodeController({
   // accepts 1-9 images and is the more general entry point; the 首尾帧 keyframe
   // workflow stays reachable via the explicit empty-state CTA. Only fires while
   // data.genMode is undefined — once the user picks any tab we respect that.
-  // HappyHorse 走下面的统一状态机，不参与这条默认。
+  // Typed-reference models use the state machine below instead.
   useEffect(() => {
-    if (isHappyHorseModel) return;
+    if (usesTypedReferenceModes) return;
     if (data.genMode != null) return;
     if (referenceImages.length === 0) return;
     updateNodeData(id, { genMode: "allReference" });
-  }, [data.genMode, id, isHappyHorseModel, referenceImages.length, updateNodeData]);
+  }, [data.genMode, id, referenceImages.length, updateNodeData, usesTypedReferenceModes]);
 
-  // HappyHorse 的模式完全由上游节点类型决定（文档的 4 大功能一一对应），这里用
-  // 一条统一状态机替代分散的兜底 effect，避免多个 effect 互相打架：
+  // One state machine keeps typed-reference modes aligned with upstream types:
   //   - 上游有视频            → 视频编辑 (videoEdit / video_url)
   //   - 上游图片 >1 张        → 图片参考 (imageReference / reference_images 1-9)
   //   - 上游图片 == 1 张      → 默认首帧 (imageToVideo / image_url)，但尊重用户
@@ -916,7 +938,7 @@ export function useVideoNodeController({
   // 每次都纠正，确保 genMode 不会卡在与当前上游不匹配的模式（否则 submit 时会被
   // 静默截断 / 触发上游互斥报错）。
   useEffect(() => {
-    if (!isHappyHorseModel) return;
+    if (!usesTypedReferenceModes) return;
     const { images, videos } = upstreamTypeCounts;
     let target: VideoGenMode;
     if (videos > 0) {
@@ -934,7 +956,7 @@ export function useVideoNodeController({
   }, [
     genMode,
     id,
-    isHappyHorseModel,
+    usesTypedReferenceModes,
     upstreamTypeCounts.images,
     upstreamTypeCounts.videos,
     updateNodeData,
@@ -953,10 +975,10 @@ export function useVideoNodeController({
   useEffect(() => {
     const prev = prevHasAudioRef.current;
     prevHasAudioRef.current = hasAudioUpstream;
-    if (!prev && hasAudioUpstream && data.genMode !== "allReference" && !isHappyHorseModel) {
+    if (!prev && hasAudioUpstream && data.genMode !== "allReference" && !usesTypedReferenceModes) {
       updateNodeData(id, { genMode: "allReference" });
     }
-  }, [data.genMode, hasAudioUpstream, id, isHappyHorseModel, updateNodeData]);
+  }, [data.genMode, hasAudioUpstream, id, updateNodeData, usesTypedReferenceModes]);
 
   // 上游接入视频素材时，只有「全能参考」能消费视频；其它模式（文生 / 图生 /
   // 首尾帧 / 图片参考）都会把视频丢弃。所以只要上游存在视频就强制切到
@@ -964,23 +986,23 @@ export function useVideoNodeController({
   // 与音频的「0→≥1 transition」不同，这里每次都纠正，确保视频在场期间无法切走。
   useEffect(() => {
     if (upstreamCounts.videos === 0) return;
-    if (isHappyHorseModel) return;
+    if (usesTypedReferenceModes) return;
     if (genMode === "allReference") return;
     updateNodeData(id, { genMode: "allReference" });
-  }, [upstreamCounts.videos, genMode, id, isHappyHorseModel, updateNodeData]);
+  }, [upstreamCounts.videos, genMode, id, updateNodeData, usesTypedReferenceModes]);
 
   // 文生视频不接受任何素材引用。即便用户先手动选了 textToVideo 再接入
   // 图片/音频（此时上面两个自动切换 effect 都因 genMode 已显式而 bail），
   // 也要强制切走，否则会停在 textToVideo 把已连素材丢弃。图片/音频统一走
   // allReference（全能参考），与「首次接入图片」的默认保持一致。
   useEffect(() => {
-    if (isHappyHorseModel) return;
+    if (usesTypedReferenceModes) return;
     if (genMode !== "textToVideo") return;
     if (upstreamCounts.images === 0 && upstreamCounts.audios === 0) return;
     updateNodeData(id, { genMode: "allReference" });
   }, [
     genMode,
-    isHappyHorseModel,
+    usesTypedReferenceModes,
     upstreamCounts.images,
     upstreamCounts.audios,
     id,
@@ -992,11 +1014,11 @@ export function useVideoNodeController({
   // 上游强制切 allReference」是同一类兜底逻辑。每次都纠正，避免用户在 >2
   // 图状态下被卡在 firstLastFrame 触发 submit 时被静默截断成两张。
   useEffect(() => {
-    if (isHappyHorseModel) return;
+    if (usesTypedReferenceModes) return;
     if (genMode !== "firstLastFrame") return;
     if (upstreamCounts.images <= 2) return;
     updateNodeData(id, { genMode: "allReference" });
-  }, [genMode, isHappyHorseModel, upstreamCounts.images, id, updateNodeData]);
+  }, [genMode, upstreamCounts.images, id, updateNodeData, usesTypedReferenceModes]);
 
   useEffect(
     () => () => {
@@ -1096,9 +1118,8 @@ export function useVideoNodeController({
       const sourceUrl = data.videoUrl;
       if (!sourceUrl) return;
       if (endMs <= startMs) return;
-      const projectId = readUrl().project;
       if (!projectId) {
-        console.error("[video-node] clip: no project in URL");
+        console.error("[video-node] clip: missing project context");
         return;
       }
       setIsComposingClip(true);
@@ -1147,6 +1168,7 @@ export function useVideoNodeController({
       data.videoUrl,
       id,
       isComposingClip,
+      projectId,
       quality,
       updateNodeData,
     ],
@@ -1156,9 +1178,8 @@ export function useVideoNodeController({
     if (isErasing) return;
     if (!data.videoUrl) return;
     if (subtitleEraseMode === "box" && !subtitleEraseBox) return;
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error("[video-node] no project in URL");
+      console.error("[video-node] missing project context");
       return;
     }
     setIsErasing(true);
@@ -1187,6 +1208,7 @@ export function useVideoNodeController({
     data.videoUrl,
     id,
     isErasing,
+    projectId,
     subtitleEraseBox,
     subtitleEraseMode,
     updateNodeData,
@@ -1194,6 +1216,9 @@ export function useVideoNodeController({
 
   const submitDisabled =
     isGenerating ||
+    videoModelsLoading ||
+    !selectedVideoModel ||
+    Boolean(videoModelReferenceDisabledReason(selectedVideoModel, upstreamCounts)) ||
     (prompt.trim().length === 0 && upstreamTextJoined.length === 0);
 
   const handleSubmit = useCallback(async () => {
@@ -1204,29 +1229,28 @@ export function useVideoNodeController({
     if (submittingRef.current) return;
     submittingRef.current = true;
     try {
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.error("[video-node] no project in URL");
-      return;
-    }
-    updateNodeData(id, {
-      isGenerating: true,
-      generationStartedAt: Date.now(),
-      // Clear any prior failure so the banner reflects only this attempt.
-      // 注意 generationBatch 不在这里清：下面还有多条校验失败的早退路径，
-      // 在这里清会让一次失败的提交白白毁掉已有画册——批次清空挪到真正开跑前。
-      generationError: null,
-      generationErrorDetails: null,
-      generationErrorRequestId: null,
-    });
-    // 运镜 fragment 拼接到最终 prompt 的开头；上游 text 在前、用户自己写
-    // 的 prompt 在后，两段以 \n\n 隔开（与 ImageGenNode/ImageEditNode 一致）。
-    const composedPrompt = composeVideoNodePrompt(
-      upstreamTextJoined,
-      prompt,
-      cameraMovementPreset?.promptFragment,
-    );
-    try {
+      if (!projectId) {
+        console.error("[video-node] missing project context");
+        return;
+      }
+      updateNodeData(id, {
+        isGenerating: true,
+        generationStartedAt: Date.now(),
+        // Clear any prior failure so the banner reflects only this attempt.
+        // 注意 generationBatch 不在这里清：下面还有多条校验失败的早退路径，
+        // 在这里清会让一次失败的提交白白毁掉已有画册——批次清空挪到真正开跑前。
+        generationError: null,
+        generationErrorDetails: null,
+        generationErrorRequestId: null,
+      });
+      // 运镜 fragment 拼接到最终 prompt 的开头；上游 text 在前、用户自己写
+      // 的 prompt 在后，两段以 \n\n 隔开（与 ImageGenNode/ImageEditNode 一致）。
+      const composedPrompt = composeVideoNodePrompt(
+        upstreamTextJoined,
+        prompt,
+        cameraMovementPreset?.promptFragment,
+      );
+      try {
       // Walk the current edges/nodes once — used by every non-textToVideo
       // branch to collect upstream resources. 必须与 UI 编号侧（useUpstreamNodes）
       // 同源：按连线顺序收集。曾按 state.nodes 顺序（节点创建顺序）收集，先创建
@@ -1252,8 +1276,6 @@ export function useVideoNodeController({
       const cameraTemplateId = cameraMovementId;
       // 后端按 canvas_id + node_id 记录每个节点的生成历史。多条生成时每个
       // 兄弟节点用各自的 targetId 作 node_id，历史才能分别落到对应节点。
-      const canvasId = readUrl().canvas ?? "default";
-
       // 后端不再支持一次出多条，改为按「生成数量」并发调用 N 次接口。先按
       // genMode 组装出一个「调一次接口」的闭包 doSubmit，校验失败则置空提前返回。
       let doSubmit:
@@ -1287,7 +1309,7 @@ export function useVideoNodeController({
             generateAudio,
             model: modelId,
             genMode,
-            humanReview: isSeedance20Model && humanReview,
+            humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
             canvasId,
             nodeId: targetId,
@@ -1316,13 +1338,13 @@ export function useVideoNodeController({
             generateAudio,
             model: modelId,
             genMode,
-            humanReview: isSeedance20Model && humanReview,
+            humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
             canvasId,
             nodeId: targetId,
           });
       } else if (genMode === "videoEdit") {
-        // HappyHorse 视频编辑：1 个源视频 + 0-5 张参考图 → video_url + reference_images。
+        // Video edit: one source video plus the catalog-declared image limit.
         const upstream = collectUpstream();
         const videoUrl =
           upstream
@@ -1337,13 +1359,12 @@ export function useVideoNodeController({
           return;
         }
         const allImageUrls = collectUpstreamImageUrls();
-        if (allImageUrls.length > 5) {
-          // 视频编辑上游硬上限 5 张参考图；超出的静默截断会让用户以为全用上了。
+        if (allImageUrls.length > maxReferenceImages) {
           toast.warning(
-            `视频编辑最多支持 5 张参考图，已使用前 5 张（忽略其余 ${allImageUrls.length - 5} 张）`,
+            `视频编辑最多支持 ${maxReferenceImages} 张参考图，已忽略其余 ${allImageUrls.length - maxReferenceImages} 张`,
           );
         }
-        const imageUrls = allImageUrls.slice(0, 5);
+        const imageUrls = allImageUrls.slice(0, maxReferenceImages);
         doSubmit = (targetId) =>
           submitVideoGeneration({
             kind: "videoEdit",
@@ -1362,9 +1383,9 @@ export function useVideoNodeController({
             nodeId: targetId,
           });
       } else if (genMode === "allReference") {
-        if (isHappyHorseModel) {
+        if (usesTypedReferenceModes) {
           void showErrorDialog(
-            "HappyHorse 不支持全能参考模式，请切换为文生视频或图生视频。",
+            "当前模型不支持全能参考模式，请切换到可用模式。",
             t("common.error"),
           );
           updateNodeData(id, {
@@ -1374,7 +1395,7 @@ export function useVideoNodeController({
           return;
         }
         // Omni-gen: classify each upstream node by its media type.
-        // backend caps: image≤9, video≤3, audio≤3, total≤12.
+        // Reference caps come from the active model catalog entry.
         const upstream = collectUpstream();
         const references: VideoGenerationReference[] = [];
         // 与 references 里 type==="audio" 的项一一对应，用于提交前校验音频总时长。
@@ -1383,11 +1404,11 @@ export function useVideoNodeController({
         let videoCount = 0;
         let audioCount = 0;
         for (const node of upstream) {
-          if (references.length >= 12) break;
+          if (references.length >= maxReferenceTotal) break;
           const videoRefUrl = referenceVideoUrl(node);
           if (videoRefUrl) {
             // 视频节点或携带 videoUrl 的 upload 节点（资产库视频）统一收集。
-            if (videoCount < 3) {
+            if (videoCount < maxReferenceVideos) {
               references.push({ type: "video", url: videoRefUrl });
               videoCount += 1;
             }
@@ -1396,7 +1417,7 @@ export function useVideoNodeController({
               typeof node.data.audioUrl === "string"
                 ? node.data.audioUrl
                 : "";
-            if (url && audioCount < 3) {
+            if (url && audioCount < maxReferenceAudios) {
               // 音频引用默认走「配乐参考」语义；label 用 sourceFileName /
               // displayName 之一，方便后端日志和后续 UI 展示对得上。
               const rawLabel =
@@ -1423,7 +1444,7 @@ export function useVideoNodeController({
             }
           } else {
             const url = submittableImageUrl(node);
-            if (url && imageCount < 9) {
+            if (url && imageCount < maxReferenceImages) {
               references.push({ type: "image", url });
               imageCount += 1;
             }
@@ -1437,17 +1458,18 @@ export function useVideoNodeController({
           });
           return;
         }
-        // Seedance 2.0 后端限制音频总时长 ≤ 15.2s，超了会以 InvalidParameter
-        // 报错。提交前先本地校验：durationMs 缺失时用 <audio> 探测兜底，超限就
-        // 弹窗拦下，避免白跑一趟后端。仅对 seedance2 生效（其它模型上限可能不同）。
-        if (isSeedance20Model && audioRefs.length > 0) {
+        // Validate only when the model catalog declares an audio-duration cap.
+        if (maxReferenceAudioDurationMs && audioRefs.length > 0) {
           const audioDuration =
             await validateVideoReferenceAudioDuration({
               references: audioRefs,
+              maxDurationMs: maxReferenceAudioDurationMs,
             });
           if (audioDuration.exceedsLimit) {
             void showErrorDialog(
-              t("node.videoNode.audio.durationExceeded", { max: 15 }),
+              t("node.videoNode.audio.durationExceeded", {
+                max: Math.floor(maxReferenceAudioDurationMs / 1000),
+              }),
               t("common.error"),
             );
             updateNodeData(id, {
@@ -1470,7 +1492,7 @@ export function useVideoNodeController({
             generateAudio,
             model: modelId,
             genMode,
-            humanReview: isSeedance20Model && humanReview,
+            humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
             canvasId,
             nodeId: targetId,
@@ -1489,7 +1511,7 @@ export function useVideoNodeController({
             generateAudio,
             model: modelId,
             genMode,
-            humanReview: isSeedance20Model && humanReview,
+            humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
             canvasId,
             nodeId: targetId,
@@ -1640,11 +1662,11 @@ export function useVideoNodeController({
       // 所有任务尘埃落定后统一拉一次历史：N 条记录都落在本节点名下，run 0
       // settle 时就拉会漏掉后完成的 N-1 条（后端成功失败都会记）。
       void refreshHistory();
-    } catch (error) {
-      console.error("[video-node] video gen failed", error);
-      updateNodeData(id, { isGenerating: false, generationStartedAt: null });
-      setAlbumPendingTotal(id, 0);
-    }
+      } catch (error) {
+        console.error("[video-node] video gen failed", error);
+        updateNodeData(id, { isGenerating: false, generationStartedAt: null });
+        setAlbumPendingTotal(id, 0);
+      }
     } finally {
       submittingRef.current = false;
     }
@@ -1653,6 +1675,7 @@ export function useVideoNodeController({
     submitAspectRatio,
     cameraMovementId,
     cameraMovementPreset,
+    canvasId,
     count,
     durationBounds,
     durationSec,
@@ -1660,15 +1683,22 @@ export function useVideoNodeController({
     genMode,
     humanReview,
     id,
-    isSeedance20Model,
+    maxReferenceAudioDurationMs,
+    maxReferenceAudios,
+    maxReferenceImages,
+    maxReferenceTotal,
+    maxReferenceVideos,
+    supportsHumanReview,
     modelId,
     prompt,
+    projectId,
     quality,
     refreshHistory,
     sceneOptimize,
     submitDisabled,
     updateNodeData,
     upstreamTextJoined,
+    usesTypedReferenceModes,
   ]);
 
   const hasMainlineContext = hasMainlineContexts(
@@ -1693,9 +1723,8 @@ export function useVideoNodeController({
     async (mode: "first" | "last" | "current") => {
       if (isCapturingFrame) return;
       if (!data.videoUrl) return;
-      const projectId = readUrl().project;
       if (!projectId) {
-        console.error("[video-node] no project in URL");
+        console.error("[video-node] missing project context");
         return;
       }
       const src = resolveImageDisplayUrl(data.videoUrl);
@@ -1760,6 +1789,7 @@ export function useVideoNodeController({
       data.widthPx,
       id,
       isCapturingFrame,
+      projectId,
       t,
       updateNodeData,
     ],
@@ -1768,9 +1798,12 @@ export function useVideoNodeController({
 
   const handleModelChange = useCallback(
     (nextModelId: string) => {
+      const nextModel = availableVideoModels.find(
+        (model) => model.id === nextModelId,
+      );
       const resetGenMode =
         data.genMode != null &&
-        !isVideoModeSupportedByModel(data.genMode, nextModelId);
+        !isVideoModeSupportedByModel(data.genMode, nextModel);
       updateNodeData(id, {
         model: nextModelId,
         ...(resetGenMode
@@ -1779,7 +1812,7 @@ export function useVideoNodeController({
       });
       rememberLastVideoModel(nextModelId);
     },
-    [data.genMode, id, updateNodeData],
+    [availableVideoModels, data.genMode, id, updateNodeData],
   );
 
   const normalizeDuration = useCallback(
@@ -1788,11 +1821,8 @@ export function useVideoNodeController({
   );
 
   const getModelDisabledReason = useCallback(
-    (model: { id: string; apiModel?: string | null }) =>
-      videoModelReferenceDisabledReason(
-        model.apiModel ?? model.id,
-        upstreamCounts,
-      ),
+    (model: (typeof availableVideoModels)[number]) =>
+      videoModelReferenceDisabledReason(model, upstreamCounts),
     [upstreamCounts],
   );
 
@@ -1862,7 +1892,7 @@ export function useVideoNodeController({
     sceneOptimizeOptions,
     sceneOptimize,
     generateAudio,
-    isSeedance20Model,
+    supportsHumanReview,
     humanReview,
     count,
     totalCreditCostDisplay,
@@ -1938,7 +1968,7 @@ export function useVideoNodeController({
     handleCaptureFrame,
     captureFrameStrip: captureBrowserVideoFrameStrip,
     videoFileAccept: VIDEO_FILE_ACCEPT,
-    projectId: readUrl().project ?? null,
+    projectId,
   };
 }
 

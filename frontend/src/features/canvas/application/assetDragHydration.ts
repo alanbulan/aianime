@@ -2,7 +2,7 @@
 import {
   directorWorldSourcesFromManifest,
 } from "@/features/canvas/domain/directorWorldSources";
-import type { CanvasAssetDragPayload } from "@/features/canvas/domain/assetDrag";
+import type { CanvasAssetDragPayload } from "@/modules/creative_canvas/public";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 

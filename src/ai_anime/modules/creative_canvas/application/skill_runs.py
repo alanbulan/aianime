@@ -70,9 +70,6 @@ from ai_anime.modules.creative_canvas.application.skill_run_inputs import (
     creative_canvas_skill_output_metadata,
     group_and_validate_creative_canvas_skill_inputs,
 )
-from ai_anime.modules.creative_canvas.domain.image_editing import (
-    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
-)
 from ai_anime.modules.creative_canvas.domain.mainline_generation import (
     beat_context_as_prompt_beat,
     build_scene_360_prompt,
@@ -718,6 +715,7 @@ class CreativeCanvasSkillRunUseCases:
                 message=str(exc),
                 user_action_hint="Choose 2:3 or 16:9 before running the skill.",
             )
+        model = self._required_image_model(parameters)
         beat_input = _required_input(grouped, "beat_context")
         if is_standalone_beat_context(beat_input.beat_context):
             if command.skill_id == "freezone.sketch_from_director_combined":
@@ -741,7 +739,6 @@ class CreativeCanvasSkillRunUseCases:
                     message=str(exc),
                     enveloped=False,
                 )
-            model = str(parameters.get("model") or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL)
             try:
                 return await self._image_generation.start(
                     StartCreativeCanvasImageGenerationCommand(
@@ -803,6 +800,7 @@ class CreativeCanvasSkillRunUseCases:
                             "director_combined",
                         ),
                         aspect_ratio=aspect_ratio,
+                        model=model,
                         canvas_id=body.canvas_id,
                         node_id=body.skill_node_id,
                         task_display={
@@ -827,6 +825,7 @@ class CreativeCanvasSkillRunUseCases:
                     beat_payload=beat_context_as_prompt_beat(beat_input.beat_context),
                     background_url=_required_image_url(background, "background"),
                     aspect_ratio=aspect_ratio,
+                    model=model,
                     canvas_id=body.canvas_id,
                     node_id=body.skill_node_id,
                     task_display={
@@ -904,6 +903,7 @@ class CreativeCanvasSkillRunUseCases:
                     identity_references=tuple(identity_references),
                     prop_references=tuple(prop_references),
                     quality=quality,
+                    model=self._required_image_model(parameters),
                     background_reference_mode=background_reference_mode,
                     canvas_id=body.canvas_id,
                     node_id=body.skill_node_id,
@@ -927,6 +927,7 @@ class CreativeCanvasSkillRunUseCases:
         auto_commit: bool,
     ) -> CreativeCanvasTaskReceipt:
         body = command.request
+        parameters = dict(body.parameters if isinstance(body.parameters, dict) else {})
         scene_prompt = self._scene_prompt(_single_input(grouped, "scene"))
         scene_master = _required_input(grouped, "scene_master")
         scene_reverse = _single_input(grouped, "scene_reverse_master")
@@ -947,7 +948,7 @@ class CreativeCanvasSkillRunUseCases:
                         if scene_reverse
                         else None
                     ),
-                    model=None,
+                    model=self._required_image_model(parameters),
                     image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
                     quality=None,
                     canvas_id=body.canvas_id,
@@ -957,6 +958,19 @@ class CreativeCanvasSkillRunUseCases:
                 )
             )
         )
+
+    @staticmethod
+    def _required_image_model(parameters: Mapping[str, Any]) -> str:
+        model = str(parameters.get("model") or "").strip()
+        if not model:
+            _reject(
+                "validation",
+                code="skill_parameter_model_required",
+                category="validation",
+                message="model is required",
+                user_action_hint="Choose an image model before running the skill.",
+            )
+        return model
 
     def _queue_response(
         self,

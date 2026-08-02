@@ -11,6 +11,8 @@ type TextAnnotationNodeProps = NodeProps & {
   id: string;
   data: TextAnnotationNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const TextAnnotationNode = memo((props: TextAnnotationNodeProps) => {

@@ -41,8 +41,12 @@ const mocks = vi.hoisted(() => ({
   }>,
   historyRecords: [] as Array<Record<string, unknown>>,
   isGenerating: false,
-  url: { project: 'project-a', canvas: 'canvas-a' },
 }));
+
+const NODE_CONTEXT = {
+  projectId: 'project-a',
+  canvasId: 'canvas-a',
+} as const;
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
@@ -109,7 +113,8 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.uploadLocalImage(...args),
 }));
 
-vi.mock('@/features/canvas/domain/directorWorldSceneSaveRegistry', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
     mocks.registerSaveHandler(...args),
 }));
@@ -120,8 +125,6 @@ vi.mock('@/features/canvas/infrastructure/browserDirectorCaptureRuntime', () => 
   readDirectorCaptureImageSize: (...args: unknown[]) =>
     mocks.readImageSize(...args),
 }));
-
-vi.mock('@/lib/url-params', () => ({ readUrl: () => mocks.url }));
 
 function uploadNode(
   id: string,
@@ -206,6 +209,7 @@ describe('useThreeDWorldNodeController', () => {
     };
     const { result } = renderHook(() =>
       useThreeDWorldNodeController({
+        ...NODE_CONTEXT,
         id: 'world-a',
         data,
         selected: true,
@@ -261,7 +265,12 @@ describe('useThreeDWorldNodeController', () => {
       data,
     });
     const { result } = renderHook(() =>
-      useThreeDWorldNodeController({ id: 'world-a', data, selected: true }),
+      useThreeDWorldNodeController({
+        ...NODE_CONTEXT,
+        id: 'world-a',
+        data,
+        selected: true,
+      }),
     );
 
     await act(async () => result.current.submitGeneration());
@@ -316,7 +325,12 @@ describe('useThreeDWorldNodeController', () => {
       ],
     };
     const { result } = renderHook(() =>
-      useThreeDWorldNodeController({ id: 'world-a', data, selected: true }),
+      useThreeDWorldNodeController({
+        ...NODE_CONTEXT,
+        id: 'world-a',
+        data,
+        selected: true,
+      }),
     );
 
     await act(async () => result.current.openDirector());
@@ -362,7 +376,12 @@ describe('useThreeDWorldNodeController', () => {
   it('uploads both Director capture layers and creates one guarded output group', async () => {
     const data: ThreeDWorldNodeData = {};
     const { result } = renderHook(() =>
-      useThreeDWorldNodeController({ id: 'world-a', data, selected: true }),
+      useThreeDWorldNodeController({
+        ...NODE_CONTEXT,
+        id: 'world-a',
+        data,
+        selected: true,
+      }),
     );
     const meta = {
       kind: 'combined',

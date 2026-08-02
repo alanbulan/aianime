@@ -11,6 +11,8 @@ type StoryboardGenNodeProps = NodeProps & {
   id: string;
   data: StoryboardGenNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const StoryboardGenNode = memo((props: StoryboardGenNodeProps) => {

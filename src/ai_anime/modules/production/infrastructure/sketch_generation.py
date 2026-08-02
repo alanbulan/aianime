@@ -31,8 +31,11 @@ from ai_anime.modules.production.domain.sketch_generation import (
     sketch_dispatch_indices,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key
 
 
 class NanoBananaSketchGridPlanner:
@@ -142,14 +145,15 @@ class LocalSketchGenerationPreparer:
                 project_config,
                 command.image_generation_selection,
             )
+            if not image_selection:
+                raise SketchGenerationRejected("请先选择草图图片模型")
             base_config = {
                 "beats": beats,
                 "character_map": character_map,
                 "style": style,
-                "model": command.model,
+                "model": image_selection,
                 "sketch_scene_grouping": command.sketch_scene_grouping,
                 "aspect_ratio": command.aspect_ratio,
-                "image_generation_selection": image_selection,
                 "sketch_colors": (
                     store.get_sketch_colors(command.episode_num) or {}
                 ),
@@ -177,33 +181,29 @@ class LocalSketchGenerationPreparer:
             await store.close()
 
 
-class TaskBackendSketchGenerationScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionSketchGenerationScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: SketchGenerationTask,
     ) -> SketchGenerationTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=SKETCH_GENERATION_TASK_TYPE,
-            queue_kind="default",
-            episode=task.episode_num,
-            scope=task.scope,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=SKETCH_GENERATION_TASK_TYPE,
+                episode=task.episode_num,
+                scope=task.scope,
+                payload=task.backend_payload(),
+            ),
         )
         return SketchGenerationTaskReceipt(
             grid_index=task.grid_index,
             scope=task.scope,
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                SKETCH_GENERATION_TASK_TYPE,
-                context.project_id,
-                task.episode_num,
-                scope=task.scope,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

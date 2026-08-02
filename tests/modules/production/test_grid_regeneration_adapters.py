@@ -14,9 +14,10 @@ from ai_anime.modules.production.application.grid_regeneration import (
 from ai_anime.modules.production.infrastructure.grid_regeneration import (
     LocalGridRegenerationPreparer,
     NanoBananaGridRegenerationPlanner,
-    TaskBackendGridRegenerationScheduler,
+    TaskExecutionGridRegenerationScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 class _Store:
@@ -279,12 +280,11 @@ async def test_preparer_checks_only_selected_grid_beats_and_closes_store(
         ("padding", {"visual_style": "cinematic"}, True),
     ]
     assert task.config == {
-        "beats": beats,
-        "character_map": {"hero": {"ref_path": "hero.png"}},
-        "style": "cinematic",
-        "model": "nanobanana",
-        "image_generation_selection": "render-selection",
-        "render_mode": "Render",
+            "beats": beats,
+            "character_map": {"hero": {"ref_path": "hero.png"}},
+            "style": "cinematic",
+            "model": "render-selection",
+            "render_mode": "Render",
         "scene_grouping": True,
         "character_grouping": False,
         "sketch_aspect_padding": True,
@@ -335,8 +335,8 @@ async def test_scheduler_preserves_grid_regeneration_contract(
         config={"render_mode": "Render"},
     )
 
-    receipt = await TaskBackendGridRegenerationScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionGridRegenerationScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

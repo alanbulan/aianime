@@ -50,20 +50,16 @@ from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     plan_image_to_three_gs,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
-    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
-    SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     InvalidCreativeCanvasImageAspectRatio,
     InvalidCreativeCanvasImageSize,
-    UnsupportedCreativeCanvasImageProvider,
     build_image_erase_prompt,
     build_image_outpaint_prompt,
     build_image_redraw_prompt,
     build_image_upscale_prompt,
     plan_outpaint_canvas,
     resolve_original_image_aspect_ratio,
-    resolve_image_provider,
     resolve_requested_image_aspect_ratio,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
@@ -84,6 +80,35 @@ from ai_anime.modules.creative_canvas.domain.mark_detection import (
     CreativeCanvasMarkSelectionRequired,
 )
 from ai_anime.modules.creative_canvas.domain.principal import canvas_actor_id
+from ai_anime.modules.creative_canvas.domain.preset_aspect_ratio import (
+    CREATIVE_CANVAS_PRESET_IMAGE_ASPECT_RATIOS,
+    context_preset_sketch_aspect_ratio,
+    nearest_preset_image_aspect_ratio,
+    normalize_preset_image_aspect_ratio,
+    parse_preset_aspect_ratio,
+    project_preset_sketch_aspect_ratio,
+)
+from ai_anime.modules.creative_canvas.domain.preset_context import (
+    as_preset_list,
+    extract_preset_visual_markers,
+    normalize_preset_scene_name,
+    preset_identity_character,
+    preset_identity_id,
+    preset_identity_name,
+    preset_prop_id,
+    real_preset_identity_ids,
+    real_preset_prop_ids,
+    replace_preset_beat_markers,
+)
+from ai_anime.modules.creative_canvas.domain.preset_identity import (
+    canvas_id_for_preset,
+    preset_key_for_request,
+    safe_creative_canvas_identifier_fragment,
+)
+from ai_anime.modules.creative_canvas.domain.preset_reference import (
+    PresetRef,
+    preset_ref_mainline_context,
+)
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
@@ -110,17 +135,33 @@ from ai_anime.modules.creative_canvas.domain.video_asset_library import (
 )
 
 __all__ = [
+    "PresetRef",
+    "preset_ref_mainline_context",
+    "CREATIVE_CANVAS_PRESET_IMAGE_ASPECT_RATIOS",
+    "context_preset_sketch_aspect_ratio",
+    "nearest_preset_image_aspect_ratio",
+    "normalize_preset_image_aspect_ratio",
+    "parse_preset_aspect_ratio",
+    "project_preset_sketch_aspect_ratio",
+    "as_preset_list",
+    "extract_preset_visual_markers",
+    "normalize_preset_scene_name",
+    "preset_identity_character",
+    "preset_identity_id",
+    "preset_identity_name",
+    "preset_prop_id",
+    "real_preset_identity_ids",
+    "real_preset_prop_ids",
+    "replace_preset_beat_markers",
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "CREATIVE_CANVAS_GLOBAL_SLOT_KINDS",
     "CREATIVE_CANVAS_SCENE_SLOT_KINDS",
-    "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasImageToThreeGsPlan",
     "CreativeCanvasImageToThreeGsSourceKind",
     "CreativeCanvasImageCameraConfig",
     "CreativeCanvasImageStyleConfig",
     "CreativeCanvasEventActor",
     "CreativeCanvasImpactBeat",
-    "SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
     "CreativeCanvasMarkSelectionRequired",
@@ -130,7 +171,6 @@ __all__ = [
     "InvalidCreativeCanvasImageAspectRatio",
     "InvalidCreativeCanvasImageSize",
     "InvalidCreativeCanvasImageTemplateMode",
-    "UnsupportedCreativeCanvasImageProvider",
     "build_image_erase_prompt",
     "build_image_multi_view_prompt",
     "build_image_outpaint_prompt",
@@ -144,6 +184,7 @@ __all__ = [
     "build_freezone_video_prompt",
     "canvas_actor_id",
     "canvas_event_actor",
+    "canvas_id_for_preset",
     "compute_creative_canvas_slot_impact",
     "creative_canvas_slot_asset_key",
     "decode_png_screenshot",
@@ -158,6 +199,7 @@ __all__ = [
     "merge_restored_preset_canvas",
     "preset_facts_signature",
     "preset_facts_signature_from_payload",
+    "preset_key_for_request",
     "prepare_creative_canvas_payload_for_write",
     "project_creative_canvas_asset_record",
     "project_creative_canvas_beat_context_asset",
@@ -169,9 +211,9 @@ __all__ = [
     "plan_image_to_three_gs",
     "plan_outpaint_canvas",
     "resolve_original_image_aspect_ratio",
-    "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
     "resolve_requested_image_aspect_ratio",
+    "safe_creative_canvas_identifier_fragment",
     "remove_projected_preset_canvas",
     "get_video_camera_template",
     "get_video_camera_templates",

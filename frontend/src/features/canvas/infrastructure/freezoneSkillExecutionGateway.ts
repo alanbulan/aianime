@@ -3,7 +3,7 @@ import { apiRequest } from "@/shared/api/client";
 import type {
   SkillRunResponse,
   SkillRunResult,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 
 import type { CanvasSkillExecutionGateway } from "../application/skillExecution";
 

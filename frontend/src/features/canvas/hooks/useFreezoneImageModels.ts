@@ -1,18 +1,18 @@
 // Copyright (c) 2026 AI anime
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import type { CanvasImageModel } from "@/features/canvas/application/generationCatalog";
 import { loadCanvasImageModels } from "@/features/canvas/catalogComposition";
-import { readUrl } from "@/lib/url-params";
+import type { ModelOption } from "@/features/canvas/ui/ProviderModelPicker";
 import {
-  SHARED_MODELS,
-  type ModelOption,
-} from "@/features/canvas/ui/ProviderModelPicker";
+  filterCanvasImageModels,
+  type CanvasImageMode,
+} from "@/features/canvas/domain/imageModelCapability";
+import { COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT } from "@/modules/model_usage/public";
 
 export interface UseFreezoneImageModelsResult {
   models: ModelOption[];
   isLoading: boolean;
-  isFallback: boolean;
   error: Error | null;
 }
 
@@ -22,19 +22,16 @@ export interface UseFreezoneImageModelsResult {
 // immediately (no per-component re-fetch, no loading flicker).
 const states = new Map<string, UseFreezoneImageModelsResult>();
 const listeners = new Map<string, Set<() => void>>();
+let accessChangeListenerInstalled = false;
 
-// Lazy singleton — must NOT touch `SHARED_MODELS` at module top level
-// because we have a circular import with `ProviderModelPicker.tsx` (the
-// picker imports this hook). Reading SHARED_MODELS during this module's
-// top-level evaluation would hit a TDZ. Reading it lazily inside a
-// function dodges that.
 let noProjectStateMemo: UseFreezoneImageModelsResult | null = null;
+const NO_MODELS: ModelOption[] = [];
+
 function getNoProjectState(): UseFreezoneImageModelsResult {
   if (!noProjectStateMemo) {
     noProjectStateMemo = {
-      models: SHARED_MODELS,
+      models: NO_MODELS,
       isLoading: false,
-      isFallback: true,
       error: null,
     };
   }
@@ -43,6 +40,17 @@ function getNoProjectState(): UseFreezoneImageModelsResult {
 
 function emit(project: string) {
   listeners.get(project)?.forEach((fn) => fn());
+}
+
+function installAccessChangeListener() {
+  if (accessChangeListenerInstalled || typeof window === "undefined") return;
+  accessChangeListenerInstalled = true;
+  window.addEventListener(COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT, () => {
+    const projects = [...states.keys()];
+    states.clear();
+    noProjectStateMemo = null;
+    projects.forEach(emit);
+  });
 }
 
 function writeState(project: string, next: UseFreezoneImageModelsResult) {
@@ -59,26 +67,15 @@ function ensureLoaded(project: string) {
   // first call so this is a true idempotent guard.
   if (states.has(project)) return;
   states.set(project, {
-    models: SHARED_MODELS,
+    models: NO_MODELS,
     isLoading: true,
-    isFallback: true,
     error: null,
   });
   loadCanvasImageModels(project)
     .then((models) => {
-      if (models.length === 0) {
-        writeState(project, {
-          models: SHARED_MODELS,
-          isLoading: false,
-          isFallback: true,
-          error: null,
-        });
-        return;
-      }
       writeState(project, {
         models: toModelOptions(models),
         isLoading: false,
-        isFallback: false,
         error: null,
       });
     })
@@ -86,13 +83,12 @@ function ensureLoaded(project: string) {
       const normalized =
         error instanceof Error ? error : new Error(String(error));
       console.warn(
-        "[freezone] image models fetch failed, using hardcoded fallback:",
+        "[freezone] image models fetch failed:",
         normalized.message,
       );
       writeState(project, {
-        models: SHARED_MODELS,
+        models: NO_MODELS,
         isLoading: false,
-        isFallback: true,
         error: normalized,
       });
     });
@@ -106,6 +102,7 @@ function ensureLoaded(project: string) {
  */
 export function prefetchFreezoneImageModels(project: string): void {
   if (!project) return;
+  installAccessChangeListener();
   ensureLoaded(project);
 }
 
@@ -127,26 +124,33 @@ function subscribe(project: string | null, callback: () => void) {
  * Read the image model list from a shared module-level store.
  *
  * The first call for a given `project` triggers
- * `GET /api/v1/projects/{project}/freezone/image/models`. All subsequent
- * consumers (any picker on any panel) read the same cached snapshot and
- * re-render together when the fetch resolves. Failures fall back to the
- * hardcoded `SHARED_MODELS` so the UI is never empty.
+ * authenticated commercial model catalog. All subsequent consumers read the
+ * same cached snapshot and re-render together when the fetch resolves. An
+ * empty or failed catalog remains empty so generation cannot submit a model
+ * that was not authorized by the active Cloud/BYOK access mode.
  *
  * To force a refresh, reload the page — there is no manual invalidation.
  */
 export function useFreezoneImageModels(
-  projectOverride?: string | null,
+  project: string | null,
+  mode?: CanvasImageMode,
 ): UseFreezoneImageModelsResult {
-  const project =
-    projectOverride !== undefined ? projectOverride : readUrl().project;
+  installAccessChangeListener();
 
   // Kick off the shared fetch on first read. Idempotent thereafter.
   if (project) ensureLoaded(project);
 
-  return useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     (callback) => subscribe(project ?? null, callback),
     () =>
       project ? states.get(project) ?? getNoProjectState() : getNoProjectState(),
     () => getNoProjectState(),
+  );
+  return useMemo(
+    () =>
+      mode
+        ? { ...snapshot, models: filterCanvasImageModels(snapshot.models, mode) }
+        : snapshot,
+    [mode, snapshot],
   );
 }

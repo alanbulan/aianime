@@ -124,7 +124,6 @@ class UploadBeatBackgroundCommand:
 class GenerateScenePanoCommand:
     source: str = "master"
     style: str | None = None
-    provider: str | None = None
     model: str | None = None
     image_size: str | None = None
     quality: str | None = None

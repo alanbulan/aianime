@@ -38,7 +38,7 @@ def _command() -> GenerateSingleVideoCommand:
     return GenerateSingleVideoCommand(
         episode_num=3,
         beat_num=2,
-        video_backend="huimeng_seedance-2.0-fast",
+        video_model="seedance-2.0-fast",
         resolution="1080p",
         duration=9,
         ratio="16:9",

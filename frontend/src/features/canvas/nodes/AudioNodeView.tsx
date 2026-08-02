@@ -16,7 +16,7 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import { NodeContextBadges } from '@/features/freezone/public';
+import { NodeContextBadges } from '@/modules/creative_canvas/public';
 
 export function AudioNodeView({
   controller,
@@ -107,6 +107,8 @@ export function AudioNodeView({
 
       {controller.showOperationsPanel && (
         <AudioOperationsPanel
+          projectId={controller.projectId}
+          canvasId={controller.canvasId}
           nodeId={controller.id}
           data={controller.data}
         />

@@ -4,9 +4,6 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from ai_anime.api.canvas_schema_defaults import FREEZONE_DEFAULT_IMAGE_MODEL
-
-
 class FreezoneSketchFromContextRequest(BaseModel):
     episode: int
     beat: int
@@ -20,8 +17,10 @@ class FreezoneSketchFromContextRequest(BaseModel):
     source_url: Optional[str] = None
     canvas_id: str = Field(default="")
     node_id: str = Field(default="")
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    model: str = Field(
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
+    )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
@@ -37,8 +36,10 @@ class FreezoneFrameFromContextRequest(BaseModel):
     prop_urls: list[str] = Field(default_factory=list)
     canvas_id: str = Field(default="")
     node_id: str = Field(default="")
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    model: str = Field(
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
+    )
     quality: Literal["low", "medium", "high"] = Field(
         default="medium",
         description="图片画质档位，默认 medium",
@@ -68,8 +69,8 @@ class FreezoneScene360Request(BaseModel):
         description="candidate 只生成画布候选；commit 明确写回主线 360 slot",
     )
     model: str = Field(
-        default=FREEZONE_DEFAULT_IMAGE_MODEL,
-        description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
+        min_length=1,
+        description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"

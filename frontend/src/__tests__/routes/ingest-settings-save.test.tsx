@@ -95,6 +95,10 @@ beforeAll(async () => {
             settingsSaved: "Project settings saved",
             settingsSaveFailed: "Failed to save project settings",
             selectPlaceholder: "Select",
+            textModel: "Knowledge text model",
+            embeddingModel: "Knowledge embedding model",
+            modelPlaceholder: "Select a model",
+            modelCatalogFailed: "Model catalog failed",
             projectType: "Project type",
             projectTypeLocked: "Project type is locked after import",
             projectTypes: {
@@ -232,6 +236,31 @@ vi.mock("@/modules/project_workspace/public", () => ({
   }),
 }));
 
+vi.mock("@/modules/model_usage/public", () => ({
+  useGenerationCreditCost: () => ({ data: undefined, error: null }),
+  useCommercialModelCatalog: (operation: string) => ({
+    data: {
+      catalogVersion: "test",
+      items: [
+        {
+          id: operation.toLowerCase(),
+          code:
+            operation === "TEXT"
+              ? "cloud-text-standard"
+              : "cloud-embedding-standard",
+          displayName:
+            operation === "TEXT" ? "Text standard" : "Embedding standard",
+          operation,
+          capabilities: {},
+          parameterSchema: {},
+        },
+      ],
+    },
+    error: null,
+    isLoading: false,
+  }),
+}));
+
 vi.mock("@/modules/story_intake/application/query-hooks", () => ({
   createStoryIntakeQueryHooks: () => ({
     useChapters: () => ({ data: mocks.chaptersData, isFetching: false }),
@@ -293,7 +322,7 @@ vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
   useCharacters: () => ({ data: { ok: true, data: [] } }),
 }));
 
-vi.mock("@/task-center/public", () => ({
+vi.mock("@/modules/task_execution/public", () => ({
   useCancelTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTasks: () => ({
     data: { ok: true, data: mocks.ingestTasks },
@@ -607,6 +636,8 @@ describe("IngestPage settings save", () => {
     await waitFor(() =>
       expect(mocks.startIngest).toHaveBeenCalledWith({
         filename: "novel.txt",
+        textModel: "cloud-text-standard",
+        embeddingModel: "cloud-embedding-standard",
         rebuild: true,
         spine_template: "drama",
       }),

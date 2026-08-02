@@ -51,7 +51,12 @@ export function AudioPaneView({
             size="xs"
             variant="outline"
             onClick={() => controller.setRegenerationOpen(true)}
-            disabled={controller.regenerationPending}
+            disabled={controller.regenerationDisabled}
+            title={
+              !controller.regenerationPending && controller.regenerationDisabled
+                ? t("episode.workbench.audio.modelUnavailable")
+                : undefined
+            }
             className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
           >
             {controller.regenerationPending ? (

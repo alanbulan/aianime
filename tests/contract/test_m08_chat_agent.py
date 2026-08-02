@@ -77,7 +77,7 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
-    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", NoOpPrewarmer())
+    monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:
@@ -107,7 +107,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     monkeypatch.setattr(api_auth, "_verify_browser_session", _reject_browser_session)
-    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", NoOpPrewarmer())
+    monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:
@@ -136,7 +136,7 @@ async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -
     token_value = await create_page_agent_session_token(
         "local",
         "project-a",
-        agent_kind="codex",
+        agent_kind="hermes",
     )
 
     user = await verify_agent_session(token_value)

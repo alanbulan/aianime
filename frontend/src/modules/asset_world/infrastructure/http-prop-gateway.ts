@@ -2,7 +2,7 @@
 import {
   commitFreezoneAsset,
   uploadFreezoneAsset,
-} from "@/features/freezone/public";
+} from "@/modules/creative_canvas/public";
 import type {
   AssetDataResponse,
   AssetErrorResponse,

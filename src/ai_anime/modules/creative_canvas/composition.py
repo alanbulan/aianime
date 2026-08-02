@@ -5,7 +5,6 @@ from typing import Literal
 
 from ai_anime.modules.creative_canvas.domain.text_generation import (
     CreativeCanvasTextNodeType,
-    resolve_creative_canvas_story_script_model as resolve_story_script_model,
 )
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
@@ -43,6 +42,15 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.job_results import (
     CreativeCanvasJobResultQueries,
 )
+from ai_anime.modules.creative_canvas.application.job_execution import (
+    CreativeCanvasJobExecutionUseCases,
+)
+from ai_anime.modules.creative_canvas.application.job_workspace import (
+    CreativeCanvasJobWorkspace,
+)
+from ai_anime.modules.creative_canvas.application.generation_history import (
+    CreativeCanvasGenerationHistoryUseCases,
+)
 from ai_anime.modules.creative_canvas.application.mainline_generation import (
     CreativeCanvasMainlineGenerationUseCases,
 )
@@ -71,6 +79,7 @@ from ai_anime.modules.creative_canvas.application.mark_detection import (
     CreativeCanvasMarkDetectionUseCases,
 )
 from ai_anime.modules.creative_canvas.application.reverse_prompt import (
+    CreativeCanvasReversePromptExecutionUseCases,
     CreativeCanvasReversePromptUseCases,
 )
 from ai_anime.modules.creative_canvas.application.text_processing import (
@@ -85,7 +94,9 @@ from ai_anime.modules.creative_canvas.application.video_generation import (
 from ai_anime.modules.creative_canvas.application.video_asset_library import (
     CreativeCanvasVideoAssetLibraryUseCases,
 )
-from ai_anime.ports import get_task_backend
+from ai_anime.modules.creative_canvas.application.vision_analysis import (
+    CreativeCanvasVisionAnalysisUseCases,
+)
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
 )
@@ -123,6 +134,15 @@ from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
 from ai_anime.modules.creative_canvas.infrastructure.job_results import (
     LocalCreativeCanvasJobResultReader,
 )
+from ai_anime.modules.creative_canvas.infrastructure.job_workspace import (
+    LocalCreativeCanvasJobWorkspace,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_job_runtime import (
+    CommercialCreativeCanvasImageJobRuntime,
+)
+from ai_anime.modules.creative_canvas.infrastructure.generation_history import (
+    LocalCreativeCanvasGenerationHistoryWriter,
+)
 from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import (
     LocalCreativeCanvasMainlineGenerationConfigSource,
     LocalCreativeCanvasScene360Runtime,
@@ -153,10 +173,13 @@ from ai_anime.modules.creative_canvas.infrastructure.staging_prop import (
     DirectorWorldCreativeCanvasStagingPropGenerator,
 )
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
-    FreezoneVisionMarkDetector,
+    PydanticAICreativeCanvasMarkDetector,
+)
+from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
+    VisionCreativeCanvasReversePromptGenerator,
 )
 from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
-    TaskBackendCreativeCanvasTaskScheduler,
+    TaskExecutionCreativeCanvasTaskScheduler,
 )
 from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
     LocalCreativeCanvasTextSourceReader,
@@ -174,21 +197,41 @@ from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import 
     SystemCreativeCanvasClock,
     UuidCreativeCanvasVideoAssetIdGenerator,
 )
+from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
+    PydanticAICreativeCanvasVisionAnalyzer,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_analysis_job_runtime import (
+    FfmpegCreativeCanvasVideoAnalysisJobRuntime,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_composition_job_runtime import (
+    FfmpegCreativeCanvasVideoCompositionJobRuntime,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_erase_job_runtime import (
+    FfmpegCreativeCanvasVideoEraseJobRuntime,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_generation_job_runtime import (
+    CommercialCreativeCanvasVideoGenerationJobRuntime,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_processing_job_runtime import (
+    FfmpegCreativeCanvasVideoProcessingJobRuntime,
+)
+from ai_anime.modules.task_execution.public import project_task_submission_use_cases
 
 
 async def translate_creative_canvas_text(
     *,
     text: str,
+    model: str,
     node_type: CreativeCanvasTextNodeType = "generic",
 ) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
-    return await translate_text(text=text, node_type=node_type)
+    return await translate_text(text=text, model=model, node_type=node_type)
 
 
 async def generate_creative_canvas_story_script(
     *,
     source_text: str,
     prompt: str = "",
-    model: str | None = None,
+    model: str,
 ) -> dict[str, object]:
     return await generate_story_script(
         source_text=source_text,
@@ -197,10 +240,14 @@ async def generate_creative_canvas_story_script(
     )
 
 
-def resolve_creative_canvas_story_script_model(
-    model: str | None,
-) -> dict[str, str]:
-    return resolve_story_script_model(model)
+def resolve_creative_canvas_vision_model(
+    model_override: str | None = None,
+) -> str:
+    from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
+        resolve_creative_canvas_vision_model as resolve,
+    )
+
+    return resolve(model_override)
 
 
 @lru_cache(maxsize=1)
@@ -284,6 +331,20 @@ def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
 
 
 @lru_cache(maxsize=1)
+def creative_canvas_job_workspace() -> CreativeCanvasJobWorkspace:
+    return LocalCreativeCanvasJobWorkspace()
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_generation_history_use_cases() -> (
+    CreativeCanvasGenerationHistoryUseCases
+):
+    return CreativeCanvasGenerationHistoryUseCases(
+        LocalCreativeCanvasGenerationHistoryWriter()
+    )
+
+
+@lru_cache(maxsize=1)
 def creative_canvas_mainline_generation_use_cases() -> (
     CreativeCanvasMainlineGenerationUseCases
 ):
@@ -293,8 +354,8 @@ def creative_canvas_mainline_generation_use_cases() -> (
         PillowCreativeCanvasImageAspectReader(),
         LocalCreativeCanvasScene360Runtime(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
@@ -340,7 +401,7 @@ def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
 def creative_canvas_mark_detection_use_cases() -> CreativeCanvasMarkDetectionUseCases:
     return CreativeCanvasMarkDetectionUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
-        FreezoneVisionMarkDetector(),
+        PydanticAICreativeCanvasMarkDetector(),
     )
 
 
@@ -349,16 +410,55 @@ def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUse
     return CreativeCanvasReversePromptUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeGsUseCases:
+def creative_canvas_reverse_prompt_execution_use_cases() -> (
+    CreativeCanvasReversePromptExecutionUseCases
+):
+    return CreativeCanvasReversePromptExecutionUseCases(
+        VisionCreativeCanvasReversePromptGenerator()
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_vision_analysis_use_cases() -> CreativeCanvasVisionAnalysisUseCases:
+    return CreativeCanvasVisionAnalysisUseCases(
+        PydanticAICreativeCanvasVisionAnalyzer()
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_job_execution_use_cases() -> CreativeCanvasJobExecutionUseCases:
+    workspace = creative_canvas_job_workspace()
+    return CreativeCanvasJobExecutionUseCases(
+        workspace,
+        CommercialCreativeCanvasImageJobRuntime(workspace),
+        FfmpegCreativeCanvasVideoProcessingJobRuntime(workspace),
+        FfmpegCreativeCanvasVideoCompositionJobRuntime(workspace),
+        FfmpegCreativeCanvasVideoEraseJobRuntime(workspace),
+        CommercialCreativeCanvasVideoGenerationJobRuntime(workspace),
+        FfmpegCreativeCanvasVideoAnalysisJobRuntime(
+            workspace,
+            creative_canvas_vision_analysis_use_cases(),
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_image_to_three_gs_use_cases() -> (
+    CreativeCanvasImageToThreeGsUseCases
+):
     return CreativeCanvasImageToThreeGsUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
@@ -370,45 +470,53 @@ def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCa
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases()
+        ),
     )
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_reference_image_editing_use_cases() -> CreativeCanvasImageEditingUseCases:
+def creative_canvas_reference_image_editing_use_cases() -> (
+    CreativeCanvasImageEditingUseCases
+):
     return CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGenerationUseCases:
+def creative_canvas_image_generation_use_cases() -> (
+    CreativeCanvasImageGenerationUseCases
+):
     return CreativeCanvasImageGenerationUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageGenerationModelRouter(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_audio_generation_use_cases() -> CreativeCanvasAudioGenerationUseCases:
+def creative_canvas_audio_generation_use_cases() -> (
+    CreativeCanvasAudioGenerationUseCases
+):
     return CreativeCanvasAudioGenerationUseCases(
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
@@ -427,20 +535,22 @@ def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingU
         ProjectCreativeCanvasMediaSourceResolver(),
         LocalCreativeCanvasTextSourceReader(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_video_processing_use_cases() -> CreativeCanvasVideoProcessingUseCases:
+def creative_canvas_video_processing_use_cases() -> (
+    CreativeCanvasVideoProcessingUseCases
+):
     return CreativeCanvasVideoProcessingUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(
-            get_task_backend,
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
             translate_runtime_errors=False,
         ),
     )
@@ -452,9 +562,7 @@ def creative_canvas_video_model_policy() -> ConfiguredCreativeCanvasVideoModelPo
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_video_asset_repository() -> (
-    LocalCreativeCanvasVideoAssetRepository
-):
+def creative_canvas_video_asset_repository() -> LocalCreativeCanvasVideoAssetRepository:
     return LocalCreativeCanvasVideoAssetRepository()
 
 
@@ -480,5 +588,7 @@ def creative_canvas_video_generation_use_cases() -> (
         creative_canvas_video_model_policy(),
         creative_canvas_video_asset_repository(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases()
+        ),
     )

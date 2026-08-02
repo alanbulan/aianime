@@ -14,7 +14,15 @@ pytestmark = pytest.mark.m03
 def test_project_update_accepts_spine_template_values():
     assert ProjectUpdate(spine_template="narrated").spine_template == "narrated"
     assert ProjectUpdate(spine_template="drama").spine_template == "drama"
-    assert IngestStart(filename="novel.txt", spine_template="narrated").spine_template == "narrated"
+    assert (
+        IngestStart(
+            filename="novel.txt",
+            textModel="cloud-text-standard",
+            embeddingModel="cloud-embedding-standard",
+            spine_template="narrated",
+        ).spine_template
+        == "narrated"
+    )
 
 
 def test_project_update_accepts_aspect_ratio_values():
@@ -260,6 +268,7 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
     monkeypatch, tmp_path
 ):
     from ai_anime.api.routes import ingest
+    from ai_anime.modules.story_intake import bootstrap as story_intake_bootstrap
 
     saved = {"spine_template": "drama"}
     uploads = tmp_path / "uploads"
@@ -278,19 +287,30 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
         lambda username, project, config=None, **kwargs: saved.update(config or {}),
     )
 
-    class _TaskBackend:
-        async def enqueue_project_task(self, ctx, **kwargs):
+    class _TaskSubmissions:
+        async def submit(self, ctx, submission):
             return SimpleNamespace(
-                task_state=SimpleNamespace(task_id="task-ingest"),
+                task_id="task-ingest",
+                task_key="task:ingest_fast:project:project-1:0",
                 backend="inline",
                 queue="inline",
             )
 
-    monkeypatch.setattr(ingest, "get_task_backend", lambda: _TaskBackend())
+    monkeypatch.setattr(
+        story_intake_bootstrap,
+        "project_task_submission_use_cases",
+        lambda: _TaskSubmissions(),
+    )
 
     response = await ingest.start_ingest(
         "demo",
-        IngestStart(filename="novel.txt", rebuild=True, spine_template="narrated"),
+        IngestStart(
+            filename="novel.txt",
+            textModel="cloud-text-standard",
+            embeddingModel="cloud-embedding-standard",
+            rebuild=True,
+            spine_template="narrated",
+        ),
         {"username": "alice"},
     )
 
@@ -314,7 +334,13 @@ async def test_start_ingest_rejects_spine_template_change_without_rebuild(
 
     response = await ingest.start_ingest(
         "demo",
-        IngestStart(filename="novel.txt", rebuild=False, spine_template="narrated"),
+        IngestStart(
+            filename="novel.txt",
+            textModel="cloud-text-standard",
+            embeddingModel="cloud-embedding-standard",
+            rebuild=False,
+            spine_template="narrated",
+        ),
         {"username": "alice"},
     )
 

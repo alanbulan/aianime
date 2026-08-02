@@ -16,19 +16,19 @@ import {
 } from '@/features/canvas/ui/MultiAngleEditorPanel';
 import { generateCanvasMultiAngle } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
 interface MultiAngleEditorOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
 }
 
 export const MultiAngleEditorOverlay = memo(
-  ({ node, imageSource, onClose }: MultiAngleEditorOverlayProps) => {
+  ({ projectId, node, imageSource, onClose }: MultiAngleEditorOverlayProps) => {
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -37,12 +37,6 @@ export const MultiAngleEditorOverlay = memo(
 
     const handleSubmit = useCallback(
       async (payload: MultiAngleSubmitPayload) => {
-        const project = readUrl().project;
-        if (!project) {
-          console.error('[multi-angle] no project in URL — cannot submit');
-          return;
-        }
-
         const sourceAspectRatio =
           typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
             ? ((node.data as { aspectRatio?: string }).aspectRatio ?? DEFAULT_ASPECT_RATIO)
@@ -83,7 +77,7 @@ export const MultiAngleEditorOverlay = memo(
         try {
           const { url } = await generateCanvasMultiAngle(
             {
-              projectId: project,
+              projectId,
               sourceUrl: imageSource,
               preset: payload.preset,
               yawDegrees: payload.horizontalDeg,
@@ -121,6 +115,7 @@ export const MultiAngleEditorOverlay = memo(
         imageSource,
         node,
         onClose,
+        projectId,
         setSelectedNode,
         updateNodeData,
       ],
@@ -138,6 +133,7 @@ export const MultiAngleEditorOverlay = memo(
         {/* 操作区跟随画布缩放（align=start → 锚点左上角，贴节点底边）。 */}
         <ZoomScaledToolbar origin="top left">
           <MultiAngleEditorPanel
+            projectId={projectId}
             imageSource={imageSource}
             onClose={onClose}
             onSubmit={handleSubmit}

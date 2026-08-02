@@ -11,8 +11,8 @@ function readVideoPaneComposition() {
   return source.slice(source.indexOf("export interface VideoPaneProps"));
 }
 
-describe("video backend options alignment", () => {
-  it("does not hardcode the VideoPane backend list", () => {
+describe("video model options alignment", () => {
+  it("does not hardcode the VideoPane model list", () => {
     const videoPane = readVideoPaneComposition();
     const videoPaneController = read(
       "src/modules/production/application/use-video-pane-controller.ts",
@@ -20,13 +20,13 @@ describe("video backend options alignment", () => {
 
     expect(videoPane).not.toContain("const VIDEO_BACKENDS");
     expect(videoPane).toContain("useVideoPaneController");
-    expect(videoPaneController).toContain("queries.useVideoBackends");
+    expect(videoPaneController).toContain("queries.useVideoModels");
   });
 
   it("preserves dialogue-only capability metadata in the Production domain", () => {
-    const backendDomain = read("src/modules/production/domain/video-backend.ts");
+    const modelDomain = read("src/modules/production/domain/video-model.ts");
 
-    expect(backendDomain).toContain("dialogue_only");
+    expect(modelDomain).toContain("capabilities.dialogueOnly");
   });
 
   it("supports the Grok Video inspector from backend capabilities", () => {
@@ -36,27 +36,26 @@ describe("video backend options alignment", () => {
     const seedance2ConfigView = read(
       "src/modules/production/presentation/Seedance2ConfigView.tsx",
     );
-    const backendDomain = read("src/modules/production/domain/video-backend.ts");
+    const modelDomain = read("src/modules/production/domain/video-model.ts");
     const videoConfig = read("src/modules/production/domain/video-config.ts");
 
-    expect(backendDomain).toContain("is_grok_video");
+    expect(modelDomain).toContain('normalized.includes("grokvideo")');
     expect(videoPaneController).toContain("showGrokVideoConfig");
     expect(seedance2ConfigView).toContain("Grok Video 检视器");
     expect(videoConfig).toContain('"3:2"');
   });
 
-  it("defaults to the ST2 canonical video backend instead of legacy comfyui", () => {
+  it("uses the authenticated VIDEO catalog without a static fallback", () => {
     const composition = read("src/modules/narrative_planning/composition.ts");
     const beatsController = read(
       "src/modules/narrative_planning/application/use-beats-page-controller.ts",
     );
-    const backendDomain = read("src/modules/production/domain/video-backend.ts");
+    const modelDomain = read("src/modules/production/domain/video-model.ts");
 
-    expect(composition).toContain(
-      "defaultVideoBackend: DEFAULT_VIDEO_BACKEND",
-    );
-    expect(beatsController).toContain("dependencies.defaultVideoBackend");
-    expect(backendDomain).toContain("huimeng_seedance-1.0-pro-fast");
-    expect(backendDomain).not.toContain("comfyui");
+    expect(composition).toContain("useVideoModels");
+    expect(composition).not.toContain("DEFAULT_VIDEO_BACKEND");
+    expect(beatsController).toContain("resolveAuthorizedVideoModel(");
+    expect(beatsController).not.toContain("defaultVideoModel");
+    expect(modelDomain).not.toContain("comfyui");
   });
 });

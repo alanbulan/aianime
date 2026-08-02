@@ -1,8 +1,8 @@
 """VLM-driven visual gate for sketch edit candidate cells.
 
 After `sketch_edit_execute` finishes, the summary JSON lists candidate
-cell paths keyed by beat number. This module asks a lightweight Gemini
-model whether each cell exhibits any of the registry's high-confidence
+cell paths keyed by beat number. This module asks the configured commercial
+vision model whether each cell exhibits any of the registry's high-confidence
 (`gate_enabled=1`) failure modes, then returns pass/fail per beat.
 
 `unsure` is treated as pass: the gate is intentionally conservative while
@@ -24,12 +24,17 @@ from typing import Any, Iterable
 
 import aiosqlite
 
+from ai_anime.model_access_policy import (
+    model_access_configured,
+    resolve_internal_model_for_role,
+    resolve_model_for_role,
+)
+from ai_anime.model_text_transport import request_model_chat_content
+from ai_anime.official_defaults import DEFAULT_FREEZONE_VISION_MODEL
 from ai_anime.verification import failure_registry
 
 
-DEFAULT_GATE_MODEL_GOOGLE = "gemini-3.5-flash"
-DEFAULT_GATE_MODEL_OPENROUTER = "gemini-3.5-flash"
-DEFAULT_GATE_MODEL = DEFAULT_GATE_MODEL_GOOGLE  # legacy alias (google-direct)
+DEFAULT_GATE_MODEL = DEFAULT_FREEZONE_VISION_MODEL
 
 
 @dataclass
@@ -169,96 +174,27 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
         return None
 
 
-def _resolve_gate_backend() -> tuple[str, str, str]:
-    """Pick the gate backend (provider, api_key, model) from env.
-
-    Priority mirrors what nanobanana uses so gating works wherever
-    generation already works:
-    1. `SKETCH_GATE_PROVIDER` / `SKETCH_GATE_API_KEY` / `SKETCH_GATE_MODEL`
-       explicit overrides
-    2. If `NANOBANANA_PROVIDER=openrouter` and `OPENROUTER_API_KEY` set,
-       route the gate through OpenRouter (gemini via OpenAI-compatible API)
-    3. Otherwise use Google direct with `GOOGLE_AI_API_KEY`/`GOOGLE_API_KEY`
-    """
-    explicit_provider = (os.environ.get("SKETCH_GATE_PROVIDER") or "").strip().lower()
-    explicit_key = (os.environ.get("SKETCH_GATE_API_KEY") or "").strip()
-    explicit_model = (os.environ.get("SKETCH_GATE_MODEL") or "").strip()
-    if explicit_provider and explicit_key:
-        model = explicit_model or (
-            DEFAULT_GATE_MODEL_OPENROUTER
-            if explicit_provider == "openrouter"
-            else DEFAULT_GATE_MODEL_GOOGLE
-        )
-        return explicit_provider, explicit_key, model
-
-    nb_provider = (os.environ.get("NANOBANANA_PROVIDER") or "").strip().lower()
-    openrouter_key = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
-    if nb_provider == "openrouter" and openrouter_key:
-        return "openrouter", openrouter_key, explicit_model or DEFAULT_GATE_MODEL_OPENROUTER
-
-    for var in ("GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"):
-        value = (os.environ.get(var) or "").strip()
-        if value:
-            return "google", value, explicit_model or DEFAULT_GATE_MODEL_GOOGLE
-
-    if openrouter_key:
-        return "openrouter", openrouter_key, explicit_model or DEFAULT_GATE_MODEL_OPENROUTER
-    return "", "", ""
+def _resolve_gate_model() -> str:
+    """Resolve the platform model SKU without selecting an upstream provider."""
+    return (os.environ.get("SKETCH_GATE_MODEL") or "").strip() or DEFAULT_GATE_MODEL
 
 
-async def _ask_vlm_google(
+async def _ask_vlm_once(
     *,
     image_bytes: bytes,
     prompt: str,
-    api_key: str,
-    model: str,
-) -> str:
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(api_key=api_key)
-    parts = [
-        prompt,
-        types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-    ]
-    response = await asyncio.to_thread(
-        client.models.generate_content,
-        model=model,
-        contents=parts,
-        config=types.GenerateContentConfig(
-            response_modalities=["TEXT"],
-            temperature=0.0,
-        ),
-    )
-    if not response.candidates:
-        return ""
-    candidate = response.candidates[0]
-    text_parts: list[str] = []
-    if candidate.content and candidate.content.parts:
-        for part in candidate.content.parts:
-            value = getattr(part, "text", None)
-            if value:
-                text_parts.append(value)
-    return "".join(text_parts).strip()
-
-
-async def _ask_vlm_openrouter(
-    *,
-    image_bytes: bytes,
-    prompt: str,
-    api_key: str,
     model: str,
     max_tokens: int = 512,
 ) -> str:
-    import httpx
-
+    effective_model = resolve_model_for_role(model, "TEXT")
     b64 = base64.b64encode(image_bytes).decode("ascii")
     data_url = f"data:image/png;base64,{b64}"
-    payload = {
-        "model": model,
-        "temperature": 0.0,
-        "max_tokens": max_tokens,
-        "messages": [
+    return await request_model_chat_content(
+        model=effective_model,
+        temperature=0.0,
+        max_tokens=max_tokens,
+        timeout_seconds=60.0,
+        messages=[
             {
                 "role": "user",
                 "content": [
@@ -267,57 +203,6 @@ async def _ask_vlm_openrouter(
                 ],
             }
         ],
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://ai_anime.ai",
-        "X-Title": "AI anime Studio",
-    }
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
-    choices = data.get("choices") or []
-    if not choices:
-        return ""
-    message = choices[0].get("message") or {}
-    content = message.get("content")
-    if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
-        parts: list[str] = []
-        for entry in content:
-            text = entry.get("text") if isinstance(entry, dict) else None
-            if text:
-                parts.append(text)
-        return "".join(parts).strip()
-    return ""
-
-
-async def _ask_vlm_once(
-    *,
-    image_bytes: bytes,
-    prompt: str,
-    provider: str,
-    api_key: str,
-    model: str,
-    max_tokens: int = 512,
-) -> str:
-    if provider == "openrouter":
-        return await _ask_vlm_openrouter(
-            image_bytes=image_bytes,
-            prompt=prompt,
-            api_key=api_key,
-            model=model,
-            max_tokens=max_tokens,
-        )
-    return await _ask_vlm_google(
-        image_bytes=image_bytes, prompt=prompt, api_key=api_key, model=model
     )
 
 
@@ -326,8 +211,6 @@ async def gate_single_cell(
     cell_path: Path,
     beat_number: int,
     active_modes: list[dict[str, Any]],
-    provider: str,
-    api_key: str,
     model: str,
     spatial_contract: dict[str, Any] | None = None,
     reference_paths: list[Path] | None = None,
@@ -355,8 +238,6 @@ async def gate_single_cell(
         raw = await _ask_vlm_once(
             image_bytes=_read_cell_bytes(image_path),
             prompt=prompt,
-            provider=provider,
-            api_key=api_key,
             model=model,
         )
     except Exception as exc:  # noqa: BLE001
@@ -403,13 +284,14 @@ async def gate_candidate_cells(
             "No gate_enabled failure modes registered; seed the registry first"
         )
 
-    provider, api_key, default_model = _resolve_gate_backend()
-    if not provider or not api_key:
-        raise RuntimeError(
-            "Gate requires a VLM key. Set SKETCH_GATE_API_KEY, or "
-            "OPENROUTER_API_KEY, or GOOGLE_AI_API_KEY in the environment."
-        )
-    resolved_model = model or default_model
+    explicit_model = str(model or "").strip()
+    resolved_model = (
+        resolve_model_for_role(explicit_model, "TEXT")
+        if explicit_model
+        else resolve_internal_model_for_role(_resolve_gate_model(), "TEXT")
+    )
+    if not model_access_configured():
+        raise RuntimeError("Visual gate model access is not configured")
 
     from ai_anime.verification.sketch_edit_execute import derive_audit_dir_name
 
@@ -442,8 +324,6 @@ async def gate_candidate_cells(
                 cell_path=cell_path,
                 beat_number=beat_number,
                 active_modes=active_modes,
-                provider=provider,
-                api_key=api_key,
                 model=resolved_model,
                 spatial_contract=spatial_contracts.get(beat_number),
                 reference_paths=reference_paths,
@@ -468,7 +348,7 @@ async def gate_candidate_cells(
 
     audit_payload: dict[str, Any] = {
         "summary_path": str(summary_path),
-        "provider": provider,
+        "provider": "commercial",
         "model": resolved_model,
         "started_at": ts,
         "active_modes": [mode["code"] for mode in active_modes],

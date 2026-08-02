@@ -35,8 +35,12 @@ from ai_anime.modules.production.domain.render_planning import (
     invalid_render_beat_numbers,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+    selection_scope,
+)
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import selection_scope
 from ai_anime.utils.ref_image_hash import RefImageHasher
 
 
@@ -111,6 +115,8 @@ class LocalRenderPlanningPreparer:
                 project_config,
                 image_generation_selection,
             )
+            if not render_image_selection:
+                raise RenderPlanRejected("image_model_required")
             return RenderPlanningMaterials(
                 all_beats=all_beats,
                 selected_beats=selected_beats,
@@ -174,7 +180,6 @@ class NanoBananaRenderPlanEngine:
             aspect_mode=aspect_mode,
             character_map=materials.character_map,
             force_one_by_one=force_one_by_one,
-            image_generation_selection=materials.image_generation_selection,
         )
         return tuple(
             RenderPlanGrid(
@@ -214,23 +219,24 @@ class NanoBananaRenderPlanEngine:
         )
 
 
-class TaskBackendRenderPlanScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionRenderPlanScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: RenderPlanGridTask,
     ) -> RenderPlanGridTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=SELECTED_RENDER_REGEN_TASK_TYPE,
-            queue_kind="default",
-            episode=task.episode_num,
-            scope=selection_scope(task.grid.mode_key, task.grid.beat_numbers),
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=SELECTED_RENDER_REGEN_TASK_TYPE,
+                episode=task.episode_num,
+                scope=selection_scope(task.grid.mode_key, task.grid.beat_numbers),
+                payload=task.backend_payload(),
+            ),
         )
         return RenderPlanGridTaskReceipt(
-            task_id=str(queued.task_state.task_id),
+            task_id=receipt.task_id,
         )

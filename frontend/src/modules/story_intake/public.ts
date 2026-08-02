@@ -1,5 +1,6 @@
 export {
   IngestPageContent,
+  loadDefaultKnowledgeModels,
   startStoryIngestion,
   uploadStoryDocument,
   useChapters,
@@ -19,3 +20,4 @@ export type {
   StartIngestionParams,
   UploadResult,
 } from "@/modules/story_intake/domain/types";
+export type { KnowledgeModelSelection } from "@/modules/story_intake/domain/knowledge-model-selection";

@@ -1,16 +1,39 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { awaitTaskCompletion, listTasks } from "@/task-center/public";
+import { awaitTaskCompletion, listTasks } from "@/modules/task_execution/public";
+import type { TaskState } from "@/modules/task_execution/public";
 import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/task-center/public", () => ({
+vi.mock("@/modules/task_execution/public", () => ({
   awaitTaskCompletion: vi.fn(),
   listTasks: vi.fn(),
 }));
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
+
+function completedTask(taskKey: string, result: unknown = null): TaskState {
+  return {
+    task_key: taskKey,
+    task_id: taskKey,
+    task_type: "freezone_gen",
+    username: "local",
+    project: "project-1",
+    episode: 0,
+    beat_num: null,
+    scope: null,
+    status: "completed",
+    progress: 1,
+    current_task: "completed",
+    result,
+    error: null,
+    logs: [],
+    created_at: "2026-08-01T00:00:00Z",
+    updated_at: "2026-08-01T00:00:01Z",
+    completed_at: "2026-08-01T00:00:01Z",
+  };
+}
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
@@ -21,22 +44,8 @@ beforeEach(() => {
 describe("freezoneGenerationTaskGateway", () => {
   it("finds a project task by its task key", async () => {
     vi.mocked(listTasks).mockResolvedValue([
-      {
-        task_type: "freezone_gen",
-        task_key: "other-task",
-        username: "local",
-        project: "project-1",
-        episode: 0,
-        status: "completed",
-      },
-      {
-        task_type: "freezone_gen",
-        task_key: "target-task",
-        username: "local",
-        project: "project-1",
-        episode: 0,
-        status: "completed",
-      },
+      completedTask("other-task"),
+      completedTask("target-task"),
     ]);
 
     await expect(
@@ -46,20 +55,24 @@ describe("freezoneGenerationTaskGateway", () => {
   });
 
   it("returns the completed task result", async () => {
-    vi.mocked(awaitTaskCompletion).mockResolvedValue({
-      task_type: "freezone_gen",
-      task_key: "task-1",
-      username: "local",
-      project: "project-1",
-      episode: 0,
-      status: "completed",
-      result: { output_url: "/result.png" },
-    });
+    vi.mocked(awaitTaskCompletion).mockResolvedValue(
+      completedTask("task-1", { output_url: "/result.png" }),
+    );
 
     await expect(
       freezoneGenerationTaskGateway.awaitCompletion("task-1", "project-1"),
     ).resolves.toEqual({ result: { output_url: "/result.png" } });
     expect(awaitTaskCompletion).toHaveBeenCalledWith("task-1", "project-1");
+  });
+
+  it("normalizes a non-object transport result at the Canvas boundary", async () => {
+    vi.mocked(awaitTaskCompletion).mockResolvedValue(
+      completedTask("task-2", ["unexpected"]),
+    );
+
+    await expect(
+      freezoneGenerationTaskGateway.awaitCompletion("task-2", "project-1"),
+    ).resolves.toEqual({ result: null });
   });
 
   it("fetches a generated media result URL from the encoded task path", async () => {

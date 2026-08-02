@@ -3,21 +3,25 @@ import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("Task Center public contract", () => {
-  it("exports the task query hooks from one public entry", async () => {
-    const taskCenter = await import("@/task-center/public");
+  it("exports Task Center capabilities from Task Execution", async () => {
+    const taskExecution = await import("@/modules/task_execution/public");
 
-    expect(typeof taskCenter.useTasks).toBe("function");
-    expect(typeof taskCenter.useCancelTask).toBe("function");
-    expect(typeof taskCenter.useClearCompleted).toBe("function");
-    expect(typeof taskCenter.useDeleteTask).toBe("function");
-    expect(typeof taskCenter.listTasks).toBe("function");
-    expect(typeof taskCenter.awaitTaskCompletion).toBe("function");
-    expect(typeof taskCenter.TaskCompletionError).toBe("function");
+    expect(typeof taskExecution.TaskCenterProvider).toBe("function");
+    expect(typeof taskExecution.useTaskCenterStore).toBe("function");
+    expect(typeof taskExecution.useTaskSubscribe).toBe("function");
+    expect(typeof taskExecution.useTasks).toBe("function");
+    expect(typeof taskExecution.useCancelTask).toBe("function");
+    expect(typeof taskExecution.useClearCompleted).toBe("function");
+    expect(typeof taskExecution.useDeleteTask).toBe("function");
+    expect(typeof taskExecution.listTasks).toBe("function");
+    expect(typeof taskExecution.awaitTaskCompletion).toBe("function");
+    expect(typeof taskExecution.TaskCompletionError).toBe("function");
   });
 
   it("does not retain legacy task entries", () => {
     expect(existsSync("src/lib/queries/tasks.ts")).toBe(false);
     expect(existsSync("src/api/tasks.ts")).toBe(false);
+    expect(existsSync("src/task-center")).toBe(false);
   });
 
   it("keeps the active task stream adapter available", async () => {

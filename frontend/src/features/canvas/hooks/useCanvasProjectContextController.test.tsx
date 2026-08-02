@@ -10,15 +10,11 @@ import {
 } from '../domain/canvasNodes';
 import { useCanvasProjectContextController } from './useCanvasProjectContextController';
 
-const urlMocks = vi.hoisted(() => ({
-  readUrl: vi.fn(),
-}));
 const narrativeMocks = vi.hoisted(() => ({
   prefetchEpisodeBeats: vi.fn(),
   prefetchEpisodeDetail: vi.fn(),
 }));
 
-vi.mock('@/lib/url-params', () => urlMocks);
 vi.mock('@/modules/narrative_planning/public', () => narrativeMocks);
 
 function beatContextNode(): CanvasNode {
@@ -33,13 +29,9 @@ function beatContextNode(): CanvasNode {
 describe('useCanvasProjectContextController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    urlMocks.readUrl.mockReturnValue({
-      project: 'project-1',
-      canvas: 'canvas-1',
-    });
   });
 
-  it('resolves the project once and prefetches both episode resources', () => {
+  it('uses the explicit canvas context and prefetches both episode resources', () => {
     const queryClient = new QueryClient();
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={queryClient}>
@@ -47,15 +39,25 @@ describe('useCanvasProjectContextController', () => {
       </QueryClientProvider>
     );
     const { result, rerender } = renderHook(
-      ({ nodes }) => useCanvasProjectContextController({ nodes }),
+      ({ projectId, canvasId, nodes }) => useCanvasProjectContextController({
+        projectId,
+        canvasId,
+        nodes,
+      }),
       {
-        initialProps: { nodes: [beatContextNode()] },
+        initialProps: {
+          projectId: 'project-1',
+          canvasId: 'canvas-1',
+          nodes: [beatContextNode()],
+        },
         wrapper,
       },
     );
 
-    expect(result.current.projectId).toBe('project-1');
-    expect(urlMocks.readUrl).toHaveBeenCalledOnce();
+    expect(result.current).toEqual({
+      projectId: 'project-1',
+      canvasId: 'canvas-1',
+    });
     expect(narrativeMocks.prefetchEpisodeBeats).toHaveBeenCalledWith(
       queryClient,
       'project-1',
@@ -67,7 +69,19 @@ describe('useCanvasProjectContextController', () => {
       3,
     );
 
-    rerender({ nodes: [beatContextNode()] });
-    expect(urlMocks.readUrl).toHaveBeenCalledOnce();
+    rerender({
+      projectId: 'project-2',
+      canvasId: 'canvas-2',
+      nodes: [beatContextNode()],
+    });
+    expect(result.current).toEqual({
+      projectId: 'project-2',
+      canvasId: 'canvas-2',
+    });
+    expect(narrativeMocks.prefetchEpisodeBeats).toHaveBeenLastCalledWith(
+      queryClient,
+      'project-2',
+      3,
+    );
   });
 });

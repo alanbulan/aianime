@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { readUrl } from '@/lib/url-params';
 import {
   embedStoryboardImageMetadata,
   mergeStoryboardImages,
@@ -9,13 +8,18 @@ import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
-import type {
-  CreateBlankFreezoneCanvasRequest,
-  FreezoneCanvasPayload,
-  FreezonePresetCanvasRequest,
-} from '@/features/freezone/public';
-
-import { canvasEventBus } from './application/canvasServices';
+import {
+  loadCommercialModelCatalog,
+  resolveRequiredCatalogModelCode,
+} from '@/modules/model_usage/public';
+import {
+  composeCapability,
+  getFreezoneCanvasMetadata,
+  publishCanvasCommitRequested,
+  resolveCurrentShotMetadataPrompt,
+  resolvePromptReferenceRoles,
+  type CanvasAssetDragPayload,
+} from '@/modules/creative_canvas/public';
 import {
   analyzeCanvasVideoStory as analyzeCanvasVideoStoryUseCase,
   type AnalyzeCanvasVideoStoryParams,
@@ -29,17 +33,6 @@ import {
   getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
   type GetCanvasDirectorStagePaletteParams,
 } from './application/directorStagePalette';
-import {
-  createCanvasFromPreset as createCanvasFromPresetUseCase,
-  createBlankFreezoneCanvas as createBlankFreezoneCanvasUseCase,
-  deleteFreezoneCanvas as deleteFreezoneCanvasUseCase,
-  generateClientSaveId as generateClientSaveIdUseCase,
-  getFreezoneCanvas as getFreezoneCanvasUseCase,
-  listFreezoneCanvases as listFreezoneCanvasesUseCase,
-  putFreezoneCanvas as putFreezoneCanvasUseCase,
-  putFreezoneCanvasKeepalive as putFreezoneCanvasKeepaliveUseCase,
-} from './application/freezoneCanvasStorage';
-import { createFreezoneCanvasQueryHooks } from './hooks/freezoneCanvasQueryHooks';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
@@ -194,11 +187,10 @@ import { browserToolImageGateway } from './infrastructure/browserToolImageGatewa
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
-import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneAudioSeparationGateway } from './infrastructure/freezoneAudioSeparationGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
-import { freezoneCanvasStorageGateway } from './infrastructure/freezoneCanvasStorageGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
@@ -224,7 +216,6 @@ import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
-import type { CanvasAssetDragPayload } from './domain/assetDrag';
 
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
@@ -234,6 +225,13 @@ const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway = {
   getBeatManifest: ({ projectId, episode, beat }) =>
     loadBeatDirectorStageManifest(projectId, episode, beat),
 };
+
+const freezoneAiGateway = createFreezoneAiGateway({
+  composeCapability,
+  getCanvasMetadata: getFreezoneCanvasMetadata,
+  resolveShotMetadataPrompt: resolveCurrentShotMetadataPrompt,
+  resolvePromptReferenceRoles,
+});
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { rememberLastVideoModel } from './nodeFactoryComposition';
@@ -253,9 +251,6 @@ export const canvasToolProcessor = new CanvasToolProcessor(
 export const canvasAiGateway = freezoneAiGateway;
 export const CURRENT_RUNTIME_SESSION_ID =
   browserGenerationRuntimeGateway.runtimeSessionId;
-export const { useFreezoneCanvases } = createFreezoneCanvasQueryHooks(
-  freezoneCanvasStorageGateway,
-);
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();
@@ -326,19 +321,23 @@ export function migratePastedNodeAssets(
 }
 
 export function uploadLocalImageToBackend(
+  projectId: string,
   localImageUrl: string,
   filename: string,
 ) {
   return uploadLocalImageToBackendUseCase(
     freezoneAssetGateway,
     freezoneAssetGateway,
-    readUrl().project,
+    projectId,
     localImageUrl,
     filename,
   );
 }
 
-export function exportStoryboardGrid(command: ExportStoryboardGridCommand) {
+export function exportStoryboardGrid(
+  projectId: string,
+  command: ExportStoryboardGridCommand,
+) {
   return exportStoryboardGridUseCase(command, {
     timestamp: Date.now,
     now: () => performance.now(),
@@ -347,18 +346,20 @@ export function exportStoryboardGrid(command: ExportStoryboardGridCommand) {
     applyTextOverlay: applyStoryboardTextOverlay,
     persistImage: browserImageRuntimeGateway.persist,
     embedMetadata: embedStoryboardImageMetadata,
-    uploadImage: uploadLocalImageToBackend,
+    uploadImage: (source, filename) =>
+      uploadLocalImageToBackend(projectId, source, filename),
     info: (message, context) => console.info(message, context),
     warn: (message, error) => console.warn(message, error),
   });
 }
 
 export function packStoryboardFrames(
+  projectId: string,
   frames: ExportStoryboardGridCommand['frames'],
 ) {
   return packStoryboardFramesUseCase(
     frames,
-    readUrl().project ?? '',
+    projectId,
     { saveImage: saveImageSourceToDirectory },
   );
 }
@@ -385,6 +386,7 @@ export function validateVideoReferenceAudioDuration(
 }
 
 export function uploadAndAutoCommitSelectedBackgroundCandidate(
+  projectId: string,
   target: SelectedBackgroundTarget,
   blob: Blob,
   filename: string,
@@ -393,8 +395,8 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
   return uploadAndAutoCommitSelectedBackgroundCandidateUseCase(
     freezoneAssetGateway,
     zustandCanvasGraphGateway,
-    canvasEventBus,
-    readUrl().project,
+    publishCanvasCommitRequested,
+    projectId,
     target,
     blob,
     filename,
@@ -416,15 +418,11 @@ export function stageSelectedBackgroundOutputForSkill(
 }
 
 export function regenerateExportImageNode(
-  params: Omit<
-    RegenerateExportImageNodeParams,
-    'projectId' | 'runtimeSessionId'
-  >,
+  params: Omit<RegenerateExportImageNodeParams, 'runtimeSessionId'>,
 ) {
   return regenerateExportImageNodeUseCase(
     {
       ...params,
-      projectId: readUrl().project,
       runtimeSessionId: CURRENT_RUNTIME_SESSION_ID,
     },
     freezoneAiGateway,
@@ -479,15 +477,19 @@ export function analyzeCanvasVideoStory(
   });
 }
 
-export function generateCanvasStoryScript(
+export async function generateCanvasStoryScript(
   params: GenerateCanvasStoryScriptParams,
   onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
 ) {
-  return generateCanvasStoryScriptUseCase(params, {
+  const model = await resolveCanvasTextModel(params.command.model);
+  return generateCanvasStoryScriptUseCase(
+    { ...params, command: { ...params.command, model } },
+    {
     submissionGateway: freezoneStoryScriptGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
-  });
+    },
+  );
 }
 
 export function generateCanvasReversePrompt(
@@ -649,82 +651,6 @@ export function getCanvasDirectorStagePalette(
   );
 }
 
-export function getFreezoneCanvas(
-  projectId: string,
-  canvasId: string,
-  options?: { signal?: AbortSignal },
-) {
-  return getFreezoneCanvasUseCase(
-    { projectId, canvasId, signal: options?.signal },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function listFreezoneCanvases(
-  projectId: string,
-  options?: { signal?: AbortSignal },
-) {
-  return listFreezoneCanvasesUseCase(
-    { projectId, signal: options?.signal },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function putFreezoneCanvas(
-  projectId: string,
-  canvasId: string,
-  payload: FreezoneCanvasPayload,
-) {
-  return putFreezoneCanvasUseCase(
-    { projectId, canvasId, payload },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function putFreezoneCanvasKeepalive(
-  projectId: string,
-  canvasId: string,
-  payload: FreezoneCanvasPayload,
-) {
-  return putFreezoneCanvasKeepaliveUseCase(
-    { projectId, canvasId, payload },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function generateClientSaveId() {
-  return generateClientSaveIdUseCase(uuidGenerator);
-}
-
-export function createBlankFreezoneCanvas(
-  projectId: string,
-  request: CreateBlankFreezoneCanvasRequest,
-) {
-  return createBlankFreezoneCanvasUseCase(
-    projectId,
-    request,
-    freezoneCanvasStorageGateway,
-    uuidGenerator,
-  );
-}
-
-export function deleteFreezoneCanvas(projectId: string, canvasId: string) {
-  return deleteFreezoneCanvasUseCase(
-    { projectId, canvasId },
-    freezoneCanvasStorageGateway,
-  );
-}
-
-export function createCanvasFromPreset(
-  projectId: string,
-  payload: FreezonePresetCanvasRequest,
-) {
-  return createCanvasFromPresetUseCase(
-    { projectId, payload },
-    freezoneCanvasStorageGateway,
-  );
-}
-
 export function awaitCanvasSkillRunResult(
   params: AwaitCanvasSkillRunResultParams,
 ) {
@@ -737,11 +663,30 @@ export function awaitCanvasSkillRunResult(
   });
 }
 
-export function translateCanvasText(params: TranslateCanvasTextParams) {
-  return translateCanvasTextUseCase(params, {
+export async function translateCanvasText(
+  params: Omit<TranslateCanvasTextParams, 'model'> & { model?: string },
+) {
+  const model = await resolveCanvasTextModel(params.model);
+  return translateCanvasTextUseCase({ ...params, model }, {
     translationGateway: freezoneCanvasTextTranslationGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
+}
+
+async function resolveCanvasTextModel(requested?: string): Promise<string> {
+  const catalog = await loadCommercialModelCatalog('TEXT');
+  const normalized = requested?.trim() ?? '';
+  if (
+    normalized &&
+    catalog.items.some(
+      (item) =>
+        item.operation.trim().toUpperCase() === 'TEXT' &&
+        item.code === normalized,
+    )
+  ) {
+    return normalized;
+  }
+  return resolveRequiredCatalogModelCode(catalog, 'TEXT');
 }
 
 export function submitVideoGeneration(params: SubmitVideoGenerationParams) {
@@ -759,6 +704,7 @@ export function completeVideoGenerationTask(
 }
 
 export function pollExportImageGeneration(
+  projectId: string,
   params: Omit<PollExportImageGenerationParams, 'runtimeSessionId'>,
 ) {
   return pollExportImageGenerationUseCase(
@@ -770,7 +716,8 @@ export function pollExportImageGeneration(
       getGenerateImageJob: (jobId) => freezoneAiGateway.getGenerateImageJob(jobId),
       prepareNodeImage,
       embedStoryboardImageMetadata,
-      uploadLocalImage: uploadLocalImageToBackend,
+      uploadLocalImage: (source, filename) =>
+        uploadLocalImageToBackend(projectId, source, filename),
       showErrorDialog: showErrorDialogInfrastructure,
       sleep: (delayMs) =>
         new Promise<void>((resolve) => {

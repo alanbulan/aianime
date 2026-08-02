@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 
 import type { CanvasStyleTemplate } from "@/features/canvas/application/generationCatalog";
 import { loadCanvasStyleTemplates } from "@/features/canvas/catalogComposition";
-import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneStyleTemplatesResult {
   templates: CanvasStyleTemplate[];
@@ -69,11 +68,8 @@ function subscribe(project: string | null, callback: () => void) {
 }
 
 export function useFreezoneStyleTemplates(
-  projectOverride?: string | null,
+  project: string | null,
 ): UseFreezoneStyleTemplatesResult {
-  const project =
-    projectOverride !== undefined ? projectOverride : readUrl().project;
-
   if (project) ensureLoaded(project);
 
   return useSyncExternalStore(

@@ -23,7 +23,7 @@ export const freezoneRedrawTaskGateway: CanvasRedrawTaskGateway = {
           aspect_ratio: command.aspectRatio,
           num_images: 1,
           image_size: command.imageSize,
-          ...(command.model ? { model: command.model } : {}),
+          model: command.model,
         },
       },
     );

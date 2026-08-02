@@ -43,7 +43,6 @@ import {
 import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
-import { readUrl } from '@/lib/url-params';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const SPAWN_UPLOAD_WIDTH = 320;
@@ -55,6 +54,8 @@ export interface TextAnnotationNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
+  canvasId: string;
 }
 
 export function useTextAnnotationNodeController({
@@ -63,6 +64,8 @@ export function useTextAnnotationNodeController({
   selected,
   width,
   height,
+  projectId,
+  canvasId,
 }: TextAnnotationNodeControllerOptions) {
   const { t } = useTranslation();
   const reactFlow = useReactFlow();
@@ -85,7 +88,7 @@ export function useTextAnnotationNodeController({
     typeof data.model === 'string' && data.model.length > 0
       ? data.model
       : DEFAULT_SHARED_MODEL_ID;
-  const { models: videoModels } = useFreezoneVideoModels();
+  const { models: videoModels } = useFreezoneVideoModels(projectId);
   const reversePromptCost = useGenerationCreditCost(
     mode === 'imageToPrompt' ? 'freezone_image_reverse_prompt' : '',
     null,
@@ -253,9 +256,8 @@ export function useTextAnnotationNodeController({
   );
 
   const runImageToPrompt = useCallback(async () => {
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error('[text-node] no project in URL');
+      console.error('[text-node] missing project context');
       return;
     }
     const state = useCanvasStore.getState();
@@ -277,7 +279,7 @@ export function useTextAnnotationNodeController({
         {
           projectId,
           rawSourceUrl: rawUrl,
-          canvasId: readUrl().canvas ?? 'default',
+          canvasId,
           nodeId: id,
         },
         (task) => updateNodeData(id, generationTaskDescriptor(task)),
@@ -304,16 +306,15 @@ export function useTextAnnotationNodeController({
         generationStartedAt: null,
       });
     }
-  }, [id, updateNodeData]);
+  }, [canvasId, id, projectId, updateNodeData]);
 
   const runTextToVideo = useCallback(async () => {
     const promptText = content.trim();
     if (promptText.length === 0) {
       return;
     }
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error('[text-node] no project in URL');
+      console.error('[text-node] missing project context');
       return;
     }
     const state = useCanvasStore.getState();
@@ -375,7 +376,7 @@ export function useTextAnnotationNodeController({
           model: videoModel,
           humanReview: false,
           sceneOptimize: null,
-          canvasId: readUrl().canvas ?? 'default',
+          canvasId,
           nodeId: videoNodeId,
         });
         updateNodeData(videoNodeId, generationTaskDescriptor(reference));
@@ -411,7 +412,15 @@ export function useTextAnnotationNodeController({
     };
 
     await Promise.allSettled(targetIds.map(runOne));
-  }, [content, duplicateNodeAsSibling, id, updateNodeData, videoModels]);
+  }, [
+    canvasId,
+    content,
+    duplicateNodeAsSibling,
+    id,
+    projectId,
+    updateNodeData,
+    videoModels,
+  ]);
 
   const textPlaceholder = t('node.textNode.placeholder');
   const hasUserContent = hasTextAnnotationUserContent(
@@ -460,9 +469,8 @@ export function useTextAnnotationNodeController({
     if (content.trim().length === 0) {
       return;
     }
-    const projectId = readUrl().project;
     if (!projectId) {
-      console.error('[text-node] translate: no project in URL');
+      console.error('[text-node] translate: missing project context');
       return;
     }
     setIsTranslating(true);
@@ -471,7 +479,7 @@ export function useTextAnnotationNodeController({
         projectId,
         text: content,
         nodeType: 'text',
-        canvasId: readUrl().canvas ?? 'default',
+        canvasId,
         nodeId: id,
       });
       updateNodeData(id, { content: result.translatedText });
@@ -480,10 +488,19 @@ export function useTextAnnotationNodeController({
     } finally {
       setIsTranslating(false);
     }
-  }, [content, id, isGenerating, isTranslating, updateNodeData]);
+  }, [
+    canvasId,
+    content,
+    id,
+    isGenerating,
+    isTranslating,
+    projectId,
+    updateNodeData,
+  ]);
 
   return {
     id,
+    projectId,
     data,
     selected,
     content,

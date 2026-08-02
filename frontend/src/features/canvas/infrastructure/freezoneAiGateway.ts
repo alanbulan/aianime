@@ -1,34 +1,12 @@
 // Copyright (c) 2026 AI anime
-// AiGateway implementation that talks to AI anime's `/api/v1/projects/<project_id>/freezone/*`
-// endpoints.
-//
-// Protocol mapping:
-//   - 0 references            → POST /freezone/gen   (text → image)
-//   - 1+ references           → POST /freezone/edit  (1st = base, rest = extra)
-//   - submit returns task_key → poll project-scoped task SSE for completion
-//   - on completion → fetch /freezone/jobs/<type>/<id>/result for the URL
-//
-// Provider/model routing (v1.1):
-//   - upstream node payload's `model` field is split on '/' → (provider, model)
-//     e.g. "openai/gpt-image-2" → provider="openai", model="gpt-image-2"
-//   - if no '/' → entire string treated as model, provider left as null
-//     (backend falls back to NANOBANANA_PROVIDER env)
-//   - extraParams.quality is forwarded for openai gpt-image-2
-
 import { apiCall } from "@/shared/api/client";
-import { readUrl } from "@/lib/url-params";
-import {
-  composeCapability,
-  getFreezoneCanvasMetadata,
-  resolveCurrentShotMetadataPrompt,
-  resolvePromptReferenceRoles,
-} from "@/features/freezone/public";
+
 import type {
   AiGateway,
+  CanvasGenerationScope,
   CanvasGenerationTaskRef,
   GenerateImagePayload,
 } from "../application/ports";
-import type { CanvasImageModelProvider } from "../application/generationCatalog";
 import {
   ensureBackendImageUrl,
   ensureBackendImageUrls,
@@ -36,80 +14,39 @@ import {
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
-interface ProviderModel {
-  provider: CanvasImageModelProvider | null;
-  model: string | null;
+interface ComposedCapabilityJob {
+  readonly prompt: string;
+  readonly referenceUrls: string[];
+  readonly aspectRatio: string;
+  readonly imageSize: string;
+  readonly quality?: string;
 }
 
-/** Split frontend model strings into AI anime's provider/model pair. */
-const PLACEHOLDER_MODEL_TOKENS = new Set(["default", "auto", ""]);
-const SUPPORTED_PROVIDERS = new Set<CanvasImageModelProvider>([
-  "huimeng",
-  "openai",
-  "openrouter",
-]);
-
-function splitProviderModel(input: string | undefined | null): ProviderModel {
-  if (!input) return { provider: null, model: null };
-  const idx = input.indexOf("/");
-  if (idx <= 0) {
-    return { provider: null, model: input };
-  }
-  const providerToken = input.slice(0, idx);
-  const provider = SUPPORTED_PROVIDERS.has(
-    providerToken as CanvasImageModelProvider,
-  )
-    ? (providerToken as CanvasImageModelProvider)
-    : null;
-  const rawModel = input.slice(idx + 1);
-  // Model files use placeholder tokens like
-  // "openrouter/default" or "huimeng/default" so the backend can fall back
-  // to NANOBANANA_MODEL env. Strip those so we don't ship a bogus model name.
-  const model = PLACEHOLDER_MODEL_TOKENS.has(rawModel.toLowerCase())
-    ? null
-    : rawModel;
-  return { provider, model };
+interface PromptProjection {
+  readonly cleanedPrompt: string;
+  readonly suffix: string;
 }
 
-function readQuality(payload: GenerateImagePayload): string | null {
-  const q = payload.extraParams?.quality;
-  return typeof q === "string" ? q : null;
+interface ReferenceRoleProjection extends PromptProjection {
+  readonly references: string[];
 }
 
-interface JobRecord {
-  ref: CanvasGenerationTaskRef;
-  projectId: string;
-  promise: Promise<string>;
-  status: "queued" | "running" | "succeeded" | "failed";
-  result?: string;
-  error?: string;
-}
-
-const jobs = new Map<string, JobRecord>();
-
-function currentProjectId(): string {
-  const p = readUrl().project;
-  if (!p) {
-    throw new Error("No project selected — open Freezone with ?p=<project_id>");
-  }
-  return p;
-}
-
-/** Active canvas id for per-node history; mirrors App.tsx's URL default. */
-function currentCanvasId(): string {
-  return readUrl().canvas ?? "default";
-}
-
-/** AI anime's API uses "1:1" / "16:9" etc — pass through. */
-function toAspectRatio(payload: GenerateImagePayload): string {
-  return payload.aspectRatio || "1:1";
-}
-
-/** Normalize the frontend image-size enum (e.g. "1K") to AI anime's
- * `image_size` field. We accept anything; backend currently uses "0.5K"/"1K"/"2K"/"4K". */
-function toImageSize(payload: GenerateImagePayload): string {
-  const raw = (payload.size || "2K").toString();
-  return raw;
+export interface FreezoneAiGatewayDependencies {
+  readonly composeCapability: (
+    capabilityId: string,
+    context: {
+      inputUrls: string[];
+      params: Record<string, unknown>;
+      nodePrompt: string;
+      metadata: Record<string, unknown> | null;
+    },
+  ) => ComposedCapabilityJob | null;
+  readonly getCanvasMetadata: () => Record<string, unknown> | null;
+  readonly resolveShotMetadataPrompt: (prompt: string) => PromptProjection;
+  readonly resolvePromptReferenceRoles: (
+    prompt: string,
+    references: string[],
+  ) => ReferenceRoleProjection;
 }
 
 interface ImageEditSubmission {
@@ -118,13 +55,34 @@ interface ImageEditSubmission {
   readonly extraReferenceUrls: string[];
   readonly aspectRatio: string;
   readonly imageSize: string;
-  readonly provider: CanvasImageModelProvider | null;
-  readonly model: string | null;
+  readonly model: string;
   readonly modelId?: string;
   readonly genMode?: string;
   readonly quality: string | null | undefined;
   readonly canvasId: string;
   readonly nodeId?: string;
+}
+
+interface JobRecord {
+  readonly ref: CanvasGenerationTaskRef;
+  readonly projectId: string;
+  readonly promise: Promise<string>;
+  status: "queued" | "running" | "succeeded" | "failed";
+  result?: string;
+  error?: string;
+}
+
+function readQuality(payload: GenerateImagePayload): string | null {
+  const quality = payload.extraParams?.quality;
+  return typeof quality === "string" ? quality : null;
+}
+
+function toAspectRatio(payload: GenerateImagePayload): string {
+  return payload.aspectRatio || "1:1";
+}
+
+function toImageSize(payload: GenerateImagePayload): string {
+  return (payload.size || "2K").toString();
 }
 
 async function submitImageEdit(
@@ -146,8 +104,7 @@ async function submitImageEdit(
         extra_reference_urls: extraReferenceUrls,
         aspect_ratio: submission.aspectRatio ?? "2:3",
         image_size: submission.imageSize ?? "2K",
-        provider: submission.provider ?? null,
-        model: submission.model ?? null,
+        model: submission.model,
         ...(submission.modelId ? { model_id: submission.modelId } : {}),
         ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
         quality: submission.quality ?? null,
@@ -159,53 +116,46 @@ async function submitImageEdit(
 }
 
 async function submitJob(
+  scope: CanvasGenerationScope,
   payload: GenerateImagePayload,
+  dependencies: FreezoneAiGatewayDependencies,
 ): Promise<{ ref: CanvasGenerationTaskRef; projectId: string }> {
-  const projectId = currentProjectId();
+  const { projectId, canvasId } = scope;
   const capabilityJob = payload.capabilityId
-    ? composeCapability(payload.capabilityId, {
-      inputUrls: payload.referenceImages ?? [],
-      params: payload.capabilityParams ?? {},
-      nodePrompt: payload.prompt,
-      metadata: getFreezoneCanvasMetadata(),
-    })
+    ? dependencies.composeCapability(payload.capabilityId, {
+        inputUrls: payload.referenceImages ?? [],
+        params: payload.capabilityParams ?? {},
+        nodePrompt: payload.prompt,
+        metadata: dependencies.getCanvasMetadata(),
+      })
     : null;
   const effectivePrompt = capabilityJob?.prompt ?? payload.prompt;
-  const effectiveRefs = capabilityJob?.referenceUrls ?? payload.referenceImages ?? [];
-  // User selection from the bottom-left model/provider switcher wins over the
-  // capability's hard-coded default — capabilities only provide the fallback
-  // model so the node can run before the user picks anything.
-  const effectiveModel = payload.model ?? capabilityJob?.model;
-  const effectiveSize = payload.size ?? capabilityJob?.imageSize;
-  const effectiveAspectRatio = payload.aspectRatio ?? capabilityJob?.aspectRatio;
-  const { provider, model } = splitProviderModel(effectiveModel);
+  const effectiveRefs =
+    capabilityJob?.referenceUrls ?? payload.referenceImages ?? [];
+  const effectiveModel = payload.model.trim();
+  if (!effectiveModel) {
+    throw new Error("Image model is required");
+  }
+  const effectiveSize = payload.size || capabilityJob?.imageSize;
+  const effectiveAspectRatio =
+    payload.aspectRatio || capabilityJob?.aspectRatio;
   const quality = readQuality(payload) ?? capabilityJob?.quality;
-
   const { cleanedPrompt: afterShotClean, suffix: shotSuffix } =
-    resolveCurrentShotMetadataPrompt(effectivePrompt);
-
-  // Reference roles (v1.6ζ):
-  //   1. Parse any `[ref:N=role]` markers from the prompt (after shot block).
-  //   2. Reorder references so character > pose > style > generic.
-  //   3. Append a "reference roles" legend so the model uses each ref correctly.
+    dependencies.resolveShotMetadataPrompt(effectivePrompt);
   const rawRefs = effectiveRefs.filter(Boolean);
   const {
     cleanedPrompt,
     references: refs,
     suffix: roleSuffix,
-  } = resolvePromptReferenceRoles(afterShotClean, rawRefs);
-
+  } = dependencies.resolvePromptReferenceRoles(afterShotClean, rawRefs);
   const finalPrompt = `${cleanedPrompt}${shotSuffix}${roleSuffix}`;
-
-  const canvasId = currentCanvasId();
   if (refs.length === 0) {
     const ref = await freezoneImageGenerationGateway.submit(projectId, {
       prompt: finalPrompt,
       aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
       imageSize: effectiveSize || toImageSize(payload),
       referenceUrls: [],
-      provider,
-      model,
+      model: effectiveModel,
       modelId: payload.modelId,
       genMode: payload.generationMode,
       quality,
@@ -214,6 +164,7 @@ async function submitJob(
     });
     return { ref, projectId };
   }
+
   const [base, ...extras] = refs;
   const ref = await submitImageEdit(projectId, {
     prompt: finalPrompt,
@@ -221,8 +172,7 @@ async function submitJob(
     extraReferenceUrls: extras,
     aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
     imageSize: effectiveSize || toImageSize(payload),
-    provider,
-    model,
+    model: effectiveModel,
     modelId: payload.modelId,
     genMode: payload.generationMode,
     quality,
@@ -240,9 +190,8 @@ async function awaitJobAndFetchUrl(
     ref.task_key,
     projectId,
   );
-  // Backend writes the output URL into the result payload directly.
-  const directUrl = (completed.result?.["output_url"] as string | undefined) || undefined;
-  if (directUrl) return directUrl;
+  const directUrl = completed.result?.["output_url"];
+  if (typeof directUrl === "string" && directUrl) return directUrl;
   return await freezoneGenerationTaskGateway.fetchResultUrl(
     projectId,
     ref.task_type,
@@ -250,51 +199,59 @@ async function awaitJobAndFetchUrl(
   );
 }
 
-export const freezoneAiGateway: AiGateway = {
-  async setApiKey() {
-    // Cookie auth is shared with NiceGUI / ai-anime-fe; nothing to do.
-  },
+export function createFreezoneAiGateway(
+  dependencies: FreezoneAiGatewayDependencies,
+): AiGateway {
+  const jobs = new Map<string, JobRecord>();
 
-  async generateImage(payload) {
-    const { ref, projectId } = await submitJob(payload);
-    const url = await awaitJobAndFetchUrl(ref, projectId);
-    return url;
-  },
+  return {
+    async generateImage(scope, payload) {
+      const { ref, projectId } = await submitJob(scope, payload, dependencies);
+      return await awaitJobAndFetchUrl(ref, projectId);
+    },
 
-  async submitGenerateImageJob(payload) {
-    const { ref, projectId } = await submitJob(payload);
-    const promise = awaitJobAndFetchUrl(ref, projectId)
-      .then((url) => {
-        const rec = jobs.get(ref.job_id);
-        if (rec) {
-          rec.status = "succeeded";
-          rec.result = url;
-        }
-        return url;
-      })
-      .catch((err: Error) => {
-        const rec = jobs.get(ref.job_id);
-        if (rec) {
-          rec.status = "failed";
-          rec.error = err.message;
-        }
-        throw err;
+    async submitGenerateImageJob(scope, payload) {
+      const { ref, projectId } = await submitJob(scope, payload, dependencies);
+      const promise = awaitJobAndFetchUrl(ref, projectId)
+        .then((url) => {
+          const record = jobs.get(ref.job_id);
+          if (record) {
+            record.status = "succeeded";
+            record.result = url;
+          }
+          return url;
+        })
+        .catch((error: Error) => {
+          const record = jobs.get(ref.job_id);
+          if (record) {
+            record.status = "failed";
+            record.error = error.message;
+          }
+          throw error;
+        });
+      jobs.set(ref.job_id, {
+        ref,
+        projectId,
+        promise,
+        status: "running",
       });
-    jobs.set(ref.job_id, { ref, projectId, promise, status: "running" });
-    return ref.job_id;
-  },
+      return ref.job_id;
+    },
 
-  async getGenerateImageJob(jobId) {
-    const rec = jobs.get(jobId);
-    if (!rec) {
-      return { job_id: jobId, status: "not_found" };
-    }
-    if (rec.status === "succeeded") {
-      return { job_id: jobId, status: "succeeded", result: rec.result };
-    }
-    if (rec.status === "failed") {
-      return { job_id: jobId, status: "failed", error: rec.error };
-    }
-    return { job_id: jobId, status: rec.status };
-  },
-};
+    async getGenerateImageJob(jobId) {
+      const record = jobs.get(jobId);
+      if (!record) return { job_id: jobId, status: "not_found" };
+      if (record.status === "succeeded") {
+        return {
+          job_id: jobId,
+          status: "succeeded",
+          result: record.result,
+        };
+      }
+      if (record.status === "failed") {
+        return { job_id: jobId, status: "failed", error: record.error };
+      }
+      return { job_id: jobId, status: record.status };
+    },
+  };
+}

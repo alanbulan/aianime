@@ -2,9 +2,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { CanvasBackupStatus } from "@/features/freezone/domain/canvasStorage";
-
-import type { ConflictSnapshot } from "../application/canvasSyncStorage";
+import type {
+  CanvasBackupStatus,
+  ConflictSnapshot,
+} from "@/modules/creative_canvas/public";
 
 export function FreezoneToast({
   text,

@@ -21,7 +21,6 @@ import {
 } from '@/features/viewer-kit/three-d/directorManifest';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { resolveMediaUrl } from '@/lib/media-url';
-import { readUrl } from '@/lib/url-params';
 
 const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
   CANVAS_NODE_TYPES.imageGen,
@@ -44,6 +43,8 @@ const ZOOM_STEP = 25;
 const THUMB_BASE_PX = 256;
 
 export interface CanvasHistoryAssetsModalControllerOptions {
+  projectId: string;
+  canvasId: string | null;
   onClose: () => void;
   onUseAsset: (
     asset: CanvasAsset,
@@ -55,6 +56,8 @@ export interface CanvasHistoryAssetsModalControllerOptions {
 }
 
 export function useCanvasHistoryAssetsModalController({
+  projectId,
+  canvasId,
   onClose,
   onUseAsset,
   onDeleteNode,
@@ -70,9 +73,11 @@ export function useCanvasHistoryAssetsModalController({
         .map((node) => node.id),
     [nodes],
   );
-  const { records, isLoading } = useCanvasGenerationHistory(fallbackNodeIds, {
-    enabled: useHistory,
-  });
+  const { records, isLoading } = useCanvasGenerationHistory(
+    { projectId, canvasId },
+    fallbackNodeIds,
+    { enabled: useHistory && canvasId !== null },
+  );
 
   const [activeTab, setActiveTab] = useState<CanvasAssetKind>('image');
   const tabOrder = imageOnly ? (['image'] as CanvasAssetKind[]) : TAB_ORDER;
@@ -205,16 +210,14 @@ export function useCanvasHistoryAssetsModalController({
         return;
       }
       if (asset.kind !== 'model') return;
-      const project = readUrl().project;
-      if (!project) return;
       const manifest = buildStandaloneWorldManifest({
-        project,
+        project: projectId,
         url: asset.url,
         displayName: asset.label ?? fallbackWorldName,
       });
       if (manifest) setWorldManifest(manifest);
     },
-    [orderedImageUrls],
+    [orderedImageUrls, projectId],
   );
 
   const useAsset = useCallback(

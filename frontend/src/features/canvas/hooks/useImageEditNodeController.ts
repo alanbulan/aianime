@@ -56,7 +56,6 @@ import {
   type ImageEditNodeData,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
-import { DEFAULT_IMAGE_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
@@ -67,6 +66,7 @@ import {
   showErrorDialog,
 } from '@/features/canvas/composition';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
+import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
   useUpstreamContents,
@@ -78,24 +78,25 @@ import {
   type ImageEditPickerAnchor,
 } from '@/features/canvas/infrastructure/browserImageEditRuntime';
 import {
-  getImageModel,
-  listImageModels,
+  imageModelDefinitions,
   resolveImageModelResolution,
   resolveImageModelResolutions,
+  selectImageModel,
 } from '@/features/canvas/models';
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
-  coercePushTarget,
   defaultCapabilityParams,
   getCapability,
   listCapabilities,
   type GenerationCapability,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
+import { coercePushTarget } from '@/modules/creative_canvas/public';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { readUrl } from '@/lib/url-params';
 
 export interface ImageEditNodeControllerOptions {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: ImageEditNodeData;
   selected?: boolean;
@@ -104,6 +105,8 @@ export interface ImageEditNodeControllerOptions {
 }
 
 export function useImageEditNodeController({
+  projectId,
+  canvasId,
   id,
   data,
   selected,
@@ -196,27 +199,33 @@ export function useImageEditNodeController({
     [incomingImageItems],
   );
 
-  const imageModels = useMemo(() => listImageModels(), []);
+  const { models: catalogImageModels } = useFreezoneImageModels(projectId, 'edit');
+  const imageModels = useMemo(
+    () => imageModelDefinitions(catalogImageModels, 'edit'),
+    [catalogImageModels],
+  );
   const selectedModel = useMemo(
-    () => getImageModel(data.model ?? DEFAULT_IMAGE_MODEL_ID),
-    [data.model],
+    () => selectImageModel(imageModels, data.model),
+    [data.model, imageModels],
   );
   const effectiveExtraParams = useMemo(
     () => ({ ...(data.extraParams ?? {}) }),
     [data.extraParams],
   );
   const resolutionOptions = useMemo(
-    () =>
-      resolveImageModelResolutions(selectedModel, {
-        extraParams: effectiveExtraParams,
-      }),
+    () => selectedModel
+      ? resolveImageModelResolutions(selectedModel, {
+          extraParams: effectiveExtraParams,
+        })
+      : [],
     [effectiveExtraParams, selectedModel],
   );
   const selectedResolution = useMemo(
-    () =>
-      resolveImageModelResolution(selectedModel, data.size, {
-        extraParams: effectiveExtraParams,
-      }),
+    () => selectedModel
+      ? resolveImageModelResolution(selectedModel, data.size, {
+          extraParams: effectiveExtraParams,
+        })
+      : { value: data.size || '2K', label: data.size || '2K' },
     [data.size, effectiveExtraParams, selectedModel],
   );
   const aspectRatioOptions = useMemo<ImageEditAspectRatioChoice[]>(
@@ -225,9 +234,9 @@ export function useImageEditNodeController({
         value: AUTO_REQUEST_ASPECT_RATIO,
         label: t('modelParams.autoAspectRatio'),
       },
-      ...selectedModel.aspectRatios,
+      ...(selectedModel?.aspectRatios ?? []),
     ],
-    [selectedModel.aspectRatios, t],
+    [selectedModel, t],
   );
   const selectedAspectRatio = useMemo(
     () =>
@@ -236,12 +245,12 @@ export function useImageEditNodeController({
       ) ?? aspectRatioOptions[0],
     [aspectRatioOptions, data.requestAspectRatio],
   );
-  const requestResolution = selectedModel.resolveRequest({
+  const requestResolution = selectedModel?.resolveRequest({
     referenceImageCount: incomingImages.length,
-  });
+  }) ?? { requestModel: '', modeLabel: '' };
   const resolvedPriceDisplay = useMemo(
     () =>
-      showNodePrice
+      showNodePrice && selectedModel
         ? resolveModelPriceDisplay(selectedModel, {
             resolution: selectedResolution.value,
             extraParams: effectiveExtraParams,
@@ -301,8 +310,8 @@ export function useImageEditNodeController({
     return lines.join('\n');
   }, [i18n.language, resolvedPriceDisplay, t]);
   const supportedAspectRatioValues = useMemo(
-    () => selectedModel.aspectRatios.map((item) => item.value),
-    [selectedModel.aspectRatios],
+    () => (selectedModel?.aspectRatios ?? []).map((item) => item.value),
+    [selectedModel],
   );
   const title = useMemo(
     () => resolveNodeDisplayName(CANVAS_NODE_TYPES.imageEdit, data),
@@ -322,7 +331,7 @@ export function useImageEditNodeController({
     [incomingImages.length],
   );
   const size = resolveImageEditNodeSize(width, height);
-  const assetLibraryProject = readUrl().project ?? null;
+  const assetLibraryProject = projectId;
 
   useEffect(() => {
     updateNodeInternals(id);
@@ -357,6 +366,7 @@ export function useImageEditNodeController({
   );
 
   useEffect(() => {
+    if (!selectedModel) return;
     if (data.model !== selectedModel.id) {
       updateNodeData(id, { model: selectedModel.id });
     }
@@ -372,7 +382,7 @@ export function useImageEditNodeController({
     data.size,
     id,
     selectedAspectRatio.value,
-    selectedModel.id,
+    selectedModel,
     selectedResolution.value,
     updateNodeData,
   ]);
@@ -401,6 +411,12 @@ export function useImageEditNodeController({
   }, []);
 
   const generate = useCallback(async () => {
+    if (!selectedModel || !requestResolution.requestModel) {
+      const errorMessage = t('modelPicker.empty');
+      setError(errorMessage);
+      void showErrorDialog(errorMessage, t('common.error'));
+      return;
+    }
     const prompt = buildImageEditGenerationPrompt(
       promptDraft,
       upstreamTextJoined,
@@ -507,11 +523,11 @@ export function useImageEditNodeController({
 
     try {
       const jobId = await canvasAiGateway.submitGenerateImageJob(
+        { projectId, canvasId },
         regenerationPayload,
       );
       const generationDebugContext: GenerationDebugContext = {
         sourceType: 'imageEdit',
-        providerId: selectedModel.providerId,
         requestModel: requestResolution.requestModel,
         requestSize: selectedResolution.value,
         requestAspectRatio: resolvedRequestAspectRatio,
@@ -530,7 +546,6 @@ export function useImageEditNodeController({
       updateNodeData(newNodeId, {
         generationJobId: jobId,
         generationSourceType: 'imageEdit',
-        generationProviderId: selectedModel.providerId,
         generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
         generationDebugContext,
         generationRequestPayload: regenerationPayload,
@@ -544,7 +559,6 @@ export function useImageEditNodeController({
       );
       const generationDebugContext: GenerationDebugContext = {
         sourceType: 'imageEdit',
-        providerId: selectedModel.providerId,
         requestModel: requestResolution.requestModel,
         requestSize: selectedResolution.value,
         requestAspectRatio: selectedAspectRatio.value,
@@ -576,7 +590,6 @@ export function useImageEditNodeController({
         isGenerating: false,
         generationStartedAt: null,
         generationJobId: null,
-        generationProviderId: null,
         generationClientSessionId: null,
         generationRequestPayload: regenerationPayload,
         generationError: displayErrorMessage,
@@ -600,11 +613,11 @@ export function useImageEditNodeController({
     id,
     incomingImages,
     promptDraft,
+    canvasId,
+    projectId,
     requestResolution.requestModel,
     selectedAspectRatio.value,
-    selectedModel.expectedDurationMs,
-    selectedModel.id,
-    selectedModel.providerId,
+    selectedModel,
     selectedResolution.value,
     supportedAspectRatioValues,
     t,
@@ -854,7 +867,6 @@ export function useImageEditNodeController({
       updateNodeData(id, {
         displayName: nextCapability.name,
         generationMode: 'image_reference',
-        model: nextCapability.model,
         size: nextCapability.imageSize as ImageEditNodeData['size'],
         aspectRatio: nextCapability.aspectRatio,
         requestAspectRatio: nextCapability.aspectRatio,

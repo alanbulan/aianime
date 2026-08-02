@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 import { getNodeGenerationHistory } from "@/features/canvas/composition";
-import { readUrl } from "@/lib/url-params";
 
 export interface UseNodeGenerationHistoryResult {
   records: CanvasGenerationHistoryRecord[];
@@ -11,6 +10,14 @@ export interface UseNodeGenerationHistoryResult {
   error: Error | null;
   /** Re-fetch the node's history (e.g. after a generation completes). */
   refresh: () => Promise<void>;
+}
+
+export interface UseNodeGenerationHistoryOptions {
+  projectId: string;
+  canvasId: string;
+  nodeId: string;
+  enabled?: boolean;
+  limit?: number;
 }
 
 /**
@@ -23,9 +30,9 @@ export interface UseNodeGenerationHistoryResult {
  * generation finishes to pull in the new record.
  */
 export function useNodeGenerationHistory(
-  nodeId: string,
-  options?: { enabled?: boolean; limit?: number },
+  options: UseNodeGenerationHistoryOptions,
 ): UseNodeGenerationHistoryResult {
+  const { projectId, canvasId, nodeId } = options;
   const enabled = options?.enabled ?? true;
   const limit = options?.limit ?? 100;
   const [records, setRecords] = useState<CanvasGenerationHistoryRecord[]>([]);
@@ -33,13 +40,11 @@ export function useNodeGenerationHistory(
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async () => {
-    const project = readUrl().project;
-    if (!project || !nodeId) return;
-    const canvasId = readUrl().canvas ?? "default";
+    if (!projectId || !nodeId) return;
     setIsLoading(true);
     try {
       const recs = await getNodeGenerationHistory({
-        projectId: project,
+        projectId,
         canvasId,
         nodeId,
         limit,
@@ -51,7 +56,7 @@ export function useNodeGenerationHistory(
     } finally {
       setIsLoading(false);
     }
-  }, [nodeId, limit]);
+  }, [canvasId, limit, nodeId, projectId]);
 
   useEffect(() => {
     if (!enabled) return;

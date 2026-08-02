@@ -7,7 +7,7 @@ import {
   type DragEvent as ReactDragEvent,
 } from 'react';
 
-import { CANVAS_ASSET_DRAG_MIME } from '../domain/assetDrag';
+import { CANVAS_ASSET_DRAG_MIME } from '@/modules/creative_canvas/public';
 
 const FILES_DATA_TRANSFER_TYPE = 'Files';
 

@@ -4,6 +4,7 @@ import { CheckCircle2, Info, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,14 @@ export function IngestInputPanel({
     canStartFromCurrentInput,
     sourceHint,
     isStarting,
+    textModelOptions,
+    embeddingModelOptions,
+    textModel,
+    setTextModel,
+    embeddingModel,
+    setEmbeddingModel,
+    modelCatalogLoading,
+    modelCatalogError,
   } = controller;
 
   return (
@@ -154,6 +163,55 @@ export function IngestInputPanel({
           )}
         </div>
       )}
+      <div className="mt-3 grid gap-2.5 px-1 sm:grid-cols-2">
+        <div className="min-w-0 space-y-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t("ingest.textModel")}
+          </Label>
+          <Select
+            value={textModel}
+            onValueChange={(value) => setTextModel(value ?? "")}
+            disabled={modelCatalogLoading || textModelOptions.length === 0}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("ingest.modelPlaceholder")} />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} sideOffset={8}>
+              {textModelOptions.map((option) => (
+                <SelectItem key={option.code} value={option.code}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-0 space-y-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t("ingest.embeddingModel")}
+          </Label>
+          <Select
+            value={embeddingModel}
+            onValueChange={(value) => setEmbeddingModel(value ?? "")}
+            disabled={modelCatalogLoading || embeddingModelOptions.length === 0}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("ingest.modelPlaceholder")} />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} sideOffset={8}>
+              {embeddingModelOptions.map((option) => (
+                <SelectItem key={option.code} value={option.code}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {modelCatalogError ? (
+        <p className="mt-2 px-1 text-xs text-destructive">
+          {t("ingest.modelCatalogFailed")}
+        </p>
+      ) : null}
       <div className="mt-2.5 grid grid-cols-2 gap-2.5 px-1 md:flex md:items-center md:gap-3">
         <InputModeToggle
           value={inputMode}

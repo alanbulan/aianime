@@ -7,13 +7,16 @@ import {
   selectRunningTasks,
   selectLeadingRunning,
   selectLastCompletion,
-} from "@/task-center/store";
+} from "@/modules/task_execution/public";
 import { useAppStore } from "@/stores/app-store";
-import { displayLabel } from "@/task-center/derivations";
+import {
+  displayLabel,
+  type StreamHealth,
+  type TaskState,
+} from "@/modules/task_execution/public";
 import { RegionBadge } from "@/components/layout/region-badge";
 import { APP_VERSION } from "@/lib/app-version";
 import { cn } from "@/lib/utils";
-import type { StreamHealth, TaskState } from "@/task-center/types";
 
 const HEALTH_COLOR: Record<StreamHealth, string> = {
   connecting: "text-muted-foreground",

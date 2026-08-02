@@ -2,7 +2,7 @@
 import { createElement } from "react";
 import { useTranslation } from "react-i18next";
 
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
+import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";

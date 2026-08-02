@@ -35,10 +35,6 @@ import {
 } from '@/features/canvas/application/beatContextNodeModel';
 import { buildBeatContextNodeRefreshPatch } from '@/features/canvas/application/beatContextRefreshProjection';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  createCanvasFromPreset,
-  getFreezoneCanvas,
-} from '@/features/canvas/composition';
 import { syncBeatContextMainlineEdges } from '@/features/canvas/domain/beatContextRoleBindings';
 import type {
   BeatContextNodeData,
@@ -47,14 +43,16 @@ import type {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   applyRemoteFreezoneCanvas,
+  createCanvasFromPreset,
   extractMainlineContextsFromNode,
   flushFreezoneCanvasRuntime,
+  getFreezoneCanvas,
   getFreezoneCanvasMetadata,
   listFreezoneBeatContext,
   openPresetProjectionInMyCanvas,
   parseBeatContextVisualMarkers,
   presetRequestFromMetadata,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 import {
   updateBeat,
   useEpisodeBeats,
@@ -64,11 +62,12 @@ import {
 import { queryKeys } from '@/lib/query-keys';
 import { sceneNameToRef, sceneRefToName } from '@/lib/scene-ref';
 import { timeOfDayOptions } from '@/lib/time-of-day';
-import { readUrl } from '@/lib/url-params';
 
 export interface BeatContextNodeControllerOptions {
   id: string;
   data: BeatContextNodeData;
+  projectId: string;
+  canvasId: string;
   selected?: boolean;
   width?: number;
   height?: number;
@@ -92,8 +91,8 @@ function syncBeatContextMainlineLinks(
 
 async function restoreCurrentMainlinePresetCanvas(
   projectId: string,
+  canvasId: string,
 ): Promise<boolean> {
-  const canvasId = readUrl().canvas ?? 'default';
   const metadata = getFreezoneCanvasMetadata();
   const request = presetRequestFromMetadata(metadata?.preset);
   if (!request) return false;
@@ -113,7 +112,7 @@ async function restoreCurrentMainlinePresetCanvas(
     base_revision: baseline.revision ?? undefined,
   });
   const remote = await getFreezoneCanvas(projectId, canvasId);
-  const appliedBySyncRuntime = applyRemoteFreezoneCanvas(
+  const appliedBySyncRuntime = applyRemoteFreezoneCanvas<CanvasNode, CanvasEdge>(
     projectId,
     canvasId,
     remote,
@@ -140,6 +139,8 @@ async function restoreCurrentMainlinePresetCanvas(
 export function useBeatContextNodeController({
   id,
   data,
+  projectId,
+  canvasId,
   width,
   height,
   selected,
@@ -169,7 +170,7 @@ export function useBeatContextNodeController({
     typeof data.episode === 'number' ? data.episode : contexts[0]?.episode;
   const beat = typeof data.beat === 'number' ? data.beat : contexts[0]?.beat;
   const beatContext = contexts.find((context) => context.kind === 'beat');
-  const projectId =
+  const beatProjectId =
     typeof data.projectId === 'string' ? data.projectId : beatContext?.projectId;
   const workbenchTarget = useMemo(
     () => resolveBeatContextWorkbenchTarget(data),
@@ -222,12 +223,12 @@ export function useBeatContextNodeController({
   const visualTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const episodeQuery = useEpisodeDetail(
-    projectId ?? '',
+    beatProjectId ?? '',
     typeof episode === 'number' ? episode : 0,
     { enabled: selected === true && !isStandaloneContext },
   );
   const beatsQuery = useEpisodeBeats(
-    projectId ?? '',
+    beatProjectId ?? '',
     typeof episode === 'number' ? episode : 0,
     { enabled: selected === true && !isStandaloneContext },
   );
@@ -334,7 +335,7 @@ export function useBeatContextNodeController({
 
   const syncToMainline = useCallback(async () => {
     if (
-      !projectId ||
+      !beatProjectId ||
       typeof episode !== 'number' ||
       typeof beat !== 'number'
     ) {
@@ -354,15 +355,15 @@ export function useBeatContextNodeController({
           ? (latestNode.data as BeatContextNodeData)
           : data;
       await updateBeat(
-        projectId,
+        beatProjectId,
         episode,
         beat,
         buildBeatUpdatePayloadFromNodeData(latestData),
       );
       const response = await queryClient.fetchQuery({
-        queryKey: queryKeys.freezoneBeatContext(projectId, episode, beat),
+        queryKey: queryKeys.freezoneBeatContext(beatProjectId, episode, beat),
         queryFn: ({ signal }) =>
-          listFreezoneBeatContext(projectId, { episode, beat, signal }),
+          listFreezoneBeatContext(beatProjectId, { episode, beat, signal }),
         staleTime: 0,
       });
       const latestBeat =
@@ -371,7 +372,7 @@ export function useBeatContextNodeController({
           ?.beats.find((item) => item.beat === beat) ?? null;
       if (!latestBeat) throw new Error(`EP${episode} Beat ${beat} not found`);
       const refreshPatch = buildBeatContextNodeRefreshPatch(
-        projectId,
+        beatProjectId,
         latestBeat,
         latestData,
       );
@@ -383,7 +384,7 @@ export function useBeatContextNodeController({
         ),
         coerceBeatContextStringList(refreshPatch.snapshot?.detectedProps),
       );
-      await restoreCurrentMainlinePresetCanvas(projectId);
+      await restoreCurrentMainlinePresetCanvas(beatProjectId, canvasId);
       setEditVersion((version) => version + 1);
     } catch (error) {
       updateNodeData(id, {
@@ -393,12 +394,12 @@ export function useBeatContextNodeController({
     } finally {
       setIsSyncing(false);
     }
-  }, [beat, data, episode, id, projectId, queryClient, updateNodeData]);
+  }, [beat, beatProjectId, canvasId, data, episode, id, queryClient, updateNodeData]);
 
   const updateBeatField = useCallback(
     (patch: BeatUpdate) => {
       if (
-        !projectId ||
+        !beatProjectId ||
         typeof episode !== 'number' ||
         typeof beat !== 'number'
       ) {
@@ -418,7 +419,7 @@ export function useBeatContextNodeController({
         coerceBeatContextStringList(localPatch.snapshot?.detectedProps),
       );
     },
-    [beat, data, episode, id, projectId, updateNodeData],
+    [beat, beatProjectId, data, episode, id, updateNodeData],
   );
 
   const patchStandaloneBeatContext = useCallback(
@@ -641,12 +642,10 @@ export function useBeatContextNodeController({
   );
 
   const openWorkbench = useCallback(async () => {
-    if (!workbenchTarget || openingWorkbench) return;
-    const targetProjectId = readUrl().project || projectId;
-    if (!targetProjectId) return;
+    if (!workbenchTarget || openingWorkbench || !projectId) return;
     setOpeningWorkbench(true);
     try {
-      await openPresetProjectionInMyCanvas(targetProjectId, {
+      await openPresetProjectionInMyCanvas(projectId, {
         scope: workbenchTarget.scope,
         episode: workbenchTarget.episode,
         beat: workbenchTarget.beat,

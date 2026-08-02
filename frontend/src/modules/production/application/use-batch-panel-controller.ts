@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
+import { TASK_TYPES, isActiveStatus } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type {
   ProductionDataResponse,
@@ -14,6 +14,7 @@ import type {
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
 import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
+import type { AudioModelOption } from "@/modules/model_usage/public";
 import type {
   SketchAspectRatio,
   SketchSettingsData,
@@ -31,7 +32,7 @@ import {
   type SketchRegenQueueItem,
 } from "@/modules/production/domain/sketch-regen-queue";
 import type { RegenerateSketchesCommand } from "@/modules/production/domain/sketch-generation";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
 
 interface GenerateAudioMutation {
   isPending: boolean;
@@ -67,10 +68,14 @@ interface CreditCostQuery {
 }
 
 interface TaskListQuery {
-  data?: { data: Task[] };
+  data?: { data: TaskState[] };
 }
 
 export interface BatchPanelControllerQueries {
+  useAudioModels(mode: "speech", enabled?: boolean): {
+    data: AudioModelOption[];
+    isLoading: boolean;
+  };
   useGenerateAudio(project: string, episode: number): GenerateAudioMutation;
   useRegenerateSketches(
     project: string,
@@ -125,6 +130,8 @@ export function createUseBatchPanelController(
     const { t } = useTranslation();
     const regenerateSketches = queries.useRegenerateSketches(project, episode);
     const generateAudio = queries.useGenerateAudio(project, episode);
+    const audioModels = queries.useAudioModels("speech", Boolean(project));
+    const audioModel = audioModels.data[0]?.value ?? "";
     const sketchSettings = queries.useSketchSettings(project);
     const sketchCostMode = singleSketchModeForAspect(sketchAspect);
     const sketchCost = dependencies.useGenerationCreditCost(
@@ -248,7 +255,7 @@ export function createUseBatchPanelController(
           (task) =>
             task.task_type === TASK_TYPES.SINGLE_VIDEO &&
             isActiveStatus(task.status) &&
-            task.beat_num !== undefined &&
+            task.beat_num != null &&
             selectedBeatNumbers.has(task.beat_num),
         ) ?? false
       );
@@ -376,8 +383,13 @@ export function createUseBatchPanelController(
     };
 
     const onBatchAudio = async () => {
+      if (!audioModel) {
+        toast.error(t("episode.workbench.audio.modelUnavailable"));
+        return;
+      }
       try {
         const response = await generateAudio.mutateAsync({
+          model: audioModel,
           beatNumbers,
           mode: "redo_selected",
         });
@@ -413,6 +425,9 @@ export function createUseBatchPanelController(
       renderPlanTaskStarted: false,
       selectedVideoRunning,
     });
+    if (audioModels.isLoading || !audioModel) {
+      actionDisabled.audio = true;
+    }
 
     return {
       actionDisabled,

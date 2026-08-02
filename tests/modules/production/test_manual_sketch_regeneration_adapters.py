@@ -12,7 +12,7 @@ from ai_anime.modules.production.infrastructure.manual_sketch_regeneration impor
     LocalManualSketchRegenerationPreparer,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import selection_scope
 
 
 class _Store:
@@ -243,8 +243,7 @@ async def test_manual_sketch_preparer_builds_one_task_per_missing_segment(
             "beats": beats,
             "character_map": {"hero": {"ref_path": "hero.png"}},
             "style": "cinematic",
-            "model": None,
-            "image_generation_selection": "sketch-selection",
+            "model": "sketch-selection",
             "selected_beat_numbers": [41, 42],
             "composite_key": "mode-2:sketch",
             "sketch_colors": {"hero": "#ffffff"},

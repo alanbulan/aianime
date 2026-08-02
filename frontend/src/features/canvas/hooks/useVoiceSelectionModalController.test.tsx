@@ -11,7 +11,6 @@ const mocks = vi.hoisted(() => ({
   loadReferences: vi.fn(),
   createVoice: vi.fn(),
   toastError: vi.fn(),
-  project: 'project-voice' as string | null,
 }));
 
 vi.mock('@/features/canvas/audioComposition', () => ({
@@ -22,10 +21,6 @@ vi.mock('@/features/canvas/audioComposition', () => ({
     file: File,
     name?: string,
   ) => mocks.createVoice(project, file, name),
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project }),
 }));
 
 vi.mock('sonner', () => ({
@@ -63,7 +58,6 @@ describe('useVoiceSelectionModalController', () => {
     mocks.loadReferences.mockReset().mockResolvedValue([]);
     mocks.createVoice.mockReset().mockResolvedValue(undefined);
     mocks.toastError.mockReset();
-    mocks.project = 'project-voice';
   });
 
   afterEach(() => {
@@ -77,6 +71,7 @@ describe('useVoiceSelectionModalController', () => {
     mocks.loadReferences.mockResolvedValue([custom, character]);
     const { result } = renderHook(() =>
       useVoiceSelectionModalController({
+        projectId: 'project-voice',
         open: true,
         onClose,
         currentRef: { scope: 'user_custom', voiceId: 'custom-a' },
@@ -96,29 +91,13 @@ describe('useVoiceSelectionModalController', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('reports a missing project without calling the catalog gateway', async () => {
-    mocks.project = null;
-    const { result } = renderHook(() =>
-      useVoiceSelectionModalController({
-        open: true,
-        onClose: vi.fn(),
-        currentRef: { scope: 'project_narrator' },
-        onPick: vi.fn(),
-      }),
-    );
-
-    await waitFor(() =>
-      expect(result.current.error).toBe('当前 URL 缺少 project 参数'),
-    );
-    expect(mocks.loadReferences).not.toHaveBeenCalled();
-  });
-
   it('filters references, resets pages on query changes, and commits jumps', async () => {
     mocks.loadReferences.mockResolvedValue(
       Array.from({ length: 45 }, (_, index) => reference(`voice-${index + 1}`)),
     );
     const { result } = renderHook(() =>
       useVoiceSelectionModalController({
+        projectId: 'project-voice',
         open: true,
         onClose: vi.fn(),
         currentRef: { scope: 'project_narrator' },
@@ -154,6 +133,7 @@ describe('useVoiceSelectionModalController', () => {
     const { result, rerender } = renderHook(
       ({ open }: { open: boolean }) =>
         useVoiceSelectionModalController({
+          projectId: 'project-voice',
           open,
           onClose: vi.fn(),
           currentRef: { scope: 'project_narrator' },
@@ -176,6 +156,7 @@ describe('useVoiceSelectionModalController', () => {
   it('rejects invalid and oversized clone files before the gateway call', async () => {
     const { result } = renderHook(() =>
       useVoiceSelectionModalController({
+        projectId: 'project-voice',
         open: false,
         onClose: vi.fn(),
         currentRef: { scope: 'project_narrator' },
@@ -204,6 +185,7 @@ describe('useVoiceSelectionModalController', () => {
   it('creates a valid custom voice with the filename stem and reloads', async () => {
     const { result } = renderHook(() =>
       useVoiceSelectionModalController({
+        projectId: 'project-voice',
         open: false,
         onClose: vi.fn(),
         currentRef: { scope: 'project_narrator' },
@@ -230,6 +212,7 @@ describe('useVoiceSelectionModalController', () => {
     );
     const { result } = renderHook(() =>
       useVoiceSelectionModalController({
+        projectId: 'project-voice',
         open: false,
         onClose: vi.fn(),
         currentRef: { scope: 'project_narrator' },

@@ -19,7 +19,7 @@ import {
   historyRecordPreviewImageUrl,
   historyRecordPrompt,
   isCompletedHistoryRecord,
-} from '@/features/canvas/domain/generationHistoryRecord';
+} from '@/modules/creative_canvas/public';
 import { resolveMediaUrl } from '@/lib/media-url';
 
 function formatRelativeTime(iso: string): string {

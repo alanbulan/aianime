@@ -13,7 +13,7 @@ vi.mock("@/hooks/use-media-query", () => ({
   useMediaQuery: () => mocks.isDesktop,
 }));
 
-vi.mock("@/features/superchat/superchat-panel", () => ({
+vi.mock("@/modules/ai_assistant/public", () => ({
   SuperChatPanel: ({ onRequestClose }: { onRequestClose?: () => void }) => (
     <button type="button" onClick={onRequestClose}>
       close chat

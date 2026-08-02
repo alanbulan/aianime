@@ -23,6 +23,7 @@ import {
 } from "./nodeToolbarConfig";
 
 export interface NodeActionToolbarViewProps {
+  projectId: string;
   node: CanvasNode;
   projection: NodeActionToolbarShellProjection;
   onOpenMultiAngleEditor: (nodeId: string) => void;
@@ -37,6 +38,7 @@ export interface NodeActionToolbarViewProps {
 }
 
 export function NodeActionToolbarView({
+  projectId,
   node,
   projection,
   onOpenMultiAngleEditor,
@@ -65,10 +67,12 @@ export function NodeActionToolbarView({
       <ZoomScaledToolbar origin="bottom center" mode="counter" counterMax={1}>
         <UiPanel className="flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4">
           <NodeMainlineToolbarActions
+            projectId={projectId}
             node={node}
             isPresetLocked={projection.isPresetLocked}
           />
           <ImageNodeToolbarActions
+            projectId={projectId}
             node={node}
             isPresetLocked={projection.isPresetLocked}
             onOpenMultiAngleEditor={onOpenMultiAngleEditor}
@@ -84,6 +88,7 @@ export function NodeActionToolbarView({
           <NodeOutputToolbarActions node={node} />
           {projection.videoData && (
             <VideoNodeToolbarActions
+              projectId={projectId}
               nodeId={node.id}
               data={projection.videoData}
             />

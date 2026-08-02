@@ -58,14 +58,18 @@ export function useCanvasGenerationRecoveryController({
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
 
   const pollExportImageNode = useCallback(
-    (nodeId: string): Promise<void> =>
-      pollExportImageGeneration({
+    (nodeId: string): Promise<void> => {
+      if (!projectId) {
+        return Promise.resolve();
+      }
+      return pollExportImageGeneration(projectId, {
         nodeId,
         errorTitle,
         getNodeData: readCanvasNodeData,
         updateNodeData,
-      }),
-    [errorTitle, updateNodeData],
+      });
+    },
+    [errorTitle, projectId, updateNodeData],
   );
   const resumePendingGenerationNode = useCallback(
     (nodeId: string): Promise<void> => {
@@ -92,6 +96,7 @@ export function useCanvasGenerationRecoveryController({
     runNode: resumePendingGenerationNode,
   });
   useCanvasAsyncNodeTasks({
+    enabled: Boolean(projectId),
     pendingNodeIds: pendingExportImageNodeIds,
     runNode: pollExportImageNode,
   });

@@ -11,6 +11,7 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
       {
         method: "POST",
         json: {
+          model: command.model,
           text: command.text,
           emotion_prompt: command.emotionPrompt ?? "",
           voice_ref: {
@@ -32,6 +33,7 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
       {
         method: "POST",
         json: {
+          model: command.model,
           input: command.prompt,
           music_length_ms: command.musicLengthMs,
           force_instrumental: command.forceInstrumental,

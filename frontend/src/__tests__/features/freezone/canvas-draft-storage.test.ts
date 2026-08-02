@@ -3,19 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CANVAS_DRAFT_MAX_BYTES,
-  FREEZONE_CANVAS_TTL_MS,
-  canvasDraftSignature,
-} from "@/features/freezone/application/canvasDraft";
-import {
   canvasDraftStorageGateway,
-  installFreezoneCanvasStorageReclaimer,
-  scheduleCanvasDraftPruneOnce,
-} from "@/features/freezone/canvasDraftComposition";
+  canvasDraftSignature,
+} from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { safeLocalStorageSet } from "@/lib/localStorageQuota";
+import {
+  FREEZONE_CANVAS_TTL_MS,
+  installFreezoneCanvasStorageReclaimer,
+  scheduleCanvasDraftPruneOnce,
+} from "@/modules/creative_canvas/public";
+import * as storageReclaimer from "@/modules/creative_canvas/infrastructure/browserCanvasStorageReclaimer";
 
 const {
-  prune: pruneFreezoneCanvasStorage,
   readDraft: readCanvasDraft,
   writeDraft: writeCanvasDraft,
 } = canvasDraftStorageGateway;
@@ -37,7 +37,7 @@ describe("canvas draft prune scheduling", () => {
       return 1;
     });
     vi.stubGlobal("requestIdleCallback", requestIdleCallback);
-    const prune = vi.spyOn(canvasDraftStorageGateway, "prune");
+    const prune = vi.spyOn(storageReclaimer, "pruneFreezoneCanvasStorage");
 
     scheduleCanvasDraftPruneOnce();
     scheduleCanvasDraftPruneOnce();
@@ -201,7 +201,9 @@ describe("canvas draft storage", () => {
       updatedAt: 7 * 24 * 60 * 60 * 1_000,
     });
 
-    pruneFreezoneCanvasStorage(8 * 24 * 60 * 60 * 1_000 + 2);
+    storageReclaimer.pruneFreezoneCanvasStorage(
+      8 * 24 * 60 * 60 * 1_000 + 2,
+    );
 
     expect(readCanvasDraft("project-a", "old")).toBeNull();
     expect(readCanvasDraft("project-a", "fresh")).not.toBeNull();
@@ -229,7 +231,7 @@ describe("pruneFreezoneCanvasStorage", () => {
       JSON.stringify({ signature: "sig", past: [], future: [], updatedAt: now - 1 }),
     );
 
-    pruneFreezoneCanvasStorage(now);
+    storageReclaimer.pruneFreezoneCanvasStorage(now);
 
     expect(
       window.localStorage.getItem("freezone:canvas-history:project-a:stale"),
@@ -245,7 +247,7 @@ describe("pruneFreezoneCanvasStorage", () => {
       JSON.stringify({ signature: "sig", past: [], future: [] }),
     );
 
-    pruneFreezoneCanvasStorage(FREEZONE_CANVAS_TTL_MS);
+    storageReclaimer.pruneFreezoneCanvasStorage(FREEZONE_CANVAS_TTL_MS);
 
     expect(
       window.localStorage.getItem("freezone:canvas-history:project-a:legacy"),
@@ -259,7 +261,7 @@ describe("pruneFreezoneCanvasStorage", () => {
       JSON.stringify({ signature: "sig", past: [], future: [], updatedAt: now + 1_000 }),
     );
 
-    pruneFreezoneCanvasStorage(now);
+    storageReclaimer.pruneFreezoneCanvasStorage(now);
 
     expect(
       window.localStorage.getItem("freezone:canvas-history:project-a:future"),
@@ -287,7 +289,7 @@ describe("pruneFreezoneCanvasStorage", () => {
       }),
     );
 
-    pruneFreezoneCanvasStorage(now);
+    storageReclaimer.pruneFreezoneCanvasStorage(now);
 
     expect(window.localStorage.getItem("freezone:conflict:stale")).toBeNull();
     expect(window.localStorage.getItem("freezone:conflict:fresh")).not.toBeNull();
@@ -303,7 +305,7 @@ describe("pruneFreezoneCanvasStorage", () => {
       "{not json",
     );
 
-    pruneFreezoneCanvasStorage(10 * FREEZONE_CANVAS_TTL_MS);
+    storageReclaimer.pruneFreezoneCanvasStorage(10 * FREEZONE_CANVAS_TTL_MS);
 
     expect(
       window.localStorage.getItem("freezone:canvas-viewport:project-a:ok"),
@@ -315,7 +317,7 @@ describe("pruneFreezoneCanvasStorage", () => {
 
   it("leaves unrelated keys untouched", () => {
     window.localStorage.setItem("settings-storage", "keep-me");
-    pruneFreezoneCanvasStorage(10 * FREEZONE_CANVAS_TTL_MS);
+    storageReclaimer.pruneFreezoneCanvasStorage(10 * FREEZONE_CANVAS_TTL_MS);
     expect(window.localStorage.getItem("settings-storage")).toBe("keep-me");
   });
 

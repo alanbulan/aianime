@@ -14,7 +14,7 @@ import i18n from "i18next";
 
 import { TaskActions } from "@/components/task-center/task-actions";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
-import type { TaskState } from "@/task-center/types";
+import type { TaskState } from "@/modules/task_execution/public";
 
 // Minimal inline i18n instance — avoids HTTP backend loading in jsdom.
 // Resources mirror public/locales/en/translation.json for the keys under test.

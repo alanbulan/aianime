@@ -2,23 +2,40 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type {
-  PushTarget,
-  PushTargetKind,
-} from "@/features/freezone/domain/assetCommit";
+import {
+  useCanvasStore,
+  type CanvasNodeData,
+} from "@/features/canvas/canvasStore";
+import { withImageCacheBust } from "@/features/canvas/public";
+import {
+  createCanvasCommitControllerHook,
+  defaultCharacterFromMetadata,
+  normalizePushTarget,
+  useCanvasProjectionCommandController,
+  useCanvasProjectionStatusLifecycle,
+  type PushTarget,
+  type PushTargetKind,
+} from "@/modules/creative_canvas/public";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { writeUrl } from "@/lib/url-params";
 
-import {
-  defaultCharacterFromMetadata,
-  normalizePushTarget,
-} from "../application/canvasCommitRules";
-import { useCanvasCommitController } from "./useCanvasCommitController";
-import { useCanvasProjectionCommandController } from "./useCanvasProjectionCommandController";
-import { useCanvasProjectionStatusLifecycle } from "./useCanvasProjectionStatusLifecycle";
 import { useCanvasSync } from "./useCanvasSync";
 import { useFreezoneCanvasEntryLifecycle } from "./useFreezoneCanvasEntryLifecycle";
+
+const useCanvasCommitController = createCanvasCommitControllerHook({
+  store: {
+    read() {
+      const state = useCanvasStore.getState();
+      return {
+        nodes: state.nodes,
+        updateNodeData: (nodeId, patch) => {
+          state.updateNodeData(nodeId, patch as Partial<CanvasNodeData>);
+        },
+      };
+    },
+  },
+  cacheBustImage: withImageCacheBust,
+});
 
 export interface FreezoneShellControllerOptions {
   projectId: string;

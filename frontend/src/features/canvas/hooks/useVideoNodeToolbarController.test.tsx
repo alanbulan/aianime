@@ -19,7 +19,6 @@ const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   resolveUrl: vi.fn(),
   t: vi.fn((key: string) => key),
-  url: { project: "project-a" } as { project?: string },
 }));
 
 vi.mock("react-i18next", () => ({
@@ -57,10 +56,6 @@ vi.mock("@/lib/browserDownload", () => ({
   downloadUrlAsFile: (...args: unknown[]) => mocks.download(...args),
 }));
 
-vi.mock("@/lib/url-params", () => ({
-  readUrl: () => mocks.url,
-}));
-
 function data(patch: Partial<VideoNodeData> = {}): VideoNodeData {
   return {
     videoUrl: "/source.mp4",
@@ -93,7 +88,6 @@ describe("useVideoNodeToolbarController", () => {
     );
     mocks.resolveUrl.mockImplementation((url: string) => `resolved:${url}`);
     mocks.t.mockImplementation((key: string) => key);
-    mocks.url = { project: "project-a" };
   });
 
   afterEach(() => {
@@ -103,6 +97,7 @@ describe("useVideoNodeToolbarController", () => {
   it("projects state and routes local video actions through one controller", async () => {
     const { result } = renderHook(() =>
       useVideoNodeToolbarController({
+        projectId: "project-a",
         nodeId: "video-a",
         data: data({ displayName: "Preview", isClipMode: false }),
       }),
@@ -161,6 +156,7 @@ describe("useVideoNodeToolbarController", () => {
     });
     const { result } = renderHook(() =>
       useVideoNodeToolbarController({
+        projectId: "project-a",
         nodeId: "video-a",
         data: data({ durationMs: 9000 }),
       }),
@@ -206,7 +202,11 @@ describe("useVideoNodeToolbarController", () => {
     mocks.addNode.mockReturnValue("story-a");
     mocks.analyze.mockRejectedValue(new Error("analysis failed"));
     const { result } = renderHook(() =>
-      useVideoNodeToolbarController({ nodeId: "video-a", data: data() }),
+      useVideoNodeToolbarController({
+        projectId: "project-a",
+        nodeId: "video-a",
+        data: data(),
+      }),
     );
 
     await act(async () => result.current.analyze());
@@ -233,6 +233,7 @@ describe("useVideoNodeToolbarController", () => {
     });
     const { result } = renderHook(() =>
       useVideoNodeToolbarController({
+        projectId: "project-a",
         nodeId: "video-a",
         data: data({ sourceFileName: "episode.mp4" }),
       }),

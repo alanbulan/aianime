@@ -22,8 +22,9 @@ from ai_anime.modules.story_intake.infrastructure.project_settings import (
     ProjectConfigSettings,
 )
 from ai_anime.modules.story_intake.infrastructure.task_scheduler import (
-    TaskBackendScheduler,
+    TaskExecutionScheduler,
 )
+from ai_anime.modules.task_execution.public import project_task_submission_use_cases
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,6 @@ def build_get_chapter_preview() -> GetChapterPreview:
 
 def build_story_intake_application(
     *,
-    task_backend_provider: Callable[[], Any],
     load_project_config: Callable[[str, str], dict[str, Any]],
     save_project_config: Callable[..., Any],
     default_aspect_ratio: Callable[[str | None], str],
@@ -54,7 +54,7 @@ def build_story_intake_application(
                 save_config=save_project_config,
                 default_aspect_ratio=default_aspect_ratio,
             ),
-            TaskBackendScheduler(task_backend_provider),
+            TaskExecutionScheduler(project_task_submission_use_cases()),
         ),
     )
 

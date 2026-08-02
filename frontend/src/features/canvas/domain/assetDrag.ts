@@ -4,58 +4,12 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from "./canvasNodes";
-import { coercePushTarget } from "@/features/freezone/public";
-import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
-
-/**
- * 自定义拖拽 MIME —— 侧栏素材卡片拖进画布时通过 dataTransfer 携带的 payload 类型。
- * 用专属类型而非 text/plain，避免和系统文件拖放 / 文本拖放互相误伤。
- */
-export const CANVAS_ASSET_DRAG_MIME = "application/x-freezone-asset";
-
-export type CanvasAssetDragKind = "image" | "video" | "audio" | "model";
-
-/**
- * 侧栏素材拖进画布时序列化的最小描述。所有字段都是纯数据(可 JSON 序列化),
- * 落点后由 {@link spawnAssetNode} 还原成对应类型的画布节点。
- */
-export interface CanvasAssetDragPayload {
-  kind: CanvasAssetDragKind;
-  label: string;
-  /**
-   * 生成型节点(视频 / 图片)的提示词。历史「使用」流程从对应记录带过来,用于回填
-   * 新节点的提示词框;侧栏拖拽 / live-canvas 复制不带此字段(label 是显示名非提示词)。
-   */
-  prompt?: string;
-  /**
-   * 仅历史「使用」置真:表示这是一张「生成产物」而非上传参考图。图片据此还原成
-   * 成品「图片节点」(imageGen)——带回提示词、按图自适应比例、显示分辨率角标;
-   * 不置(普通拖拽 / 素材库参考图)则仍建 upload 节点(替换素材)。
-   */
-  restoreAsGeneratedImage?: boolean;
-  /** 原始生成注册表模型 id（还原用）。 */
-  model?: string;
-  /** 原始生成模式（还原用）。 */
-  genMode?: string;
-  url: string;
-  aspectRatio?: string;
-  /** 3GS 借用同 scene 的封面图;其余类型为空。 */
-  coverUrl?: string | null;
-  /** Director World source list for scene assets that aggregate pano + SOG sources. */
-  modelSources?: DirectorWorldSource[];
-  activeSourceId?: string | null;
-  plyUrl?: string | null;
-  panoUrl?: string | null;
-  scene?: ThreeDSceneSnapshot | null;
-  scenesBySourceId?: Record<string, ThreeDSceneSnapshot>;
-  /** 3GS 源文件名(从 rel_path 推导);其余类型回落到 label。 */
-  sourceFileName?: string;
-  /** 透传给节点的 __freezone_source(用于 commit / 替换溯源)。 */
-  source: Record<string, unknown>;
-  /** mainline_context 数组(可选)。 */
-  mainlineContext?: unknown[];
-}
+import {
+  CANVAS_ASSET_DRAG_MIME,
+  coercePushTarget,
+  parseCanvasAssetDragPayload,
+  type CanvasAssetDragPayload,
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasAssetNodeSpawnPort {
   addNode: (
@@ -216,13 +170,7 @@ export function spawnAssetNode(
 export function readAssetDragPayload(
   dataTransfer: DataTransfer,
 ): CanvasAssetDragPayload | null {
-  const raw = dataTransfer.getData(CANVAS_ASSET_DRAG_MIME);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as CanvasAssetDragPayload;
-    if (!parsed || typeof parsed.url !== "string" || !parsed.url) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  return parseCanvasAssetDragPayload(
+    dataTransfer.getData(CANVAS_ASSET_DRAG_MIME),
+  );
 }

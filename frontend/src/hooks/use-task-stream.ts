@@ -10,7 +10,7 @@ import {
   humanizeTaskError,
 } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
-import type { TaskStatus, TaskStreamEvent } from "@/types/task";
+import type { TaskStatus, TaskStreamEvent } from "@/modules/task_execution/public";
 
 interface UseTaskStreamOptions {
   taskType: string;

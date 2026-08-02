@@ -8,19 +8,31 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
-from ai_anime.freezone.canvas_static_urls import (
+from ai_anime.modules.creative_canvas.infrastructure import canvas_store
+from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
 )
-from ai_anime.freezone.history import (
+from ai_anime.modules.creative_canvas.infrastructure.history import (
     read_canvas_generation_history,
     read_generation_history,
 )
-from ai_anime.freezone.presets import (
+from ai_anime.modules.creative_canvas.infrastructure.preset_contexts import (
     build_beat_preset_context,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_payload import (
     build_canvas_payload_from_context,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasCorruptError,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_history import (
+    list_canvas_history,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
+    read_canvas,
+    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
@@ -74,11 +86,9 @@ class LocalCreativeCanvasDocumentQueryGateway:
         self,
         *,
         ensure_default_canvas: EnsureDefaultCanvas = canvas_store.ensure_default_canvas,
-        read_canvas: ReadCanvas = canvas_store.read_canvas,
+        read_canvas: ReadCanvas = read_canvas,
         list_canvas_documents: ListCanvasDocuments = canvas_store.list_canvases,
-        list_canvas_document_history: ListCanvasDocumentHistory = (
-            canvas_store.list_canvas_history
-        ),
+        list_canvas_document_history: ListCanvasDocumentHistory = (list_canvas_history),
         node_generation_history_reader: ReadGenerationHistory = (
             read_generation_history
         ),
@@ -98,7 +108,7 @@ class LocalCreativeCanvasDocumentQueryGateway:
         canvas_payload_builder: CanvasPayloadBuilder = (
             build_canvas_payload_from_context
         ),
-        utc_now: UtcNow = canvas_store.utc_now_iso,
+        utc_now: UtcNow = utc_now_iso,
     ) -> None:
         self._ensure_default_canvas = ensure_default_canvas
         self._read_canvas = read_canvas
@@ -130,7 +140,7 @@ class LocalCreativeCanvasDocumentQueryGateway:
                     actor_id=actor_id,
                 )
             payload = self._read_canvas(state_dir, canvas_id)
-        except canvas_store.CanvasCorruptError as exc:
+        except CanvasCorruptError as exc:
             raise CreativeCanvasDocumentCorrupt(str(exc)) from exc
         except CanvasLockBusy as exc:
             raise CreativeCanvasDocumentBusy(exc.canvas_id) from exc
@@ -166,7 +176,7 @@ class LocalCreativeCanvasDocumentQueryGateway:
                 actor_id=actor_id,
             )
             return self._list_canvas_documents(state_dir)
-        except canvas_store.CanvasCorruptError as exc:
+        except CanvasCorruptError as exc:
             raise CreativeCanvasDocumentCorrupt(str(exc)) from exc
         except CanvasLockBusy as exc:
             raise CreativeCanvasDocumentBusy(exc.canvas_id) from exc
@@ -182,7 +192,7 @@ class LocalCreativeCanvasDocumentQueryGateway:
                 Path(context.state_dir),
                 canvas_id,
             )
-        except canvas_store.CanvasCorruptError as exc:
+        except CanvasCorruptError as exc:
             raise CreativeCanvasDocumentCorrupt(str(exc)) from exc
 
     def list_node_generation_history(

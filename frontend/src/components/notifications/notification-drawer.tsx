@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Megaphone, Sparkles, X } from "lucide-react";
+import { Loader2, Megaphone, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   markUpgradeSeen,
   markUpgradeSkipped,
+  useCommercialAnnouncements,
   useReleaseNotifications,
+  type CommercialAnnouncement,
   type ReleaseItem,
 } from "@/modules/platform_release/public";
 
@@ -37,10 +39,14 @@ export function NotificationDrawer({
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const releaseNotifications = useReleaseNotifications(locale);
+  const commercialAnnouncements = useCommercialAnnouncements(
+    Boolean(window.aiAnimeDesktop?.commercial),
+  );
   const feed = releaseNotifications.data;
   const [shouldRender, setShouldRender] = useState(open);
   const [visible, setVisible] = useState(false);
   const notifications = buildNotifications({
+    announcements: commercialAnnouncements.data?.items ?? [],
     currentItems: feed?.current_items ?? [],
     latestItems: feed?.update_items ?? [],
     latestTag: feed?.latest_tag ?? null,
@@ -58,6 +64,12 @@ export function NotificationDrawer({
       onUpgradeStateChange?.();
     },
   });
+  const loading =
+    notifications.length === 0 &&
+    (releaseNotifications.isLoading || commercialAnnouncements.isLoading);
+  const loadFailed =
+    notifications.length === 0 &&
+    Boolean(releaseNotifications.error || commercialAnnouncements.error);
 
   useEffect(() => {
     if (open) {
@@ -137,9 +149,14 @@ export function NotificationDrawer({
           <div className="space-y-1">
             {notifications.length > 0 ? (
               notifications.map((item) => <NotificationRow key={item.id} item={item} />)
+            ) : loading ? (
+              <div className="flex items-center gap-2 px-2 py-6 text-[13px] text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                <span>{t("common.loading")}</span>
+              </div>
             ) : (
               <p className="px-2 py-6 text-[13px] leading-5 text-muted-foreground">
-                {t("notifications.empty")}
+                {t(loadFailed ? "notifications.loadFailed" : "notifications.empty")}
               </p>
             )}
           </div>
@@ -175,6 +192,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
 }
 
 function buildNotifications({
+  announcements,
   currentItems,
   latestItems,
   latestTag,
@@ -186,6 +204,7 @@ function buildNotifications({
   onSkip,
   onOpenRelease,
 }: {
+  announcements: CommercialAnnouncement[];
   currentItems: ReleaseItem[];
   latestItems: ReleaseItem[];
   latestTag: string | null;
@@ -197,7 +216,13 @@ function buildNotifications({
   onSkip: () => void;
   onOpenRelease: () => void;
 }): NotificationItem[] {
-  const rows: NotificationItem[] = [];
+  const rows: NotificationItem[] = announcements.map((item) => ({
+    id: `announcement:${item.id}`,
+    tone: "notice",
+    title: item.title,
+    body: item.body,
+    time: formatReleaseTime(item.publishAt, locale),
+  }));
   if (updateAvailable && latestTag) {
     rows.push({
       id: `release-upgrade:${latestTag}`,

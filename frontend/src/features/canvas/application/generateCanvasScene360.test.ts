@@ -31,6 +31,7 @@ describe("generateCanvasScene360", () => {
           projectId: "project-1",
           referenceUrl: "/static/source.png?v=42",
           aspectRatio: "21:9",
+          model: "cloud-image-standard",
         },
         { submissionGateway, taskGateway, onTaskSubmitted },
       ),
@@ -38,6 +39,7 @@ describe("generateCanvasScene360", () => {
     expect(submissionGateway.submit).toHaveBeenCalledWith("project-1", {
       referenceUrl: "/static/source.png",
       aspectRatio: "21:9",
+      model: "cloud-image-standard",
     });
     expect(onTaskSubmitted).toHaveBeenCalledWith(task);
     expect(taskGateway.awaitCompletion).toHaveBeenCalledWith(
@@ -67,6 +69,7 @@ describe("generateCanvasScene360", () => {
           projectId: "project-1",
           referenceUrl: "/static/source.png",
           aspectRatio: "2:1",
+          model: "cloud-image-standard",
         },
         {
           submissionGateway,

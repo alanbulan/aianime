@@ -65,7 +65,7 @@ import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
 } from '@/features/canvas/domain/nodeDisplay';
-import { DEFAULT_IMAGE_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
+import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateStoryboardGridImageDataUrl,
@@ -75,10 +75,10 @@ import {
   type StoryboardPickerAnchor,
 } from '@/features/canvas/infrastructure/browserStoryboardGenRuntime';
 import {
-  getImageModel,
-  listImageModels,
+  imageModelDefinitions,
   resolveImageModelResolution,
   resolveImageModelResolutions,
+  selectImageModel,
 } from '@/features/canvas/models';
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import { backendErrorToastMessage } from '@/shared/api/errors';
@@ -86,6 +86,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 
 export interface StoryboardGenNodeControllerOptions {
   id: string;
+  projectId: string;
+  canvasId: string;
   data: StoryboardGenNodeData;
   selected?: boolean;
   width?: number;
@@ -103,6 +105,8 @@ function createFrameId(): string {
 
 export function useStoryboardGenNodeController({
   id,
+  projectId,
+  canvasId,
   data,
   selected,
   width,
@@ -185,35 +189,41 @@ export function useStoryboardGenNodeController({
     () => incomingImageItems.map((item) => item.viewerUrl),
     [incomingImageItems],
   );
-  const imageModels = useMemo(() => listImageModels(), []);
+  const { models: catalogImageModels } = useFreezoneImageModels(projectId, 'edit');
+  const imageModels = useMemo(
+    () => imageModelDefinitions(catalogImageModels, 'edit'),
+    [catalogImageModels],
+  );
   const selectedModel = useMemo(
-    () => getImageModel(data.model ?? DEFAULT_IMAGE_MODEL_ID),
-    [data.model],
+    () => selectImageModel(imageModels, data.model),
+    [data.model, imageModels],
   );
   const effectiveExtraParams = useMemo(
     () => ({ ...(data.extraParams ?? {}) }),
     [data.extraParams],
   );
   const resolutionOptions = useMemo(
-    () =>
-      resolveImageModelResolutions(selectedModel, {
-        extraParams: effectiveExtraParams,
-      }),
+    () => selectedModel
+      ? resolveImageModelResolutions(selectedModel, {
+          extraParams: effectiveExtraParams,
+        })
+      : [],
     [effectiveExtraParams, selectedModel],
   );
   const selectedResolution = useMemo(
-    () =>
-      resolveImageModelResolution(selectedModel, data.size, {
-        extraParams: effectiveExtraParams,
-      }),
+    () => selectedModel
+      ? resolveImageModelResolution(selectedModel, data.size, {
+          extraParams: effectiveExtraParams,
+        })
+      : { value: data.size || '2K', label: data.size || '2K' },
     [data.size, effectiveExtraParams, selectedModel],
   );
   const aspectRatioOptions = useMemo<StoryboardAspectRatioChoice[]>(
     () => [
       STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
-      ...selectedModel.aspectRatios,
+      ...(selectedModel?.aspectRatios ?? []),
     ],
-    [selectedModel.aspectRatios],
+    [selectedModel],
   );
   const selectedAspectRatio = useMemo<StoryboardAspectRatioChoice>(() => {
     const found = data.requestAspectRatio
@@ -260,12 +270,12 @@ export function useStoryboardGenNodeController({
       width,
     ],
   );
-  const requestResolution = selectedModel.resolveRequest({
+  const requestResolution = selectedModel?.resolveRequest({
     referenceImageCount: incomingImages.length,
-  });
+  }) ?? { requestModel: '', modeLabel: '' };
   const resolvedPriceDisplay = useMemo(
     () =>
-      showNodePrice
+      showNodePrice && selectedModel
         ? resolveModelPriceDisplay(selectedModel, {
             resolution: selectedResolution.value,
             extraParams: effectiveExtraParams,
@@ -326,8 +336,8 @@ export function useStoryboardGenNodeController({
     return lines.join('\n');
   }, [i18n.language, resolvedPriceDisplay, t]);
   const supportedAspectRatioValues = useMemo(
-    () => selectedModel.aspectRatios.map((item) => item.value),
-    [selectedModel.aspectRatios],
+    () => (selectedModel?.aspectRatios ?? []).map((item) => item.value),
+    [selectedModel],
   );
   const mappedOverallRequestAspectRatio = useMemo(
     () =>
@@ -375,6 +385,7 @@ export function useStoryboardGenNodeController({
   }, [id, layout.size.height, layout.size.width, updateNodeInternals]);
 
   useEffect(() => {
+    if (!selectedModel) return;
     if (data.model !== selectedModel.id) {
       updateNodeData(id, { model: selectedModel.id });
     }
@@ -388,7 +399,7 @@ export function useStoryboardGenNodeController({
     data,
     id,
     selectedAspectRatio.value,
-    selectedModel.id,
+    selectedModel,
     selectedResolution.value,
     updateNodeData,
   ]);
@@ -497,6 +508,7 @@ export function useStoryboardGenNodeController({
           selectedResolution.value,
         );
         const gridImageUrl = await uploadLocalImageToBackend(
+          projectId,
           gridImageDataUrl,
           `storyboard-grid-preview-${id}-${Date.now()}.png`,
         );
@@ -521,6 +533,13 @@ export function useStoryboardGenNodeController({
         addEdge(id, previewNodeId);
         setSelectedNode(null);
         setError(null);
+        return;
+      }
+
+      if (!selectedModel || !requestResolution.requestModel) {
+        const errorMessage = t('modelPicker.empty');
+        setError(errorMessage);
+        void showErrorDialog(errorMessage, t('common.error'));
         return;
       }
 
@@ -564,6 +583,7 @@ export function useStoryboardGenNodeController({
         selectedResolution.value,
       );
       const gridImageUrl = await uploadLocalImageToBackend(
+        projectId,
         gridImageDataUrl,
         `storyboard-grid-${id}-${Date.now()}.png`,
       );
@@ -590,7 +610,6 @@ export function useStoryboardGenNodeController({
       };
       const generationDebugContext: GenerationDebugContext = {
         sourceType: 'storyboardGen',
-        providerId: selectedModel.providerId,
         requestModel: requestResolution.requestModel,
         requestSize: selectedResolution.value,
         requestAspectRatio: resolvedRequestAspectRatio,
@@ -609,11 +628,13 @@ export function useStoryboardGenNodeController({
 
       try {
         const jobId =
-          await canvasAiGateway.submitGenerateImageJob(regenerationPayload);
+          await canvasAiGateway.submitGenerateImageJob(
+            { projectId, canvasId },
+            regenerationPayload,
+          );
         updateNodeData(newNodeId, {
           generationJobId: jobId,
           generationSourceType: 'storyboardGen',
-          generationProviderId: selectedModel.providerId,
           generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
           generationDebugContext,
           generationRequestPayload: regenerationPayload,
@@ -648,7 +669,6 @@ export function useStoryboardGenNodeController({
           isGenerating: false,
           generationStartedAt: null,
           generationJobId: null,
-          generationProviderId: null,
           generationClientSessionId: null,
           generationRequestPayload: regenerationPayload,
           generationStoryboardMetadata: storyboardMetadata,
@@ -672,11 +692,11 @@ export function useStoryboardGenNodeController({
       ignoreAtTag,
       incomingImages,
       mappedOverallRequestAspectRatio,
+      canvasId,
+      projectId,
       requestResolution.requestModel,
       resolveEffectiveRequestAspectRatio,
-      selectedModel.expectedDurationMs,
-      selectedModel.id,
-      selectedModel.providerId,
+      selectedModel,
       selectedResolution.value,
       setSelectedNode,
       t,

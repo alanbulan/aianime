@@ -68,9 +68,23 @@ def _references_from_paths(
 ) -> list[ShotReference]:
     references: list[ShotReference] = []
     for index, path in enumerate(image_paths, start=1):
-        references.append(ShotReference("image", path, f"图片{index}"))
+        references.append(
+            ShotReference(
+                "image",
+                path,
+                f"图片{index}",
+                field="reference_images",
+            )
+        )
     for index, path in enumerate(audio_paths, start=1):
-        references.append(ShotReference("audio", path, f"音频{index}"))
+        references.append(
+            ShotReference(
+                "audio",
+                path,
+                f"音频{index}",
+                field="reference_audios",
+            )
+        )
     return references
 
 

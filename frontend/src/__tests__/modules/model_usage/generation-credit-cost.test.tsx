@@ -49,14 +49,15 @@ describe("generation credit cost query hook", () => {
       }),
     );
 
-    const { result } = renderHook(() => useGenerationCreditCost("beat_tts"), {
-      wrapper,
-    });
+    const { result } = renderHook(
+      () => useGenerationCreditCost("beat_tts", "audio-speech-1"),
+      { wrapper },
+    );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/generation-credit-cost");
     expect(requestedKind).toBe("beat_tts");
-    expect(requestedValue).toBeNull();
+    expect(requestedValue).toBe("audio-speech-1");
     expect(result.current.data?.data).toEqual({
       cost: 3,
       display: "3",
@@ -177,14 +178,16 @@ describe("generation credit cost query hook", () => {
     expect(result.current.data?.data.display).toBe("7");
   });
 
-  it("sends value when querying by fixed image kind", async () => {
+  it("sends the selected image model and role for scene assets", async () => {
     let requestedKind = "";
     let requestedValue = "";
+    let requestedImageRole = "";
     server.use(
       http.get("http://localhost:3000/api/v1/generation-credit-cost", ({ request }) => {
         const url = new URL(request.url);
         requestedKind = url.searchParams.get("kind") ?? "";
         requestedValue = url.searchParams.get("value") ?? "";
+        requestedImageRole = url.searchParams.get("image_role") ?? "";
         return HttpResponse.json({
           ok: true,
           data: {
@@ -196,13 +199,17 @@ describe("generation credit cost query hook", () => {
     );
 
     const { result } = renderHook(
-      () => useGenerationCreditCost("fixed_image", "scene_master"),
+      () =>
+        useGenerationCreditCost("image_selection", "scene-image-sku", {
+          imageRole: "scene_master",
+        }),
       { wrapper },
     );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedKind).toBe("fixed_image");
-    expect(requestedValue).toBe("scene_master");
+    expect(requestedKind).toBe("image_selection");
+    expect(requestedValue).toBe("scene-image-sku");
+    expect(requestedImageRole).toBe("scene_master");
     expect(result.current.data?.data.display).toBe("9");
   });
 
@@ -225,12 +232,12 @@ describe("generation credit cost query hook", () => {
     );
 
     const { result } = renderHook(
-      () => useGenerationCreditCost("video_backend", "newapi_seedance-1.0-pro-fast"),
+      () => useGenerationCreditCost("video_model", "newapi_seedance-1.0-pro-fast"),
       { wrapper },
     );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedKind).toBe("video_backend");
+    expect(requestedKind).toBe("video_model");
     expect(requestedValue).toBe("newapi_seedance-1.0-pro-fast");
     expect(result.current.data?.data.display).toBe("12");
   });

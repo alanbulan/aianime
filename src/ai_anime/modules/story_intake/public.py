@@ -31,7 +31,6 @@ def build_chapter_preview(story_text: str) -> dict[str, Any]:
 
 def create_story_intake_application(
     *,
-    task_backend_provider: Callable[[], Any],
     load_project_config: Callable[[str, str], dict[str, Any]],
     save_project_config: Callable[..., Any],
     default_aspect_ratio: Callable[[str | None], str],
@@ -39,7 +38,6 @@ def create_story_intake_application(
     from ai_anime.modules.story_intake.bootstrap import build_story_intake_application
 
     return build_story_intake_application(
-        task_backend_provider=task_backend_provider,
         load_project_config=load_project_config,
         save_project_config=save_project_config,
         default_aspect_ratio=default_aspect_ratio,

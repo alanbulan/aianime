@@ -2,7 +2,7 @@
 import type {
   CanvasUpscaleImageSize,
   CanvasUpscaleScaleFactor,
-} from "../domain/upscale";
+} from "@/modules/creative_canvas/public";
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,

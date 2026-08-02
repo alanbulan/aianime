@@ -41,10 +41,6 @@ import type {
   RenderExecuteResult,
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
-import {
-  DEFAULT_VIDEO_BACKEND,
-  type VideoBackendOption,
-} from "@/modules/production/domain/video-backend";
 import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
 import type {
   SketchRegenQueueData,
@@ -143,11 +139,6 @@ function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
 }
 
 export const httpProductionVideoGateway: ProductionVideoGateway = {
-  async listVideoBackends(project, signal) {
-    return api
-      .get(p`api/v1/projects/${project}/video-backends`, { signal })
-      .json<ProductionDataResponse<VideoBackendOption[]>>();
-  },
   async getVideoPool(project, episode, signal) {
     return api
       .get(p`api/v1/projects/${project}/episodes/${episode}/video-pool`, {
@@ -479,7 +470,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/video`,
         {
           json: {
-            video_backend: command.videoBackend ?? DEFAULT_VIDEO_BACKEND,
+            model: command.model,
             use_director_render: command.useDirectorRender,
             ...(command.resolution !== undefined
               ? { resolution: command.resolution }
@@ -552,11 +543,13 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   async generateEpisodeAudio(
     project,
     episode,
-    command?: GenerateAudioCommand,
+    command: GenerateAudioCommand,
   ) {
-    const json: { beat_numbers?: number[]; mode?: string } = {};
-    if (command?.beatNumbers) json.beat_numbers = command.beatNumbers;
-    if (command?.mode) json.mode = command.mode;
+    const json: { model: string; beat_numbers?: number[]; mode?: string } = {
+      model: command.model,
+    };
+    if (command.beatNumbers) json.beat_numbers = command.beatNumbers;
+    if (command.mode) json.mode = command.mode;
     return api
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/audio/generate`,
@@ -564,10 +557,11 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
-  async regenerateBeatAudio(project, episode, beatNumber) {
+  async regenerateBeatAudio(project, episode, beatNumber, model) {
     return api
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/audio`,
+        { json: { model } },
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
@@ -583,7 +577,6 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
           json: {
             grid_index: command.gridIndex ?? 0,
             ...(command.style !== undefined ? { style: command.style } : {}),
-            ...(command.model !== undefined ? { model: command.model } : {}),
             ...(command.sketchSceneGrouping !== undefined
               ? { sketch_scene_grouping: command.sketchSceneGrouping }
               : {}),
@@ -623,7 +616,6 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         {
           json: {
             ...(command.style ? { style: command.style } : {}),
-            model: command.model ?? "nanobanana",
             scene_grouping: command.sceneGrouping ?? false,
             character_grouping: command.characterGrouping ?? false,
             ...renderGenerationSettingsJson(command),
@@ -644,6 +636,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
           json: {
             beat_indices: command.beatIndices,
             mode_key: command.modeKey ?? "1x1_2-3_sketch",
+            ...renderGenerationSettingsJson(command),
           },
         },
       )

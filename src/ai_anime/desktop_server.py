@@ -98,6 +98,17 @@ def create_listening_socket(host: str, port: int) -> socket.socket:
     return listener
 
 
+def configure_local_api_environment(host: str, port: int) -> None:
+    url_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    os.environ.update(
+        {
+            "AI_ANIME_API_HOST": host,
+            "AI_ANIME_API_PORT": str(port),
+            "AI_ANIME_API_URL": f"http://{url_host}:{port}",
+        }
+    )
+
+
 def emit_event(event: str, **payload: object) -> None:
     print(
         DESKTOP_EVENT_PREFIX + json.dumps({"event": event, **payload}),
@@ -108,14 +119,15 @@ def emit_event(event: str, **payload: object) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     options = parse_options(argv)
     configure_environment(options)
+    listener = create_listening_socket(options.host, options.port)
+    bound_port = int(listener.getsockname()[1])
+    configure_local_api_environment(options.host, bound_port)
 
     import uvicorn
 
     from ai_anime.api.app import create_app
 
     application = create_app()
-    listener = create_listening_socket(options.host, options.port)
-    bound_port = int(listener.getsockname()[1])
     config = uvicorn.Config(
         application,
         host=options.host,

@@ -15,7 +15,7 @@ export const freezoneOutpaintGenerationGateway: CanvasOutpaintGenerationGateway 
           target_aspect_ratio: command.targetAspectRatio,
           num_images: command.numImages,
           image_size: command.imageSize,
-          ...(command.model ? { model: command.model } : {}),
+          model: command.model,
         },
       },
     );

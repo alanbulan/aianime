@@ -218,38 +218,22 @@ SHAPE_HINT_DEFAULT_AFFORDANCES = {
 }
 
 
-def resolve_model_config(request: dict[str, Any]) -> tuple[str, str, str | None]:
-    from ai_anime.config import get_newapi_runtime_credentials
-
-    model = (
+def resolve_model(request: dict[str, Any]) -> str:
+    return (
         str(request.get("model") or "").strip()
         or os.environ.get("STAGING_PROP_MODEL")
         or STAGING_PROP_MODEL
     )
-    api_key, base_url = get_newapi_runtime_credentials(
-        api_key_override=str(request.get("api_key") or "").strip() or None,
-        base_url_override=str(request.get("base_url") or "").strip() or None,
-        env_api_key="MODEL_API_KEY",
-        env_base_url="MODEL_BASE_URL",
-    )
-    return model, api_key, base_url or "http://localhost:3000/v1"
 
 
 def create_staging_prop_agent(
     *,
     model: str,
-    api_key: str,
-    base_url: str,
 ):
-    from openai import AsyncOpenAI
     from pydantic_ai import Agent
-    from pydantic_ai.models.openai import OpenAIChatModel
-    from pydantic_ai.providers.openai import OpenAIProvider
 
     from ai_anime.config import (
-        _env_float,
-        _get_newapi_text_model_profile,
-        _newapi_text_openai_client_kwargs,
+        get_newapi_text_pydantic_model,
         get_newapi_text_pydantic_model_settings,
     )
 
@@ -262,18 +246,10 @@ def create_staging_prop_agent(
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        OpenAIChatModel(
-            model,
-            provider=OpenAIProvider(
-                openai_client=AsyncOpenAI(
-                    **_newapi_text_openai_client_kwargs(
-                        api_key=api_key,
-                        base_url=base_url,
-                        timeout_seconds=_env_float("STAGING_PROP_TIMEOUT_SECONDS", 120.0),
-                    )
-                ),
-            ),
-            profile=_get_newapi_text_model_profile(model),
+        get_newapi_text_pydantic_model(
+            "STAGING_PROP_MODEL",
+            STAGING_PROP_MODEL,
+            model_name_override=model,
         ),
         system_prompt=SYSTEM_PROMPT,
         output_type=StagingPropAgentOutput,
@@ -287,10 +263,8 @@ async def run_staging_prop_agent(
     request: dict[str, Any],
     *,
     model: str,
-    api_key: str,
-    base_url: str,
 ) -> dict[str, Any]:
-    agent = create_staging_prop_agent(model=model, api_key=api_key, base_url=base_url)
+    agent = create_staging_prop_agent(model=model)
     response = await agent.run(build_user_prompt(request))
     return response.output.model_dump()
 
@@ -575,18 +549,12 @@ def normalize_prop(generated: dict[str, Any], request: dict[str, Any]) -> dict[s
 
 def generate_ai_staging_prop(request: dict[str, Any]) -> dict[str, Any]:
     load_dotenv_files()
-    model, api_key, base_url = resolve_model_config(request)
-    if not api_key:
-        raise RuntimeError(
-            "missing AI api key: set NEWAPI_API_KEY"
-        )
+    model = resolve_model(request)
 
     generated = asyncio.run(
         run_staging_prop_agent(
             request,
             model=model,
-            api_key=api_key,
-            base_url=base_url or "",
         )
     )
     prop = normalize_prop(generated, request)

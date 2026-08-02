@@ -2,7 +2,6 @@
 
 export interface RenderSettingsData {
   render_image_selection: string;
-  options: Record<string, string>;
   sketch_aspect_padding: boolean;
 }
 
@@ -13,7 +12,6 @@ export interface UpdateRenderSettingsCommand {
 
 export interface SketchSettingsData {
   sketch_image_selection: string;
-  options: Record<string, string>;
 }
 
 export interface UpdateSketchSettingsCommand {

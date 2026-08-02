@@ -14,9 +14,9 @@ describe("Canvas model defaults", () => {
       shared: DEFAULT_SHARED_MODEL_ID,
       video: DEFAULT_VIDEO_MODEL_ID,
     }).toEqual({
-      image: "openrouter/default",
-      shared: "huimeng/gpt-image-2",
-      video: "newapi_seedance-2.0",
+      image: "",
+      shared: "",
+      video: "",
     });
   });
 });

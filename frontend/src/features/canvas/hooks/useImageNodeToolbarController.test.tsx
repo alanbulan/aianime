@@ -46,6 +46,7 @@ describe("useImageNodeToolbarController", () => {
   it("projects edit availability and translated non-crop plugin actions", () => {
     const { result } = renderHook(() =>
       useImageNodeToolbarController({
+        projectId: "project-a",
         node: imageNode(),
         isPresetLocked: false,
         onOpenMultiAngleEditor: vi.fn(),
@@ -61,6 +62,7 @@ describe("useImageNodeToolbarController", () => {
     );
 
     expect(result.current).toMatchObject({
+      projectId: "project-a",
       visible: true,
       imageSource: "/source.png",
       canRotate: true,
@@ -89,6 +91,7 @@ describe("useImageNodeToolbarController", () => {
     const onOpenRotate = vi.fn();
     const { result } = renderHook(() =>
       useImageNodeToolbarController({
+        projectId: "project-a",
         node: imageNode(),
         isPresetLocked: false,
         onOpenMultiAngleEditor,

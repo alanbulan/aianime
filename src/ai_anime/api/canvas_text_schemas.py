@@ -9,6 +9,11 @@ class FreezoneTextTranslateRequest(BaseModel):
     """Freezone 文本工具：中英文互译请求。"""
 
     text: str = Field(description="待翻译的原始文本或提示词")
+    model: str = Field(
+        min_length=1,
+        max_length=256,
+        description="登录后 TEXT 模型目录返回的平台 SKU",
+    )
     node_type: Literal["generic", "image", "video", "audio", "text"] = Field(
         default="generic",
         description="使用场景。用于帮助翻译器按节点类型保留合适的提示词语气",
@@ -37,8 +42,9 @@ class FreezoneStoryScriptGenerateRequest(BaseModel):
         description="用户补充要求，会和源剧本内容一起交给模型",
     )
     model: str = Field(
-        default="newapi_gemini_flash",
-        description="文本模型选项 id 或展示名",
+        min_length=1,
+        max_length=256,
+        description="登录后 TEXT 模型目录返回的平台 SKU",
     )
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"

@@ -70,7 +70,7 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.commitBackground(...args),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   getFreezoneCanvasMetadata: () => mocks.getCanvasMetadata(),
 }));
 
@@ -121,6 +121,7 @@ function createViewerRuntime() {
 
 function ViewerHarness({ nodeData }: { nodeData: Pano360ViewerNodeData }) {
   const controller = usePano360ViewerNodeController({
+    projectId: 'project-a',
     id: 'pano-a',
     data: nodeData,
     selected: true,
@@ -161,6 +162,7 @@ describe('usePano360ViewerNodeController', () => {
 
     const { result } = renderHook(() =>
       usePano360ViewerNodeController({
+        projectId: 'project-a',
         id: 'pano-a',
         data: data(),
         selected: true,
@@ -194,6 +196,7 @@ describe('usePano360ViewerNodeController', () => {
     mocks.selectedNodeId = 'group-a';
     const { result } = renderHook(() =>
       usePano360ViewerNodeController({
+        projectId: 'project-a',
         id: 'pano-a',
         data: data({ imageUrl: '/old.png', sourceNodeId: 'upload-a' }),
         selected: true,
@@ -209,7 +212,11 @@ describe('usePano360ViewerNodeController', () => {
 
   it('owns correction, FOV, front direction, and panel commands', () => {
     const { result } = renderHook(() =>
-      usePano360ViewerNodeController({ id: 'pano-a', data: data() }),
+      usePano360ViewerNodeController({
+        projectId: 'project-a',
+        id: 'pano-a',
+        data: data(),
+      }),
     );
 
     act(() => result.current.updateCorrectionAxis('pitch', 120));
@@ -232,6 +239,7 @@ describe('usePano360ViewerNodeController', () => {
   it('persists and copies the current correction contract', async () => {
     const { result } = renderHook(() =>
       usePano360ViewerNodeController({
+        projectId: 'project-a',
         id: 'pano-a',
         data: data({
           imageUrl: '/pano.png',

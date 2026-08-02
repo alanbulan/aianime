@@ -2,8 +2,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
-import { useTaskCenterStore } from "@/task-center/store";
-import type { TaskState } from "@/task-center/types";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
+import type { TaskState } from "@/modules/task_execution/public";
 
 // Each store's reset() must return the region-scoped data fields to their
 // initial values. This mirrors the central switch flow, which calls every

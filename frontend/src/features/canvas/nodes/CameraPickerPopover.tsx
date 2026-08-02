@@ -20,6 +20,7 @@ const CAMERA_PICKER_ARROW_CLASS =
   'flex h-7 w-full items-center justify-center text-foreground/72 transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-100';
 
 interface CameraPickerPopoverProps {
+  projectId: string;
   selection: ImageGenCameraSelection | null;
   onConfirm: (selection: ImageGenCameraSelection | null) => void;
   onClose: () => void;
@@ -77,12 +78,13 @@ function apertureImageFor(label: string): string {
 }
 
 export function CameraPickerPopover({
+  projectId,
   selection,
   onConfirm,
   onClose,
 }: CameraPickerPopoverProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { options, isLoading } = useFreezoneCameraOptions();
+  const { options, isLoading } = useFreezoneCameraOptions(projectId);
 
   const cameraBodies = options?.cameraBodies ?? [];
   const lenses = options?.lenses ?? [];

@@ -120,15 +120,48 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
     )
 
     pool = hermes_pool.HermesPool(max_workers=1)
+    cli_path = tmp_path / "hermes.exe"
     env = pool._build_env(
         tmp_path,
         "alice",
         token,
+        cli_path=cli_path,
         project_id=None,
     )
 
     assert env["NEWAPI_API_KEY"] == "worker-only-key"
     assert "NEWAPI_API_KEY" not in os.environ
+    if os.name == "nt":
+        assert env["HERMES_HOME"] == str(tmp_path)
+        assert env["USERPROFILE"] == str(tmp_path)
+        assert env["TEMP"] == str(tmp_path / "tmp")
+        assert str(cli_path.parent) in env["PATH"]
+
+
+def test_hermes_runtime_does_not_fall_back_to_a_system_install(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.chat import hermes_pool
+
+    monkeypatch.delenv("HERMES_CLI_PATH", raising=False)
+
+    assert hermes_pool._hermes_cli_path() is None
+
+
+@pytest.mark.asyncio
+async def test_hermes_pool_requires_the_desktop_bundled_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.chat import hermes_pool
+
+    monkeypatch.delenv("HERMES_CLI_PATH", raising=False)
+    pool = hermes_pool.HermesPool(max_workers=1)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await pool.get_for_user("alice")
+
+    assert "bundled Hermes ACP runtime" in str(exc_info.value)
+    assert "uv tool install" not in str(exc_info.value)
 
 
 @pytest.mark.asyncio

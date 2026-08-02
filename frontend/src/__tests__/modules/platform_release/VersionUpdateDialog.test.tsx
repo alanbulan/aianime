@@ -25,6 +25,9 @@ vi.mock("react-i18next", () => ({
         "app.versionUpdate.title": "New features are live",
         "app.versionUpdate.confirm": "Got it",
         "app.versionUpdate.empty": "No release notes",
+        "app.commercialUpdate.availableTitle": "Desktop update available",
+        "app.commercialUpdate.availableDescription": "Install the new desktop version.",
+        "app.commercialUpdate.acknowledge": "Later",
       })[key] ?? key,
     i18n: {
       language: "en",
@@ -57,7 +60,10 @@ import { VersionUpdateDialog } from "@/modules/platform_release/presentation/Ver
 const server = setupServer();
 
 beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  delete window.aiAnimeDesktop;
+});
 afterAll(() => server.close());
 
 function feed(items = [{ title: "Current highlight", body: "Current body" }]) {
@@ -128,5 +134,23 @@ describe("VersionUpdateDialog release feed behavior", () => {
     openVersionUpdateDialog();
 
     expect(await screen.findByText(/Current highlight/)).toBeInTheDocument();
+  });
+
+  it("auto-opens the existing dialog for an optional commercial update", async () => {
+    localStorage.setItem("ai-anime:release-seen:v1.0.2", "seen");
+    window.aiAnimeDesktop = {
+      commercial: {
+        checkRelease: vi.fn().mockResolvedValue({
+          available: true,
+          required: false,
+          reason: "new-version",
+        }),
+      } as unknown as AIAnimeCommercialBridge,
+    } as AIAnimeDesktopBridge;
+
+    renderDialog();
+
+    expect(await screen.findByText("Desktop update available")).toBeInTheDocument();
+    expect(screen.getByText("Install the new desktop version.")).toBeInTheDocument();
   });
 });

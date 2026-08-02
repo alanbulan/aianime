@@ -350,6 +350,11 @@ def generate(
     project: str = typer.Option(..., "--project", "-p", help="项目名称"),
     episode: int = typer.Option(..., "--episode", "-e", help="要生成的集数"),
     mock: bool = typer.Option(False, "--mock", "-m", help="使用模拟生成器（测试用）"),
+    image_model: str = typer.Option(
+        "",
+        "--image-model",
+        help="图片模型 SKU 或 BYOK 模型 ID",
+    ),
 ):
     """生成指定集的视频（简化版）。"""
     _ensure_nest_asyncio()
@@ -380,7 +385,7 @@ def generate(
             os.makedirs(images_dir, exist_ok=True)
             os.makedirs(audio_dir, exist_ok=True)
 
-            image_gen = create_image_generator(use_mock=mock)
+            image_gen = create_image_generator(model=image_model, use_mock=mock)
             tts_gen = create_tts_generator(use_mock=mock)
             scene_assets = []
 

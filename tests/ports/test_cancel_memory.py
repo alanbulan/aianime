@@ -1,7 +1,9 @@
 import pytest
 
-from ai_anime.ports.local.tasks import InMemoryCancellationStore
-from ai_anime.ports.tasks import cancel_key
+from ai_anime.modules.task_execution.public import (
+    build_in_memory_cancellation_store,
+)
+from ai_anime.modules.task_execution.public import cancel_key
 
 
 def test_cancel_key_matches_existing_shape() -> None:
@@ -20,7 +22,7 @@ def test_cancel_key_matches_existing_shape() -> None:
 
 @pytest.mark.asyncio
 async def test_memory_cancellation_store_can_write_read_and_isolate_keys() -> None:
-    store = InMemoryCancellationStore()
+    store = build_in_memory_cancellation_store()
 
     await store.request_cancel(
         project_id="p1",

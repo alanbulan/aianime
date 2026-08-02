@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { SketchAspectRatio } from "@/modules/production/domain/image-settings";
+import type { TaskStatus } from "@/modules/task_execution/public";
 
 export interface RegenMode {
   key: string;
@@ -15,10 +16,10 @@ export interface SketchRegenBeat {
 
 export interface SketchRegenTask {
   task_type: string;
-  scope?: string;
-  status: string;
-  result?: unknown;
-  metadata?: Record<string, unknown>;
+  scope?: string | null;
+  status: TaskStatus;
+  result?: unknown | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface SketchRegenQueueItem {
@@ -278,7 +279,7 @@ export function sketchModeCellAspect(modeKey: string): string | null {
 }
 
 export function sketchRegenModelCallCount(
-  items: readonly SketchRegenQueueItem[],
+  items: readonly Pick<SketchRegenQueueItem, "modeKey" | "beatNumbers">[],
 ): number {
   return items.reduce((sum, item) => {
     const mode = SKETCH_REGEN_MODES.find(

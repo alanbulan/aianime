@@ -12,6 +12,12 @@ const currentUserState = vi.hoisted(() => ({
   balance: 1234 as number | undefined,
 }));
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: false }));
+const commercialState = vi.hoisted(() => ({
+  availability: "unconfigured",
+  session: null as { authenticated: true } | null,
+  allowsCloudModels: false,
+  balance: 7300,
+}));
 
 vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => runtimeState.isCeRuntime,
@@ -38,6 +44,29 @@ vi.mock("@/modules/identity_access/public", () => ({
         : undefined,
     isError: currentUserState.isError,
     isLoading: currentUserState.isLoading,
+  }),
+  useCommercialAuthStore: (
+    selector: (state: { availability: string; session: unknown }) => unknown,
+  ) =>
+    selector({
+      availability: commercialState.availability,
+      session: commercialState.session,
+    }),
+  useCommercialEntitlementStore: (
+    selector: (state: { entitlement: unknown }) => unknown,
+  ) =>
+    selector({
+      entitlement: commercialState.allowsCloudModels
+        ? { capabilities: { allowsCloudModels: true } }
+        : null,
+    }),
+}));
+
+vi.mock("@/modules/model_usage/public", () => ({
+  useCommercialQuota: (enabled: boolean) => ({
+    data: enabled ? { spendableUnits: commercialState.balance } : undefined,
+    isLoading: false,
+    isError: false,
   }),
 }));
 
@@ -78,6 +107,10 @@ describe("CreditBalanceBadge", () => {
     currentUserState.isLoading = false;
     currentUserState.balance = 1234;
     runtimeState.isCeRuntime = false;
+    commercialState.availability = "unconfigured";
+    commercialState.session = null;
+    commercialState.allowsCloudModels = false;
+    commercialState.balance = 7300;
   });
 
   it("renders the current credit balance", async () => {
@@ -101,5 +134,17 @@ describe("CreditBalanceBadge", () => {
     const { container } = renderBadge();
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it("uses Gateway spendable units in the commercial desktop runtime", () => {
+    runtimeState.isCeRuntime = true;
+    commercialState.availability = "configured";
+    commercialState.session = { authenticated: true };
+    commercialState.allowsCloudModels = true;
+
+    renderBadge();
+
+    expect(screen.getByText("7,300")).toBeInTheDocument();
+    expect(screen.queryByText("1,234")).not.toBeInTheDocument();
   });
 });

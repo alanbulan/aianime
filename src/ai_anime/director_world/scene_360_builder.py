@@ -18,24 +18,12 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from ai_anime.config import (
-    HUIMENG_IMAGE_MODEL,
     IMAGE_DEFAULT_STYLE,
-    NEWAPI_IMAGE_MODEL,
-    OPENAI_IMAGE_MODEL,
-    OPENROUTER_GPT_IMAGE2_MODEL,
     OUTPUT_DIR,
-    SCENE_360_HUIMENG_MODEL,
-    SCENE_360_IMAGE_MODEL,
-    SCENE_360_IMAGE_PROVIDER,
-    SCENE_360_PROVIDER,
     get_style_preset,
 )
-from ai_anime.generators.nanobanana_grid import (
-    _call_huimeng_image_api,
-    _call_newapi_image_api,
-    _call_openai_image_api,
-    _call_openrouter_image_api,
-)
+from ai_anime.generators.nanobanana_grid import _call_newapi_image_api
+from ai_anime.model_access_policy import load_model_access_from_stdin
 
 # Demo defaults for standalone/manual runs. In production stage_asset_tasks
 # always passes absolute --output-dir/--master, so these defaults are never used.
@@ -774,23 +762,16 @@ def make_contact_sheet(
 
 async def run(args: argparse.Namespace) -> int:
     load_env()
+    load_model_access_from_stdin()
     args.quality = str(
         args.quality
         or os.environ.get("SCENE_360_IMAGE_QUALITY")
-        or os.environ.get("HUIMENG_IMAGE_QUALITY")
         or SCENE_360_DEFAULT_QUALITY
     ).strip()
     args.image_size = str(
         args.image_size or os.environ.get("SCENE_360_IMAGE_SIZE") or SCENE_360_DEFAULT_IMAGE_SIZE
     ).strip()
-    provider = str(
-        args.provider
-        or os.environ.get("SCENE_360_IMAGE_PROVIDER")
-        or os.environ.get("SCENE_360_PROVIDER")
-        or SCENE_360_IMAGE_PROVIDER
-        or SCENE_360_PROVIDER
-        or "huimeng"
-    ).lower()
+    provider = "newapi"
     output_dir = repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -957,98 +938,21 @@ async def run(args: argparse.Namespace) -> int:
     manifest_path = output_dir / "scene_360_manifest.json"
     prompt_path.write_text(prompt, encoding="utf-8")
 
-    if provider in {"huimeng", "huimengi"}:
-        api_key = os.environ.get("HUIMENGI_API_KEY")
-        if not api_key:
-            raise RuntimeError("HUIMENGI_API_KEY is missing")
-        model = (
-            args.model
-            or os.environ.get("SCENE_360_HUIMENG_MODEL")
-            or os.environ.get("HUIMENG_IMAGE_MODEL")
-            or SCENE_360_HUIMENG_MODEL
-            or HUIMENG_IMAGE_MODEL
-            or "image-2"
-        )
-        image_bytes, _text, error = await _call_huimeng_image_api(
-            api_key=api_key,
-            model=model,
-            prompt=prompt,
-            reference_images=[item[1] for item in reference_images] if reference_images else None,
-            image_config={
-                "aspect_ratio": "2:1",
-                "image_size": args.image_size,
-                "quality": args.quality,
-                "huimeng_image_quality": args.quality,
-                "output_format": "png",
-            },
-        )
-    elif provider == "openai":
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY is missing")
-        model = args.model or os.environ.get("OPENAI_IMAGE_MODEL") or OPENAI_IMAGE_MODEL
-        image_bytes, _text, error = await _call_openai_image_api(
-            api_key=api_key,
-            model=model,
-            prompt=prompt,
-            reference_images=reference_images,
-            image_config={
-                "aspect_ratio": "2:1",
-                "image_size": args.image_size,
-                "quality": args.quality,
-                "output_format": "png",
-            },
-        )
-    elif provider == "newapi":
-        from ai_anime.config import get_newapi_runtime_credentials
-
-        api_key, base_url = get_newapi_runtime_credentials()
-        if not api_key:
-            raise RuntimeError("NEWAPI_API_KEY is missing")
-        model = (
-            args.model
-            or os.environ.get("SCENE_360_IMAGE_MODEL")
-            or os.environ.get("NEWAPI_IMAGE_MODEL")
-            or SCENE_360_IMAGE_MODEL
-            or NEWAPI_IMAGE_MODEL
-        )
-        image_bytes, _text, error = await _call_newapi_image_api(
-            api_key=api_key,
-            model=model,
-            prompt=prompt,
-            reference_images=reference_images,
-            image_config={
-                "aspect_ratio": "2:1",
-                "image_size": args.image_size,
-                "quality": args.quality,
-                "output_format": "png",
-            },
-            base_url=base_url,
-            trace=provider_trace,
-        )
-    elif provider == "openrouter":
-        api_key = os.environ.get("OPENROUTER_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY is missing")
-        model = (
-            args.model
-            or os.environ.get("SCENE_360_OPENROUTER_MODEL")
-            or os.environ.get("OPENROUTER_GPT_IMAGE2_MODEL")
-            or OPENROUTER_GPT_IMAGE2_MODEL
-        )
-        image_bytes, _text, error = await _call_openrouter_image_api(
-            api_key=api_key,
-            model=model,
-            prompt=prompt,
-            reference_images=[item[1] for item in reference_images] if reference_images else None,
-            image_config={
-                "aspect_ratio": "2:1",
-                "image_size": args.image_size,
-                "quality": args.quality,
-            },
-        )
-    else:
-        raise ValueError(f"Unsupported scene 360 provider: {provider}")
+    model = str(args.model or "").strip()
+    if not model:
+        raise ValueError("scene 360 image model is required")
+    image_bytes, _text, error = await _call_newapi_image_api(
+        model=model,
+        prompt=prompt,
+        reference_images=reference_images,
+        image_config={
+            "aspect_ratio": "2:1",
+            "image_size": args.image_size,
+            "quality": args.quality,
+            "output_format": "png",
+        },
+        trace=provider_trace,
+    )
 
     manifest_path.write_text(
         json.dumps(
@@ -1118,8 +1022,7 @@ def main() -> int:
         help="Path to overlap_continuation_analysis.json; use 'auto' to load scene default, 'none' to disable.",
     )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--provider", default="")
-    parser.add_argument("--model", default="")
+    parser.add_argument("--model", required=True)
     parser.add_argument("--scene-description", default=DEFAULT_SCENE_DESCRIPTION)
     parser.add_argument("--text-only", action="store_true")
     parser.add_argument("--quality", default="")

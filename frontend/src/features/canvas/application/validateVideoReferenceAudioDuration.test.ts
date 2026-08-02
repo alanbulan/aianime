@@ -2,10 +2,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS,
   validateVideoReferenceAudioDuration,
   type VideoReferenceAudioDurationGateway,
 } from "./validateVideoReferenceAudioDuration";
+
+const MAX_DURATION_MS = 15_200;
 
 function gateway(): VideoReferenceAudioDurationGateway {
   return { probeDurationMs: vi.fn().mockResolvedValue(null) };
@@ -22,6 +23,7 @@ describe("validateVideoReferenceAudioDuration", () => {
             { url: "one.mp3", durationMs: 8_000 },
             { url: "two.mp3", durationMs: 7_201 },
           ],
+          maxDurationMs: MAX_DURATION_MS,
         },
         durationGateway,
       ),
@@ -43,6 +45,7 @@ describe("validateVideoReferenceAudioDuration", () => {
             { url: "probe.mp3", durationMs: null },
             { url: "missing.mp3", durationMs: 0 },
           ],
+          maxDurationMs: MAX_DURATION_MS,
         },
         durationGateway,
       ),
@@ -66,14 +69,15 @@ describe("validateVideoReferenceAudioDuration", () => {
           references: [
             {
               url: "boundary.mp3",
-              durationMs: SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS,
+              durationMs: MAX_DURATION_MS,
             },
           ],
+          maxDurationMs: MAX_DURATION_MS,
         },
         durationGateway,
       ),
     ).resolves.toEqual({
-      totalDurationMs: SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS,
+      totalDurationMs: MAX_DURATION_MS,
       exceedsLimit: false,
     });
   });

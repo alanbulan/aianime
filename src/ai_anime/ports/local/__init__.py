@@ -11,17 +11,18 @@ from ai_anime.modules.model_usage.public import (
 )
 from ai_anime.modules.platform_release.public import build_local_release_feed
 from ai_anime.modules.project_workspace.public import build_local_project_adapters
+from ai_anime.modules.task_execution.public import (
+    build_in_memory_cancellation_store,
+    build_inline_task_backend,
+    build_mock_cloud_task_backend,
+)
 from ai_anime.ports.local.audit import NoOpAuditSink
 from ai_anime.ports.local.lifecycle import NoOpLifecycle
-from ai_anime.ports.local.mock_cloud import MockCloudAdapter
-from ai_anime.ports.local.mock_tasks import MockCloudTaskBackend
-from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
 from ai_anime.ports.registry import register_port
 
 
 def register_local_ports() -> None:
     cloud_adapter_name = os.environ.get("AI_ANIME_CLOUD_ADAPTER", "").strip().lower()
-    cloud_adapter = MockCloudAdapter() if cloud_adapter_name == "mock" else None
     release_feed_name = (
         os.environ.get("AI_ANIME_RELEASE_FEED_ADAPTER", "mock").strip().lower()
     )
@@ -39,12 +40,11 @@ def register_local_ports() -> None:
         "release_feed",
         build_local_release_feed(release_feed_name),
     )
-    if cloud_adapter is not None:
-        register_port("cloud_adapter", cloud_adapter)
-        register_port("task_backend", MockCloudTaskBackend(cloud_adapter))
+    if cloud_adapter_name == "mock":
+        register_port("task_backend", build_mock_cloud_task_backend())
     else:
-        register_port("task_backend", InlineTaskBackend())
-    register_port("cancellation_store", InMemoryCancellationStore())
+        register_port("task_backend", build_inline_task_backend())
+    register_port("cancellation_store", build_in_memory_cancellation_store())
     register_port("audit_sink", NoOpAuditSink())
     register_port("lifecycle", NoOpLifecycle())
     provider_instrumentation.install()

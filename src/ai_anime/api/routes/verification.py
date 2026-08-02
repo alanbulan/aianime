@@ -10,8 +10,11 @@ from fastapi import APIRouter, Depends
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import make_sqlite_store_for_context, resolve_project_scope
-from ai_anime.ports import get_task_backend
-from ai_anime.task_identity import project_task_state_key, task_config_scope
+from ai_anime.modules.production.public import (
+    SketchEditExecutionTask,
+    production_image_settings_use_cases,
+    sketch_edit_execution_use_cases,
+)
 from ai_anime.verification.consistency_verifier import ConsistencyVerifier
 from ai_anime.verification.continuity_verifier import ContinuityVerifier
 from ai_anime.verification.episode_reviewer import EpisodeReviewer
@@ -187,6 +190,12 @@ async def start_sketch_edit_execute(
     resolved = await resolve_project_scope(project, user, required_role="editor")
     ctx = resolved.ctx
     project_dir = resolved.project_dir
+    model = production_image_settings_use_cases().sketch_settings(
+        resolved.username,
+        resolved.project_name,
+    )["sketch_image_selection"]
+    if not model:
+        return {"ok": False, "error": "请先选择草图图片模型"}
 
     try:
         labels_name = _safe_output_name(body.labels_name)
@@ -205,47 +214,30 @@ async def start_sketch_edit_execute(
             "details": e.payload,
         }
 
-    config = {
-        "labels_name": labels_path.name,
-    }
-    scope = task_config_scope("edit_execute", config)
+    task = SketchEditExecutionTask(
+        episode_num=episode_num,
+        project_dir=project_dir,
+        labels_name=labels_path.name,
+        model=model,
+    )
 
     if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
+        scheduled = await sketch_edit_execution_use_cases().start(
             ctx,
-            task_type="sketch_edit_execute",
-            queue_kind="sketch",
-            episode=episode_num,
-            scope=scope,
-            payload={
-                "episode": episode_num,
-                "project_dir": str(project_dir),
-                "labels_name": labels_path.name,
-            },
+            task,
         )
         return {
             "ok": True,
-            "task_type": "sketch_edit_execute",
-            "scope": scope,
             "labels_jsonl": labels_path.relative_to(project_dir).as_posix(),
             "labels_validation": validation,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "sketch_edit_execute",
-                ctx.project_id,
-                episode_num,
-                scope=scope,
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集 sketch edit execute 任务已进入队列",
+            **scheduled.as_dict(),
         }
 
     return {
         "ok": False,
         "error": "sketch edit execute 需要 project context",
         "task_type": "sketch_edit_execute",
-        "scope": scope,
+        "scope": task.scope,
         "labels_jsonl": labels_path.relative_to(project_dir).as_posix(),
         "labels_validation": validation,
     }

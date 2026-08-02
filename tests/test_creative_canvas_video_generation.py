@@ -53,7 +53,7 @@ def _project_context(tmp_path: Path) -> ProjectContext:
 
 def _options(
     *,
-    model: str = "newapi_seedance-2.0-fast",
+    model: str = "seedance-2.0-fast",
     prompt: str = "镜头缓慢推进",
     gen_mode: str | None = None,
     scene_optimize: str | None = None,
@@ -99,30 +99,24 @@ class _FixedJobIds:
 
 
 class _ModelPolicy:
-    def resolve_backend(self, model: str | None) -> str:
+    def resolve_model(self, model: str | None) -> str:
         if model == "invalid":
             raise ValueError("unknown video model: invalid")
-        return str(model or "newapi_seedance-2.0-fast")
-
-    def is_seedance2_backend(self, backend: str | None) -> bool:
-        return "seedance-2.0" in str(backend or "")
-
-    def is_happyhorse_backend(self, backend: str | None) -> bool:
-        return "happyhorse" in str(backend or "")
+        return str(model or "seedance-2.0-fast")
 
     def normalize_aspect_ratio(self, value: str | None) -> str:
         return "16:9" if value == "auto" else str(value)
 
-    def normalize_resolution(self, backend: str | None, value: str | None) -> str:
-        del backend
+    def normalize_resolution(self, model: str | None, value: str | None) -> str:
+        del model
         return str(value or "720p").lower()
 
-    def normalize_duration(self, backend: str | None, value: int | None) -> int:
-        del backend
+    def normalize_duration(self, model: str | None, value: int | None) -> int:
+        del model
         return int(value or 5)
 
-    def normalize_scene_optimize(self, backend: str | None, value: str | None) -> str:
-        return str(value or "") if "value" in str(backend or "") else ""
+    def normalize_scene_optimize(self, model: str | None, value: str | None) -> str:
+        return str(value or "") if "value" in str(model or "") else ""
 
 
 class _CharacterCatalog:
@@ -191,7 +185,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             context=context,
             project_dir=project_dir,
             options=_options(
-                model="newapi_seedance-2.0-fast-value",
+                model="seedance-2.0-fast-value",
                 scene_optimize="realistic",
             ),
             character_ids=("character-1",),
@@ -202,7 +196,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             context=context,
             project_dir=project_dir,
             options=_options(
-                model="newapi_happyhorse-1.0",
+                model="happyhorse-1.0",
                 gen_mode="imageReference",
             ),
             image_urls=(
@@ -244,7 +238,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
         StartCreativeCanvasVideoEditCommand(
             context=context,
             project_dir=project_dir,
-            options=_options(model="newapi_happyhorse-1.0"),
+            options=_options(model="happyhorse-1.0"),
             video_url="freezone/_uploads/source.mp4",
             image_urls=("freezone/_uploads/style.png",),
             audio_setting="origin",
@@ -267,6 +261,13 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
     )
     assert all(task.queue_kind == "video" for task in scheduler.tasks)
     assert all(task.project_dir == project_dir for task in scheduler.tasks)
+    assert [task.payload["model_role"] for task in scheduler.tasks] == [
+        "VIDEO_TEXT_TO_VIDEO",
+        "VIDEO_IMAGE_REFERENCE",
+        "VIDEO_FIRST_LAST_FRAME",
+        "VIDEO_ALL_REFERENCE",
+        "VIDEO_EDIT",
+    ]
 
     text_payload = scheduler.tasks[0].payload
     assert "林小满" in str(text_payload["prompt"])
@@ -277,6 +278,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
                 project_dir / "freezone" / "_uploads" / "character.png"
             ).as_posix(),
             "role": "角色参考",
+            "field": "reference_images",
         }
     ]
     assert text_payload["scene_optimize"] == "realistic"
@@ -284,11 +286,19 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
     assert text_payload["node_id"] == "node-1"
 
     image_references = scheduler.tasks[1].payload["reference_items"]
-    assert [item["role"] for item in image_references] == ["图片参考", "图片参考"]
+    assert [item["role"] for item in image_references] == ["首帧", "图片参考"]
+    assert [item["field"] for item in image_references] == [
+        "input_reference",
+        "reference_images",
+    ]
     keyframe_payload = scheduler.tasks[2].payload
     assert [item["role"] for item in keyframe_payload["reference_items"]] == [
         "首帧",
         "尾帧",
+    ]
+    assert [item["field"] for item in keyframe_payload["reference_items"]] == [
+        "input_reference",
+        "last_frame",
     ]
     assert (
         keyframe_payload["last_frame_path"]
@@ -380,14 +390,14 @@ async def test_video_generation_preserves_validation_contracts(tmp_path: Path) -
 
     with pytest.raises(
         InvalidCreativeCanvasVideoGenerationRequest,
-        match="video edit currently only supports HappyHorse models",
+        match="video_url is required",
     ):
         await use_cases.start_video_edit(
             StartCreativeCanvasVideoEditCommand(
                 context=context,
                 project_dir=context.output_dir,
                 options=_options(),
-                video_url="freezone/_uploads/source.mp4",
+                video_url="",
                 image_urls=(),
                 audio_setting="auto",
             )
@@ -428,6 +438,7 @@ async def test_video_generation_route_maps_command_and_response(
         project="project-1",
         body=FreezoneVideoGenRequest(
             prompt="雨夜街头",
+            model="cloud-video-standard",
             character_ids=["character-1"],
             canvas_id="canvas-1",
             node_id="node-1",

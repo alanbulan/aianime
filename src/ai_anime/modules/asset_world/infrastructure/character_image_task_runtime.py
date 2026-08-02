@@ -72,8 +72,10 @@ async def execute_character_image_task(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.cognee import CogneeStore
     from ai_anime.project_config import load_project_config_file
+    from ai_anime.shared.infrastructure.project_stores import (
+        make_cognee_store_for_context,
+    )
 
     payload = envelope.get("payload") or {}
     mode = str(payload["mode"])
@@ -99,9 +101,7 @@ async def execute_character_image_task(
         )
 
     update(0.10, "加载角色数据...")
-    store = CogneeStore(ctx.owner_project_label, output_dir=str(output_dir))
-    await store.initialize()
-    await store.load_graph_state()
+    store = await make_cognee_store_for_context(ctx, load_graph_state=True)
     try:
         character = await store.get_character_from_graph(character_name)
         if character is None:

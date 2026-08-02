@@ -7,9 +7,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneCanvases = vi.fn();
 const deleteFreezoneCanvas = vi.fn();
 
-vi.mock("@/features/canvas/composition", async () => {
+vi.mock("@/modules/creative_canvas/canvasStorageComposition", async () => {
   const { createFreezoneCanvasQueryHooks } = await import(
-    "@/features/canvas/hooks/freezoneCanvasQueryHooks"
+    "@/modules/creative_canvas/presentation/canvasStorageQueryHooks"
   );
   return {
     createBlankFreezoneCanvas: vi.fn(),

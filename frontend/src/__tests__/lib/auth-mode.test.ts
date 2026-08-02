@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  ensureAuthenticatedForAppRoute,
-  useAuthStore,
-} from "@/modules/identity_access/public";
+import { resolveAppRouteAccess } from "@/app/commercial-access";
+import { useAuthStore } from "@/modules/identity_access/public";
 
 const runtimeState = vi.hoisted(() => ({ authRequired: true }));
 
@@ -28,7 +26,7 @@ describe("application route authentication", () => {
       vi.fn(async () => ({ ok: false, status: 401 })),
     );
 
-    expect(await ensureAuthenticatedForAppRoute()).toBe(false);
+    expect(await resolveAppRouteAccess()).toBe("unauthenticated");
   });
 
   it("uses /auth/me to establish a no-auth runtime session without showing login", async () => {
@@ -45,7 +43,7 @@ describe("application route authentication", () => {
       })),
     );
 
-    await expect(ensureAuthenticatedForAppRoute()).resolves.toBe(true);
+    await expect(resolveAppRouteAccess()).resolves.toBe("granted");
     expect(useAuthStore.getState().username).toBe("local");
     expect(useAuthStore.getState().role).toBe("owner");
   });

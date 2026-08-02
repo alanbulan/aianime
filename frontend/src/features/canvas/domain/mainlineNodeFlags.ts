@@ -22,7 +22,7 @@
  */
 
 import type { CanvasEdge, CanvasNode } from "./canvasNodes.ts";
-import { isCanonicalPushTarget } from "@/features/freezone/public";
+import { isCanonicalPushTarget } from "@/modules/creative_canvas/public";
 
 export interface MainlineNodeFlags {
   isPresetManaged: boolean;

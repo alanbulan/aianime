@@ -246,12 +246,15 @@ class StylePreviewUseCases:
         )
         if style is None:
             raise StyleRejected(f"Style '{style_id}' not found")
+        resolved_model = str(model or "").strip()
+        if not resolved_model:
+            raise StyleRejected("Style preview image model is required")
 
         try:
             paths = await self._generator.generate(
                 prompt=prompt,
                 style_id=style_id,
-                model=model,
+                model=resolved_model,
             )
         except Exception as exc:
             raise StyleRejected(f"Preview generation failed: {exc}") from exc

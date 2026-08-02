@@ -65,6 +65,7 @@ describe("Canvas audio generation", () => {
       generateCanvasAudio(
         {
           kind: "speech",
+          model: "audio-speech-1",
           projectId: "project-1",
           prompt: "Speak",
           emotionPrompt: "  calm  ",
@@ -76,6 +77,7 @@ describe("Canvas audio generation", () => {
     expect(deps.submissionGateway.submitSpeech).toHaveBeenCalledWith(
       "project-1",
       {
+        model: "audio-speech-1",
         text: "Speak",
         emotionPrompt: "calm",
         voiceRef: { scope: "project_narrator" },
@@ -105,6 +107,7 @@ describe("Canvas audio generation", () => {
     await generateCanvasAudio(
       {
         kind: "music",
+        model: "audio-music-1",
         projectId: "project-2",
         prompt: "Ambient score",
         musicLengthMs: "invalid",
@@ -115,6 +118,7 @@ describe("Canvas audio generation", () => {
     expect(deps.submissionGateway.submitMusic).toHaveBeenCalledWith(
       "project-2",
       {
+        model: "audio-music-1",
         prompt: "Ambient score",
         forceInstrumental: true,
         respectSectionsDurations: true,

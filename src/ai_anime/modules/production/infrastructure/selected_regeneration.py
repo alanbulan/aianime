@@ -29,7 +29,11 @@ from ai_anime.modules.production.domain.selected_regeneration import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key, selection_scope
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+    selection_scope,
+)
 
 
 class LocalSelectedRegenerationPreparer:
@@ -110,13 +114,15 @@ class LocalSelectedRegenerationPreparer:
                     project_config,
                     command.image_generation_selection,
                 )
+            if not image_selection:
+                label = "草图" if command.kind is SelectedRegenerationKind.SKETCH else "渲染"
+                raise SelectedRegenerationRejected(f"请先选择{label}图片模型")
 
             config = {
                 "beats": beats,
                 "character_map": character_map,
                 "style": style,
-                "model": command.model,
-                "image_generation_selection": image_selection,
+                "model": image_selection,
                 "selected_beat_numbers": list(command.beat_indices),
                 "sketch_colors": (
                     store.get_sketch_colors(command.episode_num) or {}
@@ -144,31 +150,27 @@ class LocalSelectedRegenerationPreparer:
             await store.close()
 
 
-class TaskBackendSelectedRegenerationScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionSelectedRegenerationScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: SelectedRegenerationTask,
     ) -> SelectedRegenerationTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type=task.task_type,
-            queue_kind="default",
-            episode=task.episode_num,
-            scope=task.scope,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type=task.task_type,
+                episode=task.episode_num,
+                scope=task.scope,
+                payload=task.backend_payload(),
+            ),
         )
         return SelectedRegenerationTaskReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                task.task_type,
-                context.project_id,
-                task.episode_num,
-                scope=task.scope,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

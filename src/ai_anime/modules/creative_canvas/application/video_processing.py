@@ -64,6 +64,7 @@ class StartCreativeCanvasShotAnalysisCommand:
     frame_urls: tuple[str, ...]
     analysis_mode: CreativeCanvasShotAnalysisMode
     duration_sec: float | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,6 +196,7 @@ class CreativeCanvasVideoProcessingUseCases:
                 "frame_paths": [str(path) for path in frame_paths],
                 "analysis_mode": command.analysis_mode,
                 "duration_sec": command.duration_sec,
+                "model": command.model,
             },
         )
 

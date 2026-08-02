@@ -24,7 +24,7 @@ import {
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from '@/features/canvas/ui/NodeSideActionRail';
-import { CandidateBindingBadges } from '@/features/freezone/public';
+import { CandidateBindingBadges } from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 export function UploadNodeView({

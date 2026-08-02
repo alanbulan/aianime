@@ -382,6 +382,7 @@ async def convert_control_frame_to_sketch(
     state_dir: str | Path | None = None,
     control_frames_dir: str | Path | None = None,
     control_frame_path: str | Path | None = None,
+    model: str | None = None,
     require_control_frame_path: bool = False,
     candidate_output_path: str | Path | None = None,
     promote: bool = True,
@@ -474,11 +475,11 @@ async def convert_control_frame_to_sketch(
         scene_menu = list(script.get("scene_menu") or [])
         prop_menu = list(script.get("prop_menu") or [])
 
-        director_selection = os.environ.get(
-            "DIRECTOR_CONTROL_SKETCH_IMAGE_SELECTION"
-        ) or style_config.get("sketch_image_selection")
+        explicit_model = str(model or "").strip()
+        if not explicit_model:
+            raise ValueError("director control sketch image model is required")
         generator_config = get_sketch_generation_config(
-            selection_override=director_selection,
+            model_override=explicit_model,
         )
         generator_config["image_size"] = os.environ.get(
             "DIRECTOR_CONTROL_SKETCH_IMAGE_SIZE",
@@ -490,11 +491,6 @@ async def convert_control_frame_to_sketch(
         generator_config["huimeng_image_quality"] = sketch_quality
         generator_config["quality"] = sketch_quality
         generator = NanoBananaGridGenerator(config=generator_config)
-        if generator.provider not in {"openai", "huimeng", "openrouter", "google", "newapi"}:
-            raise RuntimeError(
-                "director control sketch conversion requires an image provider, "
-                f"got provider={generator.provider}"
-            )
 
         if candidate_output_path:
             output_path = Path(candidate_output_path).resolve()

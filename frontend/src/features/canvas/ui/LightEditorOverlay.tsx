@@ -18,7 +18,6 @@ import {
 } from '@/features/canvas/ui/LightEditorPanel';
 import { generateCanvasRelight } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { readUrl } from '@/lib/url-params';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
@@ -39,13 +38,14 @@ export interface LightEditorRequestPayload {
 }
 
 interface LightEditorOverlayProps {
+  projectId: string;
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
 }
 
 export const LightEditorOverlay = memo(
-  ({ node, imageSource, onClose }: LightEditorOverlayProps) => {
+  ({ projectId, node, imageSource, onClose }: LightEditorOverlayProps) => {
     const addNode = useCanvasStore((state) => state.addNode);
     const addEdge = useCanvasStore((state) => state.addEdge);
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -54,12 +54,6 @@ export const LightEditorOverlay = memo(
 
     const handleSubmit = useCallback(
       async (payload: LightEditorSubmitPayload) => {
-        const project = readUrl().project;
-        if (!project) {
-          console.error('[light-editor] no project in URL — cannot submit');
-          return;
-        }
-
         const sourceAspectRatio =
           typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
             ? ((node.data as { aspectRatio?: string }).aspectRatio ?? DEFAULT_ASPECT_RATIO)
@@ -100,7 +94,7 @@ export const LightEditorOverlay = memo(
         try {
           const { url } = await generateCanvasRelight(
             {
-              projectId: project,
+              projectId,
               sourceUrl: imageSource,
               brightness: payload.brightness,
               colorHex: payload.color,
@@ -139,6 +133,7 @@ export const LightEditorOverlay = memo(
         imageSource,
         node,
         onClose,
+        projectId,
         setSelectedNode,
         updateNodeData,
       ],
@@ -156,6 +151,7 @@ export const LightEditorOverlay = memo(
         {/* 操作区跟随画布缩放（align=start → 锚点左上角，贴节点底边）。 */}
         <ZoomScaledToolbar origin="top left">
           <LightEditorPanel
+            projectId={projectId}
             imageSource={imageSource}
             onClose={onClose}
             onSubmit={handleSubmit}

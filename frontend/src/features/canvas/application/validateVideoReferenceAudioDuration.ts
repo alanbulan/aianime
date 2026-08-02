@@ -1,6 +1,4 @@
 // Copyright (c) 2026 AI anime
-export const SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS = 15_200;
-
 export interface VideoReferenceAudioDuration {
   readonly url: string;
   readonly durationMs: number | null;
@@ -12,6 +10,7 @@ export interface VideoReferenceAudioDurationGateway {
 
 export interface ValidateVideoReferenceAudioDurationParams {
   readonly references: ReadonlyArray<VideoReferenceAudioDuration>;
+  readonly maxDurationMs: number;
 }
 
 export interface ValidateVideoReferenceAudioDurationResult {
@@ -36,7 +35,6 @@ export async function validateVideoReferenceAudioDuration(
   );
   return {
     totalDurationMs,
-    exceedsLimit:
-      totalDurationMs > SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS,
+    exceedsLimit: totalDurationMs > params.maxDurationMs,
   };
 }

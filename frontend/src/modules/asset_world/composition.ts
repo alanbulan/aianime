@@ -1,14 +1,13 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
+import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { isCeRuntime } from "@/lib/runtime-config";
-import { NarratorVoicePanel } from "@/modules/production/public";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import {
   loadBeatDirectorStageManifest as loadBeatDirectorStageManifestUseCase,
@@ -719,7 +718,10 @@ function AddCharacterDialogContent({
   return createElement(AddCharacterDialogView, { controller });
 }
 
-function CharactersPageBody({ project }: { project: string }) {
+function CharactersPageBody({
+  project,
+  renderNarratorVoicePanel,
+}: CharactersPageContentProps) {
   const controller = useCharactersPageController(project);
   const selectedCharacter = controller.selectedCharacter;
   const detailContent = selectedCharacter
@@ -751,10 +753,7 @@ function CharactersPageBody({ project }: { project: string }) {
     }),
     narratorVoiceContent: controller.isNarratedFirstPerson
       ? null
-      : createElement(NarratorVoicePanel, {
-          allowFirstPersonProjectVoice: true,
-          project,
-        }),
+      : renderNarratorVoicePanel(project),
     propsContent: createElement(PropsPanelContent, {
       focusId:
         controller.assetTab === "props" ? controller.assetFocusId : null,
@@ -768,9 +767,20 @@ function CharactersPageBody({ project }: { project: string }) {
   });
 }
 
-export function CharactersPageContent({ project }: { project: string }) {
+export interface CharactersPageContentProps {
+  project: string;
+  renderNarratorVoicePanel(project: string): ReactNode;
+}
+
+export function CharactersPageContent({
+  project,
+  renderNarratorVoicePanel,
+}: CharactersPageContentProps) {
   return createElement(TaskControllerProvider, {
-    children: createElement(CharactersPageBody, { project }),
+    children: createElement(CharactersPageBody, {
+      project,
+      renderNarratorVoicePanel,
+    }),
     episode: 0,
     project,
   });

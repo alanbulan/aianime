@@ -4,7 +4,6 @@ import type { SketchAspectRatio } from "@/modules/production/domain/image-settin
 export interface GenerateSketchesCommand {
   gridIndex?: number;
   style?: string | null;
-  model?: string;
   sketchSceneGrouping?: boolean;
   aspectRatio?: SketchAspectRatio;
   imageGenerationSelection?: string;
@@ -18,12 +17,11 @@ export interface RenderGenerationSettings {
 export interface RegenerateGridCommand extends RenderGenerationSettings {
   gridIndex: number;
   style?: string | null;
-  model?: string;
   sceneGrouping?: boolean;
   characterGrouping?: boolean;
 }
 
-export interface RegenerateSketchesCommand {
+export interface RegenerateSketchesCommand extends RenderGenerationSettings {
   beatIndices: number[];
   modeKey?: string;
 }

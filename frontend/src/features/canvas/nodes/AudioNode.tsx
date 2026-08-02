@@ -8,6 +8,8 @@ import { useAudioNodeController } from '@/features/canvas/hooks/useAudioNodeCont
 import { AudioNodeView } from './AudioNodeView';
 
 type AudioNodeProps = NodeProps & {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: AudioNodeData;
   selected?: boolean;

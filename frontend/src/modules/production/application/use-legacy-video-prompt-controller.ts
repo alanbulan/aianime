@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { BeatVideoPromptResponse } from "@/modules/production/application/ports";
 import {

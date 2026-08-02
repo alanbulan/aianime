@@ -61,7 +61,24 @@ def normalize_project_config(config: dict | None) -> dict:
     result = dict(config or {})
     if "style" in result and "visual_style" not in result:
         result["visual_style"] = result.pop("style")
+    if "video_backend" in result:
+        legacy_value = str(result.pop("video_backend") or "").strip()
+        if "video_model" not in result:
+            result["video_model"] = _migrate_legacy_video_model(legacy_value)
     return result
+
+
+def _migrate_legacy_video_model(value: str) -> str:
+    normalized = value.strip()
+    for prefix in ("newapi_", "huimeng_", "huimengi_"):
+        if normalized.startswith(prefix):
+            return normalized[len(prefix) :].strip()
+    return {
+        "seedance_2": "seedance-2.0-fast",
+        "seedance_fast": "seedance-1.0-pro-fast",
+        "seedance_pro": "seedance-1.5-pro",
+        "seedance_pro_silent": "seedance-1.5-pro",
+    }.get(normalized, "")
 
 
 def load_project_config_file(username: str, project: str) -> dict:
@@ -85,10 +102,7 @@ def load_project_config_file_from_state_dir(state_dir: str | Path) -> dict:
 
 def _default_project_config() -> dict:
     from ai_anime.config import (
-        DEFAULT_RENDER_IMAGE_SELECTION,
-        DEFAULT_SKETCH_IMAGE_SELECTION,
-        VIDEO_BACKEND,
-        VIDEO_RESOLUTION,
+        DEFAULT_VIDEO_RESOLUTION,
     )
 
     return {
@@ -98,11 +112,11 @@ def _default_project_config() -> dict:
         "ethnicity": "Chinese",
         "scene_grouping": False,
         "character_grouping": False,
-        "video_backend": VIDEO_BACKEND,
-        "video_resolution": VIDEO_RESOLUTION,
+        "video_model": "",
+        "video_resolution": DEFAULT_VIDEO_RESOLUTION,
         "use_director_render": False,
-        "sketch_image_selection": DEFAULT_SKETCH_IMAGE_SELECTION,
-        "render_image_selection": DEFAULT_RENDER_IMAGE_SELECTION,
+        "sketch_image_selection": "",
+        "render_image_selection": "",
         "current_episode": 1,
         "user_grid_plan": {},
         "regen_file_map": {},
@@ -147,17 +161,6 @@ def _effective_project_config(
     result = {**default_config, **config}
     for legacy_tts_key in ("tts_provider", "tts_model", "tts_voice"):
         result.pop(legacy_tts_key, None)
-
-    from ai_anime.config import VIDEO_BACKEND
-
-    if (
-        os.environ.get("VIDEO_BACKEND")
-        and os.environ.get("MIGRATE_LEGACY_VIDEO_BACKEND_DEFAULT", "true").lower()
-        in {"1", "true", "yes", "on"}
-        and str(config.get("video_backend") or "").strip() == "comfyui"
-        and VIDEO_BACKEND != "comfyui"
-    ):
-        result["video_backend"] = VIDEO_BACKEND
 
     available = _available_style_labels_for_config(
         result,

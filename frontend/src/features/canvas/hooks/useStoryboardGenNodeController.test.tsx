@@ -40,7 +40,6 @@ const mocks = vi.hoisted(() => ({
     id: 'model-a',
     mediaType: 'image',
     displayName: '模型 A',
-    providerId: 'provider-a',
     description: '',
     eta: '',
     expectedDurationMs: 45000,
@@ -96,9 +95,13 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamImages: () => mocks.upstreamImages,
 }));
 
+vi.mock('@/features/canvas/hooks/useFreezoneImageModels', () => ({
+  useFreezoneImageModels: () => ({ models: [{ id: 'model-a' }] }),
+}));
+
 vi.mock('@/features/canvas/models', () => ({
-  listImageModels: () => [mocks.imageModel],
-  getImageModel: () => mocks.imageModel,
+  imageModelDefinitions: () => [mocks.imageModel],
+  selectImageModel: () => mocks.imageModel,
   resolveImageModelResolutions: () => mocks.imageModel.resolutions,
   resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
 }));
@@ -211,6 +214,8 @@ describe('useStoryboardGenNodeController', () => {
     const { result } = renderHook(() =>
       useStoryboardGenNodeController({
         id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         data: data(),
         selected: true,
         width: 600.4,
@@ -260,6 +265,8 @@ describe('useStoryboardGenNodeController', () => {
     const { result } = renderHook(() =>
       useStoryboardGenNodeController({
         id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
         data: data({ gridCols: 2 }),
       }),
     );
@@ -301,7 +308,12 @@ describe('useStoryboardGenNodeController', () => {
   it('creates a local grid preview only when the shortcut is enabled', async () => {
     mocks.settings.enableStoryboardGenGridPreviewShortcut = true;
     const { result } = renderHook(() =>
-      useStoryboardGenNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardGenNodeController({
+        id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        data: data(),
+      }),
     );
 
     await act(async () =>
@@ -318,6 +330,7 @@ describe('useStoryboardGenNodeController', () => {
       '1K',
     );
     expect(mocks.uploadLocalImageToBackend).toHaveBeenCalledWith(
+      'project-a',
       'data:image/png,grid',
       expect.stringMatching(/^storyboard-grid-preview-storyboard-a-/),
     );
@@ -338,7 +351,12 @@ describe('useStoryboardGenNodeController', () => {
   it('creates a generating node and persists the submitted job contract', async () => {
     mocks.upstreamImages.push('/reference.png');
     const { result } = renderHook(() =>
-      useStoryboardGenNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardGenNodeController({
+        id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        data: data(),
+      }),
     );
 
     await act(async () =>
@@ -360,6 +378,7 @@ describe('useStoryboardGenNodeController', () => {
       }),
     );
     expect(mocks.submitGenerateImageJob).toHaveBeenCalledWith(
+      { projectId: 'project-a', canvasId: 'canvas-a' },
       expect.objectContaining({
         model: 'request-model-a',
         aspectRatio: '16:9',
@@ -371,7 +390,6 @@ describe('useStoryboardGenNodeController', () => {
       'result-a',
       expect.objectContaining({
         generationJobId: 'job-a',
-        generationProviderId: 'provider-a',
         generationClientSessionId: 'session-a',
         generationStoryboardMetadata: {
           gridRows: 1,
@@ -385,7 +403,12 @@ describe('useStoryboardGenNodeController', () => {
   it('keeps retry payload and diagnostics when job submission fails', async () => {
     mocks.submitGenerateImageJob.mockRejectedValueOnce(new Error('gateway'));
     const { result } = renderHook(() =>
-      useStoryboardGenNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardGenNodeController({
+        id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        data: data(),
+      }),
     );
 
     await act(async () =>

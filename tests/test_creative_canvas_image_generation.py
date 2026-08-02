@@ -12,7 +12,6 @@ from ai_anime.api.canvas_image_schemas import (
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
 )
-from ai_anime.config import NEWAPI_IMAGE_MODEL
 from ai_anime.modules.creative_canvas.application.image_generation import (
     CREATIVE_CANVAS_IMAGE_GENERATION_TASK_TYPE,
     CreativeCanvasImageGenerationReferenceMissing,
@@ -103,10 +102,9 @@ async def test_image_generation_enqueues_exact_task_payload(tmp_path: Path) -> N
             return "composed prompt"
 
     class FakeModels:
-        def resolve(self, provider, model) -> tuple[str, str]:
-            assert provider == "openai"
+        def resolve(self, model) -> str:
             assert model == "image-model"
-            return "openai", "gpt-image-2"
+            return "gpt-image-2"
 
     class FakeJobIds:
         def new_id(self) -> str:
@@ -128,7 +126,6 @@ async def test_image_generation_enqueues_exact_task_payload(tmp_path: Path) -> N
                         first_reference.as_posix(),
                         second_reference.as_posix(),
                     ],
-                    "provider": "openai",
                     "model": "gpt-image-2",
                     "quality": "high",
                     "canvas_id": "canvas-1",
@@ -159,7 +156,6 @@ async def test_image_generation_enqueues_exact_task_payload(tmp_path: Path) -> N
             reference_urls=("first", "", "second"),
             camera=camera,
             style=style,
-            provider="openai",
             model="image-model",
             quality="high",
             canvas_id="canvas-1",
@@ -238,6 +234,7 @@ async def test_image_generation_maps_invalid_and_missing_references(
                 prompt="generate",
                 aspect_ratio="1:1",
                 image_size="2K",
+                model="cloud-image-standard",
                 reference_urls=("reference.png",),
             )
         )
@@ -249,7 +246,7 @@ async def test_image_generation_maps_invalid_model_selection(tmp_path: Path) -> 
 
     class FakeModels:
         def resolve(self, *_args):
-            raise ValueError("unsupported image provider")
+            raise ValueError("unsupported image model")
 
     class UnusedDependency:
         def compose(self, *_args):
@@ -272,7 +269,7 @@ async def test_image_generation_maps_invalid_model_selection(tmp_path: Path) -> 
 
     with pytest.raises(
         InvalidCreativeCanvasImageGenerationRequest,
-        match="unsupported image provider",
+        match="unsupported image model",
     ):
         await use_cases.start(
             StartCreativeCanvasImageGenerationCommand(
@@ -281,6 +278,7 @@ async def test_image_generation_maps_invalid_model_selection(tmp_path: Path) -> 
                 prompt="generate",
                 aspect_ratio="1:1",
                 image_size="2K",
+                model="unsupported-image-model",
             )
         )
 
@@ -316,20 +314,19 @@ async def test_image_generation_maps_unknown_style_template(tmp_path: Path) -> N
                 prompt="generate",
                 aspect_ratio="1:1",
                 image_size="2K",
+                model="cloud-image-standard",
                 style=CreativeCanvasImageStyleConfig(template_id="missing-style"),
             )
         )
 
 
-def test_image_generation_model_router_preserves_selection_and_strict_provider() -> None:
+def test_image_generation_model_router_preserves_explicit_model_sku() -> None:
     router = FreezoneCreativeCanvasImageGenerationModelRouter()
 
-    assert router.resolve(None, "newapi_gpt_image2") == (
-        "newapi",
-        NEWAPI_IMAGE_MODEL,
-    )
-    with pytest.raises(ValueError, match="unsupported freezone image provider"):
-        router.resolve("unsupported", None)
+    assert router.resolve("newapi_gpt_image2") == "newapi_gpt_image2"
+    assert router.resolve("custom-image-sku") == "custom-image-sku"
+    with pytest.raises(ValueError, match="model is required"):
+        router.resolve("")
 
 
 @pytest.mark.asyncio
@@ -384,7 +381,6 @@ async def test_image_generation_route_maps_request_and_preserves_response_shape(
                 aperture="f/4",
             ),
             style=FreezoneImageStyleConfig(template_id="three_oclock_2300"),
-            provider="openai",
             model="image-model",
             quality="high",
             canvas_id="canvas-1",
@@ -410,7 +406,6 @@ async def test_image_generation_route_maps_request_and_preserves_response_shape(
                 aperture="f/4",
             ),
             style=CreativeCanvasImageStyleConfig(template_id="three_oclock_2300"),
-            provider="openai",
             model="image-model",
             quality="high",
             canvas_id="canvas-1",
@@ -478,7 +473,10 @@ async def test_image_generation_route_preserves_error_contract(
     with pytest.raises(HTTPException) as exc:
         await image_generation_routes.freezone_gen(
             project="project-1",
-            body=FreezoneGenRequest(prompt="generate"),
+            body=FreezoneGenRequest(
+                prompt="generate",
+                model="cloud-image-standard",
+            ),
             user={"username": "alice"},
         )
 

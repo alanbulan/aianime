@@ -370,7 +370,12 @@ async def test_start_ingest_rejects_unsupported_extension_before_ray(tmp_path, m
 
     response = await ingest.start_ingest(
         project="demo",
-        body=IngestStart(filename="novel.pdf", rebuild=True),
+        body=IngestStart(
+            filename="novel.pdf",
+            textModel="cloud-text-standard",
+            embeddingModel="cloud-embedding-standard",
+            rebuild=True,
+        ),
         user={"username": "admin"},
     )
 

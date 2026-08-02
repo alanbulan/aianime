@@ -11,12 +11,12 @@ from ai_anime.api.chat_schemas import ChatMessageIn, ScopeSetIn, to_chat_scope
 from ai_anime.api.chat_websocket import send_json_best_effort
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
-    get_agent_backend_prewarmer,
     get_chat_worker_lifecycle,
+    get_hermes_runtime_prewarmer,
     should_prewarm_scope,
 )
 
-agent_backend_prewarmer = get_agent_backend_prewarmer()
+hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
 
 
@@ -42,7 +42,7 @@ async def run_chat_session(websocket: WebSocket) -> None:
     # The client commonly selects a project immediately after connecting.
     # Avoid creating and then rotating an unnecessary home worker first.
     if should_prewarm_scope(current_scope.kind):
-        await agent_backend_prewarmer.prewarm(
+        await hermes_runtime_prewarmer.prewarm(
             username,
             project=current_scope.id if current_scope.kind == "project" else None,
         )
@@ -68,7 +68,7 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 if current_scope is None:
                     return
                 await chat_worker_lifecycle.sync_scope(username, current_scope)
-                await agent_backend_prewarmer.prewarm(
+                await hermes_runtime_prewarmer.prewarm(
                     username,
                     project=current_scope.id
                     if current_scope.kind == "project"

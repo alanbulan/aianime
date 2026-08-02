@@ -25,8 +25,7 @@ import {
 import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
 import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
 import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
-import { useCanvasProjectionStatus } from '@/features/freezone/public';
-import { readUrl } from '@/lib/url-params';
+import { useCanvasProjectionStatus } from '@/modules/creative_canvas/public';
 
 interface Point {
   x: number;
@@ -42,6 +41,7 @@ interface DragState {
 export interface GroupNodeControllerOptions {
   id: string;
   data: GroupNodeData;
+  projectId: string;
   selected?: boolean;
 }
 
@@ -52,6 +52,7 @@ function clamp(value: number, lo: number, hi: number): number {
 export function useGroupNodeController({
   id,
   data,
+  projectId,
   selected,
 }: GroupNodeControllerOptions) {
   const { t } = useTranslation();
@@ -104,10 +105,6 @@ export function useGroupNodeController({
         toast(t('canvas.storyboardGroup.imageOnlyHint'));
         return;
       }
-      const projectId = readUrl().project;
-      if (!projectId) {
-        return;
-      }
       setUploading(true);
       try {
         const uploaded = await Promise.all(
@@ -128,7 +125,7 @@ export function useGroupNodeController({
         setUploading(false);
       }
     },
-    [addStoryboardMembers, id, t],
+    [addStoryboardMembers, id, projectId, t],
   );
 
   const pickHistoryAsset = useCallback(
@@ -466,6 +463,7 @@ export function useGroupNodeController({
 
   return {
     id,
+    projectId,
     data,
     selected,
     isStoryboard,

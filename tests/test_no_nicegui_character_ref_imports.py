@@ -72,13 +72,7 @@ def test_backend_code_does_not_import_ui_package() -> None:
 def test_nicegui_is_not_in_main_package_or_dependencies() -> None:
     repo_root = Path(__file__).resolve().parents[1]
 
-    assert not (repo_root / "src" / "ai_anime" / "ui" / "nicegui_pages").exists()
-    ui_files = [
-        path.relative_to(repo_root / "src" / "ai_anime" / "ui").as_posix()
-        for path in (repo_root / "src" / "ai_anime" / "ui").rglob("*.py")
-    ]
-    assert ui_files == ["__init__.py"]
+    assert not (repo_root / "src" / "ai_anime" / "ui").exists()
 
     pyproject = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
     assert '"nicegui' not in pyproject
-

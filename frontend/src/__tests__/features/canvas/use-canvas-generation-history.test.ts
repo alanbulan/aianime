@@ -3,20 +3,18 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCanvasGenerationHistory = vi.hoisted(() => vi.fn());
-const readUrl = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/canvas/composition", () => ({
   getCanvasGenerationHistory,
 }));
-vi.mock("@/lib/url-params", () => ({ readUrl }));
 
 import { useCanvasGenerationHistory } from "@/features/canvas/hooks/useCanvasGenerationHistory";
+
+const historyContext = { projectId: "p1", canvasId: "c1" };
 
 describe("useCanvasGenerationHistory", () => {
   beforeEach(() => {
     getCanvasGenerationHistory.mockReset();
-    readUrl.mockReset();
-    readUrl.mockReturnValue({ project: "p1", canvas: "c1" });
   });
 
   afterEach(() => {
@@ -33,7 +31,7 @@ describe("useCanvasGenerationHistory", () => {
     getCanvasGenerationHistory.mockResolvedValue(records);
 
     const { result } = renderHook(() =>
-      useCanvasGenerationHistory(["kept"], { enabled: true }),
+      useCanvasGenerationHistory(historyContext, ["kept"], { enabled: true }),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -51,7 +49,9 @@ describe("useCanvasGenerationHistory", () => {
     getCanvasGenerationHistory.mockResolvedValue([]);
 
     const { result } = renderHook(() =>
-      useCanvasGenerationHistory(["n1", "n2"], { enabled: true }),
+      useCanvasGenerationHistory(historyContext, ["n1", "n2"], {
+        enabled: true,
+      }),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -66,17 +66,22 @@ describe("useCanvasGenerationHistory", () => {
 
   it("does not fetch when disabled", async () => {
     getCanvasGenerationHistory.mockResolvedValue([]);
-    renderHook(() => useCanvasGenerationHistory(["n1"], { enabled: false }));
+    renderHook(() =>
+      useCanvasGenerationHistory(historyContext, ["n1"], { enabled: false }),
+    );
     await Promise.resolve();
     expect(getCanvasGenerationHistory).not.toHaveBeenCalled();
   });
 
-  it("falls back to the default canvas id when the url has none", async () => {
-    readUrl.mockReturnValue({ project: "p1", canvas: null });
+  it("uses an explicitly resolved default canvas id", async () => {
     getCanvasGenerationHistory.mockResolvedValue([]);
 
     const { result } = renderHook(() =>
-      useCanvasGenerationHistory([], { enabled: true }),
+      useCanvasGenerationHistory(
+        { projectId: "p1", canvasId: "default" },
+        [],
+        { enabled: true },
+      ),
     );
 
     await waitFor(() => expect(getCanvasGenerationHistory).toHaveBeenCalled());
@@ -92,7 +97,7 @@ describe("useCanvasGenerationHistory", () => {
     getCanvasGenerationHistory.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() =>
-      useCanvasGenerationHistory(["n1"], { enabled: true }),
+      useCanvasGenerationHistory(historyContext, ["n1"], { enabled: true }),
     );
 
     await waitFor(() => expect(result.current.error).not.toBeNull());

@@ -12,7 +12,7 @@ import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
   CanvasRedrawAspectRatio,
   CanvasRedrawImageSize,
-} from '../domain/redraw';
+} from '@/modules/creative_canvas/public';
 
 export interface IdGenerator {
   next: () => string;
@@ -149,7 +149,7 @@ export interface CanvasRedrawCommand {
   aspectRatio: CanvasRedrawAspectRatio;
   imageSize: CanvasRedrawImageSize;
   maskUrl: string | null;
-  model?: string;
+  model: string;
   prompt?: string;
   sourceUrl: string;
 }
@@ -231,10 +231,20 @@ export interface GenerateImagePayload {
   >;
 }
 
+export interface CanvasGenerationScope {
+  projectId: string;
+  canvasId: string;
+}
+
 export interface AiGateway {
-  setApiKey: (provider: string, apiKey: string) => Promise<void>;
-  generateImage: (payload: GenerateImagePayload) => Promise<string>;
-  submitGenerateImageJob: (payload: GenerateImagePayload) => Promise<string>;
+  generateImage: (
+    scope: CanvasGenerationScope,
+    payload: GenerateImagePayload,
+  ) => Promise<string>;
+  submitGenerateImageJob: (
+    scope: CanvasGenerationScope,
+    payload: GenerateImagePayload,
+  ) => Promise<string>;
   getGenerateImageJob: (jobId: string) => Promise<{
     job_id: string;
     status: 'queued' | 'running' | 'succeeded' | 'failed' | 'not_found';
@@ -353,25 +363,6 @@ export interface CanvasEventMap {
     videoUrl: string;
     title?: string;
   };
-  /**
-   * 节点 toolbar 上的 Commit 按钮触发：把该节点的图写回主流程对应 slot。
-   * Freezone commit controller 监听后查节点、推 CommitDialog；toolbar 只负责发事件。
-   */
-  'freezone/commit-node': {
-    nodeId: string;
-    auto?: boolean;
-    successMessage?: string;
-  };
-  /** 投影 group toolbar 触发：刷新该 projection，不让 toolbar 直接改画布状态。 */
-  'freezone/projection-sync': {
-    projectionKey: string;
-  };
-  /** 投影 group toolbar 触发：移除该 projection，不走普通 deleteNode。 */
-  'freezone/projection-remove': {
-    projectionKey: string;
-  };
-  /** 主线资产已在节点内部直接写入，通知素材库重拉。 */
-  'freezone/assets-updated': undefined;
 }
 
 export interface CanvasEventBus {

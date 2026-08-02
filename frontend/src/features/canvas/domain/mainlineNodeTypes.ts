@@ -9,7 +9,7 @@
  * mirror).
  *
  * Naming reminder — do not confuse the two layers:
- *   - `PushTargetKind` (Freezone domain; 20 canonical writable values): slot 落点 kind.
+ *   - `PushTargetKind` (Creative Canvas domain; 20 canonical writable values): slot 落点 kind.
  *     e.g. "sketch" / "frame" / "identity" / "scene_master" — these are the
  *     short verbs the Push route writes against.
  *   - `PresetRef.role` (preset emit domain, ~22 values): asset discovery role.
@@ -20,9 +20,9 @@
  * a role string.
  */
 
-import type { PushTarget } from "@/features/freezone/public";
+import type { PushTarget } from "@/modules/creative_canvas/public";
 
-export type { PushTargetKind } from "@/features/freezone/public";
+export type { PushTargetKind } from "@/modules/creative_canvas/public";
 
 /** Alias for `PushTarget` expressing node intent: "this node's Push default target". */
 export type SlotTarget = PushTarget;

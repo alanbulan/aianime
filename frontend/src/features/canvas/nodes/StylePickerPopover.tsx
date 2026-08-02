@@ -7,17 +7,19 @@ import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneSt
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 interface StylePickerPopoverProps {
+  projectId: string;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onClose: () => void;
 }
 
 export function StylePickerPopover({
+  projectId,
   selectedId,
   onSelect,
   onClose,
 }: StylePickerPopoverProps) {
-  const { templates, isLoading } = useFreezoneStyleTemplates();
+  const { templates, isLoading } = useFreezoneStyleTemplates(projectId);
 
   // Stable groups: backend `category` first (insertion order), un-categorized
   // bucket goes last under 「其他」.

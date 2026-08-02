@@ -11,7 +11,7 @@ import { initDevBackendWatch } from "@/lib/dev-backend-watch";
 import { installDomReconciliationGuard } from "@/lib/dom-reconciliation-guard";
 import { getOrCreateReactRoot } from "@/lib/react-root";
 import { loadRuntimeConfig } from "@/lib/runtime-config";
-import { installFreezoneCanvasStorageReclaimer } from "@/features/freezone/public";
+import { installFreezoneCanvasStorageReclaimer } from "@/modules/creative_canvas/public";
 import {
   installChunkLoadRecovery,
   installVersionUpdateWatch,

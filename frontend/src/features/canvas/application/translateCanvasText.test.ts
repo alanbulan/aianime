@@ -33,6 +33,7 @@ describe("translateCanvasText", () => {
         {
           projectId: "project-1",
           text: "原始提示词",
+          model: "cloud-text-standard",
           nodeType: "video",
           canvasId: "canvas-1",
           nodeId: "node-1",
@@ -42,6 +43,7 @@ describe("translateCanvasText", () => {
     ).resolves.toEqual({ translatedText: "translated prompt" });
     expect(deps.translationGateway.submit).toHaveBeenCalledWith("project-1", {
       text: "原始提示词",
+      model: "cloud-text-standard",
       nodeType: "video",
       canvasId: "canvas-1",
       nodeId: "node-1",

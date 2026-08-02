@@ -57,7 +57,7 @@ from ai_anime.modules.creative_canvas.public import (
     creative_canvas_video_processing_use_cases,
     generation_catalog_queries,
 )
-from ai_anime.task_backend.limits import (
+from ai_anime.modules.task_execution.public import (
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
@@ -81,21 +81,6 @@ async def freezone_video_camera_templates(
         operation="access freezone project files",
     )
     return {"ok": True, "data": generation_catalog_queries().video_camera_templates()}
-
-
-@router.get("/projects/{project}/freezone/video/models", tags=["freezone-video"])
-async def freezone_video_models(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：返回和 AI anime 视频模型下拉一致的可见模型。"""
-    await resolve_project_scope(
-        project,
-        user,
-        required_role="viewer",
-        operation="access freezone project files",
-    )
-    return {"ok": True, "data": generation_catalog_queries().video_models()}
 
 
 @router.get(
@@ -203,8 +188,7 @@ async def freezone_video_gen(
 ):
     """视频处理：文生视频。
 
-    `model` 可选，前端应优先使用 `/api/v1/projects/{project}/freezone/video/models`
-    返回的模型名称列表作为入参。
+    `model` 必填，必须使用当前 Cloud/BYOK 认证模型目录返回的平台 SKU。
 
     运镜通过模板库和补充提示词控制，角色库通过已上传的人物参考图提供身份一致性。
     """
@@ -382,6 +366,7 @@ async def freezone_analyze_shots(
                 frame_urls=tuple(body.frame_urls),
                 analysis_mode=body.analysis_mode,
                 duration_sec=body.duration_sec,
+                model=body.model,
             )
         )
     except InvalidCreativeCanvasVideoProcessingRequest as exc:

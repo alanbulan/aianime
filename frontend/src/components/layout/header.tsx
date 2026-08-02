@@ -8,11 +8,13 @@ import {
   AlertTriangle,
   Bell,
   Bolt,
+  Building2,
   Camera,
   Check,
   ChevronRight,
   Languages,
   LogOut,
+  Mail,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,11 @@ import { NotificationDrawer } from "@/components/notifications/notification-draw
 import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/modules/identity_access/public";
+import {
+  logoutAllSessions,
+  useAuthStore,
+  useCommercialAuthStore,
+} from "@/modules/identity_access/public";
 import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
@@ -65,20 +71,27 @@ export function Header() {
   const accountOpenFrameRef = useRef<number | null>(null);
   const accountAnchorRef = useRef<HTMLDivElement | null>(null);
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
-  const { username, logout } = useAuthStore();
+  const { username } = useAuthStore();
+  const commercialSession = useCommercialAuthStore((state) => state.session);
   const queryClient = useQueryClient();
   // 退出登录是 SPA 内部跳转（不刷新页面），必须一并清掉 React Query 缓存和
   // 用户级 zustand/localStorage 状态，否则换账号登录后 projectSummaries 等
   // 查询还在 staleTime 内，新账号会直接看到上一个账号的项目列表。
   const handleLogout = async () => {
-    await logout();
+    await logoutAllSessions();
     resetUserSessionState({ queryClient });
   };
-  const avatarUrl = useAuthStore((s) => s.avatarUrl);
+  const localAvatarUrl = useAuthStore((s) => s.avatarUrl);
   const setLanguage = useAppStore((s) => s.setLanguage);
   const showLogout = authRequired();
   const ceRuntime = isCeRuntime();
-  const displayName = username ?? "User";
+  const commercialUser = ceRuntime ? commercialSession?.user : null;
+  const displayName =
+    commercialUser?.nickname || commercialUser?.username || username || "User";
+  const accountUsername = commercialUser?.username || username || null;
+  const accountEmail = commercialUser?.email || null;
+  const accountTenant = ceRuntime ? commercialSession?.tenant.name ?? null : null;
+  const avatarUrl = commercialUser?.avatar || localAvatarUrl;
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
   const activeLanguage = (i18n.resolvedLanguage ?? i18n.language).startsWith("zh")
     ? "zh"
@@ -92,8 +105,7 @@ export function Header() {
   const hasSettingsWarning = Boolean(
     ceRuntime &&
       gatewayConfig &&
-      (gatewayConfig.effective.configured === false ||
-        gatewayConfig.mediaRelay?.configured === false),
+      gatewayConfig.effective.configured === false,
   );
   const settingsWarningBubble = useFloatingBubblePosition(
     settingsAnchorRef,
@@ -266,6 +278,8 @@ export function Header() {
           size="icon-sm"
           className="size-[28px] rounded-full p-0 hover:bg-transparent"
           aria-label={t("header.account.open")}
+          aria-expanded={accountPanelOpen}
+          onClick={openAccountPanel}
         >
           <span className="flex size-[26px] items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[11px] font-medium text-muted-foreground">
             {avatarUrl ? (
@@ -332,6 +346,9 @@ export function Header() {
               activeLanguage={activeLanguage}
               avatarInitial={avatarInitial}
               avatarUrl={avatarUrl}
+              accountEmail={accountEmail}
+              accountTenant={accountTenant}
+              accountUsername={accountUsername}
               displayName={displayName}
               onChangeAvatar={openAvatarDialog}
               onLanguageChange={switchLanguage}
@@ -433,6 +450,9 @@ function useFloatingBubblePosition(
 }
 
 function AccountPanel({
+  accountEmail,
+  accountTenant,
+  accountUsername,
   activeLanguage,
   avatarInitial,
   avatarUrl,
@@ -446,6 +466,9 @@ function AccountPanel({
   visible,
   t,
 }: {
+  accountEmail: string | null;
+  accountTenant: string | null;
+  accountUsername: string | null;
   activeLanguage: "zh" | "en";
   avatarInitial: string;
   avatarUrl: string | null;
@@ -466,7 +489,7 @@ function AccountPanel({
 
   return (
     <div
-      className={`fixed z-[80] w-[216px] transition-opacity duration-[350ms] ease-[var(--ease-out-quint)] ${
+      className={`fixed z-[80] w-[260px] transition-opacity duration-[350ms] ease-[var(--ease-out-quint)] ${
         visible ? "opacity-100" : "opacity-0"
       }`}
       style={{ top: position.top, right: position.right }}
@@ -474,7 +497,7 @@ function AccountPanel({
       onMouseLeave={onClose}
     >
       <div className="rounded-[12px] border border-border bg-popover p-2.5 text-popover-foreground shadow-xl">
-        <div className="mb-2.5 flex h-[50px] items-center gap-2.5 rounded-[10px] bg-muted px-2.5">
+        <div className="mb-2 flex min-h-[58px] items-center gap-2.5 rounded-[10px] bg-muted px-2.5 py-2">
           <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-xs font-normal text-foreground/75">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="size-full object-cover" />
@@ -482,10 +505,33 @@ function AccountPanel({
               avatarInitial
             )}
           </span>
-          <span className="min-w-0 truncate text-[15px] font-medium text-foreground">
-            {displayName}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-medium text-foreground">
+              {displayName}
+            </span>
+            {accountUsername && accountUsername !== displayName ? (
+              <span className="block truncate text-[11px] text-muted-foreground">
+                @{accountUsername}
+              </span>
+            ) : null}
           </span>
         </div>
+        {accountEmail || accountTenant ? (
+          <div className="mb-2 space-y-1 border-b border-border px-2 pb-2 text-[11px] text-muted-foreground">
+            {accountEmail ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <Mail className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate" title={accountEmail}>{accountEmail}</span>
+              </div>
+            ) : null}
+            {accountTenant ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <Building2 className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate" title={accountTenant}>{accountTenant}</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="space-y-0.5">
           {!isCeRuntime() ? (
             <AccountMenuRow

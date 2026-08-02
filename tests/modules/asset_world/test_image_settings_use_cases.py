@@ -14,36 +14,6 @@ from ai_anime.modules.asset_world.application.image_settings import (
 )
 
 
-class _Catalog:
-    def character_options(self) -> dict[str, str]:
-        return {
-            "character-model": "Character Model",
-            "shared-model": "Shared Model",
-        }
-
-    def asset_options(self) -> dict[str, str]:
-        return {
-            "shared-model": "Shared Model",
-            "asset-model": "Asset Model",
-        }
-
-    def normalize_character_selection(self, value: str) -> str:
-        if value in self.character_options():
-            return value
-        return {
-            "legacy-character": "character-model",
-            "legacy-shared": "shared-model",
-        }.get(value, "character-model")
-
-    def normalize_asset_selection(self, value: str) -> str:
-        if value in self.asset_options():
-            return value
-        return {"legacy-asset": "asset-model"}.get(value, "shared-model")
-
-    def default_character_selection(self) -> str:
-        return "character-model"
-
-
 class _Store:
     def __init__(self, values: dict[tuple[str, str, str], str] | None = None) -> None:
         self.values = values or {}
@@ -92,14 +62,13 @@ def _use_cases(
     usage: _Usage | None = None,
 ) -> ImageSettingsUseCases:
     return ImageSettingsUseCases(
-        _Catalog(),
         store or _Store(),
         generation_settings or _GenerationSettings(),
         usage or _Usage(),
     )
 
 
-def test_character_selection_uses_saved_value_and_normalizes_legacy_value() -> None:
+def test_character_selection_returns_saved_catalog_code_unchanged() -> None:
     store = _Store(
         {
             ("alice", "demo", "character_image_selection"): "shared-model",
@@ -109,17 +78,12 @@ def test_character_selection_uses_saved_value_and_normalizes_legacy_value() -> N
 
     assert use_cases.get_character_selection("alice", "demo") == {
         "character_image_selection": "shared-model",
-        "options": {
-            "character-model": "Character Model",
-            "shared-model": "Shared Model",
-        },
     }
 
     store.values[("alice", "demo", "character_image_selection")] = "legacy-character"
-    assert (
-        use_cases.get_character_selection("alice", "demo")["character_image_selection"]
-        == "character-model"
-    )
+    assert use_cases.get_character_selection("alice", "demo") == {
+        "character_image_selection": "legacy-character",
+    }
 
 
 def test_character_selection_update_validates_and_persists() -> None:
@@ -138,12 +102,12 @@ def test_character_selection_update_validates_and_persists() -> None:
     assert data["character_image_selection"] == "shared-model"
     with pytest.raises(
         InvalidImageSelection,
-        match="Invalid character_image_selection: missing",
+        match="character image model is required",
     ):
-        use_cases.update_character_selection("alice", "demo", "missing")
+        use_cases.update_character_selection("alice", "demo", "  ")
 
 
-def test_asset_selection_uses_kind_specific_keys_and_character_fallback() -> None:
+def test_asset_selection_uses_kind_specific_keys_without_normalization() -> None:
     store = _Store(
         {
             ("alice", "demo", "character_image_selection"): "legacy-shared",
@@ -154,17 +118,13 @@ def test_asset_selection_uses_kind_specific_keys_and_character_fallback() -> Non
 
     assert use_cases.get_asset_selection("alice", "demo", "character") == {
         "asset_kind": "character",
-        "image_source_selection": "shared-model",
-        "options": {
-            "shared-model": "Shared Model",
-            "asset-model": "Asset Model",
-        },
+        "image_source_selection": "legacy-shared",
     }
     assert (
         use_cases.get_asset_selection("alice", "demo", "scene")[
             "image_source_selection"
         ]
-        == "asset-model"
+        == "legacy-asset"
     )
     assert use_cases.normalize_asset_kind(" PROP ") == "prop"
     with pytest.raises(
@@ -189,13 +149,13 @@ def test_asset_selection_update_validates_and_persists_kind_key() -> None:
     assert data["image_source_selection"] == "asset-model"
     with pytest.raises(
         InvalidImageSelection,
-        match="Invalid image_source_selection: character-model",
+        match="asset image model is required",
     ):
         use_cases.update_asset_selection(
             "alice",
             "demo",
             "scene",
-            "character-model",
+            " ",
         )
 
 

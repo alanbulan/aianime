@@ -2,8 +2,8 @@
 import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
-import { useTaskCenterStore, type Filter } from "@/task-center/store";
-import type { TaskState } from "@/task-center/types";
+import { useTaskCenterStore, type Filter } from "@/modules/task_execution/public";
+import type { TaskState } from "@/modules/task_execution/public";
 import { TaskRow } from "./task-row";
 import { EmptyState } from "./empty-state";
 import { cn } from "@/lib/utils";

@@ -7,7 +7,7 @@ const { commitFreezoneAsset, post, uploadFreezoneAsset } = vi.hoisted(() => ({
   uploadFreezoneAsset: vi.fn(),
 }));
 
-vi.mock("@/features/freezone/public", () => ({
+vi.mock("@/modules/creative_canvas/public", () => ({
   commitFreezoneAsset,
   uploadFreezoneAsset,
 }));

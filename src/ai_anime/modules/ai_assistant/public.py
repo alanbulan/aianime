@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
-    AgentBackendPrewarmer,
     ChatWorkerLifecycle,
     HermesHomeReplies,
+    HermesRuntimePrewarmer,
     ProjectChatTurns,
     ScopedChatMessages,
 )
@@ -97,9 +97,9 @@ def extract_project_media(
     )
 
 
-def get_agent_backend_prewarmer() -> AgentBackendPrewarmer:
+def get_hermes_runtime_prewarmer() -> HermesRuntimePrewarmer:
     from ai_anime.modules.ai_assistant.composition import (
-        get_agent_backend_prewarmer as resolve,
+        get_hermes_runtime_prewarmer as resolve,
     )
 
     return resolve()
@@ -138,9 +138,9 @@ def get_scoped_chat_messages() -> ScopedChatMessages:
 
 
 __all__ = [
-    "AgentBackendPrewarmer",
     "ChatWorkerLifecycle",
     "HermesHomeReplies",
+    "HermesRuntimePrewarmer",
     "ProjectChatTurns",
     "ScopedChatMessages",
     "ChatScope",
@@ -154,7 +154,7 @@ __all__ = [
     "extract_project_media",
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
-    "get_agent_backend_prewarmer",
+    "get_hermes_runtime_prewarmer",
     "get_chat_worker_lifecycle",
     "get_hermes_home_replies",
     "get_project_chat_turns",

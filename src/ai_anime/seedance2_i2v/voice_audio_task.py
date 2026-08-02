@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ai_anime.config import INDEXTTS2_RECORD_MODEL, INDEXTTS2_RECORD_PROVIDER
+from ai_anime.config import INDEXTTS2_RECORD_PROVIDER
 from ai_anime.seedance2_i2v.voice_audio_records import (
     upsert_seedance2_voice_audio_record,
 )
@@ -89,6 +89,7 @@ async def run_seedance2_voice_audio_generation(
     store,
     episode: int,
     speaker: str,
+    model: str,
     mode: str,
     expected_voice_sha256: str,
     generator=None,
@@ -102,6 +103,14 @@ async def run_seedance2_voice_audio_generation(
                 log_callback(message)
             except Exception:
                 pass
+
+    model_name = str(model or "").strip()
+    if not model_name:
+        raise ValueError("audio model is required")
+    if generator is None:
+        from ai_anime.generators.indextts2 import IndexTTS2Client
+
+        generator = IndexTTS2Client(model=model_name)
 
     mode = str(mode or "").strip()
     if mode not in {"missing_only", "redo_all"}:
@@ -146,6 +155,7 @@ async def run_seedance2_voice_audio_generation(
                 episode=episode,
                 beat_num=beat_num,
                 store=store,
+                model=model_name,
                 generator=generator,
                 audio_url_builder=audio_url_builder,
             )
@@ -182,7 +192,7 @@ async def run_seedance2_voice_audio_generation(
             voice_sha256=expected_voice_sha256,
             mode=mode,
             provider=INDEXTTS2_RECORD_PROVIDER,
-            model=INDEXTTS2_RECORD_MODEL,
+            model=model_name,
             status=status,
             error=error,
         )

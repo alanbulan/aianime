@@ -7,8 +7,11 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.canvas import documents as document_routes
-from ai_anime.freezone import canvas_store
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts import (
+    CanvasCorruptError,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import read_canvas
+from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import CanvasLockBusy
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
@@ -61,7 +64,7 @@ def test_document_query_adapter_uses_state_dir_for_canvas_catalog(
     output_canvas = context.output_dir / "freezone" / "canvases" / "default.json"
     assert state_canvas.exists()
     assert not output_canvas.exists()
-    payload = canvas_store.read_canvas(context.state_dir, "default")
+    payload = read_canvas(context.state_dir, "default")
     assert payload["project_id"] == "proj_canvas"
     assert payload["created_by"] == "viewer-1"
 
@@ -239,7 +242,7 @@ async def test_document_query_adapter_translates_storage_errors(
     assert get_busy_error.value.canvas_id == "default"
 
     def corrupt(*_args, **_kwargs):
-        raise canvas_store.CanvasCorruptError("corrupt canvas json")
+        raise CanvasCorruptError("corrupt canvas json")
 
     corrupt_gateway = LocalCreativeCanvasDocumentQueryGateway(
         list_canvas_document_history=corrupt,

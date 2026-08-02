@@ -22,30 +22,6 @@ class ProjectConfigProductionSettings:
         save_project_config(username, project, config=updates)
 
 
-class ConfiguredProductionImageSelections:
-    def options(self) -> dict[str, str]:
-        from ai_anime.config import image_generation_selection_options
-
-        return image_generation_selection_options()
-
-    def normalize_render(self, value: str | None) -> str:
-        from ai_anime.config import (
-            DEFAULT_RENDER_IMAGE_SELECTION,
-            normalize_image_generation_selection,
-        )
-
-        return normalize_image_generation_selection(
-            value,
-            fallback=DEFAULT_RENDER_IMAGE_SELECTION,
-        )
-
-    def normalize_sketch(self, value: str | None) -> str:
-        from ai_anime.config import (
-            DEFAULT_SKETCH_IMAGE_SELECTION,
-            normalize_image_generation_selection,
-        )
-
-        return normalize_image_generation_selection(
-            value,
-            fallback=DEFAULT_SKETCH_IMAGE_SELECTION,
-        )
+class ExplicitProductionImageModelPolicy:
+    def normalize(self, value: str | None) -> str:
+        return str(value or "").strip()

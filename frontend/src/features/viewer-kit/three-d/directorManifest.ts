@@ -1,10 +1,16 @@
 // Copyright (c) 2026 AI anime
+import type {
+  DirectorWorldSourceDescriptor,
+  DirectorWorldSourceKind,
+  DirectorWorldSourceType as AssetWorldDirectorWorldSourceType,
+} from "@/modules/asset_world/public";
+
 import type { ThreeDSceneSnapshot } from "./engine/viewerApp";
 import type { DirectorWorldSourceTransform } from "./sourceTransform";
 
 export type DirectorStageMode = "scene" | "beat";
-export type DirectorStageSourceKind = "active" | "master" | "reverse" | "pano" | "uploaded" | "custom";
-export type DirectorWorldSourceType = "sog" | "pano360" | "mesh";
+export type DirectorStageSourceKind = DirectorWorldSourceKind;
+export type DirectorWorldSourceType = AssetWorldDirectorWorldSourceType;
 export type DirectorStageSourceType = Exclude<DirectorWorldSourceType, "mesh">;
 export type DirectorStageOrientationMode =
   | "supersplat_auto"
@@ -16,19 +22,7 @@ export type DirectorPlacementKind = "actor" | "prop" | "staging";
 export type DirectorPropOrStagingPlacementKind = Exclude<DirectorPlacementKind, "actor">;
 export type DirectorCaptureBundle = "combined" | "env_only" | "frame_meta";
 
-export interface DirectorWorldSource {
-  id?: string;
-  source_type: DirectorWorldSourceType;
-  source_kind?: DirectorStageSourceKind;
-  label?: string;
-  ply_url?: string;
-  url?: string;
-  pano_url?: string;
-  pano_fs?: string;
-  collision_glb_url?: string;
-  slot_kind?: "scene_director_pano_360" | "scene_360_candidate";
-  fs?: string;
-  current?: boolean;
+export interface DirectorWorldSource extends DirectorWorldSourceDescriptor {
   transform?: DirectorWorldSourceTransform;
 }
 

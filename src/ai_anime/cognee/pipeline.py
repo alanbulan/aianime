@@ -474,10 +474,6 @@ async def extract_characters_from_graph(
         )
         characters = []
         for enriched in result.characters:
-            # 自动映射 Fish Audio voice ID
-            from ai_anime.config import get_fish_voice_id
-
-            fish_voice_id = get_fish_voice_id(enriched.age_group, enriched.gender)
             char = _NovelCharacter(
                 name=enriched.name,
                 aliases=_clean_aliases(enriched.name, enriched.aliases or []),
@@ -486,7 +482,6 @@ async def extract_characters_from_graph(
                 gender=enriched.gender,
                 age_group=enriched.age_group,
                 body_type=enriched.body_type,
-                fish_voice_id=fish_voice_id,
                 description=enriched.description,
                 face_prompt=enriched.face_prompt,
             )

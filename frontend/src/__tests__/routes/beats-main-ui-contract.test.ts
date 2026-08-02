@@ -210,15 +210,16 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(seedance2ConfigView).toContain("showAudioMediaStatus &&");
   });
 
-  it("persists the video backend through project config instead of local-only storage", () => {
+  it("persists the authorized video model through project config instead of local-only storage", () => {
     expect(controller).toContain("dependencies.useProject(project)");
     expect(controller).toContain("dependencies.useUpdateProject(project)");
-    expect(controller).toContain("projectConfig.data?.video_backend");
-    expect(controller).toContain("handleVideoBackendChange");
-    expect(controller).toContain("video_backend: backend");
-    expect(controller).not.toContain("useVideoBackends");
+    expect(controller).toContain("dependencies.useVideoModels(Boolean(project))");
+    expect(controller).toContain("projectConfig.data?.video_model");
+    expect(controller).toContain("handleVideoModelChange");
+    expect(controller).toContain("video_model: model");
+    expect(controller).not.toContain("video_backend");
     expect(view).not.toContain("isSeedance2Backend");
-    expect(pageSources).not.toContain('"video-backend"');
+    expect(pageSources).not.toContain('"video-model"');
   });
 
   it("hydrates and persists project aspect ratio through project config", () => {

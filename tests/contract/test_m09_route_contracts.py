@@ -21,10 +21,11 @@ _USER = "alice"
 _IDENTITY = "hero_young"
 _SCENE = "alley"
 _PROP = "umbrella"
+_IMAGE_MODEL = "cloud-image-test"
+_VIDEO_MODEL = "cloud-video-test"
 
 
 _M09_OPERATIONS = {
-    ("GET", "/api/v1/projects/{project}/video-backends"),
     ("GET", "/api/v1/projects/{project}/render-settings"),
     ("PATCH", "/api/v1/projects/{project}/render-settings"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/videos/compose"),
@@ -255,7 +256,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             source_video_path=(
                 project_dir / "videos" / "beats" / "ep001" / "beat_01.mp4"
             ),
-            backend="mock",
+            video_model=_VIDEO_MODEL,
             prompt="pool prompt",
         ),
     )
@@ -443,7 +444,7 @@ def _assert_task_payload(payload: dict, *, backend: str, task_type: str):
     assert "celery_id" not in payload
 
 
-def test_m09_openapi_exposes_all_22_owned_operations(m09_client_factory):
+def test_m09_openapi_exposes_all_21_owned_operations(m09_client_factory):
     client, _task_backend, _project_dir, _pool_id = m09_client_factory("inline")
     spec = client.get("/openapi.json").json()
     actual = {
@@ -453,20 +454,22 @@ def test_m09_openapi_exposes_all_22_owned_operations(m09_client_factory):
         if method.lower() in {"get", "post", "patch", "delete"}
     }
 
-    assert len(_M09_OPERATIONS) == 22
+    assert len(_M09_OPERATIONS) == 21
     assert not sorted(_M09_OPERATIONS - actual)
 
 
-def test_m09_l2_exercises_all_22_endpoint_contracts(m09_client_factory):
+def test_m09_l2_exercises_all_21_endpoint_contracts(m09_client_factory):
     client, _task_backend, _project_dir, pool_id = m09_client_factory("inline")
     png = _png_bytes()
 
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/video-backends"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/render-settings"))
     _assert_ok(
         client.patch(
             f"/api/v1/projects/{_PROJECT}/render-settings",
-            json={"render_image_selection": "newapi_nanobanana2", "sketch_aspect_padding": True},
+            json={
+                "render_image_selection": _IMAGE_MODEL,
+                "sketch_aspect_padding": True,
+            },
         )
     )
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/videos/compose", json={}))
@@ -475,7 +478,12 @@ def test_m09_l2_exercises_all_22_endpoint_contracts(m09_client_factory):
     plan_payload = _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/render/plan",
-            json={"beat_indices": [1], "strategy": "naive", "aspect_mode": "9:16"},
+            json={
+                "beat_indices": [1],
+                "strategy": "naive",
+                "aspect_mode": "9:16",
+                "image_generation_selection": _IMAGE_MODEL,
+            },
         )
     )
     plan_data = plan_payload["data"]
@@ -489,6 +497,7 @@ def test_m09_l2_exercises_all_22_endpoint_contracts(m09_client_factory):
                 "strategy": "naive",
                 "aspect_mode": "9:16",
                 "beat_indices": [1],
+                "image_generation_selection": _IMAGE_MODEL,
             },
         )
     )
@@ -501,7 +510,12 @@ def test_m09_l2_exercises_all_22_endpoint_contracts(m09_client_factory):
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/export/srt"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/export/video"))
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/export/zip"))
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video", json={}))
+    _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video",
+            json={"model": _VIDEO_MODEL},
+        )
+    )
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/video-pool"))
     _assert_ok(
         client.post(
@@ -557,14 +571,22 @@ def test_m09_task_backend_responses_are_ce_ee_isomorphic(m09_client_factory, bac
     client, task_backend, _project_dir, _pool_id = m09_client_factory(backend)
 
     single_video = _assert_ok(
-        client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video", json={})
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video",
+            json={"model": _VIDEO_MODEL},
+        )
     )
     _assert_task_payload(single_video, backend=backend, task_type="single_video")
 
     plan_data = _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/render/plan",
-            json={"beat_indices": [1], "strategy": "naive", "aspect_mode": "9:16"},
+            json={
+                "beat_indices": [1],
+                "strategy": "naive",
+                "aspect_mode": "9:16",
+                "image_generation_selection": _IMAGE_MODEL,
+            },
         )
     )["data"]
     execute_payload = _assert_ok(
@@ -577,6 +599,7 @@ def test_m09_task_backend_responses_are_ce_ee_isomorphic(m09_client_factory, bac
                 "strategy": "naive",
                 "aspect_mode": "9:16",
                 "beat_indices": [1],
+                "image_generation_selection": _IMAGE_MODEL,
             },
         )
     )
@@ -600,7 +623,12 @@ def test_m09_render_execute_rejects_stale_fingerprint_and_plan_hash(m09_client_f
     plan_data = _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/render/plan",
-            json={"beat_indices": [1], "strategy": "naive", "aspect_mode": "9:16"},
+            json={
+                "beat_indices": [1],
+                "strategy": "naive",
+                "aspect_mode": "9:16",
+                "image_generation_selection": _IMAGE_MODEL,
+            },
         )
     )["data"]
     body = {
@@ -610,6 +638,7 @@ def test_m09_render_execute_rejects_stale_fingerprint_and_plan_hash(m09_client_f
         "strategy": "naive",
         "aspect_mode": "9:16",
         "beat_indices": [1],
+        "image_generation_selection": _IMAGE_MODEL,
     }
 
     response = client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/render/execute", json=body)

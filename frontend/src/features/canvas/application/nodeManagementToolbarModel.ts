@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 import {
   isAudioNode,
   isImageGenNode,
@@ -7,6 +6,7 @@ import {
   isVideoNode,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
+import { deriveNodeDropInfo } from "@/modules/creative_canvas/public";
 
 export type NodeToolbarRemovalTarget = "node" | "projection";
 

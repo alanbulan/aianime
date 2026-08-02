@@ -8,11 +8,12 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.props_schemas import PropUpdate
+from ai_anime.api.props_schemas import PropReferenceGenerateRequest, PropUpdate
 from ai_anime.api.scenes_schemas import (
     PanoSphereCorrection,
     PanoViewerCorrection,
     ScenePanoGenerateRequest,
+    SceneReferenceGenerateRequest,
     SceneUpdate,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
@@ -1431,7 +1432,10 @@ async def test_generate_scene_pano_returns_scope_and_falls_back_to_text(
     res = await scenes.generate_scene_pano(
         project="demo",
         name="Hall",
-        body=ScenePanoGenerateRequest(source="master"),
+        body=ScenePanoGenerateRequest(
+            source="master",
+            model="cloud-image-standard",
+        ),
         user={"username": "admin"},
     )
 
@@ -1494,6 +1498,7 @@ async def test_generate_scene_reference_assets_default_to_project_style(
     res = await scenes.generate_scene_master(
         project="demo",
         name="Hall",
+        body=SceneReferenceGenerateRequest(model="cloud-image-standard"),
         user={"username": "admin"},
     )
 
@@ -1919,6 +1924,7 @@ async def test_generate_prop_reference_returns_scope(tmp_path, monkeypatch):
     res = await props.generate_prop_reference(
         project="demo",
         name="Sword",
+        body=PropReferenceGenerateRequest(model="cloud-image-standard"),
         user={"username": "admin"},
     )
 
@@ -1934,6 +1940,7 @@ async def test_batch_generate_prop_references_starts_batch_task(tmp_path, monkey
 
     res = await props.batch_generate_prop_references(
         project="demo",
+        body=PropReferenceGenerateRequest(model="cloud-image-standard"),
         user={"username": "admin"},
     )
 

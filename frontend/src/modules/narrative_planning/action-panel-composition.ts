@@ -21,9 +21,9 @@ import type { BeatStageState, BeatStates } from "@/modules/production/public";
 
 export interface SingleBeatPanelProps {
   beat: Beat;
-  defaultBackend: string;
+  defaultModel: string;
   episode: number;
-  onDefaultBackendChange(backend: string): void;
+  onDefaultModelChange(model: string): void;
   onToggleSection(id: SectionId): void;
   openSections: ReadonlySet<SectionId>;
   project: string;
@@ -34,9 +34,9 @@ export interface SingleBeatPanelProps {
 
 export function SingleBeatPanel({
   beat,
-  defaultBackend,
+  defaultModel,
   episode,
-  onDefaultBackendChange,
+  onDefaultModelChange,
   onToggleSection,
   openSections,
   project,
@@ -46,9 +46,9 @@ export function SingleBeatPanel({
 }: SingleBeatPanelProps) {
   const controller = useSingleBeatPanelController({
     beat,
-    defaultBackend,
+    defaultModel,
     episode,
-    onDefaultBackendChange,
+    onDefaultModelChange,
     onToggleSection,
     openSections,
     project,
@@ -98,7 +98,7 @@ export function SingleBeatPanel({
       case "video":
         return createElement(VideoPane, {
           beat,
-          defaultBackend,
+          defaultModel,
           episode,
           project,
           showAudioMediaStatus,
@@ -115,9 +115,9 @@ export function SingleBeatPanel({
 
 export interface ActionPanelProps {
   beats: Beat[];
-  defaultBackend: string;
+  defaultModel: string;
   episode: number;
-  onDefaultBackendChange(backend: string): void;
+  onDefaultModelChange(model: string): void;
   project: string;
   selection: SelectionState;
   showAudioMediaStatus?: boolean;
@@ -128,9 +128,9 @@ export interface ActionPanelProps {
 
 export function ActionPanel({
   beats,
-  defaultBackend,
+  defaultModel,
   episode,
-  onDefaultBackendChange,
+  onDefaultModelChange,
   project,
   selection,
   showAudioMediaStatus = true,
@@ -150,9 +150,9 @@ export function ActionPanel({
   const singleBeatContent = beat
     ? createElement(SingleBeatPanel, {
         beat,
-        defaultBackend,
+        defaultModel,
         episode,
-        onDefaultBackendChange,
+        onDefaultModelChange,
         onToggleSection,
         openSections,
         project,

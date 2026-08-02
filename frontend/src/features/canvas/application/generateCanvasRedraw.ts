@@ -2,7 +2,7 @@
 import type {
   CanvasRedrawAspectRatio,
   CanvasRedrawImageSize,
-} from "../domain/redraw";
+} from "@/modules/creative_canvas/public";
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,
@@ -16,7 +16,7 @@ export interface GenerateCanvasRedrawParams {
   readonly prompt?: string;
   readonly aspectRatio: CanvasRedrawAspectRatio;
   readonly imageSize: CanvasRedrawImageSize;
-  readonly model?: string;
+  readonly model: string;
 }
 
 export interface GenerateCanvasRedrawDependencies {

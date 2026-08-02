@@ -4,6 +4,12 @@ import { render, waitFor } from "@testing-library/react";
 import { createElement, Fragment, type ComponentProps, type ComponentType, type PropsWithChildren } from "react";
 
 const runtimeState = vi.hoisted(() => ({ authRequired: true }));
+const accessState = vi.hoisted(() => ({
+  result: "unauthenticated" as
+    | "granted"
+    | "unauthenticated"
+    | "license-required",
+}));
 const navigateMock = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({
   username: null as string | null,
@@ -35,10 +41,12 @@ const useAuthStoreMock = Object.assign(
 
 vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: useAuthStoreMock,
-  ensureAuthenticatedForAppRoute: async () => {
-    if (authState.username) return true;
-    return Boolean(await authState.getCurrentUser());
-  },
+}));
+vi.mock("@/app/commercial-access", () => ({
+  resolveAppRouteAccess: async () => accessState.result,
+}));
+vi.mock("@/components/commercial-license-page", () => ({
+  CommercialLicensePage: () => null,
 }));
 
 vi.mock("@/components/layout/header", () => ({ Header: () => null }));
@@ -59,7 +67,8 @@ vi.mock("@/stores/region-store", () => ({
 }));
 vi.mock("@/lib/region-tab-sync", () => ({ initRegionTabSync: vi.fn() }));
 vi.mock("@/lib/observability", () => ({ initObservability: vi.fn() }));
-vi.mock("@/task-center/provider", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   TaskCenterProvider: ({ children }: PropsWithChildren) => createElement(Fragment, null, children),
 }));
 vi.mock("@/components/task-center/status-bar", () => ({ TaskStatusBar: () => null }));
@@ -89,6 +98,7 @@ describe("runtime auth gating", () => {
   beforeEach(() => {
     vi.resetModules();
     runtimeState.authRequired = true;
+    accessState.result = "unauthenticated";
     authState.username = null;
     authState.getCurrentUser.mockReset();
     authState.validateSession.mockReset();
@@ -128,6 +138,67 @@ describe("runtime auth gating", () => {
     const { Route } = await import("@/routes/login");
 
     await expect(Route.options.beforeLoad?.({} as never)).resolves.toBeUndefined();
+  });
+
+  it("login beforeLoad sends an authenticated account without a usable license to the license page", async () => {
+    accessState.result = "license-required";
+    const { Route } = await import("@/routes/login");
+
+    try {
+      await Route.options.beforeLoad?.({} as never);
+      throw new Error("expected redirect");
+    } catch (error) {
+      expectRedirect(error, "/license");
+    }
+  });
+
+  it("_app beforeLoad redirects an unauthenticated commercial session to login", async () => {
+    const { Route } = await import("@/routes/_app");
+
+    try {
+      await Route.options.beforeLoad?.({} as never);
+      throw new Error("expected redirect");
+    } catch (error) {
+      expectRedirect(error, "/login");
+    }
+  });
+
+  it("_app beforeLoad redirects an account without a usable license to the license page", async () => {
+    accessState.result = "license-required";
+    const { Route } = await import("@/routes/_app");
+
+    try {
+      await Route.options.beforeLoad?.({} as never);
+      throw new Error("expected redirect");
+    } catch (error) {
+      expectRedirect(error, "/license");
+    }
+  });
+
+  it("_app beforeLoad admits a fully authenticated and licensed session", async () => {
+    accessState.result = "granted";
+    const { Route } = await import("@/routes/_app");
+
+    await expect(Route.options.beforeLoad?.({} as never)).resolves.toBeUndefined();
+  });
+
+  it("license beforeLoad keeps an unactivated account on the license page", async () => {
+    accessState.result = "license-required";
+    const { Route } = await import("@/routes/license");
+
+    await expect(Route.options.beforeLoad?.({} as never)).resolves.toBeUndefined();
+  });
+
+  it("license beforeLoad redirects an activated account to the workspace", async () => {
+    accessState.result = "granted";
+    const { Route } = await import("@/routes/license");
+
+    try {
+      await Route.options.beforeLoad?.({} as never);
+      throw new Error("expected redirect");
+    } catch (error) {
+      expectRedirect(error, "/");
+    }
   });
 
   it("_app missing-username mount guard validates CE/no-auth runtime instead of redirecting", async () => {

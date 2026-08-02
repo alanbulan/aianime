@@ -31,12 +31,14 @@ export function buildCanvasAudioPrompt(
 }
 
 export interface CanvasAudioSpeechCommand {
+  readonly model: string;
   readonly text: string;
   readonly emotionPrompt?: string;
   readonly voiceRef: AudioVoiceRef;
 }
 
 export interface CanvasAudioMusicCommand {
+  readonly model: string;
   readonly prompt: string;
   readonly musicLengthMs?: number;
   readonly forceInstrumental: boolean;
@@ -55,6 +57,7 @@ export interface CanvasAudioGenerationSubmissionGateway {
 }
 
 interface GenerateCanvasAudioBaseParams {
+  readonly model: string;
   readonly projectId: string;
   readonly prompt: string;
 }
@@ -95,6 +98,7 @@ export async function generateCanvasAudio(
   const task =
     params.kind === "music"
       ? await dependencies.submissionGateway.submitMusic(params.projectId, {
+          model: params.model,
           prompt: params.prompt,
           ...(typeof params.musicLengthMs === "number"
             ? { musicLengthMs: params.musicLengthMs }
@@ -104,6 +108,7 @@ export async function generateCanvasAudio(
             params.respectSectionsDurations ?? true,
         })
       : await dependencies.submissionGateway.submitSpeech(params.projectId, {
+          model: params.model,
           text: params.prompt,
           ...(params.emotionPrompt?.trim()
             ? { emotionPrompt: params.emotionPrompt.trim() }

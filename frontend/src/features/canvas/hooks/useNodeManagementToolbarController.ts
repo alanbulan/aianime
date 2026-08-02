@@ -2,11 +2,15 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { projectNodeManagementToolbar } from "@/features/canvas/application/nodeManagementToolbarModel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import { useCanvasProjectionStatus } from "@/features/freezone/public";
+import {
+  publishCanvasCommitRequested,
+  publishCanvasProjectionRemovalRequested,
+  publishCanvasProjectionSyncRequested,
+  useCanvasProjectionStatus,
+} from "@/modules/creative_canvas/public";
 
 export interface NodeManagementToolbarControllerOptions {
   node: CanvasNode;
@@ -27,16 +31,12 @@ export function useNodeManagementToolbarController({
 
   const syncProjection = useCallback(() => {
     if (!projection.projectionKey) return;
-    canvasEventBus.publish("freezone/projection-sync", {
-      projectionKey: projection.projectionKey,
-    });
+    publishCanvasProjectionSyncRequested(projection.projectionKey);
   }, [projection.projectionKey]);
 
   const remove = useCallback(() => {
     if (projection.removalTarget === "projection" && projection.projectionKey) {
-      canvasEventBus.publish("freezone/projection-remove", {
-        projectionKey: projection.projectionKey,
-      });
+      publishCanvasProjectionRemovalRequested(projection.projectionKey);
       return;
     }
     if (projection.removalTarget === "node") {
@@ -46,7 +46,7 @@ export function useNodeManagementToolbarController({
 
   const commit = useCallback(() => {
     if (!projection.canCommit) return;
-    canvasEventBus.publish("freezone/commit-node", { nodeId: node.id });
+    publishCanvasCommitRequested({ nodeId: node.id });
   }, [node.id, projection.canCommit]);
 
   return {

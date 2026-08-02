@@ -30,7 +30,6 @@ from ai_anime.modules.model_usage.domain.generation_credit import (
     merge_billing_params,
     normalize_billing_params,
     normalize_quantity,
-    resolve_labeled_value,
 )
 
 __all__ = [
@@ -61,5 +60,4 @@ __all__ = [
     "insufficient_credits_payload",
     "is_insufficient_credits_error",
     "iter_exception_chain",
-    "resolve_labeled_value",
 ]

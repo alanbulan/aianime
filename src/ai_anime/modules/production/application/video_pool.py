@@ -22,7 +22,7 @@ class AddGeneratedVideoCommand:
     output_dir: str | Path | None = None
     duration: float = 5.0
     video_mode: str = "first_frame"
-    backend: str = "comfyui"
+    video_model: str = ""
     prompt: str = ""
 
 
@@ -34,7 +34,7 @@ class VideoPoolEntryView:
     generated_at: str
     duration: float
     video_mode: str
-    backend: str
+    video_model: str
     prompt: str
     video_url: str
 
@@ -52,7 +52,7 @@ class VideoPoolEntryView:
             generated_at=entry.generated_at.isoformat(),
             duration=entry.duration,
             video_mode=entry.video_mode,
-            backend=entry.backend,
+            video_model=entry.video_model,
             prompt=entry.prompt,
             video_url=video_url,
         )
@@ -65,7 +65,7 @@ class VideoPoolEntryView:
             "generated_at": self.generated_at,
             "duration": self.duration,
             "video_mode": self.video_mode,
-            "backend": self.backend,
+            "video_model": self.video_model,
             "prompt": self.prompt,
             "video_url": self.video_url,
         }

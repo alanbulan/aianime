@@ -21,8 +21,9 @@ const mocks = vi.hoisted(() => ({
   createObjectURL: vi.fn(),
   revokeObjectURL: vi.fn(),
   useUploadFilenameAsNodeTitle: false,
-  project: 'project-a' as string | undefined,
 }));
+
+const NODE_CONTEXT = { projectId: 'project-a' } as const;
 
 vi.mock('@xyflow/react', () => ({
   useStore: (selector: (state: { transform: [number, number, number] }) => unknown) =>
@@ -65,10 +66,15 @@ vi.mock('@/stores/settingsStore', () => ({
     }),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
-  collectCandidateBindingsForNode: () => [],
-  hasMainlineContexts: (value: unknown) => Array.isArray(value) && value.length > 0,
-}));
+vi.mock('@/modules/creative_canvas/public', async () => {
+  const actual = await vi.importActual<typeof import('@/modules/creative_canvas/public')>(
+    '@/modules/creative_canvas/public',
+  );
+  return {
+    ...actual,
+    hasMainlineContexts: (value: unknown) => Array.isArray(value) && value.length > 0,
+  };
+});
 
 vi.mock('@/features/canvas/composition', () => ({
   prepareNodeImageFromFile: (file: File) =>
@@ -79,8 +85,11 @@ vi.mock('@/features/canvas/composition', () => ({
     filename: string,
     options?: unknown,
   ) => mocks.uploadCanvasAsset(projectId, file, filename, options),
-  uploadLocalImageToBackend: (dataUrl: string, filename: string) =>
-    mocks.uploadLocalImageToBackend(dataUrl, filename),
+  uploadLocalImageToBackend: (
+    projectId: string,
+    dataUrl: string,
+    filename: string,
+  ) => mocks.uploadLocalImageToBackend(projectId, dataUrl, filename),
   getCanvasBeatDirectorManifest: (command: unknown) =>
     mocks.getCanvasBeatDirectorManifest(command),
 }));
@@ -99,10 +108,6 @@ vi.mock('@/features/canvas/application/canvasServices', () => ({
       }
     }),
   },
-}));
-
-vi.mock('@/lib/url-params', () => ({
-  readUrl: () => ({ project: mocks.project }),
 }));
 
 function data(
@@ -148,7 +153,6 @@ describe('useUploadNodeController', () => {
     );
     mocks.revokeObjectURL.mockReset();
     mocks.useUploadFilenameAsNodeTitle = false;
-    mocks.project = 'project-a';
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
       value: mocks.createObjectURL,
@@ -168,6 +172,7 @@ describe('useUploadNodeController', () => {
   it('projects state and owns selection, rename, and node-internals updates', () => {
     const { result } = renderHook(() =>
       useUploadNodeController({
+        ...NODE_CONTEXT,
         id: 'upload-a',
         data: data({
           imageUrl: '/original.png',
@@ -203,7 +208,11 @@ describe('useUploadNodeController', () => {
     const video = new File(['video'], 'source.mxf', { type: '' });
     const audio = new File(['audio'], 'voice.wav', { type: 'audio/wav' });
     const { unmount } = renderHook(() =>
-      useUploadNodeController({ id: 'upload-a', data: data() }),
+      useUploadNodeController({
+        ...NODE_CONTEXT,
+        id: 'upload-a',
+        data: data(),
+      }),
     );
 
     act(() => {
@@ -231,6 +240,7 @@ describe('useUploadNodeController', () => {
     mocks.convertNodeType.mockClear();
     renderHook(() =>
       useUploadNodeController({
+        ...NODE_CONTEXT,
         id: 'upload-image',
         data: data({ imageOnly: true }),
       }),
@@ -261,7 +271,11 @@ describe('useUploadNodeController', () => {
         }),
     );
     const { result } = renderHook(() =>
-      useUploadNodeController({ id: 'upload-a', data: data() }),
+      useUploadNodeController({
+        ...NODE_CONTEXT,
+        id: 'upload-a',
+        data: data(),
+      }),
     );
 
     let firstUpload!: Promise<void>;
@@ -298,6 +312,7 @@ describe('useUploadNodeController', () => {
     });
     const { result } = renderHook(() =>
       useUploadNodeController({
+        ...NODE_CONTEXT,
         id: 'upload-a',
         data: data({
           __freezone_source: {

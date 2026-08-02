@@ -1,22 +1,31 @@
 // Copyright (c) 2026 AI anime
 import type { CameraMovementPreset } from "../domain/cameraMovementPresets";
-
-export type CanvasImageModelProvider = "huimeng" | "openrouter" | "openai";
+import type { VideoGenMode } from "../domain/canvasNodes";
+import type { CanvasImageMode } from "../domain/imageModelCapability";
 
 export interface CanvasImageModel {
   readonly id: string;
-  readonly providerId: CanvasImageModelProvider;
   readonly apiModel: string;
   readonly label: string;
+  readonly imageModes?: ReadonlyArray<CanvasImageMode>;
+  readonly capabilities: Record<string, unknown>;
+  readonly parameterSchema: Record<string, unknown>;
 }
-
-export type CanvasVideoModelProvider = "seedance" | "huimeng";
 
 export interface CanvasVideoModel {
   readonly id: string;
-  readonly providerId: CanvasVideoModelProvider;
   readonly apiModel: string;
   readonly label: string;
+  readonly supportedModes?: VideoGenMode[];
+  readonly supportsHumanReview?: boolean;
+  readonly supportsReferenceImages?: boolean;
+  readonly supportsReferenceVideos?: boolean;
+  readonly supportsReferenceAudios?: boolean;
+  readonly maxReferenceImages?: number | null;
+  readonly maxReferenceVideos?: number | null;
+  readonly maxReferenceAudios?: number | null;
+  readonly maxReferenceTotal?: number | null;
+  readonly maxReferenceAudioDurationSeconds?: number | null;
   readonly resolutionOptions?: string[];
   readonly minDuration?: number | null;
   readonly maxDuration?: number | null;

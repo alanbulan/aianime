@@ -6,7 +6,7 @@ import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
@@ -20,6 +20,8 @@ const HOVER_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add']);
 const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add', 'shortcuts', 'help']);
 
 interface CanvasQuickActionBarProps {
+  projectId: string;
+  canvasId: string;
   placement?: 'bottom-right' | 'top-right';
   skillItems: SkillDefinition[];
   onAddNode: (type: CanvasNodeType) => void;
@@ -63,6 +65,8 @@ const ACTIONS: QuickActionDef[] = [
 ];
 
 export function CanvasQuickActionBar({
+  projectId,
+  canvasId,
   placement = 'bottom-right',
   skillItems,
   onAddNode,
@@ -233,6 +237,8 @@ export function CanvasQuickActionBar({
 
       {openPanel === 'history' && (
         <CanvasHistoryAssetsModal
+          projectId={projectId}
+          canvasId={canvasId}
           onClose={() => setOpenPanel(null)}
           onUseAsset={onUseAsset}
           onDeleteNode={onDeleteNode}

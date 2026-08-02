@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from ai_anime.task_identity import selection_scope
+from ai_anime.modules.task_execution.public import selection_scope
 from ai_anime.verification.render_repair_context import (
     build_render_repair_context,
     collect_active_render_entries,

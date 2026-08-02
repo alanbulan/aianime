@@ -3,16 +3,15 @@ import { type DragEvent as ReactDragEvent } from "react";
 import { AudioLines, Video } from "lucide-react";
 
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { CANVAS_ASSET_DRAG_MIME } from "@/features/canvas/domain/assetDrag";
-
-import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
-import { assetToPushTarget } from "../domain/pushTarget";
 import {
+  CANVAS_ASSET_DRAG_MIME,
+  assetToDragPayload,
+  assetToPushTarget,
   assetDropMediaType,
   isThreeDAsset,
+  sceneAssetTypeBadge,
   type LibraryAsset,
-} from "../domain/assetLibraryModel";
-import { sceneAssetTypeBadge } from "./assetLibraryViewModel";
+} from "@/modules/creative_canvas/public";
 
 export function AssetLibraryAssetCard({
   asset,

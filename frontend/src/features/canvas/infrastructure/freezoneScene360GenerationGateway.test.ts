@@ -28,6 +28,7 @@ describe("freezoneScene360GenerationGateway", () => {
       freezoneScene360GenerationGateway.submit("project/1", {
         referenceUrl: "data:image/png;base64,eA==",
         aspectRatio: "21:9",
+        model: "cloud-image-standard",
       }),
     ).resolves.toBe(task);
     expect(ensureBackendImageUrl).toHaveBeenCalledWith(
@@ -43,6 +44,7 @@ describe("freezoneScene360GenerationGateway", () => {
           image_size: "2K",
           mode: "candidate",
           aspect_ratio: "21:9",
+          model: "cloud-image-standard",
         },
       },
     );

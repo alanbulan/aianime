@@ -78,6 +78,7 @@ vi.mock('@/features/canvas/ui/CanvasHistoryAssetsModal', () => ({
 function createController(): GroupNodeController {
   return {
     id: 'group-a',
+    projectId: 'project-a',
     data: {
       label: '分镜组',
       displayName: '分镜组',

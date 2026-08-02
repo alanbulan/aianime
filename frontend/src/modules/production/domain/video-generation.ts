@@ -10,7 +10,7 @@ export interface GenerateSeedance2PromptCommand {
 
 export interface RegenerateBeatVideoCommand {
   beatNum: number;
-  videoBackend?: string;
+  model: string;
   useDirectorRender?: boolean;
   resolution?: string;
   duration?: number;

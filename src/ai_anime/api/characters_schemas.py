@@ -30,7 +30,6 @@ class CharacterUpdate(BaseModel):
     is_main: Optional[bool] = None
     role: Optional[str] = None  # "主角" / "配角" / "反派"
     body_type: Optional[str] = None  # "纤细高挑" / "健壮魁梧" 等
-    fish_voice_id: Optional[str] = None  # Fish Audio S2 声线 ID
     aliases: Optional[list[str]] = None
 
 
@@ -70,7 +69,6 @@ class IdentityUpdate(BaseModel):
     face_prompt: Optional[str] = None
     age_group: Optional[str] = None
     body_type: Optional[str] = None
-    fish_voice_id: Optional[str] = None
 
 
 __all__ = [

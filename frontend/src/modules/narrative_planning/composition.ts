@@ -1,7 +1,5 @@
-import { createElement, type ReactNode } from "react";
-
 import { formatCreditCost } from "@/components/credits/credit-visual";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
+import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import {
   useAssetWorkspaceNavigation,
   useCharacters,
@@ -10,16 +8,8 @@ import {
 } from "@/modules/asset_world/public";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
-import { useTasks } from "@/task-center/public";
-import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
-import {
-  createNarrativePlanningQueryHooks,
-  isPlanEpisodeAssetsResult,
-} from "@/modules/narrative_planning/application/query-hooks";
-import {
-  listBeats as listBeatsUseCase,
-  listEpisodes as listEpisodesUseCase,
-} from "@/modules/narrative_planning/application/catalog-queries";
+import { useTasks } from "@/modules/task_execution/public";
+import { TASK_TYPES, isActiveStatus } from "@/modules/task_execution/public";
 import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
 import { createUseBeatCardGridController } from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
 import { createUseInsertManualShotDialogController } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
@@ -31,22 +21,11 @@ import { createUseScriptPageController } from "@/modules/narrative_planning/appl
 import { createUseSingleBeatPanelController } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import { createUseTextPaneController } from "@/modules/narrative_planning/application/use-text-pane-controller";
-import type {
-  BeatUpdate,
-  Episode,
-} from "@/modules/narrative_planning/domain/types";
+import { narrativePlanningQueries } from "@/modules/narrative_planning/query-composition";
 import { useEpisodeWorkbenchSectionState } from "@/modules/narrative_planning/infrastructure/episode-workbench-section-state";
-import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
 import { useBeatSelection } from "@/modules/narrative_planning/infrastructure/use-beat-selection";
 import { useBeatsViewToggles } from "@/modules/narrative_planning/infrastructure/use-beats-view-toggles";
-import { BeatsPageView } from "@/modules/narrative_planning/presentation/BeatsPageView";
 import {
-  EpisodeListItemView,
-  EpisodesPageView,
-} from "@/modules/narrative_planning/presentation/EpisodesPageView";
-import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
-import {
-  DEFAULT_VIDEO_BACKEND,
   createSketchRegenPlanItems,
   getLockedSketchRegenItemIds,
   sketchRegenModelCallCount,
@@ -55,7 +34,7 @@ import {
   useRebuildPoolIndex,
   useRegenerateSketches,
   useSketchSettings,
-  useVideoBackends,
+  useVideoModels,
 } from "@/modules/production/public";
 import {
   useProject,
@@ -66,35 +45,6 @@ import {
   trackSave,
   useSaveState,
 } from "@/stores/save-status-store";
-
-export const narrativePlanningQueries = createNarrativePlanningQueryHooks(
-  httpNarrativePlanningGateway,
-);
-
-export const {
-  episodeBeatsQueryOptions,
-  episodeDetailQueryOptions,
-  episodesQueryOptions,
-  pipelineStatusQueryOptions,
-  prefetchEpisodeBeats,
-  prefetchEpisodeDetail,
-  useDeleteManualShot,
-  useEpisodeBeats,
-  useEpisodeDetail,
-  useEpisodes,
-  useGenerateRewrite,
-  useGenerateScript,
-  useInsertManualShot,
-  usePipelineStatus,
-  usePlanEpisodeProps,
-  usePlanEpisodeScenes,
-  usePlanEpisodes,
-  usePlanIdentities,
-  useSaveScript,
-  useScript,
-  useUpdateBeat,
-  useUpdateEpisode,
-} = narrativePlanningQueries;
 
 export const useInsertManualShotDialogController =
   createUseInsertManualShotDialogController({
@@ -107,7 +57,9 @@ export const useBeatCardGridController = createUseBeatCardGridController(
     useDeleteManualShot: narrativePlanningQueries.useDeleteManualShot,
     useGridsByBeat,
   },
-  { openBeatFreezone: openPresetProjectionInMyCanvas },
+  {
+    openBeatFreezone: openPresetProjectionInMyCanvas,
+  },
 );
 export const useTextPaneController = createUseTextPaneController(
   {
@@ -123,34 +75,23 @@ export const useTextPaneController = createUseTextPaneController(
   },
 );
 
-export const readPipelineStatus = (
-  project: string,
-  signal?: AbortSignal,
-) => httpNarrativePlanningGateway.getPipelineStatus(project, signal);
-
-export const updateBeat = (
-  project: string,
-  episode: number,
-  beat: number,
-  data: BeatUpdate,
-) => httpNarrativePlanningGateway.updateBeat(project, episode, beat, data);
-
-export const listEpisodes = (project: string) =>
-  listEpisodesUseCase(project, httpNarrativePlanningGateway);
-
-export const listBeats = (project: string, episode: number) =>
-  listBeatsUseCase(project, episode, httpNarrativePlanningGateway);
-
-const useEpisodesPageController = createUseEpisodesPageController(
+export const useEpisodesPageController = createUseEpisodesPageController(
   narrativePlanningQueries,
-  { useCharacters, useGenerationCreditCost },
+  {
+    useCharacters,
+    useGenerationCreditCost,
+  },
 );
-const useEpisodeListItemController = createUseEpisodeListItemController(
+export const useEpisodeListItemController = createUseEpisodeListItemController(
   narrativePlanningQueries,
 );
-const useScriptPageController = createUseScriptPageController(
+export const useScriptPageController = createUseScriptPageController(
   narrativePlanningQueries,
-  { useCharacters, useGenerationCreditCost, useProject },
+  {
+    useCharacters,
+    useGenerationCreditCost,
+    useProject,
+  },
 );
 const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
   createSketchPlanItems: createSketchRegenPlanItems,
@@ -174,7 +115,10 @@ const useSketchStudioController = createUseSketchStudioController(
 );
 export const useSingleBeatPanelController =
   createUseSingleBeatPanelController(
-    { useGridsByBeat, useVideoBackends },
+    {
+      useGridsByBeat,
+      useVideoModels,
+    },
     {
       beatTextScope: saveScopes.beatText,
       useAssetWorkspaceNavigation,
@@ -184,10 +128,9 @@ export const useSingleBeatPanelController =
 export const useActionPanelController = createUseActionPanelController({
   useSectionState: useEpisodeWorkbenchSectionState,
 });
-const useBeatsPageController = createUseBeatsPageController(
+export const useBeatsPageController = createUseBeatsPageController(
   narrativePlanningQueries,
   {
-    defaultVideoBackend: DEFAULT_VIDEO_BACKEND,
     openEpisodeFreezone: openPresetProjectionInMyCanvas,
     useGenerationCreditCost,
     useBeatSelection,
@@ -196,105 +139,9 @@ const useBeatsPageController = createUseBeatsPageController(
     useRebuildPoolIndex,
     useSketchSettings,
     useUpdateProject,
+    useVideoModels,
     useViewToggles: useBeatsViewToggles,
   },
   useBeatsSketchPlanController,
   useSketchStudioController,
 );
-
-function EpisodeListItemContent({
-  episode,
-  identityCostDisplay,
-  onSelect,
-  project,
-  propCostDisplay,
-  sceneCostDisplay,
-}: {
-  episode: Episode;
-  identityCostDisplay?: string | null;
-  onSelect(): void;
-  project: string;
-  propCostDisplay?: string | null;
-  sceneCostDisplay?: string | null;
-}) {
-  const controller = useEpisodeListItemController({
-    episode,
-    identityCostDisplay,
-    onSelect,
-    project,
-    propCostDisplay,
-    sceneCostDisplay,
-  });
-  return createElement(EpisodeListItemView, { controller });
-}
-
-export function EpisodesPageContent({
-  episodeContent,
-  onBackToEpisodes,
-  onSelectEpisode,
-  project,
-  selectedEpisodeNumber,
-}: {
-  episodeContent: ReactNode;
-  onBackToEpisodes(): void;
-  onSelectEpisode(episodeNumber: number): void;
-  project: string;
-  selectedEpisodeNumber: number | null;
-}) {
-  const controller = useEpisodesPageController({
-    onBackToEpisodes,
-    onSelectEpisode,
-    project,
-    selectedEpisodeNumber,
-  });
-  const renderEpisodeListItem = (episode: Episode) =>
-    createElement(EpisodeListItemContent, {
-      episode,
-      identityCostDisplay: controller.planIdentitiesCostDisplay,
-      key: episode.number,
-      onSelect: () => onSelectEpisode(episode.number),
-      project,
-      propCostDisplay: controller.planPropsCostDisplay,
-      sceneCostDisplay: controller.planScenesCostDisplay,
-    });
-
-  return createElement(EpisodesPageView, {
-    controller,
-    episodeContent,
-    renderEpisodeListItem,
-  });
-}
-
-export function ScriptPageContent({
-  episodeNumber,
-  project,
-}: {
-  episodeNumber: number;
-  project: string;
-}) {
-  const controller = useScriptPageController({ episodeNumber, project });
-  return createElement(ScriptPageView, { controller });
-}
-
-export function BeatsPageContent({
-  clearFocusBeat,
-  deepLinkBeat,
-  episodeNumber,
-  focusBeat,
-  project,
-  setBeat,
-  targetSection,
-}: Parameters<typeof useBeatsPageController>[0]) {
-  const controller = useBeatsPageController({
-    clearFocusBeat,
-    deepLinkBeat,
-    episodeNumber,
-    focusBeat,
-    project,
-    setBeat,
-    targetSection,
-  });
-  return createElement(BeatsPageView, { controller });
-}
-
-export { isPlanEpisodeAssetsResult };

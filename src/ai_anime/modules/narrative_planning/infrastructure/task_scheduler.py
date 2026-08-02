@@ -1,43 +1,41 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeAssetPlanningTask,
+    EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
     TaskQueueReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_identity import project_task_state_key
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 
 
-class TaskBackendScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue_episode_planning(
         self,
         task_context: ProjectContext,
         task: EpisodePlanningTask,
     ) -> TaskQueueReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             task_context,
-            task_type="build_episodes",
-            queue_kind="default",
-            episode=0,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type="build_episodes",
+                payload=task.backend_payload(),
+            ),
         )
         return TaskQueueReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                "build_episodes",
-                task_context.project_id,
-                0,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )
 
     async def enqueue_script_generation(
@@ -45,22 +43,19 @@ class TaskBackendScheduler:
         task_context: ProjectContext,
         task: ScriptGenerationTask,
     ) -> TaskQueueReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             task_context,
-            task_type="script_writer",
-            queue_kind="default",
-            episode=task.episode,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type="script_writer",
+                episode=task.episode,
+                payload=task.backend_payload(),
+            ),
         )
         return TaskQueueReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                "script_writer",
-                task_context.project_id,
-                task.episode,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )
 
     async def enqueue_beat_video_prompt(
@@ -68,22 +63,59 @@ class TaskBackendScheduler:
         task_context: ProjectContext,
         task: BeatVideoPromptTask,
     ) -> TaskQueueReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             task_context,
-            task_type="beat_video_prompt",
-            queue_kind="default",
-            episode=task.episode,
-            beat_num=task.beat_num,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type="beat_video_prompt",
+                episode=task.episode,
+                beat_num=task.beat_num,
+                payload=task.backend_payload(),
+            ),
         )
         return TaskQueueReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                "beat_video_prompt",
-                task_context.project_id,
-                task.episode,
-                beat_num=task.beat_num,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
+        )
+
+    async def enqueue_episode_asset_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeAssetPlanningTask,
+    ) -> TaskQueueReceipt:
+        receipt = await self._submissions.submit(
+            task_context,
+            ProjectTaskSubmission(
+                task_type=task.task_type,
+                episode=task.episode,
+                scope=task.scope,
+                payload=task.backend_payload(),
             ),
-            backend=queued.backend,
-            queue=queued.queue,
+        )
+        return TaskQueueReceipt(
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
+        )
+
+    async def enqueue_episode_identity_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeIdentityPlanningTask,
+    ) -> TaskQueueReceipt:
+        receipt = await self._submissions.submit(
+            task_context,
+            ProjectTaskSubmission(
+                task_type="identity_planner",
+                episode=task.episode,
+                payload=task.backend_payload(),
+            ),
+        )
+        return TaskQueueReceipt(
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )

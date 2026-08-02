@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import type { NodeSelectionMenuController } from '@/features/canvas/hooks/useNodeSelectionMenuController';
-import type { SkillDefinition } from '@/features/freezone/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/public';
 
 import { NodeSelectionMenuView } from './NodeSelectionMenuView';
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   translateSkillDescription: (skill: SkillDefinition) => `description:${skill.id}`,
   translateSkillName: (skill: SkillDefinition) => `skill:${skill.id}`,
 }));

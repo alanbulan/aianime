@@ -8,6 +8,8 @@ import { useImageEditNodeController } from '@/features/canvas/hooks/useImageEdit
 import { ImageEditNodeView } from './ImageEditNodeView';
 
 type ImageEditNodeProps = NodeProps & {
+  projectId: string;
+  canvasId: string;
   id: string;
   data: ImageEditNodeData;
   selected?: boolean;

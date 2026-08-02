@@ -4,19 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_anime.config import (
-    IMAGE_GENERATION_SELECTIONS,
-    image_generation_selection_options,
-)
 from ai_anime.modules.creative_canvas.domain.image_prompts import (
     creative_canvas_image_camera_options,
     creative_canvas_image_style_templates,
 )
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     get_video_camera_templates,
-)
-from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
-    ConfiguredCreativeCanvasVideoModelPolicy,
 )
 
 
@@ -27,25 +20,5 @@ class ConfiguredGenerationCatalogSource:
     def image_style_templates(self) -> list[dict[str, Any]]:
         return creative_canvas_image_style_templates()
 
-    def image_models(self) -> list[dict[str, Any]]:
-        options = image_generation_selection_options()
-        models: list[dict[str, Any]] = []
-        for key, label in options.items():
-            entry = IMAGE_GENERATION_SELECTIONS.get(key, {})
-            models.append(
-                {
-                    "id": key,
-                    "providerId": entry.get("provider", "newapi"),
-                    "provider": entry.get("provider", "newapi"),
-                    "apiModel": key,
-                    "api_model": key,
-                    "label": label,
-                }
-            )
-        return models
-
     def video_camera_templates(self) -> list[dict[str, Any]]:
         return get_video_camera_templates()
-
-    def video_models(self) -> list[dict[str, Any]]:
-        return ConfiguredCreativeCanvasVideoModelPolicy().model_options()

@@ -23,8 +23,6 @@ def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -
 
     result = staging_prop_ai.generate_ai_staging_prop(
         {
-            "api_key": "test-key",
-            "base_url": "http://example.test/v1",
             "model": "test-model",
             "scene_id": "面馆",
             "user_hint": "让男青年骑一匹马",
@@ -47,7 +45,7 @@ def test_generate_ai_staging_prop_falls_back_to_shape_hint_inference(monkeypatch
     monkeypatch.setattr(staging_prop_ai, "run_staging_prop_agent", fake_run_staging_prop_agent)
 
     result = staging_prop_ai.generate_ai_staging_prop(
-        {"api_key": "test-key", "user_hint": "让他骑马", "crosshair_target": {}}
+        {"user_hint": "让他骑马", "crosshair_target": {}}
     )
 
     assert result["prop"]["semantic_label"] == "horse"
@@ -55,9 +53,9 @@ def test_generate_ai_staging_prop_falls_back_to_shape_hint_inference(monkeypatch
     assert result["prop"]["relation_intent"] == "mount_actor"
 
 
-def test_resolve_model_config_defaults_to_staging_prop_dc_alias(monkeypatch) -> None:
+def test_resolve_model_defaults_to_staging_prop_dc_alias(monkeypatch) -> None:
     monkeypatch.delenv("STAGING_PROP_MODEL", raising=False)
 
-    model, _api_key, _base_url = staging_prop_ai.resolve_model_config({})
+    model = staging_prop_ai.resolve_model({})
 
     assert model == "ai-anime-staging-prop-planner-LLM"

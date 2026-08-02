@@ -41,6 +41,7 @@ export interface CanvasStoryScriptCharacterReference {
 
 export interface CanvasStoryScriptCommand {
   readonly sourceText: string;
+  readonly model?: string;
   readonly videoUrl?: string;
   readonly durationSec?: number;
   readonly characterRefs?: CanvasStoryScriptCharacterReference[];

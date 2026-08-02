@@ -9,15 +9,20 @@ export function createAudioGenerationQueryHooks(
 ) {
   function useGenerateAudio(project: string, episode: number) {
     return useMutation({
-      mutationFn: (command?: GenerateAudioCommand) =>
+      mutationFn: (command: GenerateAudioCommand) =>
         gateway.generateEpisodeAudio(project, episode, command),
     });
   }
 
   function useRegenerateBeatAudio(project: string, episode: number) {
     return useMutation({
-      mutationFn: (beatNumber: number) =>
-        gateway.regenerateBeatAudio(project, episode, beatNumber),
+      mutationFn: (command: { beatNumber: number; model: string }) =>
+        gateway.regenerateBeatAudio(
+          project,
+          episode,
+          command.beatNumber,
+          command.model,
+        ),
     });
   }
 

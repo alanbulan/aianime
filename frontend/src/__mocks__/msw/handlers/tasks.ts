@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { http, HttpResponse } from "msw";
-import type { TaskState } from "@/task-center/types";
+import type { TaskState } from "@/modules/task_execution/public";
 
 let _sampleTaskSeq = 0;
 export const sampleTask = (overrides: Partial<TaskState> = {}): TaskState => ({

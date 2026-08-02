@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -12,9 +11,12 @@ from ai_anime.modules.production.application.episode_video import (
     FinalEpisodeVideoStatus,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import (
+    ProjectTaskSubmission,
+    ProjectTaskSubmissionUseCases,
+)
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.utils.path_resolver import PathResolver
 
 
@@ -31,31 +33,29 @@ class SqliteEpisodeBeatSource:
             await store.close()
 
 
-class TaskBackendEpisodeVideoScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
-        self._task_backend_provider = task_backend_provider
+class TaskExecutionEpisodeVideoScheduler:
+    def __init__(self, submissions: ProjectTaskSubmissionUseCases) -> None:
+        self._submissions = submissions
 
     async def enqueue(
         self,
         context: ProjectContext,
         task: EpisodeVideoCompositionTask,
     ) -> EpisodeVideoTaskReceipt:
-        queued = await self._task_backend_provider().enqueue_project_task(
+        receipt = await self._submissions.submit(
             context,
-            task_type="compose_episode",
-            queue_kind="ffmpeg",
-            episode=task.episode_num,
-            payload=task.backend_payload(),
+            ProjectTaskSubmission(
+                task_type="compose_episode",
+                queue_kind="ffmpeg",
+                episode=task.episode_num,
+                payload=task.backend_payload(),
+            ),
         )
         return EpisodeVideoTaskReceipt(
-            task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key(
-                "compose_episode",
-                context.project_id,
-                task.episode_num,
-            ),
-            backend=queued.backend,
-            queue=queued.queue,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
         )
 
 

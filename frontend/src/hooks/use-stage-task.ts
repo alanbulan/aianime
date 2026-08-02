@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import type { QueryKey } from "@tanstack/react-query";
-import { useCancelTask, useTasks } from "@/task-center/public";
+import { useCancelTask, useTasks } from "@/modules/task_execution/public";
 import { useTaskStream } from "@/hooks/use-task-stream";
-import type { TaskStatus } from "@/types/task";
+import type { TaskStatus } from "@/modules/task_execution/public";
 
 const ACTIVE_STATUSES: TaskStatus[] = ["submitting", "queued", "pending", "starting", "running"];
 

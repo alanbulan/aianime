@@ -5,17 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 
-_SEEDANCE_PRO_DIALOGUE_BACKENDS = {
-    "seedance_pro",
-    "newapi_seedance-1.5-pro",
-}
+_DIALOGUE_ONLY_VIDEO_MODELS = {"seedance-1.5-pro"}
 
 
-def seedance_pro_dialogue_error(
+def dialogue_only_video_model_error(
     beats: list[dict[str, Any]],
-    video_backend: str,
+    video_model: str,
 ) -> str | None:
-    if video_backend not in _SEEDANCE_PRO_DIALOGUE_BACKENDS:
+    if video_model not in _DIALOGUE_ONLY_VIDEO_MODELS:
         return None
 
     non_dialogue = [
@@ -40,7 +37,7 @@ def seedance2_initial_prompt(beat: dict[str, Any], video_mode: str) -> str:
     return str(beat.get("video_prompt") or beat.get("keyframe_prompt") or "").strip()
 
 
-def legacy_video_prompt(beat: dict[str, Any], video_mode: str) -> str:
+def standard_video_prompt(beat: dict[str, Any], video_mode: str) -> str:
     if video_mode == "keyframe":
         return str(beat.get("keyframe_prompt") or "").strip()
     return str(beat.get("video_prompt") or "").strip()

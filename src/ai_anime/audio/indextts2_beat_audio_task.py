@@ -12,7 +12,7 @@ from ai_anime.audio_request_usage import (
     record_audio_generation_attempt,
     update_audio_generation_attempt,
 )
-from ai_anime.config import INDEXTTS2_RECORD_MODEL, INDEXTTS2_RECORD_PROVIDER
+from ai_anime.config import INDEXTTS2_RECORD_PROVIDER
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.project_config import (
     is_narrated_project,
@@ -356,6 +356,7 @@ async def run_indextts2_beat_audio_generation(
     project: str,
     episode: int,
     beat_numbers,
+    model: str | None = None,
     mode: str = "sync_changed",
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
@@ -363,6 +364,14 @@ async def run_indextts2_beat_audio_generation(
     log_callback: LogCallback | None = None,
 ) -> IndexTTS2BeatAudioTaskResult:
     """Generate selected beat MP3s with IndexTTS2 character/narrator references."""
+
+    model_name = str(model or getattr(generator, "model", "") or "").strip()
+    if not model_name:
+        raise ValueError("audio model is required")
+    if generator is None:
+        from ai_anime.generators.indextts2 import IndexTTS2Client
+
+        generator = IndexTTS2Client(model=model_name)
 
     normalized_mode = _normalize_mode(mode)
     result = IndexTTS2BeatAudioTaskResult(mode=normalized_mode)
@@ -474,7 +483,7 @@ async def run_indextts2_beat_audio_generation(
                 project_output_dir=store.project_dir,
                 request_id=request_id,
                 provider=INDEXTTS2_RECORD_PROVIDER,
-                model_name=INDEXTTS2_RECORD_MODEL,
+                model_name=model_name,
                 task_type="audio_generation_indextts2",
                 scope=_audio_usage_scope(episode, beat_num, speaker),
                 episode=episode,
@@ -516,7 +525,7 @@ async def run_indextts2_beat_audio_generation(
                 text_sha256=text_sha256,
                 mode=normalized_mode,
                 provider=INDEXTTS2_RECORD_PROVIDER,
-                model=INDEXTTS2_RECORD_MODEL,
+                model=model_name,
                 status="success",
             )
         except Exception as exc:

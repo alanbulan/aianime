@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import type {
   ProductionErrorResponse,
   ProductionTaskResponse,
@@ -38,7 +38,7 @@ export interface BeatVideoGenerationQueries {
 
 export interface BeatVideoGenerationControllerDependencies {
   useGenerationCreditCost(
-    kind: "video_backend",
+    kind: "video_model",
     value: string,
     options: {
       params: { resolution: string };
@@ -113,8 +113,8 @@ export function createUseBeatVideoGenerationController(
     const [confirmationOpen, setConfirmationOpen] = useState(false);
     const cost = generationCost(options.generationInput);
     const creditCost = dependencies.useGenerationCreditCost(
-      "video_backend",
-      options.generationInput.backend,
+      "video_model",
+      options.generationInput.model,
       {
         surface: "ai_anime",
         params: { resolution: cost.resolution },

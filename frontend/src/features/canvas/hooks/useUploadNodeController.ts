@@ -46,12 +46,11 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   collectCandidateBindingsForNode,
   hasMainlineContexts,
-} from '@/features/freezone/public';
+} from '@/modules/creative_canvas/public';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type {
   DirectorStageManifest,
 } from '@/features/viewer-kit/three-d/directorManifest';
-import { readUrl } from '@/lib/url-params';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export interface UploadNodeControllerOptions {
@@ -60,6 +59,7 @@ export interface UploadNodeControllerOptions {
   selected?: boolean;
   width?: number;
   height?: number;
+  projectId: string;
 }
 
 export function useUploadNodeController({
@@ -68,6 +68,7 @@ export function useUploadNodeController({
   selected,
   width,
   height,
+  projectId,
 }: UploadNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -151,9 +152,8 @@ export function useUploadNodeController({
 
   const processFile = useCallback(
     async (file: File) => {
-      const projectId = readUrl().project;
       if (!projectId) {
-        console.error('[upload-node] no project in URL — cannot upload');
+        console.error('[upload-node] missing project context');
         return;
       }
 
@@ -227,7 +227,13 @@ export function useUploadNodeController({
         );
       }
     },
-    [clearTransientPreview, id, updateNodeData, useUploadFilenameAsNodeTitle],
+    [
+      clearTransientPreview,
+      id,
+      projectId,
+      updateNodeData,
+      useUploadFilenameAsNodeTitle,
+    ],
   );
 
   const imageLoad = useCallback(
@@ -407,7 +413,6 @@ export function useUploadNodeController({
 
   const openDirectorStage = useCallback(async () => {
     if (!directorSource.canOpenDirectorStage) return;
-    const projectId = readUrl().project;
     if (
       !projectId ||
       directorSource.episode === null ||
@@ -447,11 +452,10 @@ export function useUploadNodeController({
     } finally {
       setDirectorStageBusy(false);
     }
-  }, [directorControlBundle, directorSource]);
+  }, [directorControlBundle, directorSource, projectId]);
 
   const submitDirectorCombined = useCallback(
     async (_blob: Blob, meta: ThreeDDirectorCaptureMeta) => {
-      const projectId = readUrl().project;
       if (!meta.captureBundle) {
         throw new Error('导演合成图缺少 combined/env_only/frame_meta');
       }
@@ -478,7 +482,13 @@ export function useUploadNodeController({
         uploadError: null,
       });
     },
-    [directorSource.beat, directorSource.episode, id, updateNodeData],
+    [
+      directorSource.beat,
+      directorSource.episode,
+      id,
+      projectId,
+      updateNodeData,
+    ],
   );
 
   const captureDirectorCanvasNode = useCallback(
@@ -486,7 +496,6 @@ export function useUploadNodeController({
       if (captureCanvasNodeBusyRef.current) return;
       captureCanvasNodeBusyRef.current = true;
       try {
-        const projectId = readUrl().project;
         if (projectId && meta.captureBundle) {
           const bundle = await uploadDirectorCaptureBundle(
             projectId,
@@ -547,6 +556,7 @@ export function useUploadNodeController({
         const dataUrl = await directorCaptureBlobToDataUrl(blob);
         const size = await readDirectorCaptureImageSize(dataUrl);
         const uploadedUrl = await uploadLocalImageToBackend(
+          projectId,
           dataUrl,
           `director-world-${id}-combined-${Date.now()}.png`,
         );
@@ -575,7 +585,7 @@ export function useUploadNodeController({
         captureCanvasNodeBusyRef.current = false;
       }
     },
-    [addPanoCaptureGroup, id, t, updateNodeData],
+    [addPanoCaptureGroup, id, projectId, t, updateNodeData],
   );
 
   useEffect(

@@ -5,6 +5,12 @@ from pathlib import Path
 from typing import Any
 
 
+_EPISODE_ASSET_PLANNER_TASKS = {
+    "scene": ("episode_scene_planner", "场景"),
+    "prop": ("episode_prop_planner", "道具"),
+}
+
+
 @dataclass(frozen=True)
 class ScriptGenerationTask:
     episode: int
@@ -59,6 +65,42 @@ class EpisodePlanningTask:
 
 
 @dataclass(frozen=True)
+class EpisodeAssetPlanningTask:
+    episode: int
+    asset_kind: str
+
+    def __post_init__(self) -> None:
+        if self.asset_kind not in _EPISODE_ASSET_PLANNER_TASKS:
+            raise ValueError(f"Unknown asset planning kind: {self.asset_kind}")
+
+    @property
+    def task_type(self) -> str:
+        return _EPISODE_ASSET_PLANNER_TASKS[self.asset_kind][0]
+
+    @property
+    def label(self) -> str:
+        return _EPISODE_ASSET_PLANNER_TASKS[self.asset_kind][1]
+
+    @property
+    def scope(self) -> str:
+        return f"{self.asset_kind}_run_ep{self.episode:03d}"
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "episode": self.episode,
+            "asset_kind": self.asset_kind,
+        }
+
+
+@dataclass(frozen=True)
+class EpisodeIdentityPlanningTask:
+    episode: int
+
+    def backend_payload(self) -> dict[str, int]:
+        return {"episode": self.episode}
+
+
+@dataclass(frozen=True)
 class TaskQueueReceipt:
     task_id: str
     task_key: str
@@ -74,6 +116,7 @@ class ScheduledNarrativeTask:
     backend: str
     queue: str | None
     message: str
+    scope: str | None = None
 
     @classmethod
     def from_receipt(
@@ -82,6 +125,7 @@ class ScheduledNarrativeTask:
         *,
         task_type: str,
         message: str,
+        scope: str | None = None,
     ) -> ScheduledNarrativeTask:
         return cls(
             task_type=task_type,
@@ -90,10 +134,11 @@ class ScheduledNarrativeTask:
             backend=receipt.backend,
             queue=receipt.queue,
             message=message,
+            scope=scope,
         )
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "task_type": self.task_type,
             "task_id": self.task_id,
             "task_key": self.task_key,
@@ -101,3 +146,6 @@ class ScheduledNarrativeTask:
             "queue": self.queue,
             "message": self.message,
         }
+        if self.scope is not None:
+            result["scope"] = self.scope
+        return result

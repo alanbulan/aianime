@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.task_backend.cancel import cancel_key
+from ai_anime.modules.task_execution.public import cancel_key
 
 pytestmark = pytest.mark.m07
 

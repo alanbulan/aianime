@@ -26,7 +26,6 @@ from ai_anime.api.canvas_image_schemas import (
 from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.modules.creative_canvas.public import (
-    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     CreativeCanvasImageToThreeGsSourceMissing,
@@ -99,21 +98,6 @@ async def freezone_image_style_templates(
     return {"ok": True, "data": generation_catalog_queries().image_style_templates()}
 
 
-@router.get("/projects/{project}/freezone/image/models", tags=["freezone-image"])
-async def freezone_image_models(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：返回和 AI anime 图片模型下拉一致的可见模型。"""
-    await resolve_project_scope(
-        project,
-        user,
-        required_role="viewer",
-        operation="access freezone project files",
-    )
-    return {"ok": True, "data": generation_catalog_queries().image_models()}
-
-
 @router.post(
     "/projects/{project}/freezone/gen",
     response_model=FreezoneJobAcceptedResponse,
@@ -155,7 +139,6 @@ async def freezone_gen(
                     if body.style
                     else None
                 ),
-                provider=body.provider,
                 model=body.model,
                 quality=body.quality,
                 canvas_id=body.canvas_id or None,
@@ -208,8 +191,7 @@ async def freezone_multi_view(
         image_size=body.image_size or "2K",
         camera=body.camera,
         style=body.style,
-        provider=None,
-        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        model=body.model,
         quality=body.quality or "medium",
     )
 
@@ -247,8 +229,7 @@ async def freezone_relight(
         image_size=body.image_size or "2K",
         camera=None,
         style=None,
-        provider=None,
-        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        model=body.model,
         quality=body.quality or "medium",
     )
 
@@ -278,8 +259,7 @@ async def freezone_template_edit(
         image_size=body.image_size or "2K",
         camera=body.camera,
         style=body.style,
-        provider=None,
-        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        model=body.model,
         quality=body.quality or "medium",
     )
 
@@ -305,7 +285,6 @@ async def freezone_edit(
         image_size=body.image_size,
         camera=body.camera,
         style=body.style,
-        provider=body.provider,
         model=body.model,
         quality=body.quality,
         canvas_id=body.canvas_id or None,
@@ -367,7 +346,6 @@ async def freezone_mark_detect(
                 "box_height": selection.box_height,
                 "note": result.note,
             },
-            "provider": result.provider,
             "model": result.model,
         },
     }
@@ -640,8 +618,7 @@ async def _start_reference_image_editing(
     image_size: str,
     camera: FreezoneImageCameraConfig | None,
     style: FreezoneImageStyleConfig | None,
-    provider: str | None,
-    model: str | None,
+    model: str,
     quality: str | None,
     canvas_id: str | None = None,
     node_id: str | None = None,
@@ -679,7 +656,6 @@ async def _start_reference_image_editing(
                     if style
                     else None
                 ),
-                provider=provider,
                 model=model,
                 quality=quality,
                 canvas_id=canvas_id,

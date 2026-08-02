@@ -83,9 +83,9 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import episodes, scripts, tasks
-    from ai_anime.task_backend.runners import graph_build as _graph_build  # noqa: F401
-    from ai_anime.task_backend.runners import script as _script  # noqa: F401
-    from ai_anime.task_backend.registry import register_project_task_runner
+    from ai_anime.modules.task_execution.infrastructure.runners import graph_build as _graph_build  # noqa: F401
+    from ai_anime.modules.task_execution.infrastructure.runners import script as _script  # noqa: F401
+    from ai_anime.modules.task_execution.public import register_project_task_runner
 
     async def resolve_project_scope(project: str, user: dict, *, required_role: str = "viewer"):
         return ProjectResolution(

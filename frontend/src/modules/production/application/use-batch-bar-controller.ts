@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type {
   ProductionDataResponse,
@@ -23,11 +23,13 @@ import type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
+import type { ImageModelOption } from "@/modules/production/domain/image-model";
 import type {
   AssignColorsResult,
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type { VideoModelOption } from "@/modules/production/domain/video-model";
+import type { AudioModelOption } from "@/modules/model_usage/public";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
@@ -52,7 +54,7 @@ interface DetectIdentitiesMutation {
 interface GenerateAudioMutation {
   isPending: boolean;
   mutateAsync(
-    command?: GenerateAudioCommand,
+    command: GenerateAudioCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
 }
 
@@ -61,8 +63,18 @@ interface GlobalOptimizeMutation {
   mutateAsync(): Promise<ProductionTaskResponse | ProductionErrorResponse>;
 }
 
-interface VideoBackendsQuery {
-  data?: ProductionDataResponse<VideoBackendOption[]>;
+interface VideoModelsQuery {
+  data: VideoModelOption[];
+}
+
+interface AudioModelsQuery {
+  data: AudioModelOption[];
+  isLoading: boolean;
+}
+
+interface ImageModelsQuery {
+  data: ImageModelOption[];
+  isLoading: boolean;
 }
 
 interface RenderSettingsQuery {
@@ -118,7 +130,9 @@ export interface BatchBarControllerQueries {
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateRenderSettings(project: string): UpdateRenderSettingsMutation;
   useUpdateSketchSettings(project: string): UpdateSketchSettingsMutation;
-  useVideoBackends(project: string): VideoBackendsQuery;
+  useAudioModels(mode: "speech", enabled?: boolean): AudioModelsQuery;
+  useImageModels(enabled?: boolean): ImageModelsQuery;
+  useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
 export interface BatchBarControllerDependencies {
@@ -136,7 +150,7 @@ export interface BatchBarControllerOptions {
   project: string;
   sketchAspectRatio: SketchAspectRatio;
   spineTemplate: "drama" | "narrated";
-  videoBackend: string;
+  videoModel: string;
 }
 
 export interface BatchBarErrorDialog {
@@ -161,7 +175,8 @@ export interface BatchBarModelControl {
 export interface BatchBarController {
   assignColorsPending: boolean;
   audioPending: boolean;
-  audioUnavailableForVideoBackend: boolean;
+  audioModelUnavailable: boolean;
+  audioUnavailableForVideoModel: boolean;
   detectIdentitiesCostDisplay: string | null;
   detectIdentitiesPending: boolean;
   episodeAudioCostDisplay: string;
@@ -191,7 +206,7 @@ export function createUseBatchBarController(
     project,
     sketchAspectRatio,
     spineTemplate,
-    videoBackend,
+    videoModel,
   }: BatchBarControllerOptions): BatchBarController {
     const { t } = useTranslation();
     const assignColors = queries.useAssignColors(project, episode);
@@ -202,13 +217,18 @@ export function createUseBatchBarController(
     const sketchSettings = queries.useSketchSettings(project);
     const updateRenderSettings = queries.useUpdateRenderSettings(project);
     const updateSketchSettings = queries.useUpdateSketchSettings(project);
-    const videoBackends = queries.useVideoBackends(project);
+    const audioModels = queries.useAudioModels("speech", Boolean(project));
+    const audioModel = audioModels.data[0]?.value ?? "";
+    const imageModels = queries.useImageModels(Boolean(project));
+    const videoModels = queries.useVideoModels(Boolean(project));
     const detectIdentitiesCost = dependencies.useGenerationCreditCost(
       "feature",
       "ai_identity_detection",
     );
-    const episodeAudioCost =
-      dependencies.useGenerationCreditCost("beat_tts");
+    const episodeAudioCost = dependencies.useGenerationCreditCost(
+      "beat_tts",
+      audioModel || null,
+    );
     const [errorDialog, setErrorDialog] =
       useState<BatchBarErrorDialog | null>(null);
 
@@ -243,8 +263,8 @@ export function createUseBatchBarController(
           error || t("common.error"),
         ),
     });
-    const selectedVideoBackend = videoBackends.data?.data.find(
-      (option) => option.value === videoBackend,
+    const selectedVideoModel = videoModels.data.find(
+      (option) => option.value === videoModel,
     );
     const episodeAudioCalls = useMemo(
       () => episodeAudioModelCallCount(beats),
@@ -263,18 +283,16 @@ export function createUseBatchBarController(
     const renderSettingsData = renderSettings.data?.data;
     const sketchSettingsData = sketchSettings.data?.data;
     const renderModelOptions = useMemo(
-      () =>
-        Object.entries(renderSettingsData?.options ?? {}).map(
-          ([value, label]) => ({ label, value }),
-        ),
-      [renderSettingsData?.options],
+      () => imageModels.data.map(({ label, value }) => ({ label, value })),
+      [imageModels.data],
     );
     const sketchModelOptions = useMemo(
-      () =>
-        Object.entries(sketchSettingsData?.options ?? {}).map(
-          ([value, label]) => ({ label, value }),
-        ),
-      [sketchSettingsData?.options],
+      () => imageModels.data.map(({ label, value }) => ({ label, value })),
+      [imageModels.data],
+    );
+    const availableImageModelIds = useMemo(
+      () => new Set(imageModels.data.map((option) => option.value)),
+      [imageModels.data],
     );
 
     const onRenderModelChange = async (value: string) => {
@@ -306,8 +324,15 @@ export function createUseBatchBarController(
     };
 
     const onGenerateAudio = async () => {
+      if (!audioModel) {
+        showError(
+          t("episode.workbench.batch.genAudioTitle"),
+          t("episode.workbench.audio.modelUnavailable"),
+        );
+        return;
+      }
       try {
-        const response = await generateAudio.mutateAsync(undefined);
+        const response = await generateAudio.mutateAsync({ model: audioModel });
         if (!response.ok) {
           showError(
             t("episode.workbench.batch.genAudioTitle"),
@@ -403,8 +428,9 @@ export function createUseBatchBarController(
     return {
       assignColorsPending: assignColors.isPending,
       audioPending: audioTask.started || generateAudio.isPending,
-      audioUnavailableForVideoBackend:
-        selectedVideoBackend?.is_seedance2 === true,
+      audioModelUnavailable: audioModels.isLoading || !audioModel,
+      audioUnavailableForVideoModel:
+        selectedVideoModel?.supportsNativeAudio === true,
       detectIdentitiesCostDisplay,
       detectIdentitiesPending: detectIdentities.isPending,
       episodeAudioCostDisplay,
@@ -412,21 +438,29 @@ export function createUseBatchBarController(
       globalOptimizePending:
         globalOptimize.isPending || globalOptimizeTask.started,
       renderModel: {
-        isLoading: renderSettings.isLoading,
+        isLoading: renderSettings.isLoading || imageModels.isLoading,
         isPending: updateRenderSettings.isPending,
         isVisible: renderSettingsData !== undefined,
         onChange: onRenderModelChange,
         options: renderModelOptions,
-        value: renderSettingsData?.render_image_selection ?? "",
+        value: availableImageModelIds.has(
+          renderSettingsData?.render_image_selection ?? "",
+        )
+          ? renderSettingsData?.render_image_selection ?? ""
+          : "",
       },
       sketchAspectRatio,
       sketchModel: {
-        isLoading: sketchSettings.isLoading,
+        isLoading: sketchSettings.isLoading || imageModels.isLoading,
         isPending: updateSketchSettings.isPending,
         isVisible: sketchSettingsData !== undefined,
         onChange: onSketchModelChange,
         options: sketchModelOptions,
-        value: sketchSettingsData?.sketch_image_selection ?? "",
+        value: availableImageModelIds.has(
+          sketchSettingsData?.sketch_image_selection ?? "",
+        )
+          ? sketchSettingsData?.sketch_image_selection ?? ""
+          : "",
       },
       showEpisodeAudio: spineTemplate !== "drama",
       showGlobalOptimize: spineTemplate === "narrated",

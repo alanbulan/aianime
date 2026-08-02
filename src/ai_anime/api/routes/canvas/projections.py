@@ -10,7 +10,6 @@ from ai_anime.api.canvas_projections_schemas import (
     ProjectionStatusRequest,
 )
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.freezone.paths import CANVAS_ID_RE
 from ai_anime.modules.creative_canvas.public import (
     BuildCreativeCanvasProjectionQuery,
     CreativeCanvasDocumentBusy,
@@ -25,6 +24,7 @@ from ai_anime.modules.creative_canvas.public import (
     canvas_actor_id,
     canvas_event_actor,
     creative_canvas_projection_use_cases,
+    is_valid_creative_canvas_id,
 )
 
 
@@ -166,7 +166,7 @@ def _projection_request(body: ProjectionPresetCanvasRequest) -> dict:
 
 
 def _validate_canvas_id(canvas_id: str) -> None:
-    if not CANVAS_ID_RE.match(canvas_id):
+    if not is_valid_creative_canvas_id(canvas_id):
         raise HTTPException(400, "invalid canvas_id")
 
 

@@ -32,6 +32,7 @@ describe("generateCanvasGridAction", () => {
           sourceUrl: "/static/source.png?v=42",
           actionKey: "plotFourGrid",
           prompt: "Plot four-grid",
+          model: "cloud-image-standard",
         },
         { submissionGateway, taskGateway, onTaskSubmitted },
       ),
@@ -40,6 +41,7 @@ describe("generateCanvasGridAction", () => {
       sourceUrl: "/static/source.png",
       mode: "story_pitch_four_grid",
       prompt: "Plot four-grid",
+      model: "cloud-image-standard",
     });
     expect(onTaskSubmitted).toHaveBeenCalledWith(task);
   });

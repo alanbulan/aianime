@@ -30,7 +30,7 @@ import {
 import type {
   SectionId,
   SingleBeatPanelController,
-  VideoBackendHeaderOption,
+  VideoModelHeaderOption,
 } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 
 export interface SingleBeatPanelViewProps {
@@ -63,12 +63,12 @@ export function SingleBeatPanelView({
   useEscapeToClose(previewUrl !== null, () => setPreviewUrl(null));
   const {
     beatTextScope,
-    onDefaultBackendChange,
+    onDefaultModelChange,
     onToggleSection,
     sections,
     textSaveStatus,
-    videoBackend,
-    videoBackends,
+    videoModel,
+    videoModels,
   } = controller;
 
   return (
@@ -112,10 +112,10 @@ export function SingleBeatPanelView({
                   </span>
                 </button>
                 {id === "video" && (
-                  <VideoBackendHeaderSelect
-                    backends={videoBackends}
-                    onChange={onDefaultBackendChange}
-                    value={videoBackend}
+                  <VideoModelHeaderSelect
+                    models={videoModels}
+                    onChange={onDefaultModelChange}
+                    value={videoModel}
                   />
                 )}
                 <span
@@ -181,17 +181,17 @@ export function SingleBeatPanelView({
   );
 }
 
-function VideoBackendHeaderSelect({
-  backends,
+function VideoModelHeaderSelect({
+  models,
   onChange,
   value,
 }: {
-  backends: readonly VideoBackendHeaderOption[];
-  onChange(backend: string): void;
+  models: readonly VideoModelHeaderOption[];
+  onChange(model: string): void;
   value: string;
 }) {
   const { t } = useTranslation();
-  const selectedBackend = backends.find((backend) => backend.value === value);
+  const selectedModel = models.find((model) => model.value === value);
 
   return (
     <div
@@ -203,7 +203,7 @@ function VideoBackendHeaderSelect({
           aria-label={t("episode.workbench.batch.videoModel")}
           className="!h-[26px] w-auto min-w-[150px] rounded-[7px] border-border bg-muted px-2.5 text-xs font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground focus-visible:border-primary/45 focus-visible:bg-muted focus-visible:ring-primary/10 [&>svg]:ml-1.5 [&>svg]:size-3.5"
         >
-          <SelectValue>{() => selectedBackend?.label ?? value}</SelectValue>
+          <SelectValue>{() => selectedModel?.label ?? value}</SelectValue>
         </SelectTrigger>
         <SelectContent
           align="start"
@@ -211,25 +211,20 @@ function VideoBackendHeaderSelect({
           alignItemWithTrigger={false}
           className={WORKBENCH_SELECT_CONTENT_CLASS}
         >
-          {backends.map((backend) => (
+          {models.map((model) => (
             <SelectItem
-              key={backend.value}
-              value={backend.value}
+              key={model.value}
+              value={model.value}
               className={WORKBENCH_SELECT_ITEM_CLASS}
             >
               <span className="flex items-center gap-2">
-                {backend.label}
-                {backend.isDefault && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("episode.workbench.video.noteDefault")}
-                  </span>
-                )}
-                {backend.isSeedance2 && (
+                {model.label}
+                {model.isSeedance2 && (
                   <span className="text-[10px] text-muted-foreground">
                     Seedance2
                   </span>
                 )}
-                {backend.dialogueOnly && (
+                {model.dialogueOnly && (
                   <span className="text-[10px] text-muted-foreground">
                     {t("episode.workbench.video.noteDialogue")}
                   </span>

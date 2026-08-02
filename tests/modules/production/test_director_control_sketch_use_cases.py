@@ -82,7 +82,11 @@ async def test_generate_director_control_sketch_schedules_existing_frame(
         scheduler,
     ).generate(
         context,
-        GenerateDirectorControlSketchCommand(episode_num=2, beat_num=3),
+        GenerateDirectorControlSketchCommand(
+            episode_num=2,
+            beat_num=3,
+            model="sketch-image-sku",
+        ),
     )
 
     assert frame_source.calls == [(context, 2, 3)]
@@ -95,6 +99,7 @@ async def test_generate_director_control_sketch_schedules_existing_frame(
         "beat_num": 3,
         "output_dir": str(tmp_path),
         "state_dir": str(tmp_path / "state"),
+        "model": "sketch-image-sku",
     }
     assert scheduled.as_dict() == {
         "task_type": "sketch_generation",
@@ -126,7 +131,11 @@ async def test_generate_director_control_sketch_rejects_missing_frame() -> None:
             scheduler,
         ).generate(
             context,
-            GenerateDirectorControlSketchCommand(episode_num=2, beat_num=3),
+            GenerateDirectorControlSketchCommand(
+                episode_num=2,
+                beat_num=3,
+                model="sketch-image-sku",
+            ),
         )
 
     assert exc_info.value.status is status

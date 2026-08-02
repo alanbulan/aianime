@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from PIL import Image
 
 from ai_anime.api.canvas_image_schemas import FreezoneMarkDetectRequest
 from ai_anime.api.routes.canvas import image as mark_detection_routes
@@ -26,7 +27,9 @@ from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
-    FreezoneVisionMarkDetector,
+    PydanticAICreativeCanvasMarkDetector,
+    build_mark_detection_task,
+    crop_mark_focus_image,
 )
 
 
@@ -58,6 +61,35 @@ def test_mark_selection_rejects_incomplete_target() -> None:
         selection.require_target()
 
 
+def test_mark_detection_task_includes_selected_target() -> None:
+    point_task = build_mark_detection_task(
+        CreativeCanvasMarkSelection(point_x=0.2, point_y=0.45)
+    )
+    box_task = build_mark_detection_task(
+        CreativeCanvasMarkSelection(
+            box_x=0.1,
+            box_y=0.2,
+            box_width=0.3,
+            box_height=0.25,
+        )
+    )
+
+    assert "点击点归一化坐标" in point_task
+    assert "框选区域归一化坐标" in box_task
+
+
+def test_mark_focus_crop_returns_png_bytes(tmp_path: Path) -> None:
+    image_path = tmp_path / "mark.png"
+    Image.new("RGB", (100, 100), color="white").save(image_path)
+
+    data = crop_mark_focus_image(
+        image_path,
+        CreativeCanvasMarkSelection(point_x=0.5, point_y=0.5),
+    )
+
+    assert data.startswith(b"\x89PNG")
+
+
 @pytest.mark.asyncio
 async def test_mark_detection_use_case_delegates_and_maps_result(
     tmp_path: Path,
@@ -82,7 +114,6 @@ async def test_mark_detection_use_case_delegates_and_maps_result(
             return DetectedCreativeCanvasMark(
                 label="旧伞",
                 note="框选区域中的物体",
-                provider="newapi",
                 model="vision-model",
             )
 
@@ -101,7 +132,6 @@ async def test_mark_detection_use_case_delegates_and_maps_result(
     assert result.selection is selection
     assert result.label == "旧伞"
     assert result.note == "框选区域中的物体"
-    assert result.provider == "newapi"
     assert result.model == "vision-model"
 
 
@@ -208,49 +238,45 @@ def test_project_image_source_resolver_preserves_static_url_mapping(
 
 
 @pytest.mark.asyncio
-async def test_freezone_vision_detector_delegates_to_existing_implementation(
+async def test_pydantic_ai_mark_detector_uses_creative_canvas_vision_model(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    image_path = tmp_path / "source.png"
+    image_path = tmp_path / "source.jpg"
+    Image.new("RGB", (100, 100), color="white").save(image_path)
     selection = CreativeCanvasMarkSelection(
         box_x=0.1,
         box_y=0.2,
         box_width=0.3,
         box_height=0.4,
     )
+    captured: dict[str, object] = {}
 
-    async def fake_detect_freezone_mark(**kwargs):
-        assert kwargs == {
-            "image_path": image_path,
-            "point_x": None,
-            "point_y": None,
-            "box_x": 0.1,
-            "box_y": 0.2,
-            "box_width": 0.3,
-            "box_height": 0.4,
-        }
-        return {
-            "label": "旧伞",
-            "note": "框选区域中的物体",
-            "provider": "newapi",
-            "model": "vision-model",
-        }
+    async def fake_call_creative_canvas_vision_model(**kwargs):
+        captured.update(kwargs)
+        return "vision-model", '{"label":"旧伞","note":"框选区域中的物体"}'
 
     monkeypatch.setattr(
         mark_detection_adapters,
-        "detect_freezone_mark",
-        fake_detect_freezone_mark,
+        "call_creative_canvas_vision_model",
+        fake_call_creative_canvas_vision_model,
     )
 
-    result = await FreezoneVisionMarkDetector().detect(image_path, selection)
+    result = await PydanticAICreativeCanvasMarkDetector().detect(
+        image_path,
+        selection,
+    )
 
     assert result == DetectedCreativeCanvasMark(
         label="旧伞",
         note="框选区域中的物体",
-        provider="newapi",
         model="vision-model",
     )
+    assert "框选区域归一化坐标" in str(captured["prompt"])
+    assert len(captured["images"]) == 2
+    assert captured["images"][0].media_type == "image/jpeg"
+    assert captured["images"][1].media_type == "image/png"
+    assert captured["timeout_seconds"] == 90.0
 
 
 @pytest.mark.asyncio

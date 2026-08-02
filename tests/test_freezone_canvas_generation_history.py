@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.freezone.history import (
+from ai_anime.modules.creative_canvas.infrastructure.history import (
     append_generation_history,
     generation_history_path,
     read_canvas_generation_history,

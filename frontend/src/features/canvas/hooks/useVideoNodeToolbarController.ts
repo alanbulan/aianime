@@ -20,14 +20,15 @@ import {
   type VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
 import { downloadUrlAsFile } from "@/lib/browserDownload";
-import { readUrl } from "@/lib/url-params";
 
 export interface VideoNodeToolbarControllerOptions {
+  projectId: string;
   nodeId: string;
   data: VideoNodeData;
 }
 
 export function useVideoNodeToolbarController({
+  projectId,
   nodeId,
   data,
 }: VideoNodeToolbarControllerOptions) {
@@ -70,11 +71,6 @@ export function useVideoNodeToolbarController({
     const { hasVideo, isAnalyzing, videoUrl } = projection;
     if (!hasVideo || !videoUrl || isAnalyzing) return;
 
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.error("[video-analyze] no project in URL");
-      return;
-    }
     updateNodeData(nodeId, {
       isAnalyzing: true,
       analysisError: null,
@@ -122,6 +118,7 @@ export function useVideoNodeToolbarController({
     data.durationMs,
     findNodePosition,
     nodeId,
+    projectId,
     projection,
     updateNodeData,
   ]);
@@ -183,11 +180,6 @@ export function useVideoNodeToolbarController({
     const { hasVideo, isSeparatingAudioVideo, videoUrl } = projection;
     if (!hasVideo || !videoUrl || isSeparatingAudioVideo) return;
 
-    const projectId = readUrl().project;
-    if (!projectId) {
-      console.error("[audio-separate] no project in URL");
-      return;
-    }
     updateNodeData(nodeId, { isSeparatingAv: true });
     try {
       const {
@@ -243,6 +235,7 @@ export function useVideoNodeToolbarController({
     data,
     findNodePosition,
     nodeId,
+    projectId,
     projection,
     updateNodeData,
   ]);

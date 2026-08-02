@@ -7,39 +7,48 @@ import {
   getFreezoneCanvas,
   putFreezoneCanvas,
   putFreezoneCanvasKeepalive,
-} from "@/features/canvas/composition";
+} from "@/modules/creative_canvas/public";
 import { ApiError } from "@/shared/api/errors";
 import {
   HISTORY_PERSIST_MAX_STEPS,
   trimHistoryForStorage,
-} from "@/features/freezone/application/canvasSyncStorage";
+} from "@/modules/creative_canvas/public";
+import {
+  canvasDraftStorageGateway,
+} from "@/modules/creative_canvas/public";
 import {
   FREEZONE_HYDRATE_RELEASE_GRACE_MS,
   FREEZONE_HYDRATE_SETTLED_REUSE_MS,
-} from "@/features/freezone/application/canvasHydrateFlights";
+} from "@/modules/creative_canvas/application/canvasHydrateFlights";
 import { useCanvasSync } from "@/features/freezone/hooks/useCanvasSync";
-import {
-  canvasDraftStorageGateway,
-} from "@/features/freezone/canvasDraftComposition";
 import {
   consumeQueuedLocalFreezoneProjections,
   queueLocalFreezoneProjection,
   removeLocalFreezoneProjection,
-} from "@/features/freezone/application/canvasRuntimeState";
-import { shotMetadataState } from "@/features/freezone/shotMetadataComposition";
+} from "@/modules/creative_canvas/public";
+import { shotMetadataState } from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 const { readDraft: readCanvasDraft, writeDraft: writeCanvasDraft } =
   canvasDraftStorageGateway;
 
-vi.mock("@/features/canvas/composition", () => ({
-  createCanvasFromPreset: vi.fn(),
-  generateClientSaveId: vi.fn(() => "save-test-id"),
-  getFreezoneCanvas: vi.fn(),
-  putFreezoneCanvas: vi.fn(),
-  putFreezoneCanvasKeepalive: vi.fn(),
-}));
+vi.mock(
+  "@/modules/creative_canvas/canvasStorageComposition",
+  async (importOriginal) => {
+    const actual = await importOriginal<
+      typeof import("@/modules/creative_canvas/canvasStorageComposition")
+    >();
+    return {
+      ...actual,
+      createCanvasFromPreset: vi.fn(),
+      generateClientSaveId: vi.fn(() => "save-test-id"),
+      getFreezoneCanvas: vi.fn(),
+      putFreezoneCanvas: vi.fn(),
+      putFreezoneCanvasKeepalive: vi.fn(),
+    };
+  },
+);
 
 vi.mock("@xyflow/react", () => ({
   useReactFlow: () => ({

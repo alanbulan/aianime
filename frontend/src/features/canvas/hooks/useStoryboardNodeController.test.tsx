@@ -137,6 +137,7 @@ describe('useStoryboardNodeController', () => {
   it('projects ordered frames and owns node and export-option writes', () => {
     const { result } = renderHook(() =>
       useStoryboardNodeController({
+        projectId: 'project-a',
         id: 'storyboard-a',
         data: data(),
         selected: true,
@@ -193,7 +194,11 @@ describe('useStoryboardNodeController', () => {
       upstreamNode('ignored', CANVAS_NODE_TYPES.script, '/ignored.png'),
     );
     const { result } = renderHook(() =>
-      useStoryboardNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardNodeController({
+        projectId: 'project-a',
+        id: 'storyboard-a',
+        data: data(),
+      }),
     );
 
     expect(result.current.incomingImageItems.map((item) => item.label)).toEqual([
@@ -220,7 +225,11 @@ describe('useStoryboardNodeController', () => {
 
   it('owns pointer drag lifecycle and commits only a changed order', () => {
     const { result } = renderHook(() =>
-      useStoryboardNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardNodeController({
+        projectId: 'project-a',
+        id: 'storyboard-a',
+        data: data(),
+      }),
     );
 
     act(() => result.current.startSort('first'));
@@ -243,6 +252,7 @@ describe('useStoryboardNodeController', () => {
     const target = frame('first', 0);
     const { result } = renderHook(() =>
       useStoryboardNodeController({
+        projectId: 'project-a',
         id: 'storyboard-a',
         data: data({ frames: [target] }),
       }),
@@ -251,6 +261,7 @@ describe('useStoryboardNodeController', () => {
     await act(async () => result.current.editFrame(target));
     expect(mocks.prepareNodeImage).toHaveBeenCalledWith('/first.png');
     expect(mocks.uploadLocalImageToBackend).toHaveBeenCalledWith(
+      'project-a',
       'data:image/png;base64,prepared',
       expect.stringMatching(/^storyboard-frame-storyboard-a-/),
     );
@@ -276,11 +287,16 @@ describe('useStoryboardNodeController', () => {
 
   it('coordinates grid export and single-image packing without duplicate work', async () => {
     const { result } = renderHook(() =>
-      useStoryboardNodeController({ id: 'storyboard-a', data: data() }),
+      useStoryboardNodeController({
+        projectId: 'project-a',
+        id: 'storyboard-a',
+        data: data(),
+      }),
     );
 
     await act(async () => result.current.exportGrid());
     expect(mocks.exportStoryboardGrid).toHaveBeenCalledWith(
+      'project-a',
       expect.objectContaining({
         nodeId: 'storyboard-a',
         rows: 1,
@@ -302,6 +318,7 @@ describe('useStoryboardNodeController', () => {
 
     await act(async () => result.current.packSingleImages());
     expect(mocks.packStoryboardFrames).toHaveBeenCalledWith(
+      'project-a',
       result.current.projection.orderedFrames,
     );
     expect(result.current.isAnyExporting).toBe(false);

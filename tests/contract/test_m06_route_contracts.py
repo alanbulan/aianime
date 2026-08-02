@@ -13,6 +13,7 @@ from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacte
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 pytestmark = pytest.mark.m06
 
@@ -244,6 +245,7 @@ class _FakeTaskManager:
 
 @pytest.fixture()
 def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from ai_anime import ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import ingest
@@ -260,7 +262,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import skills as freezone_skills
     from ai_anime.api.routes.canvas import text as freezone_text
     from ai_anime.api.routes.canvas import video as freezone_video
-    from ai_anime.freezone.paths import uploads_dir
+    from ai_anime.modules.creative_canvas.infrastructure.paths import uploads_dir
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,
     )
@@ -361,7 +363,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         FreezoneJobIdGenerator,
     )
     from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
-        TaskBackendCreativeCanvasTaskScheduler,
+        TaskExecutionCreativeCanvasTaskScheduler,
     )
     from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
         LocalCreativeCanvasTextSourceReader,
@@ -439,7 +441,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                 selection=command.selection,
                 label="旧伞",
                 note="框选区域中的物体",
-                provider="newapi",
                 model="vision-model",
             )
 
@@ -609,7 +610,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                 static_url_builder=static_url,
             )
         )
-        task_scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend)
+        task_scheduler = TaskExecutionCreativeCanvasTaskScheduler(
+            ProjectTaskSubmissionUseCases(lambda: task_backend)
+        )
         audio_generation_use_cases = CreativeCanvasAudioGenerationUseCases(
             FreezoneJobIdGenerator(),
             task_scheduler,
@@ -766,7 +769,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             "creative_canvas_video_generation_use_cases",
             lambda use_cases=video_generation_use_cases: use_cases,
         )
-        monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
+        monkeypatch.setattr(ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_audio.router, prefix="/api/v1")
@@ -1025,7 +1028,6 @@ def test_m06_freezone_mark_detection_contract(m06_client_factory):
             "box_height": None,
             "note": "框选区域中的物体",
         },
-        "provider": "newapi",
         "model": "vision-model",
     }
 
@@ -1051,7 +1053,12 @@ def test_m06_ingest_start_task_shape_is_ce_ee_isomorphic(m06_client_factory, bac
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/ingest/start",
-        json={"filename": "novel.txt", "rebuild": False},
+        json={
+            "filename": "novel.txt",
+            "textModel": "cloud-text-standard",
+            "embeddingModel": "cloud-embedding-standard",
+            "rebuild": False,
+        },
     )
     payload = _assert_ok(response)
     assert payload["task_type"] == "ingest_fast"
@@ -1065,51 +1072,81 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
     p = _PROJECT
     image = assets.image_url
     video = assets.video_url
+    image_model = "cloud-image-standard"
     return [
         (
             "freezone_gen",
-            client.post(f"/api/v1/projects/{p}/freezone/gen", json={"prompt": "rain alley"}),
+            client.post(
+                f"/api/v1/projects/{p}/freezone/gen",
+                json={"prompt": "rain alley", "model": image_model},
+            ),
         ),
         (
             "sketch_generation",
             client.post(
                 f"/api/v1/projects/{p}/freezone/sketch-from-context",
-                json={"episode": 1, "beat": 1, "source_kind": "beat"},
+                json={
+                    "episode": 1,
+                    "beat": 1,
+                    "source_kind": "beat",
+                    "model": image_model,
+                },
             ),
         ),
         (
             "mainline_frame_from_context",
             client.post(
                 f"/api/v1/projects/{p}/freezone/frame-from-context",
-                json={"episode": 1, "beat": 1, "sketch_url": image},
+                json={
+                    "episode": 1,
+                    "beat": 1,
+                    "sketch_url": image,
+                    "model": image_model,
+                },
             ),
         ),
         (
             "stage_asset",
             client.post(
                 f"/api/v1/projects/{p}/freezone/scene-360",
-                json={"reference_url": assets.scene_master_url, "mode": "candidate"},
+                json={
+                    "reference_url": assets.scene_master_url,
+                    "mode": "candidate",
+                    "model": image_model,
+                },
             ),
         ),
         (
             "freezone_edit",
             client.post(
                 f"/api/v1/projects/{p}/freezone/multi-view",
-                json={"source_url": image, "prompt": "front view"},
+                json={
+                    "source_url": image,
+                    "prompt": "front view",
+                    "model": image_model,
+                },
             ),
         ),
         (
             "freezone_edit",
             client.post(
                 f"/api/v1/projects/{p}/freezone/relight",
-                json={"source_url": image, "prompt": "soft light"},
+                json={
+                    "source_url": image,
+                    "prompt": "soft light",
+                    "model": image_model,
+                },
             ),
         ),
         (
             "freezone_edit",
             client.post(
                 f"/api/v1/projects/{p}/freezone/template-edit",
-                json={"source_url": image, "mode": "story_pitch_four_grid"},
+                json={
+                    "source_url": image,
+                    "mode": "story_pitch_four_grid",
+                    "model": image_model,
+                },
             ),
         ),
         (
@@ -1121,17 +1158,27 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
         ),
         (
             "freezone_edit",
-            client.post(f"/api/v1/projects/{p}/freezone/upscale", json={"source_url": image}),
+            client.post(
+                f"/api/v1/projects/{p}/freezone/upscale",
+                json={"source_url": image, "model": image_model},
+            ),
         ),
         (
             "freezone_edit",
-            client.post(f"/api/v1/projects/{p}/freezone/outpaint", json={"source_url": image}),
+            client.post(
+                f"/api/v1/projects/{p}/freezone/outpaint",
+                json={"source_url": image, "model": image_model},
+            ),
         ),
         (
             "freezone_edit",
             client.post(
                 f"/api/v1/projects/{p}/freezone/redraw",
-                json={"source_url": image, "prompt": "redraw"},
+                json={
+                    "source_url": image,
+                    "prompt": "redraw",
+                    "model": image_model,
+                },
             ),
         ),
         (
@@ -1145,7 +1192,11 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             "freezone_edit",
             client.post(
                 f"/api/v1/projects/{p}/freezone/edit",
-                json={"base_url": image, "prompt": "edit"},
+                json={
+                    "base_url": image,
+                    "prompt": "edit",
+                    "model": image_model,
+                },
             ),
         ),
         (
@@ -1173,21 +1224,32 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             "freezone_video_gen",
             client.post(
                 f"/api/v1/projects/{p}/freezone/video/gen",
-                json={"prompt": "rain alley video"},
+                json={
+                    "prompt": "rain alley video",
+                    "model": "cloud-video-standard",
+                },
             ),
         ),
         (
             "freezone_video_gen",
             client.post(
                 f"/api/v1/projects/{p}/freezone/video/i2v",
-                json={"image_urls": [image], "prompt": "move"},
+                json={
+                    "image_urls": [image],
+                    "prompt": "move",
+                    "model": "cloud-video-standard",
+                },
             ),
         ),
         (
             "freezone_video_gen",
             client.post(
                 f"/api/v1/projects/{p}/freezone/video/keyframes",
-                json={"first_frame_url": image, "prompt": "move"},
+                json={
+                    "first_frame_url": image,
+                    "prompt": "move",
+                    "model": "cloud-video-standard",
+                },
             ),
         ),
         (
@@ -1196,6 +1258,7 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 f"/api/v1/projects/{p}/freezone/video/omni-gen",
                 json={
                     "prompt": "omni",
+                    "model": "cloud-video-standard",
                     "references": [{"type": "image", "url": image, "role": "reference"}],
                 },
             ),
@@ -1204,7 +1267,11 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             "freezone_video_gen",
             client.post(
                 f"/api/v1/projects/{p}/freezone/video/video-edit",
-                json={"video_url": video, "prompt": "restyle"},
+                json={
+                    "video_url": video,
+                    "prompt": "restyle",
+                    "model": "cloud-video-standard",
+                },
             ),
         ),
         (
@@ -1249,28 +1316,41 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             "freezone_text_translate",
             client.post(
                 f"/api/v1/projects/{p}/freezone/text/translate",
-                json={"text": "hello", "node_type": "text"},
+                json={
+                    "text": "hello",
+                    "model": "cloud-text-standard",
+                    "node_type": "text",
+                },
             ),
         ),
         (
             "freezone_story_script",
             client.post(
                 f"/api/v1/projects/{p}/freezone/text/story-script",
-                json={"source_text": "雨巷里，林昭撑伞。"},
+                json={
+                    "source_text": "雨巷里，林昭撑伞。",
+                    "model": "cloud-text-standard",
+                },
             ),
         ),
         (
             "freezone_audio_speech",
             client.post(
                 f"/api/v1/projects/{p}/freezone/audio/speech",
-                json={"text": "雨声压低了脚步。"},
+                json={
+                    "text": "雨声压低了脚步。",
+                    "model": "cloud-audio-speech",
+                },
             ),
         ),
         (
             "freezone_audio_eleven_music",
             client.post(
                 f"/api/v1/projects/{p}/freezone/audio/eleven-music",
-                json={"input": "cinematic rain-soaked suspense music"},
+                json={
+                    "input": "cinematic rain-soaked suspense music",
+                    "model": "cloud-audio-music",
+                },
             ),
         ),
     ]
@@ -1294,7 +1374,10 @@ def test_m06_freezone_task_backend_responses_are_ce_ee_isomorphic(
             "schema_version": "skill.v1",
             "skill_node_id": "skill-node",
             "canvas_id": "canvas-skill",
-            "parameters": {"aspect_ratio": "2:3"},
+            "parameters": {
+                "aspect_ratio": "2:3",
+                "model": "cloud-image-standard",
+            },
             "resolved_inputs": [
                 {
                     "role": "beat_context",
@@ -1358,6 +1441,7 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
                 prompt="l1 image",
                 aspect_ratio="1:1",
                 image_size="2K",
+                model="cloud-image-standard",
                 quality="medium",
             )
         )
@@ -1366,6 +1450,7 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
                 context=assets.ctx,
                 project_dir=project_dir,
                 text="hello",
+                model="cloud-text-standard",
                 node_type="text",
             )
         )
@@ -1386,7 +1471,7 @@ def test_m06_freezone_job_result_reads_terminal_output(m06_client_factory):
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/freezone/gen",
-        json={"prompt": "terminal output"},
+        json={"prompt": "terminal output", "model": "cloud-image-standard"},
     )
     data = _assert_freezone_http_task_shape(response.json(), task_type="freezone_gen")
     out = project_dir / "freezone" / "_outputs" / "freezone_gen" / f"{data['job_id']}.png"

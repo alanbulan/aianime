@@ -11,7 +11,7 @@ import {
   createMemoryHistory,
 } from "@tanstack/react-router";
 import { TaskDetail, formatLocalTaskTime } from "@/components/task-center/task-detail";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 const i18n = i18next.createInstance();

@@ -15,6 +15,7 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
+import { clearCommercialModelCatalogCache } from "@/modules/model_usage/public";
 
 const server = setupServer();
 const i18n = i18next.createInstance();
@@ -31,6 +32,9 @@ beforeAll(async () => {
             imageSource: {
               label: "Image source",
               loading: "Loading image source",
+              selectModel: "Select an image model",
+              empty: "No image models available",
+              loadFailed: "Failed to load the image model catalog",
               saveFailed: "Failed to update image source",
             },
           },
@@ -40,7 +44,10 @@ beforeAll(async () => {
   });
   server.listen();
 });
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  clearCommercialModelCatalogCache();
+});
 afterAll(() => server.close());
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -52,8 +59,40 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+function installImageCatalog() {
+  Object.defineProperty(window, "aiAnimeDesktop", {
+    configurable: true,
+    value: {
+      commercial: {
+        modelCatalog: vi.fn(async () => ({
+          catalogVersion: "catalog-v1",
+          items: [
+            {
+              id: "portrait",
+              code: "portrait",
+              displayName: "Character portrait",
+              operation: "IMAGE",
+              capabilityJson: "{}",
+              parameterSchemaJson: "{}",
+            },
+            {
+              id: "identity",
+              code: "identity",
+              displayName: "Identity image",
+              operation: "IMAGE",
+              capabilityJson: "{}",
+              parameterSchemaJson: "{}",
+            },
+          ],
+        })),
+      },
+    },
+  });
+}
+
 describe("CharacterImageSourceSelect", () => {
-  it("renders image source options from the project selection endpoint", async () => {
+  it("renders models from the authenticated commercial catalog", async () => {
+    installImageCatalog();
     const user = userEvent.setup();
     server.use(
       http.get(
@@ -64,10 +103,6 @@ describe("CharacterImageSourceSelect", () => {
             data: {
               asset_kind: "character",
               image_source_selection: "identity",
-              options: {
-                portrait: "Character portrait",
-                identity: "Identity image",
-              },
             },
           }),
       ),
@@ -92,6 +127,7 @@ describe("CharacterImageSourceSelect", () => {
   });
 
   it("patches the selected image source when the user changes options", async () => {
+    installImageCatalog();
     const user = userEvent.setup();
     const onSelectionChange = vi.fn();
     let currentSelection = "identity";
@@ -106,10 +142,6 @@ describe("CharacterImageSourceSelect", () => {
             data: {
               asset_kind: "character",
               image_source_selection: currentSelection,
-              options: {
-                portrait: "Character portrait",
-                identity: "Identity image",
-              },
             },
           }),
       ),
@@ -124,10 +156,6 @@ describe("CharacterImageSourceSelect", () => {
             data: {
               asset_kind: "character",
               image_source_selection: currentSelection,
-              options: {
-                portrait: "Character portrait",
-                identity: "Identity image",
-              },
             },
           });
         },
@@ -156,5 +184,72 @@ describe("CharacterImageSourceSelect", () => {
     );
     expect(patchBody).toEqual({ image_source_selection: "portrait" });
     expect(onSelectionChange).toHaveBeenCalledWith("portrait");
+  });
+
+  it("distinguishes a catalog failure from an empty catalog", async () => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {
+        commercial: {
+          modelCatalog: vi.fn().mockRejectedValue(new Error("catalog offline")),
+        },
+      },
+    });
+    server.use(
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/image-source-selection/character",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: {
+              asset_kind: "character",
+              image_source_selection: "",
+            },
+          }),
+      ),
+    );
+
+    render(<CharacterImageSourceSelect project="demo" />, { wrapper });
+
+    const trigger = await screen.findByRole("combobox", { name: "Image source" });
+    await waitFor(() =>
+      expect(trigger).toHaveTextContent("Failed to load the image model catalog"),
+    );
+    expect(trigger).toBeDisabled();
+  });
+
+  it("shows an empty state when the authenticated IMAGE catalog is empty", async () => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {
+        commercial: {
+          modelCatalog: vi.fn(async () => ({
+            catalogVersion: "catalog-v1",
+            items: [],
+          })),
+        },
+      },
+    });
+    server.use(
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/image-source-selection/character",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: {
+              asset_kind: "character",
+              image_source_selection: "",
+            },
+          }),
+      ),
+    );
+
+    render(<CharacterImageSourceSelect project="demo" />, { wrapper });
+
+    const trigger = await screen.findByRole("combobox", { name: "Image source" });
+    await waitFor(() =>
+      expect(trigger).toHaveTextContent("No image models available"),
+    );
+    expect(trigger).toBeDisabled();
   });
 });

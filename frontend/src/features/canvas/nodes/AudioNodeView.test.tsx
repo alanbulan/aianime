@@ -61,17 +61,27 @@ vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
 }));
 
 vi.mock('@/features/canvas/nodes/AudioOperationsPanel', () => ({
-  AudioOperationsPanel: ({ nodeId }: { nodeId: string }) => (
-    <div>operations:{nodeId}</div>
+  AudioOperationsPanel: ({
+    projectId,
+    canvasId,
+    nodeId,
+  }: {
+    projectId: string;
+    canvasId: string;
+    nodeId: string;
+  }) => (
+    <div>operations:{projectId}:{canvasId}:{nodeId}</div>
   ),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   NodeContextBadges: () => <div>context-badges</div>,
 }));
 
 function createController(): AudioNodeController {
   return {
+    projectId: 'project-a',
+    canvasId: 'canvas-a',
     id: 'audio-a',
     data: {
       audioUrl: '/voice.wav',
@@ -150,6 +160,8 @@ describe('AudioNodeView', () => {
     render(<AudioNodeView controller={controller} />);
 
     expect(screen.getByText('暂无音频')).toBeInTheDocument();
-    expect(screen.getByText('operations:audio-a')).toBeInTheDocument();
+    expect(
+      screen.getByText('operations:project-a:canvas-a:audio-a'),
+    ).toBeInTheDocument();
   });
 });

@@ -5,10 +5,11 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
-import { propReferenceAssetScope } from "@/lib/task-scope";
+import { propReferenceAssetScope } from "@/modules/task_execution/public";
 import type { PropQueryHooks } from "@/modules/asset_world/application/prop-query-hooks";
 import { isErrorDataResponse } from "@/modules/asset_world/application/response";
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
+import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 
 interface CreditCostQuery {
@@ -17,7 +18,11 @@ interface CreditCostQuery {
 
 export interface PropAssetCardControllerDependencies {
   openPropFreezone(project: string, propName: string): Promise<void>;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
+  useGenerationCreditCost(
+    kind: string,
+    value: string,
+    options?: GenerationCreditCostOptions,
+  ): CreditCostQuery;
 }
 
 export interface PropAssetCardControllerOptions {
@@ -49,8 +54,9 @@ export function createUsePropAssetCardController(
       prop.name,
     );
     const referenceCost = dependencies.useGenerationCreditCost(
-      "fixed_image",
-      "prop_reference",
+      "image_selection",
+      imageSourceSelection,
+      { imageRole: "prop_reference" },
     );
     const [freezonePending, setFreezonePending] = useState(false);
     const referenceTask = useTaskController({

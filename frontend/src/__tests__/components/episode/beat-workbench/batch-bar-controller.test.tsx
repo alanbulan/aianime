@@ -90,7 +90,6 @@ const renderSettingsQuery = {
     ok: true as const,
     data: {
       render_image_selection: "render-a",
-      options: { "render-a": "Render A", "render-b": "Render B" },
       sketch_aspect_padding: false,
     },
   },
@@ -101,7 +100,6 @@ const sketchSettingsQuery = {
     ok: true as const,
     data: {
       sketch_image_selection: "sketch-a",
-      options: { "sketch-a": "Sketch A", "sketch-b": "Sketch B" },
     },
   },
   isLoading: false,
@@ -114,26 +112,44 @@ const updateSketchSettingsMutation = {
   isPending: false,
   mutateAsync: updateSketchSettings,
 };
-const videoBackendsQuery = {
-  data: {
-    ok: true as const,
-    data: [
-      {
-        value: "standard",
-        label: "Standard",
-        is_default: true,
-        is_seedance2: false,
-        dialogue_only: false,
-      },
-      {
-        value: "seedance2",
-        label: "Seedance 2",
-        is_default: false,
-        is_seedance2: true,
-        dialogue_only: false,
-      },
-    ],
-  },
+const videoModelsQuery = {
+  data: [
+    {
+      value: "standard",
+      label: "Standard",
+      profile: "standard" as const,
+      supportsAdvancedConfig: false,
+      supportsNativeAudio: false,
+      dialogueOnly: false,
+    },
+    {
+      value: "seedance2",
+      label: "Seedance 2",
+      profile: "seedance2" as const,
+      supportsAdvancedConfig: true,
+      supportsNativeAudio: true,
+      dialogueOnly: false,
+    },
+  ],
+};
+const audioModelsQuery = {
+  data: [
+    {
+      value: "audio-speech-test",
+      label: "Audio Speech Test",
+      supportedModes: ["speech" as const],
+    },
+  ],
+  isLoading: false,
+};
+const imageModelsQuery = {
+  data: [
+    { value: "render-a", label: "Render A" },
+    { value: "render-b", label: "Render B" },
+    { value: "sketch-a", label: "Sketch A" },
+    { value: "sketch-b", label: "Sketch B" },
+  ],
+  isLoading: false,
 };
 
 const useBatchBarController = createUseBatchBarController(
@@ -146,7 +162,9 @@ const useBatchBarController = createUseBatchBarController(
     useSketchSettings: () => sketchSettingsQuery,
     useUpdateRenderSettings: () => updateRenderSettingsMutation,
     useUpdateSketchSettings: () => updateSketchSettingsMutation,
-    useVideoBackends: () => videoBackendsQuery,
+    useAudioModels: () => audioModelsQuery,
+    useImageModels: () => imageModelsQuery,
+    useVideoModels: () => videoModelsQuery,
   },
   {
     formatCreditCost: (cost) => `credits:${cost}`,
@@ -186,7 +204,7 @@ const defaultOptions: BatchBarControllerOptions = {
   project: "demo",
   sketchAspectRatio: "2:3",
   spineTemplate: "narrated",
-  videoBackend: "seedance2",
+  videoModel: "seedance2",
 };
 
 beforeEach(() => {
@@ -215,14 +233,14 @@ beforeEach(() => {
 });
 
 describe("BatchBar controller", () => {
-  it("projects backend capabilities, visibility, and episode costs", () => {
+  it("projects model capabilities, visibility, and episode costs", () => {
     const { result, rerender } = renderHook(
       (options: BatchBarControllerOptions) =>
         useBatchBarController(options),
       { initialProps: defaultOptions },
     );
 
-    expect(result.current.audioUnavailableForVideoBackend).toBe(true);
+    expect(result.current.audioUnavailableForVideoModel).toBe(true);
     expect(result.current.detectIdentitiesCostDisplay).toBe("7");
     expect(result.current.episodeAudioCostDisplay).toBe("credits:10");
     expect(result.current.renderModel).toMatchObject({
@@ -232,6 +250,8 @@ describe("BatchBar controller", () => {
       options: [
         { label: "Render A", value: "render-a" },
         { label: "Render B", value: "render-b" },
+        { label: "Sketch A", value: "sketch-a" },
+        { label: "Sketch B", value: "sketch-b" },
       ],
       value: "render-a",
     });
@@ -241,6 +261,8 @@ describe("BatchBar controller", () => {
       isPending: false,
       isVisible: true,
       options: [
+        { label: "Render A", value: "render-a" },
+        { label: "Render B", value: "render-b" },
         { label: "Sketch A", value: "sketch-a" },
         { label: "Sketch B", value: "sketch-b" },
       ],
@@ -252,10 +274,10 @@ describe("BatchBar controller", () => {
     rerender({
       ...defaultOptions,
       spineTemplate: "drama",
-      videoBackend: "standard",
+      videoModel: "standard",
     });
 
-    expect(result.current.audioUnavailableForVideoBackend).toBe(false);
+    expect(result.current.audioUnavailableForVideoModel).toBe(false);
     expect(result.current.showEpisodeAudio).toBe(false);
     expect(result.current.showGlobalOptimize).toBe(false);
   });
@@ -319,7 +341,9 @@ describe("BatchBar controller", () => {
 
     await act(async () => result.current.onGenerateAudio());
 
-    expect(generateAudio).toHaveBeenCalledWith(undefined);
+    expect(generateAudio).toHaveBeenCalledWith({
+      model: "audio-speech-test",
+    });
     expect(hookMocks.audioStart).toHaveBeenCalledWith({
       scope: "audio-scope",
     });

@@ -7,6 +7,20 @@ import { Header } from "@/components/layout/header";
 
 const runtimeState = vi.hoisted(() => ({ authRequired: true, isCe: false }));
 const authState = vi.hoisted(() => ({ username: "local", logout: vi.fn() }));
+const commercialState = vi.hoisted(() => ({
+  session: null as null | {
+    authenticated: true;
+    expiresAtEpochMs: number;
+    user: {
+      id: number;
+      username: string;
+      nickname?: string;
+      email?: string;
+      avatar?: string;
+    };
+    tenant: { id: number; code: string; name: string };
+  },
+}));
 const resetUserSessionStateMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/reset-region-state", () => ({
@@ -52,7 +66,11 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/identity_access/public", () => ({
+  logoutAllSessions: () => authState.logout(),
   useAuthStore: () => authState,
+  useCommercialAuthStore: (
+    selector: (state: typeof commercialState) => unknown,
+  ) => selector(commercialState),
 }));
 
 vi.mock("@/stores/app-store", () => ({
@@ -112,6 +130,7 @@ describe("Header runtime gating", () => {
     });
     runtimeState.authRequired = true;
     authState.username = "local";
+    commercialState.session = null;
     authState.logout.mockReset();
     resetUserSessionStateMock.mockReset();
   });
@@ -140,6 +159,29 @@ describe("Header runtime gating", () => {
     fireEvent.mouseEnter(screen.getByLabelText("Open account").parentElement!);
 
     expect(await screen.findByText("Log out")).toBeInTheDocument();
+  });
+
+  it("opens on click and shows the authenticated commercial user", async () => {
+    runtimeState.isCe = true;
+    commercialState.session = {
+      authenticated: true,
+      expiresAtEpochMs: Date.now() + 60_000,
+      user: {
+        id: 1001,
+        username: "client_user",
+        nickname: "客户端用户",
+        email: "client@example.com",
+      },
+      tenant: { id: 11, code: "customer-a", name: "客户 A" },
+    };
+
+    renderHeader();
+    fireEvent.click(screen.getByLabelText("Open account"));
+
+    expect(await screen.findByText("客户端用户")).toBeInTheDocument();
+    expect(screen.getByText("@client_user")).toBeInTheDocument();
+    expect(screen.getByText("client@example.com")).toBeInTheDocument();
+    expect(screen.getByText("客户 A")).toBeInTheDocument();
   });
 
   it("hides logout when runtime does not require auth while keeping the local identity", async () => {

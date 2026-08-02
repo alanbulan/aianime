@@ -6,7 +6,7 @@ import {
   resolveCanvasRedrawImageSize,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
-} from '../domain/redraw';
+} from '@/modules/creative_canvas/public';
 import { completeCanvasMediaGenerationTask } from './completeCanvasMediaGenerationTask';
 import type {
   AiGateway,
@@ -24,12 +24,14 @@ interface FreezoneRedrawRequest {
   maskUrl: string;
   aspectRatio: CanvasRedrawAspectRatio;
   imageSize: CanvasRedrawImageSize;
+  model: string;
 }
 
 export interface RegenerateExportImageNodeParams {
   nodeId: string;
   nodeData: Record<string, unknown>;
-  projectId: string | null | undefined;
+  projectId: string;
+  canvasId: string;
   runtimeSessionId: string;
   updateNodeData: (
     nodeId: string,
@@ -41,7 +43,13 @@ function readFreezoneRedrawRequest(
   data: Record<string, unknown>,
 ): FreezoneRedrawRequest | undefined {
   const req = data.freezoneRedrawRequest as Partial<FreezoneRedrawRequest> | undefined;
-  if (!req || typeof req.sourceUrl !== 'string' || typeof req.maskUrl !== 'string') {
+  if (
+    !req
+    || typeof req.sourceUrl !== 'string'
+    || typeof req.maskUrl !== 'string'
+    || typeof req.model !== 'string'
+    || !req.model.trim()
+  ) {
     return undefined;
   }
   return {
@@ -49,6 +57,7 @@ function readFreezoneRedrawRequest(
     maskUrl: req.maskUrl,
     aspectRatio: resolveCanvasRedrawAspectRatio(req.aspectRatio),
     imageSize: resolveCanvasRedrawImageSize(req.imageSize),
+    model: req.model.trim(),
   };
 }
 
@@ -59,11 +68,6 @@ async function regenerateFreezoneRedrawNode(
   redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
   const { nodeId, projectId, updateNodeData } = params;
-  if (!projectId) {
-    updateNodeData(nodeId, { generationError: '当前 URL 没有 project，无法重试' });
-    return;
-  }
-
   updateNodeData(nodeId, {
     isGenerating: true,
     generationStartedAt: Date.now(),
@@ -76,6 +80,7 @@ async function regenerateFreezoneRedrawNode(
       maskUrl: request.maskUrl,
       aspectRatio: request.aspectRatio,
       imageSize: request.imageSize,
+      model: request.model,
     });
     const url = await completeCanvasMediaGenerationTask(
       { projectId, task: ref },
@@ -124,7 +129,14 @@ export async function regenerateExportImageNode(
   aiGateway: AiGateway,
   redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
-  const { nodeData, nodeId, runtimeSessionId, updateNodeData } = params;
+  const {
+    canvasId,
+    nodeData,
+    nodeId,
+    projectId,
+    runtimeSessionId,
+    updateNodeData,
+  } = params;
   if (nodeData.isGenerating === true) {
     return;
   }
@@ -155,7 +167,10 @@ export async function regenerateExportImageNode(
   });
 
   try {
-    const jobId = await aiGateway.submitGenerateImageJob({ ...payload, nodeId });
+    const jobId = await aiGateway.submitGenerateImageJob(
+      { projectId, canvasId },
+      { ...payload, nodeId },
+    );
     updateNodeData(nodeId, {
       generationJobId: jobId,
       generationClientSessionId: runtimeSessionId,

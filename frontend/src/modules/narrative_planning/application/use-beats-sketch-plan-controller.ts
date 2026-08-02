@@ -5,9 +5,9 @@ import { toast } from "sonner";
 
 import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/domain/types";
-import type { Task } from "@/types/task";
+import type { TaskState } from "@/modules/task_execution/public";
 
 export type SketchAspectRatio = "2:3" | "16:9";
 
@@ -20,7 +20,7 @@ export interface SketchPlanItem {
 }
 
 interface TaskListQuery {
-  data?: { data: Task[] };
+  data?: { data: TaskState[] };
 }
 
 interface CreditCostQuery {
@@ -45,7 +45,7 @@ export interface BeatsSketchPlanControllerDependencies {
   ): SketchPlanItem[];
   formatCreditCost(cost: number): string;
   getLockedSketchItemIds(
-    tasks: Task[] | undefined,
+    tasks: TaskState[] | undefined,
     items: readonly SketchPlanItem[],
   ): Set<string>;
   sketchModelCallCount(items: readonly SketchPlanItem[]): number;

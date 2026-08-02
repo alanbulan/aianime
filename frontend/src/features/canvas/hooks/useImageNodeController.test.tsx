@@ -81,7 +81,7 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.regenerateExportImageNode(params),
 }));
 
-vi.mock('@/features/freezone/public', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
@@ -145,6 +145,8 @@ describe('useImageNodeController', () => {
       mainline_context: [{ kind: 'frame' }],
     });
     const { result } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-a',
       data: nodeData,
       type: CANVAS_NODE_TYPES.exportImage,
@@ -190,6 +192,8 @@ describe('useImageNodeController', () => {
   it('switches to the original image above the zoom threshold', () => {
     mocks.zoom = 2;
     const { result } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-zoom',
       data: data({
         imageUrl: '/original.png',
@@ -206,6 +210,8 @@ describe('useImageNodeController', () => {
     vi.setSystemTime(new Date('2026-07-30T00:00:00Z'));
     mocks.isGenerating = true;
     const { result, unmount } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-generating',
       data: data({
         generationStartedAt: Date.now() - 120000,
@@ -232,6 +238,8 @@ describe('useImageNodeController', () => {
       generationRequestPayload: { prompt: 'retry' },
     });
     const { result } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-failed',
       data: nodeData,
       type: CANVAS_NODE_TYPES.exportImage,
@@ -248,6 +256,8 @@ describe('useImageNodeController', () => {
       await result.current.retry();
     });
     expect(mocks.regenerateExportImageNode).toHaveBeenCalledWith({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       nodeData,
       nodeId: 'image-failed',
       updateNodeData: mocks.updateNodeData,
@@ -256,6 +266,8 @@ describe('useImageNodeController', () => {
 
   it('records natural dimensions and fits the node to a changed aspect ratio', () => {
     const { result } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-loaded',
       data: data({ imageUrl: '/image.png' }),
       type: CANVAS_NODE_TYPES.exportImage,
@@ -283,6 +295,8 @@ describe('useImageNodeController', () => {
 
   it('preserves a manually adjusted size while refreshing its resolution', () => {
     const { result } = renderHook(() => useImageNodeController({
+      projectId: 'project-a',
+      canvasId: 'canvas-a',
       id: 'image-manual',
       data: data({
         imageUrl: '/image.png',

@@ -10,6 +10,8 @@ import {
 } from './useCanvasProjectContextController';
 
 export interface CanvasProjectSurfaceControllerOptions {
+  projectId: CanvasProjectContextControllerOptions['projectId'];
+  canvasId: CanvasProjectContextControllerOptions['canvasId'];
   nodes: CanvasProjectContextControllerOptions['nodes'];
   errorTitle: CanvasGenerationRecoveryControllerOptions['errorTitle'];
 }
@@ -17,10 +19,16 @@ export interface CanvasProjectSurfaceControllerOptions {
 export type CanvasProjectSurfaceController = CanvasProjectContextController;
 
 export function useCanvasProjectSurfaceController({
+  projectId,
+  canvasId,
   nodes,
   errorTitle,
 }: CanvasProjectSurfaceControllerOptions): CanvasProjectSurfaceController {
-  const projectContext = useCanvasProjectContextController({ nodes });
+  const projectContext = useCanvasProjectContextController({
+    projectId,
+    canvasId,
+    nodes,
+  });
 
   useCanvasGenerationRecoveryController({
     projectId: projectContext.projectId,

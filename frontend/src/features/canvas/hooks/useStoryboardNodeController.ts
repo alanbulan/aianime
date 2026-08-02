@@ -48,6 +48,7 @@ export interface StoryboardIncomingImageItem extends StoryboardIncomingImage {
 }
 
 export interface StoryboardNodeControllerOptions {
+  projectId: string;
   id: string;
   data: StoryboardSplitNodeData;
   selected?: boolean;
@@ -56,6 +57,7 @@ export interface StoryboardNodeControllerOptions {
 }
 
 export function useStoryboardNodeController({
+  projectId,
   id,
   data,
   selected,
@@ -213,6 +215,7 @@ export function useStoryboardNodeController({
             : EXPORT_RESULT_DISPLAY_NAME.storyboardFrameEdit;
         const prepared = await prepareNodeImage(sourceImage);
         const uploadedUrl = await uploadLocalImageToBackend(
+          projectId,
           prepared.imageUrl,
           `storyboard-frame-${id}-${Date.now()}.png`,
         );
@@ -237,6 +240,7 @@ export function useStoryboardNodeController({
       addDerivedExportNode,
       addEdge,
       id,
+      projectId,
       projection.orderedFrames,
     ],
   );
@@ -246,7 +250,7 @@ export function useStoryboardNodeController({
     setIsExporting(true);
     setExportError(null);
     try {
-      const result = await exportStoryboardGrid({
+      const result = await exportStoryboardGrid(projectId, {
         nodeId: id,
         frames: projection.orderedFrames,
         rows: projection.gridRows,
@@ -274,6 +278,7 @@ export function useStoryboardNodeController({
     addEdge,
     id,
     isExporting,
+    projectId,
     projection.exportOptions,
     projection.gridCols,
     projection.gridRows,
@@ -285,7 +290,7 @@ export function useStoryboardNodeController({
     setExportError(null);
     setIsPackingSingleImages(true);
     try {
-      await packStoryboardFrames(projection.orderedFrames);
+      await packStoryboardFrames(projectId, projection.orderedFrames);
     } catch (error) {
       setExportError(
         error instanceof Error ? error.message : '打包下载失败',
@@ -296,6 +301,7 @@ export function useStoryboardNodeController({
   }, [
     isExporting,
     isPackingSingleImages,
+    projectId,
     projection.orderedFrames,
   ]);
 

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { ComponentProps } from 'react';
+import { useMemo, type ComponentProps } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -20,7 +20,7 @@ import { isCeRuntime } from '@/lib/runtime-config';
 
 import { edgeTypes as canvasEdgeTypes } from '../edges';
 import { NodeSelectionMenu } from '../NodeSelectionMenu';
-import { nodeTypes as canvasNodeTypes } from '../nodes';
+import { createCanvasNodeTypes } from '../nodes';
 import { CanvasSnapAlignButton } from '../snap-align/CanvasSnapAlignButton';
 import { SnapAlignGuides } from '../snap-align/SnapAlignGuides';
 import { BackToNodesHint } from './BackToNodesHint';
@@ -103,6 +103,8 @@ type CanvasStageMinimapProps = Omit<
 };
 
 export interface CanvasStageViewProps {
+  projectId: string;
+  canvasId: string;
   wrapperProps: CanvasStageWrapperProps;
   flowProps: CanvasStageFlowProps;
   controlsPlacement: CanvasControlsPlacement;
@@ -114,7 +116,7 @@ export interface CanvasStageViewProps {
   zoomControlProps: Omit<ComponentProps<typeof CanvasZoomControl>, 'placement'>;
   quickActionBarProps: Omit<
     ComponentProps<typeof CanvasQuickActionBar>,
-    'placement'
+    'placement' | 'projectId' | 'canvasId'
   > | null;
   connectionPreviewProps: ComponentProps<typeof CanvasConnectionPreviewOverlay>;
   nodeSelectionMenuProps: ComponentProps<typeof NodeSelectionMenu> | null;
@@ -123,6 +125,8 @@ export interface CanvasStageViewProps {
 }
 
 export function CanvasStageView({
+  projectId,
+  canvasId,
   wrapperProps,
   flowProps,
   controlsPlacement,
@@ -138,6 +142,11 @@ export function CanvasStageView({
   imageViewerProps,
   videoViewerProps,
 }: CanvasStageViewProps) {
+  const canvasNodeTypes = useMemo(
+    () => createCanvasNodeTypes({ projectId, canvasId }),
+    [canvasId, projectId],
+  );
+
   return (
     <CreditDisplayHiddenProvider value={isCeRuntime()}>
       <div
@@ -194,7 +203,7 @@ export function CanvasStageView({
             />
           )}
 
-          <SelectedNodeOverlay />
+          <SelectedNodeOverlay projectId={projectId} canvasId={canvasId} />
           <MultiSelectionToolbar />
           <MultiSelectionConnectButton {...multiSelectionConnectProps} />
           <NodeSpawnPlusOverlay {...nodeSpawnPlusProps} />
@@ -226,6 +235,8 @@ export function CanvasStageView({
         {quickActionBarProps && (
           <CanvasQuickActionBar
             {...quickActionBarProps}
+            projectId={projectId}
+            canvasId={canvasId}
             placement={controlsPlacement}
           />
         )}
@@ -236,7 +247,7 @@ export function CanvasStageView({
           <NodeSelectionMenu {...nodeSelectionMenuProps} />
         )}
 
-        <NodeToolDialog />
+        <NodeToolDialog projectId={projectId} />
 
         <ImageViewerModal {...imageViewerProps} />
 

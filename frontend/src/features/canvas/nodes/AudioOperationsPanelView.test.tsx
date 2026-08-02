@@ -9,10 +9,12 @@ import { AudioOperationsPanelView } from './AudioOperationsPanelView';
 
 vi.mock('./VoiceSelectionModal', () => ({
   VoiceSelectionModal: ({
+    projectId,
     open,
     onClose,
     onPick,
   }: {
+    projectId: string;
     open: boolean;
     onClose: () => void;
     onPick: (result: {
@@ -22,6 +24,7 @@ vi.mock('./VoiceSelectionModal', () => ({
   }) =>
     open ? (
       <div>
+        <span>voice-project:{projectId}</span>
         <button type="button" onClick={onClose}>
           关闭模拟音色
         </button>
@@ -44,6 +47,7 @@ function controller(
   overrides: Partial<AudioOperationsPanelController> = {},
 ): AudioOperationsPanelController {
   return {
+    projectId: 'project-a',
     nodeId: 'audio-a',
     isMusic: false,
     panelExpanded: false,
@@ -59,6 +63,17 @@ function controller(
     submit: vi.fn(async () => undefined),
     translate: vi.fn(async () => undefined),
     audioCostDisplay: '2 积分',
+    audioModels: [
+      {
+        value: 'audio-speech-1',
+        label: 'Speech Model',
+        supportedModes: ['speech'],
+      },
+    ],
+    selectedModel: 'audio-speech-1',
+    modelCatalogLoading: false,
+    modelCatalogError: '',
+    setSelectedModel: vi.fn(),
     text: '原文',
     textDraft: '原文',
     changeTextDraft: vi.fn(),
@@ -189,6 +204,7 @@ describe('AudioOperationsPanelView', () => {
 
     expect(screen.getByText('Voice A')).toBeInTheDocument();
     expect(screen.getByText('中文')).toBeInTheDocument();
+    expect(screen.getByText('voice-project:project-a')).toBeInTheDocument();
     fireEvent.click(screen.getByTitle('复制声线引用'));
     fireEvent.click(screen.getByTitle('切换音色'));
     fireEvent.click(screen.getByRole('button', { name: '关闭模拟音色' }));

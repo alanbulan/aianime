@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { HeaderEntry } from "@/components/task-center/header-entry";
 import { useAppStore } from "@/stores/app-store";
-import { useTaskCenterStore } from "@/task-center/store";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 const i18n = i18next.createInstance();

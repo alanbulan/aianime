@@ -14,7 +14,7 @@ from ai_anime.modules.project_workspace.public import ProjectAccess, ProjectRegi
 from ai_anime.ports.audit import AuditSink
 from ai_anime.ports.lifecycle import LifecyclePort
 from ai_anime.ports.registry import ensure_bootstrap, get_port
-from ai_anime.ports.tasks import CancellationStore, TaskBackend
+from ai_anime.modules.task_execution.public import CancellationStore, TaskBackend
 
 
 @dataclass(frozen=True)

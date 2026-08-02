@@ -7,7 +7,7 @@ from PIL import Image
 
 
 @pytest.mark.asyncio
-async def test_director_control_frame_to_sketch_accepts_newapi_provider(monkeypatch, tmp_path):
+async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypatch, tmp_path):
     from ai_anime.director_world import control_frame_to_sketch as module
 
     project_dir = tmp_path / "output" / "admin" / "demo"
@@ -50,7 +50,7 @@ async def test_director_control_frame_to_sketch_accepts_newapi_provider(monkeypa
 
     class FakeGenerator:
         def __init__(self, config):
-            self.provider = config["provider"]
+            self.access_mode = config["access_mode"]
 
         async def generate_grid(self, **_kwargs):
             return SimpleNamespace(success=True, error="", generation_time=0.1)
@@ -70,10 +70,9 @@ async def test_director_control_frame_to_sketch_accepts_newapi_provider(monkeypa
         module,
         "get_sketch_generation_config",
         lambda **_kwargs: {
-            "provider": "newapi",
-            "api_key": "newapi-test",
+            "provider": "commercial",
+            "access_mode": "cloud",
             "model": "gpt-image-2",
-            "base_url": "http://newapi.test/v1",
         },
     )
     monkeypatch.setattr(

@@ -4,19 +4,20 @@ from pathlib import Path
 
 from PIL import Image
 
-from ai_anime.freezone.paths import safe_upload_filename, uploads_dir
 from ai_anime.modules.creative_canvas.domain.image_editing import (
-    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     plan_outpaint_canvas,
-    resolve_image_provider,
 )
 from ai_anime.modules.creative_canvas.domain.image_prompts import (
     merge_image_prompt_with_style_and_camera,
 )
 from ai_anime.modules.creative_canvas.infrastructure.image_models import (
     resolve_configured_image_model,
+)
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    safe_upload_filename,
+    uploads_dir,
 )
 
 
@@ -67,22 +68,5 @@ class FreezoneCreativeCanvasImagePromptComposer:
 
 
 class FreezoneCreativeCanvasImageModelRouter:
-    def resolve(self, model: str) -> tuple[str, str | None]:
-        provider, resolved_model = resolve_configured_image_model(
-            None,
-            model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
-        )
-        return (
-            resolve_image_provider(provider, strict=False),
-            resolved_model,
-        )
-
-    def resolve_reference_edit(
-        self,
-        provider: str | None,
-        model: str | None,
-    ) -> tuple[str, str | None]:
-        resolved_provider, resolved_model = resolve_configured_image_model(
-            provider, model
-        )
-        return resolve_image_provider(resolved_provider), resolved_model
+    def resolve(self, model: str) -> str:
+        return resolve_configured_image_model(model)

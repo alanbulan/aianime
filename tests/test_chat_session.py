@@ -76,7 +76,7 @@ async def test_run_chat_session_dispatches_message_in_current_scope(monkeypatch)
     monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
     monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
     monkeypatch.setattr(chat_session.chat_turns, "dispatch_chat_turn", dispatch)
-    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", prewarmer)
+    monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", prewarmer)
 
     await chat_session.run_chat_session(websocket)
 
@@ -118,7 +118,7 @@ async def test_run_chat_session_syncs_and_prewarms_requested_scope(monkeypatch):
     monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
     monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
     monkeypatch.setattr(chat_session, "chat_worker_lifecycle", RecordingLifecycle())
-    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", prewarmer)
+    monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", prewarmer)
 
     await chat_session.run_chat_session(websocket)
 
@@ -150,7 +150,7 @@ async def test_run_chat_session_reports_unsupported_event_before_runtime_disconn
     monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
     monkeypatch.setattr(
         chat_session,
-        "agent_backend_prewarmer",
+        "hermes_runtime_prewarmer",
         RecordingPrewarmer(),
     )
 

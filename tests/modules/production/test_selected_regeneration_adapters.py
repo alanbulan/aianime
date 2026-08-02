@@ -14,9 +14,10 @@ from ai_anime.modules.production.application.selected_regeneration import (
 )
 from ai_anime.modules.production.infrastructure.selected_regeneration import (
     LocalSelectedRegenerationPreparer,
-    TaskBackendSelectedRegenerationScheduler,
+    TaskExecutionSelectedRegenerationScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 class _Store:
@@ -187,12 +188,11 @@ async def test_render_preparer_checks_and_maps_only_selected_beats(
     assert props.calls == [(store, "episode-2", beats)]
     assert task.kind is SelectedRegenerationKind.RENDER
     assert task.config == {
-        "beats": beats,
-        "character_map": {"hero": {"ref_path": "hero.png"}},
-        "style": "cinematic",
-        "model": "nanobanana",
-        "image_generation_selection": "render-selection",
-        "selected_beat_numbers": [2],
+            "beats": beats,
+            "character_map": {"hero": {"ref_path": "hero.png"}},
+            "style": "cinematic",
+            "model": "render-selection",
+            "selected_beat_numbers": [2],
         "sketch_colors": {"hero": "#ffffff"},
         "prop_menu": [{"prop_id": "prop-1"}],
         "sketch_aspect_padding": True,
@@ -263,8 +263,8 @@ async def test_scheduler_preserves_selected_regeneration_contract(
         config={"selected_beat_numbers": [1]},
     )
 
-    receipt = await TaskBackendSelectedRegenerationScheduler(
-        lambda: Backend()
+    receipt = await TaskExecutionSelectedRegenerationScheduler(
+        ProjectTaskSubmissionUseCases(lambda: Backend())
     ).enqueue(context, task)
 
     assert calls == [

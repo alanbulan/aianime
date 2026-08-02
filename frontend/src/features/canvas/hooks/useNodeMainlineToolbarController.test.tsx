@@ -14,21 +14,12 @@ const mocks = vi.hoisted(() => ({
   addNode: vi.fn(() => "context-new"),
   nodes: [] as CanvasNode[],
   openWorkbench: vi.fn(),
-  readUrl: vi.fn(() => ({ project: "project-a" })),
   requestFocusNode: vi.fn(),
   setSelectedNode: vi.fn(),
 }));
 
-vi.mock("@/lib/url-params", () => ({
-  readUrl: () => mocks.readUrl(),
-}));
-
-vi.mock("@/features/freezone/public", () => ({
-  extractMainlineContextsFromNode: (candidate: CanvasNode) => {
-    const contexts = (candidate.data as { mainline_context?: unknown })
-      .mainline_context;
-    return Array.isArray(contexts) ? contexts : [];
-  },
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   openPresetProjectionInMyCanvas: (
     projectId: string,
     input: {
@@ -80,7 +71,6 @@ describe("useNodeMainlineToolbarController", () => {
     mocks.addNode.mockReset().mockReturnValue("context-new");
     mocks.nodes = [];
     mocks.openWorkbench.mockReset();
-    mocks.readUrl.mockReset().mockReturnValue({ project: "project-a" });
     mocks.requestFocusNode.mockReset();
     mocks.setSelectedNode.mockReset();
   });
@@ -94,6 +84,7 @@ describe("useNodeMainlineToolbarController", () => {
     );
     const { result } = renderHook(() =>
       useNodeMainlineToolbarController({
+        projectId: "project-a",
         node: node(CANVAS_NODE_TYPES.upload, {
           workbench_target: { scope: "beat", episode: 2, beat: 3 },
         }),
@@ -127,6 +118,7 @@ describe("useNodeMainlineToolbarController", () => {
     ];
     const { result } = renderHook(() =>
       useNodeMainlineToolbarController({
+        projectId: "project-a",
         node: node(CANVAS_NODE_TYPES.upload, {
           mainline_context: [beatContext],
         }),
@@ -145,6 +137,7 @@ describe("useNodeMainlineToolbarController", () => {
   it("creates and focuses a missing Beat context to the right", () => {
     const { result } = renderHook(() =>
       useNodeMainlineToolbarController({
+        projectId: "project-a",
         node: node(
           CANVAS_NODE_TYPES.upload,
           { mainline_context: [beatContext] },
@@ -174,6 +167,7 @@ describe("useNodeMainlineToolbarController", () => {
   it("does not expose recursive or context-free creation", () => {
     const beatNode = renderHook(() =>
       useNodeMainlineToolbarController({
+        projectId: "project-a",
         node: node(CANVAS_NODE_TYPES.beatContext, {
           mainline_context: [beatContext],
         }),
@@ -182,6 +176,7 @@ describe("useNodeMainlineToolbarController", () => {
     );
     const plainNode = renderHook(() =>
       useNodeMainlineToolbarController({
+        projectId: "project-a",
         node: node(CANVAS_NODE_TYPES.upload, {}),
         isPresetLocked: false,
       }),

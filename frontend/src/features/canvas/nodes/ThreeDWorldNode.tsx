@@ -11,6 +11,8 @@ type ThreeDWorldNodeProps = NodeProps & {
   id: string;
   data: ThreeDWorldNodeData;
   selected?: boolean;
+  projectId: string;
+  canvasId: string;
 };
 
 export const ThreeDWorldNode = memo((props: ThreeDWorldNodeProps) => {

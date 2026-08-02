@@ -275,8 +275,7 @@ class RenderPlanUseCases:
             "beats": materials.all_beats,
             "character_map": materials.character_map,
             "style": materials.style,
-            "model": "nanobanana",
-            "image_generation_selection": materials.image_generation_selection,
+            "model": materials.image_generation_selection,
             "sketch_colors": materials.sketch_colors,
             "prop_menu": execution_materials.prop_menu,
             "sketch_aspect_padding": (

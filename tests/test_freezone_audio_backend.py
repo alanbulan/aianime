@@ -4,25 +4,32 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-import respx
-from httpx import Response
-
 from ai_anime import config
-from ai_anime.freezone import audio_node
-from ai_anime.freezone.audio_node import (
-    USER_VOICE_SCOPE,
-    create_user_audio_voice,
+from ai_anime.modules.creative_canvas.infrastructure import (
+    audio_generation,
+    audio_voice_store,
+)
+from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
     freezone_audio_eleven_music_output_path,
     freezone_audio_speech_output_path,
+)
+from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
+    CreativeCanvasVoiceResolution,
+    USER_VOICE_SCOPE,
+    create_user_audio_voice,
     list_user_audio_voices,
     resolve_user_audio_voice,
     user_audio_voices_index_path,
 )
-from ai_anime.model_gateway_settings import save_custom_newapi_gateway
+from ai_anime.model_access_policy import configure_model_access
+from ai_anime.model_gateway_settings import MODE_CLOUD
 
 
 class FakeTTSGenerator:
     calls = []
+
+    def __init__(self, *, model: str) -> None:
+        self.model = model
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
         from ai_anime.generators.tts_generator import TTSResult
@@ -38,6 +45,13 @@ class FakeTTSGenerator:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_bytes(b"generated-audio")
         return TTSResult(success=True, audio_path=str(output_path), duration_seconds=1.25)
+
+
+@pytest.fixture(autouse=True)
+def _reset_model_access() -> None:
+    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    yield
+    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
 
 
 def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -81,8 +95,8 @@ def test_user_audio_voice_is_account_scoped_and_resolvable(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(audio_node, "OUTPUT_DIR", str(tmp_path))
-    monkeypatch.setattr(audio_node, "_duration_ms", lambda _path: 1234)
+    monkeypatch.setattr(audio_voice_store, "OUTPUT_DIR", str(tmp_path))
+    monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 1234)
 
     created = create_user_audio_voice(
         username="admin",
@@ -110,46 +124,11 @@ def test_user_audio_voice_is_account_scoped_and_resolvable(
     assert len(resolved.sha256) == 64
 
 
-@pytest.mark.asyncio
-async def test_newapi_audio_uses_saved_custom_gateway_before_env(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_API_KEY", "sk-env-secret")
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://env.example/v1")
-    save_custom_newapi_gateway(
-        base_url="https://custom.example",
-        api_key="sk-custom-secret",
-        activate=True,
-    )
-
-    with respx.mock(assert_all_called=True) as router:
-        route = router.post("https://custom.example/v1/audio/speech").mock(
-            return_value=Response(
-                200,
-                content=b"audio-bytes",
-                headers={"content-type": "audio/mpeg"},
-            )
-        )
-
-        output_path = tmp_path / "audio.mp3"
-        await audio_node._write_newapi_audio_speech(
-            output_path=output_path,
-            model="LingShan-MU-11",
-            input_text="quiet piano",
-        )
-
-    assert output_path.read_bytes() == b"audio-bytes"
-    request = route.calls.last.request
-    assert request.headers["authorization"] == "Bearer sk-custom-secret"
-
-
 def test_create_user_audio_voice_rejects_unsupported_extension(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(audio_node, "OUTPUT_DIR", str(tmp_path))
+    monkeypatch.setattr(audio_voice_store, "OUTPUT_DIR", str(tmp_path))
 
     with pytest.raises(ValueError, match="unsupported voice audio format"):
         create_user_audio_voice(
@@ -169,15 +148,19 @@ async def test_user_custom_voice_generation_uses_requester_account(
 
     def fake_resolve_user_audio_voice(username: str, voice_id: str):
         seen.append((username, voice_id))
-        return audio_node.FreezoneVoiceRefResolution(
+        return CreativeCanvasVoiceResolution(
             tmp_path / "viewer_voice.mp3",
             "sha",
             USER_VOICE_SCOPE,
         )
 
-    monkeypatch.setattr(audio_node, "resolve_user_audio_voice", fake_resolve_user_audio_voice)
+    monkeypatch.setattr(
+        audio_voice_store,
+        "resolve_user_audio_voice",
+        fake_resolve_user_audio_voice,
+    )
 
-    resolved = await audio_node._resolve_voice_ref(
+    resolved = await audio_generation._resolve_voice_ref(
         store=SimpleNamespace(),
         username="owner",
         account_voice_username="viewer",
@@ -204,9 +187,9 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
     narrator.write_bytes(b"project-narrator-reference")
     narrator_sha = file_sha256(narrator)
     monkeypatch.setattr("ai_anime.project_config.OUTPUT_DIR", tmp_path / "state")
-    monkeypatch.setattr(audio_node, "IndexTTS2FalClient", FakeTTSGenerator)
+    monkeypatch.setattr(audio_generation, "IndexTTS2Client", FakeTTSGenerator)
     monkeypatch.setattr(
-        audio_node,
+        audio_generation,
         "build_reference_audio_url",
         lambda path: f"data://{Path(path).name}",
     )
@@ -226,12 +209,13 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
         ),
     )
 
-    result = await audio_node.generate_freezone_audio_speech(
+    result = await audio_generation.generate_freezone_audio_speech(
         store=FakeProjectStore(project_dir),
         username="alice",
         project="demo",
         project_dir=project_dir,
         job_id="job-1",
+        model="audio-speech-1",
         text="画外音响起。",
     )
 
@@ -254,18 +238,23 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
 ) -> None:
     calls: list[dict] = []
 
-    async def fake_write_newapi_audio_speech(**kwargs):
+    async def fake_write_model_audio_speech(**kwargs):
         calls.append(kwargs)
         output_path = Path(kwargs["output_path"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(b"music")
 
-    monkeypatch.setattr(audio_node, "_write_newapi_audio_speech", fake_write_newapi_audio_speech)
-    monkeypatch.setattr(audio_node, "_duration_ms", lambda _path: 0)
+    monkeypatch.setattr(
+        audio_generation,
+        "write_model_audio_speech",
+        fake_write_model_audio_speech,
+    )
+    monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 0)
 
-    result = await audio_node.generate_freezone_audio_eleven_music(
+    result = await audio_generation.generate_freezone_audio_eleven_music(
         project_dir=tmp_path,
         job_id="music-1",
+        model="audio-music-1",
         prompt="Mysterious original soundtrack, rainforest.",
         music_length_ms=30_000,
         force_instrumental=True,
@@ -273,14 +262,15 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
         output_format="mp3_44100_128",
     )
 
-    assert result.model == "LingShan-MU-11"
+    assert result.model == "audio-music-1"
     assert result.duration_ms == 30_000
-    assert result.voice_source == "LingShan-MU-11"
+    assert result.voice_source == "audio-music-1"
     assert calls == [
         {
-            "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
-            "model": "LingShan-MU-11",
-            "input_text": "Mysterious original soundtrack, rainforest.",
+                "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
+                "model": "audio-music-1",
+                "model_role": "AUDIO_MUSIC",
+                "input_text": "Mysterious original soundtrack, rainforest.",
             "response_format": "mp3",
             "metadata": {
                 "music_length_ms": 30_000,
@@ -296,9 +286,10 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
 @pytest.mark.asyncio
 async def test_freezone_audio_eleven_music_rejects_out_of_range_length(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="music_length_ms"):
-        await audio_node.generate_freezone_audio_eleven_music(
+        await audio_generation.generate_freezone_audio_eleven_music(
             project_dir=tmp_path,
             job_id="music-short",
+            model="audio-music-1",
             prompt="short sting",
             music_length_ms=2999,
         )

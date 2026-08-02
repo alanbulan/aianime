@@ -16,7 +16,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.freezone.presets import canvas_id_for_preset
+from ai_anime.modules.creative_canvas.public import canvas_id_for_preset
 
 
 @pytest.fixture()

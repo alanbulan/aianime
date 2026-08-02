@@ -5,10 +5,8 @@ import { hydrateAssetDragPayload } from '@/features/canvas/composition';
 import type { CanvasEventBus } from '@/features/canvas/application/ports';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
-import {
-  spawnAssetNode,
-  type CanvasAssetDragPayload,
-} from '../domain/assetDrag';
+import { spawnAssetNode } from '../domain/assetDrag';
+import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,

@@ -26,7 +26,7 @@ from ai_anime.modules.creative_canvas.public import (
     creative_canvas_audio_generation_use_cases,
     creative_canvas_audio_library_use_cases,
 )
-from ai_anime.task_backend.limits import (
+from ai_anime.modules.task_execution.public import (
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
@@ -124,6 +124,7 @@ async def freezone_audio_speech(
                 StartCreativeCanvasSpeechGenerationCommand(
                     context=resolved.ctx,
                     project_dir=resolved.project_dir,
+                    model=body.model,
                     text=body.text,
                     emotion_prompt=body.emotion_prompt,
                     voice_ref=body.voice_ref.model_dump() if body.voice_ref else None,
