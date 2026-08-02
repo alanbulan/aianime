@@ -421,6 +421,8 @@ describe("round 2 residual architecture boundaries", () => {
       );
     }
     for (const retiredAssetLibraryPresentationPath of [
+      "features/freezone/presentation/AssetLibraryPanel.tsx",
+      "features/freezone/presentation/AssetLibraryPanel.test.tsx",
       "features/freezone/presentation/AssetLibraryPanelView.tsx",
       "features/freezone/presentation/AssetLibraryPanelView.test.tsx",
       "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
@@ -508,6 +510,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/domain/canvasCommitEligibility.ts",
       "features/canvas/domain/canvasCommitEligibility.test.ts",
       "features/canvas/domain/directorWorldSceneSaveRegistry.ts",
+      "features/canvas/assetDropStore.ts",
+      "features/canvas/assetDropStore.test.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredCanvasStoragePath))).toBe(false);
     }
@@ -1121,8 +1125,8 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 900],
-      ["features/freezone", 17],
+      ["features/canvas", 898],
+      ["features/freezone", 15],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);
@@ -1164,8 +1168,6 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
     const allowed = new Set([
-      "modules/production/composition.ts: @/features/canvas/public",
-      "modules/production/sketch-section-composition.ts: @/features/canvas/public",
       "routes/_app/projects.$project/freezone.lazy.tsx: @/features/freezone/routeComposition",
     ]);
     const roots = ["app", "components", "modules", "routes"];

@@ -1,18 +1,19 @@
 // Copyright (c) 2026 AI anime
 import {
   hasLegacyPresetCanvasMetadata,
-  resolveCanvasKind,
-  AssetLibraryPanelView,
-  useAssetLibraryCatalogController,
+} from "../domain/canvasProjectionMetadata";
+import type { LibraryAsset } from "../domain/assetLibraryModel";
+import { useAssetLibraryCatalogController } from "../assetLibraryCatalogComposition";
+import { withImageCacheBust } from "@/shared/media/image-cache";
+import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
+import { resolveCanvasKind } from "./assetLibraryViewModel";
+import { useAssetDropStore } from "./assetDropStore";
+import {
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
-} from "@/modules/creative_canvas/public";
-import { useAssetDropStore } from "@/features/canvas/assetDropStore";
-import { withImageCacheBust } from "@/features/canvas/public";
+} from "./useAssetLibraryReplacementController";
 
-import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
-
-interface AssetLibraryPanelProps {
+export interface AssetLibraryPanelProps {
   project: string;
   metadata: Record<string, unknown> | null;
   collapsed?: boolean;
@@ -25,6 +26,7 @@ interface AssetLibraryPanelProps {
   onRestoreMainlineDefault?: () => Promise<void> | void;
   /** 外部提交成功后自增，通知素材库重拉项目资产。 */
   reloadToken?: number;
+  onAddAsset: (asset: LibraryAsset, index: number) => void;
 }
 
 /* ─────────────────── 主面板 ─────────────────── */
@@ -38,6 +40,7 @@ export function AssetLibraryPanel({
   currentCanvasId,
   onRestoreMainlineDefault,
   reloadToken,
+  onAddAsset,
 }: AssetLibraryPanelProps) {
   const canvasKind = resolveCanvasKind(metadata);
   const hasPresetLabel = hasLegacyPresetCanvasMetadata(metadata);
@@ -84,7 +87,7 @@ export function AssetLibraryPanel({
       onRestoreMainlineDefault={onRestoreMainlineDefault}
       hasPresetLabel={hasPresetLabel}
       reloadToken={reloadToken}
-      onAddAsset={addAssetToCanvas}
+      onAddAsset={onAddAsset}
       cacheBustImage={withImageCacheBust}
     />
   );

@@ -31,10 +31,7 @@ import {
   resolveImageGenReferencePreviewPosition,
   snapImageGenAspectRatio,
 } from '@/features/canvas/application/imageGenNodeModel';
-import {
-  resolveImageDisplayUrl,
-  withImageCacheBust,
-} from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   aspectRatioFromImageDimensions,
   resolveMinEdgeFittedSize,
@@ -63,6 +60,7 @@ import {
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
 } from '@/modules/creative_canvas/public';
+import { withImageCacheBust } from '@/shared/media/image-cache';
 import {
   filterCanvasImageModels,
   type CanvasImageMode,

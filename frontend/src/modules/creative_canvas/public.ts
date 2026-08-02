@@ -443,6 +443,14 @@ export type {
 } from "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController";
 export { AssetLibraryPanelView } from "@/modules/creative_canvas/presentation/AssetLibraryPanelView";
 export type { AssetLibraryPanelViewProps } from "@/modules/creative_canvas/presentation/AssetLibraryPanelView";
+export { AssetLibraryPanel } from "@/modules/creative_canvas/presentation/AssetLibraryPanel";
+export type { AssetLibraryPanelProps } from "@/modules/creative_canvas/presentation/AssetLibraryPanel";
+export { useAssetDropStore } from "@/modules/creative_canvas/presentation/assetDropStore";
+export type {
+  ActiveNodeDrag,
+  AssetDropState,
+  PendingAssetReplace,
+} from "@/modules/creative_canvas/presentation/assetDropStore";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

@@ -6,7 +6,6 @@ import {
   useCanvasStore,
   type CanvasNodeData,
 } from "@/features/canvas/canvasStore";
-import { withImageCacheBust } from "@/features/canvas/public";
 import {
   createCanvasCommitControllerHook,
   defaultCharacterFromMetadata,
@@ -18,6 +17,7 @@ import {
 } from "@/modules/creative_canvas/public";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { writeUrl } from "@/lib/url-params";
+import { withImageCacheBust } from "@/shared/media/image-cache";
 
 import { useCanvasSync } from "./useCanvasSync";
 import { useFreezoneCanvasEntryLifecycle } from "./useFreezoneCanvasEntryLifecycle";

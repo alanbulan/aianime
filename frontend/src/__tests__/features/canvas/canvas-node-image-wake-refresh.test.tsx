@@ -2,7 +2,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { withImageCacheBust } from "@/shared/media/image-cache";
 import { CanvasNodeImage } from "@/features/canvas/ui/CanvasNodeImage";
 
 describe("CanvasNodeImage wake refresh", () => {

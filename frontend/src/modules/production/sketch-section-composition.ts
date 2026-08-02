@@ -2,7 +2,7 @@
 import { createElement, Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
-import { withImageCacheBust } from "@/features/canvas/public";
+import { withImageCacheBust } from "@/shared/media/image-cache";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";

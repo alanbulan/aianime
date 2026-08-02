@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 export {
   dataUrlToBlob,
-  withImageCacheBust,
 } from "@/features/canvas/application/imageData";
 export {
   DEFAULT_GRSAI_CREDIT_TIER_ID,

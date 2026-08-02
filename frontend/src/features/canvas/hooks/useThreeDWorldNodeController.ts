@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
-import { withImageCacheBust } from '@/features/canvas/application/imageData';
 import {
   uploadDirectorCaptureBundle,
   type DirectorCaptureAssetUploader,
@@ -62,6 +61,7 @@ import {
   setDirectorWorldSceneSaveHandler,
   validMainlineContexts,
 } from '@/modules/creative_canvas/public';
+import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type {
   DirectorStageManifest,

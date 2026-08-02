@@ -161,35 +161,6 @@ export function mediaNeedsCrossOrigin(url: string): boolean {
   return !lower.startsWith('data:') && !lower.startsWith('blob:');
 }
 
-// Cache-busting convention:
-// - `v` is a backend-authored content version and must be treated as authoritative.
-// - `st_v` is a frontend fallback for newly-written same-path assets with no `v`.
-// Do not stack both; changing `st_v` defeats the cache stability promised by `v`.
-export function withImageCacheBust(imageUrl: string, token: string | number | null | undefined): string {
-  if (!imageUrl || token === null || token === undefined) return imageUrl;
-  const trimmed = imageUrl.trim();
-  if (
-    !trimmed ||
-    trimmed.startsWith('data:') ||
-    trimmed.startsWith('blob:') ||
-    trimmed.startsWith('asset:')
-  ) {
-    return imageUrl;
-  }
-  const [base, hash = ''] = trimmed.split('#', 2);
-  const [path, query = ''] = base.split('?', 2);
-  const params = new URLSearchParams(query);
-  params.delete('st_v');
-  if (params.has('v')) {
-    const versioned = params.toString();
-    const stable = versioned ? `${path}?${versioned}` : path;
-    return hash ? `${stable}#${hash}` : stable;
-  }
-  params.set('st_v', String(token));
-  const busted = `${path}?${params.toString()}`;
-  return hash ? `${busted}#${hash}` : busted;
-}
-
 export function extractBase64Payload(dataUrl: string): string {
   const [, payload = ''] = dataUrl.split(',');
   return payload;

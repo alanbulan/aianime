@@ -12,7 +12,6 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
-  withImageCacheBust,
 } from '@/features/canvas/application/imageData';
 import {
   aspectRatioFromImageDimensions,
@@ -40,6 +39,7 @@ import {
   collectCandidateBindingsForNode,
   hasMainlineContexts,
 } from '@/modules/creative_canvas/public';
+import { withImageCacheBust } from '@/shared/media/image-cache';
 
 export interface ImageNodeControllerOptions {
   projectId: string;

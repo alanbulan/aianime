@@ -2,7 +2,7 @@
 import { createElement } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
-import { withImageCacheBust } from "@/features/canvas/public";
+import { withImageCacheBust } from "@/shared/media/image-cache";
 import { useNow } from "@/hooks/use-now";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { resolveMediaUrl } from "@/lib/media-url";

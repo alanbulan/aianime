@@ -62,14 +62,17 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
 vi.mock('@/features/canvas/application/imageData', () => ({
   resolveImageDisplayUrl: (url: string) => `display:${url}`,
   shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
-  withImageCacheBust: (
-    url: string,
-    token: string | number | null | undefined,
-  ) => token == null ? url : `${url}?stamp=${token}`,
   parseAspectRatio: (value: string) => {
     const [width, height] = value.split(':').map(Number);
     return width / height;
   },
+}));
+
+vi.mock('@/shared/media/image-cache', () => ({
+  withImageCacheBust: (
+    url: string,
+    token: string | number | null | undefined,
+  ) => token == null ? url : `${url}?stamp=${token}`,
 }));
 
 vi.mock('@/features/canvas/application/regenerateExportNode', () => ({

@@ -29,7 +29,6 @@ import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
-  withImageCacheBust,
 } from '@/features/canvas/application/imageData';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -47,6 +46,7 @@ import {
   collectCandidateBindingsForNode,
   hasMainlineContexts,
 } from '@/modules/creative_canvas/public';
+import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type {
   DirectorStageManifest,

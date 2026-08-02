@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const listFreezoneBeatContext = vi.fn();
@@ -25,6 +25,12 @@ vi.mock("@/modules/creative_canvas/presentation/CanvasesTab", () => ({
 
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
 
+function TestAssetLibraryPanel(
+  props: Omit<ComponentProps<typeof AssetLibraryPanel>, "onAddAsset">,
+) {
+  return <AssetLibraryPanel {...props} onAddAsset={vi.fn()} />;
+}
+
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return function wrapper({ children }: { children: ReactNode }) {
@@ -47,12 +53,12 @@ describe("AssetLibraryPanel beat context", () => {
 
     render(
       <>
-        <AssetLibraryPanel
+        <TestAssetLibraryPanel
           project="demo"
           metadata={{ kind: "default" }}
           currentCanvasId="user_admin_demo"
         />
-        <AssetLibraryPanel
+        <TestAssetLibraryPanel
           project="demo"
           metadata={{ kind: "default" }}
           currentCanvasId="user_admin_demo"
@@ -73,7 +79,7 @@ describe("AssetLibraryPanel beat context", () => {
     });
 
     const { rerender } = render(
-      <AssetLibraryPanel
+      <TestAssetLibraryPanel
         project="demo"
         metadata={{ kind: "default" }}
         currentCanvasId="user_admin_demo"
@@ -89,7 +95,7 @@ describe("AssetLibraryPanel beat context", () => {
 
     act(() => {
       rerender(
-        <AssetLibraryPanel
+        <TestAssetLibraryPanel
           project="demo"
           metadata={{ kind: "default" }}
           currentCanvasId="user_admin_demo"
@@ -112,7 +118,7 @@ describe("AssetLibraryPanel beat context", () => {
     });
 
     const { rerender } = render(
-      <AssetLibraryPanel
+      <TestAssetLibraryPanel
         project="demo"
         metadata={{ kind: "default" }}
         currentCanvasId="user_admin_demo"
@@ -127,7 +133,7 @@ describe("AssetLibraryPanel beat context", () => {
 
     act(() => {
       rerender(
-        <AssetLibraryPanel
+        <TestAssetLibraryPanel
           project="demo"
           metadata={{ kind: "default" }}
           currentCanvasId="user_admin_demo"
@@ -192,7 +198,7 @@ describe("AssetLibraryPanel beat context", () => {
     });
 
     render(
-      <AssetLibraryPanel
+      <TestAssetLibraryPanel
         project="demo"
         metadata={{ kind: "default" }}
         currentCanvasId="user_admin_demo"
@@ -348,7 +354,7 @@ describe("AssetLibraryPanel beat context", () => {
     });
 
     render(
-      <AssetLibraryPanel
+      <TestAssetLibraryPanel
         project="demo"
         metadata={{ kind: "default" }}
         currentCanvasId="user_admin_demo"

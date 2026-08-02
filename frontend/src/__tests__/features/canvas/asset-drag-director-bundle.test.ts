@@ -212,7 +212,7 @@ describe("director bundle canvas assets", () => {
     const panel = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+        "src/modules/creative_canvas/presentation/AssetLibraryPanel.tsx",
       ),
       "utf8",
     );
@@ -263,7 +263,7 @@ describe("director bundle canvas assets", () => {
     const panel = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+        "src/modules/creative_canvas/presentation/AssetLibraryPanel.tsx",
       ),
       "utf8",
     );

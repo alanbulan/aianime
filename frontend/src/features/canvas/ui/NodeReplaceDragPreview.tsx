@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AudioLines, Box, Film, Replace } from 'lucide-react';
 
-import { useAssetDropStore } from '@/features/canvas/assetDropStore';
 import { resolveMediaUrl } from '@/lib/media-url';
+import { useAssetDropStore } from '@/modules/creative_canvas/public';
 
 /**
  * 「替换素材」拖拽时跟随光标的缩略图浮层。

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { withImageCacheBust } from "@/shared/media/image-cache";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   createUseSketchCropDialogController,

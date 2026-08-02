@@ -102,7 +102,7 @@ describe("freezone viewer contracts", () => {
 
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
     const panel = read(
-      "src/features/freezone/presentation/AssetLibraryPanel.tsx",
+      "src/modules/creative_canvas/presentation/AssetLibraryPanel.tsx",
     );
     const assetLibraryModel = read(
       "src/modules/creative_canvas/domain/assetLibraryModel.ts",
@@ -130,7 +130,7 @@ describe("freezone viewer contracts", () => {
     expect(assetLibraryModel).toContain("if (sceneContext) return [sceneContext];");
     expect(assetLibraryModel).toContain('kind: "scene"');
     expect(assetLibraryModel).toContain("sceneId,");
-    expect(panel).toContain("onAddAsset={addAssetToCanvas}");
+    expect(panel).toContain("onAddAsset={onAddAsset}");
     expect(assetLibraryInsertionComposition).toContain(
       "hydratePayload: hydrateAssetDragPayload",
     );

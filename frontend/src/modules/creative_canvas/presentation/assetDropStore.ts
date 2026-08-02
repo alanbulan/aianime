@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { create } from "zustand";
 
-import type { CanvasCommitMediaType } from "@/modules/creative_canvas/public";
+import type { CanvasCommitMediaType } from "../domain/canvasCommitSource";
 
 export interface ActiveNodeDrag {
   nodeId: string;
@@ -21,7 +21,7 @@ export interface PendingAssetReplace {
   token: number;
 }
 
-interface AssetDropState {
+export interface AssetDropState {
   activeDrag: ActiveNodeDrag | null;
   hoverAssetId: string | null;
   pendingReplace: PendingAssetReplace | null;

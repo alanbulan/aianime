@@ -7,6 +7,7 @@ import {
   CanvasErrorOverlay,
   CanvasLoadingOverlay,
   CanvasLoadingScreen,
+  AssetLibraryPanel,
   CommitDialog,
   CompareDialog,
   CreateIdentityDialog,
@@ -15,7 +16,7 @@ import {
 } from "@/modules/creative_canvas/public";
 
 import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
-import { AssetLibraryPanel } from "./AssetLibraryPanel";
+import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
 import { MaskEditor } from "./MaskEditor";
 
 export function FreezoneShellView({
@@ -71,6 +72,7 @@ export function FreezoneShellView({
             reloadToken={assetLibrary.reloadToken}
             onRestoreMainlineDefault={assetLibrary.restoreMainlineDefault}
             onReplaced={assetLibrary.onReplaced}
+            onAddAsset={addAssetToCanvas}
           />
         </main>
         {chat.visible && (
