@@ -19661,19 +19661,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas audio separation orchestration and result mapping out of UI", () => {
     const resultPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioSeparationResult.ts",
+      "modules/creative_canvas/application/audioSeparationResult.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/separateCanvasAudioVideo.ts",
+      "modules/creative_canvas/application/separateCanvasAudioVideo.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/audioSeparationComposition.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -19711,7 +19711,7 @@ describe("frontend architecture boundaries", () => {
       "export function resolveCanvasAudioSeparationOutputs(",
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["./audioSeparationResult", "./ports"]),
+      new Set(["./audioSeparationResult"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -19725,7 +19725,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "../application/ports",
         "../application/separateCanvasAudioVideo",
       ]),
     );
@@ -19733,10 +19732,10 @@ describe("frontend architecture boundaries", () => {
       "freezoneAudioSeparationGateway: CanvasAudioSeparationGateway",
     );
     expect(submitEndpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     ]);
     expect(resultEndpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     ]);
     for (const legacySymbol of [
       "FreezoneAudioSeparatePayload",
@@ -19751,8 +19750,17 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "audioSeparationGateway: freezoneAudioSeparationGateway",
     );
+    expect(importSpecifiers(compositionPath)).toContain(
+      "@/modules/task_execution/public",
+    );
+    expect(compositionSource).toContain(
+      "const task = await awaitTaskCompletion(taskKey, projectId)",
+    );
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/tasks");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(controllerSource).toContain("await separateCanvasAudioVideo({");
     expect(controllerSource).not.toContain("submitFreezoneAudioSeparate");
     expect(controllerSource).not.toContain("fetchFreezoneAudioSeparateResult");
@@ -20920,6 +20928,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).not.toContain("readUrl");
@@ -27242,15 +27251,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps reference audio duration validation in application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/validateVideoReferenceAudioDuration.ts",
+      "modules/creative_canvas/application/validateVideoReferenceAudioDuration.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserAudioMetadata.ts",
+      "modules/creative_canvas/infrastructure/browserAudioMetadata.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/audioReferenceValidationComposition.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
@@ -27286,13 +27295,13 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).toContain("gateway.probeDurationMs(");
     expect(useCaseOwners).toEqual([
-      "features/canvas/application/validateVideoReferenceAudioDuration.ts",
+      "modules/creative_canvas/application/validateVideoReferenceAudioDuration.ts",
     ]);
     expect(importSpecifiers(infrastructurePath)).toEqual([
       "../application/validateVideoReferenceAudioDuration",
     ]);
     expect(probeOwners).toEqual([
-      "features/canvas/infrastructure/browserAudioMetadata.ts",
+      "modules/creative_canvas/infrastructure/browserAudioMetadata.ts",
     ]);
     expect(infrastructureSource).toContain('document.createElement("audio")');
     expect(infrastructureSource).toContain(
@@ -27303,6 +27312,7 @@ describe("frontend architecture boundaries", () => {
       "browserAudioMetadataGateway",
     );
     expect(videoNode).toContain("validateVideoReferenceAudioDuration({");
+    expect(videoNode).toContain("@/modules/creative_canvas/public");
     expect(videoNode).toContain(
       "selectedVideoModel.maxReferenceAudioDurationSeconds * 1000",
     );

@@ -50,10 +50,6 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
-  separateCanvasAudioVideo as separateCanvasAudioVideoUseCase,
-  type SeparateCanvasAudioVideoParams,
-} from './application/separateCanvasAudioVideo';
-import {
   generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
   type GenerateCanvasReversePromptParams,
 } from './application/generateCanvasReversePrompt';
@@ -171,11 +167,6 @@ import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
-import {
-  validateVideoReferenceAudioDuration as validateVideoReferenceAudioDurationUseCase,
-  type ValidateVideoReferenceAudioDurationParams,
-} from './application/validateVideoReferenceAudioDuration';
-import { browserAudioMetadataGateway } from './infrastructure/browserAudioMetadata';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
@@ -188,7 +179,6 @@ import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture
 import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
-import { freezoneAudioSeparationGateway } from './infrastructure/freezoneAudioSeparationGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
@@ -376,15 +366,6 @@ export function uploadCanvasAsset(
   );
 }
 
-export function validateVideoReferenceAudioDuration(
-  params: ValidateVideoReferenceAudioDurationParams,
-) {
-  return validateVideoReferenceAudioDurationUseCase(
-    params,
-    browserAudioMetadataGateway,
-  );
-}
-
 export function uploadAndAutoCommitSelectedBackgroundCandidate(
   projectId: string,
   target: SelectedBackgroundTarget,
@@ -455,15 +436,6 @@ export function composeCanvasVideo(params: ComposeCanvasVideoParams) {
 export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-  });
-}
-
-export function separateCanvasAudioVideo(
-  params: SeparateCanvasAudioVideoParams,
-) {
-  return separateCanvasAudioVideoUseCase(params, {
-    audioSeparationGateway: freezoneAudioSeparationGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
 }

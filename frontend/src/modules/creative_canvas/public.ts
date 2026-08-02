@@ -627,6 +627,19 @@ export type {
   VoiceSelectionRow,
   VoiceSelectionTab,
 } from "@/modules/creative_canvas/application/voiceSelectionModel";
+export { separateCanvasAudioVideo } from "@/modules/creative_canvas/audioSeparationComposition";
+export type {
+  CanvasAudioSeparationCommand,
+  CanvasAudioSeparationTaskRef,
+  SeparateCanvasAudioVideoParams,
+  SeparateCanvasAudioVideoResult,
+} from "@/modules/creative_canvas/application/separateCanvasAudioVideo";
+export { validateVideoReferenceAudioDuration } from "@/modules/creative_canvas/audioReferenceValidationComposition";
+export type {
+  ValidateVideoReferenceAudioDurationParams,
+  ValidateVideoReferenceAudioDurationResult,
+  VideoReferenceAudioDuration,
+} from "@/modules/creative_canvas/application/validateVideoReferenceAudioDuration";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

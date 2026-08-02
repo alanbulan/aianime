@@ -1,12 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
-import type { CanvasAudioSeparationGateway } from "../application/separateCanvasAudioVideo";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type {
+  CanvasAudioSeparationGateway,
+  CanvasAudioSeparationTaskRef,
+} from "../application/separateCanvasAudioVideo";
 
 export const freezoneAudioSeparationGateway: CanvasAudioSeparationGateway = {
   async submit(projectId, command) {
-    const task = await apiCall<CanvasGenerationTaskRef>(
+    const task = await apiCall<CanvasAudioSeparationTaskRef>(
       `projects/${encodeURIComponent(projectId)}/freezone/video/audio-separate`,
       {
         method: "POST",

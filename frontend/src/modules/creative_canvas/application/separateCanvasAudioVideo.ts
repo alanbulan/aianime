@@ -1,9 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { resolveCanvasAudioSeparationOutputs } from "./audioSeparationResult";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
 
 export interface CanvasAudioSeparationCommand {
   readonly sourceUrl: string;
@@ -11,9 +7,17 @@ export interface CanvasAudioSeparationCommand {
   readonly targetBeat?: number;
 }
 
-export interface CanvasAudioSeparationTaskRef
-  extends CanvasGenerationTaskRef {
+export interface CanvasAudioSeparationTaskRef {
+  readonly job_id: string;
+  readonly task_key: string;
   readonly task_type: "freezone_audio_separate";
+}
+
+export interface CanvasAudioSeparationTaskGateway {
+  awaitCompletion(
+    taskKey: string,
+    projectId: string,
+  ): Promise<{ readonly result?: unknown | null }>;
 }
 
 export interface CanvasAudioSeparationGateway {
@@ -34,7 +38,7 @@ export interface SeparateCanvasAudioVideoParams
 
 export interface SeparateCanvasAudioVideoDependencies {
   readonly audioSeparationGateway: CanvasAudioSeparationGateway;
-  readonly taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion">;
+  readonly taskGateway: CanvasAudioSeparationTaskGateway;
 }
 
 export interface SeparateCanvasAudioVideoResult {

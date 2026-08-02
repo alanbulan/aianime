@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasTaskResultGateway } from "./ports";
 import {
   separateCanvasAudioVideo,
   type CanvasAudioSeparationGateway,
+  type CanvasAudioSeparationTaskGateway,
 } from "./separateCanvasAudioVideo";
 
 const task = {
@@ -18,7 +18,7 @@ function dependencies(result: Record<string, unknown> | null) {
     submit: vi.fn().mockResolvedValue(task),
     fetchResult: vi.fn().mockResolvedValue({}),
   };
-  const taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion"> = {
+  const taskGateway: CanvasAudioSeparationTaskGateway = {
     awaitCompletion: vi.fn().mockResolvedValue({ result }),
   };
   return { audioSeparationGateway, taskGateway };

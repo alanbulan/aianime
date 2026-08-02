@@ -34,7 +34,12 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
-import { resolveAudioReferenceDisplayName } from '@/modules/creative_canvas/public';
+import {
+  isVideoFile,
+  resolveAudioReferenceDisplayName,
+  validateVideoReferenceAudioDuration,
+  VIDEO_FILE_ACCEPT,
+} from '@/modules/creative_canvas/public';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import { resolveGenerationErrorDiagnostics } from '@/features/canvas/application/generationErrorReport';
@@ -48,7 +53,6 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import type { VideoGenerationReference } from '@/features/canvas/application/submitVideoGeneration';
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
-import { isVideoFile, VIDEO_FILE_ACCEPT } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureBrowserVideoFrameStrip,
@@ -62,7 +66,6 @@ import {
   submitVideoGeneration,
   translateCanvasText,
   uploadCanvasAsset,
-  validateVideoReferenceAudioDuration,
 } from '@/features/canvas/composition';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {

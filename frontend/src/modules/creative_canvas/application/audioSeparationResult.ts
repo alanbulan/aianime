@@ -48,20 +48,23 @@ function pickUrlField(
 }
 
 export function resolveCanvasAudioSeparationOutputs(
-  result: Record<string, unknown> | null | undefined,
+  result: unknown,
 ): CanvasAudioSeparationOutputs {
-  if (!result) return { audioUrl: null, silentVideoUrl: null };
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return { audioUrl: null, silentVideoUrl: null };
+  }
+  const source = result as Record<string, unknown>;
 
   // Canonical API URLs win; filesystem paths are considered only by fallback.
-  let audioUrl = pickUrlField(result, ["audio_url", "audioUrl"]);
-  let silentVideoUrl = pickUrlField(result, [
+  let audioUrl = pickUrlField(source, ["audio_url", "audioUrl"]);
+  let silentVideoUrl = pickUrlField(source, [
     "mute_video_url",
     "muteVideoUrl",
   ]);
 
   if (!audioUrl || !silentVideoUrl) {
     const strings: string[] = [];
-    collectStrings(result, strings);
+    collectStrings(source, strings);
     // Prefer already-servable values before considering legacy output paths.
     const isServable = (value: string) =>
       value.startsWith("/static/") ||
