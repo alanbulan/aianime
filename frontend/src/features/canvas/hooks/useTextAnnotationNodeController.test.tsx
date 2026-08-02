@@ -74,8 +74,8 @@ vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
   useIsBoxSelecting: () => mocks.boxSelecting,
 }));
 
-vi.mock('@/features/canvas/hooks/useFreezoneVideoModels', () => ({
-  useFreezoneVideoModels: () => ({ models: mocks.videoModels }),
+vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasVideoModels: () => ({ models: mocks.videoModels }),
 }));
 
 vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({

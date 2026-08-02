@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import type { VideoGenMode } from "@/features/canvas/domain/canvasNodes";
+import type { VideoGenMode } from "@/modules/creative_canvas/public";
 import type { VideoGenerationModeOption } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   NODE_CONTEXT_CONTROL_TRIGGER_CLASS,

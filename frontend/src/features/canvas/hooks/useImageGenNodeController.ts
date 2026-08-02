@@ -56,15 +56,18 @@ import {
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  collectCandidateBindingsForNode,
+  filterCanvasImageModels,
+  getFreezoneCanvasMetadata,
   historyRecordOutputUrl,
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
+  useCanvasCameraOptions,
+  useCanvasImageModels,
+  useCanvasStyleTemplates,
+  type CanvasImageMode,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import {
-  filterCanvasImageModels,
-  type CanvasImageMode,
-} from '@/features/canvas/domain/imageModelCapability';
 import {
   isSystemManagedNodeData,
   mainlineNodeVisualState,
@@ -79,9 +82,6 @@ import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
-import { useFreezoneCameraOptions } from '@/features/canvas/hooks/useFreezoneCameraOptions';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
-import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneStyleTemplates';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -105,10 +105,6 @@ import { orderedReferenceUrlsWithOwnFirst } from '@/features/canvas/nodes/refere
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
-import {
-  collectCandidateBindingsForNode,
-} from '@/modules/creative_canvas/public';
-import { getFreezoneCanvasMetadata } from '@/modules/creative_canvas/public';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
@@ -227,7 +223,7 @@ export function useImageGenNodeController({
   const {
     models: catalogImageModels,
     isLoading: imageModelsLoading,
-  } = useFreezoneImageModels(projectId);
+  } = useCanvasImageModels(projectId);
   // Per-node generation history. Only fetch while the node is selected so an
   // unselected canvas full of nodes doesn't fan out a request each. `refresh`
   // is called after a generation settles to pull in the new record.
@@ -274,9 +270,9 @@ export function useImageGenNodeController({
   useEffect(() => {
     if (!isGenerating) setHistoryPreviewUrl(null);
   }, [isGenerating]);
-  const { options: cameraOptions } = useFreezoneCameraOptions(projectId);
+  const { options: cameraOptions } = useCanvasCameraOptions(projectId);
   const cameraSummary = describeCameraSelection(cameraSelection, cameraOptions);
-  const { templates: styleTemplates } = useFreezoneStyleTemplates(projectId);
+  const { templates: styleTemplates } = useCanvasStyleTemplates(projectId);
   const selectedStyle = describeStyleSelection(styleTemplateId, styleTemplates);
 
   const upstreamContents = useUpstreamContents(id);

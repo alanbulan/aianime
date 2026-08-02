@@ -12,7 +12,7 @@ const catalogMocks = vi.hoisted(() => ({
   loadCanvasSkillRegistry: vi.fn(),
 }));
 
-vi.mock('@/features/canvas/catalogComposition', () => catalogMocks);
+vi.mock('@/features/canvas/skillCatalogComposition', () => catalogMocks);
 
 describe('useCanvasNodeCatalogController', () => {
   beforeEach(() => {

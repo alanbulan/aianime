@@ -15,8 +15,10 @@ import { CreditCostPill } from "@/components/credits/credit-visual";
 import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
-import { useFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
-import type { CanvasRelightKeyLightDirection } from "@/modules/creative_canvas/public";
+import {
+  useCanvasImageModels,
+  type CanvasRelightKeyLightDirection,
+} from "@/modules/creative_canvas/public";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -873,7 +875,7 @@ export function LightEditorPanel({
   const [imageSize, setImageSize] = useState<LightImageSize>(
     DEFAULT_LIGHT_IMAGE_SIZE,
   );
-  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost("image_selection", selectedModel?.apiModel ?? null, {
     surface: "canvas",

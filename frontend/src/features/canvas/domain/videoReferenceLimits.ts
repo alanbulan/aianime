@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { VideoGenMode } from "./canvasNodes";
+import type { VideoGenMode } from "@/modules/creative_canvas/public";
 
 export type VideoReferenceItem =
   | {

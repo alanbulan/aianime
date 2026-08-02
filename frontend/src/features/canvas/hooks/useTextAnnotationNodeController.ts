@@ -40,9 +40,9 @@ import {
   resolveTextAnnotationNodeSize,
   resolveTextAnnotationUpstreamImageUrl,
 } from '@/features/canvas/domain/textAnnotationNodeModel';
-import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
+import { useCanvasVideoModels } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const SPAWN_UPLOAD_WIDTH = 320;
@@ -88,7 +88,7 @@ export function useTextAnnotationNodeController({
     typeof data.model === 'string' && data.model.length > 0
       ? data.model
       : DEFAULT_SHARED_MODEL_ID;
-  const { models: videoModels } = useFreezoneVideoModels(projectId);
+  const { models: videoModels } = useCanvasVideoModels(projectId);
   const reversePromptCost = useGenerationCreditCost(
     mode === 'imageToPrompt' ? 'freezone_image_reverse_prompt' : '',
     null,

@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import type {
   Seedance2SceneOptimize,
-  VideoGenMode,
   VideoGenQuality,
 } from "./canvasNodes";
+import type { VideoGenMode } from "@/modules/creative_canvas/public";
 
 const DEFAULT_QUALITIES: ReadonlyArray<VideoGenQuality> = [
   "480P",

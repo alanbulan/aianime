@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 
+/** The two image roles exposed by the authenticated commercial catalog. */
 export type CanvasImageMode = "generation" | "edit";
 
 export interface CanvasImageModeCapability {

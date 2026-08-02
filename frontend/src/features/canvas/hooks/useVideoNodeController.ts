@@ -66,15 +66,9 @@ import {
 } from '@/features/canvas/composition';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
-  CAMERA_MOVEMENT_PRESETS,
-  findCameraMovementPreset,
-  type CameraMovementPreset,
-} from '@/features/canvas/domain/cameraMovementPresets';
-import {
   CANVAS_NODE_TYPES,
   isAudioNode,
   type VideoGenCount,
-  type VideoGenMode,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
@@ -103,8 +97,6 @@ import {
   videoReferenceCapsForMode,
   type VideoReferenceCapEntry,
 } from '@/features/canvas/domain/videoReferenceLimits';
-import { useFreezoneVideoCameraTemplates } from '@/features/canvas/hooks/useFreezoneVideoCameraTemplates';
-import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -129,8 +121,14 @@ import { resolveVideoGenerationModeOptions } from '@/features/canvas/nodes/video
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
 import {
+  CAMERA_MOVEMENT_PRESETS,
+  findCameraMovementPreset,
   hasMainlineContexts,
   historyRecordOutputUrl,
+  useCanvasVideoCameraTemplates,
+  useCanvasVideoModels,
+  type CameraMovementPreset,
+  type VideoGenMode,
 } from '@/modules/creative_canvas/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
@@ -241,7 +239,7 @@ export function useVideoNodeController({
   const {
     models: availableVideoModels,
     isLoading: videoModelsLoading,
-  } = useFreezoneVideoModels(projectId);
+  } = useCanvasVideoModels(projectId);
   // Reconcile persisted ids against the live catalog so the displayed model
   // and submitted SKU remain identical after catalog changes.
   const selectedVideoModel = useMemo(
@@ -347,7 +345,7 @@ export function useVideoNodeController({
   // Pull the camera-template catalog from `/freezone/video/camera-templates`.
   // Fall back to the bundled `CAMERA_MOVEMENT_PRESETS` while loading or if the
   // backend is unreachable so the chip never goes blank.
-  const cameraTemplatesQuery = useFreezoneVideoCameraTemplates(projectId);
+  const cameraTemplatesQuery = useCanvasVideoCameraTemplates(projectId);
   const cameraTemplates = useMemo<ReadonlyArray<CameraMovementPreset>>(
     () =>
       cameraTemplatesQuery.templates.length > 0

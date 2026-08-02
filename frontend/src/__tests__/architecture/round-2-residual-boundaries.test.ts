@@ -201,6 +201,19 @@ describe("round 2 residual architecture boundaries", () => {
       "upscale.ts",
       "upscale.test.ts",
     ];
+    const generationCatalogDomainFiles = [
+      "cameraMovementPresets.ts",
+      "imageModelCapability.ts",
+      "videoGenerationMode.ts",
+    ];
+    const generationCatalogPresentationFiles = [
+      "generationCatalogHooks.test.tsx",
+      "useCanvasCameraOptions.ts",
+      "useCanvasImageModels.ts",
+      "useCanvasStyleTemplates.ts",
+      "useCanvasVideoCameraTemplates.ts",
+      "useCanvasVideoModels.ts",
+    ];
     const presentationFiles = [
       "assetLibraryViewModel.ts",
       "assetLibraryViewModel.test.ts",
@@ -398,6 +411,47 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
         file,
       ).toBe(false);
+    }
+    for (const file of generationCatalogDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(resolve(moduleRoot, "application/generationCatalog.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "generationCatalogComposition.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/httpCanvasGenerationCatalogGateway.ts",
+        ),
+      ),
+    ).toBe(true);
+    for (const file of generationCatalogPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+    }
+    for (const retiredGenerationCatalogPath of [
+      "features/canvas/application/generationCatalog.ts",
+      "features/canvas/catalogComposition.ts",
+      "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+      "features/canvas/infrastructure/freezoneGenerationCatalogGateway.test.ts",
+      "features/canvas/hooks/useFreezoneCameraOptions.ts",
+      "features/canvas/hooks/useFreezoneImageModels.ts",
+      "features/canvas/hooks/useFreezoneStyleTemplates.ts",
+      "features/canvas/hooks/useFreezoneVideoCameraTemplates.ts",
+      "features/canvas/hooks/useFreezoneVideoModels.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredGenerationCatalogPath))).toBe(
+        false,
+      );
     }
     for (const file of presentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
@@ -602,6 +656,11 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/relight",
         "@/modules/creative_canvas/domain/scene360",
         "@/modules/creative_canvas/domain/upscale",
+        "@/modules/creative_canvas/domain/cameraMovementPresets",
+        "@/modules/creative_canvas/domain/imageModelCapability",
+        "@/modules/creative_canvas/domain/videoGenerationMode",
+        "@/modules/creative_canvas/application/generationCatalog",
+        "@/modules/creative_canvas/generationCatalogComposition",
         "@/modules/creative_canvas/assetTransferComposition",
         "@/modules/creative_canvas/canvasStorageRetentionComposition",
         "@/modules/creative_canvas/domain/canvasStorageRetention",
@@ -1172,7 +1231,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 898],
+      ["features/canvas", 888],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
@@ -1220,11 +1279,6 @@ describe("round 2 residual architecture boundaries", () => {
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/composition",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/assetDrag",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/canvasNodes",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneCameraOptions",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneImageModels",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneStyleTemplates",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneVideoCameraTemplates",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneVideoModels",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/ui/NodeReplaceDragPreview",
     ]);
     const roots = ["app", "components", "modules", "routes"];
@@ -1263,8 +1317,8 @@ describe("round 2 residual architecture boundaries", () => {
       .sort();
     const catalogConsumers = [
       "features/canvas/models/registry.ts",
-      "features/canvas/hooks/useFreezoneImageModels.ts",
-      "features/canvas/hooks/useFreezoneVideoModels.ts",
+      "modules/creative_canvas/presentation/useCanvasImageModels.ts",
+      "modules/creative_canvas/presentation/useCanvasVideoModels.ts",
     ].map((path) => readFileSync(resolve(SRC_ROOT, path), "utf8"));
 
     expect(productionModelFiles).toEqual([

@@ -1,21 +1,15 @@
 // Copyright (c) 2026 AI anime
 import type { CameraMovementPreset } from "../domain/cameraMovementPresets";
-import type { VideoGenMode } from "../domain/canvasNodes";
 import type { CanvasImageMode } from "../domain/imageModelCapability";
+import type { VideoGenMode } from "../domain/videoGenerationMode";
 
-export interface CanvasImageModel {
+export interface CanvasCatalogModelOption {
   readonly id: string;
   readonly apiModel: string;
   readonly label: string;
+  readonly capabilities?: Record<string, unknown>;
   readonly imageModes?: ReadonlyArray<CanvasImageMode>;
-  readonly capabilities: Record<string, unknown>;
-  readonly parameterSchema: Record<string, unknown>;
-}
-
-export interface CanvasVideoModel {
-  readonly id: string;
-  readonly apiModel: string;
-  readonly label: string;
+  readonly parameterSchema?: Record<string, unknown>;
   readonly supportedModes?: VideoGenMode[];
   readonly supportsHumanReview?: boolean;
   readonly supportsReferenceImages?: boolean;
@@ -32,6 +26,13 @@ export interface CanvasVideoModel {
   readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
   readonly defaultSceneOptimize?: "anime" | "realistic" | null;
 }
+
+export interface CanvasImageModel extends CanvasCatalogModelOption {
+  readonly capabilities: Record<string, unknown>;
+  readonly parameterSchema: Record<string, unknown>;
+}
+
+export type CanvasVideoModel = CanvasCatalogModelOption;
 
 export interface CanvasStyleTemplate {
   readonly id: string;
@@ -61,4 +62,39 @@ export interface CanvasGenerationCatalogGateway {
   listVideoCameraTemplates(
     projectId: string,
   ): Promise<CameraMovementPreset[]>;
+}
+
+export function listCanvasImageModels(
+  projectId: string,
+  gateway: CanvasGenerationCatalogGateway,
+): Promise<CanvasImageModel[]> {
+  return gateway.listImageModels(projectId);
+}
+
+export function listCanvasVideoModels(
+  projectId: string,
+  gateway: CanvasGenerationCatalogGateway,
+): Promise<CanvasVideoModel[]> {
+  return gateway.listVideoModels(projectId);
+}
+
+export function getCanvasCameraOptions(
+  projectId: string,
+  gateway: CanvasGenerationCatalogGateway,
+): Promise<CanvasCameraOptions> {
+  return gateway.getCameraOptions(projectId);
+}
+
+export function listCanvasStyleTemplates(
+  projectId: string,
+  gateway: CanvasGenerationCatalogGateway,
+): Promise<CanvasStyleTemplate[]> {
+  return gateway.listStyleTemplates(projectId);
+}
+
+export function listCanvasVideoCameraTemplates(
+  projectId: string,
+  gateway: CanvasGenerationCatalogGateway,
+): Promise<CameraMovementPreset[]> {
+  return gateway.listVideoCameraTemplates(projectId);
 }

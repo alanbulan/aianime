@@ -14,10 +14,10 @@ import { CreditCostPill } from '@/components/credits/credit-visual';
 import { UiTextArea } from '@/components/ui';
 import { Slider } from '@/components/shadcn/slider';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import {
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
   MULTI_ANGLE_IMAGE_SIZES,
+  useCanvasImageModels,
   type MultiAngleImageSize,
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
@@ -400,7 +400,7 @@ export function MultiAngleEditorPanel({
   const [promptOverrideEnabled, setPromptOverrideEnabled] = useState(false);
   const [promptOverride, setPromptOverride] = useState('');
   const [imageSize, setImageSize] = useState<MultiAngleImageSize>(DEFAULT_MULTI_ANGLE_IMAGE_SIZE);
-  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
     surface: 'canvas',

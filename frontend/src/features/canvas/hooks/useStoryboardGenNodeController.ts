@@ -65,7 +65,7 @@ import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
 } from '@/features/canvas/domain/nodeDisplay';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
+import { useCanvasImageModels } from '@/modules/creative_canvas/public';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateStoryboardGridImageDataUrl,
@@ -189,7 +189,7 @@ export function useStoryboardGenNodeController({
     () => incomingImageItems.map((item) => item.viewerUrl),
     [incomingImageItems],
   );
-  const { models: catalogImageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: catalogImageModels } = useCanvasImageModels(projectId, 'edit');
   const imageModels = useMemo(
     () => imageModelDefinitions(catalogImageModels, 'edit'),
     [catalogImageModels],

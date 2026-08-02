@@ -2,8 +2,10 @@
 import { useMemo } from 'react';
 import { Check, X } from 'lucide-react';
 
-import type { CanvasStyleTemplate } from '@/features/canvas/application/generationCatalog';
-import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneStyleTemplates';
+import {
+  useCanvasStyleTemplates,
+  type CanvasStyleTemplate,
+} from '@/modules/creative_canvas/public';
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 interface StylePickerPopoverProps {
@@ -19,7 +21,7 @@ export function StylePickerPopover({
   onSelect,
   onClose,
 }: StylePickerPopoverProps) {
-  const { templates, isLoading } = useFreezoneStyleTemplates(projectId);
+  const { templates, isLoading } = useCanvasStyleTemplates(projectId);
 
   // Stable groups: backend `category` first (insertion order), un-categorized
   // bucket goes last under 「其他」.

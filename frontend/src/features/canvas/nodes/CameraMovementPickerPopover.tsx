@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import {
   type CameraMovementPreset,
   resolveCameraPresetVideoUrl,
-} from '@/features/canvas/domain/cameraMovementPresets';
+} from '@/modules/creative_canvas/public';
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 const CAMERA_MOVEMENT_PANEL_CLASS =

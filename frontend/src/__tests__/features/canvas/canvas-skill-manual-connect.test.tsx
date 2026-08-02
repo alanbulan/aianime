@@ -78,7 +78,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/catalogComposition", () => ({
+vi.mock("@/features/canvas/skillCatalogComposition", () => ({
   loadCanvasSkillRegistry: vi.fn().mockResolvedValue([
     {
       id: "freezone.sketch_from_context",

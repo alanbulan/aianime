@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { TFunction } from 'i18next';
 
-import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
+import { loadCanvasSkillRegistry } from '@/features/canvas/skillCatalogComposition';
 import { translateSkillName } from '@/modules/creative_canvas/public';
 
 import { nodeCatalog } from '../application/nodeCatalog';

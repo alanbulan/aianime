@@ -29,6 +29,7 @@ import {
   DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
   DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
   calculateCanvasOutpaintFrame,
+  useCanvasImageModels,
   type CanvasOutpaintAspectRatio,
   type CanvasOutpaintImageSize,
   type CanvasOutpaintNumImages,
@@ -37,7 +38,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasOutpaint } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
@@ -102,7 +102,7 @@ export const OutpaintEditorOverlay = memo(
       DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
     );
     const [modelId, setModelId] = useState<string>('');
-    const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
+    const { models: availableModels } = useCanvasImageModels(projectId, 'edit');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const selectedModel =
       availableModels.find((m) => m.id === modelId)

@@ -19,7 +19,7 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { generateCanvasGridAction } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
+import { useCanvasImageModels } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
@@ -68,7 +68,7 @@ export const GridActionConfirmOverlay = memo(
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-    const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+    const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
     const gridActionCost = useGenerationCreditCost(
       'image_selection',

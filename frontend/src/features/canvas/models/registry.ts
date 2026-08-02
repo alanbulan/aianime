@@ -8,7 +8,7 @@ import type {
 import {
   filterCanvasImageModels,
   type CanvasImageMode,
-} from '../domain/imageModelCapability';
+} from '@/modules/creative_canvas/public';
 
 interface CatalogImageModel {
   readonly id: string;

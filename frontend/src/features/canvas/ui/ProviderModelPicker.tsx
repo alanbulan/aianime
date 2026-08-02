@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Box, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { VideoGenMode } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasImageMode } from '@/features/canvas/domain/imageModelCapability';
-
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
-import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
+import {
+  useCanvasImageModels,
+  useCanvasVideoModels,
+  type CanvasCatalogModelOption,
+  type CanvasImageMode,
+} from '@/modules/creative_canvas/public';
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
@@ -20,29 +21,7 @@ const MODEL_PICKER_POPOVER_CLASS =
 const MODEL_PICKER_OPTION_BASE_CLASS =
   'inline-flex h-8 w-full items-center gap-2 rounded-[6px] px-3 text-left text-xs font-medium transition-colors';
 
-export interface ModelOption {
-  id: string;
-  apiModel: string;
-  label: string;
-  capabilities?: Record<string, unknown>;
-  imageModes?: ReadonlyArray<CanvasImageMode>;
-  parameterSchema?: Record<string, unknown>;
-  supportedModes?: VideoGenMode[];
-  supportsHumanReview?: boolean;
-  supportsReferenceImages?: boolean;
-  supportsReferenceVideos?: boolean;
-  supportsReferenceAudios?: boolean;
-  maxReferenceImages?: number | null;
-  maxReferenceVideos?: number | null;
-  maxReferenceAudios?: number | null;
-  maxReferenceTotal?: number | null;
-  maxReferenceAudioDurationSeconds?: number | null;
-  resolutionOptions?: string[];
-  minDuration?: number | null;
-  maxDuration?: number | null;
-  sceneOptimizeOptions?: Array<'anime' | 'realistic'>;
-  defaultSceneOptimize?: 'anime' | 'realistic' | null;
-}
+export type ModelOption = CanvasCatalogModelOption;
 
 export type ProviderModelDomain = 'image' | 'video';
 
@@ -87,11 +66,11 @@ export function ProviderModelPicker({
   // dormant. (React still calls both hooks unconditionally so the call order
   // is stable across renders.)
   const catalogProjectId = models === undefined ? projectId : null;
-  const imageHook = useFreezoneImageModels(
+  const imageHook = useCanvasImageModels(
     domain === 'image' ? catalogProjectId : null,
     imageMode,
   );
-  const videoHook = useFreezoneVideoModels(
+  const videoHook = useCanvasVideoModels(
     domain === 'video' ? catalogProjectId : null,
   );
   const activeHook = domain === 'video' ? videoHook : imageHook;

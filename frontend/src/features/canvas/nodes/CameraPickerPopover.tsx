@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Aperture, Camera, ChevronDown, Focus, X } from 'lucide-react';
 
-import type { CanvasCameraOptions } from '@/features/canvas/application/generationCatalog';
 import type { ImageGenCameraSelection } from '@/features/canvas/domain/canvasNodes';
-import { useFreezoneCameraOptions } from '@/features/canvas/hooks/useFreezoneCameraOptions';
+import {
+  useCanvasCameraOptions,
+  type CanvasCameraOptions,
+} from '@/modules/creative_canvas/public';
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 // Wheel geometry keeps the chosen item centered in a compact viewport.
@@ -84,7 +86,7 @@ export function CameraPickerPopover({
   onClose,
 }: CameraPickerPopoverProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { options, isLoading } = useFreezoneCameraOptions(projectId);
+  const { options, isLoading } = useCanvasCameraOptions(projectId);
 
   const cameraBodies = options?.cameraBodies ?? [];
   const lenses = options?.lenses ?? [];

@@ -31,6 +31,7 @@ import {
 import {
   CANVAS_REDRAW_IMAGE_SIZES,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  useCanvasImageModels,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
 } from '@/modules/creative_canvas/public';
@@ -48,7 +49,6 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from './nodeControlStyles';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {
@@ -138,7 +138,7 @@ export const EraseOverlay = memo(({
   );
   const [numImages, setNumImages] = useState<number>(1);
   const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>('16:9');
-  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
     surface: 'canvas',

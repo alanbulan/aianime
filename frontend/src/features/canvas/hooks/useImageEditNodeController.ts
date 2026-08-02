@@ -66,7 +66,6 @@ import {
   showErrorDialog,
 } from '@/features/canvas/composition';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
   useUpstreamContents,
@@ -85,12 +84,13 @@ import {
 } from '@/features/canvas/models';
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
+  coercePushTarget,
   defaultCapabilityParams,
   getCapability,
   listCapabilities,
+  useCanvasImageModels,
   type GenerationCapability,
 } from '@/modules/creative_canvas/public';
-import { coercePushTarget } from '@/modules/creative_canvas/public';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
 
@@ -199,7 +199,7 @@ export function useImageEditNodeController({
     [incomingImageItems],
   );
 
-  const { models: catalogImageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: catalogImageModels } = useCanvasImageModels(projectId, 'edit');
   const imageModels = useMemo(
     () => imageModelDefinitions(catalogImageModels, 'edit'),
     [catalogImageModels],

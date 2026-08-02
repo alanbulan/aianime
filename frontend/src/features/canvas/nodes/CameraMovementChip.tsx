@@ -7,7 +7,7 @@ import { CameraMovementPickerPopover } from "@/features/canvas/nodes/CameraMovem
 import {
   findCameraMovementPreset,
   type CameraMovementPreset,
-} from "@/features/canvas/domain/cameraMovementPresets";
+} from "@/modules/creative_canvas/public";
 import {
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,

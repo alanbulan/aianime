@@ -375,11 +375,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/assetDrag",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/hooks/useFreezoneCameraOptions",
-        "@/features/canvas/hooks/useFreezoneImageModels",
-        "@/features/canvas/hooks/useFreezoneStyleTemplates",
-        "@/features/canvas/hooks/useFreezoneVideoCameraTemplates",
-        "@/features/canvas/hooks/useFreezoneVideoModels",
         "@/features/canvas/ui/NodeReplaceDragPreview",
         "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
@@ -1795,7 +1790,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(controllerSource).toContain("generateStoryboardGridImageDataUrl(");
     expect(controllerSource).toContain(
-      "useFreezoneImageModels(projectId, 'edit')",
+      "useCanvasImageModels(projectId, 'edit')",
     );
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<NodeHeader");
@@ -1925,7 +1920,7 @@ describe("frontend architecture boundaries", () => {
       "canvasAiGateway.submitGenerateImageJob(",
     );
     expect(controllerSource).toContain(
-      "useFreezoneImageModels(projectId, 'edit')",
+      "useCanvasImageModels(projectId, 'edit')",
     );
     expect(controllerSource).toContain("assetLibraryProject = projectId");
     expect(controllerSource).not.toContain("readUrl");
@@ -2498,7 +2493,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("awaitCanvasSkillRunResult({");
     expect(controllerSource).toContain("getCanvasSceneAssetsForBeat({");
     expect(controllerSource).toContain(
-      "useFreezoneImageModels(projectId, 'edit')",
+      "useCanvasImageModels(projectId, 'edit')",
     );
     expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("@/lib/url-params");
@@ -9412,7 +9407,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/catalogComposition.ts",
+      "features/canvas/skillCatalogComposition.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
@@ -17556,21 +17551,21 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas camera preset contracts owned by the domain", () => {
     const presetPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/cameraMovementPresets.ts",
+      "modules/creative_canvas/domain/cameraMovementPresets.ts",
     );
     const presetSource = readFileSync(presetPath, "utf8");
     const opsSource = readFileSync(resolve(SRC_ROOT, "api/ops.ts"), "utf8");
     const catalogGatewaySource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+        "modules/creative_canvas/infrastructure/httpCanvasGenerationCatalogGateway.ts",
       ),
       "utf8",
     );
     const hookSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useFreezoneVideoCameraTemplates.ts",
+        "modules/creative_canvas/presentation/useCanvasVideoCameraTemplates.ts",
       ),
       "utf8",
     );
@@ -17594,27 +17589,27 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas generation catalogs behind an application-owned gateway", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generationCatalog.ts",
+      "modules/creative_canvas/application/generationCatalog.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+      "modules/creative_canvas/infrastructure/httpCanvasGenerationCatalogGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/catalogComposition.ts",
+      "modules/creative_canvas/generationCatalogComposition.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const hookPaths = [
-      "useFreezoneCameraOptions.ts",
-      "useFreezoneImageModels.ts",
-      "useFreezoneStyleTemplates.ts",
-      "useFreezoneVideoCameraTemplates.ts",
-      "useFreezoneVideoModels.ts",
+      "useCanvasCameraOptions.ts",
+      "useCanvasImageModels.ts",
+      "useCanvasStyleTemplates.ts",
+      "useCanvasVideoCameraTemplates.ts",
+      "useCanvasVideoModels.ts",
     ].map((filename) =>
-      resolve(SRC_ROOT, "features/canvas/hooks", filename),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation", filename),
     );
     const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
     const stylePicker = readFileSync(
@@ -17649,8 +17644,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/cameraMovementPresets",
-        "../domain/canvasNodes",
         "../domain/imageModelCapability",
+        "../domain/videoGenerationMode",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -17664,12 +17659,12 @@ describe("frontend architecture boundaries", () => {
         "@/modules/model_usage/public",
         "../application/generationCatalog",
         "../domain/cameraMovementPresets",
-        "../domain/canvasNodes",
         "../domain/imageModelCapability",
+        "../domain/videoGenerationMode",
       ]),
     );
     expect(infrastructureSource).toContain(
-      "freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway",
+      "httpCanvasGenerationCatalogGateway: CanvasGenerationCatalogGateway",
     );
     expect(infrastructureSource).toContain('loadCommercialModelCatalog("IMAGE")');
     expect(infrastructureSource).toContain('loadCommercialModelCatalog("VIDEO")');
@@ -17679,15 +17674,21 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain(
       "stylePrompt: template.style_prompt",
     );
-    expect(importSpecifiers(compositionPath)).toEqual([
-      "./infrastructure/freezoneGenerationCatalogGateway",
-      "./infrastructure/freezoneSkillCatalogGateway",
-    ]);
-    expect(compositionSource).toContain(
-      "freezoneGenerationCatalogGateway.listImageModels(projectId)",
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./infrastructure/httpCanvasGenerationCatalogGateway",
+        "./presentation/useCanvasCameraOptions",
+        "./presentation/useCanvasImageModels",
+        "./presentation/useCanvasStyleTemplates",
+        "./presentation/useCanvasVideoCameraTemplates",
+        "./presentation/useCanvasVideoModels",
+      ]),
     );
     expect(compositionSource).toContain(
-      "freezoneGenerationCatalogGateway.listVideoCameraTemplates(projectId)",
+      "createCanvasImageModelHooks(httpCanvasGenerationCatalogGateway)",
+    );
+    expect(compositionSource).toContain(
+      "createCanvasVideoCameraTemplateHooks(httpCanvasGenerationCatalogGateway)",
     );
     expect(
       hookPaths.flatMap((path) =>
@@ -17697,12 +17698,13 @@ describe("frontend architecture boundaries", () => {
       ),
     ).toEqual([]);
     for (const source of hookSources) {
-      expect(source).toContain("@/features/canvas/catalogComposition");
+      expect(source).toContain("../application/generationCatalog");
+      expect(source).not.toContain("@/features/canvas/");
       expect(source).not.toContain("@/lib/url-params");
       expect(source).not.toContain("readUrl");
     }
     expect(stylePicker).toContain(
-      "@/features/canvas/application/generationCatalog",
+      "@/modules/creative_canvas/public",
     );
     expect(stylePicker).not.toContain("@/api/ops");
     expect(stylePicker).not.toContain("style_prompt");
@@ -17713,7 +17715,7 @@ describe("frontend architecture boundaries", () => {
     for (const endpointFragment of endpointFragments) {
       const owners = ownersByEndpoint.get(endpointFragment)?.sort() ?? [];
       expect(owners).toEqual([
-        "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+        "modules/creative_canvas/infrastructure/httpCanvasGenerationCatalogGateway.ts",
       ]);
       expect(legacyOpsSource).not.toContain(endpointFragment);
     }
@@ -24310,7 +24312,9 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(importSpecifiers(domainPath)).toEqual([
+      "@/modules/creative_canvas/public",
+    ]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window");
     expect(domainSource).not.toContain("@/api/");
@@ -24924,7 +24928,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(projectionPath)).toEqual([
-      "@/features/canvas/domain/canvasNodes",
+      "@/modules/creative_canvas/public",
     ]);
     expect(forbiddenViewImports).toEqual([]);
     expect(implementationOwners).toEqual([
@@ -24982,7 +24986,9 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(new Set(importSpecifiers(domainPath))).toEqual(
+      new Set(["./canvasNodes", "@/modules/creative_canvas/public"]),
+    );
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("@/api/");
     expect(domainSource).not.toContain("@/stores/");
@@ -26494,6 +26500,7 @@ describe("frontend architecture boundaries", () => {
         "../domain/canvasNodes",
         "../domain/videoGenerationModel",
         "./ports",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(applicationSource).not.toContain("react");

@@ -6,11 +6,9 @@ const states = vi.hoisted(() => ({
   video: { models: [], isLoading: false, error: null as Error | null },
 }));
 
-vi.mock("@/features/canvas/hooks/useFreezoneImageModels", () => ({
-  useFreezoneImageModels: () => states.image,
-}));
-vi.mock("@/features/canvas/hooks/useFreezoneVideoModels", () => ({
-  useFreezoneVideoModels: () => states.video,
+vi.mock("@/modules/creative_canvas/public", () => ({
+  useCanvasImageModels: () => states.image,
+  useCanvasVideoModels: () => states.video,
 }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

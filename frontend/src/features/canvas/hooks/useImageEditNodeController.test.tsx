@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
   submitGenerateImageJob: vi.fn(),
   resolvePickerAnchor: vi.fn(),
   backendErrorToastMessage: vi.fn(),
-  useFreezoneImageModels: vi.fn(),
+  useCanvasImageModels: vi.fn(),
   storeNodes: [] as Array<{
     id: string;
     position: { x: number; y: number };
@@ -128,11 +128,6 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
-vi.mock('@/features/canvas/hooks/useFreezoneImageModels', () => ({
-  useFreezoneImageModels: (...args: unknown[]) =>
-    mocks.useFreezoneImageModels(...args),
-}));
-
 vi.mock('@/features/canvas/nodes/useReferenceMentionSync', () => ({
   useReferenceMentionSync: () => undefined,
 }));
@@ -160,6 +155,8 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   getCapability: (id: string | undefined) =>
     id === mocks.capability.id ? mocks.capability : null,
   listCapabilities: () => [mocks.capability],
+  useCanvasImageModels: (...args: unknown[]) =>
+    mocks.useCanvasImageModels(...args),
 }));
 
 vi.mock('@/features/canvas/composition', () => ({
@@ -239,7 +236,7 @@ describe('useImageEditNodeController', () => {
     mocks.submitGenerateImageJob.mockReset().mockResolvedValue('job-a');
     mocks.resolvePickerAnchor.mockReset().mockReturnValue({ left: 12, top: 24 });
     mocks.backendErrorToastMessage.mockReset().mockReturnValue('可读生成错误');
-    mocks.useFreezoneImageModels
+    mocks.useCanvasImageModels
       .mockReset()
       .mockReturnValue({ models: [{ id: 'model-a' }] });
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -280,7 +277,7 @@ describe('useImageEditNodeController', () => {
 
     expect(result.current.size).toEqual({ width: 520, height: 500 });
     expect(result.current.assetLibraryProject).toBe('project-a');
-    expect(mocks.useFreezoneImageModels).toHaveBeenCalledWith(
+    expect(mocks.useCanvasImageModels).toHaveBeenCalledWith(
       'project-a',
       'edit',
     );

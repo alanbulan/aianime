@@ -10,6 +10,7 @@ import {
   CANVAS_UPSCALE_SCALE_FACTORS,
   resolveCanvasUpscaleImageSize,
   resolveCanvasUpscaleScaleFactor,
+  useCanvasImageModels,
   type CanvasUpscaleImageSize,
   type CanvasUpscaleScaleFactor,
 } from '@/modules/creative_canvas/public';
@@ -17,7 +18,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { generateCanvasUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -70,7 +70,7 @@ export const UpscaleEditorOverlay = memo(({
   const sourceUrl = persisted.upscaleSourceUrl ?? '';
   const persistedModelId =
     typeof persisted.upscaleModelId === 'string' ? persisted.upscaleModelId : '';
-  const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: availableModels } = useCanvasImageModels(projectId, 'edit');
   const persistedImageSize = resolveCanvasUpscaleImageSize(persisted.upscaleImageSize);
   const persistedScaleFactor = resolveCanvasUpscaleScaleFactor(
     persisted.upscaleScaleFactor,

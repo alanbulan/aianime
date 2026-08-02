@@ -95,8 +95,8 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamImages: () => mocks.upstreamImages,
 }));
 
-vi.mock('@/features/canvas/hooks/useFreezoneImageModels', () => ({
-  useFreezoneImageModels: () => ({ models: [{ id: 'model-a' }] }),
+vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 
 vi.mock('@/features/canvas/models', () => ({

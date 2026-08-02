@@ -12,15 +12,15 @@ vi.mock("@/modules/model_usage/public", () => ({
 import {
   commercialImageModels,
   commercialVideoModels,
-  freezoneGenerationCatalogGateway,
-} from "./freezoneGenerationCatalogGateway";
+  httpCanvasGenerationCatalogGateway,
+} from "./httpCanvasGenerationCatalogGateway";
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
   vi.mocked(loadCommercialModelCatalog).mockReset();
 });
 
-describe("freezoneGenerationCatalogGateway", () => {
+describe("httpCanvasGenerationCatalogGateway", () => {
   it("maps Commercial Gateway SKU codes without exposing upstream providers", () => {
     const catalog = {
       catalogVersion: "catalog-v1",
@@ -163,7 +163,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       });
 
     await expect(
-      freezoneGenerationCatalogGateway.listImageModels("project/1"),
+      httpCanvasGenerationCatalogGateway.listImageModels("project/1"),
     ).resolves.toEqual([
       {
         id: "image-standard",
@@ -174,7 +174,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       },
     ]);
     await expect(
-      freezoneGenerationCatalogGateway.listVideoModels("project/1"),
+      httpCanvasGenerationCatalogGateway.listVideoModels("project/1"),
     ).resolves.toEqual([
       {
         id: "video-standard",
@@ -208,7 +208,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       ]);
 
     await expect(
-      freezoneGenerationCatalogGateway.getCameraOptions("project/2"),
+      httpCanvasGenerationCatalogGateway.getCameraOptions("project/2"),
     ).resolves.toEqual({
       cameraBodies: [{ id: "arri", label: "ARRI" }],
       lenses: [{ id: "cooke", label: "Cooke" }],
@@ -216,7 +216,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       apertures: ["f/2.8"],
     });
     await expect(
-      freezoneGenerationCatalogGateway.listStyleTemplates("project/2"),
+      httpCanvasGenerationCatalogGateway.listStyleTemplates("project/2"),
     ).resolves.toEqual([
       {
         id: "anime",
@@ -248,7 +248,7 @@ describe("freezoneGenerationCatalogGateway", () => {
     });
 
     await expect(
-      freezoneGenerationCatalogGateway.listVideoCameraTemplates("project/3"),
+      httpCanvasGenerationCatalogGateway.listVideoCameraTemplates("project/3"),
     ).resolves.toEqual([
       {
         id: "dolly-in",

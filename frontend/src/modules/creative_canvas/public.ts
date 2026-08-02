@@ -17,6 +17,46 @@ export type {
   GenerationCapability,
 } from "@/modules/creative_canvas/domain/capabilities/contracts";
 export {
+  filterCanvasImageModels,
+  supportsCanvasImageMode,
+} from "@/modules/creative_canvas/domain/imageModelCapability";
+export type {
+  CanvasImageMode,
+  CanvasImageModeCapability,
+} from "@/modules/creative_canvas/domain/imageModelCapability";
+export {
+  CAMERA_MOVEMENT_PRESETS,
+  findCameraMovementPreset,
+  resolveCameraPresetVideoUrl,
+} from "@/modules/creative_canvas/domain/cameraMovementPresets";
+export type { CameraMovementPreset } from "@/modules/creative_canvas/domain/cameraMovementPresets";
+export type { VideoGenMode } from "@/modules/creative_canvas/domain/videoGenerationMode";
+export type {
+  CanvasCameraIdLabel,
+  CanvasCameraOptions,
+  CanvasCatalogModelOption,
+  CanvasImageModel,
+  CanvasStyleTemplate,
+  CanvasVideoModel,
+} from "@/modules/creative_canvas/application/generationCatalog";
+export {
+  prefetchCanvasCameraOptions,
+  prefetchCanvasImageModels,
+  prefetchCanvasStyleTemplates,
+  prefetchCanvasVideoCameraTemplates,
+  prefetchCanvasVideoModels,
+  useCanvasCameraOptions,
+  useCanvasImageModels,
+  useCanvasStyleTemplates,
+  useCanvasVideoCameraTemplates,
+  useCanvasVideoModels,
+} from "@/modules/creative_canvas/generationCatalogComposition";
+export type { UseCanvasCameraOptionsResult } from "@/modules/creative_canvas/presentation/useCanvasCameraOptions";
+export type { UseCanvasImageModelsResult } from "@/modules/creative_canvas/presentation/useCanvasImageModels";
+export type { UseCanvasStyleTemplatesResult } from "@/modules/creative_canvas/presentation/useCanvasStyleTemplates";
+export type { UseCanvasVideoCameraTemplatesResult } from "@/modules/creative_canvas/presentation/useCanvasVideoCameraTemplates";
+export type { UseCanvasVideoModelsResult } from "@/modules/creative_canvas/presentation/useCanvasVideoModels";
+export {
   getFreezoneCanvasMetadata,
   setFreezoneCanvasMetadata,
 } from "@/modules/creative_canvas/application/canvasMetadataState";

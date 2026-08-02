@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import type {
   Seedance2SceneOptimize,
-  VideoGenMode,
   VideoGenQuality,
 } from "../domain/canvasNodes";
+import type { VideoGenMode } from "@/modules/creative_canvas/public";
 import { qualityToResolution } from "../domain/videoGenerationModel";
 import type { CanvasGenerationTaskRef } from "./ports";
 

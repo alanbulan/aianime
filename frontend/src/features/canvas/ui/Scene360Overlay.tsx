@@ -13,12 +13,12 @@ import {
 import {
   CANVAS_SCENE_360_ASPECT_RATIOS,
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  useCanvasImageModels,
   type CanvasScene360AspectRatio,
 } from '@/modules/creative_canvas/public';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { generateCanvasScene360 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -48,7 +48,7 @@ export const Scene360Overlay = memo(
     const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
     const findNodePosition = useCanvasStore((state) => state.findNodePosition);
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-    const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+    const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
     const panoCost = useGenerationCreditCost(
       'image_selection',

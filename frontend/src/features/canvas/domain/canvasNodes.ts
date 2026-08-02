@@ -5,6 +5,7 @@ import type {
   DirectorObjectLayer,
   DirectorWorldSource,
 } from '@/features/viewer-kit/three-d/directorManifest';
+import type { VideoGenMode } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
   upload: 'uploadNode',
@@ -79,14 +80,6 @@ export interface UploadImageNodeData extends NodeImageData {
   uploadError?: string | null;
   imageOnly?: boolean;
 }
-
-export type VideoGenMode =
-  | 'textToVideo'
-  | 'allReference'
-  | 'imageToVideo'
-  | 'firstLastFrame'
-  | 'imageReference'
-  | 'videoEdit';
 
 export type VideoGenQuality = '480P' | '720P' | '1080P';
 export type VideoGenCount = 1 | 2 | 4;

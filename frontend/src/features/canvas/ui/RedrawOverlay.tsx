@@ -34,6 +34,7 @@ import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  useCanvasImageModels,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
@@ -48,7 +49,6 @@ import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
@@ -125,7 +125,7 @@ export const RedrawOverlay = memo(({
 
   const [prompt, setPrompt] = useState('');
   const [modelId, setModelId] = useState<string>('');
-  const { models: availableModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: availableModels } = useCanvasImageModels(projectId, 'edit');
   const [imageSize, setImageSize] = useState<CanvasRedrawImageSize>(
     DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   );

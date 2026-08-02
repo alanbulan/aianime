@@ -42,7 +42,7 @@ import {
   outputLabel,
   outputText,
 } from '@/features/canvas/application/skillOutputProjection';
-import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
+import { loadCanvasSkillRegistry } from '@/features/canvas/skillCatalogComposition';
 import {
   awaitCanvasGenerationTaskCompletion,
   awaitCanvasSkillRunResult,
@@ -62,22 +62,20 @@ import {
   normalizedSkillParameters,
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
-import { publishCanvasCommitRequested } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useCanvasSkillRegistry } from '@/features/canvas/hooks/useCanvasSkillRegistry';
-import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
+  publishCanvasCommitRequested,
   resolveInputsForSkill,
   skillRunErrorMessage,
+  translateSkillDescription,
+  translateSkillName,
+  useCanvasImageModels,
   type MainlineContext,
   type SceneAssetsForBeat,
   type SkillRunOutput,
-} from '@/modules/creative_canvas/public';
-import {
-  translateSkillDescription,
-  translateSkillName,
 } from '@/modules/creative_canvas/public';
 import type {
   DirectorControlFrameBundle,
@@ -193,7 +191,7 @@ export function useSkillNodeController({
   const { skills: registry, isLoading, loadError } = useCanvasSkillRegistry(
     loadCanvasSkillRegistry,
   );
-  const { models: imageModels } = useFreezoneImageModels(projectId, 'edit');
+  const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
   const [sceneAssets, setSceneAssets] =
     useState<SceneAssetsForBeat | null>(null);
   const [sourcePickerError, setSourcePickerError] = useState<string | null>(

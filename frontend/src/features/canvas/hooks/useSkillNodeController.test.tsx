@@ -83,7 +83,7 @@ vi.mock('@/features/canvas/hooks/useCanvasSkillRegistry', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/catalogComposition', () => ({
+vi.mock('@/features/canvas/skillCatalogComposition', () => ({
   loadCanvasSkillRegistry: vi.fn(),
   loadCanvasImageModels: vi.fn().mockResolvedValue([]),
 }));

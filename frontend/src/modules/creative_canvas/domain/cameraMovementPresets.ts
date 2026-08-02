@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 // Camera-movement presets. Fallback list used when
 // `/freezone/video/camera-templates` is loading or unavailable. The runtime
-// source of truth is the backend endpoint, fetched via
-// `useFreezoneVideoCameraTemplates`. Mirrors libtv's 23-entry 运镜 catalog;
+// source of truth is the authenticated Canvas generation catalog. Mirrors
+// libtv's 23-entry 运镜 catalog;
 // each entry ships with a short .mp4 preview at `public/video/camera-presets/`.
 
 export interface CameraMovementPreset {

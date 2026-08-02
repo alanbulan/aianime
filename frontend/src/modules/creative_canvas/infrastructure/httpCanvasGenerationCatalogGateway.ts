@@ -13,8 +13,8 @@ import type {
   CanvasVideoModel,
 } from "../application/generationCatalog";
 import type { CameraMovementPreset } from "../domain/cameraMovementPresets";
-import type { VideoGenMode } from "../domain/canvasNodes";
 import type { CanvasImageMode } from "../domain/imageModelCapability";
+import type { VideoGenMode } from "../domain/videoGenerationMode";
 
 interface StyleTemplateTransport {
   readonly id: string;
@@ -352,7 +352,7 @@ function mapStyleTemplate(
   };
 }
 
-export const freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway = {
+export const httpCanvasGenerationCatalogGateway: CanvasGenerationCatalogGateway = {
   async listImageModels(_projectId) {
     if (!window.aiAnimeDesktop?.commercial) return [];
     return commercialImageModels(await loadCommercialModelCatalog("IMAGE"));

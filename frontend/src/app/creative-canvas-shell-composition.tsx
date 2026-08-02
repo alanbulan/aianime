@@ -20,14 +20,6 @@ import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
 } from "@/features/canvas/domain/canvasNodes";
-import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
-import {
-  prefetchFreezoneImageModels,
-  useFreezoneImageModels,
-} from "@/features/canvas/hooks/useFreezoneImageModels";
-import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
-import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
-import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import {
   createCanvasCommitControllerHook,
@@ -37,6 +29,12 @@ import {
   FreezoneShellView,
   insertAssetLibraryAsset,
   MaskEditor,
+  prefetchCanvasCameraOptions,
+  prefetchCanvasImageModels,
+  prefetchCanvasStyleTemplates,
+  prefetchCanvasVideoCameraTemplates,
+  prefetchCanvasVideoModels,
+  useCanvasImageModels,
   useCanvasProjectionCommandController,
   useCanvasProjectionStatusLifecycle,
   type FreezoneShellCanvasRenderProps,
@@ -81,11 +79,11 @@ const useCanvasCommitController = createCanvasCommitControllerHook({
 const useFreezoneCanvasEntryLifecycle =
   createUseFreezoneCanvasEntryLifecycle({
     readCanvasNodeCount: () => useCanvasStore.getState().nodes.length,
-    prefetchImageModels: prefetchFreezoneImageModels,
-    prefetchVideoModels: prefetchFreezoneVideoModels,
-    prefetchCameraOptions: prefetchFreezoneCameraOptions,
-    prefetchStyleTemplates: prefetchFreezoneStyleTemplates,
-    prefetchVideoCameraTemplates: prefetchFreezoneVideoCameraTemplates,
+    prefetchImageModels: prefetchCanvasImageModels,
+    prefetchVideoModels: prefetchCanvasVideoModels,
+    prefetchCameraOptions: prefetchCanvasCameraOptions,
+    prefetchStyleTemplates: prefetchCanvasStyleTemplates,
+    prefetchVideoCameraTemplates: prefetchCanvasVideoCameraTemplates,
     readCurrentCanvasParam: currentCanvasParam,
     rememberLastCanvas,
     replaceCanvasParam: (canvasId) =>
@@ -137,7 +135,7 @@ function addAssetToCanvas(asset: LibraryAsset, index: number): void {
 
 const maskEditorDependencies: MaskEditorControllerDependencies = {
   useImageModels: (projectId) =>
-    useFreezoneImageModels(projectId, "edit"),
+    useCanvasImageModels(projectId, "edit"),
   uploadAsset: uploadCanvasAsset,
   generateRedraw: (request, onTaskSubmitted) =>
     generateCanvasRedraw(request, onTaskSubmitted),
