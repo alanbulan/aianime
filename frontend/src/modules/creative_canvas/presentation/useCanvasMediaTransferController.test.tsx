@@ -3,8 +3,6 @@ import { act, renderHook } from '@testing-library/react';
 import type { DragEvent as ReactDragEvent } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasEventBus } from '../application/ports';
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import {
   useCanvasMediaTransferController,
   type CanvasMediaTransferControllerOptions,
@@ -42,22 +40,26 @@ function dropEvent(file: File): ReactDragEvent<HTMLDivElement> {
 }
 
 function createOptions() {
-  const publish = vi.fn();
-  const eventBus: Pick<CanvasEventBus, 'publish'> = {
-    publish: (type, payload) => publish(type, payload),
-  };
-  const createNode = vi.fn<CanvasMediaTransferControllerOptions['createNode']>(
+  const createUploadNode = vi.fn<
+    CanvasMediaTransferControllerOptions['createUploadNode']
+  >(
     () => 'upload-node',
   );
+  const eventPort = {
+    pasteImageIntoNode: vi.fn(),
+    attachExternalFile: vi.fn(),
+  };
 
   return {
     selectedUploadNodeId: null,
     getPreferredClientPosition: vi.fn(() => ({ x: 100, y: 80 })),
     screenToFlowPosition: vi.fn(() => ({ x: 40, y: 20 })),
-    createNode,
+    createUploadNode,
     selectNode: vi.fn(),
-    eventBus,
-    publish,
+    eventPort,
+    hydrateAsset: vi.fn(async (payload) => payload),
+    spawnAsset: vi.fn(() => 'asset-node'),
+    isImmersiveViewerActive: vi.fn(() => false),
   };
 }
 
@@ -81,27 +83,17 @@ describe('useCanvasMediaTransferController', () => {
     act(() => document.dispatchEvent(pasteEvent(pastedImage)));
     act(() => result.current.handleCanvasDrop(dropEvent(droppedAudio)));
 
-    expect(options.createNode).toHaveBeenNthCalledWith(
+    expect(options.createUploadNode).toHaveBeenNthCalledWith(1, { x: 40, y: 20 });
+    expect(options.createUploadNode).toHaveBeenNthCalledWith(2, { x: 40, y: 20 });
+    expect(options.eventPort.attachExternalFile).toHaveBeenNthCalledWith(
       1,
-      CANVAS_NODE_TYPES.upload,
-      { x: 40, y: 20 },
-      { user_spawned: true },
+      'upload-node',
+      pastedImage,
     );
-    expect(options.createNode).toHaveBeenNthCalledWith(
+    expect(options.eventPort.attachExternalFile).toHaveBeenNthCalledWith(
       2,
-      CANVAS_NODE_TYPES.upload,
-      { x: 40, y: 20 },
-      { user_spawned: true },
-    );
-    expect(options.publish).toHaveBeenNthCalledWith(
-      1,
-      'upload-node/external-file',
-      { nodeId: 'upload-node', file: pastedImage },
-    );
-    expect(options.publish).toHaveBeenNthCalledWith(
-      2,
-      'upload-node/external-file',
-      { nodeId: 'upload-node', file: droppedAudio },
+      'upload-node',
+      droppedAudio,
     );
     expect(options.selectNode).toHaveBeenCalledTimes(2);
   });
@@ -116,10 +108,10 @@ describe('useCanvasMediaTransferController', () => {
 
     act(() => document.dispatchEvent(pasteEvent(image)));
 
-    expect(options.publish).toHaveBeenCalledWith(
-      'upload-node/paste-image',
-      { nodeId: 'selected-upload', file: image },
+    expect(options.eventPort.pasteImageIntoNode).toHaveBeenCalledWith(
+      'selected-upload',
+      image,
     );
-    expect(options.createNode).not.toHaveBeenCalled();
+    expect(options.createUploadNode).not.toHaveBeenCalled();
   });
 });

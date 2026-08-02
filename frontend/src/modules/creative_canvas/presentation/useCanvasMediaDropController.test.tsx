@@ -6,7 +6,7 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import {
   CANVAS_ASSET_DRAG_MIME,
   type CanvasAssetDragPayload,
-} from '@/modules/creative_canvas/public';
+} from '../domain/assetDrag';
 import {
   useCanvasMediaDropController,
   type CanvasMediaDropControllerOptions,

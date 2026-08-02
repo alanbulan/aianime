@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
-import { isSpacePanKey, isTypingTarget } from '../ui/canvasInteractionTargets';
+import { isSpacePanKey, isTypingTarget } from '@/modules/creative_canvas/public';
 
 export interface CanvasSpacePanController {
   isSpacePanActive: () => boolean;

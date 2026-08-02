@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { MOD_KEY_LABEL } from '@/lib/platform';
 import { CANVAS_CONTROL_GLASS_CLASS } from './canvasControlStyles';
-import { isTypingTarget } from './canvasInteractionTargets';
+import { isTypingTarget } from '@/modules/creative_canvas/public';
 import { useEdgeVisibilityStore } from './edgeVisibilityStore';
 
 const ZOOM_STEP = 1.2;

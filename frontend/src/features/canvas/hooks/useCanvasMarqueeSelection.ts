@@ -9,7 +9,7 @@ import {
 
 import type { CanvasNode } from '../domain/canvasNodes';
 import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
-import { isCanvasPaneTarget } from '../ui/canvasInteractionTargets';
+import { isCanvasPaneTarget } from '@/modules/creative_canvas/public';
 import { useCanvasSpacePan } from './useCanvasSpacePan';
 
 const MARQUEE_SELECTION_MIN_DISTANCE_PX = 6;

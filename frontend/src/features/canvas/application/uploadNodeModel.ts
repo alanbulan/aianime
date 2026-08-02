@@ -11,7 +11,7 @@ import {
   resolveResizeMinConstraintsByAspect,
   resolveImageNodeDimension,
 } from '@/features/canvas/application/imageNodeSizing';
-import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
+import { isVideoFile } from '@/modules/creative_canvas/public';
 import {
   isNodeUsingDefaultDisplayName,
   resolveNodeDisplayName,

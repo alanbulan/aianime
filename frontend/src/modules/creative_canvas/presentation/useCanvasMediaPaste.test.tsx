@@ -2,8 +2,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useViewerImmersiveBody } from '@/features/viewer-kit/useViewerImmersiveBody';
-
 import {
   useCanvasMediaPaste,
   type CanvasMediaPasteOptions,
@@ -38,6 +36,7 @@ function createOptions(
       pasteImageIntoNode: vi.fn(),
       attachExternalFile: vi.fn(),
     },
+    isImmersiveViewerActive: vi.fn(() => false),
     ...overrides,
   };
 }
@@ -117,16 +116,16 @@ describe('useCanvasMediaPaste', () => {
   });
 
   it('leaves typing targets and immersive viewers in control', () => {
-    const options = createOptions();
+    const isImmersiveViewerActive = vi.fn(() => false);
+    const options = createOptions({ isImmersiveViewerActive });
     renderHook(() => useCanvasMediaPaste(options));
     const image = new File(['image'], 'frame.png', { type: 'image/png' });
     const input = document.createElement('input');
     document.body.append(input);
 
     act(() => input.dispatchEvent(pasteEvent([image])));
-    const immersiveViewer = renderHook(() => useViewerImmersiveBody(true));
+    isImmersiveViewerActive.mockReturnValue(true);
     act(() => document.dispatchEvent(pasteEvent([image])));
-    immersiveViewer.unmount();
     input.remove();
 
     expect(options.createUploadNode).not.toHaveBeenCalled();

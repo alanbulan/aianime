@@ -26,7 +26,7 @@ import { SnapAlignGuides } from '../snap-align/SnapAlignGuides';
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
-import { PAN_ACTIVATION_KEY_CODE } from './canvasInteractionTargets';
+import { PAN_ACTIVATION_KEY_CODE } from '@/modules/creative_canvas/public';
 import { CanvasMinimapButton } from './CanvasMinimapButton';
 import { CanvasMinimapBookmarksOverlay } from './CanvasMinimapBookmarksOverlay';
 import { CanvasQuickActionBar } from './CanvasQuickActionBar';

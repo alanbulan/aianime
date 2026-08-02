@@ -114,7 +114,7 @@ describe("freezone viewer contracts", () => {
       "src/app/creative-canvas-shell-composition.tsx",
     );
     const mediaTransferController = read(
-      "src/features/canvas/hooks/useCanvasMediaTransferController.ts",
+      "src/features/canvas/hooks/useCanvasMediaSurfaceController.ts",
     );
     const hydrate = read("src/features/canvas/application/assetDragHydration.ts");
     const composition = read("src/features/canvas/composition.ts");

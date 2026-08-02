@@ -48,7 +48,7 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import type { VideoGenerationReference } from '@/features/canvas/application/submitVideoGeneration';
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
-import { isVideoFile, VIDEO_FILE_ACCEPT } from '@/features/canvas/application/videoFileTypes';
+import { isVideoFile, VIDEO_FILE_ACCEPT } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureBrowserVideoFrameStrip,

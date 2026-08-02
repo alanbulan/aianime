@@ -9,7 +9,7 @@ import {
 
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
-import { isCanvasPaneTarget, isTypingTarget } from '../ui/canvasInteractionTargets';
+import { isCanvasPaneTarget, isTypingTarget } from '@/modules/creative_canvas/public';
 
 export interface CanvasClientPosition {
   x: number;

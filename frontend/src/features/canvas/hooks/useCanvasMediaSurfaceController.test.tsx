@@ -7,7 +7,8 @@ import type {
 } from './useCanvasHistoryAssetController';
 import type {
   CanvasMediaTransferControllerOptions,
-} from './useCanvasMediaTransferController';
+} from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import {
   useCanvasMediaSurfaceController,
   type CanvasMediaSurfaceControllerOptions,
@@ -30,6 +31,9 @@ const controllerMocks = vi.hoisted(() => {
   return {
     mediaTransfer,
     historyAssets,
+    hydrateAsset: vi.fn(async (payload) => payload),
+    isImmersiveViewerActive: vi.fn(() => false),
+    spawnCanvasAssetNode: vi.fn(() => 'spawned-asset-node'),
     useMediaTransfer: vi.fn(
       (_options: CanvasMediaTransferControllerOptions) => mediaTransfer,
     ),
@@ -39,8 +43,15 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('./useCanvasMediaTransferController', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
+  spawnCanvasAssetNode: controllerMocks.spawnCanvasAssetNode,
   useCanvasMediaTransferController: controllerMocks.useMediaTransfer,
+}));
+vi.mock('@/features/canvas/composition', () => ({
+  hydrateAssetDragPayload: controllerMocks.hydrateAsset,
+}));
+vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
+  isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
 }));
 vi.mock('./useCanvasHistoryAssetController', () => ({
   useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
@@ -76,10 +87,29 @@ describe('useCanvasMediaSurfaceController', () => {
       selectedUploadNodeId: options.selectedUploadNodeId,
       getPreferredClientPosition: options.getPreferredClientPosition,
       screenToFlowPosition: options.screenToFlowPosition,
-      createNode: options.createNode,
       selectNode: options.selectNode,
-      eventBus: options.eventBus,
+      createUploadNode: expect.any(Function),
+      eventPort: expect.objectContaining({
+        pasteImageIntoNode: expect.any(Function),
+        attachExternalFile: expect.any(Function),
+      }),
+      hydrateAsset: expect.any(Function),
+      spawnAsset: expect.any(Function),
+      isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
     });
+    const transferOptions = controllerMocks.useMediaTransfer.mock.calls[0]?.[0];
+    expect(transferOptions?.createUploadNode({ x: 3, y: 4 })).toBe('created-node');
+    expect(options.createNode).toHaveBeenCalledWith(
+      CANVAS_NODE_TYPES.upload,
+      { x: 3, y: 4 },
+      { user_spawned: true },
+    );
+    const image = new File(['image'], 'image.png', { type: 'image/png' });
+    transferOptions?.eventPort.pasteImageIntoNode('upload-node', image);
+    expect(options.eventBus.publish).toHaveBeenCalledWith(
+      'upload-node/paste-image',
+      { nodeId: 'upload-node', file: image },
+    );
     expect(result.current).toEqual({
       queueSnapshotPaste: controllerMocks.mediaTransfer.queueSnapshotPaste,
       isCanvasDropActive: false,

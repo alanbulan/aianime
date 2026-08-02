@@ -1,25 +1,45 @@
 // Copyright (c) 2026 AI anime
+import { useCallback, useMemo } from 'react';
+
+import { hydrateAssetDragPayload } from '@/features/canvas/composition';
+import type { CanvasEventBus } from '@/features/canvas/application/ports';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import {
+  spawnCanvasAssetNode,
+  useCanvasMediaTransferController,
+  type CanvasAssetDragPayload,
+  type CanvasAssetNodeSpawnPort,
+  type CanvasMediaPasteEventPort,
+  type CanvasMediaTransferController,
+} from '@/modules/creative_canvas/public';
+
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasNodeData,
+  type CanvasNodeType,
+} from '../domain/canvasNodes';
 import {
   useCanvasHistoryAssetController,
   type CanvasHistoryAssetController,
   type CanvasHistoryAssetControllerOptions,
 } from './useCanvasHistoryAssetController';
-import {
-  useCanvasMediaTransferController,
-  type CanvasMediaTransferController,
-  type CanvasMediaTransferControllerOptions,
-} from './useCanvasMediaTransferController';
+
+interface CanvasPosition {
+  x: number;
+  y: number;
+}
 
 export interface CanvasMediaSurfaceControllerOptions {
-  selectedUploadNodeId:
-    CanvasMediaTransferControllerOptions['selectedUploadNodeId'];
-  getPreferredClientPosition:
-    CanvasMediaTransferControllerOptions['getPreferredClientPosition'];
-  screenToFlowPosition:
-    CanvasMediaTransferControllerOptions['screenToFlowPosition'];
-  createNode: CanvasMediaTransferControllerOptions['createNode'];
-  selectNode: CanvasMediaTransferControllerOptions['selectNode'];
-  eventBus: CanvasMediaTransferControllerOptions['eventBus'];
+  selectedUploadNodeId: string | null;
+  getPreferredClientPosition: () => CanvasPosition | null;
+  screenToFlowPosition: (position: CanvasPosition) => CanvasPosition;
+  createNode: (
+    type: CanvasNodeType,
+    position: CanvasPosition,
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  selectNode: (nodeId: string) => void;
+  eventBus: Pick<CanvasEventBus, 'publish'>;
   getViewportCenter: CanvasHistoryAssetControllerOptions['getViewportCenter'];
   deleteNode: CanvasHistoryAssetControllerOptions['deleteNode'];
 }
@@ -39,13 +59,52 @@ export function useCanvasMediaSurfaceController({
   getViewportCenter,
   deleteNode,
 }: CanvasMediaSurfaceControllerOptions): CanvasMediaSurfaceController {
+  const mediaTransferEventPort = useMemo<CanvasMediaPasteEventPort>(
+    () => ({
+      pasteImageIntoNode: (nodeId, file) => {
+        eventBus.publish('upload-node/paste-image', { nodeId, file });
+      },
+      attachExternalFile: (nodeId, file) => {
+        eventBus.publish('upload-node/external-file', { nodeId, file });
+      },
+    }),
+    [eventBus],
+  );
+  const createUploadNode = useCallback(
+    (position: CanvasPosition) =>
+      createNode(
+        CANVAS_NODE_TYPES.upload,
+        position,
+        { user_spawned: true } as Partial<CanvasNodeData>,
+      ),
+    [createNode],
+  );
+  const hydrateAsset = useCallback(
+    (payload: CanvasAssetDragPayload) => hydrateAssetDragPayload(payload),
+    [],
+  );
+  const assetNodeSpawnPort = useMemo<CanvasAssetNodeSpawnPort>(
+    () => ({
+      addNode: (type, position, data) =>
+        createNode(type, position, data as Partial<CanvasNodeData>),
+    }),
+    [createNode],
+  );
+  const spawnAssetNode = useCallback(
+    (payload: CanvasAssetDragPayload, position: CanvasPosition) =>
+      spawnCanvasAssetNode(assetNodeSpawnPort, payload, position),
+    [assetNodeSpawnPort],
+  );
   const { spawnAsset, ...mediaTransfer } = useCanvasMediaTransferController({
     selectedUploadNodeId,
     getPreferredClientPosition,
     screenToFlowPosition,
-    createNode,
+    createUploadNode,
     selectNode,
-    eventBus,
+    eventPort: mediaTransferEventPort,
+    hydrateAsset,
+    spawnAsset: spawnAssetNode,
+    isImmersiveViewerActive,
   });
   const historyAssets = useCanvasHistoryAssetController({
     getViewportCenter,

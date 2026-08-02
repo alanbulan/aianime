@@ -545,6 +545,22 @@ export type {
   CanvasAssetNodeType,
 } from "@/modules/creative_canvas/application/canvasAssetNodeSpawning";
 export { readCanvasAssetDragPayload } from "@/modules/creative_canvas/presentation/canvasAssetDragTransfer";
+export {
+  isVideoFile,
+  VIDEO_FILE_ACCEPT,
+} from "@/modules/creative_canvas/domain/videoFileTypes";
+export {
+  isCanvasPaneTarget,
+  isSpacePanKey,
+  isTypingTarget,
+  PAN_ACTIVATION_KEY_CODE,
+} from "@/modules/creative_canvas/presentation/canvasInteractionTargets";
+export { useCanvasMediaTransferController } from "@/modules/creative_canvas/presentation/useCanvasMediaTransferController";
+export type {
+  CanvasMediaTransferController,
+  CanvasMediaTransferControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasMediaTransferController";
+export type { CanvasMediaPasteEventPort } from "@/modules/creative_canvas/presentation/useCanvasMediaPaste";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

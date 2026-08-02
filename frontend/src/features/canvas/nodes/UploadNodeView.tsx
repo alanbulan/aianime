@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { Camera, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { VIDEO_FILE_ACCEPT } from '@/features/canvas/application/videoFileTypes';
+import { VIDEO_FILE_ACCEPT } from '@/modules/creative_canvas/public';
 import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';

@@ -185,6 +185,10 @@ describe("round 2 residual architecture boundaries", () => {
       "assetLibraryCanvasInsertion.test.ts",
       "canvasAssetNodeSpawning.ts",
     ];
+    const mediaTransferDomainFiles = [
+      "videoFileTypes.ts",
+      "videoFileTypes.test.ts",
+    ];
     const toolImageGeometryDomainFiles = [
       "toolImageGeometry.ts",
       "toolImageGeometry.test.ts",
@@ -258,6 +262,18 @@ describe("round 2 residual architecture boundaries", () => {
       "AssetLibraryAssetCard.test.tsx",
       "canvasAssetDragTransfer.ts",
       "NodeReplaceDragPreview.tsx",
+      "canvasInteractionTargets.ts",
+      "canvasInteractionTargets.test.ts",
+      "canvasMediaTransfer.ts",
+      "canvasMediaTransfer.test.ts",
+      "useCanvasDropIndicator.ts",
+      "useCanvasDropIndicator.test.tsx",
+      "useCanvasMediaDropController.ts",
+      "useCanvasMediaDropController.test.tsx",
+      "useCanvasMediaPaste.ts",
+      "useCanvasMediaPaste.test.tsx",
+      "useCanvasMediaTransferController.ts",
+      "useCanvasMediaTransferController.test.tsx",
       "skillI18n.ts",
       "skillI18n.test.ts",
       "contextQueryHooks.ts",
@@ -401,6 +417,9 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
+    for (const file of mediaTransferDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+    }
     expect(
       existsSync(resolve(SRC_ROOT, "features/canvas/domain/assetDrag.ts")),
     ).toBe(false);
@@ -470,6 +489,24 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/freezone/presentation", file)),
         file,
       ).toBe(false);
+    }
+    for (const retiredCanvasMediaPath of [
+      "features/canvas/application/videoFileTypes.ts",
+      "features/canvas/application/videoFileTypes.test.ts",
+      "features/canvas/ui/canvasInteractionTargets.ts",
+      "features/canvas/ui/canvasInteractionTargets.test.ts",
+      "features/canvas/ui/canvasMediaTransfer.ts",
+      "features/canvas/ui/canvasMediaTransfer.test.ts",
+      "features/canvas/hooks/useCanvasDropIndicator.ts",
+      "features/canvas/hooks/useCanvasDropIndicator.test.tsx",
+      "features/canvas/hooks/useCanvasMediaDropController.ts",
+      "features/canvas/hooks/useCanvasMediaDropController.test.tsx",
+      "features/canvas/hooks/useCanvasMediaPaste.ts",
+      "features/canvas/hooks/useCanvasMediaPaste.test.tsx",
+      "features/canvas/hooks/useCanvasMediaTransferController.ts",
+      "features/canvas/hooks/useCanvasMediaTransferController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredCanvasMediaPath))).toBe(false);
     }
     for (const retiredProjectPagePath of [
       "features/freezone/hooks/useFreezoneProjectPageController.ts",
@@ -1242,7 +1279,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 886],
+      ["features/canvas", 872],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

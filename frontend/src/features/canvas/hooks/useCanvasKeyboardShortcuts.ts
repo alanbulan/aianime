@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
-import { isTypingTarget } from '../ui/canvasInteractionTargets';
+import { isTypingTarget } from '@/modules/creative_canvas/public';
 
 export interface CanvasKeyboardShortcutOptions {
   placementActive: boolean;

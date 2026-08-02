@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
-import { isCanvasPaneTarget } from '../ui/canvasInteractionTargets';
+import { isCanvasPaneTarget } from '@/modules/creative_canvas/public';
 
 export interface CanvasPaneContextMenuCapabilities {
   canUndo: boolean;

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { isVideoFile } from "./videoFileTypes";
+import { isVideoFile } from "@/modules/creative_canvas/public";
 
 export interface DroppedVideoFileItem {
   readonly kind: string;

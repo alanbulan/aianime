@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef } from 'react';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
-import { isTypingTarget } from '../ui/canvasInteractionTargets';
+import { isTypingTarget } from './canvasInteractionTargets';
 import {
   collectDroppedMediaFiles,
   resolveClipboardImageFile,
-} from '../ui/canvasMediaTransfer';
+} from './canvasMediaTransfer';
 
 export interface CanvasMediaPasteEventPort {
   pasteImageIntoNode: (nodeId: string, file: File) => void;
@@ -21,6 +19,7 @@ export interface CanvasMediaPasteOptions {
   createUploadNode: (position: { x: number; y: number }) => string;
   selectNode: (nodeId: string) => void;
   eventPort: CanvasMediaPasteEventPort;
+  isImmersiveViewerActive: () => boolean;
 }
 
 export interface CanvasMediaPasteController {
@@ -34,6 +33,7 @@ export function useCanvasMediaPaste({
   createUploadNode,
   selectNode,
   eventPort,
+  isImmersiveViewerActive,
 }: CanvasMediaPasteOptions): CanvasMediaPasteController {
   const mediaPasteHandledRef = useRef(false);
 

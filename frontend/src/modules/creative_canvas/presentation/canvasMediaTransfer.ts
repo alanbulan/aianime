@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
+import { isVideoFile } from '../domain/videoFileTypes';
 
 export function resolveClipboardImageFile(event: ClipboardEvent): File | null {
   const clipboardItems = event.clipboardData?.items;
