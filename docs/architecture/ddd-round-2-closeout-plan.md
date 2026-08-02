@@ -6,7 +6,7 @@
 >
 > 最近复核：2026-08-02（第二轮 GOAL 保持执行中）
 >
-> 代码基线：`refactor/ddd-modular-monolith@a53d12dd`
+> 代码基线：`refactor/ddd-modular-monolith@2edc58bd`
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
@@ -80,13 +80,13 @@
 
 | 区域 | 当前事实 | 未满足的退出条件 |
 | --- | --- | --- |
-| 前端 Creative Canvas | `modules/creative_canvas` 已有 183 个 TS/TSX 文件；`features/canvas` 仍有 904 个 TS/TSX 文件，`features/freezone` 有 47 个 TS/TSX 文件，两个旧 feature 合计 951 个文件 | 新模块已有真实生产所有权，但大部分旧 Canvas/Freezone 尚未迁移；Freezone domain/application/infrastructure 已无源文件和目录，剩余职责位于 composition、hooks 与 presentation |
+| 前端 Creative Canvas | `modules/creative_canvas` 已有 199 个 TS/TSX 文件；`features/canvas` 仍有 900 个 TS/TSX 文件，`features/freezone` 有 38 个 TS/TSX 文件，两个旧 feature 合计 938 个文件 | 新模块已有真实生产所有权，Freezone Shell 的聊天 Dock 与画布反馈展示也已迁入；大部分旧 Canvas 及剩余 Freezone 页面装配仍未迁移，Freezone domain/application/infrastructure 已无源文件和目录 |
 | Canvas 网关方向 | `freezoneAiGateway.ts` 已改为显式依赖注入，不再读取 URL 或导入 Freezone；R1-B 十四个切片已把 Freezone 路由持有的 `projectId/canvasId` 显式传到 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询，生产代码中的 `readUrl()` 从 38 个文件、89 处降到 0；上下文查询、预设元数据和浏览器 Canvas 存储回收迁移后，旧 `features/freezone/public.ts` 及其生产消费者均为 0 | R1-B 路由上下文和旧聚合 public 已关闭；R1-C 至 R1-E 仍需按所有权切片收敛两个旧 feature 中的剩余实现 |
 | 后端 Creative Canvas | 已有 `modules/creative_canvas`；视觉、文件锁、路径、项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、预设和任务执行已有唯一所有者，模块内对旧 `ai_anime.freezone.*` 的生产导入为 0；模块外对 Creative Canvas infrastructure 的直接导入也为 0 | Creative Canvas 本域 job 与跨域提交/本地恢复边界已收敛；云端 Invocation 恢复单列在 R6 |
 | 后端 Freezone | 旧 `freezone` 包的 Python 源文件已全部删除；任务 runner 和测试对 `freezone.jobs` 的导入为 0，旧包对 `ai_anime.generators.*` 的导入为 0 | 无后端生产实现残余；后续门禁持续禁止旧包回流 |
 | Task Execution | 前端 `modules/task_execution` 已有 28 个 TS/TSX 文件，持有 Task 合同、类型/Scope、状态派生、事件总线/Context、来源链接、查询/取消、共享 SSE、轮询兜底、等待终态、Store、订阅和错误呈现；旧 `task-center` 源文件从 13 降到 0。后端 `modules/task_execution` 已有 50 个 Python 文件，接管端口、取消键、协作取消/超时、可终止子进程、执行生命周期、队列、限额、Inline/Mock backend、runner 注册表与 16 个内置 runner、任务身份、项目任务查询/清理/取消、统一跨上下文提交、客户端安全投影和本地 inline 重启恢复规则；旧生产导入归零 | 前端旧 Task Center、后端 runner、Story Intake、Narrative Planning、Asset World、Creative Canvas、Production、业务 route 和本地恢复边界均已迁移，旧 `task_backend` 包整体删除；云端 Invocation 跨进程恢复单列在 R6 |
 | AI Assistant | 后端已有 `modules/ai_assistant`；前端模块当前有 101 个 TS/TSX 文件，持有 ingest、Composer controllers、消息队列、滚动、浏览器语音、任务通知、完整聊天展示链、详情 overlay、根布局、主会话生命周期和根容器；`features/superchat` 生产与测试目录均已删除 | application 控制器通过 ports 编排，composition 唯一注入缓存、活动回合、偏好、WebSocket 和 HTTP adapters；三个外部容器只依赖模块 public，前端 AI Assistant 旧边界已收敛 |
-| 架构门禁 | 残余 ratchet 已覆盖旧目录，Creative Canvas 公共入口门禁与完整后端架构门禁 184 项通过；第 610 批定向 215 项、端口调整后关键复验 55 项，第 611-629 批分别定向 61/57/59/66/62/56/58/59/63/72/72/69/63/61/67/62/69/93/56 项，Projection 构建/运行时迁移的模块边界 9 项、第二轮残余边界 4 项和前端 TypeScript 通过 | 后端当前检查点已全绿，前端组合根循环、十四个显式路由上下文切片、Creative Canvas 已登记切片、AI Assistant 前三十五批及 Task Execution 旧目录收敛已关闭；其余旧目录所有权和最终干净环境门禁仍未完成 |
+| 架构门禁 | 残余 ratchet 已覆盖旧目录，Creative Canvas 公共入口门禁与完整后端架构门禁 184 项通过；第 685 批业务与残余门禁 23 项、完整模块边界 323 项、Viewer/SuperChat 契约 64 项及前端 TypeScript 通过 | 后端当前检查点已全绿，前端组合根循环、十四个显式路由上下文切片、Creative Canvas 已登记切片、AI Assistant 与 Task Execution 旧目录收敛已关闭；其余 Canvas/Freezone 旧目录所有权和最终干净环境门禁仍未完成 |
 
 这些数字用于限定迁移范围，不采用“批量移动文件即完成”的判断方式。每批必须切换调用方、删除旧实现并增加覆盖旧目录的门禁。
 
@@ -149,6 +149,7 @@
 | Creative Canvas 保存纵向链 | Canvas Save controller factory/test 与 Save/Unload 唯一组合工厂迁入 `modules/creative_canvas`；组合根装配保存/卸载 application、Storage、Draft、Sync、Conflict、Shot metadata 与浏览器定时器 | `useCanvasSync` 仅提供 `read/subscribe/acknowledgePendingClear` Store 端口；底层 Save/Unload application factory 不再从 public 暴露。4 个旧 Freezone controller/test/composition 所有者删除；模块由 169 增到 172，Canvas 保持 904，Freezone 由 58 降到 54；保存链联合业务 56 项、架构 334 项、前端 TypeScript 和 `git diff --check` 通过 |
 | Creative Canvas Projection 命令纵向链 | 从 Canvas metadata 恢复请求、强制刷新构建、运行时入队/消费/移除及 fresh 状态更新收敛到 application；事件源、React 防重入/消息投影和唯一组合根收敛到 Creative Canvas，Canvas 工具栏只经模块 public 发布同步/移除命令 | 旧 Freezone Controller/Test 删除，旧 CanvasEventMap 的两个 Projection 事件删除，不保留 facade、re-export 或第二套事件链；模块由 178 增到 183，Canvas 保持 904，Freezone 由 49 降到 47，生产旧路径引用为 0，空目录为 0。Projection 命令、Shell、工具栏与 Viewer 定向 6 个文件 40 项、架构 334 项、前端 TypeScript 和 `git diff --check` 通过；架构首次复跑的唯一失败暴露 Shell 仍接触旧事件总线，迁移事件所有权后复跑全绿。未调用真实模型、未构建安装包、未操作 UI；阶段 8/10 与 GOAL 继续进行中 |
 | Creative Canvas Canvas 提交纵向链 | 节点媒体源识别、提交资格、提交结果投影、Director World 保存注册表、提交事件源、React controller factory 与唯一组合根收敛到 Creative Canvas；Freezone Shell 只注入 Zustand Store 和图片缓存窄端口，Canvas 节点统一经模块 public 发布提交/素材刷新命令 | 删除旧 Canvas 的素材源、提交资格、保存注册表及旧 Freezone Controller/Test 共 6 个文件，CanvasEventMap 的两个提交事件同步删除，不保留 facade、re-export 或第二套事件链；模块由 183 增到 192，Canvas 由 904 降到 901，Freezone 由 47 降到 45，旧路径与旧事件生产引用为 0，空目录为 0。提交链定向 10 个文件 55 项、Viewer/SuperChat 契约 64 项、完整模块边界 323 项、残余边界 11 项、前端 TypeScript 和 `git diff --check` 通过；阶段 8/10 与 GOAL 继续进行中 |
+| Creative Canvas Freezone Shell 展示纵向链 | 聊天 Dock 的拖拽位置、桌面开合过渡 controller、entry/view 及画布加载/错误/冲突/备份/Toast 反馈整体迁入 `modules/creative_canvas/presentation`；聊天内容继续只经 AI Assistant public 使用，模块内部直接依赖本域同步与存储合同 | 旧 Freezone 的 4 个生产文件和 3 个测试直接删除，Shell 只经 Creative Canvas public 消费，不保留 facade、re-export、self-public 回绕或第二套展示；模块由 192 增到 199，Freezone 由 45 降到 38。提交基线实测 Canvas 为 900，校正此前文档未同步的 901，不把计数修正伪装成迁移成果；前端空目录与旧生产路径均为 0。业务与残余门禁 23 项、Viewer/SuperChat 契约 64 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；阶段 8/10 与 GOAL 继续进行中 |
 | AI Assistant 前端第一批 | `types.ts` 的聊天帧、消息、附件、审批和设置合同迁入 `modules/ai_assistant/domain/contracts.ts`，scope 映射/匹配规则及测试迁入同域；48 个生产与测试消费者统一改经模块 `public.ts`，旧文件、旧测试和旧路径导入直接删除 | `features/superchat` 从 50 降到 48，前端 AI Assistant 模块从 0 增到 4；领域 5 项、SuperChat 边界 39 项、第二轮残余边界 10 项、`module-boundaries` 322 项共 376 项及前端 TypeScript、`git diff --check` 通过。R2 已开始但未完成，Task Execution 未开始 |
 | AI Assistant 前端第二批 | 工具/历史消息识别、错误与完成提示分类及文本区间规则迁入 `domain/messagePresentationRules.ts`；过滤、搜索、置顶、流式消息和等待状态投影迁入 `application/panelMessageProjection.ts`，两组测试随所有者迁移；消息视图和根 panel 统一经模块 public 使用，旧生产文件与旧测试直接删除 | `features/superchat` 从 48 降到 46，前端 AI Assistant 模块从 4 增到 8；领域/应用 11 项、SuperChat 边界 39 项、第二轮残余边界 10 项、`module-boundaries` 322 项共 387 项及前端 TypeScript、`git diff --check` 通过。R2、阶段 9/10 与 GOAL 继续进行中 |
 | AI Assistant 前端第三批 | UI spec/JSON 结构化内容识别、修复、legacy 规范化及媒体展示模型迁入 `domain/structuredContent.ts`，消息文本/角色/时间/附件归一迁入 `domain/message.ts`；结构化内容测试随所有者迁移，原混在缓存测试中的消息归一用例拆回领域测试；全部消费者统一经模块 public | `features/superchat` 从 46 降到 44，前端 AI Assistant 模块从 8 增到 12；定向 12 个文件 430 项及前端 TypeScript、`git diff --check` 通过。机械替换曾误伤 `message-*` 前缀，测试前已精确恢复，`public-*` 错误路径和两个旧生产路径均扫描为 0；R2、阶段 9/10 与 GOAL 继续进行中 |
@@ -336,7 +337,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 ### R1：Creative Canvas 唯一边界
 
-状态：进行中。前端模块已建立，生成 capability、画布元数据、参考图角色、镜头元数据、Canvas ID、Canvas Storage 合同、hydration flight 与生命周期 Hook/组合根、runtime bridge Hook/组合根、素材/场景/Projection、Projection 命令 application/controller/事件源/组合根、Projection 图 ID/合并规则、Canvas mutation、preset 刷新、preset controller/组合根与保存错误解析、冲突恢复 controller/组合根、本地 history/viewport 持久化 Hook/组合根、Draft 持久化 controller/组合根、保存决策/调度、保存 controller/组合根与卸载 keepalive、Canvas 存储操作、HTTP gateway、Query Hook、Browser controller、提交目标、主线上下文、Skill、生成历史记录、Beat Context 合同、工具图几何、六组图片操作、素材库领域、素材拖拽合同与画布插入、素材库查询编排、目录投影与纯展示模型、Canvas Browser 与 CommitDialog 纯展示规则、Skill 翻译展示、主线上下文徽标、投影状态及轮询生命周期、素材传输、Projection 构建/运行时、上下文查询、预设元数据、Canvas 存储回收、Canvas 草稿存储、Canvas 本地同步存储、hydration/conflict application、Scene Director World Commit、导演渲染提交组合及提交后节点投影规则切片已迁移；R1-A 已把跨上下文页面装配上移到 App composition root，删除 public 运行时环和临时延迟代理。R1-B 十四个切片已完成 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询的显式上下文传递，Canvas 生产代码 `readUrl()` 已归零。后端视觉、Canvas 文件锁、Canvas ID、磁盘布局、通用项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、完整预设链和任务执行已形成唯一所有者。旧 `freezone` Python 源、模块外 infrastructure 直连、runner 对旧 jobs 的 17 处导入及旧包 generator 直连均已归零。旧 `features/freezone/public.ts` 及其生产消费者也已归零；无入口的旧 Freezone context 三文件及空目录已删除，Freezone domain/application/infrastructure 已无源文件和目录。`features/canvas` 与 `features/freezone` 仍有 904/47 个 TS/TSX 文件，R1-C 至 R1-E 的其余目录所有权迁移尚未完成，R1 尚未达到退出条件。
+状态：进行中。前端模块已建立，生成 capability、画布元数据、参考图角色、镜头元数据、Canvas ID、Canvas Storage 合同、hydration flight 与生命周期 Hook/组合根、runtime bridge Hook/组合根、素材/场景/Projection、Projection 命令 application/controller/事件源/组合根、Projection 图 ID/合并规则、Canvas mutation、preset 刷新、preset controller/组合根与保存错误解析、冲突恢复 controller/组合根、本地 history/viewport 持久化 Hook/组合根、Draft 持久化 controller/组合根、保存决策/调度、保存 controller/组合根与卸载 keepalive、Canvas 存储操作、HTTP gateway、Query Hook、Browser controller、提交目标、主线上下文、Skill、生成历史记录、Beat Context 合同、工具图几何、六组图片操作、素材库领域、素材拖拽合同与画布插入、素材库查询编排、目录投影与纯展示模型、Canvas Browser 与 CommitDialog 纯展示规则、Skill 翻译展示、主线上下文徽标、投影状态及轮询生命周期、素材传输、Projection 构建/运行时、上下文查询、预设元数据、Canvas 存储回收、Canvas 草稿存储、Canvas 本地同步存储、hydration/conflict application、Scene Director World Commit、导演渲染提交组合、提交后节点投影规则、Freezone Shell 聊天 Dock 与画布反馈展示切片已迁移；R1-A 已把跨上下文页面装配上移到 App composition root，删除 public 运行时环和临时延迟代理。R1-B 十四个切片已完成 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询的显式上下文传递，Canvas 生产代码 `readUrl()` 已归零。后端视觉、Canvas 文件锁、Canvas ID、磁盘布局、通用项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、完整预设链和任务执行已形成唯一所有者。旧 `freezone` Python 源、模块外 infrastructure 直连、runner 对旧 jobs 的 17 处导入及旧包 generator 直连均已归零。旧 `features/freezone/public.ts` 及其生产消费者也已归零；无入口的旧 Freezone context 三文件及空目录已删除，Freezone domain/application/infrastructure 已无源文件和目录。`modules/creative_canvas`、`features/canvas` 与 `features/freezone` 当前分别有 199/900/38 个 TS/TSX 文件，R1-C 至 R1-E 的其余目录所有权迁移尚未完成，R1 尚未达到退出条件。
 
 执行批次：
 
@@ -488,7 +489,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 ## 9. 当前检查点与下一执行序列
 
-2026-08-01 当前检查点已完成许可路由、Bootstrap 投影、基础模型目录状态、公告/版本检查展示链、Creative Canvas 后端十二个闭合切片及前端 R1-B 十四个切片：
+2026-08-02 当前检查点已完成许可路由、Bootstrap 投影、基础模型目录状态、公告/版本检查展示链、Creative Canvas 后端十二个闭合切片及前端 R1-B 十四个切片：
 
 | 变更 | 唯一实现位置 | 证据 |
 | --- | --- | --- |
@@ -497,7 +498,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 | 许可状态与激活页 | `components/commercial-license-page.tsx` | 激活成功后进入工作区契约 |
 | Bootstrap 领域投影 | `app/commercial-access.ts`、Model Usage、Platform Release composition | entitlement、quota、TEXT catalog、release 使用现有查询缓存；Bootstrap 组合根唯一 |
 | 模型双入口与目录授权 | `model_access_policy.py`、`modules/model_usage`、Production 授权装饰器、Canvas 模型选择器 | 显式云端 code 与内部 TEXT 默认分离；Cloud 缺默认 TEXT 时明确失败；Canvas 区分生成/编辑角色；Production 旧 IMAGE SKU 与过期 VIDEO 配置均在提交前阻断；换账号清目录缓存 |
-| Creative Canvas 前端领域所有权 | `modules/creative_canvas` | capability、画布/镜头元数据、参考图角色、Canvas ID、Storage、hydration flight 与生命周期 Hook/组合根、runtime bridge Hook/组合根、素材上传/提交、镜头场景素材、Projection、Projection 命令 application/controller/事件源/组合根、Canvas 提交源/资格/事件/controller/组合根、Projection 图 ID/合并规则、Canvas mutation、preset 刷新应用/controller/组合根与保存错误解析、冲突恢复 controller/组合根、本地 history/viewport 持久化 Hook/组合根、Draft 持久化 controller/组合根、保存决策/负载构造/调度、保存 controller/组合根与卸载 keepalive、Canvas 存储操作、HTTP gateway、Query Hook、Browser controller、提交目标、主线上下文、Skill、生成历史、Beat Context、工具图几何、图片操作、素材库领域、素材拖拽合同与画布插入、素材库查询编排、目录投影与纯展示模型、Canvas Browser 与 CommitDialog 纯展示规则、Skill 翻译、主线上下文徽标、投影状态及轮询生命周期、上下文查询、预设元数据、Canvas 存储回收、草稿存储、本地同步存储、hydration/conflict application、Scene Director World Commit、导演渲染提交组合及提交后节点投影规则已有唯一模块所有者；旧文件删除，Canvas/Freezone 文件分别从 926/190 收紧到 901/45，旧 Freezone public 生产消费者为 0，Freezone domain/application/infrastructure 已无源文件和目录 |
+| Creative Canvas 前端领域所有权 | `modules/creative_canvas` | capability、画布/镜头元数据、参考图角色、Canvas ID、Storage、hydration flight 与生命周期 Hook/组合根、runtime bridge Hook/组合根、素材上传/提交、镜头场景素材、Projection、Projection 命令 application/controller/事件源/组合根、Canvas 提交源/资格/事件/controller/组合根、Projection 图 ID/合并规则、Canvas mutation、preset 刷新应用/controller/组合根与保存错误解析、冲突恢复 controller/组合根、本地 history/viewport 持久化 Hook/组合根、Draft 持久化 controller/组合根、保存决策/负载构造/调度、保存 controller/组合根与卸载 keepalive、Canvas 存储操作、HTTP gateway、Query Hook、Browser controller、提交目标、主线上下文、Skill、生成历史、Beat Context、工具图几何、图片操作、素材库领域、素材拖拽合同与画布插入、素材库查询编排、目录投影与纯展示模型、Canvas Browser 与 CommitDialog 纯展示规则、Skill 翻译、主线上下文徽标、投影状态及轮询生命周期、上下文查询、预设元数据、Canvas 存储回收、草稿存储、本地同步存储、hydration/conflict application、Scene Director World Commit、导演渲染提交组合、提交后节点投影规则、Freezone Shell 聊天 Dock 与画布反馈展示已有唯一模块所有者；模块当前 199 个文件，Canvas/Freezone 文件分别从 926/190 收紧到 900/38，旧 Freezone public 生产消费者为 0，Freezone domain/application/infrastructure 已无源文件和目录 |
 | Creative Canvas 素材库目录投影 | `modules/creative_canvas/application/assetLibraryProjection.ts` | 投影只依赖本域三个 domain 合同，Freezone Hook 只经模块 public 使用；两个旧文件删除且旧导入归零。素材库业务 8 项、残余边界 11 项、完整模块边界 323 项及前端 TypeScript 通过 |
 | Creative Canvas 素材库纯展示模型 | `modules/creative_canvas/presentation/assetLibraryViewModel.ts` | 五个 Freezone 消费者只经模块 public 使用，两个旧文件删除且旧相对导入归零。素材库业务 24 项、Asset Library 架构子集 11 项、残余边界 11 项、完整模块边界 323 项及前端 TypeScript 通过 |
 | Creative Canvas Canvas Browser 规则 | `modules/creative_canvas/presentation/canvasBrowserViewModel.ts` | View、Controller 与测试只经模块 public 使用，旧规则文件和旧外部测试删除且旧相对导入归零。业务 19 项、架构子集 3 项、残余边界 11 项、完整模块边界 323 项及前端 TypeScript 通过 |
@@ -549,7 +550,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。
-2. R1-C 至 R1-E：旧聚合 public 和 Freezone domain/application/infrastructure 已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas`/`features/freezone` 的 901/45 个 TS/TSX 文件，最后一个消费者切换后删除旧目录，不做整目录复制。
+2. R1-C 至 R1-E：旧聚合 public 和 Freezone domain/application/infrastructure 已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas`/`features/freezone` 的 900/38 个 TS/TSX 文件，最后一个消费者切换后删除旧目录，不做整目录复制。
 3. R2 已完成：AI Assistant 与 Task Execution 前端旧目录均已归零；后端核心协议、身份、限额、协作取消、可终止子进程、执行核心、Inline/Mock 执行、项目任务查询/清理/取消、客户端投影、16 个内置 runner、统一提交和本地重启恢复均由 Task Execution 持有，旧 `task_backend` 包和 route 组合直连已删除。Hermes ACP 已内置为唯一 Agent 执行运行时且没有 backend 选择器，模型仍只走 Cloud/BYOK 两条商业入口；云端 Invocation 跨进程恢复继续留在 R6。
 4. R5/R6：网关固定 file object、Invocation 和 SSE 合同后接入文件、调用记录、取消/恢复与额度刷新；安全制品 schema 未固定前继续禁止下载/安装。
 5. R4/R5 网关阻塞项具备合同后补离线验签、权威许可拒绝语义和更新安全链，最后执行 R7 干净环境门禁。

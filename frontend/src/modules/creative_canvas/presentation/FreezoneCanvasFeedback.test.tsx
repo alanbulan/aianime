@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ConflictSnapshot } from "@/modules/creative_canvas/public";
+import type { ConflictSnapshot } from "../application/canvasSyncStorage";
 import {
   BackupStatusIndicator,
   CanvasConflictOverlay,

@@ -50,7 +50,7 @@ vi.mock("./AssetLibraryPanel", () => ({
   ),
 }));
 
-vi.mock("./FreezoneChatDock", () => ({
+vi.mock("@/modules/creative_canvas/public", () => ({
   FreezoneChatDock: ({
     open,
     onOpenChange,
@@ -60,9 +60,6 @@ vi.mock("./FreezoneChatDock", () => ({
   }) => (
     <button type="button" onClick={() => onOpenChange(!open)}>chat:{String(open)}</button>
   ),
-}));
-
-vi.mock("./FreezoneCanvasFeedback", () => ({
   BackupStatusIndicator: () => <div>backup-status</div>,
   CanvasConflictOverlay: ({
     onRefresh,

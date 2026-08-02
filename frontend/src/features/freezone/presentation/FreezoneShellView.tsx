@@ -1,21 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
-
-import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
-import { AssetLibraryPanel } from "./AssetLibraryPanel";
-import { CommitDialog } from "./CommitDialog";
-import { CompareDialog } from "./CompareDialog";
-import { CreateIdentityDialog } from "./CreateIdentityDialog";
-import { FreezoneChatDock } from "./FreezoneChatDock";
 import {
   BackupStatusIndicator,
   CanvasConflictOverlay,
   CanvasErrorOverlay,
   CanvasLoadingOverlay,
   CanvasLoadingScreen,
+  FreezoneChatDock,
   FreezoneToast,
-} from "./FreezoneCanvasFeedback";
+} from "@/modules/creative_canvas/public";
+
+import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
+import { AssetLibraryPanel } from "./AssetLibraryPanel";
+import { CommitDialog } from "./CommitDialog";
+import { CompareDialog } from "./CompareDialog";
+import { CreateIdentityDialog } from "./CreateIdentityDialog";
 import { MaskEditor } from "./MaskEditor";
 
 export function FreezoneShellView({

@@ -225,6 +225,13 @@ describe("round 2 residual architecture boundaries", () => {
       "skillI18n.ts",
       "skillI18n.test.ts",
       "contextQueryHooks.ts",
+      "FreezoneCanvasFeedback.tsx",
+      "FreezoneCanvasFeedback.test.tsx",
+      "FreezoneChatDock.tsx",
+      "FreezoneChatDock.test.tsx",
+      "FreezoneChatDockView.tsx",
+      "useFreezoneChatDockController.ts",
+      "useFreezoneChatDockController.test.tsx",
     ];
 
     expect(existsSync(publicPath)).toBe(true);
@@ -373,6 +380,17 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/freezone/presentation", file)),
         file,
       ).toBe(false);
+    }
+    for (const retiredChatDockPath of [
+      "features/freezone/hooks/useFreezoneChatDockController.ts",
+      "features/freezone/hooks/useFreezoneChatDockController.test.tsx",
+      "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+      "features/freezone/presentation/FreezoneCanvasFeedback.test.tsx",
+      "features/freezone/presentation/FreezoneChatDock.tsx",
+      "features/freezone/presentation/FreezoneChatDock.test.tsx",
+      "features/freezone/presentation/FreezoneChatDockView.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredChatDockPath))).toBe(false);
     }
     expect(
       existsSync(
@@ -528,6 +546,8 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/assetLibraryViewModel",
         "@/modules/creative_canvas/presentation/canvasBrowserViewModel",
         "@/modules/creative_canvas/presentation/commitDialogViewModel",
+        "@/modules/creative_canvas/presentation/FreezoneChatDock",
+        "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback",
       ]),
     );
   });
@@ -1054,8 +1074,8 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 901],
-      ["features/freezone", 45],
+      ["features/canvas", 900],
+      ["features/freezone", 38],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

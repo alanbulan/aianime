@@ -647,3 +647,13 @@ export {
   translateSkillParameterOption,
   translateSkillRequirement,
 } from "@/modules/creative_canvas/presentation/skillI18n";
+export { FreezoneChatDock } from "@/modules/creative_canvas/presentation/FreezoneChatDock";
+export type { FreezoneChatDockProps } from "@/modules/creative_canvas/presentation/FreezoneChatDock";
+export {
+  BackupStatusIndicator,
+  CanvasConflictOverlay,
+  CanvasErrorOverlay,
+  CanvasLoadingOverlay,
+  CanvasLoadingScreen,
+  FreezoneToast,
+} from "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback";

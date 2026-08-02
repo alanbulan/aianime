@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useFreezoneChatDockController } from "../hooks/useFreezoneChatDockController";
+import { useFreezoneChatDockController } from "./useFreezoneChatDockController";
 import { FreezoneChatDockView } from "./FreezoneChatDockView";
 
 export interface FreezoneChatDockProps {

@@ -5275,15 +5275,15 @@ describe("frontend architecture boundaries", () => {
   it("separates Freezone chat state from its presentation view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneChatDock.tsx",
+      "modules/creative_canvas/presentation/FreezoneChatDock.tsx",
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneChatDockController.ts",
+      "modules/creative_canvas/presentation/useFreezoneChatDockController.ts",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneChatDockView.tsx",
+      "modules/creative_canvas/presentation/FreezoneChatDockView.tsx",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -5291,11 +5291,11 @@ describe("frontend architecture boundaries", () => {
     );
     const entryTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneChatDock.test.tsx",
+      "modules/creative_canvas/presentation/FreezoneChatDock.test.tsx",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneChatDockController.test.tsx",
+      "modules/creative_canvas/presentation/useFreezoneChatDockController.test.tsx",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -5317,7 +5317,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
-        "../hooks/useFreezoneChatDockController",
+        "./useFreezoneChatDockController",
         "./FreezoneChatDockView",
       ]),
     );
@@ -5331,17 +5331,26 @@ describe("frontend architecture boundaries", () => {
         "@/components/ui/sheet",
         "@/modules/ai_assistant/public",
         "@/lib/utils",
-        "../hooks/useFreezoneChatDockController",
+        "./useFreezoneChatDockController",
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/freezone/presentation/FreezoneChatDock.tsx"],
-      ["features/freezone/presentation/FreezoneChatDockView.tsx"],
-      ["features/freezone/hooks/useFreezoneChatDockController.ts"],
+      ["modules/creative_canvas/presentation/FreezoneChatDock.tsx"],
+      ["modules/creative_canvas/presentation/FreezoneChatDockView.tsx"],
+      ["modules/creative_canvas/presentation/useFreezoneChatDockController.ts"],
     ]);
     expect(importSpecifiers(shellPath)).toContain(
-      "./FreezoneChatDock",
+      "@/modules/creative_canvas/public",
     );
+    for (const legacyPath of [
+      "features/freezone/hooks/useFreezoneChatDockController.ts",
+      "features/freezone/hooks/useFreezoneChatDockController.test.tsx",
+      "features/freezone/presentation/FreezoneChatDock.tsx",
+      "features/freezone/presentation/FreezoneChatDock.test.tsx",
+      "features/freezone/presentation/FreezoneChatDockView.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
     expect(entrySource).toContain("useFreezoneChatDockController({");
     expect(entrySource).toContain("<FreezoneChatDockView");
     expect(viewSource).toContain('<SuperChatPanel');
@@ -5375,7 +5384,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Freezone canvas feedback in one presentation module", () => {
     const presentationPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+      "modules/creative_canvas/presentation/FreezoneCanvasFeedback.tsx",
     );
     const shellPath = resolve(
       SRC_ROOT,
@@ -5397,11 +5406,12 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
+        "../application/canvasSyncStorage",
+        "../domain/canvasStorage",
       ]),
     );
     expect(shellImports).toContain(
-      "./FreezoneCanvasFeedback",
+      "@/modules/creative_canvas/public",
     );
     for (const name of declarations) {
       const declaration = ["export function", `${name}(`].join(" ");
@@ -5410,7 +5420,7 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+        "modules/creative_canvas/presentation/FreezoneCanvasFeedback.tsx",
       ]);
       expect(shellSource).toContain(`<${name}`);
       expect(shellSource).not.toContain(`function ${name}(`);
@@ -5418,6 +5428,22 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).toContain("readConflictSnapshot()");
     expect(presentationSource).toContain("URL.createObjectURL(blob)");
     expect(presentationSource).toContain('status !== "pending"');
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/presentation/FreezoneCanvasFeedback.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(shellImports).not.toContain("./application/canvasSyncStorage");
     expect(shellImports).not.toContain(
       "@/features/freezone/domain/canvasStorage",
@@ -11271,7 +11297,7 @@ describe("frontend architecture boundaries", () => {
     );
     const feedbackPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneCanvasFeedback.tsx",
+      "modules/creative_canvas/presentation/FreezoneCanvasFeedback.tsx",
     );
     const retentionPath = resolve(
       SRC_ROOT,
@@ -11372,6 +11398,9 @@ describe("frontend architecture boundaries", () => {
       'const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:"',
     );
     expect(importSpecifiers(feedbackPath)).toContain(
+      "../application/canvasSyncStorage",
+    );
+    expect(importSpecifiers(feedbackPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     for (const legacyPath of [

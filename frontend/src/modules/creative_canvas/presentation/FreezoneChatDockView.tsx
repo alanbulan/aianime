@@ -15,7 +15,7 @@ import {
 import { SuperChatPanel } from "@/modules/ai_assistant/public";
 import { cn } from "@/lib/utils";
 
-import type { ChatLauncherPosition } from "../hooks/useFreezoneChatDockController";
+import type { ChatLauncherPosition } from "./useFreezoneChatDockController";
 
 const FREEZONE_CHAT_WIDTH = "clamp(500px, 34vw, 540px)";
 
