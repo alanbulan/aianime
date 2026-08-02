@@ -3,12 +3,8 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
-import type {
-  CanvasCommitMediaType,
-  ImpactBeat,
-  PushTarget,
-  PushTargetKind,
-} from "@/modules/creative_canvas/public";
+import type { ImpactBeat, PushTarget, PushTargetKind } from "../domain/assetCommit";
+import type { CanvasCommitMediaType } from "../domain/canvasCommitSource";
 import {
   BEAT_SLOT_KINDS,
   directorWorldSourceDisplayName,
@@ -18,7 +14,7 @@ import {
   sceneOptionLabel,
   sceneOptionValue,
   shortKindLabel,
-} from "@/modules/creative_canvas/public";
+} from "./commitDialogViewModel";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
 import { UI_DIALOG_TRANSITION_MS } from "@/components/ui/motion";
 import { useDialogTransition } from "@/components/ui/useDialogTransition";

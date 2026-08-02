@@ -58,7 +58,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx": 26,
   "lib/project-cover.ts": 24,
   "lib/sketch-colors.ts": 1,
-  "features/freezone/presentation/CompareDialog.tsx": 1,
+  "modules/creative_canvas/presentation/CompareDialog.tsx": 1,
   "features/freezone/presentation/MaskEditor.tsx": 4,
   "features/canvas/canvasStore.ts": 2,
   "stores/settingsStore.ts": 2,
@@ -109,6 +109,7 @@ function category(path: string): string | null {
   if (DOMAIN_VISUALIZATIONS.has(path)) return "domain-visualization";
   if (
     path.startsWith("modules/production/presentation/") ||
+    path.startsWith("modules/creative_canvas/presentation/") ||
     path.startsWith("features/canvas/") ||
     path.startsWith("features/freezone/presentation/") ||
     path.startsWith("features/viewer-kit/") ||

@@ -4461,10 +4461,13 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/presentation/FreezoneShellView.tsx",
     );
     const dialogs = [
-      ["CompareDialog", "features/freezone/presentation/CompareDialog.tsx"],
+      [
+        "CompareDialog",
+        "modules/creative_canvas/presentation/CompareDialog.tsx",
+      ],
       [
         "CreateIdentityDialog",
-        "features/freezone/presentation/CreateIdentityDialog.tsx",
+        "modules/creative_canvas/presentation/CreateIdentityDialog.tsx",
       ],
       ["MaskEditor", "features/freezone/presentation/MaskEditor.tsx"],
     ] as const;
@@ -4492,8 +4495,15 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual(
       dialogs.map(([, path]) => [path]),
     );
-    for (const [name] of dialogs) {
-      expect(shellImports).toContain(`./${name}`);
+    expect(shellImports).toContain("@/modules/creative_canvas/public");
+    expect(shellImports).toContain("./MaskEditor");
+    expect(shellImports).not.toContain("./CompareDialog");
+    expect(shellImports).not.toContain("./CreateIdentityDialog");
+    for (const legacyDialogPath of [
+      "features/freezone/presentation/CompareDialog.tsx",
+      "features/freezone/presentation/CreateIdentityDialog.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyDialogPath))).toBe(false);
     }
   });
 
@@ -5600,7 +5610,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialogView.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -5655,10 +5665,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("document.");
     expect(viewModelSource).not.toContain("@/features/freezone/composition");
     expect(viewModelSource).not.toContain("@/shared/api/");
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(viewPath)).toContain("./commitDialogViewModel");
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(viewPath)).not.toContain("./commitDialogViewModel");
     for (const declaration of declarations) {
       expect(viewSource).not.toContain(declaration);
     }
@@ -5782,7 +5792,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps CommitDialog DOM in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialogView.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.tsx",
     );
     const entryPath = resolve(
       SRC_ROOT,
@@ -5794,7 +5804,7 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CommitDialogView.test.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -5815,14 +5825,16 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(owners).toEqual([
-      "features/freezone/presentation/CommitDialogView.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.tsx",
     ]);
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
         "react",
         "react-dom",
         "lucide-react",
-        "@/modules/creative_canvas/public",
+        "../domain/assetCommit",
+        "../domain/canvasCommitSource",
+        "./commitDialogViewModel",
         "@/components/ui",
         "@/components/ui/motion",
         "@/components/ui/useDialogTransition",
@@ -5835,10 +5847,25 @@ describe("frontend architecture boundaries", () => {
         "@/modules/creative_canvas/public",
         "../hooks/useCommitDialogSubmitController",
         "../hooks/useCommitDialogTargetController",
-        "./CommitDialogView",
       ]),
     );
     expect(existsSync(legacyEntryPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/presentation/CommitDialogView.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/freezone/presentation/CommitDialogView.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(entrySource).toContain("<CommitDialogView");
     expect(testSource).toContain('from "./CommitDialogView"');
     for (const marker of presentationMarkers) {
@@ -6083,7 +6110,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/hooks/useCommitDialogTargetController.ts",
       "features/freezone/hooks/useCommitDialogSubmitController.ts",
       "features/freezone/presentation/CommitDialog.tsx",
-      "features/freezone/presentation/CommitDialogView.tsx",
     ];
     const domainConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
@@ -15369,7 +15395,7 @@ describe("frontend architecture boundaries", () => {
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
       "features/freezone/hooks/useCommitDialogTargetController.ts",
-      "features/freezone/presentation/CommitDialogView.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.tsx",
     ];
     const episodeListEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -15535,7 +15561,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
     const consumerPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CreateIdentityDialog.tsx",
+      "modules/creative_canvas/presentation/CreateIdentityDialog.tsx",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
@@ -15599,8 +15625,8 @@ describe("frontend architecture boundaries", () => {
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
       "features/freezone/hooks/useCommitDialogTargetController.ts",
-      "features/freezone/presentation/CommitDialogView.tsx",
-      "features/freezone/presentation/CreateIdentityDialog.tsx",
+      "modules/creative_canvas/presentation/CommitDialogView.tsx",
+      "modules/creative_canvas/presentation/CreateIdentityDialog.tsx",
     ];
     const characterListEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))

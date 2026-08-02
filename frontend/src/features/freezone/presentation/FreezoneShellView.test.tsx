@@ -78,6 +78,14 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   ),
   CanvasLoadingOverlay: () => <div>loading-overlay</div>,
   CanvasLoadingScreen: () => <div>loading-screen</div>,
+  CompareDialog: ({ onClose }: { onClose(): void }) => (
+    <button type="button" onClick={onClose}>compare-dialog</button>
+  ),
+  CreateIdentityDialog: ({ onSuccess }: { onSuccess(message: string): void }) => (
+    <button type="button" onClick={() => onSuccess("identity-created")}>
+      identity-dialog
+    </button>
+  ),
   FreezoneToast: ({ text, onClose }: { text: string; onClose(): void }) => (
     <button type="button" onClick={onClose}>toast:{text}</button>
   ),
@@ -86,20 +94,6 @@ vi.mock("@/modules/creative_canvas/public", () => ({
 vi.mock("./CommitDialog", () => ({
   CommitDialog: ({ onClose }: { onClose(): void }) => (
     <button type="button" onClick={onClose}>commit-dialog</button>
-  ),
-}));
-
-vi.mock("./CreateIdentityDialog", () => ({
-  CreateIdentityDialog: ({ onSuccess }: { onSuccess(message: string): void }) => (
-    <button type="button" onClick={() => onSuccess("identity-created")}>
-      identity-dialog
-    </button>
-  ),
-}));
-
-vi.mock("./CompareDialog", () => ({
-  CompareDialog: ({ onClose }: { onClose(): void }) => (
-    <button type="button" onClick={onClose}>compare-dialog</button>
   ),
 }));
 

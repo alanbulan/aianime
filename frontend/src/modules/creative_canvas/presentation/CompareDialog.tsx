@@ -17,7 +17,7 @@ interface CompareDialogProps {
  *     a state value (0..1).
  *   - A draggable handle line sits at the boundary.
  *
- * Implemented as a freezone modal to avoid adding a new node type to
+ * Implemented as a Creative Canvas modal to avoid adding a new node type to
  * upstream nodeRegistry — keeps the upstream sync surface clean.
  */
 export function CompareDialog({ left, right, onClose }: CompareDialogProps) {

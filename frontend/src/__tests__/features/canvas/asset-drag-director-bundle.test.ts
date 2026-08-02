@@ -167,7 +167,7 @@ describe("director bundle canvas assets", () => {
     const dialogView = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/CommitDialogView.tsx",
+        "src/modules/creative_canvas/presentation/CommitDialogView.tsx",
       ),
       "utf8",
     );

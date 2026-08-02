@@ -561,6 +561,9 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/FreezoneChatDock",
         "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback",
         "@/modules/creative_canvas/presentation/CanvasesTab",
+        "@/modules/creative_canvas/presentation/CommitDialogView",
+        "@/modules/creative_canvas/presentation/CompareDialog",
+        "@/modules/creative_canvas/presentation/CreateIdentityDialog",
       ]),
     );
   });
@@ -1088,7 +1091,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 900],
-      ["features/freezone", 34],
+      ["features/freezone", 30],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

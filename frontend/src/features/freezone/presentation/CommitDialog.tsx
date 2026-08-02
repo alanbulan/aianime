@@ -1,14 +1,14 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasCommitMediaType,
-  PushResult,
-  PushTarget,
-  PushTargetKind,
+import {
+  CommitDialogView,
+  type CanvasCommitMediaType,
+  type PushResult,
+  type PushTarget,
+  type PushTargetKind,
 } from "@/modules/creative_canvas/public";
 
 import { useCommitDialogSubmitController } from "../hooks/useCommitDialogSubmitController";
 import { useCommitDialogTargetController } from "../hooks/useCommitDialogTargetController";
-import { CommitDialogView } from "./CommitDialogView";
 
 interface CommitDialogProps {
   project: string;

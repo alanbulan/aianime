@@ -7,6 +7,8 @@ import {
   CanvasErrorOverlay,
   CanvasLoadingOverlay,
   CanvasLoadingScreen,
+  CompareDialog,
+  CreateIdentityDialog,
   FreezoneChatDock,
   FreezoneToast,
 } from "@/modules/creative_canvas/public";
@@ -14,8 +16,6 @@ import {
 import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
 import { CommitDialog } from "./CommitDialog";
-import { CompareDialog } from "./CompareDialog";
-import { CreateIdentityDialog } from "./CreateIdentityDialog";
 import { MaskEditor } from "./MaskEditor";
 
 export function FreezoneShellView({
