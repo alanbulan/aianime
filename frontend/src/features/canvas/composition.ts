@@ -59,10 +59,6 @@ import {
   type GenerateCanvasRedrawParams,
 } from './application/generateCanvasRedraw';
 import {
-  generateCanvasVideoUpscale as generateCanvasVideoUpscaleUseCase,
-  type GenerateCanvasVideoUpscaleParams,
-} from './application/generateCanvasVideoUpscale';
-import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
@@ -160,7 +156,6 @@ import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoCompo
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoStoryAnalysisGateway } from './infrastructure/freezoneVideoStoryAnalysisGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
-import { freezoneVideoUpscaleGenerationGateway } from './infrastructure/freezoneVideoUpscaleGenerationGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
@@ -441,17 +436,6 @@ export function generateCanvasRedraw(
 ) {
   return generateCanvasRedrawUseCase(params, {
     redrawGateway: freezoneRedrawTaskGateway,
-    onTaskSubmitted,
-  });
-}
-
-export function generateCanvasVideoUpscale(
-  params: GenerateCanvasVideoUpscaleParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasVideoUpscaleUseCase(params, {
-    submissionGateway: freezoneVideoUpscaleGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });
 }

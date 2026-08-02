@@ -661,9 +661,10 @@ export {
   generateCanvasReversePrompt,
   generateCanvasScene360,
   generateCanvasUpscale,
+  generateCanvasVideoUpscale,
   prepareCanvasImageSource,
   prepareCanvasImageSources,
-} from "@/modules/creative_canvas/imageOperationGenerationComposition";
+} from "@/modules/creative_canvas/mediaOperationGenerationComposition";
 export {
   resolveGridActionTemplateMode,
 } from "@/modules/creative_canvas/domain/gridAction";
@@ -755,6 +756,26 @@ export type {
   GenerateCanvasUpscaleParams,
   GenerateCanvasUpscaleResult,
 } from "@/modules/creative_canvas/application/generateCanvasUpscale";
+export {
+  CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS,
+  CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
+  CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
+  DEFAULT_CANVAS_VIDEO_UPSCALE_DENOISE,
+  DEFAULT_CANVAS_VIDEO_UPSCALE_RESOLUTION,
+  resolveCanvasVideoUpscaleDenoise,
+  resolveCanvasVideoUpscaleResolution,
+} from "@/modules/creative_canvas/domain/videoUpscale";
+export type {
+  CanvasVideoUpscaleDenoise,
+  CanvasVideoUpscaleResolution,
+} from "@/modules/creative_canvas/domain/videoUpscale";
+export type {
+  CanvasVideoUpscaleGenerationCommand,
+  CanvasVideoUpscaleGenerationGateway,
+  GenerateCanvasVideoUpscaleDependencies,
+  GenerateCanvasVideoUpscaleParams,
+  GenerateCanvasVideoUpscaleResult,
+} from "@/modules/creative_canvas/application/generateCanvasVideoUpscale";
 export {
   createCanvasAudioVoice,
   loadCanvasAudioReferences,

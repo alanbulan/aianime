@@ -9,13 +9,13 @@ import {
   CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
+  generateCanvasVideoUpscale,
   resolveCanvasVideoUpscaleDenoise,
   resolveCanvasVideoUpscaleResolution,
   type CanvasVideoUpscaleDenoise,
   type CanvasVideoUpscaleResolution,
-} from '@/features/canvas/domain/videoUpscale';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasVideoUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from './nodeFrameStyles';

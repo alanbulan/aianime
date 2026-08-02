@@ -193,7 +193,7 @@ describe("round 2 residual architecture boundaries", () => {
       "toolImageGeometry.ts",
       "toolImageGeometry.test.ts",
     ];
-    const imageOperationDomainFiles = [
+    const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
       "multiAngle.ts",
@@ -207,8 +207,10 @@ describe("round 2 residual architecture boundaries", () => {
       "scene360.ts",
       "upscale.ts",
       "upscale.test.ts",
+      "videoUpscale.ts",
+      "videoUpscale.test.ts",
     ];
-    const imageOperationApplicationFiles = [
+    const mediaOperationApplicationFiles = [
       "completeCanvasMediaGenerationTask.ts",
       "completeCanvasMediaGenerationTask.test.ts",
       "generateCanvasImageTo3d.ts",
@@ -219,8 +221,10 @@ describe("round 2 residual architecture boundaries", () => {
       "generateCanvasOutpaint.test.ts",
       "generateCanvasUpscale.ts",
       "generateCanvasUpscale.test.ts",
+      "generateCanvasVideoUpscale.ts",
+      "generateCanvasVideoUpscale.test.ts",
     ];
-    const imageOperationInfrastructureFiles = [
+    const mediaOperationInfrastructureFiles = [
       "freezoneImageTo3dGenerationGateway.ts",
       "freezoneImageTo3dGenerationGateway.test.ts",
       "freezoneMultiAngleGenerationGateway.ts",
@@ -229,6 +233,8 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneOutpaintGenerationGateway.test.ts",
       "freezoneUpscaleGenerationGateway.ts",
       "freezoneUpscaleGenerationGateway.test.ts",
+      "freezoneVideoUpscaleGenerationGateway.ts",
+      "freezoneVideoUpscaleGenerationGateway.test.ts",
     ];
     const generationCatalogDomainFiles = [
       "cameraMovementPresets.ts",
@@ -459,14 +465,14 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
-    for (const file of imageOperationDomainFiles) {
+    for (const file of mediaOperationDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
         file,
       ).toBe(false);
     }
-    for (const file of imageOperationApplicationFiles) {
+    for (const file of mediaOperationApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
       );
@@ -475,7 +481,7 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
-    for (const file of imageOperationInfrastructureFiles) {
+    for (const file of mediaOperationInfrastructureFiles) {
       expect(
         existsSync(resolve(moduleRoot, "infrastructure", file)),
         file,
@@ -486,8 +492,11 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(false);
     }
     expect(
-      existsSync(resolve(moduleRoot, "imageOperationGenerationComposition.ts")),
+      existsSync(resolve(moduleRoot, "mediaOperationGenerationComposition.ts")),
     ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "imageOperationGenerationComposition.ts")),
+    ).toBe(false);
     for (const file of generationCatalogDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -1325,7 +1334,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 805],
+      ["features/canvas", 799],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -39,6 +39,10 @@ import {
   type GenerateCanvasUpscaleParams,
 } from "./application/generateCanvasUpscale";
 import {
+  generateCanvasVideoUpscale as generateCanvasVideoUpscaleUseCase,
+  type GenerateCanvasVideoUpscaleParams,
+} from "./application/generateCanvasVideoUpscale";
+import {
   prepareCanvasImageSource as prepareCanvasImageSourceUseCase,
   prepareCanvasImageSources as prepareCanvasImageSourcesUseCase,
   type CanvasImageSourcePreparationGateway,
@@ -55,6 +59,7 @@ import { freezoneRelightGenerationGateway } from "./infrastructure/freezoneRelig
 import { freezoneReversePromptGenerationGateway } from "./infrastructure/freezoneReversePromptGenerationGateway";
 import { freezoneScene360GenerationGateway } from "./infrastructure/freezoneScene360GenerationGateway";
 import { freezoneUpscaleGenerationGateway } from "./infrastructure/freezoneUpscaleGenerationGateway";
+import { freezoneVideoUpscaleGenerationGateway } from "./infrastructure/freezoneVideoUpscaleGenerationGateway";
 import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
 
 const taskGateway: CanvasTaskResultGateway = {
@@ -191,6 +196,17 @@ export function generateCanvasUpscale(
 ) {
   return generateCanvasUpscaleUseCase(params, {
     submissionGateway: freezoneUpscaleGenerationGateway,
+    taskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasVideoUpscale(
+  params: GenerateCanvasVideoUpscaleParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasVideoUpscaleUseCase(params, {
+    submissionGateway: freezoneVideoUpscaleGenerationGateway,
     taskGateway,
     onTaskSubmitted,
   });

@@ -4678,9 +4678,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/assetTransferComposition.ts",
     );
-    const imageOperationCompositionPath = resolve(
+    const mediaOperationCompositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const dataUrlPath = resolve(SRC_ROOT, "shared/media/data-url.ts");
     const legacyFreezoneCompositionPath = resolve(
@@ -4779,7 +4779,7 @@ describe("frontend architecture boundaries", () => {
     expect(imageSourceApplicationSource).toContain(
       "dependencies.uploadGateway.upload({",
     );
-    expect(importSpecifiers(imageOperationCompositionPath)).toContain(
+    expect(importSpecifiers(mediaOperationCompositionPath)).toContain(
       "./infrastructure/httpFreezoneAssetUploadGateway",
     );
     expect(creativeCanvasPublicSource).toContain("prepareCanvasImageSource,");
@@ -18464,7 +18464,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const textNodeControllerPath = resolve(
       SRC_ROOT,
@@ -19385,7 +19385,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const publicPath = resolve(
       SRC_ROOT,
@@ -19932,7 +19932,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -20053,7 +20053,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -20181,7 +20181,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -22102,7 +22102,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -22227,7 +22227,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -22311,17 +22311,22 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas video-upscale rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoUpscale.ts",
+      "modules/creative_canvas/domain/videoUpscale.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasVideoUpscale.ts",
+      "modules/creative_canvas/application/generateCanvasVideoUpscale.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -22330,12 +22335,34 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/VideoUpscaleEditorOverlay.tsx",
     );
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyPaths = [
+      "features/canvas/domain/videoUpscale.ts",
+      "features/canvas/domain/videoUpscale.test.ts",
+      "features/canvas/application/generateCanvasVideoUpscale.ts",
+      "features/canvas/application/generateCanvasVideoUpscale.test.ts",
+      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const overlaySource = readFileSync(overlayPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export async function generateCanvasVideoUpscale(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -22357,7 +22384,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/videoUpscale",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -22373,8 +22400,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasVideoUpscale",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -22386,7 +22413,14 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneVideoUpscaleGenerationGateway",
     );
+    expect(publicSource).toContain("generateCanvasVideoUpscale,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/videoUpscale",
+    );
     expect(importSpecifiers(overlayPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/features/canvas/domain/videoUpscale",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
@@ -22396,8 +22430,18 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
     ]);
+    expect(implementationOwners).toEqual([
+      "modules/creative_canvas/application/generateCanvasVideoUpscale.ts",
+    ]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoUpscaleGenerationGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "generateCanvasVideoUpscaleUseCase",
+    );
     expect(opsSource).not.toContain("@/features/canvas/domain/videoUpscale");
     expect(opsSource).not.toContain("FreezoneVideoUpscalePayload");
     expect(opsSource).not.toContain("submitFreezoneVideoUpscale");
@@ -22421,7 +22465,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
