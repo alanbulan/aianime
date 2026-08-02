@@ -14,7 +14,7 @@ import {
   VOICE_SELECTION_PAGE_SIZE,
   type VoiceSelectionPage,
   type VoiceSelectionRow,
-} from '@/features/canvas/application/voiceSelectionModel';
+} from '@/modules/creative_canvas/public';
 import type { VoiceSelectionModalController } from '@/features/canvas/hooks/useVoiceSelectionModalController';
 import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 

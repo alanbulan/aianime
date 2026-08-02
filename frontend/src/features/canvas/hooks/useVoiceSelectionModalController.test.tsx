@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
+import type { CanvasAudioReference } from '@/modules/creative_canvas/public';
 
 import { useVoiceSelectionModalController } from './useVoiceSelectionModalController';
 

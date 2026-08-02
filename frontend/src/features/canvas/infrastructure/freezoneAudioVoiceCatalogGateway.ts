@@ -4,7 +4,7 @@ import { apiCall, apiRequest } from "@/shared/api/client";
 import type {
   CanvasAudioReference,
   CanvasAudioVoiceCatalogGateway,
-} from "../application/audioVoiceCatalog";
+} from "@/modules/creative_canvas/public";
 
 interface AudioReferenceTransport extends Record<string, unknown> {
   readonly scope: CanvasAudioReference["ref"]["scope"];

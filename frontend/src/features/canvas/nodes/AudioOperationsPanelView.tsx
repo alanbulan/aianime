@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 
-import { MUSIC_LENGTH_PRESETS } from '@/features/canvas/application/audioOperationsPanelModel';
+import { MUSIC_LENGTH_PRESETS } from '@/modules/creative_canvas/public';
 import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';

@@ -3,8 +3,8 @@ import {
   audioVoiceRefKey,
   describeAudioVoiceRef,
   type CanvasAudioReference,
-} from '@/features/canvas/application/audioVoiceCatalog';
-import type { AudioVoiceRef } from '@/features/canvas/domain/canvasNodes';
+} from './audioVoiceCatalog';
+import type { AudioVoiceRef } from '../domain/audioVoice';
 
 export const VOICE_SELECTION_PAGE_SIZE = 20;
 export const MAX_VOICE_CLONE_FILE_BYTES = 5_242_880;

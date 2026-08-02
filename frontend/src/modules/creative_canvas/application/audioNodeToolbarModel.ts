@@ -1,9 +1,13 @@
 // Copyright (c) 2026 AI anime
-import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
 
-export type AudioNodeToolbarFormat = NonNullable<
-  AudioNodeData["convertingAudioFormat"]
->;
+export type AudioNodeToolbarFormat = "mp3" | "m4a" | "wav";
+
+export interface AudioNodeToolbarSource {
+  readonly audioUrl: string | null;
+  readonly sourceFileName?: string | null;
+  readonly displayName?: string | null;
+  readonly convertingAudioFormat?: AudioNodeToolbarFormat | null;
+}
 
 export interface AudioNodeToolbarProjection {
   audioUrl: string | null;
@@ -19,7 +23,7 @@ function trimmedString(value: unknown): string {
 
 export function projectAudioNodeToolbar(
   nodeId: string,
-  data: AudioNodeData,
+  data: AudioNodeToolbarSource,
 ): AudioNodeToolbarProjection {
   const audioUrl = typeof data.audioUrl === "string" ? data.audioUrl : null;
   const sourceFilename = trimmedString(data.sourceFileName);
@@ -29,10 +33,7 @@ export function projectAudioNodeToolbar(
     /\.(mp3|m4a|aac|wav|flac|ogg|opus|mp4|m4b)$/i,
     "",
   );
-  const convertingFormat =
-    typeof data.convertingAudioFormat === "string"
-      ? data.convertingAudioFormat
-      : null;
+  const convertingFormat = data.convertingAudioFormat ?? null;
 
   return {
     audioUrl,

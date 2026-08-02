@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-
 import {
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
@@ -13,14 +11,13 @@ import {
 
 describe('audioOperationsPanelModel', () => {
   it('projects music defaults and explicit settings', () => {
-    expect(resolveAudioMusicSettings({ audioUrl: null })).toEqual({
+    expect(resolveAudioMusicSettings({})).toEqual({
       musicLengthMs: 30_000,
       forceInstrumental: true,
       respectSectionsDurations: true,
     });
     expect(
       resolveAudioMusicSettings({
-        audioUrl: null,
         musicLengthMs: 90_000,
         forceInstrumental: false,
         respectSectionsDurations: false,
@@ -39,14 +36,13 @@ describe('audioOperationsPanelModel', () => {
   });
 
   it('projects voice display fallbacks without inventing a stored voice', () => {
-    expect(resolveAudioVoiceSettings({ audioUrl: null })).toEqual({
+    expect(resolveAudioVoiceSettings({})).toEqual({
       voiceLabel: '加载中…',
       voiceLanguage: '',
       currentRef: { scope: 'project_narrator' },
     });
     expect(
       resolveAudioVoiceSettings({
-        audioUrl: null,
         voiceLabel: '林夏',
         voiceLanguage: '中文',
         voiceRef: { scope: 'user_custom', voiceId: 'voice-a' },
@@ -61,12 +57,12 @@ describe('audioOperationsPanelModel', () => {
   it('keeps only non-empty upstream text and derives submit availability', () => {
     const text = {
       nodeId: 'text-a',
-      nodeType: CANVAS_NODE_TYPES.textAnnotation,
+      nodeType: 'textAnnotationNode',
       text: ' 旁白 ',
     };
     const image = {
       nodeId: 'image-a',
-      nodeType: CANVAS_NODE_TYPES.imageEdit,
+      nodeType: 'imageNode',
       imageUrl: 'image.png',
     };
 

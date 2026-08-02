@@ -5,7 +5,10 @@ import type {
   DirectorObjectLayer,
   DirectorWorldSource,
 } from '@/features/viewer-kit/three-d/directorManifest';
-import type { VideoGenMode } from '@/modules/creative_canvas/public';
+import type {
+  AudioVoiceRef,
+  VideoGenMode,
+} from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
   upload: 'uploadNode',
@@ -420,26 +423,6 @@ export type AudioTextSegment =
   | { type: 'text'; value: string }
   | { type: 'pause'; durationSec: number }
   | { type: 'filler'; token: string };
-
-/**
- * 后端 freezone-audio 声线引用：scope 必填，character_name / identity_id / slot
- * 视 scope 而定。Canvas 保留 camelCase 字段，transport 映射由 infrastructure
- * 负责，避免节点数据被序列化为 snake_case。
- */
-export interface AudioVoiceRef {
-  scope:
-    | 'project_narrator'
-    | 'user_custom'
-    | 'character_default'
-    | 'character_age_group'
-    | 'identity'
-    | 'identity_resolved';
-  characterName?: string;
-  identityId?: string;
-  slot?: string;
-  /** scope=user_custom 时必填：账号级我的音色 ID（来自 /freezone/audio/voices）。 */
-  voiceId?: string;
-}
 
 export interface AudioNodeData extends NodeDisplayData {
   audioUrl: string | null;

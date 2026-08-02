@@ -1,14 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
-
 import {
   projectAudioNodeToolbar,
   resolveAudioNodeDownloadFilename,
+  type AudioNodeToolbarSource,
 } from "./audioNodeToolbarModel";
 
-function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {
+function data(
+  patch: Partial<AudioNodeToolbarSource> = {},
+): AudioNodeToolbarSource {
   return { audioUrl: "/source.m4a", ...patch };
 }
 

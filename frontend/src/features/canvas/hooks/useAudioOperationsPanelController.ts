@@ -1,16 +1,16 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { describeAudioVoiceRef } from '@/features/canvas/application/audioVoiceCatalog';
 import {
+  describeAudioVoiceRef,
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
   musicBillingSecondsFromMs,
   resolveAudioMusicSettings,
   resolveAudioVoiceSettings,
-} from '@/features/canvas/application/audioOperationsPanelModel';
+  type VoicePickResult,
+} from '@/modules/creative_canvas/public';
 import { deriveAudioText } from '@/features/canvas/application/generateCanvasAudio';
-import type { VoicePickResult } from '@/features/canvas/application/voiceSelectionModel';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { translateCanvasText } from '@/features/canvas/composition';
 import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';

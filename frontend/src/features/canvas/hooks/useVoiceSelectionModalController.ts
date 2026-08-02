@@ -9,7 +9,6 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 
-import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
 import {
   customVoiceReferences,
   filterCustomVoiceReferences,
@@ -25,12 +24,13 @@ import {
   VOICE_CLONE_FILE_ACCEPT,
   type VoicePickResult,
   type VoiceSelectionTab,
-} from '@/features/canvas/application/voiceSelectionModel';
+  type AudioVoiceRef,
+  type CanvasAudioReference,
+} from '@/modules/creative_canvas/public';
 import {
   createCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from '@/features/canvas/audioComposition';
-import type { AudioVoiceRef } from '@/features/canvas/domain/canvasNodes';
 
 export interface VoiceSelectionModalControllerOptions {
   projectId: string;

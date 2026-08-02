@@ -7,7 +7,7 @@ import {
   projectAudioNodeToolbar,
   resolveAudioNodeDownloadFilename,
   type AudioNodeToolbarFormat,
-} from "@/features/canvas/application/audioNodeToolbarModel";
+} from "@/modules/creative_canvas/public";
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";

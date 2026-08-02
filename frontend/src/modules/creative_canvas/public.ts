@@ -561,6 +561,72 @@ export type {
   CanvasMediaTransferControllerOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasMediaTransferController";
 export type { CanvasMediaPasteEventPort } from "@/modules/creative_canvas/presentation/useCanvasMediaPaste";
+export { isAudioFile } from "@/modules/creative_canvas/domain/audioFileTypes";
+export type { AudioVoiceRef } from "@/modules/creative_canvas/domain/audioVoice";
+export { resolveAudioReferenceDisplayName } from "@/modules/creative_canvas/application/audioReferenceDisplayName";
+export type { AudioReferenceDisplaySource } from "@/modules/creative_canvas/application/audioReferenceDisplayName";
+export {
+  audioVoiceRefKey,
+  describeAudioVoiceRef,
+} from "@/modules/creative_canvas/application/audioVoiceCatalog";
+export type {
+  CanvasAudioReference,
+  CanvasAudioVoiceCatalogGateway,
+} from "@/modules/creative_canvas/application/audioVoiceCatalog";
+export {
+  projectAudioNodeToolbar,
+  resolveAudioNodeDownloadFilename,
+} from "@/modules/creative_canvas/application/audioNodeToolbarModel";
+export type {
+  AudioNodeToolbarFormat,
+  AudioNodeToolbarProjection,
+  AudioNodeToolbarSource,
+} from "@/modules/creative_canvas/application/audioNodeToolbarModel";
+export {
+  DEFAULT_MUSIC_LENGTH_MS,
+  MUSIC_LENGTH_PRESETS,
+  filterAudioUpstreamTextContents,
+  isAudioSubmitDisabled,
+  musicBillingSecondsFromMs,
+  resolveAudioMusicSettings,
+  resolveAudioVoiceSettings,
+} from "@/modules/creative_canvas/application/audioOperationsPanelModel";
+export type {
+  AudioMusicSettings,
+  AudioOperationsNodeSource,
+  AudioUpstreamTextSource,
+  AudioVoiceSettings,
+} from "@/modules/creative_canvas/application/audioOperationsPanelModel";
+export {
+  MAX_VOICE_CLONE_FILE_BYTES,
+  MAX_VOICE_CLONE_FILE_MB,
+  VOICE_CLONE_AUDIO_EXTENSIONS,
+  VOICE_CLONE_AUDIO_MIME_TYPES,
+  VOICE_CLONE_FILE_ACCEPT,
+  VOICE_SELECTION_PAGE_SIZE,
+  customVoiceReferences,
+  filterCustomVoiceReferences,
+  filterLibraryVoiceReferences,
+  isCurrentVoiceReference,
+  paginateVoiceReferences,
+  projectCustomVoicePick,
+  projectCustomVoiceRows,
+  projectLibraryVoicePick,
+  projectLibraryVoiceRows,
+  resolveVoicePaginationJump,
+  sanitizeVoicePaginationInput,
+  voiceCloneFileStem,
+  voiceCloneFileValidationError,
+  voiceCloneUploadError,
+  voicePaginationWindow,
+} from "@/modules/creative_canvas/application/voiceSelectionModel";
+export type {
+  VoiceCloneFileInfo,
+  VoicePickResult,
+  VoiceSelectionPage,
+  VoiceSelectionRow,
+  VoiceSelectionTab,
+} from "@/modules/creative_canvas/application/voiceSelectionModel";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

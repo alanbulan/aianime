@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
   uploadCanvasAsset: vi.fn(),
   loadCanvasAudioReferences: vi.fn(),
+  isAudioFile: vi.fn(),
   toastError: vi.fn(),
   translate: vi.fn((key: string) => key),
   taskState: {
@@ -87,6 +88,7 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
+  isAudioFile: (file: File) => mocks.isAudioFile(file),
 }));
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {
@@ -121,6 +123,7 @@ describe('useAudioNodeController', () => {
     mocks.unsubscribe.mockReset();
     mocks.uploadCanvasAsset.mockReset();
     mocks.loadCanvasAudioReferences.mockReset();
+    mocks.isAudioFile.mockReset().mockReturnValue(true);
     mocks.toastError.mockReset();
     mocks.translate.mockClear();
     mocks.taskState.isGenerating = false;
@@ -219,6 +222,7 @@ describe('useAudioNodeController', () => {
   });
 
   it('validates and uploads matching external audio files', async () => {
+    mocks.isAudioFile.mockReturnValueOnce(false).mockReturnValueOnce(true);
     mocks.uploadCanvasAsset.mockResolvedValue({ url: '/uploaded/voice.m4a' });
     const { unmount } = renderHook(() => useAudioNodeController({
       projectId: 'project-upload-551',

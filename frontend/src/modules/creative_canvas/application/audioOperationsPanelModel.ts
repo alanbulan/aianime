@@ -1,9 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { UpstreamContent } from '@/features/canvas/application/ports';
-import type {
-  AudioNodeData,
-  AudioVoiceRef,
-} from '@/features/canvas/domain/canvasNodes';
+import type { AudioVoiceRef } from '../domain/audioVoice';
 
 export const DEFAULT_MUSIC_LENGTH_MS = 30_000;
 
@@ -32,12 +28,25 @@ export interface AudioVoiceSettings {
   currentRef: AudioVoiceRef;
 }
 
+export interface AudioOperationsNodeSource {
+  readonly musicLengthMs?: number;
+  readonly forceInstrumental?: boolean;
+  readonly respectSectionsDurations?: boolean;
+  readonly voiceLabel?: string;
+  readonly voiceLanguage?: string;
+  readonly voiceRef?: AudioVoiceRef | null;
+}
+
+export interface AudioUpstreamTextSource {
+  readonly text: string;
+}
+
 export function musicBillingSecondsFromMs(ms: number): number {
   return Math.max(Math.ceil(Math.max(ms, 0) / 1000), 1);
 }
 
 export function resolveAudioMusicSettings(
-  data: AudioNodeData,
+  data: AudioOperationsNodeSource,
 ): AudioMusicSettings {
   return {
     musicLengthMs:
@@ -50,7 +59,7 @@ export function resolveAudioMusicSettings(
 }
 
 export function resolveAudioVoiceSettings(
-  data: AudioNodeData,
+  data: AudioOperationsNodeSource,
 ): AudioVoiceSettings {
   return {
     voiceLabel: data.voiceLabel ?? '加载中…',
@@ -59,12 +68,15 @@ export function resolveAudioVoiceSettings(
   };
 }
 
-export function filterAudioUpstreamTextContents(
-  contents: readonly UpstreamContent[],
-): UpstreamContent[] {
+export function filterAudioUpstreamTextContents<
+  Content,
+>(contents: readonly Content[]): Array<Content & AudioUpstreamTextSource> {
   return contents.filter(
-    (content) =>
-      typeof content.text === 'string' && content.text.trim().length > 0,
+    (content): content is Content & AudioUpstreamTextSource => {
+      if (content == null || typeof content !== 'object') return false;
+      const text = (content as { readonly text?: unknown }).text;
+      return typeof text === 'string' && text.trim().length > 0;
+    },
   );
 }
 

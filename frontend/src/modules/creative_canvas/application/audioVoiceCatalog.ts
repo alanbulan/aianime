@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { AudioVoiceRef } from "../domain/canvasNodes";
+import type { AudioVoiceRef } from "../domain/audioVoice";
 
 export interface CanvasAudioReference {
   readonly ref: AudioVoiceRef;

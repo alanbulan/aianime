@@ -628,11 +628,11 @@ describe("frontend architecture boundaries", () => {
     );
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/audioFileTypes.ts",
+      "modules/creative_canvas/domain/audioFileTypes.ts",
     );
     const domainTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/audioFileTypes.test.ts",
+      "modules/creative_canvas/domain/audioFileTypes.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -686,7 +686,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/AudioNode.tsx"],
-      ["features/canvas/domain/audioFileTypes.ts"],
+      ["modules/creative_canvas/domain/audioFileTypes.ts"],
       ["features/canvas/hooks/useAudioNodeController.ts"],
       ["features/canvas/nodes/AudioNodeView.tsx"],
     ]);
@@ -17766,7 +17766,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas audio voice catalogs behind an application-owned gateway", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioVoiceCatalog.ts",
+      "modules/creative_canvas/application/audioVoiceCatalog.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
@@ -17786,11 +17786,11 @@ describe("frontend architecture boundaries", () => {
     );
     const voiceModalModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/voiceSelectionModel.ts",
+      "modules/creative_canvas/application/voiceSelectionModel.ts",
     );
     const voiceModalModelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/voiceSelectionModel.test.ts",
+      "modules/creative_canvas/application/voiceSelectionModel.test.ts",
     );
     const voiceModalControllerPath = resolve(
       SRC_ROOT,
@@ -17890,9 +17890,19 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const voiceReferenceDeclaration = [
+      "export interface",
+      "AudioVoiceRef {",
+    ].join(" ");
+    const voiceReferenceOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(voiceReferenceDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/canvasNodes",
+      "../domain/audioVoice",
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -17900,7 +17910,7 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasAudioVoiceCatalogGateway",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/shared/api/client", "../application/audioVoiceCatalog"]),
+      new Set(["@/shared/api/client", "@/modules/creative_canvas/public"]),
     );
     expect(infrastructureSource).toContain(
       "freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway",
@@ -17938,7 +17948,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(voiceModalEntryPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/voiceSelectionModel",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useVoiceSelectionModalController",
         "./VoiceSelectionModalView",
       ]),
@@ -17972,7 +17982,7 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalViewSource).toContain("<FolderOpen");
     expect(voiceModalDeclarationOwners).toEqual([
       ["features/canvas/nodes/VoiceSelectionModal.tsx"],
-      ["features/canvas/application/voiceSelectionModel.ts"],
+      ["modules/creative_canvas/application/voiceSelectionModel.ts"],
       ["features/canvas/hooks/useVoiceSelectionModalController.ts"],
       ["features/canvas/nodes/VoiceSelectionModalView.tsx"],
     ]);
@@ -17980,7 +17990,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useVoiceSelectionModalController.ts",
     ]);
     expect(voiceDescriptionOwners).toEqual([
-      "features/canvas/application/audioVoiceCatalog.ts",
+      "modules/creative_canvas/application/audioVoiceCatalog.ts",
+    ]);
+    expect(voiceReferenceOwners).toEqual([
+      "modules/creative_canvas/domain/audioVoice.ts",
     ]);
     expect(audioOperationsControllerSource).toContain(
       "describeAudioVoiceRef(voiceSettings.currentRef)",
@@ -18055,7 +18068,11 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["../domain/canvasNodes", "./ports"]),
+      new Set([
+        "../domain/canvasNodes",
+        "./ports",
+        "@/modules/creative_canvas/public",
+      ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -18140,11 +18157,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioOperationsPanelModel.ts",
+      "modules/creative_canvas/application/audioOperationsPanelModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioOperationsPanelModel.test.ts",
+      "modules/creative_canvas/application/audioOperationsPanelModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -18211,12 +18228,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("className=");
-    expect(new Set(importSpecifiers(modelPath))).toEqual(
-      new Set([
-        "@/features/canvas/application/ports",
-        "@/features/canvas/domain/canvasNodes",
-      ]),
-    );
+    expect(importSpecifiers(modelPath)).toEqual(["../domain/audioVoice"]);
     expect(modelSource).not.toContain("from 'react'");
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
@@ -18253,7 +18265,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("projectId={controller.projectId}");
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/AudioOperationsPanel.tsx"],
-      ["features/canvas/application/audioOperationsPanelModel.ts"],
+      ["modules/creative_canvas/application/audioOperationsPanelModel.ts"],
       ["features/canvas/hooks/useAudioOperationsPanelController.ts"],
       ["features/canvas/nodes/AudioOperationsPanelView.tsx"],
     ]);
@@ -20975,11 +20987,11 @@ describe("frontend architecture boundaries", () => {
   it("separates audio node toolbar model, browser controller, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioNodeToolbarModel.ts",
+      "modules/creative_canvas/application/audioNodeToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioNodeToolbarModel.test.ts",
+      "modules/creative_canvas/application/audioNodeToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -21026,9 +21038,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(modelPath)).toEqual([
-      "@/features/canvas/domain/canvasNodes",
-    ]);
+    expect(importSpecifiers(modelPath)).toEqual([]);
     for (const forbiddenDependency of [
       "react",
       "window",
@@ -21048,7 +21058,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "sonner",
-        "@/features/canvas/application/audioNodeToolbarModel",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/application/imageData",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
@@ -21099,8 +21109,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("isAudioFormatPassthrough(");
     expect(transcodeSource).toContain("isAudioFormatPassthrough(");
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/audioNodeToolbarModel.ts"],
-      ["features/canvas/application/audioNodeToolbarModel.ts"],
+      ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
+      ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
       ["features/canvas/hooks/useAudioNodeToolbarController.ts"],
       ["features/canvas/ui/AudioNodeToolbarActionsView.tsx"],
       ["lib/audioTranscode.ts"],
@@ -27508,7 +27518,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps audio reference display-name projection in one application module", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/audioReferenceDisplayName.ts",
+      "modules/creative_canvas/application/audioReferenceDisplayName.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
@@ -27530,10 +27540,10 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/audioReferenceDisplayName.ts",
+      "modules/creative_canvas/application/audioReferenceDisplayName.ts",
     ]);
     expect(videoNode).toContain(
-      "@/features/canvas/application/audioReferenceDisplayName",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).not.toContain("function audioReferenceFileName(");
     expect(videoNode).toContain("resolveAudioReferenceDisplayName(");

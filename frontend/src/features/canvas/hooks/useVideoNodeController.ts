@@ -34,7 +34,7 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
-import { resolveAudioReferenceDisplayName } from '@/features/canvas/application/audioReferenceDisplayName';
+import { resolveAudioReferenceDisplayName } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import { resolveGenerationErrorDiagnostics } from '@/features/canvas/application/generationErrorReport';

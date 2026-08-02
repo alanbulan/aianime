@@ -2,8 +2,8 @@
 import type {
   AudioNodeData,
   AudioTextSegment,
-  AudioVoiceRef,
 } from "../domain/canvasNodes";
+import type { AudioVoiceRef } from "@/modules/creative_canvas/public";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,

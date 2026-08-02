@@ -6,21 +6,23 @@ import { toast } from 'sonner';
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
 import { loadCanvasAudioReferences } from '@/features/canvas/audioComposition';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { isAudioFile } from '@/features/canvas/domain/audioFileTypes';
 import {
   CANVAS_NODE_TYPES,
   type AudioNodeData,
-  type AudioVoiceRef,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
-import { hasMainlineContexts } from '@/modules/creative_canvas/public';
+import {
+  hasMainlineContexts,
+  isAudioFile,
+  type AudioVoiceRef,
+  type CanvasAudioReference,
+} from '@/modules/creative_canvas/public';
 
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 210;
