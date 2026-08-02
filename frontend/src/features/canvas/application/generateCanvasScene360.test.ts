@@ -5,7 +5,7 @@ import {
   generateCanvasScene360,
   type CanvasScene360GenerationGateway,
 } from "./generateCanvasScene360";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 describe("generateCanvasScene360", () => {
   it("submits, persists and completes a scene-360 task", async () => {

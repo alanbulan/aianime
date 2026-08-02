@@ -653,6 +653,43 @@ export type {
 } from "@/modules/creative_canvas/application/generateCanvasAudio";
 export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationComposition";
 export {
+  generateCanvasMultiAngle,
+  generateCanvasOutpaint,
+  generateCanvasUpscale,
+} from "@/modules/creative_canvas/imageOperationGenerationComposition";
+export {
+  completeCanvasMediaGenerationTask,
+  readEmbeddedCanvasGenerationOutputUrl,
+} from "@/modules/creative_canvas/application/completeCanvasMediaGenerationTask";
+export type {
+  CanvasGenerationTaskCompletion,
+  CanvasGenerationTaskRef,
+  CanvasTaskResultGateway,
+  CompleteCanvasMediaGenerationTaskDependencies,
+  CompleteCanvasMediaGenerationTaskParams,
+} from "@/modules/creative_canvas/application/completeCanvasMediaGenerationTask";
+export type {
+  CanvasMultiAngleGenerationCommand,
+  CanvasMultiAngleGenerationGateway,
+  GenerateCanvasMultiAngleDependencies,
+  GenerateCanvasMultiAngleParams,
+  GenerateCanvasMultiAngleResult,
+} from "@/modules/creative_canvas/application/generateCanvasMultiAngle";
+export type {
+  CanvasOutpaintGenerationCommand,
+  CanvasOutpaintGenerationGateway,
+  GenerateCanvasOutpaintDependencies,
+  GenerateCanvasOutpaintParams,
+  GenerateCanvasOutpaintResult,
+} from "@/modules/creative_canvas/application/generateCanvasOutpaint";
+export type {
+  CanvasUpscaleGenerationCommand,
+  CanvasUpscaleGenerationGateway,
+  GenerateCanvasUpscaleDependencies,
+  GenerateCanvasUpscaleParams,
+  GenerateCanvasUpscaleResult,
+} from "@/modules/creative_canvas/application/generateCanvasUpscale";
+export {
   createCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from "@/modules/creative_canvas/audioVoiceCatalogComposition";

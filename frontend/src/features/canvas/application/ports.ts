@@ -10,8 +10,10 @@ import type {
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
+  CanvasGenerationTaskRef,
   CanvasRedrawAspectRatio,
   CanvasRedrawImageSize,
+  CanvasTaskResultGateway,
 } from '@/modules/creative_canvas/public';
 
 export interface IdGenerator {
@@ -89,16 +91,6 @@ export interface GenerationRuntimeGateway {
   getRuntimeDiagnostics: () => Promise<GenerationRuntimeDiagnostics>;
 }
 
-export interface CanvasGenerationTaskRef {
-  job_id: string;
-  task_key: string;
-  task_type: string;
-}
-
-export interface CanvasGenerationTaskCompletion {
-  result?: Record<string, unknown> | null;
-}
-
 export interface CanvasStoryScriptRow {
   shot_no?: string | number | null;
   duration?: string | number | null;
@@ -119,18 +111,6 @@ export interface CanvasStoryScriptRow {
 export interface CanvasStoryScriptResult {
   title?: string | null;
   rows: CanvasStoryScriptRow[];
-}
-
-export interface CanvasTaskResultGateway {
-  awaitCompletion: (
-    taskKey: string,
-    projectId: string,
-  ) => Promise<CanvasGenerationTaskCompletion>;
-  fetchResultUrl: (
-    projectId: string,
-    taskType: string,
-    jobId: string,
-  ) => Promise<string>;
 }
 
 export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {

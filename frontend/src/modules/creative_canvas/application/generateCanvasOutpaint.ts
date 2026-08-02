@@ -2,12 +2,12 @@
 import type {
   CanvasOutpaintAspectRatio,
   CanvasOutpaintImageSize,
-} from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+} from "../domain/outpaint";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasOutpaintGenerationCommand {
   readonly sourceUrl: string;

@@ -2,9 +2,9 @@
 import { apiCall } from '@/shared/api/client';
 
 import type {
-  CanvasGenerationTaskRef,
   CanvasRedrawTaskGateway,
 } from '../application/ports';
+import type { CanvasGenerationTaskRef } from '@/modules/creative_canvas/public';
 import { freezoneGenerationTaskGateway } from './freezoneGenerationTaskGateway';
 
 export const freezoneRedrawTaskGateway: CanvasRedrawTaskGateway = {

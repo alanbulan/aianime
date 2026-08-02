@@ -4,7 +4,7 @@ import type { CanvasImageTo3dSourceKind } from "../domain/imageTo3d";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "./ports";
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasImageTo3dCommand {
   readonly sourceUrl: string;

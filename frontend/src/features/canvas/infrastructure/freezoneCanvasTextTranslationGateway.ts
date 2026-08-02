@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasTextTranslationGateway } from "../application/translateCanvasText";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 
 export const freezoneCanvasTextTranslationGateway: CanvasTextTranslationGateway = {
   async submit(projectId, submission) {

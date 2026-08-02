@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type {
-  CanvasGenerationTaskGateway,
   CanvasGenerationTaskRef,
-} from "./ports";
+} from "@/modules/creative_canvas/public";
+import type { CanvasGenerationTaskGateway } from "./ports";
 
 export interface CanvasReversePromptCommand {
   readonly sourceUrl: string;

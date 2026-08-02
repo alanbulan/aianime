@@ -15,7 +15,7 @@ import {
   type CanvasUpscaleScaleFactor,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasUpscale } from '@/features/canvas/composition';
+import { generateCanvasUpscale } from '@/modules/creative_canvas/public';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';

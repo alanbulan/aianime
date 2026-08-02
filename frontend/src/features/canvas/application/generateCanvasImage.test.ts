@@ -5,7 +5,7 @@ import {
   generateCanvasImage,
   type CanvasImageGenerationSubmissionGateway,
 } from "./generateCanvasImage";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 function dependencies(result: Record<string, unknown>) {
   const task = {

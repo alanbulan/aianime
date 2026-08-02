@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasMultiAngleGenerationGateway } from "../application/generateCanvasMultiAngle";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 
 export const freezoneMultiAngleGenerationGateway: CanvasMultiAngleGenerationGateway = {
   async submit(projectId, command) {

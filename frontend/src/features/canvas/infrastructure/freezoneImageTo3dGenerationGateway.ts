@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasImageTo3dSubmissionGateway } from "../application/generateCanvasImageTo3d";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 
 export const freezoneImageTo3dGenerationGateway: CanvasImageTo3dSubmissionGateway = {
   async submit(projectId, command) {

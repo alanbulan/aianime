@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasOutpaintGenerationGateway } from "../application/generateCanvasOutpaint";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 
 export const freezoneOutpaintGenerationGateway: CanvasOutpaintGenerationGateway = {
   async submit(projectId, command) {

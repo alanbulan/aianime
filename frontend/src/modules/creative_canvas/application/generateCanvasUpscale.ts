@@ -2,12 +2,12 @@
 import type {
   CanvasUpscaleImageSize,
   CanvasUpscaleScaleFactor,
-} from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+} from "../domain/upscale";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasUpscaleGenerationCommand {
   readonly sourceUrl: string;

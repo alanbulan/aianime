@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasImageGenerationCamera {
   readonly cameraBodyId?: string | null;

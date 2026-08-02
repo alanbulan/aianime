@@ -988,6 +988,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百零四批将音频生成用例、语音/音乐提交 adapter、声线目录 adapter 及两个组合根整体迁入 Creative Canvas application/infrastructure/root composition；生成提示词改用本域窄合同，不再反向依赖旧 `canvasNodes` 或 `application/ports`，任务完成只经 Task Execution public。7 个旧 Canvas 生产/测试路径直接删除，生成 Hook、音频节点与声线选择 controller 全部改经 Creative Canvas public 使用，不保留 facade、re-export 或第二套实现。新增 `freezoneGenerationResultGateway` 成为 `/freezone/jobs/.../result` 的唯一端点所有者，旧通用 Canvas Gateway 与新音频链共同委托它；首次完整架构门禁因此发现的重复端点所有权已经从代码层消除。Creative Canvas 由 296 增到 306，Canvas 由 850 降到 843，残余 ratchet 收紧到 843/0，App Shell 对旧 Canvas 的 4 个私有入口不变；旧路径、模块反向依赖和前端空目录均为 0。音频/声线/共享结果链定向 Vitest 9 个文件 37 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 和 `git diff --check` 通过。未启动 UI、未构建安装包、未调用真实模型；Electron 内置 Hermes ACP、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和平台对象存储边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百零五批将共享媒体任务完成合同、多角度、扩图与图片高清三个生成用例、三个 HTTP adapter 及其测试整体迁入 Creative Canvas application/infrastructure，并新增唯一 `imageOperationGenerationComposition.ts` 直接装配 Task Execution 等待端口与既有生成结果 adapter。`CanvasGenerationTaskRef`、完成结果和任务 Gateway 合同从旧 `application/ports` 迁入模块，结果保持 `unknown` 并在读取 `output_url` 前做运行时收窄；旧 Canvas 的图片、全景、补光、模板编辑、视频高清、重绘重试和时间线合成消费者统一经 Creative Canvas public 使用唯一完成用例。旧 `composition.ts` 删除三个 wrapper 及其 Gateway 装配，三个编辑浮层直接调用模块 public；14 个旧生产/测试路径直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 306 增到 321，Canvas 由 843 降到 829，残余 ratchet 收紧到 829/0，App Shell 对旧 Canvas 的 4 个私有入口不变；旧路径、模块反向依赖和前端空目录均为 0。迁移链与旧消费者行为 Vitest 17 个文件 27 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 和 `git diff --check` 通过。未启动 UI、未构建安装包、未调用真实模型；Electron 内置 Hermes ACP、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和平台对象存储边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

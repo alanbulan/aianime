@@ -1,15 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
   buildCanvasRelightPrompt,
+  completeCanvasMediaGenerationTask,
   resolveCanvasRelightKeyLightDirection,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
   type CanvasRelightKeyLightDirection,
   type CanvasRelightSmartPrompt,
 } from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
 
 export interface CanvasRelightGenerationCommand {
   readonly sourceUrl: string;

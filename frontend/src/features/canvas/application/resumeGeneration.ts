@@ -19,10 +19,10 @@ import {
   shouldWriteGenerationError,
 } from '@/features/canvas/application/generationTaskArbitration';
 import type {
-  CanvasGenerationTaskGateway,
   CanvasGenerationTaskCompletion,
   CanvasGenerationTaskRef,
-} from '@/features/canvas/application/ports';
+} from '@/modules/creative_canvas/public';
+import type { CanvasGenerationTaskGateway } from '@/features/canvas/application/ports';
 
 type FreezoneTaskType = CanvasGenerationTaskRef['task_type'];
 

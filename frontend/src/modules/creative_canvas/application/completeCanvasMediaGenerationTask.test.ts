@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 const task = {
   task_key: "media-task",
@@ -50,5 +50,21 @@ describe("completeCanvasMediaGenerationTask", () => {
       "freezone_media_task",
       "media-job",
     );
+  });
+
+  it("ignores malformed embedded results and uses the result endpoint", async () => {
+    const taskGateway: CanvasTaskResultGateway = {
+      awaitCompletion: vi.fn().mockResolvedValue({
+        result: { output_url: 42 },
+      }),
+      fetchResultUrl: vi.fn().mockResolvedValue("/static/safe-fallback.png"),
+    };
+
+    await expect(
+      completeCanvasMediaGenerationTask(
+        { projectId: "project-1", task },
+        { taskGateway, onTaskSubmitted: vi.fn() },
+      ),
+    ).resolves.toBe("/static/safe-fallback.png");
   });
 });

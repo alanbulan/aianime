@@ -8,13 +8,15 @@ const OUTPUT_URL_KEYS: Record<GenerationOutputMedia, readonly string[]> = {
 };
 
 export function resolveGenerationOutputUrl(
-  result: Record<string, unknown> | null | undefined,
+  result: unknown,
   media: GenerationOutputMedia,
 ): string | null {
-  if (!result) return null;
+  if (typeof result !== "object" || result === null || Array.isArray(result)) {
+    return null;
+  }
 
   for (const key of OUTPUT_URL_KEYS[media]) {
-    const value = result[key];
+    const value = Reflect.get(result, key);
     if (typeof value === "string" && value.length > 0) return value;
   }
 

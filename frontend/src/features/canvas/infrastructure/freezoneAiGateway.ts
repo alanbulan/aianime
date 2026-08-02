@@ -4,9 +4,12 @@ import { apiCall } from "@/shared/api/client";
 import type {
   AiGateway,
   CanvasGenerationScope,
-  CanvasGenerationTaskRef,
   GenerateImagePayload,
 } from "../application/ports";
+import {
+  readEmbeddedCanvasGenerationOutputUrl,
+  type CanvasGenerationTaskRef,
+} from "@/modules/creative_canvas/public";
 import {
   ensureBackendImageUrl,
   ensureBackendImageUrls,
@@ -190,8 +193,8 @@ async function awaitJobAndFetchUrl(
     ref.task_key,
     projectId,
   );
-  const directUrl = completed.result?.["output_url"];
-  if (typeof directUrl === "string" && directUrl) return directUrl;
+  const directUrl = readEmbeddedCanvasGenerationOutputUrl(completed.result);
+  if (directUrl) return directUrl;
   return await freezoneGenerationTaskGateway.fetchResultUrl(
     projectId,
     ref.task_type,

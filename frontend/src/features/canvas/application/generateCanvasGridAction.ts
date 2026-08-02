@@ -4,11 +4,11 @@ import {
   type CanvasTemplateEditMode,
   type GridActionKey,
 } from "../domain/gridAction";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasGridActionGenerationCommand {
   readonly sourceUrl: string;

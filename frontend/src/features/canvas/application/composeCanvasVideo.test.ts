@@ -5,7 +5,7 @@ import {
   composeCanvasVideo,
   type CanvasVideoComposeGateway,
 } from "./composeCanvasVideo";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 function dependencies(options?: { embeddedUrl?: string; fallbackUrl?: string }) {
   const task = {

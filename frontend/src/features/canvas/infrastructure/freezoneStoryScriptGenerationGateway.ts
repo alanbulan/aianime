@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasStoryScriptSubmissionGateway } from "../application/generateCanvasStoryScript";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 
 export const freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway = {
   async submit(projectId, command) {

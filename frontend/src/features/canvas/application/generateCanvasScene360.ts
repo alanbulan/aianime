@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasScene360AspectRatio } from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasScene360AspectRatio,
+  type CanvasTaskResultGateway,
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasScene360GenerationCommand {
   readonly referenceUrl: string;

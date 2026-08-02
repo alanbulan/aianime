@@ -3,9 +3,11 @@ import type {
   Seedance2SceneOptimize,
   VideoGenQuality,
 } from "../domain/canvasNodes";
-import type { VideoGenMode } from "@/modules/creative_canvas/public";
+import type {
+  CanvasGenerationTaskRef,
+  VideoGenMode,
+} from "@/modules/creative_canvas/public";
 import { qualityToResolution } from "../domain/videoGenerationModel";
-import type { CanvasGenerationTaskRef } from "./ports";
 
 export type VideoGenerationAspectRatio =
   | "auto"

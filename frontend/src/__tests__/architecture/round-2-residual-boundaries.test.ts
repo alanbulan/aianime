@@ -206,6 +206,24 @@ describe("round 2 residual architecture boundaries", () => {
       "upscale.ts",
       "upscale.test.ts",
     ];
+    const imageOperationApplicationFiles = [
+      "completeCanvasMediaGenerationTask.ts",
+      "completeCanvasMediaGenerationTask.test.ts",
+      "generateCanvasMultiAngle.ts",
+      "generateCanvasMultiAngle.test.ts",
+      "generateCanvasOutpaint.ts",
+      "generateCanvasOutpaint.test.ts",
+      "generateCanvasUpscale.ts",
+      "generateCanvasUpscale.test.ts",
+    ];
+    const imageOperationInfrastructureFiles = [
+      "freezoneMultiAngleGenerationGateway.ts",
+      "freezoneMultiAngleGenerationGateway.test.ts",
+      "freezoneOutpaintGenerationGateway.ts",
+      "freezoneOutpaintGenerationGateway.test.ts",
+      "freezoneUpscaleGenerationGateway.ts",
+      "freezoneUpscaleGenerationGateway.test.ts",
+    ];
     const generationCatalogDomainFiles = [
       "cameraMovementPresets.ts",
       "imageModelCapability.ts",
@@ -442,6 +460,28 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
+    for (const file of imageOperationApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of imageOperationInfrastructureFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "infrastructure", file)),
+        file,
+      ).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(resolve(moduleRoot, "imageOperationGenerationComposition.ts")),
+    ).toBe(true);
     for (const file of generationCatalogDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -1279,7 +1319,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 843],
+      ["features/canvas", 829],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -2,7 +2,7 @@
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "./ports";
+} from "@/modules/creative_canvas/public";
 
 export type CanvasTextTranslationNodeType =
   | "generic"

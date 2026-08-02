@@ -2,12 +2,12 @@
 import { resolveErrorContent } from './errorDialog';
 import { extractRequestId } from './generationErrorReport';
 import {
+  completeCanvasMediaGenerationTask,
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
 } from '@/modules/creative_canvas/public';
-import { completeCanvasMediaGenerationTask } from './completeCanvasMediaGenerationTask';
 import type {
   AiGateway,
   CanvasRedrawTaskGateway,

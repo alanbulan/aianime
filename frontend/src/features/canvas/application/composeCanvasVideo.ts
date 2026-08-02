@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasVideoComposeRequest } from "../domain/videoCompose";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "@/modules/creative_canvas/public";
 
 export interface CanvasVideoComposeGateway {
   submit(

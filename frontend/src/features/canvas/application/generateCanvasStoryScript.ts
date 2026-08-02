@@ -10,8 +10,10 @@ import {
   type CanvasNode,
 } from "../domain/canvasNodes";
 import type {
-  CanvasGenerationTaskGateway,
   CanvasGenerationTaskRef,
+} from "@/modules/creative_canvas/public";
+import type {
+  CanvasGenerationTaskGateway,
   CanvasStoryScriptResult,
 } from "./ports";
 

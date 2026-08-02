@@ -35,7 +35,7 @@ import {
   type CanvasOutpaintNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasOutpaint } from '@/features/canvas/composition';
+import { generateCanvasOutpaint } from '@/modules/creative_canvas/public';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';

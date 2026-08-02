@@ -5,7 +5,7 @@ import {
   generateCanvasOutpaint,
   type CanvasOutpaintGenerationGateway,
 } from "./generateCanvasOutpaint";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 describe("generateCanvasOutpaint", () => {
   it("submits one output for the selected settings and completes the task", async () => {

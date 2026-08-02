@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasImageGenerationSubmissionGateway } from "../application/generateCanvasImage";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 import { ensureBackendImageUrls } from "./freezoneAssetGateway";
 
 export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway = {

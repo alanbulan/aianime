@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasRedrawAspectRatio,
-  CanvasRedrawImageSize,
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasRedrawAspectRatio,
+  type CanvasRedrawImageSize,
 } from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasRedrawTaskGateway,
-} from "./ports";
+import type { CanvasRedrawTaskGateway } from "./ports";
 
 export interface GenerateCanvasRedrawParams {
   readonly projectId: string;

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 import { normalizeVideoStoryRows } from "./videoStoryNormalizer";
 
 export interface CanvasVideoStoryAnalysisCommand {

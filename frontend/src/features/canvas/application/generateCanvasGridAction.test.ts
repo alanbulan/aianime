@@ -5,7 +5,7 @@ import {
   generateCanvasGridAction,
   type CanvasGridActionGenerationGateway,
 } from "./generateCanvasGridAction";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 describe("generateCanvasGridAction", () => {
   it("projects the toolbar action and completes the submitted task", async () => {

@@ -5,7 +5,7 @@ import {
   generateCanvasMultiAngle,
   type CanvasMultiAngleGenerationGateway,
 } from "./generateCanvasMultiAngle";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 describe("generateCanvasMultiAngle", () => {
   it("projects editor values and completes the submitted task", async () => {

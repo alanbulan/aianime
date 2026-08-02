@@ -3,7 +3,7 @@ import type { VideoNodeData } from "../domain/canvasNodes";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "./ports";
+} from "@/modules/creative_canvas/public";
 
 type SubtitleEraseMode = NonNullable<VideoNodeData["subtitleEraseMode"]>;
 type SubtitleEraseBox = NonNullable<VideoNodeData["subtitleEraseBox"]>;

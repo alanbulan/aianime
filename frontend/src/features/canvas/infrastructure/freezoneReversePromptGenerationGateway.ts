@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasReversePromptSubmissionGateway } from "../application/generateCanvasReversePrompt";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
 export const freezoneReversePromptGenerationGateway: CanvasReversePromptSubmissionGateway = {

@@ -5,7 +5,7 @@ import {
   generateCanvasRelight,
   type CanvasRelightGenerationGateway,
 } from "./generateCanvasRelight";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 describe("generateCanvasRelight", () => {
   it("projects editor values and completes the submitted task", async () => {

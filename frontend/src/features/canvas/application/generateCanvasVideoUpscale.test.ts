@@ -5,7 +5,7 @@ import {
   generateCanvasVideoUpscale,
   type CanvasVideoUpscaleGenerationGateway,
 } from "./generateCanvasVideoUpscale";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 describe("generateCanvasVideoUpscale", () => {
   it("submits the selected settings and completes the task", async () => {

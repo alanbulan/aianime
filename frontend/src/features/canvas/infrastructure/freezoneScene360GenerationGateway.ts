@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasScene360GenerationGateway } from "../application/generateCanvasScene360";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
 export const freezoneScene360GenerationGateway: CanvasScene360GenerationGateway = {

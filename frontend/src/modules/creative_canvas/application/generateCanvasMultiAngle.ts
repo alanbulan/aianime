@@ -6,12 +6,12 @@ import {
   type MultiAngleImageSize,
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
-} from "@/modules/creative_canvas/public";
-import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+} from "../domain/multiAngle";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasMultiAngleGenerationCommand {
   readonly sourceUrl: string;

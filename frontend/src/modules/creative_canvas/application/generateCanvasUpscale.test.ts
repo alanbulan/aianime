@@ -5,7 +5,7 @@ import {
   generateCanvasUpscale,
   type CanvasUpscaleGenerationGateway,
 } from "./generateCanvasUpscale";
-import type { CanvasTaskResultGateway } from "./ports";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 describe("generateCanvasUpscale", () => {
   it("submits the selected settings and completes the task", async () => {
