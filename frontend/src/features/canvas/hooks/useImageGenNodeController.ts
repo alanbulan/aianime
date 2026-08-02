@@ -58,6 +58,7 @@ import {
 import {
   collectCandidateBindingsForNode,
   filterCanvasImageModels,
+  generateCanvasImage,
   getFreezoneCanvasMetadata,
   historyRecordOutputUrl,
   publishCanvasAssetsUpdated,
@@ -76,7 +77,6 @@ import {
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
-  generateCanvasImage,
   getCanvasBeatDirectorManifest,
   translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,

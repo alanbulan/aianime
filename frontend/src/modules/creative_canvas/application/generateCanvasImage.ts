@@ -3,7 +3,7 @@ import {
   completeCanvasMediaGenerationTask,
   type CanvasGenerationTaskRef,
   type CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasImageGenerationCamera {
   readonly cameraBodyId?: string | null;
@@ -43,26 +43,48 @@ export interface CanvasImageGenerationSubmissionGateway {
   ): Promise<CanvasImageGenerationTaskRef>;
 }
 
+export interface CanvasImageReferencePreparationGateway {
+  prepareAll(
+    projectId: string,
+    rawUrls: readonly string[] | null | undefined,
+  ): Promise<string[]>;
+}
+
 export interface GenerateCanvasImageParams
   extends CanvasImageGenerationCommand {
   readonly projectId: string;
 }
 
-export interface GenerateCanvasImageDependencies {
+export interface SubmitCanvasImageGenerationDependencies {
+  readonly sourceGateway: CanvasImageReferencePreparationGateway;
   readonly submissionGateway: CanvasImageGenerationSubmissionGateway;
+}
+
+export interface GenerateCanvasImageDependencies
+  extends SubmitCanvasImageGenerationDependencies {
   readonly taskGateway: CanvasTaskResultGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
 }
 
-export async function generateCanvasImage(
+export interface GenerateCanvasImageResult {
+  readonly task: CanvasImageGenerationTaskRef;
+  readonly url: string | null;
+  readonly resultFallbackError?: unknown;
+}
+
+export async function submitCanvasImageGeneration(
   params: GenerateCanvasImageParams,
-  dependencies: GenerateCanvasImageDependencies,
-) {
-  const task = await dependencies.submissionGateway.submit(params.projectId, {
+  dependencies: SubmitCanvasImageGenerationDependencies,
+): Promise<CanvasImageGenerationTaskRef> {
+  const referenceUrls = await dependencies.sourceGateway.prepareAll(
+    params.projectId,
+    params.referenceUrls,
+  );
+  return await dependencies.submissionGateway.submit(params.projectId, {
     prompt: params.prompt,
     aspectRatio: params.aspectRatio,
     imageSize: params.imageSize,
-    referenceUrls: params.referenceUrls,
+    referenceUrls,
     camera: params.camera,
     style: params.style,
     model: params.model,
@@ -72,6 +94,13 @@ export async function generateCanvasImage(
     canvasId: params.canvasId,
     nodeId: params.nodeId,
   });
+}
+
+export async function generateCanvasImage(
+  params: GenerateCanvasImageParams,
+  dependencies: GenerateCanvasImageDependencies,
+): Promise<GenerateCanvasImageResult> {
+  const task = await submitCanvasImageGeneration(params, dependencies);
   let resultFallbackError: unknown;
   let resultFallbackFailed = false;
   const url = await completeCanvasMediaGenerationTask(

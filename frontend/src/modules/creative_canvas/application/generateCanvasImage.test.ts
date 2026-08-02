@@ -1,17 +1,22 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 import {
   generateCanvasImage,
+  submitCanvasImageGeneration,
   type CanvasImageGenerationSubmissionGateway,
+  type CanvasImageReferencePreparationGateway,
 } from "./generateCanvasImage";
-import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 function dependencies(result: Record<string, unknown>) {
   const task = {
     job_id: "job-1",
     task_key: "task-1",
-    task_type: "freezone_gen",
+    task_type: "freezone_gen" as const,
+  };
+  const sourceGateway: CanvasImageReferencePreparationGateway = {
+    prepareAll: vi.fn().mockResolvedValue(["/static/reference.png"]),
   };
   const submissionGateway: CanvasImageGenerationSubmissionGateway = {
     submit: vi.fn().mockResolvedValue(task),
@@ -22,6 +27,7 @@ function dependencies(result: Record<string, unknown>) {
   };
   return {
     task,
+    sourceGateway,
     submissionGateway,
     taskGateway,
     onTaskSubmitted: vi.fn(),
@@ -33,7 +39,7 @@ const params = {
   prompt: "character portrait",
   aspectRatio: "16:9",
   imageSize: "2K",
-  referenceUrls: ["/static/reference.png"],
+  referenceUrls: ["data:image/png;base64,eA=="],
   model: "cloud-image-standard",
   modelId: "cloud-image-standard",
   quality: "medium",
@@ -42,13 +48,16 @@ const params = {
 };
 
 describe("generateCanvasImage", () => {
-  it("submits the complete image command and uses the embedded URL", async () => {
+  it("prepares sources and submits the complete image command", async () => {
     const deps = dependencies({ output_url: "/static/generated.png" });
 
-    await expect(generateCanvasImage(params, deps)).resolves.toEqual({
-      task: deps.task,
-      url: "/static/generated.png",
-    });
+    await expect(
+      submitCanvasImageGeneration(params, deps),
+    ).resolves.toEqual(deps.task);
+    expect(deps.sourceGateway.prepareAll).toHaveBeenCalledWith(
+      "project-1",
+      ["data:image/png;base64,eA=="],
+    );
     expect(deps.submissionGateway.submit).toHaveBeenCalledWith("project-1", {
       prompt: "character portrait",
       aspectRatio: "16:9",
@@ -62,6 +71,15 @@ describe("generateCanvasImage", () => {
       quality: "medium",
       canvasId: "canvas-1",
       nodeId: "image-1",
+    });
+  });
+
+  it("uses the embedded completion URL", async () => {
+    const deps = dependencies({ output_url: "/static/generated.png" });
+
+    await expect(generateCanvasImage(params, deps)).resolves.toEqual({
+      task: deps.task,
+      url: "/static/generated.png",
     });
     expect(deps.onTaskSubmitted).toHaveBeenCalledWith(deps.task);
     expect(deps.taskGateway.fetchResultUrl).not.toHaveBeenCalled();

@@ -10,6 +10,12 @@ import {
   type GenerateCanvasGridActionParams,
 } from "./application/generateCanvasGridAction";
 import {
+  generateCanvasImage as generateCanvasImageUseCase,
+  submitCanvasImageGeneration as submitCanvasImageGenerationUseCase,
+  type CanvasImageReferencePreparationGateway,
+  type GenerateCanvasImageParams,
+} from "./application/generateCanvasImage";
+import {
   generateCanvasImageTo3d as generateCanvasImageTo3dUseCase,
   type GenerateCanvasImageTo3dParams,
 } from "./application/generateCanvasImageTo3d";
@@ -52,6 +58,7 @@ import {
   type CanvasImageSourcePreparationGateway,
 } from "./application/prepareCanvasImageSource";
 import { freezoneGridActionGenerationGateway } from "./infrastructure/freezoneGridActionGenerationGateway";
+import { freezoneImageGenerationGateway } from "./infrastructure/freezoneImageGenerationGateway";
 import { freezoneImageTo3dGenerationGateway } from "./infrastructure/freezoneImageTo3dGenerationGateway";
 import { freezoneMultiAngleGenerationGateway } from "./infrastructure/freezoneMultiAngleGenerationGateway";
 import { freezoneOutpaintGenerationGateway } from "./infrastructure/freezoneOutpaintGenerationGateway";
@@ -86,6 +93,15 @@ const imageSourceGateway: CanvasImageSourcePreparationGateway = {
   },
 };
 
+const imageReferenceSourceGateway: CanvasImageReferencePreparationGateway = {
+  prepareAll(projectId, rawUrls) {
+    return prepareCanvasImageSourcesUseCase(
+      { projectId, rawUrls },
+      imageSourceDependencies,
+    );
+  },
+};
+
 const reversePromptTaskGateway: CanvasReversePromptTaskGateway = {
   awaitCompletion: awaitTaskCompletion,
   async fetchReversePrompt(projectId, jobId) {
@@ -106,10 +122,26 @@ export function prepareCanvasImageSources(
   projectId: string,
   rawUrls: readonly string[] | null | undefined,
 ) {
-  return prepareCanvasImageSourcesUseCase(
-    { projectId, rawUrls },
-    imageSourceDependencies,
-  );
+  return imageReferenceSourceGateway.prepareAll(projectId, rawUrls);
+}
+
+export function submitCanvasImageGeneration(params: GenerateCanvasImageParams) {
+  return submitCanvasImageGenerationUseCase(params, {
+    sourceGateway: imageReferenceSourceGateway,
+    submissionGateway: freezoneImageGenerationGateway,
+  });
+}
+
+export function generateCanvasImage(
+  params: GenerateCanvasImageParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasImageUseCase(params, {
+    sourceGateway: imageReferenceSourceGateway,
+    submissionGateway: freezoneImageGenerationGateway,
+    taskGateway,
+    onTaskSubmitted,
+  });
 }
 
 export function generateCanvasMultiAngle(

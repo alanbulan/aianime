@@ -10,12 +10,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
 import { freezoneGenerationTaskGateway } from "@/features/canvas/infrastructure/freezoneGenerationTaskGateway";
-import { freezoneImageGenerationGateway } from "@/features/canvas/infrastructure/freezoneImageGenerationGateway";
 import { httpFreezoneAssetCommitGateway } from "@/modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway";
 import {
   getFreezoneCanvas,
   listFreezoneCanvases,
   putFreezoneCanvas,
+  submitCanvasImageGeneration,
 } from "@/modules/creative_canvas/public";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/modules/story_intake/public";
@@ -280,7 +280,8 @@ describe("M06 frontend L2 contract", () => {
       client_save_id: "save-1",
       base_revision: 4,
     });
-    const job = await freezoneImageGenerationGateway.submit("demo", {
+    const job = await submitCanvasImageGeneration({
+      projectId: "demo",
       prompt: "cinematic frame",
       aspectRatio: "16:9",
       imageSize: "2K",

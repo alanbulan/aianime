@@ -654,6 +654,7 @@ export type {
 export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationComposition";
 export {
   generateCanvasGridAction,
+  generateCanvasImage,
   generateCanvasImageTo3d,
   generateCanvasMultiAngle,
   generateCanvasOutpaint,
@@ -665,6 +666,7 @@ export {
   generateCanvasVideoUpscale,
   prepareCanvasImageSource,
   prepareCanvasImageSources,
+  submitCanvasImageGeneration,
 } from "@/modules/creative_canvas/mediaOperationGenerationComposition";
 export {
   resolveGridActionTemplateMode,
@@ -692,6 +694,18 @@ export type {
   GenerateCanvasGridActionParams,
   GenerateCanvasGridActionResult,
 } from "@/modules/creative_canvas/application/generateCanvasGridAction";
+export type {
+  CanvasImageGenerationCamera,
+  CanvasImageGenerationCommand,
+  CanvasImageGenerationStyle,
+  CanvasImageGenerationSubmissionGateway,
+  CanvasImageGenerationTaskRef,
+  CanvasImageReferencePreparationGateway,
+  GenerateCanvasImageDependencies,
+  GenerateCanvasImageParams,
+  GenerateCanvasImageResult,
+  SubmitCanvasImageGenerationDependencies,
+} from "@/modules/creative_canvas/application/generateCanvasImage";
 export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";

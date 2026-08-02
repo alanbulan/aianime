@@ -9,6 +9,7 @@ import {
 
 const awaitCompletion = vi.hoisted(() => vi.fn());
 const fetchResultUrl = vi.hoisted(() => vi.fn());
+const submitImageGeneration = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 vi.mock("@/modules/creative_canvas/public", () => ({
@@ -19,9 +20,6 @@ vi.mock("@/modules/creative_canvas/public", () => ({
 }));
 vi.mock("./freezoneGenerationTaskGateway", () => ({
   freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
-}));
-vi.mock("./freezoneImageGenerationGateway", () => ({
-  freezoneImageGenerationGateway: { submit: vi.fn() },
 }));
 
 import { createFreezoneAiGateway } from "./freezoneAiGateway";
@@ -39,6 +37,7 @@ function gateway() {
       references,
       suffix: "",
     }),
+    submitImageGeneration,
   });
 }
 
@@ -48,9 +47,47 @@ beforeEach(() => {
   vi.mocked(prepareCanvasImageSources).mockReset();
   awaitCompletion.mockReset();
   fetchResultUrl.mockReset();
+  submitImageGeneration.mockReset();
 });
 
 describe("freezoneAiGateway", () => {
+  it("delegates reference-free generation through the injected application port", async () => {
+    submitImageGeneration.mockResolvedValue({
+      task_type: "freezone_gen",
+      task_key: "gen-task",
+      job_id: "gen-job",
+    });
+    awaitCompletion.mockResolvedValue({
+      result: { output_url: "/static/generated.png" },
+    });
+
+    await expect(
+      gateway().generateImage(
+        { projectId: "project/1", canvasId: "canvas-1" },
+        {
+          prompt: "Portrait",
+          model: "cloud-image-standard",
+          size: "2K",
+          aspectRatio: "1:1",
+          nodeId: "node-1",
+        },
+      ),
+    ).resolves.toBe("/static/generated.png");
+
+    expect(submitImageGeneration).toHaveBeenCalledWith("project/1", {
+      prompt: "Portrait",
+      aspectRatio: "1:1",
+      imageSize: "2K",
+      referenceUrls: [],
+      model: "cloud-image-standard",
+      modelId: undefined,
+      genMode: undefined,
+      quality: undefined,
+      canvasId: "canvas-1",
+      nodeId: "node-1",
+    });
+  });
+
   it("submits reference-image editing through its owned endpoint", async () => {
     vi.mocked(prepareCanvasImageSource).mockResolvedValue("/static/base.png");
     vi.mocked(prepareCanvasImageSources).mockResolvedValue([

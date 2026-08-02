@@ -1,11 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 import type { CanvasImageGenerationSubmissionGateway } from "../application/generateCanvasImage";
-import {
-  prepareCanvasImageSources,
-  type CanvasGenerationTaskRef,
-} from "@/modules/creative_canvas/public";
 
 export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway = {
   async submit(projectId, command) {
@@ -20,10 +17,6 @@ export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGate
     const style = command.style?.templateId
       ? { template_id: command.style.templateId }
       : null;
-    const referenceUrls = await prepareCanvasImageSources(
-      projectId,
-      command.referenceUrls,
-    );
     const task = await apiCall<CanvasGenerationTaskRef>(
       `projects/${encodeURIComponent(projectId)}/freezone/gen`,
       {
@@ -32,7 +25,7 @@ export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGate
           prompt: command.prompt,
           aspect_ratio: command.aspectRatio ?? "1:1",
           image_size: command.imageSize ?? "2K",
-          reference_urls: referenceUrls,
+          reference_urls: command.referenceUrls ?? [],
           camera,
           style,
           model: command.model,

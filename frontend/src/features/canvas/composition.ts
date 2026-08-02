@@ -19,6 +19,7 @@ import {
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
+  submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
   type CanvasGenerationTaskRef,
 } from '@/modules/creative_canvas/public';
@@ -51,10 +52,6 @@ import {
   eraseVideoSubtitles as eraseVideoSubtitlesUseCase,
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
-import {
-  generateCanvasImage as generateCanvasImageUseCase,
-  type GenerateCanvasImageParams,
-} from './application/generateCanvasImage';
 import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
@@ -144,7 +141,6 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
-import { freezoneImageGenerationGateway } from './infrastructure/freezoneImageGenerationGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
@@ -172,6 +168,8 @@ const freezoneAiGateway = createFreezoneAiGateway({
   getCanvasMetadata: getFreezoneCanvasMetadata,
   resolveShotMetadataPrompt: resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
+  submitImageGeneration: (projectId, command) =>
+    submitCanvasImageGeneration({ projectId, ...command }),
 });
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
@@ -415,17 +413,6 @@ export async function generateCanvasStoryScript(
     onTaskSubmitted,
     },
   );
-}
-
-export function generateCanvasImage(
-  params: GenerateCanvasImageParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasImageUseCase(params, {
-    submissionGateway: freezoneImageGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-  });
 }
 
 export function awaitCanvasGenerationTaskCompletion(

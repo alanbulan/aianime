@@ -10,10 +10,10 @@ import {
   prepareCanvasImageSource,
   prepareCanvasImageSources,
   readEmbeddedCanvasGenerationOutputUrl,
+  type CanvasImageGenerationCommand,
   type CanvasGenerationTaskRef,
 } from "@/modules/creative_canvas/public";
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
-import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 interface ComposedCapabilityJob {
   readonly prompt: string;
@@ -48,6 +48,10 @@ export interface FreezoneAiGatewayDependencies {
     prompt: string,
     references: string[],
   ) => ReferenceRoleProjection;
+  readonly submitImageGeneration: (
+    projectId: string,
+    command: CanvasImageGenerationCommand,
+  ) => Promise<CanvasGenerationTaskRef>;
 }
 
 interface ImageEditSubmission {
@@ -151,7 +155,7 @@ async function submitJob(
   } = dependencies.resolvePromptReferenceRoles(afterShotClean, rawRefs);
   const finalPrompt = `${cleanedPrompt}${shotSuffix}${roleSuffix}`;
   if (refs.length === 0) {
-    const ref = await freezoneImageGenerationGateway.submit(projectId, {
+    const ref = await dependencies.submitImageGeneration(projectId, {
       prompt: finalPrompt,
       aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
       imageSize: effectiveSize || toImageSize(payload),

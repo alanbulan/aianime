@@ -2,37 +2,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
-import { prepareCanvasImageSources } from "@/modules/creative_canvas/public";
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("@/modules/creative_canvas/public", () => ({
-  prepareCanvasImageSources: vi.fn(),
-}));
 
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
-  vi.mocked(prepareCanvasImageSources).mockReset();
-  vi.mocked(prepareCanvasImageSources).mockResolvedValue([]);
 });
 
 describe("freezoneImageGenerationGateway", () => {
-  it("normalizes references and maps the Canvas command to the encoded endpoint", async () => {
+  it("maps prepared references and the complete command to the encoded endpoint", async () => {
     const task = {
       job_id: "job-1",
       task_key: "task-1",
       task_type: "freezone_gen",
     };
-    vi.mocked(prepareCanvasImageSources).mockResolvedValue([
-      "/static/reference.png",
-    ]);
     vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       prompt: "character portrait",
       aspectRatio: "16:9",
       imageSize: "2K",
-      referenceUrls: ["data:image/png;base64,eA=="],
+      referenceUrls: ["/static/reference.png"],
       camera: {
         cameraBodyId: "sony-a7",
         lensId: "prime-50",
@@ -51,9 +42,6 @@ describe("freezoneImageGenerationGateway", () => {
     await expect(
       freezoneImageGenerationGateway.submit("project/1", command),
     ).resolves.toEqual(task);
-    expect(prepareCanvasImageSources).toHaveBeenCalledWith("project/1", [
-      "data:image/png;base64,eA==",
-    ]);
     expect(apiCall).toHaveBeenCalledWith(
       "projects/project%2F1/freezone/gen",
       {
