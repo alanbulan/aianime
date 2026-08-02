@@ -7,14 +7,14 @@ import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
+  useVideoComposeKeyboardController,
+  useVideoComposeTimelineEditorController,
+  useVideoComposeTimelinePointerController,
   type ComposeCover,
   type ComposeTimelineState,
 } from "@/modules/creative_canvas/public";
 import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
-import { useVideoComposeKeyboardController } from "@/features/canvas/hooks/useVideoComposeKeyboardController";
 import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
-import { useVideoComposeTimelineEditorController } from "@/features/canvas/hooks/useVideoComposeTimelineEditorController";
-import { useVideoComposeTimelinePointerController } from "@/features/canvas/hooks/useVideoComposeTimelinePointerController";
 import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import {
   VideoComposeModalView,

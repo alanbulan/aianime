@@ -25866,7 +25866,7 @@ describe("frontend architecture boundaries", () => {
     );
     const editorControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineEditorController.ts",
     );
     const editsSource = readFileSync(editsPath, "utf8");
     const editsTestSource = readFileSync(editsTestPath, "utf8");
@@ -25903,7 +25903,7 @@ describe("frontend architecture boundaries", () => {
     expect(editsSource).not.toContain("@/stores/");
     expect(editsSource).not.toContain("className=");
     expect(importSpecifiers(editorControllerPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../domain/videoComposeTimelineEdits",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimelineEdits",
@@ -25942,11 +25942,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose clip edit orchestration in one editor controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineEditorController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineEditorController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineEditorController.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -25965,7 +25965,11 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set(["react", "@/modules/creative_canvas/public"]),
+      new Set([
+        "react",
+        "../domain/videoComposeTimelineEdits",
+        "../domain/videoComposeTimeline",
+      ]),
     );
     expect(controllerSource).toContain("clipboardRef");
     expect(controllerSource).toContain("const moveToNewTrack = useCallback");
@@ -25979,7 +25983,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/features/canvas/hooks/useVideoComposeTimelineEditorController",
+      "@/modules/creative_canvas/public",
     );
     expect(modalSource).not.toContain("clipboardRef");
     expect(modalSource).not.toContain("const moveToNewTrack = useCallback");
@@ -25988,7 +25992,7 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain('type: "insertClipCopy"');
     expect(modalSource).not.toContain('type: "removeClips"');
     expect(declarationOwners).toEqual([
-      "features/canvas/hooks/useVideoComposeTimelineEditorController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineEditorController.ts",
     ]);
     expect(controllerTestSource).toContain(
       'from "./useVideoComposeTimelineEditorController"',
@@ -26010,7 +26014,7 @@ describe("frontend architecture boundaries", () => {
     );
     const pointerControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelinePointerController.ts",
     );
     const gesturesSource = readFileSync(gesturesPath, "utf8");
     const gesturesTestSource = readFileSync(gesturesTestPath, "utf8");
@@ -26045,7 +26049,7 @@ describe("frontend architecture boundaries", () => {
     expect(gesturesSource).not.toContain("@/stores/");
     expect(gesturesSource).not.toContain("className=");
     expect(importSpecifiers(pointerControllerPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../domain/videoComposeTimelineGestures",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimelineGestures",
@@ -26085,11 +26089,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose browser pointer sessions in one controller hook", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelinePointerController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelinePointerController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeTimelinePointerController.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26108,7 +26112,12 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set(["react", "@/modules/creative_canvas/public"]),
+      new Set([
+        "react",
+        "../domain/videoComposeTimelineGestures",
+        "../domain/videoComposeTimelineEdits",
+        "../domain/videoComposeTimeline",
+      ]),
     );
     expect(controllerSource).toContain(
       'document.querySelectorAll<HTMLElement>("[data-compose-track-id]")',
@@ -26126,14 +26135,14 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/features/canvas/hooks/useVideoComposeTimelinePointerController",
+      "@/modules/creative_canvas/public",
     );
     expect(modalSource).not.toContain("document.querySelectorAll");
     expect(modalSource).not.toContain('addEventListener("pointermove"');
     expect(modalSource).not.toContain("setPointerCapture(");
     expect(modalSource).not.toContain("activeDragCleanupRef");
     expect(declarationOwners).toEqual([
-      "features/canvas/hooks/useVideoComposeTimelinePointerController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelinePointerController.ts",
     ]);
     expect(controllerTestSource).toContain(
       'from "./useVideoComposeTimelinePointerController"',
@@ -26143,11 +26152,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose keyboard behavior in one controller hook", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeKeyboardController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeKeyboardController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeKeyboardController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeKeyboardController.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26178,13 +26187,13 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/features/canvas/hooks/useVideoComposeKeyboardController",
+      "@/modules/creative_canvas/public",
     );
     expect(modalSource).not.toContain('window.addEventListener("keydown"');
     expect(modalSource).not.toContain("const isTyping =");
     expect(modalSource).not.toContain("const FRAME_MS =");
     expect(declarationOwners).toEqual([
-      "features/canvas/hooks/useVideoComposeKeyboardController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeKeyboardController.ts",
     ]);
     expect(controllerTestSource).toContain(
       'from "./useVideoComposeKeyboardController"',
@@ -26250,11 +26259,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose controls and track media in presentation leaves", () => {
     const controlsPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeTimelineControls.tsx",
+      "modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx",
     );
     const controlsTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoComposeTimelineControls.test.tsx",
+      "modules/creative_canvas/presentation/VideoComposeTimelineControls.test.tsx",
     );
     const trackRowPath = resolve(
       SRC_ROOT,
@@ -26296,7 +26305,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
+        "../domain/videoComposeTimelineEdits",
       ]),
     );
     expect(new Set(importSpecifiers(trackRowPath))).toEqual(
@@ -26314,7 +26323,7 @@ describe("frontend architecture boundaries", () => {
     expect(trackRowSource).not.toContain("useCanvasStore");
     expect(trackRowSource).not.toContain("@/api/");
     expect(importSpecifiers(modalViewPath)).toContain(
-      "./VideoComposeTimelineControls",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(modalViewPath)).toContain(
       "./VideoComposeTrackRow",
@@ -26340,9 +26349,9 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("<VideoComposeVolumePopover");
     expect(modalSource).not.toContain("<VideoComposeTrackRow");
     expect(declarationOwners).toEqual([
-      ["features/canvas/ui/VideoComposeTimelineControls.tsx"],
-      ["features/canvas/ui/VideoComposeTimelineControls.tsx"],
-      ["features/canvas/ui/VideoComposeTimelineControls.tsx"],
+      ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
+      ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
+      ["modules/creative_canvas/presentation/VideoComposeTimelineControls.tsx"],
       ["features/canvas/ui/VideoComposeTrackRow.tsx"],
     ]);
     expect(controlsTestSource).toContain(
@@ -26364,11 +26373,11 @@ describe("frontend architecture boundaries", () => {
     );
     const clockPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposePlaybackClock.ts",
+      "modules/creative_canvas/presentation/useVideoComposePlaybackClock.ts",
     );
     const clockTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposePlaybackClock.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposePlaybackClock.test.tsx",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -26423,7 +26432,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/application/imageData",
         "@/modules/creative_canvas/public",
-        "./useVideoComposePlaybackClock",
         "./useVideoComposeTrackMediaSync",
       ]),
     );
@@ -26448,7 +26456,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/application/videoComposePreview.ts"],
       ["modules/creative_canvas/application/videoComposePreview.ts"],
       ["modules/creative_canvas/application/videoComposePreview.ts"],
-      ["features/canvas/hooks/useVideoComposePlaybackClock.ts"],
+      ["modules/creative_canvas/presentation/useVideoComposePlaybackClock.ts"],
       ["features/canvas/hooks/useVideoComposePlaybackController.ts"],
     ]);
     expect(previewTestSource).toContain('from "./videoComposePreview"');

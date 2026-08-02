@@ -31,16 +31,6 @@ import {
   X,
 } from "lucide-react";
 
-import type {
-  CanvasVideoComposeResolution,
-  ComposeTimelineState,
-  VideoComposeClipReference,
-} from "@/modules/creative_canvas/public";
-
-import {
-  VideoComposeTrackRow,
-  type VideoComposeTrackRowProps,
-} from "./VideoComposeTrackRow";
 import {
   VideoComposeSpeedPopover,
   VideoComposeToolButton,
@@ -48,7 +38,15 @@ import {
   VideoComposeVolumePopover,
   VideoComposeZoomInGlyph,
   VideoComposeZoomOutGlyph,
-} from "./VideoComposeTimelineControls";
+  type CanvasVideoComposeResolution,
+  type ComposeTimelineState,
+  type VideoComposeClipReference,
+} from "@/modules/creative_canvas/public";
+
+import {
+  VideoComposeTrackRow,
+  type VideoComposeTrackRowProps,
+} from "./VideoComposeTrackRow";
 
 const RULER_MIN_SECONDS = 10;
 

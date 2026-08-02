@@ -310,6 +310,18 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
     ];
+    const videoComposePresentationFiles = [
+      "useVideoComposeTimelineEditorController.ts",
+      "useVideoComposeTimelineEditorController.test.tsx",
+      "useVideoComposeTimelinePointerController.ts",
+      "useVideoComposeTimelinePointerController.test.tsx",
+      "useVideoComposeKeyboardController.ts",
+      "useVideoComposeKeyboardController.test.tsx",
+      "useVideoComposePlaybackClock.ts",
+      "useVideoComposePlaybackClock.test.tsx",
+      "VideoComposeTimelineControls.tsx",
+      "VideoComposeTimelineControls.test.tsx",
+    ];
     const videoSubtitleEraseApplicationFiles = [
       "eraseVideoSubtitles.ts",
       "eraseVideoSubtitles.test.ts",
@@ -691,6 +703,16 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
+    for (const file of videoComposePresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+      const legacyRoot = file.startsWith("VideoCompose") ? "ui" : "hooks";
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas", legacyRoot, file)),
+        file,
+      ).toBe(false);
+    }
     expect(
       existsSync(resolve(moduleRoot, "videoComposeComposition.ts")),
     ).toBe(true);
@@ -998,6 +1020,11 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/videoComposeTimelineGestures",
         "@/modules/creative_canvas/application/videoComposePreview",
         "@/modules/creative_canvas/application/videoComposeTimelineSession",
+        "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController",
+        "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController",
+        "@/modules/creative_canvas/presentation/useVideoComposeKeyboardController",
+        "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock",
+        "@/modules/creative_canvas/presentation/VideoComposeTimelineControls",
         "@/modules/creative_canvas/application/generationCatalog",
         "@/modules/creative_canvas/generationCatalogComposition",
         "@/modules/creative_canvas/assetTransferComposition",
@@ -1570,7 +1597,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 744],
+      ["features/canvas", 734],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

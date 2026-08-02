@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import {
   VIDEO_COMPOSE_MAX_SPEED,
   VIDEO_COMPOSE_MIN_SPEED,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimelineEdits";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);

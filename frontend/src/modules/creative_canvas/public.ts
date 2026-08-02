@@ -889,6 +889,26 @@ export type {
   VideoComposeActiveMediaClock,
   VideoComposeMediaClockSample,
 } from "@/modules/creative_canvas/application/videoComposePreview";
+export { useVideoComposeTimelineEditorController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
+export type { UseVideoComposeTimelineEditorControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
+export { useVideoComposeTimelinePointerController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController";
+export type {
+  UseVideoComposeTimelinePointerControllerOptions,
+  VideoComposePointerDragGhost,
+  VideoComposePointerTrimEdit,
+} from "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController";
+export { useVideoComposeKeyboardController } from "@/modules/creative_canvas/presentation/useVideoComposeKeyboardController";
+export type { UseVideoComposeKeyboardControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeKeyboardController";
+export { useVideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
+export type { VideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
+export {
+  VideoComposeSpeedPopover,
+  VideoComposeToolButton,
+  VideoComposeToolDivider,
+  VideoComposeVolumePopover,
+  VideoComposeZoomInGlyph,
+  VideoComposeZoomOutGlyph,
+} from "@/modules/creative_canvas/presentation/VideoComposeTimelineControls";
 export type {
   CanvasVideoComposeGateway,
   ComposeCanvasVideoDependencies,

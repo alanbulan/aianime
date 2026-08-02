@@ -8,11 +8,11 @@ import {
   resolveVideoComposeMediaClockMs,
   resolveVideoComposePreviewTrack,
   timelineDurationMs,
+  useVideoComposePlaybackClock,
   type ComposeTimelineState,
   type VideoComposeActiveMediaClock,
 } from "@/modules/creative_canvas/public";
 
-import { useVideoComposePlaybackClock } from "./useVideoComposePlaybackClock";
 import { useVideoComposeTrackMediaSync } from "./useVideoComposeTrackMediaSync";
 
 export function useVideoComposePlaybackController(

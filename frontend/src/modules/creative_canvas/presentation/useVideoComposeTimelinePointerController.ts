@@ -14,13 +14,17 @@ import {
   projectVideoComposeClipDrag,
   projectVideoComposeTrimDrag,
   snapVideoComposePlayhead,
-  type ComposeClip,
-  type ComposeTimelineState,
-  type ComposeTrack,
-  type ComposeTrackKind,
-  type VideoComposeClipReference,
-  type VideoComposeTimelineEdit,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimelineGestures";
+import type {
+  VideoComposeClipReference,
+  VideoComposeTimelineEdit,
+} from "../domain/videoComposeTimelineEdits";
+import type {
+  ComposeClip,
+  ComposeTimelineState,
+  ComposeTrack,
+  ComposeTrackKind,
+} from "../domain/videoComposeTimeline";
 
 export interface VideoComposePointerDragGhost {
   clipId: string;
