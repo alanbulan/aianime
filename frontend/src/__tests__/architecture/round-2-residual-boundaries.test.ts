@@ -224,6 +224,12 @@ describe("round 2 residual architecture boundaries", () => {
       "commitDialogViewModel.ts",
       "useAssetLibraryReplacementController.ts",
       "useAssetLibraryReplacementController.test.tsx",
+      "AssetLibraryPanelView.tsx",
+      "AssetLibraryPanelView.test.tsx",
+      "AssetLibraryBeatPanels.tsx",
+      "AssetLibraryBeatPanels.test.tsx",
+      "AssetLibraryAssetCard.tsx",
+      "AssetLibraryAssetCard.test.tsx",
       "skillI18n.ts",
       "skillI18n.test.ts",
       "contextQueryHooks.ts",
@@ -414,6 +420,18 @@ describe("round 2 residual architecture boundaries", () => {
         false,
       );
     }
+    for (const retiredAssetLibraryPresentationPath of [
+      "features/freezone/presentation/AssetLibraryPanelView.tsx",
+      "features/freezone/presentation/AssetLibraryPanelView.test.tsx",
+      "features/freezone/presentation/AssetLibraryBeatPanels.tsx",
+      "features/freezone/presentation/AssetLibraryBeatPanels.test.tsx",
+      "features/freezone/presentation/AssetLibraryAssetCard.tsx",
+      "features/freezone/presentation/AssetLibraryAssetCard.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredAssetLibraryPresentationPath)),
+      ).toBe(false);
+    }
     expect(
       existsSync(
         resolve(
@@ -569,6 +587,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/canvasBrowserViewModel",
         "@/modules/creative_canvas/presentation/commitDialogViewModel",
         "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController",
+        "@/modules/creative_canvas/presentation/AssetLibraryPanelView",
         "@/modules/creative_canvas/presentation/FreezoneChatDock",
         "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback",
         "@/modules/creative_canvas/presentation/CanvasesTab",
@@ -1103,7 +1122,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 900],
-      ["features/freezone", 23],
+      ["features/freezone", 17],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

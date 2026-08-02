@@ -3,17 +3,19 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
-  CanvasesTab,
-  buildAssetLibraryTabs,
-  filterAssetLibraryAssets,
   type AssetTab,
-  type CanvasCommitMediaType,
   type CanvasKind,
-  type FreezoneBeatContextResponse,
   type LibraryAsset,
-} from "@/modules/creative_canvas/public";
+} from "../domain/assetLibraryModel";
+import type { FreezoneBeatContextResponse } from "../domain/beatContext";
+import type { CanvasCommitMediaType } from "../domain/canvasCommitSource";
 import { AssetLibraryAssetCard } from "./AssetLibraryAssetCard";
 import { BeatContextPanel } from "./AssetLibraryBeatPanels";
+import { CanvasesTab } from "./CanvasesTab";
+import {
+  buildAssetLibraryTabs,
+  filterAssetLibraryAssets,
+} from "./assetLibraryViewModel";
 
 type PanelTab = "library" | "canvases";
 
@@ -46,6 +48,7 @@ export interface AssetLibraryPanelViewProps {
   hasPresetLabel: boolean;
   reloadToken?: number;
   onAddAsset: (asset: LibraryAsset, index: number) => void;
+  cacheBustImage: (imageUrl: string, token: string) => string;
 }
 
 export function AssetLibraryPanelView({
@@ -61,6 +64,7 @@ export function AssetLibraryPanelView({
   hasPresetLabel,
   reloadToken,
   onAddAsset,
+  cacheBustImage,
 }: AssetLibraryPanelViewProps) {
   const [panelTab, setPanelTab] = useState<PanelTab>("canvases");
   const [tab, setTab] = useState<AssetTab>("beat");
@@ -196,6 +200,7 @@ export function AssetLibraryPanelView({
                 canvasKind={canvasKind}
                 beatContext={catalog.beatContext}
                 cacheToken={catalog.assetImageCacheToken}
+                cacheBustImage={cacheBustImage}
                 onAddAsset={onAddAsset}
               />
             ) : filtered.length === 0 ? (
@@ -210,6 +215,7 @@ export function AssetLibraryPanelView({
                     asset={asset}
                     index={index}
                     cacheToken={catalog.assetImageCacheToken}
+                    cacheBustImage={cacheBustImage}
                     onAdd={() => onAddAsset(asset, index)}
                     activeDragMediaType={replacement.activeDragMediaType}
                     hoverAssetId={replacement.hoverAssetId}

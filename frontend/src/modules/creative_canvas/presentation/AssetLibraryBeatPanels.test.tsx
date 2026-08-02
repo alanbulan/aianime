@@ -3,10 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { BeatContextPanel } from "./AssetLibraryBeatPanels";
-import type {
-  FreezoneBeatContextResponse,
-  LibraryAsset,
-} from "@/modules/creative_canvas/public";
+import type { FreezoneBeatContextResponse } from "../domain/beatContext";
+import type { LibraryAsset } from "../domain/assetLibraryModel";
+
+const cacheBustImage = (imageUrl: string) => imageUrl;
 
 function libraryAsset(
   id: string,
@@ -54,6 +54,7 @@ describe("AssetLibraryBeatPanels", () => {
         canvasKind="default"
         beatContext={beatContext}
         cacheToken="cache-1"
+        cacheBustImage={cacheBustImage}
         onAddAsset={onAddAsset}
       />,
     );
@@ -78,6 +79,7 @@ describe("AssetLibraryBeatPanels", () => {
         canvasKind="beat"
         beatContext={null}
         cacheToken="cache-2"
+        cacheBustImage={cacheBustImage}
         onAddAsset={onAddAsset}
       />,
     );
@@ -97,6 +99,7 @@ describe("AssetLibraryBeatPanels", () => {
         canvasKind="asset"
         beatContext={null}
         cacheToken="cache-3"
+        cacheBustImage={cacheBustImage}
         onAddAsset={vi.fn()}
       />,
     );

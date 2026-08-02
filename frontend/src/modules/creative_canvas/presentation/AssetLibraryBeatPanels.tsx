@@ -13,30 +13,31 @@ import {
   Video,
 } from "lucide-react";
 
-import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
+import { CANVAS_ASSET_DRAG_MIME } from "../domain/assetDrag";
 import {
-  CANVAS_ASSET_DRAG_MIME,
-  assetToDragPayload,
-  beatAssetItems,
-  groupBeatAssets,
   isThreeDAsset,
   type CanvasKind,
-  type FreezoneBeatContextResponse,
   type LibraryAsset,
-} from "@/modules/creative_canvas/public";
+} from "../domain/assetLibraryModel";
+import type { FreezoneBeatContextResponse } from "../domain/beatContext";
+import { beatAssetItems, groupBeatAssets } from "./assetLibraryViewModel";
 
 type AddAsset = (asset: LibraryAsset, index: number) => void;
+type CacheBustImage = (imageUrl: string, token: string) => string;
 
 function MiniThumb({
   asset,
   index,
   onAdd,
   cacheToken,
+  cacheBustImage,
 }: {
   asset: LibraryAsset;
   index: number;
   onAdd: () => void;
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
 }) {
   const isThreeD = isThreeDAsset(asset);
   const isAudio = asset.mediaType === "audio";
@@ -44,7 +45,7 @@ function MiniThumb({
   const [imageFailed, setImageFailed] = useState(false);
   const thumbUrl = isThreeD || isVideo ? asset.coverUrl : asset.url;
   const displayThumbUrl = thumbUrl
-    ? withImageCacheBust(thumbUrl, cacheToken)
+    ? cacheBustImage(thumbUrl, cacheToken)
     : null;
   const showImage =
     !imageFailed &&
@@ -54,7 +55,7 @@ function MiniThumb({
     (!isVideo || Boolean(asset.coverUrl));
   const videoPosterUrl =
     isVideo && !imageFailed && !asset.coverUrl && asset.url
-      ? `${withImageCacheBust(asset.url, cacheToken)}#t=0.1`
+      ? `${cacheBustImage(asset.url, cacheToken)}#t=0.1`
       : null;
   const disabled =
     !isThreeD && (asset.mediaType === "text" || asset.mediaType === "file");
@@ -163,12 +164,14 @@ function BeatRow({
   assets,
   allAssets,
   cacheToken,
+  cacheBustImage,
   onAddAsset,
 }: {
   beat: number;
   assets: LibraryAsset[];
   allAssets: LibraryAsset[];
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
   onAddAsset: AddAsset;
 }) {
   const [open, setOpen] = useState(false);
@@ -201,6 +204,7 @@ function BeatRow({
                   index={index}
                   onAdd={() => onAddAsset(asset, index)}
                   cacheToken={cacheToken}
+                  cacheBustImage={cacheBustImage}
                 />
                 <span className="block text-left text-[12px] text-foreground/70">
                   {label}
@@ -219,12 +223,14 @@ function EpisodeSection({
   assets,
   allAssets,
   cacheToken,
+  cacheBustImage,
   onAddAsset,
 }: {
   episode: number;
   assets: LibraryAsset[];
   allAssets: LibraryAsset[];
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
   onAddAsset: AddAsset;
 }) {
   const [open, setOpen] = useState(true);
@@ -268,6 +274,7 @@ function EpisodeSection({
               assets={beatAssets}
               allAssets={allAssets}
               cacheToken={cacheToken}
+              cacheBustImage={cacheBustImage}
               onAddAsset={onAddAsset}
             />
           ))}
@@ -281,11 +288,13 @@ function DefaultCanvasBeatPanel({
   beatContext,
   assets,
   cacheToken,
+  cacheBustImage,
   onAddAsset,
 }: {
   beatContext: FreezoneBeatContextResponse | null;
   assets: LibraryAsset[];
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
   onAddAsset: AddAsset;
 }) {
   const episodes = beatContext?.episodes ?? [];
@@ -312,6 +321,7 @@ function DefaultCanvasBeatPanel({
             assets={episodeAssets}
             allAssets={assets}
             cacheToken={cacheToken}
+            cacheBustImage={cacheBustImage}
             onAddAsset={onAddAsset}
           />
         );
@@ -324,11 +334,13 @@ function PresetBeatPanel({
   metadata,
   assets,
   cacheToken,
+  cacheBustImage,
   onAddAsset,
 }: {
   metadata: Record<string, unknown> | null;
   assets: LibraryAsset[];
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
   onAddAsset: AddAsset;
 }) {
   const groups = groupBeatAssets(assets);
@@ -375,6 +387,7 @@ function PresetBeatPanel({
                     index={index}
                     onAdd={() => onAddAsset(asset, index)}
                     cacheToken={cacheToken}
+                    cacheBustImage={cacheBustImage}
                   />
                 );
               })}
@@ -392,6 +405,7 @@ export function BeatContextPanel({
   canvasKind,
   beatContext,
   cacheToken,
+  cacheBustImage,
   onAddAsset,
 }: {
   metadata: Record<string, unknown> | null;
@@ -399,6 +413,7 @@ export function BeatContextPanel({
   canvasKind: CanvasKind;
   beatContext: FreezoneBeatContextResponse | null;
   cacheToken: string;
+  cacheBustImage: CacheBustImage;
   onAddAsset: AddAsset;
 }) {
   if (
@@ -411,6 +426,7 @@ export function BeatContextPanel({
         beatContext={beatContext}
         assets={assets}
         cacheToken={cacheToken}
+        cacheBustImage={cacheBustImage}
         onAddAsset={onAddAsset}
       />
     );
@@ -427,6 +443,7 @@ export function BeatContextPanel({
       metadata={metadata}
       assets={assets}
       cacheToken={cacheToken}
+      cacheBustImage={cacheBustImage}
       onAddAsset={onAddAsset}
     />
   );

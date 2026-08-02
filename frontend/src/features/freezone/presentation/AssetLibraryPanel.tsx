@@ -2,14 +2,15 @@
 import {
   hasLegacyPresetCanvasMetadata,
   resolveCanvasKind,
+  AssetLibraryPanelView,
   useAssetLibraryCatalogController,
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
 } from "@/modules/creative_canvas/public";
 import { useAssetDropStore } from "@/features/canvas/assetDropStore";
+import { withImageCacheBust } from "@/features/canvas/public";
 
 import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
-import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
 
 interface AssetLibraryPanelProps {
   project: string;
@@ -84,6 +85,7 @@ export function AssetLibraryPanel({
       hasPresetLabel={hasPresetLabel}
       reloadToken={reloadToken}
       onAddAsset={addAssetToCanvas}
+      cacheBustImage={withImageCacheBust}
     />
   );
 }

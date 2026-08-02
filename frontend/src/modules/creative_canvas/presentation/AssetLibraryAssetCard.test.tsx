@@ -5,9 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   CANVAS_ASSET_DRAG_MIME,
-  type LibraryAsset,
-} from "@/modules/creative_canvas/public";
+} from "../domain/assetDrag";
+import type { LibraryAsset } from "../domain/assetLibraryModel";
 import { AssetLibraryAssetCard } from "./AssetLibraryAssetCard";
+
+const cacheBustImage = (imageUrl: string) => imageUrl;
 
 function asset(
   id: string,
@@ -40,6 +42,7 @@ function renderCard(
       asset={currentAsset}
       index={0}
       cacheToken="cache-1"
+      cacheBustImage={cacheBustImage}
       onAdd={vi.fn()}
       activeDragMediaType={null}
       hoverAssetId={null}
@@ -82,6 +85,7 @@ describe("AssetLibraryAssetCard", () => {
         asset={director}
         index={0}
         cacheToken="cache-1"
+        cacheBustImage={cacheBustImage}
         onAdd={vi.fn()}
         activeDragMediaType="image"
         hoverAssetId={director.id}

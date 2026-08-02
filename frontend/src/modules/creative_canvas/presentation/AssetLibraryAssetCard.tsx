@@ -2,22 +2,22 @@
 import { type DragEvent as ReactDragEvent } from "react";
 import { AudioLines, Video } from "lucide-react";
 
-import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
+import { CANVAS_ASSET_DRAG_MIME } from "../domain/assetDrag";
 import {
-  CANVAS_ASSET_DRAG_MIME,
-  assetToDragPayload,
-  assetToPushTarget,
   assetDropMediaType,
   isThreeDAsset,
-  sceneAssetTypeBadge,
   type LibraryAsset,
-} from "@/modules/creative_canvas/public";
+} from "../domain/assetLibraryModel";
+import { assetToPushTarget } from "../domain/pushTarget";
+import { sceneAssetTypeBadge } from "./assetLibraryViewModel";
 
 export function AssetLibraryAssetCard({
   asset,
   index,
   onAdd,
   cacheToken,
+  cacheBustImage,
   activeDragMediaType,
   hoverAssetId,
   isConfirming,
@@ -28,6 +28,7 @@ export function AssetLibraryAssetCard({
   asset: LibraryAsset;
   index: number;
   cacheToken: string;
+  cacheBustImage: (imageUrl: string, token: string) => string;
   onAdd: () => void;
   activeDragMediaType: ReturnType<typeof assetDropMediaType>;
   hoverAssetId: string | null;
@@ -41,7 +42,7 @@ export function AssetLibraryAssetCard({
   const isVideo = asset.mediaType === "video";
   const thumbUrl = isThreeD || isVideo ? asset.coverUrl : asset.url;
   const displayThumbUrl = thumbUrl
-    ? withImageCacheBust(thumbUrl, cacheToken)
+    ? cacheBustImage(thumbUrl, cacheToken)
     : null;
   const showImage =
     !isAudio &&
@@ -50,7 +51,7 @@ export function AssetLibraryAssetCard({
     (!isVideo || Boolean(asset.coverUrl));
   const videoPosterUrl =
     isVideo && !asset.coverUrl && asset.url
-      ? `${withImageCacheBust(asset.url, cacheToken)}#t=0.1`
+      ? `${cacheBustImage(asset.url, cacheToken)}#t=0.1`
       : null;
   const disabled =
     !isThreeD && (asset.mediaType === "text" || asset.mediaType === "file");

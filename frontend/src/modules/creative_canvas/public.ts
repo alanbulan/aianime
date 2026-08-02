@@ -441,6 +441,8 @@ export type {
   AssetLibraryReplacementHandler,
   AssetLibraryReplacementStorePort,
 } from "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController";
+export { AssetLibraryPanelView } from "@/modules/creative_canvas/presentation/AssetLibraryPanelView";
+export type { AssetLibraryPanelViewProps } from "@/modules/creative_canvas/presentation/AssetLibraryPanelView";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

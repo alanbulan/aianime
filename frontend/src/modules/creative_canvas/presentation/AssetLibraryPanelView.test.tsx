@@ -3,11 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { LibraryAsset } from "@/modules/creative_canvas/public";
+import type { LibraryAsset } from "../domain/assetLibraryModel";
 import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+vi.mock("./CanvasesTab", () => ({
   CanvasesTab: ({ project }: { project: string }) => (
     <div>canvases:{project}</div>
   ),
@@ -81,6 +80,7 @@ function props(
     currentCanvasId: "canvas-a",
     hasPresetLabel: false,
     onAddAsset: vi.fn(),
+    cacheBustImage: (imageUrl) => imageUrl,
     ...overrides,
   };
 }
