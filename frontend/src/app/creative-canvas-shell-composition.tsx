@@ -174,7 +174,7 @@ function renderMaskEditor(props: FreezoneShellMaskEditorRenderProps) {
   });
 }
 
-/** Mounts the shared xyflow canvas inside the Beat Workbench shell. */
+/** Mounts the shared xyflow canvas inside the Creative Canvas application shell. */
 export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   const controller = useFreezoneShellController({
     projectId: project.id,

@@ -253,7 +253,7 @@ describe("frontend architecture boundaries", () => {
         "@tanstack/react-router",
         "@/components/GlobalErrorDialog",
         "@/features/app/errorDialogEvents",
-        "@/features/freezone/FreezoneShell",
+        "./creative-canvas-shell-composition",
         "@/lib/url-params",
         "@/modules/creative_canvas/public",
         "@/modules/identity_access/public",
@@ -327,6 +327,10 @@ describe("frontend architecture boundaries", () => {
   it("separates the Freezone shell composition, controller, and view", () => {
     const shellPath = resolve(
       SRC_ROOT,
+      "app/creative-canvas-shell-composition.tsx",
+    );
+    const legacyShellPath = resolve(
+      SRC_ROOT,
       "features/freezone/FreezoneShell.tsx",
     );
     const controllerPath = resolve(
@@ -386,8 +390,9 @@ describe("frontend architecture boundaries", () => {
         "@xyflow/react",
       ]),
     );
+    expect(existsSync(legacyShellPath)).toBe(false);
     expect(declarationOwners).toEqual([
-      ["features/freezone/FreezoneShell.tsx"],
+      ["app/creative-canvas-shell-composition.tsx"],
       ["modules/creative_canvas/presentation/useFreezoneShellController.ts"],
       ["modules/creative_canvas/presentation/FreezoneShellView.tsx"],
     ]);
@@ -4567,7 +4572,7 @@ describe("frontend architecture boundaries", () => {
     const legacyRoot = resolve(SRC_ROOT, "pipeline-import");
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const shellViewPath = resolve(
       SRC_ROOT,
@@ -4698,7 +4703,7 @@ describe("frontend architecture boundaries", () => {
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     );
     const pipelineConsumerPaths = [
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
@@ -5317,7 +5322,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const shellControllerPath = resolve(
       SRC_ROOT,
@@ -5394,7 +5399,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const shellControllerPath = resolve(
       SRC_ROOT,
@@ -6100,7 +6105,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -6152,7 +6157,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -9750,7 +9755,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const coreSource = readFileSync(corePath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
@@ -11378,7 +11383,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellAdapterPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const beatPresentationPath = resolve(
       SRC_ROOT,
@@ -11408,7 +11413,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -22289,7 +22294,7 @@ describe("frontend architecture boundaries", () => {
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const pipelineEditorPath = resolve(
       SRC_ROOT,
-      "features/freezone/FreezoneShell.tsx",
+      "app/creative-canvas-shell-composition.tsx",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");

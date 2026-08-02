@@ -269,6 +269,7 @@ describe("round 2 residual architecture boundaries", () => {
     expect(
       existsSync(resolve(SRC_ROOT, "features/freezone/infrastructure")),
     ).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "features/freezone"))).toBe(false);
     for (const file of projectionFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -415,6 +416,7 @@ describe("round 2 residual architecture boundaries", () => {
       expect(existsSync(resolve(SRC_ROOT, retiredProjectPagePath))).toBe(false);
     }
     for (const retiredShellPresentationPath of [
+      "features/freezone/FreezoneShell.tsx",
       "features/freezone/hooks/useFreezoneShellController.ts",
       "features/freezone/hooks/useFreezoneShellController.test.tsx",
       "features/freezone/presentation/FreezoneShellView.tsx",
@@ -1171,7 +1173,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 898],
-      ["features/freezone", 1],
+      ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);
@@ -1213,7 +1215,17 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
     const allowed = new Set([
-      "app/creative-canvas-composition.tsx: @/features/freezone/FreezoneShell",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/Canvas",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/canvasStore",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/composition",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/assetDrag",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/canvasNodes",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneCameraOptions",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneImageModels",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneStyleTemplates",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneVideoCameraTemplates",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/hooks/useFreezoneVideoModels",
+      "app/creative-canvas-shell-composition.tsx: @/features/canvas/ui/NodeReplaceDragPreview",
     ]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>
@@ -1226,7 +1238,7 @@ describe("round 2 residual architecture boundaries", () => {
       ),
     );
 
-    expect(actual.filter((entry) => !allowed.has(entry))).toEqual([]);
+    expect(actual.sort()).toEqual([...allowed].sort());
   });
 
   it("keeps Canvas infrastructure independent from routes and Freezone features", () => {
