@@ -14,6 +14,7 @@ import {
 } from '@/modules/model_usage/public';
 import {
   composeCapability,
+  generateCanvasRedraw,
   getFreezoneCanvasMetadata,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
@@ -54,10 +55,6 @@ import {
   generateCanvasImage as generateCanvasImageUseCase,
   type GenerateCanvasImageParams,
 } from './application/generateCanvasImage';
-import {
-  generateCanvasRedraw as generateCanvasRedrawUseCase,
-  type GenerateCanvasRedrawParams,
-} from './application/generateCanvasRedraw';
 import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
@@ -148,7 +145,6 @@ import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDi
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneImageGenerationGateway } from './infrastructure/freezoneImageGenerationGateway';
-import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
@@ -361,8 +357,10 @@ export function regenerateExportImageNode(
       ...params,
       runtimeSessionId: CURRENT_RUNTIME_SESSION_ID,
     },
-    freezoneAiGateway,
-    freezoneRedrawTaskGateway,
+    {
+      aiGateway: freezoneAiGateway,
+      generateRedraw: generateCanvasRedraw,
+    },
   );
 }
 
@@ -426,16 +424,6 @@ export function generateCanvasImage(
   return generateCanvasImageUseCase(params, {
     submissionGateway: freezoneImageGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-  });
-}
-
-export function generateCanvasRedraw(
-  params: GenerateCanvasRedrawParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasRedrawUseCase(params, {
-    redrawGateway: freezoneRedrawTaskGateway,
     onTaskSubmitted,
   });
 }

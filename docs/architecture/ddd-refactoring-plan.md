@@ -998,6 +998,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百零九批将 Canvas 视频高清分辨率/降噪规则、生成用例、HTTP adapter 及测试整体迁入 Creative Canvas domain/application/infrastructure，视频高清用例改为直接依赖模块内唯一媒体任务完成合同，不再通过 Creative Canvas public 回绕。原图片操作组合根同步收敛并改名为 `mediaOperationGenerationComposition.ts`，统一装配图片和视频媒体编辑任务，继续只用同一 Task Execution 等待端口与生成结果 adapter，没有新增第二套任务 Gateway；旧组合根文件直接删除。视频高清浮层一次切到 Creative Canvas public，旧 Canvas composition 删除 wrapper 和 Gateway 装配；6 个旧生产/测试路径直接删除，不保留 facade、re-export 或第二套规则。Creative Canvas 由 347 增到 353，Canvas 由 805 降到 799，残余 ratchet 收紧到 799/0，旧路径、旧组合根和旧 `videoUpscale` 导入归零，前端空目录保持 0。视频高清领域/用例/Gateway、节点创建和工具栏行为 Vitest 5 个文件 13 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；完整架构首次复跑的唯一失败是新增唯一所有者门禁自匹配测试文件，限制为生产文件后定向与完整门禁均通过。未启动 UI、未构建安装包、未调用真实模型，平台对象存储、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百一十批将 Canvas 重绘提交用例、HTTP adapter 及测试整体迁入 Creative Canvas application/infrastructure，并由唯一 `mediaOperationGenerationComposition.ts` 装配提交 Gateway、Task Execution 等待端口和生成结果 adapter。重绘与擦除浮层、App Shell 统一经 Creative Canvas public 使用唯一重绘用例；导出节点重试改为依赖 `generateRedraw` 应用端口，不再持有重绘 Gateway、任务完成编排或结果查询端点，普通图片重试仍使用原 `AiGateway`。旧 Canvas composition 删除重绘 wrapper 与 Gateway 装配，旧 `CanvasRedrawCommand`、`CanvasRedrawTaskGateway` 合同和 4 个生产/测试路径直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 353 增到 357，Canvas 由 799 降到 795，残余 ratchet 收紧到 795/0，旧路径与旧重绘合同只保留在反回流门禁文本中，前端空目录保持 0。重绘用例/Gateway、导出重试及浮层行为 Vitest 6 个文件 12 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；未启动 UI、未构建安装包、未调用真实模型，平台对象存储、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

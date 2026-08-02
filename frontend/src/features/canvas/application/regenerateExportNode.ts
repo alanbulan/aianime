@@ -2,15 +2,16 @@
 import { resolveErrorContent } from './errorDialog';
 import { extractRequestId } from './generationErrorReport';
 import {
-  completeCanvasMediaGenerationTask,
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
+  type CanvasGenerationTaskRef,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
+  type GenerateCanvasRedrawParams,
+  type GenerateCanvasRedrawResult,
 } from '@/modules/creative_canvas/public';
 import type {
   AiGateway,
-  CanvasRedrawTaskGateway,
   GenerateImagePayload,
 } from './ports';
 import { generationTaskDescriptor } from './resumeGeneration';
@@ -39,6 +40,14 @@ export interface RegenerateExportImageNodeParams {
   ) => void;
 }
 
+export interface RegenerateExportImageNodeDependencies {
+  readonly aiGateway: AiGateway;
+  readonly generateRedraw: (
+    params: GenerateCanvasRedrawParams,
+    onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+  ) => Promise<GenerateCanvasRedrawResult>;
+}
+
 function readFreezoneRedrawRequest(
   data: Record<string, unknown>,
 ): FreezoneRedrawRequest | undefined {
@@ -65,7 +74,7 @@ function readFreezoneRedrawRequest(
 async function regenerateFreezoneRedrawNode(
   params: RegenerateExportImageNodeParams,
   request: FreezoneRedrawRequest,
-  redrawGateway: CanvasRedrawTaskGateway,
+  generateRedraw: RegenerateExportImageNodeDependencies['generateRedraw'],
 ): Promise<void> {
   const { nodeId, projectId, updateNodeData } = params;
   updateNodeData(nodeId, {
@@ -75,20 +84,17 @@ async function regenerateFreezoneRedrawNode(
   });
 
   try {
-    const ref = await redrawGateway.submit(projectId, {
-      sourceUrl: request.sourceUrl,
-      maskUrl: request.maskUrl,
-      aspectRatio: request.aspectRatio,
-      imageSize: request.imageSize,
-      model: request.model,
-    });
-    const url = await completeCanvasMediaGenerationTask(
-      { projectId, task: ref },
+    const { url } = await generateRedraw(
       {
-        taskGateway: redrawGateway,
-        onTaskSubmitted: (task) => {
-          updateNodeData(nodeId, generationTaskDescriptor(task));
-        },
+        projectId,
+        sourceUrl: request.sourceUrl,
+        maskUrl: request.maskUrl,
+        aspectRatio: request.aspectRatio,
+        imageSize: request.imageSize,
+        model: request.model,
+      },
+      (task) => {
+        updateNodeData(nodeId, generationTaskDescriptor(task));
       },
     );
     updateNodeData(nodeId, {
@@ -126,8 +132,7 @@ async function regenerateFreezoneRedrawNode(
  */
 export async function regenerateExportImageNode(
   params: RegenerateExportImageNodeParams,
-  aiGateway: AiGateway,
-  redrawGateway: CanvasRedrawTaskGateway,
+  dependencies: RegenerateExportImageNodeDependencies,
 ): Promise<void> {
   const {
     canvasId,
@@ -146,7 +151,7 @@ export async function regenerateExportImageNode(
     await regenerateFreezoneRedrawNode(
       params,
       freezoneRequest,
-      redrawGateway,
+      dependencies.generateRedraw,
     );
     return;
   }
@@ -167,7 +172,7 @@ export async function regenerateExportImageNode(
   });
 
   try {
-    const jobId = await aiGateway.submitGenerateImageJob(
+    const jobId = await dependencies.aiGateway.submitGenerateImageJob(
       { projectId, canvasId },
       { ...payload, nodeId },
     );

@@ -4,20 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiCall } from "@/shared/api/client";
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("./freezoneGenerationTaskGateway", () => ({
-  freezoneGenerationTaskGateway: {
-    awaitCompletion: vi.fn(),
-    fetchResultUrl: vi.fn(),
-  },
-}));
 
-import { freezoneRedrawTaskGateway } from "./freezoneRedrawTaskGateway";
+import { freezoneRedrawGenerationGateway } from "./freezoneRedrawGenerationGateway";
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
 });
 
-describe("freezoneRedrawTaskGateway", () => {
+describe("freezoneRedrawGenerationGateway", () => {
   it("maps the complete redraw command to the encoded endpoint", async () => {
     const task = {
       task_key: "redraw-task",
@@ -27,7 +21,7 @@ describe("freezoneRedrawTaskGateway", () => {
     vi.mocked(apiCall).mockResolvedValue(task);
 
     await expect(
-      freezoneRedrawTaskGateway.submit("project/1", {
+      freezoneRedrawGenerationGateway.submit("project/1", {
         sourceUrl: "/static/source.png",
         maskUrl: "/static/mask.png",
         prompt: "replace the sky",

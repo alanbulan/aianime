@@ -2,10 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { regenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
-import type {
-  AiGateway,
-  CanvasRedrawTaskGateway,
-} from '@/features/canvas/application/ports';
+import type { AiGateway } from '@/features/canvas/application/ports';
 
 const submitImage = vi.fn();
 const updateNodeData = vi.fn();
@@ -15,16 +12,7 @@ const aiGateway: AiGateway = {
   submitGenerateImageJob: (scope, payload) => submitImage(scope, payload),
 };
 
-const submitRedraw = vi.fn();
-const awaitRedraw = vi.fn();
-const fetchRedrawResultUrl = vi.fn();
-const redrawGateway: CanvasRedrawTaskGateway = {
-  awaitCompletion: (taskKey, projectId) =>
-    awaitRedraw(taskKey, projectId),
-  fetchResultUrl: (projectId, taskType, jobId) =>
-    fetchRedrawResultUrl(projectId, taskType, jobId),
-  submit: (projectId, command) => submitRedraw(projectId, command),
-};
+const generateRedraw = vi.fn();
 
 async function regenerate(
   nodeData: Record<string, unknown>,
@@ -38,8 +26,7 @@ async function regenerate(
       runtimeSessionId: 'runtime-test',
       updateNodeData,
     },
-    aiGateway,
-    redrawGateway,
+    { aiGateway, generateRedraw },
   );
 }
 
@@ -47,9 +34,7 @@ describe('regenerateExportImageNode', () => {
   beforeEach(() => {
     updateNodeData.mockReset();
     submitImage.mockReset();
-    submitRedraw.mockReset();
-    awaitRedraw.mockReset();
-    fetchRedrawResultUrl.mockReset();
+    generateRedraw.mockReset();
   });
 
   it('re-submits a stored image generation through the injected AI gateway', async () => {
@@ -68,7 +53,7 @@ describe('regenerateExportImageNode', () => {
       { projectId: 'proj', canvasId: 'canvas-a' },
       expect.objectContaining({ nodeId: 'export-node', prompt: '重新生成' }),
     );
-    expect(submitRedraw).not.toHaveBeenCalled();
+    expect(generateRedraw).not.toHaveBeenCalled();
     expect(updateNodeData).toHaveBeenLastCalledWith('export-node', {
       generationClientSessionId: 'runtime-test',
       generationJobId: 'image-job',
@@ -76,13 +61,14 @@ describe('regenerateExportImageNode', () => {
   });
 
   it('replays a stored redraw and writes its completed output URL', async () => {
-    submitRedraw.mockResolvedValue({
+    const task = {
       job_id: 'redraw-job',
       task_key: 'freezone_redraw:redraw-job',
       task_type: 'freezone_redraw',
-    });
-    awaitRedraw.mockResolvedValue({
-      result: { output_url: '/static/proj/redraw.png' },
+    };
+    generateRedraw.mockImplementation(async (_params, onTaskSubmitted) => {
+      onTaskSubmitted(task);
+      return { task, url: '/static/proj/redraw.png' };
     });
 
     await regenerate({
@@ -95,14 +81,17 @@ describe('regenerateExportImageNode', () => {
       },
     });
 
-    expect(submitRedraw).toHaveBeenCalledWith('proj', {
-      aspectRatio: 'original',
-      imageSize: '2K',
-      maskUrl: '/static/proj/mask.png',
-      model: 'cloud-image-standard',
-      sourceUrl: '/static/proj/source.png',
-    });
-    expect(fetchRedrawResultUrl).not.toHaveBeenCalled();
+    expect(generateRedraw).toHaveBeenCalledWith(
+      {
+        projectId: 'proj',
+        aspectRatio: 'original',
+        imageSize: '2K',
+        maskUrl: '/static/proj/mask.png',
+        model: 'cloud-image-standard',
+        sourceUrl: '/static/proj/source.png',
+      },
+      expect.any(Function),
+    );
     expect(updateNodeData).toHaveBeenLastCalledWith(
       'export-node',
       expect.objectContaining({
@@ -113,35 +102,4 @@ describe('regenerateExportImageNode', () => {
       }),
     );
   });
-
-  it('falls back to the redraw result endpoint when completion has no URL', async () => {
-    submitRedraw.mockResolvedValue({
-      job_id: 'redraw-job',
-      task_key: 'freezone_redraw:redraw-job',
-      task_type: 'freezone_redraw',
-    });
-    awaitRedraw.mockResolvedValue({ result: {} });
-    fetchRedrawResultUrl.mockResolvedValue('/static/proj/fallback.png');
-
-    await regenerate({
-      freezoneRedrawRequest: {
-        aspectRatio: '16:9',
-        imageSize: '2K',
-        maskUrl: '/static/proj/mask.png',
-        model: 'cloud-image-standard',
-        sourceUrl: '/static/proj/source.png',
-      },
-    });
-
-    expect(fetchRedrawResultUrl).toHaveBeenCalledWith(
-      'proj',
-      'freezone_redraw',
-      'redraw-job',
-    );
-    expect(updateNodeData).toHaveBeenLastCalledWith(
-      'export-node',
-      expect.objectContaining({ imageUrl: '/static/proj/fallback.png' }),
-    );
-  });
-
 });

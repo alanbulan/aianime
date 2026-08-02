@@ -11,7 +11,6 @@ import {
   type CanvasNodeData,
 } from "@/features/canvas/canvasStore";
 import {
-  generateCanvasRedraw,
   hydrateAssetDragPayload,
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
@@ -25,6 +24,7 @@ import {
   createUseFreezoneCanvasEntryLifecycle,
   createUseFreezoneShellController,
   FreezoneShellView,
+  generateCanvasRedraw,
   insertAssetLibraryAsset,
   MaskEditor,
   prefetchCanvasCameraOptions,

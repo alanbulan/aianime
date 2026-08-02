@@ -3042,7 +3042,7 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("regenerateExportImageNodeUseCase(");
     expect(composition).not.toContain("readUrl");
     expect(composition).not.toContain("@/lib/url-params");
-    expect(composition).toContain("freezoneRedrawTaskGateway");
+    expect(composition).not.toContain("freezoneRedrawTaskGateway");
     expect(composition).toContain("resumeNodeGenerationUseCase(");
     expect(composition).toContain("freezoneGenerationTaskGateway");
     expect(assetGateway).toContain("uploadFreezoneAsset(");
@@ -22552,13 +22552,18 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasRedraw.ts",
+      "modules/creative_canvas/application/generateCanvasRedraw.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneRedrawGenerationGateway.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/mediaOperationGenerationComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -22579,15 +22584,35 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "app/creative-canvas-shell-composition.tsx",
     );
+    const legacyPaths = [
+      "features/canvas/application/generateCanvasRedraw.ts",
+      "features/canvas/application/generateCanvasRedraw.test.ts",
+      "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
+      "features/canvas/infrastructure/freezoneRedrawTaskGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const overlaySource = readFileSync(overlayPath, "utf8");
     const retrySource = readFileSync(retryPath, "utf8");
     const portsSource = readFileSync(portsPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
     const pipelineEditorSource = readFileSync(pipelineEditorPath, "utf8");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export async function generateCanvasRedraw(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -22605,8 +22630,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
-        "./ports",
+        "../domain/redraw",
+        "./completeCanvasMediaGenerationTask",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -22621,13 +22646,12 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "../application/ports",
-        "./freezoneGenerationTaskGateway",
-        "@/modules/creative_canvas/public",
+        "../application/completeCanvasMediaGenerationTask",
+        "../application/generateCanvasRedraw",
       ]),
     );
     expect(infrastructureSource).toContain(
-      "freezoneRedrawTaskGateway: CanvasRedrawTaskGateway",
+      "freezoneRedrawGenerationGateway: CanvasRedrawGenerationGateway",
     );
     expect(infrastructureSource).toContain("prompt: command.prompt");
     expect(infrastructureSource).toContain("model: command.model");
@@ -22635,7 +22659,12 @@ describe("frontend architecture boundaries", () => {
       "generateCanvasRedrawUseCase(params, {",
     );
     expect(compositionSource).toContain(
-      "redrawGateway: freezoneRedrawTaskGateway",
+      "submissionGateway: freezoneRedrawGenerationGateway",
+    );
+    expect(compositionSource).toContain("taskGateway,");
+    expect(publicSource).toContain("generateCanvasRedraw,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/application/generateCanvasRedraw",
     );
     expect(importSpecifiers(overlayPath)).toContain(
       "@/modules/creative_canvas/public",
@@ -22646,15 +22675,27 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneRedraw");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
-    expect(retrySource).toContain("completeCanvasMediaGenerationTask(");
-    expect(retrySource).not.toContain("redrawGateway.awaitCompletion(");
-    expect(retrySource).not.toContain("redrawGateway.fetchResultUrl(");
-    expect(portsSource).toContain("prompt?: string");
-    expect(portsSource).toContain("model: string");
-    expect(portsSource).not.toContain("model?: string");
+    expect(retrySource).toContain("dependencies.generateRedraw");
+    expect(retrySource).not.toContain("completeCanvasMediaGenerationTask(");
+    expect(retrySource).not.toContain("CanvasRedrawTaskGateway");
+    expect(portsSource).not.toContain("CanvasRedrawCommand");
+    expect(portsSource).not.toContain("CanvasRedrawTaskGateway");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneRedrawGenerationGateway.ts",
     ]);
+    expect(implementationOwners).toEqual([
+      "modules/creative_canvas/application/generateCanvasRedraw.ts",
+    ]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneRedrawTaskGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "generateCanvasRedrawUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "export function generateCanvasRedraw(",
+    );
     expect(importSpecifiers(pipelineEditorPath)).toContain(
       "@/features/canvas/composition",
     );

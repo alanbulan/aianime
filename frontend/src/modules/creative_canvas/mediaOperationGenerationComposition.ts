@@ -35,6 +35,10 @@ import {
   type GenerateCanvasOutpaintParams,
 } from "./application/generateCanvasOutpaint";
 import {
+  generateCanvasRedraw as generateCanvasRedrawUseCase,
+  type GenerateCanvasRedrawParams,
+} from "./application/generateCanvasRedraw";
+import {
   generateCanvasUpscale as generateCanvasUpscaleUseCase,
   type GenerateCanvasUpscaleParams,
 } from "./application/generateCanvasUpscale";
@@ -51,6 +55,7 @@ import { freezoneGridActionGenerationGateway } from "./infrastructure/freezoneGr
 import { freezoneImageTo3dGenerationGateway } from "./infrastructure/freezoneImageTo3dGenerationGateway";
 import { freezoneMultiAngleGenerationGateway } from "./infrastructure/freezoneMultiAngleGenerationGateway";
 import { freezoneOutpaintGenerationGateway } from "./infrastructure/freezoneOutpaintGenerationGateway";
+import { freezoneRedrawGenerationGateway } from "./infrastructure/freezoneRedrawGenerationGateway";
 import {
   fetchCanvasGenerationResult,
   fetchCanvasGenerationResultUrl,
@@ -149,6 +154,17 @@ export function generateCanvasOutpaint(
 ) {
   return generateCanvasOutpaintUseCase(params, {
     submissionGateway: freezoneOutpaintGenerationGateway,
+    taskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasRedraw(
+  params: GenerateCanvasRedrawParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasRedrawUseCase(params, {
+    submissionGateway: freezoneRedrawGenerationGateway,
     taskGateway,
     onTaskSubmitted,
   });

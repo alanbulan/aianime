@@ -657,6 +657,7 @@ export {
   generateCanvasImageTo3d,
   generateCanvasMultiAngle,
   generateCanvasOutpaint,
+  generateCanvasRedraw,
   generateCanvasRelight,
   generateCanvasReversePrompt,
   generateCanvasScene360,
@@ -721,6 +722,13 @@ export type {
   GenerateCanvasOutpaintParams,
   GenerateCanvasOutpaintResult,
 } from "@/modules/creative_canvas/application/generateCanvasOutpaint";
+export type {
+  CanvasRedrawGenerationCommand,
+  CanvasRedrawGenerationGateway,
+  GenerateCanvasRedrawDependencies,
+  GenerateCanvasRedrawParams,
+  GenerateCanvasRedrawResult,
+} from "@/modules/creative_canvas/application/generateCanvasRedraw";
 export type {
   CanvasRelightGenerationCommand,
   CanvasRelightGenerationGateway,

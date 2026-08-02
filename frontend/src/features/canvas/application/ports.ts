@@ -10,9 +10,6 @@ import type {
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
-  CanvasGenerationTaskRef,
-  CanvasRedrawAspectRatio,
-  CanvasRedrawImageSize,
   CanvasTaskResultGateway,
 } from '@/modules/creative_canvas/public';
 
@@ -123,22 +120,6 @@ export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
     projectId: string,
     jobId: string,
   ) => Promise<CanvasStoryScriptResult>;
-}
-
-export interface CanvasRedrawCommand {
-  aspectRatio: CanvasRedrawAspectRatio;
-  imageSize: CanvasRedrawImageSize;
-  maskUrl: string | null;
-  model: string;
-  prompt?: string;
-  sourceUrl: string;
-}
-
-export interface CanvasRedrawTaskGateway extends CanvasTaskResultGateway {
-  submit: (
-    projectId: string,
-    command: CanvasRedrawCommand,
-  ) => Promise<CanvasGenerationTaskRef>;
 }
 
 export interface NodeCatalog {

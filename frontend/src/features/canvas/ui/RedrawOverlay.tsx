@@ -34,16 +34,14 @@ import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  generateCanvasRedraw,
   useCanvasImageModels,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  generateCanvasRedraw,
-  uploadCanvasAsset,
-} from '@/features/canvas/composition';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
