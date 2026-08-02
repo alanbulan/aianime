@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 import { composeVideoClip } from "./composeVideoClip";
 import type { CanvasVideoComposeGateway } from "./composeCanvasVideo";
 

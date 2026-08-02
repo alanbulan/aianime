@@ -2,8 +2,7 @@
 import { useCallback, useRef, useState } from 'react';
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
-import { composeCanvasVideo, uploadCanvasAsset } from '@/features/canvas/composition';
-import type { CanvasVideoComposeResolution } from '@/features/canvas/domain/videoCompose';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
   buildComposePayload,
   hasExportableClips,
@@ -15,6 +14,10 @@ import {
   fetchVideoComposeResultBlob,
   resolveVideoComposeResultFileName,
 } from '@/features/canvas/infrastructure/browserVideoComposeExportRuntime';
+import {
+  composeCanvasVideo,
+  type CanvasVideoComposeResolution,
+} from '@/modules/creative_canvas/public';
 
 export type VideoComposeExportTarget = 'local' | 'canvas';
 

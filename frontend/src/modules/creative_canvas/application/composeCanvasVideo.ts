@@ -4,7 +4,7 @@ import {
   completeCanvasMediaGenerationTask,
   type CanvasGenerationTaskRef,
   type CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasVideoComposeGateway {
   submit(

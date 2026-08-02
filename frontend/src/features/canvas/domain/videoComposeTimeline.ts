@@ -2,7 +2,7 @@
 import type {
   CanvasVideoComposeRequest,
   CanvasVideoComposeResolution,
-} from "./videoCompose";
+} from "@/modules/creative_canvas/public";
 
 /**
  * 前端「视频合成」时间线模型。

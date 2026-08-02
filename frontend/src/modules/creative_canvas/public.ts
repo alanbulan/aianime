@@ -799,6 +799,28 @@ export type {
   VideoGenerationTaskRef,
 } from "@/modules/creative_canvas/application/submitVideoGeneration";
 export {
+  composeCanvasVideo,
+  composeVideoClip,
+} from "@/modules/creative_canvas/videoComposeComposition";
+export type {
+  CanvasVideoComposeItem,
+  CanvasVideoComposeRequest,
+  CanvasVideoComposeResolution,
+  CanvasVideoComposeTrack,
+  CanvasVideoComposeTrackKind,
+} from "@/modules/creative_canvas/domain/videoCompose";
+export type {
+  CanvasVideoComposeGateway,
+  ComposeCanvasVideoDependencies,
+  ComposeCanvasVideoParams,
+  ComposeCanvasVideoResult,
+} from "@/modules/creative_canvas/application/composeCanvasVideo";
+export type {
+  ComposeVideoClipDependencies,
+  ComposeVideoClipParams,
+  ComposeVideoClipResult,
+} from "@/modules/creative_canvas/application/composeVideoClip";
+export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";
 export type {

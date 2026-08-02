@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasVideoComposeGateway } from "../application/composeCanvasVideo";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 
 export const freezoneVideoComposeGateway: CanvasVideoComposeGateway = {
   async submit(projectId, request) {

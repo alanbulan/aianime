@@ -57,7 +57,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureBrowserVideoFrameStrip,
   captureVideoFrameBlob,
-  composeVideoClip,
   ensureWebSafeVideo,
   eraseVideoSubtitles,
   rememberLastVideoModel,
@@ -105,6 +104,7 @@ import {
   DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
   classifyVideoReferenceItems,
+  composeVideoClip,
   completeVideoGenerationTask,
   defaultSceneOptimizeForModel,
   findCameraMovementPreset,

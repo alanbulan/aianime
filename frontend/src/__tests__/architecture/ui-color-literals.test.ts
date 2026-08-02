@@ -28,7 +28,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/edges/DisconnectableEdge.tsx": 13,
   "features/canvas/hooks/useCanvasNodeMenuStateController.ts": 1,
   "features/canvas/infrastructure/browserToolImageGateway.ts": 2,
-  "features/canvas/infrastructure/freezoneVideoComposeGateway.ts": 1,
+  "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts": 1,
   "features/canvas/infrastructure/browserStoryboardExportRuntime.ts": 2,
   "features/canvas/infrastructure/browserStoryboardGenRuntime.ts": 2,
   "features/canvas/nodes/BeatContextNodeView.tsx": 22,
@@ -76,6 +76,7 @@ const DOMAIN_COLOR_DATA = new Set([
   "features/canvas/nodes/contextPromptPalette.ts",
   "lib/project-cover.ts",
   "lib/sketch-colors.ts",
+  "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts",
   "stores/settingsStore.ts",
 ]);
 

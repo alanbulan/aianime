@@ -25697,7 +25697,9 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(timelinePath)).toEqual(["./videoCompose"]);
+    expect(importSpecifiers(timelinePath)).toEqual([
+      "@/modules/creative_canvas/public",
+    ]);
     expect(timelineSource).not.toContain("react");
     expect(timelineSource).not.toContain("document.");
     expect(timelineSource).not.toContain("useCanvasStore");
@@ -26589,9 +26591,9 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/application/imageData",
         "@/features/canvas/composition",
-        "@/features/canvas/domain/videoCompose",
         "@/features/canvas/domain/videoComposeTimeline",
         "@/features/canvas/infrastructure/browserVideoComposeExportRuntime",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).toContain("await composeCanvasVideo({");
@@ -26640,13 +26642,17 @@ describe("frontend architecture boundaries", () => {
   it("keeps single-video clip composition in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/composeVideoClip.ts",
+      "modules/creative_canvas/application/composeVideoClip.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoComposeGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposeComposition.ts",
+    );
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -26654,6 +26660,10 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
@@ -26673,15 +26683,21 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const legacyPaths = [
+      "features/canvas/application/composeVideoClip.ts",
+      "features/canvas/application/composeVideoClip.test.ts",
+      "features/canvas/infrastructure/freezoneVideoComposeGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoComposeGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public", "./composeCanvasVideo"]),
+      new Set(["../domain/videoGenerationModel", "./composeCanvasVideo"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/composeVideoClip.ts",
+      "modules/creative_canvas/application/composeVideoClip.ts",
     ]);
     expect(applicationSource).toContain("params.startMs / 1000");
     expect(applicationSource).toContain("params.endMs / 1000");
@@ -26690,7 +26706,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/shared/api/client",
         "../application/composeCanvasVideo",
-        "@/modules/creative_canvas/public",
+        "../application/completeCanvasMediaGenerationTask",
       ]),
     );
     expect(adapterSource).not.toContain("react");
@@ -26698,7 +26714,7 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain('method: "POST"');
     expect(adapterSource).toContain("canvas_id: request.canvasId ?? \"\"");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneVideoComposeGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts",
     ]);
     expect(legacyOpsSource).not.toContain("submitFreezoneVideoCompose");
     expect(legacyOpsSource).not.toContain("}/freezone/video/compose`");
@@ -26709,8 +26725,17 @@ describe("frontend architecture boundaries", () => {
       "composeGateway: freezoneVideoComposeGateway",
     );
     expect(compositionSource).toContain(
-      "taskGateway: freezoneGenerationTaskGateway",
+      "fetchResultUrl: fetchCanvasGenerationResultUrl",
     );
+    expect(legacyCompositionSource).not.toContain("composeVideoClipUseCase");
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoComposeGateway",
+    );
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeController.ts",
+    ))).toContain("@/modules/creative_canvas/public");
     expect(videoNode).toContain("composeVideoClip({");
     expect(videoNode).not.toContain("submitFreezoneVideoCompose");
     expect(videoNode).not.toContain("`track_${id}_video`");
@@ -26720,11 +26745,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps timeline video composition behind the shared Canvas use case", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoCompose.ts",
+      "modules/creative_canvas/domain/videoCompose.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/composeCanvasVideo.ts",
+      "modules/creative_canvas/application/composeCanvasVideo.ts",
     );
     const timelinePath = resolve(
       SRC_ROOT,
@@ -26736,8 +26761,13 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/videoComposeComposition.ts",
+    );
+    const legacyCompositionPath = resolve(
+      SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const oldAdapterPath = resolve(
       SRC_ROOT,
@@ -26751,6 +26781,11 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
+    const publicSource = readFileSync(publicPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
     const declaration = ["export async function", "composeCanvasVideo("].join(
       " ",
@@ -26759,6 +26794,11 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const legacyPaths = [
+      "features/canvas/domain/videoCompose.ts",
+      "features/canvas/application/composeCanvasVideo.ts",
+      "features/canvas/application/composeCanvasVideo.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -26767,7 +26807,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/videoCompose",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -26777,9 +26817,11 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(implementationOwners).toEqual([
-      "features/canvas/application/composeCanvasVideo.ts",
+      "modules/creative_canvas/application/composeCanvasVideo.ts",
     ]);
-    expect(importSpecifiers(timelinePath)).toContain("./videoCompose");
+    expect(importSpecifiers(timelinePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(importSpecifiers(timelinePath)).not.toContain("@/api/ops");
     expect(timelineSource).toContain(
       "): CanvasVideoComposeRequest {",
@@ -26788,7 +26830,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(exportControllerPath)).toContain(
-      "@/features/canvas/domain/videoCompose",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/tasks");
@@ -26797,8 +26839,19 @@ describe("frontend architecture boundaries", () => {
     expect(exportControllerSource).not.toContain("fetchFreezoneJobResult");
     expect(exportControllerSource).not.toContain("awaitTaskCompletion");
     expect(compositionSource).toContain(
-      "composeCanvasVideoUseCase(params, {",
+      "composeCanvasVideoUseCase(params, composeDependencies)",
     );
+    expect(publicSource).toContain("composeCanvasVideo,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/videoCompose",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "composeCanvasVideoUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoComposeGateway",
+    );
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     expect(opsSource).not.toContain(
       "@/features/canvas/domain/videoCompose",
     );

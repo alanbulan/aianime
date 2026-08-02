@@ -18,8 +18,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/canvas/composition', () => ({
-  composeCanvasVideo: (input: unknown) => mocks.compose(input),
   uploadCanvasAsset: (...args: unknown[]) => mocks.upload(...args),
+}));
+
+vi.mock('@/modules/creative_canvas/public', () => ({
+  composeCanvasVideo: (input: unknown) => mocks.compose(input),
 }));
 
 vi.mock('@/features/canvas/application/imageData', () => ({
