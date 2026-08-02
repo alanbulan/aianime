@@ -8,6 +8,7 @@ import type {
 import type {
   AudioVoiceRef,
   VideoGenMode,
+  VideoStoryRow,
 } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
@@ -469,43 +470,6 @@ export interface AudioNodeData extends NodeDisplayData {
   /** Transient: which format the download menu is currently transcoding to. */
   convertingAudioFormat?: 'mp3' | 'm4a' | 'wav' | null;
   [key: string]: unknown;
-}
-
-export interface VideoStoryRow {
-  /** 镜号 — 1-based shot index, optional because some payloads only sequence rows by array order. */
-  shotNumber?: number | string | null;
-  /** 开始时间 (HH:MM:SS or seconds, kept as string for display flexibility). */
-  startTime?: string | null;
-  /** 结束时间. */
-  endTime?: string | null;
-  /** 时长 (e.g. "1.2s"). */
-  duration?: string | null;
-  /** 画面描述. */
-  visualDescription?: string | null;
-  /** 叙事内容. */
-  narrative?: string | null;
-  /** 景别. */
-  shotSize?: string | null;
-  /** 摄影机角度. */
-  cameraAngle?: string | null;
-  /** 摄影机运动. */
-  cameraMovement?: string | null;
-  /** 焦距与景深. */
-  focalAndDof?: string | null;
-  /** 光线. */
-  lighting?: string | null;
-  /** 背景音乐. */
-  backgroundMusic?: string | null;
-  /** 人声/音效. */
-  voiceAndSfx?: string | null;
-  /** 图像生成提示词. */
-  imagePrompt?: string | null;
-  /** 视频运动提示词. */
-  videoMotionPrompt?: string | null;
-  /** 关键帧静态 URL. */
-  keyframeUrl?: string | null;
-  /** Raw backend row kept around so we can render fields we didn't normalize. */
-  raw?: Record<string, unknown>;
 }
 
 export interface VideoStoryNodeData extends NodeDisplayData {

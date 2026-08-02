@@ -13,8 +13,8 @@ import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData"
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   analyzeCanvasVideoStory,
-} from "@/features/canvas/composition";
-import { separateCanvasAudioVideo } from "@/modules/creative_canvas/public";
+  separateCanvasAudioVideo,
+} from "@/modules/creative_canvas/public";
 import {
   CANVAS_NODE_TYPES,
   type VideoNodeData,

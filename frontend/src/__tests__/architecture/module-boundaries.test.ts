@@ -19858,13 +19858,26 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas video story analysis behind application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/analyzeCanvasVideoStory.ts",
+      "modules/creative_canvas/application/analyzeCanvasVideoStory.ts",
+    );
+    const normalizerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/videoStoryNormalizer.ts",
+    );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/videoStory.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoStoryAnalysisComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -19872,12 +19885,40 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useVideoNodeToolbarController.ts",
     );
+    const canvasNodesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodes.ts",
+    );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
+    const normalizerSource = readFileSync(normalizerPath, "utf8");
+    const domainSource = readFileSync(domainPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasNodesSource = readFileSync(canvasNodesPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const legacyPaths = [
+      "features/canvas/application/analyzeCanvasVideoStory.ts",
+      "features/canvas/application/analyzeCanvasVideoStory.test.ts",
+      "features/canvas/application/videoStoryNormalizer.ts",
+      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const applicationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "dependencies: AnalyzeCanvasVideoStoryDependencies",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -19890,17 +19931,26 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
         "./videoStoryNormalizer",
       ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/features/");
     expect(applicationSource).toContain(
       "dependencies.taskGateway.awaitCompletion(",
     );
     expect(applicationSource).toContain("normalizeVideoStoryRows(rawResult)");
+    expect(applicationOwners).toEqual([
+      "modules/creative_canvas/application/analyzeCanvasVideoStory.ts",
+    ]);
+    expect(importSpecifiers(normalizerPath)).toEqual(["../domain/videoStory"]);
+    expect(normalizerSource).not.toContain("@/features/");
+    expect(normalizerSource).not.toContain("extractVideoStoryMeta");
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain("export interface VideoStoryRow");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
@@ -19911,17 +19961,49 @@ describe("frontend architecture boundaries", () => {
       "freezoneVideoStoryAnalysisGateway: CanvasVideoStoryAnalysisSubmissionGateway",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
     ]);
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/modules/task_execution/public",
+        "./application/completeCanvasMediaGenerationTask",
+        "./application/analyzeCanvasVideoStory",
+        "./infrastructure/freezoneVideoStoryAnalysisGateway",
+      ]),
+    );
     expect(compositionSource).toContain(
       "analyzeCanvasVideoStoryUseCase(params, {",
     );
     expect(compositionSource).toContain(
       "submissionGateway: freezoneVideoStoryAnalysisGateway",
     );
+    expect(publicSource).toContain("analyzeCanvasVideoStory }");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/videoStory",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "analyzeCanvasVideoStoryUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoStoryAnalysisGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "export function analyzeCanvasVideoStory(",
+    );
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
     expect(controllerSource).toContain("await analyzeCanvasVideoStory({");
     expect(controllerSource).not.toContain("submitFreezoneAnalyzeVideoStory");
     expect(controllerSource).not.toContain("normalizeVideoStoryRows");
+    expect(importSpecifiers(canvasNodesPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(canvasNodesSource).not.toContain("export interface VideoStoryRow");
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     for (const legacySymbol of [
       "FreezoneAnalyzeVideoStoryPayload",
       "submitFreezoneAnalyzeVideoStory",
@@ -21239,7 +21321,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/application/imageData",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
         "@/modules/creative_canvas/public",

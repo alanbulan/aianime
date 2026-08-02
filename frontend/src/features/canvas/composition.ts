@@ -19,10 +19,6 @@ import {
   type CanvasAssetDragPayload,
 } from '@/modules/creative_canvas/public';
 import {
-  analyzeCanvasVideoStory as analyzeCanvasVideoStoryUseCase,
-  type AnalyzeCanvasVideoStoryParams,
-} from './application/analyzeCanvasVideoStory';
-import {
   getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
   type CanvasBeatDirectorManifestGateway,
   type GetCanvasBeatDirectorManifestParams,
@@ -131,7 +127,6 @@ import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssets
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
-import { freezoneVideoStoryAnalysisGateway } from './infrastructure/freezoneVideoStoryAnalysisGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
@@ -372,15 +367,6 @@ export function composeCanvasVideo(params: ComposeCanvasVideoParams) {
 export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-  });
-}
-
-export function analyzeCanvasVideoStory(
-  params: AnalyzeCanvasVideoStoryParams,
-) {
-  return analyzeCanvasVideoStoryUseCase(params, {
-    submissionGateway: freezoneVideoStoryAnalysisGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
 }

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { VideoStoryRow } from '@/features/canvas/domain/canvasNodes';
+import type { VideoStoryRow } from "../domain/videoStory";
 
 // Backend response shape for `freezone_analyze_video_story` (observed at runtime,
 // OpenAPI declares 200 schema `{}`):
@@ -202,23 +202,4 @@ export function normalizeVideoStoryRows(payload: unknown): VideoStoryRow[] {
     }
   }
   return rows;
-}
-
-export interface VideoStoryMeta {
-  title?: string | null;
-  summary?: string | null;
-}
-
-export function extractVideoStoryMeta(payload: unknown): VideoStoryMeta {
-  if (!payload || typeof payload !== 'object') return {};
-  const record = payload as Record<string, unknown>;
-  const wrapper = record.video_story ?? record.videoStory;
-  if (wrapper && typeof wrapper === 'object') {
-    const w = wrapper as Record<string, unknown>;
-    return {
-      title: typeof w.title === 'string' ? w.title : null,
-      summary: typeof w.summary === 'string' ? w.summary : null,
-    };
-  }
-  return {};
 }

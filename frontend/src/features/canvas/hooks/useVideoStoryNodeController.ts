@@ -6,9 +6,9 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
   type VideoStoryNodeData,
-  type VideoStoryRow,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import type { VideoStoryRow } from '@/modules/creative_canvas/public';
 
 const DEFAULT_WIDTH = 720;
 const DEFAULT_HEIGHT = 360;

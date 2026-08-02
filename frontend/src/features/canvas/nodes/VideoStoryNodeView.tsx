@@ -5,7 +5,6 @@ import { AlertTriangle, Expand, FileVideo2, X } from 'lucide-react';
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoStoryNodeController';
-import type { VideoStoryRow } from '@/features/canvas/domain/canvasNodes';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
@@ -17,6 +16,7 @@ import {
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
+import type { VideoStoryRow } from '@/modules/creative_canvas/public';
 
 interface ColumnDef {
   key: keyof VideoStoryRow;

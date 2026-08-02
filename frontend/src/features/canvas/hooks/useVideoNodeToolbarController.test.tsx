@@ -39,11 +39,8 @@ vi.mock("@/features/canvas/canvasStore", () => ({
     }),
 }));
 
-vi.mock("@/features/canvas/composition", () => ({
-  analyzeCanvasVideoStory: (...args: unknown[]) => mocks.analyze(...args),
-}));
-
 vi.mock("@/modules/creative_canvas/public", () => ({
+  analyzeCanvasVideoStory: (...args: unknown[]) => mocks.analyze(...args),
   separateCanvasAudioVideo: (...args: unknown[]) => mocks.separate(...args),
 }));
 

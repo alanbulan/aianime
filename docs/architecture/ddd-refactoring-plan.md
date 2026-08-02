@@ -448,7 +448,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 5. Narrative Planning | 已完成 | 后端领域/应用/适配器边界与前端 route/controller/view 已收敛到唯一模块 |
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
 | 7. Production | 已完成 | 前后端 Production 边界、合成页、episode presentation 与 Beat 状态读模型均已收敛到唯一 public API |
-| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 371 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 783/0 个 TS/TSX 文件；R1-A 组合根循环、R1-B 十四个路由上下文切片和 R1-F 后端边界已关闭。已登记的领域、同步/存储、Projection、提交、素材库、项目/Shell 展示、生成目录、文本翻译与 Story Script、素材节点插入/替换拖影、媒体传输 presentation 及 Audio 领域/应用/媒体服务/生成网关与共享结果查询纵向链已有唯一模块所有者，项目页与 Shell 跨上下文装配已上移 App composition，旧 Freezone public、前端根、后端 Python 源、runner 旧 jobs 导入、模块外 infrastructure 直连和 Canvas 生产 URL 读取均归零；App Shell 对旧 Canvas 私有入口由 11 个收紧到 4 个。其余 R1-C 至 R1-E Canvas 所有权尚未迁完，阶段 8 不标记完成 |
+| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 380 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 778/0 个 TS/TSX 文件；R1-A 组合根循环、R1-B 十四个路由上下文切片和 R1-F 后端边界已关闭。已登记的领域、同步/存储、Projection、提交、素材库、项目/Shell 展示、生成目录、文本翻译、Story Script 与视频剧情分析、素材节点插入/替换拖影、媒体传输 presentation 及 Audio 领域/应用/媒体服务/生成网关与共享结果查询纵向链已有唯一模块所有者，项目页与 Shell 跨上下文装配已上移 App composition，旧 Freezone public、前端根、后端 Python 源、runner 旧 jobs 导入、模块外 infrastructure 直连和 Canvas 生产 URL 读取均归零；App Shell 对旧 Canvas 私有入口由 11 个收紧到 4 个。其余 R1-C 至 R1-E Canvas 所有权尚未迁完，阶段 8 不标记完成 |
 | 9. Supporting Contexts | 已完成 | Model Usage、Platform Release、AI Assistant 与 Task Execution 已形成唯一模块边界；旧 `features/superchat`、旧 `task-center` 和旧 `task_backend` 已删除，跨上下文提交、业务 route 组合和本地 inline 重启恢复均已收口 |
 | 10. 最终收敛 | 第二轮收尾中 | 当前定向门禁可通过，但扫描范围未覆盖全部遗留目录，且尚未在与锁文件一致的干净环境完成最终复验 |
 
@@ -1006,6 +1006,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百一十三批将 Canvas Story Script 命令/结果合同、生成编排、提交 HTTP adapter 及测试整体迁入 Creative Canvas application/infrastructure，并接入唯一 `textGenerationComposition.ts`。组合根继续使用唯一 `resolveCanvasTextModel` 校验商业 TEXT 目录，通过 Task Execution 等待任务，并经共享生成结果 adapter 查询 `freezone_story_script`；普通版 Cloud 与专业版授权后 BYOK 两条模型入口不变。旧 Canvas 节点到模块引用合同的分类适配唯一保留在 `scriptNodeModel.ts`，Creative Canvas 不反向依赖旧 `canvasNodes`；脚本 controller、view 和任务恢复链统一经模块 public 使用同一 Story Script 合同。旧 Canvas composition wrapper、重复结果 DTO 和 4 个旧生产/测试路径直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 367 增到 371，Canvas 由 787 降到 783，残余 ratchet 收紧到 783/0，Story Script 提交端点只有模块内 Gateway 一个生产所有者，前端空目录保持 0。Story Script 应用/HTTP/组合根、脚本模型/controller、恢复链行为 Vitest 7 个文件 28 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；未启动 UI、未构建安装包、未调用真实模型，平台对象存储、唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百一十四批将 Canvas 视频剧情分析命令/提交合同、异步任务与内联结果编排、响应归一化规则、HTTP adapter 及测试整体迁入 Creative Canvas domain/application/infrastructure，并新增唯一 `videoStoryAnalysisComposition.ts` 直接装配 Task Execution 等待端口。`VideoStoryRow` 从旧 `canvasNodes.ts` 抽为模块领域合同，归一化规则不再反向依赖旧 Canvas；关键帧 URL 按文件名数字后缀恢复时间顺序，生产 `video_story.shots` 优先于镜像 `analyses`，旧响应别名与内联响应语义保持不变。视频工具栏、视频剧情节点 controller/view 和节点数据合同统一经 Creative Canvas public 使用；旧 Canvas composition wrapper、5 个旧生产/测试所有者以及无调用方的 `extractVideoStoryMeta` 直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 371 增到 380，Canvas 由 783 降到 778，残余 ratchet 收紧到 778/0，分析提交端点只有模块内 Gateway 一个生产所有者，前端空目录保持 0。分析领域/应用/归一化/HTTP/组合根和两个节点链 Vitest 7 个文件 19 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；未启动 UI、未构建安装包、未调用真实模型，平台对象存储、唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
@@ -1146,7 +1148,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 这是风险最高的阶段，必须在前述样板稳定后执行。
 
-当前进度：第二轮收尾中。`modules/creative_canvas` 已形成 371 个 TS/TSX 文件的真实模块边界，持有已登记的 capability、同步/存储、Projection、提交、素材库、项目/Shell 展示、生成目录、文本翻译与 Story Script、素材节点插入/替换拖影、媒体传输 presentation 和 Audio 领域/应用/媒体服务/生成网关及共享结果查询纵向链；R1-A 页面装配环、R1-B 十四个路由上下文切片和 R1-F 后端收敛均已关闭。旧 `features/freezone` 前端根、后端 Freezone Python 源、旧聚合 public、runner 旧 jobs 导入、模块外 infrastructure 直连和 Canvas 生产 `readUrl()` 均归零；`features/canvas` 仍有 783 个 TS/TSX 文件，App Shell 尚有 4 个精确白名单私有入口，因此 R1-C 至 R1-E、阶段 8 与阶段 10 仍未完成。Task Execution 本地模块与提交边界已经收敛；云端 Invocation 恢复仍归 R6。以下批次记录仅代表已完成的局部迁移，不作为阶段整体完成的依据。
+当前进度：第二轮收尾中。`modules/creative_canvas` 已形成 380 个 TS/TSX 文件的真实模块边界，持有已登记的 capability、同步/存储、Projection、提交、素材库、项目/Shell 展示、生成目录、文本翻译、Story Script 与视频剧情分析、素材节点插入/替换拖影、媒体传输 presentation 和 Audio 领域/应用/媒体服务/生成网关及共享结果查询纵向链；R1-A 页面装配环、R1-B 十四个路由上下文切片和 R1-F 后端收敛均已关闭。旧 `features/freezone` 前端根、后端 Freezone Python 源、旧聚合 public、runner 旧 jobs 导入、模块外 infrastructure 直连和 Canvas 生产 `readUrl()` 均归零；`features/canvas` 仍有 778 个 TS/TSX 文件，App Shell 尚有 4 个精确白名单私有入口，因此 R1-C 至 R1-E、阶段 8 与阶段 10 仍未完成。Task Execution 本地模块与提交边界已经收敛；云端 Invocation 恢复仍归 R6。以下批次记录仅代表已完成的局部迁移，不作为阶段整体完成的依据。
 
 第二批已建立通用 Canvas 资产上传端口与 Freezone infrastructure adapter，跨项目粘贴资产迁移改经 composition 使用唯一上传实现；application 直接依赖旧 `api/ops` 的文件由 5 个降至 4 个。
 

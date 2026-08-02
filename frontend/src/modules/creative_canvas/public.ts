@@ -738,6 +738,15 @@ export type {
   TranslateCanvasTextParams,
   TranslateCanvasTextResult,
 } from "@/modules/creative_canvas/application/translateCanvasText";
+export { analyzeCanvasVideoStory } from "@/modules/creative_canvas/videoStoryAnalysisComposition";
+export type {
+  AnalyzeCanvasVideoStoryDependencies,
+  AnalyzeCanvasVideoStoryParams,
+  CanvasVideoStoryAnalysisCommand,
+  CanvasVideoStoryAnalysisSubmission,
+  CanvasVideoStoryAnalysisSubmissionGateway,
+} from "@/modules/creative_canvas/application/analyzeCanvasVideoStory";
+export type { VideoStoryRow } from "@/modules/creative_canvas/domain/videoStory";
 export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";
