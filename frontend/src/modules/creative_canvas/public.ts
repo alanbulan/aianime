@@ -459,6 +459,12 @@ export type {
 } from "@/modules/creative_canvas/presentation/useFreezoneProjectPageController";
 export { FreezoneProjectPageView } from "@/modules/creative_canvas/presentation/FreezoneProjectPageView";
 export type { FreezoneProjectPageViewProps } from "@/modules/creative_canvas/presentation/FreezoneProjectPageView";
+export { createUseFreezoneCanvasEntryLifecycle } from "@/modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle";
+export type {
+  FreezoneCanvasEntryLifecycleDependencies,
+  FreezoneCanvasEntryLifecycleOptions,
+  FreezoneCanvasEntryState,
+} from "@/modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

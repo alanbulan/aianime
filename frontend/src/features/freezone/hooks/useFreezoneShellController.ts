@@ -6,7 +6,13 @@ import {
   useCanvasStore,
   type CanvasNodeData,
 } from "@/features/canvas/canvasStore";
+import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
+import { prefetchFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
+import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
+import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
+import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import {
+  createUseFreezoneCanvasEntryLifecycle,
   createCanvasCommitControllerHook,
   defaultCharacterFromMetadata,
   normalizePushTarget,
@@ -15,12 +21,12 @@ import {
   type PushTarget,
   type PushTargetKind,
 } from "@/modules/creative_canvas/public";
+import { currentCanvasParam } from "@/lib/app-router";
 import { isCeRuntime } from "@/lib/runtime-config";
-import { writeUrl } from "@/lib/url-params";
+import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 
 import { useCanvasSync } from "./useCanvasSync";
-import { useFreezoneCanvasEntryLifecycle } from "./useFreezoneCanvasEntryLifecycle";
 
 const useCanvasCommitController = createCanvasCommitControllerHook({
   store: {
@@ -36,6 +42,20 @@ const useCanvasCommitController = createCanvasCommitControllerHook({
   },
   cacheBustImage: withImageCacheBust,
 });
+
+const useFreezoneCanvasEntryLifecycle =
+  createUseFreezoneCanvasEntryLifecycle({
+    readCanvasNodeCount: () => useCanvasStore.getState().nodes.length,
+    prefetchImageModels: prefetchFreezoneImageModels,
+    prefetchVideoModels: prefetchFreezoneVideoModels,
+    prefetchCameraOptions: prefetchFreezoneCameraOptions,
+    prefetchStyleTemplates: prefetchFreezoneStyleTemplates,
+    prefetchVideoCameraTemplates: prefetchFreezoneVideoCameraTemplates,
+    readCurrentCanvasParam: currentCanvasParam,
+    rememberLastCanvas,
+    replaceCanvasParam: (canvasId) =>
+      writeUrl({ canvas: canvasId }, { replace: true, notify: false }),
+  });
 
 export interface FreezoneShellControllerOptions {
   projectId: string;

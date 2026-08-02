@@ -6054,13 +6054,21 @@ describe("frontend architecture boundaries", () => {
   it("keeps Freezone canvas entry side effects in one lifecycle hook", () => {
     const lifecyclePath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
+      "modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle.ts",
     );
     const shellPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useFreezoneShellController.ts",
     );
     const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle.test.tsx",
+    );
+    const legacyLifecyclePath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
+    );
+    const legacyTestPath = resolve(
       SRC_ROOT,
       "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.test.tsx",
     );
@@ -6069,7 +6077,7 @@ describe("frontend architecture boundaries", () => {
     const testSource = readFileSync(testPath, "utf8");
     const declaration = [
       "export function",
-      "useFreezoneCanvasEntryLifecycle(",
+      "createUseFreezoneCanvasEntryLifecycle(",
     ].join(" ");
     const owners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -6079,31 +6087,21 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(lifecyclePath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/hooks/useFreezoneCameraOptions",
-        "@/features/canvas/hooks/useFreezoneImageModels",
-        "@/features/canvas/hooks/useFreezoneStyleTemplates",
-        "@/features/canvas/hooks/useFreezoneVideoCameraTemplates",
-        "@/features/canvas/hooks/useFreezoneVideoModels",
-        "@/lib/app-router",
-        "@/lib/url-params",
-        "@/modules/creative_canvas/public",
+        "../application/canvasSyncStorage",
       ]),
     );
     expect(owners).toEqual([
-      "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
+      "modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle.ts",
     ]);
+    expect(existsSync(legacyLifecyclePath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
     expect(importSpecifiers(shellPath)).toContain(
-      "./useFreezoneCanvasEntryLifecycle",
+      "@/modules/creative_canvas/public",
     );
     expect(testSource).toContain('from "./useFreezoneCanvasEntryLifecycle"');
-    expect(shellSource).not.toContain("prefetchFreezoneImageModels");
-    expect(shellSource).not.toContain("prefetchFreezoneVideoModels");
-    expect(shellSource).not.toContain("prefetchFreezoneCameraOptions");
-    expect(shellSource).not.toContain("prefetchFreezoneStyleTemplates");
-    expect(shellSource).not.toContain("prefetchFreezoneVideoCameraTemplates");
-    expect(shellSource).not.toContain("rememberLastCanvas");
-    expect(shellSource).not.toContain("currentCanvasParam");
+    expect(shellSource).toContain("createUseFreezoneCanvasEntryLifecycle({");
+    expect(lifecycleSource).not.toContain("@/features/");
+    expect(lifecycleSource).not.toContain("@/lib/");
     expect(shellSource).not.toContain("lastRenderedCanvasKey");
     expect(lifecycleSource).not.toContain("CanvasLoadingScreen");
     expect(lifecycleSource).not.toContain("CanvasLoadingOverlay");

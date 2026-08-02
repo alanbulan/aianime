@@ -55,6 +55,11 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => {
   >();
   return {
     ...actual,
+    createUseFreezoneCanvasEntryLifecycle: () =>
+      (options: Record<string, unknown>) => {
+        mocks.entryOptions = options;
+        return mocks.entryState;
+      },
     createCanvasCommitControllerHook: () =>
       (options: Record<string, unknown>) => {
         mocks.commitOptions = options;
@@ -77,7 +82,12 @@ vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => mocks.ceRuntime,
 }));
 
+vi.mock("@/lib/app-router", () => ({
+  currentCanvasParam: vi.fn(),
+}));
+
 vi.mock("@/lib/url-params", () => ({
+  rememberLastCanvas: vi.fn(),
   writeUrl: (...args: unknown[]) => mocks.writeUrl(...args),
 }));
 
@@ -85,13 +95,6 @@ vi.mock("./useCanvasSync", () => ({
   useCanvasSync: (projectId: string, canvasId: string) => {
     mocks.syncArgs = [projectId, canvasId];
     return mocks.sync;
-  },
-}));
-
-vi.mock("./useFreezoneCanvasEntryLifecycle", () => ({
-  useFreezoneCanvasEntryLifecycle: (options: Record<string, unknown>) => {
-    mocks.entryOptions = options;
-    return mocks.entryState;
   },
 }));
 

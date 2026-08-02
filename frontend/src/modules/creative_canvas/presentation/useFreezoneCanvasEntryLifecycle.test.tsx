@@ -2,52 +2,26 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useCanvasStore, type CanvasNode } from "@/features/canvas/canvasStore";
-
 import {
-  useFreezoneCanvasEntryLifecycle,
+  createUseFreezoneCanvasEntryLifecycle,
   type FreezoneCanvasEntryLifecycleOptions,
 } from "./useFreezoneCanvasEntryLifecycle";
 
-const mocks = vi.hoisted(() => ({
-  currentCanvasParam: vi.fn(),
-  prefetchFreezoneCameraOptions: vi.fn(),
-  prefetchFreezoneImageModels: vi.fn(),
-  prefetchFreezoneStyleTemplates: vi.fn(),
-  prefetchFreezoneVideoCameraTemplates: vi.fn(),
-  prefetchFreezoneVideoModels: vi.fn(),
+const mocks = {
+  readCanvasNodeCount: vi.fn(),
+  readCurrentCanvasParam: vi.fn(),
+  prefetchCameraOptions: vi.fn(),
+  prefetchImageModels: vi.fn(),
+  prefetchStyleTemplates: vi.fn(),
+  prefetchVideoCameraTemplates: vi.fn(),
+  prefetchVideoModels: vi.fn(),
   rememberLastCanvas: vi.fn(),
-  writeUrl: vi.fn(),
-}));
+  replaceCanvasParam: vi.fn(),
+};
 
-vi.mock("@/features/canvas/hooks/useFreezoneCameraOptions", () => ({
-  prefetchFreezoneCameraOptions: mocks.prefetchFreezoneCameraOptions,
-}));
-
-vi.mock("@/features/canvas/hooks/useFreezoneImageModels", () => ({
-  prefetchFreezoneImageModels: mocks.prefetchFreezoneImageModels,
-}));
-
-vi.mock("@/features/canvas/hooks/useFreezoneStyleTemplates", () => ({
-  prefetchFreezoneStyleTemplates: mocks.prefetchFreezoneStyleTemplates,
-}));
-
-vi.mock("@/features/canvas/hooks/useFreezoneVideoCameraTemplates", () => ({
-  prefetchFreezoneVideoCameraTemplates: mocks.prefetchFreezoneVideoCameraTemplates,
-}));
-
-vi.mock("@/features/canvas/hooks/useFreezoneVideoModels", () => ({
-  prefetchFreezoneVideoModels: mocks.prefetchFreezoneVideoModels,
-}));
-
-vi.mock("@/lib/app-router", () => ({
-  currentCanvasParam: mocks.currentCanvasParam,
-}));
-
-vi.mock("@/lib/url-params", () => ({
-  rememberLastCanvas: mocks.rememberLastCanvas,
-  writeUrl: mocks.writeUrl,
-}));
+let useFreezoneCanvasEntryLifecycle: ReturnType<
+  typeof createUseFreezoneCanvasEntryLifecycle
+>;
 
 function options(
   overrides: Partial<FreezoneCanvasEntryLifecycleOptions> = {},
@@ -63,16 +37,17 @@ function options(
 
 describe("Freezone canvas entry lifecycle", () => {
   beforeEach(() => {
-    useCanvasStore.setState({ nodes: [], edges: [] });
     for (const mock of Object.values(mocks)) {
       mock.mockReset();
     }
-    mocks.currentCanvasParam.mockReturnValue(null);
+    mocks.readCanvasNodeCount.mockReturnValue(0);
+    mocks.readCurrentCanvasParam.mockReturnValue(null);
+    useFreezoneCanvasEntryLifecycle =
+      createUseFreezoneCanvasEntryLifecycle(mocks);
   });
 
   afterEach(() => {
     cleanup();
-    useCanvasStore.setState({ nodes: [], edges: [] });
   });
 
   it("prefetches project resources and reuses a rendered canvas on re-entry", () => {
@@ -87,21 +62,18 @@ describe("Freezone canvas entry lifecycle", () => {
       showBlockingLoading: true,
       showLoadingOverlay: false,
     });
-    expect(mocks.prefetchFreezoneImageModels).toHaveBeenCalledWith("entry-project");
-    expect(mocks.prefetchFreezoneVideoModels).toHaveBeenCalledWith("entry-project");
-    expect(mocks.prefetchFreezoneCameraOptions).toHaveBeenCalledWith("entry-project");
-    expect(mocks.prefetchFreezoneStyleTemplates).toHaveBeenCalledWith("entry-project");
-    expect(mocks.prefetchFreezoneVideoCameraTemplates).toHaveBeenCalledWith(
+    expect(mocks.prefetchImageModels).toHaveBeenCalledWith("entry-project");
+    expect(mocks.prefetchVideoModels).toHaveBeenCalledWith("entry-project");
+    expect(mocks.prefetchCameraOptions).toHaveBeenCalledWith("entry-project");
+    expect(mocks.prefetchStyleTemplates).toHaveBeenCalledWith("entry-project");
+    expect(mocks.prefetchVideoCameraTemplates).toHaveBeenCalledWith(
       "entry-project",
     );
     expect(mocks.rememberLastCanvas).toHaveBeenCalledWith(
       "entry-project",
       "user-entry",
     );
-    expect(mocks.writeUrl).toHaveBeenCalledWith(
-      { canvas: "user-entry" },
-      { replace: true, notify: false },
-    );
+    expect(mocks.replaceCanvasParam).toHaveBeenCalledWith("user-entry");
 
     hook.rerender(options({
       hydratedCanvasId: "user-entry",
@@ -119,9 +91,7 @@ describe("Freezone canvas entry lifecycle", () => {
     });
 
     act(() => {
-      useCanvasStore.setState({
-        nodes: [{ id: "persisted-node" } as CanvasNode],
-      });
+      mocks.readCanvasNodeCount.mockReturnValue(1);
     });
     hook.unmount();
     const remount = renderHook(() =>
@@ -133,7 +103,7 @@ describe("Freezone canvas entry lifecycle", () => {
   });
 
   it("does not rewrite a current or default canvas URL", () => {
-    mocks.currentCanvasParam.mockReturnValue("user-current");
+    mocks.readCurrentCanvasParam.mockReturnValue("user-current");
     const hook = renderHook(
       (props: FreezoneCanvasEntryLifecycleOptions) =>
         useFreezoneCanvasEntryLifecycle(props),
@@ -145,12 +115,12 @@ describe("Freezone canvas entry lifecycle", () => {
       },
     );
 
-    expect(mocks.writeUrl).not.toHaveBeenCalled();
+    expect(mocks.replaceCanvasParam).not.toHaveBeenCalled();
     hook.rerender(options({
       projectId: "url-project",
       canvasId: "default",
     }));
-    expect(mocks.writeUrl).not.toHaveBeenCalled();
+    expect(mocks.replaceCanvasParam).not.toHaveBeenCalled();
     expect(mocks.rememberLastCanvas).toHaveBeenLastCalledWith(
       "url-project",
       "default",
@@ -160,8 +130,8 @@ describe("Freezone canvas entry lifecycle", () => {
       projectId: "url-project-next",
       canvasId: "default",
     }));
-    expect(mocks.prefetchFreezoneImageModels).toHaveBeenCalledTimes(2);
-    expect(mocks.prefetchFreezoneImageModels).toHaveBeenLastCalledWith(
+    expect(mocks.prefetchImageModels).toHaveBeenCalledTimes(2);
+    expect(mocks.prefetchImageModels).toHaveBeenLastCalledWith(
       "url-project-next",
     );
   });
