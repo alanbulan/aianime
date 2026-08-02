@@ -538,6 +538,13 @@ export type {
   CanvasAssetDragKind,
   CanvasAssetDragPayload,
 } from "@/modules/creative_canvas/domain/assetDrag";
+export { spawnCanvasAssetNode } from "@/modules/creative_canvas/application/canvasAssetNodeSpawning";
+export type {
+  CanvasAssetNodeData,
+  CanvasAssetNodeSpawnPort,
+  CanvasAssetNodeType,
+} from "@/modules/creative_canvas/application/canvasAssetNodeSpawning";
+export { readCanvasAssetDragPayload } from "@/modules/creative_canvas/presentation/canvasAssetDragTransfer";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

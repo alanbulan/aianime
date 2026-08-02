@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type DragEvent as ReactDragEvent } from 'react';
 
-import { readAssetDragPayload } from '../domain/assetDrag';
-import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
+import {
+  readCanvasAssetDragPayload,
+  type CanvasAssetDragPayload,
+} from '@/modules/creative_canvas/public';
 import { collectDroppedMediaFiles } from '../ui/canvasMediaTransfer';
 import { useCanvasDropIndicator } from './useCanvasDropIndicator';
 
@@ -73,7 +75,7 @@ export function useCanvasMediaDropController({
         x: event.clientX,
         y: event.clientY,
       });
-      const assetPayload = readAssetDragPayload(event.dataTransfer);
+      const assetPayload = readCanvasAssetDragPayload(event.dataTransfer);
       if (assetPayload) {
         void (async () => {
           let hydratedPayload = assetPayload;

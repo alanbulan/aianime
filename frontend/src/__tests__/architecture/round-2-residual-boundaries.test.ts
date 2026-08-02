@@ -183,6 +183,7 @@ describe("round 2 residual architecture boundaries", () => {
       "assetLibraryProjection.test.ts",
       "assetLibraryCanvasInsertion.ts",
       "assetLibraryCanvasInsertion.test.ts",
+      "canvasAssetNodeSpawning.ts",
     ];
     const toolImageGeometryDomainFiles = [
       "toolImageGeometry.ts",
@@ -255,6 +256,8 @@ describe("round 2 residual architecture boundaries", () => {
       "AssetLibraryBeatPanels.test.tsx",
       "AssetLibraryAssetCard.tsx",
       "AssetLibraryAssetCard.test.tsx",
+      "canvasAssetDragTransfer.ts",
+      "NodeReplaceDragPreview.tsx",
       "skillI18n.ts",
       "skillI18n.test.ts",
       "contextQueryHooks.ts",
@@ -398,6 +401,14 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/assetDrag.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/ui/NodeReplaceDragPreview.tsx"),
+      ),
+    ).toBe(false);
     for (const file of toolImageGeometryDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -1231,7 +1242,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 888],
+      ["features/canvas", 886],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
@@ -1277,9 +1288,7 @@ describe("round 2 residual architecture boundaries", () => {
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/Canvas",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/canvasStore",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/composition",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/assetDrag",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/canvasNodes",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/ui/NodeReplaceDragPreview",
     ]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>

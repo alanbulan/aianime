@@ -35,6 +35,10 @@ vi.mock("./AssetLibraryPanel", () => ({
   ),
 }));
 
+vi.mock("./NodeReplaceDragPreview", () => ({
+  NodeReplaceDragPreview: () => <div>drag-preview</div>,
+}));
+
 vi.mock("./FreezoneChatDock", () => ({
   FreezoneChatDock: ({
     open,
@@ -122,10 +126,6 @@ function renderCanvas({
   );
 }
 
-function renderNodeReplaceDragPreview() {
-  return <div>drag-preview</div>;
-}
-
 function renderMaskEditor({ onResult }: FreezoneShellMaskEditorRenderProps) {
   return (
     <button type="button" onClick={() => onResult("mask-result.png")}>
@@ -139,7 +139,6 @@ function renderView(controller: FreezoneShellController) {
     <FreezoneShellView
       controller={controller}
       renderCanvas={renderCanvas}
-      renderNodeReplaceDragPreview={renderNodeReplaceDragPreview}
       renderMaskEditor={renderMaskEditor}
       addAssetToCanvas={addAssetToCanvas}
     />

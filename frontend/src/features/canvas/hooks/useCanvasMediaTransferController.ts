@@ -3,10 +3,12 @@ import { useCallback, useMemo } from 'react';
 
 import { hydrateAssetDragPayload } from '@/features/canvas/composition';
 import type { CanvasEventBus } from '@/features/canvas/application/ports';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 
-import { spawnAssetNode } from '../domain/assetDrag';
-import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
+import {
+  spawnCanvasAssetNode,
+  type CanvasAssetDragPayload,
+  type CanvasAssetNodeSpawnPort,
+} from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,
@@ -81,10 +83,17 @@ export function useCanvasMediaTransferController({
     (payload: CanvasAssetDragPayload) => hydrateAssetDragPayload(payload),
     [],
   );
+  const assetNodeSpawnPort = useMemo<CanvasAssetNodeSpawnPort>(
+    () => ({
+      addNode: (type, position, data) =>
+        createNode(type, position, data as Partial<CanvasNodeData>),
+    }),
+    [createNode],
+  );
   const spawnAsset = useCallback(
     (payload: CanvasAssetDragPayload, position: CanvasPosition) =>
-      spawnAssetNode(useCanvasStore.getState(), payload, position),
-    [],
+      spawnCanvasAssetNode(assetNodeSpawnPort, payload, position),
+    [assetNodeSpawnPort],
   );
   const { queueSnapshotPaste } = useCanvasMediaPaste({
     selectedUploadNodeId,

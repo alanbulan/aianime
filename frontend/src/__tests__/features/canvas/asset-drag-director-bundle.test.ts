@@ -5,9 +5,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  spawnAssetNode,
+  spawnCanvasAssetNode,
   type CanvasAssetNodeSpawnPort,
-} from "@/features/canvas/domain/assetDrag";
+} from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { usableDirectorWorldPreviewUrl } from "@/features/canvas/application/threeDWorldNodeModel";
 import {
@@ -35,12 +35,12 @@ describe("director bundle canvas assets", () => {
     const calls: Array<{ type: string; data: Record<string, unknown> }> = [];
     const store: CanvasAssetNodeSpawnPort = {
       addNode: (type, _position, data) => {
-        calls.push({ type, data: data as Record<string, unknown> });
+        calls.push({ type, data });
         return "node-1";
       },
     };
 
-    const nodeId = spawnAssetNode(
+    const nodeId = spawnCanvasAssetNode(
       store,
       {
         kind: "image",
@@ -74,12 +74,12 @@ describe("director bundle canvas assets", () => {
     const calls: Array<{ type: string; data: Record<string, unknown> }> = [];
     const store: CanvasAssetNodeSpawnPort = {
       addNode: (type, _position, data) => {
-        calls.push({ type, data: data as Record<string, unknown> });
+        calls.push({ type, data });
         return "node-1";
       },
     };
 
-    spawnAssetNode(
+    spawnCanvasAssetNode(
       store,
       {
         kind: "model",

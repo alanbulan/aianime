@@ -15,6 +15,7 @@ import {
   FreezoneToast,
 } from "./FreezoneCanvasFeedback";
 import { FreezoneChatDock } from "./FreezoneChatDock";
+import { NodeReplaceDragPreview } from "./NodeReplaceDragPreview";
 import type { FreezoneShellController } from "./useFreezoneShellController";
 
 export interface FreezoneShellCanvasRenderProps {
@@ -35,7 +36,6 @@ export interface FreezoneShellMaskEditorRenderProps {
 export interface FreezoneShellViewProps {
   controller: FreezoneShellController;
   renderCanvas(props: FreezoneShellCanvasRenderProps): ReactNode;
-  renderNodeReplaceDragPreview(): ReactNode;
   renderMaskEditor(props: FreezoneShellMaskEditorRenderProps): ReactNode;
   addAssetToCanvas(asset: LibraryAsset, index: number): void;
 }
@@ -43,7 +43,6 @@ export interface FreezoneShellViewProps {
 export function FreezoneShellView({
   controller,
   renderCanvas,
-  renderNodeReplaceDragPreview,
   renderMaskEditor,
   addAssetToCanvas,
 }: FreezoneShellViewProps) {
@@ -108,7 +107,7 @@ export function FreezoneShellView({
           />
         )}
       </div>
-      {renderNodeReplaceDragPreview()}
+      <NodeReplaceDragPreview />
       {commitDialog && (
         <CommitDialog
           project={controller.projectId}

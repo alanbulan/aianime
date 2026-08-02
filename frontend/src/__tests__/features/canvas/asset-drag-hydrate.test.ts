@@ -5,9 +5,11 @@ import {
   hydrateAssetDragPayload,
   type CanvasSceneDirectorManifestGateway,
 } from "@/features/canvas/application/assetDragHydration";
-import type { CanvasAssetNodeSpawnPort } from "@/features/canvas/domain/assetDrag";
-import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
-import type { CanvasAssetDragPayload } from "@/modules/creative_canvas/public";
+import {
+  spawnCanvasAssetNode,
+  type CanvasAssetDragPayload,
+  type CanvasAssetNodeSpawnPort,
+} from "@/modules/creative_canvas/public";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
@@ -122,13 +124,13 @@ describe("hydrateAssetDragPayload", () => {
   });
 });
 
-describe("spawnAssetNode — 还原链路 model/genMode", () => {
+describe("spawnCanvasAssetNode — 还原链路 model/genMode", () => {
   // 最小节点生成端口：捕获每次 addNode(type, position, data)，返回稳定 id。
   function fakeStore() {
     const created: Array<{ type: string; data: Record<string, unknown> }> = [];
     const store: CanvasAssetNodeSpawnPort = {
       addNode: (type, _position, data) => {
-        created.push({ type, data: data as Record<string, unknown> });
+        created.push({ type, data });
         return `node-${created.length}`;
       },
     };
@@ -146,7 +148,7 @@ describe("spawnAssetNode — 还原链路 model/genMode", () => {
       source: {},
     } satisfies CanvasAssetDragPayload;
 
-    spawnAssetNode(store, payload, { x: 0, y: 0 });
+    spawnCanvasAssetNode(store, payload, { x: 0, y: 0 });
 
     expect(created[0]?.type).toBe(CANVAS_NODE_TYPES.video);
     expect(created[0]?.data.model).toBe("happyhouse_1_0");
@@ -162,7 +164,7 @@ describe("spawnAssetNode — 还原链路 model/genMode", () => {
       source: {},
     } satisfies CanvasAssetDragPayload;
 
-    spawnAssetNode(store, payload, { x: 0, y: 0 });
+    spawnCanvasAssetNode(store, payload, { x: 0, y: 0 });
 
     expect(created[0]?.data.model).toBeUndefined();
     expect(created[0]?.data.genMode).toBeUndefined();
@@ -179,7 +181,7 @@ describe("spawnAssetNode — 还原链路 model/genMode", () => {
       source: {},
     } satisfies CanvasAssetDragPayload;
 
-    spawnAssetNode(store, payload, { x: 0, y: 0 });
+    spawnCanvasAssetNode(store, payload, { x: 0, y: 0 });
 
     // imageEdit('imageNode') 是纯生成编辑器,不渲染 data.imageUrl,还原会空白 —— 故成品图
     // 还原走 imageGen('imageGenNode'):它读 data.imageUrl 直接展示、可编辑、带 data.model。

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { AudioLines, Box, Film, Replace } from 'lucide-react';
 
 import { resolveMediaUrl } from '@/lib/media-url';
-import { useAssetDropStore } from '@/modules/creative_canvas/public';
+import { useAssetDropStore } from './assetDropStore';
 
 /**
  * 「替换素材」拖拽时跟随光标的缩略图浮层。

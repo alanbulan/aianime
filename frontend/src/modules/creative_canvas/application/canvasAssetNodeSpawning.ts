@@ -1,21 +1,25 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from "./canvasNodes";
-import {
-  CANVAS_ASSET_DRAG_MIME,
-  coercePushTarget,
-  parseCanvasAssetDragPayload,
-  type CanvasAssetDragPayload,
-} from "@/modules/creative_canvas/public";
+import type { CanvasAssetDragPayload } from "../domain/assetDrag";
+import { coercePushTarget } from "../domain/pushTarget";
+
+const CANVAS_ASSET_NODE_TYPES = {
+  model: "threeDWorldNode",
+  video: "videoNode",
+  audio: "audioNode",
+  generatedImage: "imageGenNode",
+  image: "uploadNode",
+} as const;
+
+export type CanvasAssetNodeType =
+  (typeof CANVAS_ASSET_NODE_TYPES)[keyof typeof CANVAS_ASSET_NODE_TYPES];
+
+export type CanvasAssetNodeData = Record<string, unknown>;
 
 export interface CanvasAssetNodeSpawnPort {
   addNode: (
-    type: CanvasNodeType,
+    type: CanvasAssetNodeType,
     position: { x: number; y: number },
-    data: Partial<CanvasNodeData>,
+    data: CanvasAssetNodeData,
   ) => string;
 }
 
@@ -24,7 +28,7 @@ export interface CanvasAssetNodeSpawnPort {
  * 「加入」按钮(视口中心)与拖拽落点共用同一套节点构造,避免两处分叉。
  * 注意:此函数只负责建节点,聚焦 / 选中由调用方决定(按钮聚焦、拖放选中)。
  */
-export function spawnAssetNode(
+export function spawnCanvasAssetNode(
   nodeSpawner: CanvasAssetNodeSpawnPort,
   payload: CanvasAssetDragPayload,
   position: { x: number; y: number },
@@ -60,7 +64,7 @@ export function spawnAssetNode(
       const plyUrl = payload.plyUrl ?? activePlyUrl ?? (modelSources ? null : payload.url);
       const panoUrl = payload.panoUrl ?? activePanoUrl ?? null;
       return nodeSpawner.addNode(
-        CANVAS_NODE_TYPES.threeDWorld,
+        CANVAS_ASSET_NODE_TYPES.model,
         position,
         {
           displayName: payload.label,
@@ -77,12 +81,12 @@ export function spawnAssetNode(
           ...directorControlBundle,
           ...mainlineData,
           ...slotData,
-        } as Record<string, unknown> as Partial<CanvasNodeData>,
+        },
       );
     }
     case "video":
       return nodeSpawner.addNode(
-        CANVAS_NODE_TYPES.video,
+        CANVAS_ASSET_NODE_TYPES.video,
         position,
         {
           displayName: payload.label,
@@ -102,11 +106,11 @@ export function spawnAssetNode(
           ...directorControlBundle,
           ...mainlineData,
           ...slotData,
-        } as Record<string, unknown> as Partial<CanvasNodeData>,
+        },
       );
     case "audio":
       return nodeSpawner.addNode(
-        CANVAS_NODE_TYPES.audio,
+        CANVAS_ASSET_NODE_TYPES.audio,
         position,
         {
           displayName: payload.label,
@@ -117,7 +121,7 @@ export function spawnAssetNode(
           ...directorControlBundle,
           ...mainlineData,
           ...slotData,
-        } as Record<string, unknown> as Partial<CanvasNodeData>,
+        },
       );
     case "image":
     default:
@@ -127,7 +131,7 @@ export function spawnAssetNode(
       // 普通拖拽 / 素材库参考图(无此标记)仍建 upload 节点(替换素材)。
       if (payload.restoreAsGeneratedImage) {
         return nodeSpawner.addNode(
-          CANVAS_NODE_TYPES.imageGen,
+          CANVAS_ASSET_NODE_TYPES.generatedImage,
           position,
           {
             displayName: payload.label,
@@ -144,11 +148,11 @@ export function spawnAssetNode(
             ...directorControlBundle,
             ...mainlineData,
             ...slotData,
-          } as Record<string, unknown> as Partial<CanvasNodeData>,
+          },
         );
       }
       return nodeSpawner.addNode(
-        CANVAS_NODE_TYPES.upload,
+        CANVAS_ASSET_NODE_TYPES.image,
         position,
         {
           displayName: payload.label,
@@ -161,16 +165,7 @@ export function spawnAssetNode(
           ...directorControlBundle,
           ...mainlineData,
           ...slotData,
-        } as Record<string, unknown> as Partial<CanvasNodeData>,
+        },
       );
   }
-}
-
-/** 从 dataTransfer 解析素材拖拽 payload;非素材拖拽返回 null。 */
-export function readAssetDragPayload(
-  dataTransfer: DataTransfer,
-): CanvasAssetDragPayload | null {
-  return parseCanvasAssetDragPayload(
-    dataTransfer.getData(CANVAS_ASSET_DRAG_MIME),
-  );
 }

@@ -15,12 +15,10 @@ import {
   hydrateAssetDragPayload,
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
-import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
 } from "@/features/canvas/domain/canvasNodes";
-import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import {
   createCanvasCommitControllerHook,
   createCanvasSyncHook,
@@ -34,9 +32,11 @@ import {
   prefetchCanvasStyleTemplates,
   prefetchCanvasVideoCameraTemplates,
   prefetchCanvasVideoModels,
+  spawnCanvasAssetNode,
   useCanvasImageModels,
   useCanvasProjectionCommandController,
   useCanvasProjectionStatusLifecycle,
+  type CanvasAssetNodeSpawnPort,
   type FreezoneShellCanvasRenderProps,
   type FreezoneShellMaskEditorRenderProps,
   type LibraryAsset,
@@ -111,6 +111,10 @@ function addMaskResultNode(url: string, label: string): void {
 
 function addAssetToCanvas(asset: LibraryAsset, index: number): void {
   const canvasState = useCanvasStore.getState();
+  const assetNodeSpawnPort: CanvasAssetNodeSpawnPort = {
+    addNode: (type, position, data) =>
+      canvasState.addNode(type, position, data as Partial<CanvasNodeData>),
+  };
   void insertAssetLibraryAsset({
     asset,
     index,
@@ -120,7 +124,7 @@ function addAssetToCanvas(asset: LibraryAsset, index: number): void {
       currentViewport: canvasState.currentViewport,
       nodes: canvasState.nodes,
       spawnAsset: (payload, position) =>
-        spawnAssetNode(canvasState, payload, position),
+        spawnCanvasAssetNode(assetNodeSpawnPort, payload, position),
       requestFocusNode: canvasState.requestFocusNode,
     },
     hydratePayload: hydrateAssetDragPayload,
@@ -161,10 +165,6 @@ function renderCanvas(props: FreezoneShellCanvasRenderProps) {
   return createElement(Canvas, props);
 }
 
-function renderNodeReplaceDragPreview() {
-  return createElement(NodeReplaceDragPreview);
-}
-
 function renderMaskEditor(props: FreezoneShellMaskEditorRenderProps) {
   return createElement(MaskEditor, {
     ...props,
@@ -182,7 +182,6 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   return createElement(FreezoneShellView, {
     controller,
     renderCanvas,
-    renderNodeReplaceDragPreview,
     renderMaskEditor,
     addAssetToCanvas,
   });

@@ -373,9 +373,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/Canvas",
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
-        "@/features/canvas/domain/assetDrag",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/ui/NodeReplaceDragPreview",
         "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
         "@/lib/app-router",
@@ -6307,7 +6305,6 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     ];
     const domainConsumerPaths = [
-      "features/canvas/domain/assetDrag.ts",
       "features/canvas/domain/mainlineNodeTypes.ts",
       "features/canvas/domain/mainlineNodeFlags.ts",
       "features/canvas/application/imageEditNodeModel.ts",
@@ -7682,7 +7679,7 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasMediaDropController.ts",
     ]);
-    expect(hookModel).toContain("readAssetDragPayload(");
+    expect(hookModel).toContain("readCanvasAssetDragPayload(");
     expect(hookModel).toContain("collectDroppedMediaFiles(");
     expect(hookModel).toContain("DROPPED_FILE_OFFSET = 36");
     expect(hookModel).toContain("scheduleAfterMount(");
@@ -7691,7 +7688,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("./hooks/useCanvasMediaTransferController");
     expect(canvasView).not.toContain("./hooks/useCanvasMediaDropController");
     expect(canvasView).not.toContain("const handleCanvasDrop = useCallback");
-    expect(canvasView).not.toContain("readAssetDragPayload(");
+    expect(canvasView).not.toContain("readCanvasAssetDragPayload(");
     expect(canvasView).not.toContain("collectDroppedMediaFiles(");
     expect(canvasView).not.toContain("index * 36");
     expect(canvasView).not.toMatch(
@@ -11444,7 +11441,7 @@ describe("frontend architecture boundaries", () => {
     expect(shellAdapterSource).toContain("insertAssetLibraryAsset({");
     expect(shellAdapterSource).toContain("nodeWidth: DEFAULT_NODE_WIDTH");
     expect(shellAdapterSource).toContain(
-      "spawnAssetNode(canvasState, payload, position)",
+      "spawnCanvasAssetNode(assetNodeSpawnPort, payload, position)",
     );
     expect(shellAdapterSource).toContain(
       "hydratePayload: hydrateAssetDragPayload",
@@ -11464,7 +11461,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).not.toContain(
       "../application/assetLibraryCanvasInsertion",
     );
-    expect(importSpecifiers(shellAdapterPath)).toContain(
+    expect(importSpecifiers(shellAdapterPath)).not.toContain(
       "@/features/canvas/domain/assetDrag",
     );
     expect(importSpecifiers(shellAdapterPath)).not.toContain(
@@ -11479,7 +11476,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).not.toContain(
       "@/features/canvas/composition",
     );
-    expect(panelSource).not.toContain("spawnAssetNode(");
+    expect(panelSource).not.toContain("spawnCanvasAssetNode(");
     expect(panelSource).not.toContain("viewportCenteredPosition(");
     expect(panelSource).toContain("onAddAsset={onAddAsset}");
     expect(shellViewSource).toContain("onAddAsset={addAssetToCanvas}");
@@ -17500,23 +17497,50 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useGenerationCreditCost");
   });
 
-  it("keeps canvas asset spawning independent from Zustand stores", () => {
-    const assetDragPath = resolve(
+  it("owns canvas asset spawning and browser drag transfer in Creative Canvas", () => {
+    const spawningPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/assetDrag.ts",
+      "modules/creative_canvas/application/canvasAssetNodeSpawning.ts",
     );
-    const assetDragSource = readFileSync(assetDragPath, "utf8");
-    const forbiddenImports = importSpecifiers(assetDragPath).filter(
-      (specifier) =>
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("../../../stores/"),
+    const transferPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/canvasAssetDragTransfer.ts",
     );
+    const previewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/NodeReplaceDragPreview.tsx",
+    );
+    const shellViewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
+    );
+    const spawningSource = readFileSync(spawningPath, "utf8");
+    const transferSource = readFileSync(transferPath, "utf8");
+    const shellViewSource = readFileSync(shellViewPath, "utf8");
 
-    expect(forbiddenImports).toEqual([]);
-    expect(assetDragSource).toContain(
+    expect(new Set(importSpecifiers(spawningPath))).toEqual(
+      new Set(["../domain/assetDrag", "../domain/pushTarget"]),
+    );
+    expect(importSpecifiers(transferPath)).toEqual(["../domain/assetDrag"]);
+    expect(spawningSource).toContain(
       "export interface CanvasAssetNodeSpawnPort",
     );
-    expect(assetDragSource).not.toContain("useCanvasStore");
+    expect(spawningSource).toContain("export function spawnCanvasAssetNode(");
+    expect(spawningSource).not.toContain("useCanvasStore");
+    expect(spawningSource).not.toContain("DataTransfer");
+    expect(spawningSource).not.toContain("@/features/");
+    expect(transferSource).toContain("export function readCanvasAssetDragPayload(");
+    expect(shellViewSource).toContain('from "./NodeReplaceDragPreview"');
+    expect(shellViewSource).toContain("<NodeReplaceDragPreview />");
+    expect(existsSync(previewPath)).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/domain/assetDrag.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/ui/NodeReplaceDragPreview.tsx"),
+      ),
+    ).toBe(false);
   });
 
   it("keeps canvas asset hydration behind the composition root", () => {
