@@ -63,6 +63,7 @@ import {
   historyRecordOutputUrl,
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
+  translateCanvasText,
   useCanvasCameraOptions,
   useCanvasImageModels,
   useCanvasStyleTemplates,
@@ -78,7 +79,6 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   getCanvasBeatDirectorManifest,
-  translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';

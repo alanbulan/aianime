@@ -79,6 +79,8 @@ vi.mock('@/modules/creative_canvas/public', () => ({
     command: unknown,
     onTaskSubmitted: (task: unknown) => void,
   ) => mocks.generateCanvasReversePrompt(command, onTaskSubmitted),
+  translateCanvasText: (command: unknown) =>
+    mocks.translateCanvasText(command),
   useCanvasVideoModels: () => ({ models: mocks.videoModels }),
 }));
 
@@ -123,8 +125,6 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.submitVideoGeneration(command),
   awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>
     mocks.awaitCanvasGenerationTaskCompletion(taskKey, project),
-  translateCanvasText: (command: unknown) =>
-    mocks.translateCanvasText(command),
 }));
 
 function data(

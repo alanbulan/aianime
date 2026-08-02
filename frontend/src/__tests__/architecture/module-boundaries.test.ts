@@ -26751,20 +26751,36 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas text translation in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/translateCanvasText.ts",
+      "modules/creative_canvas/application/translateCanvasText.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
     );
     const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/textGenerationComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyPaths = [
+      "features/canvas/application/translateCanvasText.ts",
+      "features/canvas/application/translateCanvasText.test.ts",
+      "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
+      "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
       "features/canvas/hooks/useAudioOperationsPanelController.ts",
@@ -26773,12 +26789,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
-    const declaration = [
-      "export async function",
-      "translateCanvasText(",
-    ].join(" ");
-    const implementationOwners = sourceFiles(SRC_ROOT)
-      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+    const applicationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "dependencies: TranslateCanvasTextDependencies",
+        ),
+      )
       .map(relativeSource)
       .sort();
     const endpointFragments = [
@@ -26794,20 +26811,19 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(applicationPath)).toEqual([
-      "@/modules/creative_canvas/public",
+      "./completeCanvasMediaGenerationTask",
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
-    expect(implementationOwners).toEqual([
-      "features/canvas/application/translateCanvasText.ts",
-      "features/canvas/composition.ts",
+    expect(applicationOwners).toEqual([
+      "modules/creative_canvas/application/translateCanvasText.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/translateCanvasText",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(adapterSource).not.toContain("react");
@@ -26815,7 +26831,7 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain('method: "POST"');
     expect(endpointOwners).toEqual(
       endpointFragments.map(() => [
-        "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
+        "modules/creative_canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
       ]),
     );
     for (const legacySymbol of [
@@ -26827,17 +26843,56 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(legacyOpsSource).not.toContain(legacySymbol);
     }
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "@/modules/model_usage/public",
+        "@/modules/task_execution/public",
+        "./application/completeCanvasMediaGenerationTask",
+        "./application/translateCanvasText",
+        "./infrastructure/freezoneCanvasTextTranslationGateway",
+      ]),
+    );
     expect(compositionSource).toContain(
       "translationGateway: freezoneCanvasTextTranslationGateway",
     );
     expect(compositionSource).toContain(
-      "taskGateway: freezoneGenerationTaskGateway",
+      "awaitCompletion: awaitTaskCompletion",
     );
     expect(compositionSource).toContain(
       "const model = await resolveCanvasTextModel(params.model)",
     );
+    expect(compositionSource).toContain(
+      'const catalog = await loadCommercialModelCatalog("TEXT")',
+    );
+    expect(compositionSource).toContain(
+      'resolveRequiredCatalogModelCode(catalog, "TEXT")',
+    );
+    expect(publicSource).toContain("resolveCanvasTextModel,");
+    expect(publicSource).toContain("translateCanvasText,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/application/translateCanvasText",
+    );
+    expect(importSpecifiers(legacyCompositionPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(legacyCompositionSource).toContain(
+      "const model = await resolveCanvasTextModel(params.command.model)",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneCanvasTextTranslationGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "translateCanvasTextUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "export async function translateCanvasText(",
+    );
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     for (const consumerPath of consumerPaths) {
       const consumerSource = readFileSync(consumerPath, "utf8");
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
       expect(consumerSource).toContain("translateCanvasText({");
       expect(consumerSource).not.toContain("submitFreezoneTextTranslate");
       expect(consumerSource).not.toContain(

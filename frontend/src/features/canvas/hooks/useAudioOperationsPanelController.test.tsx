@@ -42,6 +42,16 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/modules/creative_canvas/public')
+  >();
+  return {
+    ...actual,
+    translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
+  };
+});
+
 vi.mock('@/modules/model_usage/public', async (importOriginal) => {
   const actual = await importOriginal<
     typeof import('@/modules/model_usage/public')
@@ -52,10 +62,6 @@ vi.mock('@/modules/model_usage/public', async (importOriginal) => {
     useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
   };
 });
-
-vi.mock('@/features/canvas/composition', () => ({
-  translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
-}));
 
 describe('useAudioOperationsPanelController', () => {
   beforeEach(() => {

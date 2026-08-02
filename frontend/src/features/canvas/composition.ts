@@ -9,15 +9,12 @@ import {
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
 import {
-  loadCommercialModelCatalog,
-  resolveRequiredCatalogModelCode,
-} from '@/modules/model_usage/public';
-import {
   composeCapability,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
+  resolveCanvasTextModel,
   resolvePromptReferenceRoles,
   submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
@@ -56,10 +53,6 @@ import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
-import {
-  translateCanvasText as translateCanvasTextUseCase,
-  type TranslateCanvasTextParams,
-} from './application/translateCanvasText';
 import {
   submitVideoGeneration as submitVideoGenerationUseCase,
   type SubmitVideoGenerationParams,
@@ -137,7 +130,6 @@ import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture
 import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
-import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
@@ -463,32 +455,6 @@ export function awaitCanvasSkillRunResult(
         window.setTimeout(resolve, delayMs);
       }),
   });
-}
-
-export async function translateCanvasText(
-  params: Omit<TranslateCanvasTextParams, 'model'> & { model?: string },
-) {
-  const model = await resolveCanvasTextModel(params.model);
-  return translateCanvasTextUseCase({ ...params, model }, {
-    translationGateway: freezoneCanvasTextTranslationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-  });
-}
-
-async function resolveCanvasTextModel(requested?: string): Promise<string> {
-  const catalog = await loadCommercialModelCatalog('TEXT');
-  const normalized = requested?.trim() ?? '';
-  if (
-    normalized &&
-    catalog.items.some(
-      (item) =>
-        item.operation.trim().toUpperCase() === 'TEXT' &&
-        item.code === normalized,
-    )
-  ) {
-    return normalized;
-  }
-  return resolveRequiredCatalogModelCode(catalog, 'TEXT');
 }
 
 export function submitVideoGeneration(params: SubmitVideoGenerationParams) {

@@ -2,7 +2,7 @@
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
 
 export type CanvasTextTranslationNodeType =
   | "generic"
@@ -34,7 +34,7 @@ export interface TranslateCanvasTextParams
 
 export interface TranslateCanvasTextDependencies {
   readonly translationGateway: CanvasTextTranslationGateway;
-  readonly taskGateway: CanvasTaskResultGateway;
+  readonly taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion">;
 }
 
 export interface TranslateCanvasTextResult {

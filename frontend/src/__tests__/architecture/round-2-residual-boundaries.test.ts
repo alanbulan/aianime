@@ -244,6 +244,14 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneVideoUpscaleGenerationGateway.ts",
       "freezoneVideoUpscaleGenerationGateway.test.ts",
     ];
+    const textGenerationApplicationFiles = [
+      "translateCanvasText.ts",
+      "translateCanvasText.test.ts",
+    ];
+    const textGenerationInfrastructureFiles = [
+      "freezoneCanvasTextTranslationGateway.ts",
+      "freezoneCanvasTextTranslationGateway.test.ts",
+    ];
     const generationCatalogDomainFiles = [
       "cameraMovementPresets.ts",
       "imageModelCapability.ts",
@@ -505,6 +513,31 @@ describe("round 2 residual architecture boundaries", () => {
     expect(
       existsSync(resolve(moduleRoot, "imageOperationGenerationComposition.ts")),
     ).toBe(false);
+    for (const file of textGenerationApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of textGenerationInfrastructureFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "infrastructure", file)),
+        file,
+      ).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    expect(
+      existsSync(resolve(moduleRoot, "textGenerationComposition.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(moduleRoot, "textGenerationComposition.test.ts")),
+    ).toBe(true);
     for (const file of generationCatalogDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -1342,7 +1375,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 791],
+      ["features/canvas", 787],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -24,8 +24,8 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   generateCanvasStoryScript,
-  translateCanvasText,
 } from '@/features/canvas/composition';
+import { translateCanvasText } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';

@@ -9,10 +9,10 @@ import {
   musicBillingSecondsFromMs,
   resolveAudioMusicSettings,
   resolveAudioVoiceSettings,
+  translateCanvasText,
   type VoicePickResult,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { translateCanvasText } from '@/features/canvas/composition';
 import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';

@@ -78,13 +78,16 @@ vi.mock('@/modules/model_usage/public', () => ({
   },
 }));
 
+vi.mock('@/modules/creative_canvas/public', () => ({
+  translateCanvasText: (command: unknown) =>
+    mocks.translateCanvasText(command),
+}));
+
 vi.mock('@/features/canvas/composition', () => ({
   generateCanvasStoryScript: (
     command: unknown,
     onTaskSubmitted: (task: unknown) => void,
   ) => mocks.generateCanvasStoryScript(command, onTaskSubmitted),
-  translateCanvasText: (command: unknown) =>
-    mocks.translateCanvasText(command),
 }));
 
 const NODE_CONTEXT = {

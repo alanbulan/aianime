@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 import {
   translateCanvasText,
   type CanvasTextTranslationGateway,
@@ -17,9 +17,8 @@ function dependencies() {
     submit: vi.fn().mockResolvedValue(task),
     fetchTranslatedText: vi.fn().mockResolvedValue("translated prompt"),
   };
-  const taskGateway: CanvasTaskResultGateway = {
+  const taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion"> = {
     awaitCompletion: vi.fn().mockResolvedValue({ result: {} }),
-    fetchResultUrl: vi.fn(),
   };
   return { translationGateway, taskGateway };
 }

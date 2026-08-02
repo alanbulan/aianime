@@ -37,6 +37,7 @@ import {
 import {
   isVideoFile,
   resolveAudioReferenceDisplayName,
+  translateCanvasText,
   validateVideoReferenceAudioDuration,
   VIDEO_FILE_ACCEPT,
 } from '@/modules/creative_canvas/public';
@@ -64,7 +65,6 @@ import {
   rememberLastVideoModel,
   showErrorDialog,
   submitVideoGeneration,
-  translateCanvasText,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';

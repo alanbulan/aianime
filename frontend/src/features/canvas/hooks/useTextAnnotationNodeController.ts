@@ -11,7 +11,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   awaitCanvasGenerationTaskCompletion,
   submitVideoGeneration,
-  translateCanvasText,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -43,6 +42,7 @@ import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
+  translateCanvasText,
   useCanvasVideoModels,
 } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

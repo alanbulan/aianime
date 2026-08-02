@@ -707,6 +707,18 @@ export type {
   SubmitCanvasImageGenerationDependencies,
 } from "@/modules/creative_canvas/application/generateCanvasImage";
 export {
+  resolveCanvasTextModel,
+  translateCanvasText,
+} from "@/modules/creative_canvas/textGenerationComposition";
+export type {
+  CanvasTextTranslationGateway,
+  CanvasTextTranslationNodeType,
+  CanvasTextTranslationSubmission,
+  TranslateCanvasTextDependencies,
+  TranslateCanvasTextParams,
+  TranslateCanvasTextResult,
+} from "@/modules/creative_canvas/application/translateCanvasText";
+export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";
 export type {
