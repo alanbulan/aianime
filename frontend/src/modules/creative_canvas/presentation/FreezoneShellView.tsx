@@ -1,29 +1,52 @@
 // Copyright (c) 2026 AI anime
-import { Canvas } from "@/features/canvas/Canvas";
-import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
+import type { ReactNode } from "react";
+
+import type { LibraryAsset } from "../domain/assetLibraryModel";
+import { AssetLibraryPanel } from "./AssetLibraryPanel";
+import { CommitDialog } from "./CommitDialog";
+import { CompareDialog } from "./CompareDialog";
+import { CreateIdentityDialog } from "./CreateIdentityDialog";
 import {
   BackupStatusIndicator,
   CanvasConflictOverlay,
   CanvasErrorOverlay,
   CanvasLoadingOverlay,
   CanvasLoadingScreen,
-  AssetLibraryPanel,
-  CommitDialog,
-  CompareDialog,
-  CreateIdentityDialog,
-  FreezoneChatDock,
   FreezoneToast,
-} from "@/modules/creative_canvas/public";
+} from "./FreezoneCanvasFeedback";
+import { FreezoneChatDock } from "./FreezoneChatDock";
+import type { FreezoneShellController } from "./useFreezoneShellController";
 
-import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
-import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
-import { MaskEditor } from "./MaskEditor";
+export interface FreezoneShellCanvasRenderProps {
+  projectId: string;
+  canvasId: string;
+  onBlankPaneClick(): void;
+  controlsPlacement: "bottom-right";
+}
+
+export interface FreezoneShellMaskEditorRenderProps {
+  project: string;
+  baseUrl: string;
+  baseLabel: string;
+  onClose(): void;
+  onResult(url: string): void;
+}
+
+export interface FreezoneShellViewProps {
+  controller: FreezoneShellController;
+  renderCanvas(props: FreezoneShellCanvasRenderProps): ReactNode;
+  renderNodeReplaceDragPreview(): ReactNode;
+  renderMaskEditor(props: FreezoneShellMaskEditorRenderProps): ReactNode;
+  addAssetToCanvas(asset: LibraryAsset, index: number): void;
+}
 
 export function FreezoneShellView({
   controller,
-}: {
-  controller: FreezoneShellController;
-}) {
+  renderCanvas,
+  renderNodeReplaceDragPreview,
+  renderMaskEditor,
+  addAssetToCanvas,
+}: FreezoneShellViewProps) {
   const {
     assetLibrary,
     canvas,
@@ -42,12 +65,12 @@ export function FreezoneShellView({
           {canvas.showBlockingLoading ? (
             <CanvasLoadingScreen />
           ) : (
-            <Canvas
-              projectId={controller.projectId}
-              canvasId={controller.canvasId}
-              onBlankPaneClick={canvas.onBlankPaneClick}
-              controlsPlacement="bottom-right"
-            />
+            renderCanvas({
+              projectId: controller.projectId,
+              canvasId: controller.canvasId,
+              onBlankPaneClick: canvas.onBlankPaneClick,
+              controlsPlacement: "bottom-right",
+            })
           )}
           {canvas.showLoadingOverlay && <CanvasLoadingOverlay />}
           {canvas.status === "error" && (
@@ -85,7 +108,7 @@ export function FreezoneShellView({
           />
         )}
       </div>
-      <NodeReplaceDragPreview />
+      {renderNodeReplaceDragPreview()}
       {commitDialog && (
         <CommitDialog
           project={controller.projectId}
@@ -118,15 +141,14 @@ export function FreezoneShellView({
           onClose={compareDialog.close}
         />
       )}
-      {maskEditor && (
-        <MaskEditor
-          project={controller.projectId}
-          baseUrl={maskEditor.target.url}
-          baseLabel={maskEditor.target.label}
-          onClose={maskEditor.close}
-          onResult={maskEditor.succeed}
-        />
-      )}
+      {maskEditor &&
+        renderMaskEditor({
+          project: controller.projectId,
+          baseUrl: maskEditor.target.url,
+          baseLabel: maskEditor.target.label,
+          onClose: maskEditor.close,
+          onResult: maskEditor.succeed,
+        })}
       {toast && <FreezoneToast text={toast.text} onClose={toast.close} />}
     </div>
   );

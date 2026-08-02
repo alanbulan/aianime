@@ -323,19 +323,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.test.tsx",
+      "modules/creative_canvas/presentation/useFreezoneShellController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.tsx",
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.test.tsx",
+      "modules/creative_canvas/presentation/FreezoneShellView.test.tsx",
     );
     const shellSource = readFileSync(shellPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -344,7 +344,7 @@ describe("frontend architecture boundaries", () => {
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const declarations = [
       ["export function", "FreezoneShell("].join(" "),
-      ["export function", "useFreezoneShellController("].join(" "),
+      ["return function", "useFreezoneShellController("].join(" "),
       ["export function", "FreezoneShellView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -357,19 +357,36 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(shellPath))).toEqual(
       new Set([
         "react",
+        "react-i18next",
+        "@/features/canvas/Canvas",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasNodes",
+        "@/features/canvas/hooks/useFreezoneCameraOptions",
+        "@/features/canvas/hooks/useFreezoneImageModels",
+        "@/features/canvas/hooks/useFreezoneStyleTemplates",
+        "@/features/canvas/hooks/useFreezoneVideoCameraTemplates",
+        "@/features/canvas/hooks/useFreezoneVideoModels",
+        "@/features/canvas/ui/NodeReplaceDragPreview",
+        "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
-        "./hooks/useFreezoneShellController",
-        "./presentation/FreezoneShellView",
+        "@/lib/app-router",
+        "@/lib/runtime-config",
+        "@/lib/url-params",
+        "@/shared/media/image-cache",
+        "./assetLibraryCanvasInsertionComposition",
+        "./hooks/useCanvasSync",
+        "./presentation/MaskEditor",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/freezone/FreezoneShell.tsx"],
-      ["features/freezone/hooks/useFreezoneShellController.ts"],
-      ["features/freezone/presentation/FreezoneShellView.tsx"],
+      ["modules/creative_canvas/presentation/useFreezoneShellController.ts"],
+      ["modules/creative_canvas/presentation/FreezoneShellView.tsx"],
     ]);
+    expect(shellSource).toContain("createUseFreezoneShellController({");
     expect(shellSource).toContain("useFreezoneShellController({");
     expect(shellSource).toContain(
-      "createElement(FreezoneShellView, { controller })",
+      "createElement(FreezoneShellView, {",
     );
     expect(shellSource).not.toContain("useState(");
     expect(shellSource).not.toContain("useEffect(");
@@ -381,9 +398,13 @@ describe("frontend architecture boundaries", () => {
     );
     expect(controllerSource).not.toMatch(/<Canvas(?:\s|\/?>)/);
     expect(controllerSource).not.toContain("className=");
-    expect(viewSource).toContain("<Canvas");
+    expect(controllerSource).not.toContain("@/features/");
+    expect(controllerSource).not.toContain("@/lib/");
+    expect(controllerSource).not.toContain("react-i18next");
+    expect(viewSource).toContain("renderCanvas({");
     expect(viewSource).toContain("<AssetLibraryPanel");
     expect(viewSource).toContain("<FreezoneChatDock");
+    expect(viewSource).not.toContain("@/features/");
     expect(viewSource).not.toContain("useCanvasSync(");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
@@ -4534,7 +4555,11 @@ describe("frontend architecture boundaries", () => {
     const legacyRoot = resolve(SRC_ROOT, "pipeline-import");
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.tsx",
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const shellViewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
     );
     const dialogs = [
       [
@@ -4565,6 +4590,7 @@ describe("frontend architecture boundaries", () => {
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     const shellImports = importSpecifiers(shellPath);
+    const shellViewImports = importSpecifiers(shellViewPath);
 
     expect(existsSync(legacyRoot)).toBe(false);
     expect(legacyImports).toEqual([]);
@@ -4572,9 +4598,12 @@ describe("frontend architecture boundaries", () => {
       dialogs.map(([, path]) => [path]),
     );
     expect(shellImports).toContain("@/modules/creative_canvas/public");
-    expect(shellImports).toContain("./MaskEditor");
+    expect(shellImports).toContain("./presentation/MaskEditor");
     expect(shellImports).not.toContain("./CompareDialog");
     expect(shellImports).not.toContain("./CreateIdentityDialog");
+    expect(shellViewImports).toContain("./CompareDialog");
+    expect(shellViewImports).toContain("./CreateIdentityDialog");
+    expect(shellViewImports).not.toContain("./MaskEditor");
     for (const legacyDialogPath of [
       "features/freezone/presentation/CompareDialog.tsx",
       "features/freezone/presentation/CreateIdentityDialog.tsx",
@@ -5233,10 +5262,15 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const shellControllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const lifecycleSource = readFileSync(lifecyclePath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
+    const shellControllerSource = readFileSync(shellControllerPath, "utf8");
     const declaration = [
       "export function",
       "useCanvasProjectionStatusLifecycle(",
@@ -5269,7 +5303,9 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleSource).toContain("window.addEventListener(\"focus\"");
     expect(lifecycleSource).toContain("setCanvasProjectionStatuses(");
     expect(lifecycleSource).toContain("clearCanvasProjectionStatuses()");
-    expect(shellSource).toContain("useCanvasProjectionStatusLifecycle({");
+    expect(shellControllerSource).toContain(
+      "useCanvasProjectionStatusLifecycle({",
+    );
     expect(shellSource).not.toContain("getProjectionStatuses(");
     expect(shellSource).not.toContain("setCanvasProjectionStatuses(");
     expect(shellSource).not.toContain("clearCanvasProjectionStatuses()");
@@ -5303,7 +5339,11 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/FreezoneShell.tsx",
+    );
+    const shellControllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -5313,6 +5353,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const shellSource = readFileSync(shellPath, "utf8");
+    const shellControllerSource = readFileSync(shellControllerPath, "utf8");
     const declaration = [
       "return function",
       "useCanvasProjectionCommandController(",
@@ -5349,7 +5390,9 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain("canvasProjectionCommandEvents");
     expect(controllerSource).toContain('"freezone/projection-sync"');
     expect(controllerSource).toContain('"freezone/projection-remove"');
-    expect(shellSource).toContain("useCanvasProjectionCommandController({");
+    expect(shellControllerSource).toContain(
+      "useCanvasProjectionCommandController({",
+    );
     expect(shellSource).not.toContain("requestFromProjectionMetadata(");
     expect(shellSource).not.toContain("buildProjectionFromPreset(");
     expect(shellSource).not.toContain("queueLocalFreezoneProjection(");
@@ -5373,7 +5416,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.tsx",
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
     );
     const entryTestPath = resolve(
       SRC_ROOT,
@@ -5425,9 +5468,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/FreezoneChatDockView.tsx"],
       ["modules/creative_canvas/presentation/useFreezoneChatDockController.ts"],
     ]);
-    expect(importSpecifiers(shellPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(importSpecifiers(shellPath)).toContain("./FreezoneChatDock");
     for (const legacyPath of [
       "features/freezone/hooks/useFreezoneChatDockController.ts",
       "features/freezone/hooks/useFreezoneChatDockController.test.tsx",
@@ -5474,7 +5515,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.tsx",
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
     );
     const presentationSource = readFileSync(presentationPath, "utf8");
     const shellSource = readFileSync(shellPath, "utf8");
@@ -5496,9 +5537,7 @@ describe("frontend architecture boundaries", () => {
         "../domain/canvasStorage",
       ]),
     );
-    expect(shellImports).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(shellImports).toContain("./FreezoneCanvasFeedback");
     for (const name of declarations) {
       const declaration = ["export function", `${name}(`].join(" ");
       const owners = sourceFiles(SRC_ROOT)
@@ -5564,7 +5603,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const submitControllerPath = resolve(
       SRC_ROOT,
@@ -5640,10 +5679,10 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyCommittedPatchLocalTestPath)).toBe(false);
     expect(existsSync(legacyCommittedPatchTestPath)).toBe(false);
     expect(importSpecifiers(shellPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../application/canvasCommitRules",
     );
     expect(importSpecifiers(shellPath)).not.toContain(
-      "../application/canvasCommitRules",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(submitControllerPath)).toContain(
       "../application/canvasCommitRules",
@@ -6006,7 +6045,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/FreezoneShell.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -6058,7 +6097,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/FreezoneShell.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -6210,7 +6249,7 @@ describe("frontend architecture boundaries", () => {
       )
       .sort();
     const internalConsumerPaths = [
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     ];
     const domainConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
@@ -6262,7 +6301,9 @@ describe("frontend architecture boundaries", () => {
     ]);
     for (const consumerPath of internalConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
-      expect(imports).toContain("@/modules/creative_canvas/public");
+      expect(imports).toContain("../domain/assetCommit");
+      expect(imports).toContain("../application/canvasCommitRules");
+      expect(imports).not.toContain("@/modules/creative_canvas/public");
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
@@ -9648,7 +9689,7 @@ describe("frontend architecture boundaries", () => {
     );
     const shellPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/FreezoneShell.tsx",
     );
     const coreSource = readFileSync(corePath, "utf8");
     const syncHookSource = readFileSync(syncHookPath, "utf8");
@@ -9715,7 +9756,7 @@ describe("frontend architecture boundaries", () => {
       "function canvasEnvelopeFromRemote(",
     );
     expect(syncHookSource).not.toContain("function saveErrorStatusAndBody(");
-    expect(importSpecifiers(shellPath)).toContain("./useCanvasSync");
+    expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
   });
 
   it("keeps canvas save orchestration in Creative Canvas application", () => {
@@ -11268,7 +11309,11 @@ describe("frontend architecture boundaries", () => {
     );
     const shellViewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneShellView.tsx",
+      "modules/creative_canvas/presentation/FreezoneShellView.tsx",
+    );
+    const shellAdapterPath = resolve(
+      SRC_ROOT,
+      "features/freezone/FreezoneShell.tsx",
     );
     const beatPresentationPath = resolve(
       SRC_ROOT,
@@ -11287,6 +11332,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const shellViewSource = readFileSync(shellViewPath, "utf8");
+    const shellAdapterSource = readFileSync(shellAdapterPath, "utf8");
     const testSource = readFileSync(testPath, "utf8");
     const declarations = [
       ["export function", "assetToDragPayload("].join(" "),
@@ -11357,7 +11403,10 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(panelPath)).not.toContain(
       "../application/assetLibraryCanvasInsertion",
     );
-    expect(importSpecifiers(shellViewPath)).toContain(
+    expect(importSpecifiers(shellAdapterPath)).toContain(
+      "./assetLibraryCanvasInsertionComposition",
+    );
+    expect(importSpecifiers(shellViewPath)).not.toContain(
       "../assetLibraryCanvasInsertionComposition",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
@@ -11370,6 +11419,7 @@ describe("frontend architecture boundaries", () => {
     expect(panelSource).not.toContain("viewportCenteredPosition(");
     expect(panelSource).toContain("onAddAsset={onAddAsset}");
     expect(shellViewSource).toContain("onAddAsset={addAssetToCanvas}");
+    expect(shellAdapterSource).toContain("addAssetToCanvas,");
     expect(testSource).toContain('from "./assetLibraryCanvasInsertion"');
     expect(
       existsSync(

@@ -181,7 +181,7 @@ describe("director bundle canvas assets", () => {
     const shell = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useFreezoneShellController.ts",
+        "src/modules/creative_canvas/presentation/useFreezoneShellController.ts",
       ),
       "utf8",
     );
@@ -249,14 +249,14 @@ describe("director bundle canvas assets", () => {
     const shellController = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useFreezoneShellController.ts",
+        "src/modules/creative_canvas/presentation/useFreezoneShellController.ts",
       ),
       "utf8",
     );
     const shellView = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/presentation/FreezoneShellView.tsx",
+        "src/modules/creative_canvas/presentation/FreezoneShellView.tsx",
       ),
       "utf8",
     );

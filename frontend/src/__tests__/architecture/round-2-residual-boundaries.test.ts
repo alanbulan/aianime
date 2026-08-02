@@ -223,6 +223,10 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasCommitController.test.tsx",
       "useFreezoneCanvasEntryLifecycle.ts",
       "useFreezoneCanvasEntryLifecycle.test.tsx",
+      "useFreezoneShellController.ts",
+      "useFreezoneShellController.test.tsx",
+      "FreezoneShellView.tsx",
+      "FreezoneShellView.test.tsx",
       "commitDialogViewModel.ts",
       "useAssetLibraryReplacementController.ts",
       "useAssetLibraryReplacementController.test.tsx",
@@ -402,6 +406,16 @@ describe("round 2 residual architecture boundaries", () => {
       "features/freezone/presentation/FreezoneProjectPageView.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredProjectPagePath))).toBe(false);
+    }
+    for (const retiredShellPresentationPath of [
+      "features/freezone/hooks/useFreezoneShellController.ts",
+      "features/freezone/hooks/useFreezoneShellController.test.tsx",
+      "features/freezone/presentation/FreezoneShellView.tsx",
+      "features/freezone/presentation/FreezoneShellView.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredShellPresentationPath)),
+      ).toBe(false);
     }
     for (const retiredCanvasEntryLifecyclePath of [
       "features/freezone/hooks/useFreezoneCanvasEntryLifecycle.ts",
@@ -1144,7 +1158,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 898],
-      ["features/freezone", 9],
+      ["features/freezone", 5],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

@@ -2,31 +2,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FreezoneShellController } from "../hooks/useFreezoneShellController";
-import { FreezoneShellView } from "./FreezoneShellView";
-
-vi.mock("@/features/canvas/Canvas", () => ({
-  Canvas: ({
-    projectId,
-    canvasId,
-    onBlankPaneClick,
-  }: {
-    projectId: string;
-    canvasId: string;
-    onBlankPaneClick(): void;
-  }) => (
-    <button
-      type="button"
-      data-project-id={projectId}
-      data-canvas-id={canvasId}
-      onClick={onBlankPaneClick}
-    >canvas</button>
-  ),
-}));
-
-vi.mock("@/features/canvas/ui/NodeReplaceDragPreview", () => ({
-  NodeReplaceDragPreview: () => <div>drag-preview</div>,
-}));
+import {
+  FreezoneShellView,
+  type FreezoneShellCanvasRenderProps,
+  type FreezoneShellMaskEditorRenderProps,
+} from "./FreezoneShellView";
+import type { FreezoneShellController } from "./useFreezoneShellController";
 
 vi.mock("./AssetLibraryPanel", () => ({
   AssetLibraryPanel: ({
@@ -44,13 +25,17 @@ vi.mock("./AssetLibraryPanel", () => ({
   }) => (
     <div>
       <div>{project}:{currentCanvasId}:{reloadToken}</div>
-      <button type="button" onClick={() => onCollapsedChange(false)}>expand-assets</button>
-      <button type="button" onClick={onRestoreMainlineDefault}>restore-mainline</button>
+      <button type="button" onClick={() => onCollapsedChange(false)}>
+        expand-assets
+      </button>
+      <button type="button" onClick={onRestoreMainlineDefault}>
+        restore-mainline
+      </button>
     </div>
   ),
 }));
 
-vi.mock("@/modules/creative_canvas/public", () => ({
+vi.mock("./FreezoneChatDock", () => ({
   FreezoneChatDock: ({
     open,
     onOpenChange,
@@ -58,8 +43,13 @@ vi.mock("@/modules/creative_canvas/public", () => ({
     open: boolean;
     onOpenChange(open: boolean): void;
   }) => (
-    <button type="button" onClick={() => onOpenChange(!open)}>chat:{String(open)}</button>
+    <button type="button" onClick={() => onOpenChange(!open)}>
+      chat:{String(open)}
+    </button>
   ),
+}));
+
+vi.mock("./FreezoneCanvasFeedback", () => ({
   BackupStatusIndicator: () => <div>backup-status</div>,
   CanvasConflictOverlay: ({
     onRefresh,
@@ -78,27 +68,83 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   ),
   CanvasLoadingOverlay: () => <div>loading-overlay</div>,
   CanvasLoadingScreen: () => <div>loading-screen</div>,
-  CommitDialog: ({ onClose }: { onClose(): void }) => (
-    <button type="button" onClick={onClose}>commit-dialog</button>
-  ),
-  CompareDialog: ({ onClose }: { onClose(): void }) => (
-    <button type="button" onClick={onClose}>compare-dialog</button>
-  ),
-  CreateIdentityDialog: ({ onSuccess }: { onSuccess(message: string): void }) => (
-    <button type="button" onClick={() => onSuccess("identity-created")}>
-      identity-dialog
-    </button>
-  ),
-  FreezoneToast: ({ text, onClose }: { text: string; onClose(): void }) => (
+  FreezoneToast: ({
+    text,
+    onClose,
+  }: {
+    text: string;
+    onClose(): void;
+  }) => (
     <button type="button" onClick={onClose}>toast:{text}</button>
   ),
 }));
 
-vi.mock("./MaskEditor", () => ({
-  MaskEditor: ({ onResult }: { onResult(url: string): void }) => (
-    <button type="button" onClick={() => onResult("mask-result.png")}>mask-editor</button>
+vi.mock("./CommitDialog", () => ({
+  CommitDialog: ({ onClose }: { onClose(): void }) => (
+    <button type="button" onClick={onClose}>commit-dialog</button>
   ),
 }));
+
+vi.mock("./CompareDialog", () => ({
+  CompareDialog: ({ onClose }: { onClose(): void }) => (
+    <button type="button" onClick={onClose}>compare-dialog</button>
+  ),
+}));
+
+vi.mock("./CreateIdentityDialog", () => ({
+  CreateIdentityDialog: ({
+    onSuccess,
+  }: {
+    onSuccess(message: string): void;
+  }) => (
+    <button type="button" onClick={() => onSuccess("identity-created")}>
+      identity-dialog
+    </button>
+  ),
+}));
+
+const addAssetToCanvas = vi.fn();
+
+function renderCanvas({
+  projectId,
+  canvasId,
+  onBlankPaneClick,
+}: FreezoneShellCanvasRenderProps) {
+  return (
+    <button
+      type="button"
+      data-project-id={projectId}
+      data-canvas-id={canvasId}
+      onClick={onBlankPaneClick}
+    >
+      canvas
+    </button>
+  );
+}
+
+function renderNodeReplaceDragPreview() {
+  return <div>drag-preview</div>;
+}
+
+function renderMaskEditor({ onResult }: FreezoneShellMaskEditorRenderProps) {
+  return (
+    <button type="button" onClick={() => onResult("mask-result.png")}>
+      mask-editor
+    </button>
+  );
+}
+
+function renderView(controller: FreezoneShellController) {
+  return (
+    <FreezoneShellView
+      controller={controller}
+      renderCanvas={renderCanvas}
+      renderNodeReplaceDragPreview={renderNodeReplaceDragPreview}
+      renderMaskEditor={renderMaskEditor}
+      addAssetToCanvas={addAssetToCanvas}
+    />
+  );
+}
 
 function createController(): FreezoneShellController {
   return {
@@ -142,7 +188,7 @@ function createController(): FreezoneShellController {
 describe("FreezoneShellView", () => {
   it("renders the canvas, asset panel, chat dock, and their commands", () => {
     const controller = createController();
-    render(<FreezoneShellView controller={controller} />);
+    render(renderView(controller));
 
     expect(screen.getByText("project-a:canvas-a:3")).toBeInTheDocument();
     expect(screen.getByText("drag-preview")).toBeInTheDocument();
@@ -156,7 +202,9 @@ describe("FreezoneShellView", () => {
     fireEvent.click(screen.getByRole("button", { name: "chat:false" }));
     expect(controller.canvas.onBlankPaneClick).toHaveBeenCalledOnce();
     expect(controller.assetLibrary.setCollapsed).toHaveBeenCalledWith(false);
-    expect(controller.assetLibrary.restoreMainlineDefault).toHaveBeenCalledOnce();
+    expect(
+      controller.assetLibrary.restoreMainlineDefault,
+    ).toHaveBeenCalledOnce();
     expect(controller.chat.setOpen).toHaveBeenCalledWith(true);
   });
 
@@ -165,7 +213,7 @@ describe("FreezoneShellView", () => {
     blocking.canvas.showBlockingLoading = true;
     blocking.canvas.showLoadingOverlay = true;
     blocking.canvas.status = "error";
-    const { rerender } = render(<FreezoneShellView controller={blocking} />);
+    const { rerender } = render(renderView(blocking));
 
     expect(screen.getByText("loading-screen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "canvas" })).toBeNull();
@@ -175,7 +223,7 @@ describe("FreezoneShellView", () => {
 
     const conflict = createController();
     conflict.canvas.status = "conflict";
-    rerender(<FreezoneShellView controller={conflict} />);
+    rerender(renderView(conflict));
     fireEvent.click(screen.getByRole("button", { name: "refresh-conflict" }));
     fireEvent.click(screen.getByRole("button", { name: "save-copy" }));
     expect(conflict.canvas.retry).toHaveBeenCalledOnce();
@@ -226,7 +274,7 @@ describe("FreezoneShellView", () => {
     };
     controller.toast = { text: "完成", close: closeToast };
 
-    render(<FreezoneShellView controller={controller} />);
+    render(renderView(controller));
     fireEvent.click(screen.getByRole("button", { name: "commit-dialog" }));
     fireEvent.click(screen.getByRole("button", { name: "identity-dialog" }));
     fireEvent.click(screen.getByRole("button", { name: "compare-dialog" }));

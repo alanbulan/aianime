@@ -465,6 +465,20 @@ export type {
   FreezoneCanvasEntryLifecycleOptions,
   FreezoneCanvasEntryState,
 } from "@/modules/creative_canvas/presentation/useFreezoneCanvasEntryLifecycle";
+export { createUseFreezoneShellController } from "@/modules/creative_canvas/presentation/useFreezoneShellController";
+export type {
+  FreezoneProjectionStatusLifecycleOptions,
+  FreezoneShellController,
+  FreezoneShellControllerDependencies,
+  FreezoneShellControllerOptions,
+  FreezoneShellSyncPort,
+} from "@/modules/creative_canvas/presentation/useFreezoneShellController";
+export { FreezoneShellView } from "@/modules/creative_canvas/presentation/FreezoneShellView";
+export type {
+  FreezoneShellCanvasRenderProps,
+  FreezoneShellMaskEditorRenderProps,
+  FreezoneShellViewProps,
+} from "@/modules/creative_canvas/presentation/FreezoneShellView";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

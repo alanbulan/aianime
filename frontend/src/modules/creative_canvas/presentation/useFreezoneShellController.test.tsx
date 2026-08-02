@@ -2,105 +2,83 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useFreezoneShellController } from "./useFreezoneShellController";
+import type {
+  CanvasCommitController,
+  CanvasCommitControllerOptions,
+} from "./useCanvasCommitController";
+import type { CanvasProjectionCommandControllerOptions } from "./useCanvasProjectionCommandController";
+import type { FreezoneCanvasEntryLifecycleOptions } from "./useFreezoneCanvasEntryLifecycle";
+import {
+  createUseFreezoneShellController,
+  type FreezoneProjectionStatusLifecycleOptions,
+  type FreezoneShellSyncPort,
+} from "./useFreezoneShellController";
 
-const mocks = vi.hoisted(() => ({
-  addNode: vi.fn(),
+const mocks = {
+  addMaskResultNode: vi.fn(),
   ceRuntime: false,
   commitController: {
-    prompt: null as Record<string, unknown> | null,
+    prompt: null,
     closePrompt: vi.fn(),
     getPromptNodeData: vi.fn(),
     handlePromptSuccess: vi.fn(),
     handleAssetReplaced: vi.fn(),
-  },
-  commitOptions: null as Record<string, unknown> | null,
-  entryOptions: null as Record<string, unknown> | null,
+  } satisfies CanvasCommitController,
+  commitOptions: null as CanvasCommitControllerOptions | null,
+  entryOptions: null as FreezoneCanvasEntryLifecycleOptions | null,
   entryState: {
     showBlockingLoading: false,
     showLoadingOverlay: true,
   },
-  projectionCommandOptions: null as Record<string, unknown> | null,
-  projectionStatusOptions: null as Record<string, unknown> | null,
+  projectionCommandOptions:
+    null as CanvasProjectionCommandControllerOptions | null,
+  projectionStatusOptions:
+    null as FreezoneProjectionStatusLifecycleOptions | null,
   syncArgs: null as [string, string] | null,
   sync: {
     status: "ready",
-    error: null as string | null,
-    metadata: { revision_source: "remote" } as Record<string, unknown> | null,
-    revision: 4 as number | null,
-    hydratedCanvasId: "canvas-a" as string | null,
+    error: null,
+    metadata: { revision_source: "remote" },
+    revision: 4,
+    hydratedCanvasId: "canvas-a",
     backupStatus: null,
     flush: vi.fn().mockResolvedValue(true),
     retry: vi.fn(),
     saveCopy: vi.fn().mockResolvedValue("canvas-copy"),
     restoreMainlineDefault: vi.fn().mockResolvedValue("canvas-a"),
     readConflictSnapshot: vi.fn(),
-  },
-  writeUrl: vi.fn(),
-}));
+  } satisfies FreezoneShellSyncPort,
+  writeCanvasParam: vi.fn(),
+};
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => `translated:${key}` }),
-}));
-
-vi.mock("@/features/canvas/canvasStore", () => ({
-  useCanvasStore: {
-    getState: () => ({ addNode: mocks.addNode }),
-  },
-}));
-
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/modules/creative_canvas/public")
-  >();
-  return {
-    ...actual,
-    createUseFreezoneCanvasEntryLifecycle: () =>
-      (options: Record<string, unknown>) => {
-        mocks.entryOptions = options;
-        return mocks.entryState;
-      },
-    createCanvasCommitControllerHook: () =>
-      (options: Record<string, unknown>) => {
-        mocks.commitOptions = options;
-        return mocks.commitController;
-      },
-    useCanvasProjectionCommandController: (
-      options: Record<string, unknown>,
-    ) => {
-      mocks.projectionCommandOptions = options;
-    },
-    useCanvasProjectionStatusLifecycle: (
-      options: Record<string, unknown>,
-    ) => {
-      mocks.projectionStatusOptions = options;
-    },
-  };
-});
-
-vi.mock("@/lib/runtime-config", () => ({
-  isCeRuntime: () => mocks.ceRuntime,
-}));
-
-vi.mock("@/lib/app-router", () => ({
-  currentCanvasParam: vi.fn(),
-}));
-
-vi.mock("@/lib/url-params", () => ({
-  rememberLastCanvas: vi.fn(),
-  writeUrl: (...args: unknown[]) => mocks.writeUrl(...args),
-}));
-
-vi.mock("./useCanvasSync", () => ({
-  useCanvasSync: (projectId: string, canvasId: string) => {
+const useFreezoneShellController = createUseFreezoneShellController({
+  useTranslate: () => (key) => `translated:${key}`,
+  isChatDockVisible: () => !mocks.ceRuntime,
+  useCanvasSync: (projectId, canvasId) => {
     mocks.syncArgs = [projectId, canvasId];
     return mocks.sync;
   },
-}));
+  useFreezoneCanvasEntryLifecycle: (options) => {
+    mocks.entryOptions = options;
+    return mocks.entryState;
+  },
+  useCanvasProjectionStatusLifecycle: (options) => {
+    mocks.projectionStatusOptions = options;
+  },
+  useCanvasCommitController: (options) => {
+    mocks.commitOptions = options;
+    return mocks.commitController;
+  },
+  useCanvasProjectionCommandController: (options) => {
+    mocks.projectionCommandOptions = options;
+  },
+  writeCanvasParam: (canvasId) => mocks.writeCanvasParam(canvasId),
+  addMaskResultNode: (url, label) => mocks.addMaskResultNode(url, label),
+});
 
 describe("useFreezoneShellController", () => {
   beforeEach(() => {
-    mocks.addNode.mockReset();
+    mocks.addMaskResultNode.mockReset();
     mocks.ceRuntime = false;
     mocks.commitController.prompt = null;
     mocks.commitController.closePrompt.mockReset();
@@ -122,9 +100,11 @@ describe("useFreezoneShellController", () => {
     mocks.sync.flush.mockReset().mockResolvedValue(true);
     mocks.sync.retry.mockReset();
     mocks.sync.saveCopy.mockReset().mockResolvedValue("canvas-copy");
-    mocks.sync.restoreMainlineDefault.mockReset().mockResolvedValue("canvas-a");
+    mocks.sync.restoreMainlineDefault
+      .mockReset()
+      .mockResolvedValue("canvas-a");
     mocks.sync.readConflictSnapshot.mockReset();
-    mocks.writeUrl.mockReset();
+    mocks.writeCanvasParam.mockReset();
   });
 
   it("assembles canvas sync, lifecycle, projection, and commit controllers", () => {
@@ -197,16 +177,10 @@ describe("useFreezoneShellController", () => {
     expect(result.current.assetLibrary.collapsed).toBe(true);
     expect(result.current.chat.open).toBe(false);
 
-    act(() => {
-      const onAssetsChanged = mocks.commitOptions?.onAssetsChanged as () => void;
-      onAssetsChanged();
-    });
+    act(() => mocks.commitOptions?.onAssetsChanged());
     expect(result.current.assetLibrary.reloadToken).toBe(1);
 
-    act(() => {
-      const onMessage = mocks.commitOptions?.onMessage as (message: string) => void;
-      onMessage("提交完成");
-    });
+    act(() => mocks.commitOptions?.onMessage("提交完成"));
     expect(result.current.toast?.text).toBe("提交完成");
     act(() => result.current.toast?.close());
     expect(result.current.toast).toBeNull();
@@ -222,13 +196,15 @@ describe("useFreezoneShellController", () => {
 
     await act(async () => result.current.canvas.saveConflictCopy());
     expect(mocks.sync.saveCopy).toHaveBeenCalledOnce();
-    expect(mocks.writeUrl).toHaveBeenCalledWith({ canvas: "canvas-copy" });
+    expect(mocks.writeCanvasParam).toHaveBeenCalledWith("canvas-copy");
     expect(result.current.assetLibrary.reloadToken).toBe(1);
 
     await act(async () => result.current.assetLibrary.restoreMainlineDefault());
     expect(result.current.toast?.text).toBe("已按当前主流程事实同步主线视图");
 
-    mocks.sync.restoreMainlineDefault.mockRejectedValueOnce(new Error("恢复失败"));
+    mocks.sync.restoreMainlineDefault.mockRejectedValueOnce(
+      new Error("恢复失败"),
+    );
     await act(async () => result.current.assetLibrary.restoreMainlineDefault());
     expect(result.current.toast?.text).toBe("恢复失败");
   });

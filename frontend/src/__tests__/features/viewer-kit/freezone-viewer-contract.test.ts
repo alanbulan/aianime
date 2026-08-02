@@ -468,7 +468,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/presentation/useCommitDialogSubmitController.ts",
     );
     const shell = read(
-      "src/features/freezone/hooks/useFreezoneShellController.ts",
+      "src/modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const commitController = read(
       "src/modules/creative_canvas/presentation/useCanvasCommitController.ts",
@@ -565,7 +565,7 @@ describe("freezone viewer contracts", () => {
       "src/features/canvas/hooks/useNodeManagementToolbarController.ts",
     );
     const shell = read(
-      "src/features/freezone/hooks/useFreezoneShellController.ts",
+      "src/modules/creative_canvas/presentation/useFreezoneShellController.ts",
     );
     const commandController = read(
       "src/modules/creative_canvas/presentation/useCanvasProjectionCommandController.ts",
