@@ -7,13 +7,11 @@ import type {
   GenerateImagePayload,
 } from "../application/ports";
 import {
+  prepareCanvasImageSource,
+  prepareCanvasImageSources,
   readEmbeddedCanvasGenerationOutputUrl,
   type CanvasGenerationTaskRef,
 } from "@/modules/creative_canvas/public";
-import {
-  ensureBackendImageUrl,
-  ensureBackendImageUrls,
-} from "./freezoneAssetGateway";
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
@@ -92,8 +90,8 @@ async function submitImageEdit(
   projectId: string,
   submission: ImageEditSubmission,
 ): Promise<CanvasGenerationTaskRef> {
-  const baseUrl = await ensureBackendImageUrl(projectId, submission.baseUrl);
-  const extraReferenceUrls = await ensureBackendImageUrls(
+  const baseUrl = await prepareCanvasImageSource(projectId, submission.baseUrl);
+  const extraReferenceUrls = await prepareCanvasImageSources(
     projectId,
     submission.extraReferenceUrls,
   );

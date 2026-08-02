@@ -8,8 +8,6 @@ vi.mock('@/modules/creative_canvas/public', () => ({
 }));
 
 import {
-  ensureBackendImageUrl,
-  ensureBackendImageUrls,
   freezoneAssetGateway,
 } from '@/features/canvas/infrastructure/freezoneAssetGateway';
 
@@ -39,38 +37,6 @@ describe('freezone asset source gateway', () => {
       '../upload.png',
       { disableTimeout: true },
     );
-  });
-
-  it('uploads data URLs and strips the response cache buster', async () => {
-    uploadFreezoneAsset.mockResolvedValue({
-      url: '/static/upload.png?v=123',
-      filename: 'upload.png',
-      size: 1,
-    });
-
-    await expect(
-      ensureBackendImageUrl('project-1', 'data:image/png;base64,eA=='),
-    ).resolves.toBe('/static/upload.png');
-    expect(uploadFreezoneAsset).toHaveBeenCalledWith(
-      'project-1',
-      expect.any(Blob),
-      expect.stringMatching(/^paste-\d+\.png$/),
-    );
-  });
-
-  it('normalizes static URL batches without uploading blank entries', async () => {
-    await expect(
-      ensureBackendImageUrls('project-1', [
-        '',
-        '   ',
-        '/static/source-a.png?v=1',
-        '/static/source-b.png',
-      ]),
-    ).resolves.toEqual([
-      '/static/source-a.png',
-      '/static/source-b.png',
-    ]);
-    expect(uploadFreezoneAsset).not.toHaveBeenCalled();
   });
 
   it('decodes data URLs without using fetch', async () => {

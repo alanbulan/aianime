@@ -1,19 +1,20 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 import {
   generateCanvasScene360,
   type CanvasScene360GenerationGateway,
 } from "./generateCanvasScene360";
-import type { CanvasTaskResultGateway } from "@/modules/creative_canvas/public";
 
 describe("generateCanvasScene360", () => {
-  it("submits, persists and completes a scene-360 task", async () => {
+  it("prepares the source, submits and completes a scene-360 task", async () => {
     const task = {
       task_key: "scene-360-task",
       task_type: "freezone_scene_360",
       job_id: "scene-360-job",
     };
+    const sourceGateway = { prepare: vi.fn().mockResolvedValue("/static/source.png") };
     const submissionGateway: CanvasScene360GenerationGateway = {
       submit: vi.fn().mockResolvedValue(task),
     };
@@ -29,13 +30,17 @@ describe("generateCanvasScene360", () => {
       generateCanvasScene360(
         {
           projectId: "project-1",
-          referenceUrl: "/static/source.png?v=42",
+          referenceUrl: "data:image/png;base64,eA==",
           aspectRatio: "21:9",
           model: "cloud-image-standard",
         },
-        { submissionGateway, taskGateway, onTaskSubmitted },
+        { sourceGateway, submissionGateway, taskGateway, onTaskSubmitted },
       ),
     ).resolves.toEqual({ task, url: "/static/pano.png" });
+    expect(sourceGateway.prepare).toHaveBeenCalledWith(
+      "project-1",
+      "data:image/png;base64,eA==",
+    );
     expect(submissionGateway.submit).toHaveBeenCalledWith("project-1", {
       referenceUrl: "/static/source.png",
       aspectRatio: "21:9",
@@ -55,9 +60,6 @@ describe("generateCanvasScene360", () => {
       task_type: "freezone_scene_360",
       job_id: "scene-360-job",
     };
-    const submissionGateway: CanvasScene360GenerationGateway = {
-      submit: vi.fn().mockResolvedValue(task),
-    };
     const taskGateway: CanvasTaskResultGateway = {
       awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
       fetchResultUrl: vi.fn().mockResolvedValue("/static/fallback.png"),
@@ -72,7 +74,8 @@ describe("generateCanvasScene360", () => {
           model: "cloud-image-standard",
         },
         {
-          submissionGateway,
+          sourceGateway: { prepare: vi.fn().mockResolvedValue("/static/source.png") },
+          submissionGateway: { submit: vi.fn().mockResolvedValue(task) },
           taskGateway,
           onTaskSubmitted: vi.fn(),
         },

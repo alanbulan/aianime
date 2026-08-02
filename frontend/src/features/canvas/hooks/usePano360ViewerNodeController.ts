@@ -9,7 +9,8 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { CONSTANTS, Viewer } from '@photo-sphere-viewer/core';
 
-import { dataUrlToBlob, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { dataUrlToBlob } from '@/shared/media/data-url';
 import {
   PANO_DIRECTION_OFFSETS,
   PANO_GRID_2X2_FRAMES,

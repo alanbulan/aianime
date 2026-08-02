@@ -2,12 +2,14 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasReversePromptSubmissionGateway } from "../application/generateCanvasReversePrompt";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
-import { ensureBackendImageUrl } from "./freezoneAssetGateway";
+import {
+  prepareCanvasImageSource,
+  type CanvasGenerationTaskRef,
+} from "@/modules/creative_canvas/public";
 
 export const freezoneReversePromptGenerationGateway: CanvasReversePromptSubmissionGateway = {
   async prepareSourceUrl(projectId, rawUrl) {
-    return await ensureBackendImageUrl(projectId, rawUrl);
+    return await prepareCanvasImageSource(projectId, rawUrl);
   },
   async submit(projectId, command) {
     return await apiCall<CanvasGenerationTaskRef>(

@@ -1,22 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 import type { CanvasRelightGenerationGateway } from "../application/generateCanvasRelight";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
-import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
 export const freezoneRelightGenerationGateway: CanvasRelightGenerationGateway = {
   async submit(projectId, command) {
-    const sourceUrl = await ensureBackendImageUrl(
-      projectId,
-      command.sourceUrl,
-    );
     return await apiCall<CanvasGenerationTaskRef>(
       `projects/${encodeURIComponent(projectId)}/freezone/relight`,
       {
         method: "POST",
         json: {
-          source_url: sourceUrl,
+          source_url: command.sourceUrl,
           lighting_reference_url: command.lightingReferenceUrl,
           scope: command.scope,
           smart_mode: command.smartMode,

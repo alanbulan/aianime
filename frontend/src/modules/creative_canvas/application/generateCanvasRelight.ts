@@ -1,13 +1,16 @@
 // Copyright (c) 2026 AI anime
 import {
   buildCanvasRelightPrompt,
-  completeCanvasMediaGenerationTask,
   resolveCanvasRelightKeyLightDirection,
-  type CanvasGenerationTaskRef,
-  type CanvasTaskResultGateway,
   type CanvasRelightKeyLightDirection,
   type CanvasRelightSmartPrompt,
-} from "@/modules/creative_canvas/public";
+} from "../domain/relight";
+import {
+  completeCanvasMediaGenerationTask,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
+import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasRelightGenerationCommand {
   readonly sourceUrl: string;
@@ -45,6 +48,7 @@ export interface GenerateCanvasRelightParams {
 }
 
 export interface GenerateCanvasRelightDependencies {
+  readonly sourceGateway: CanvasImageSourcePreparationGateway;
   readonly submissionGateway: CanvasRelightGenerationGateway;
   readonly taskGateway: CanvasTaskResultGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
@@ -59,8 +63,12 @@ export async function generateCanvasRelight(
   params: GenerateCanvasRelightParams,
   dependencies: GenerateCanvasRelightDependencies,
 ): Promise<GenerateCanvasRelightResult> {
+  const sourceUrl = await dependencies.sourceGateway.prepare(
+    params.projectId,
+    params.sourceUrl,
+  );
   const task = await dependencies.submissionGateway.submit(params.projectId, {
-    sourceUrl: params.sourceUrl.split("?")[0],
+    sourceUrl,
     lightingReferenceUrl: null,
     scope: "global",
     smartMode: params.smartMode.enabled,

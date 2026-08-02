@@ -13,13 +13,13 @@ import {
 import {
   CANVAS_SCENE_360_ASPECT_RATIOS,
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  generateCanvasScene360,
   useCanvasImageModels,
   type CanvasScene360AspectRatio,
 } from '@/modules/creative_canvas/public';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { generateCanvasScene360 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';

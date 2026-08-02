@@ -66,7 +66,7 @@ import type {
   ThreeDSceneSnapshot,
   ViewerApp,
 } from "./engine/viewerApp";
-import { dataUrlToBlob as decodeDataUrl } from "@/features/canvas/public";
+import { dataUrlToBlob as decodeDataUrl } from "@/shared/media/data-url";
 
 type FrameAspect = "16:9" | "2:3" | "9:16" | "1:1" | "4:3";
 type ToolMode = "actor" | "prop" | "staging";

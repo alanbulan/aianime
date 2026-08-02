@@ -2,29 +2,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
-import { ensureBackendImageUrl } from "./freezoneAssetGateway";
-
-vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrl: vi.fn() }));
 
 import { freezoneRelightGenerationGateway } from "./freezoneRelightGenerationGateway";
 
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
-  vi.mocked(ensureBackendImageUrl).mockReset();
 });
 
 describe("freezoneRelightGenerationGateway", () => {
-  it("normalizes the source and maps the command to the encoded endpoint", async () => {
+  it("maps the prepared source command to the encoded endpoint", async () => {
     const task = {
       task_key: "relight-task",
       task_type: "freezone_relight",
       job_id: "relight-job",
     };
-    vi.mocked(ensureBackendImageUrl).mockResolvedValue("/static/source.png");
     vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
-      sourceUrl: "data:image/png;base64,eA==",
+      sourceUrl: "/static/source.png",
       lightingReferenceUrl: null,
       scope: "global" as const,
       smartMode: true,
@@ -41,10 +37,6 @@ describe("freezoneRelightGenerationGateway", () => {
     await expect(
       freezoneRelightGenerationGateway.submit("project/1", command),
     ).resolves.toBe(task);
-    expect(ensureBackendImageUrl).toHaveBeenCalledWith(
-      "project/1",
-      "data:image/png;base64,eA==",
-    );
     expect(apiCall).toHaveBeenCalledWith(
       "projects/project%2F1/freezone/relight",
       {

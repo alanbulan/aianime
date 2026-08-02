@@ -3,17 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
 import {
-  ensureBackendImageUrl,
-  ensureBackendImageUrls,
-} from "./freezoneAssetGateway";
+  prepareCanvasImageSource,
+  prepareCanvasImageSources,
+} from "@/modules/creative_canvas/public";
 
 const awaitCompletion = vi.hoisted(() => vi.fn());
 const fetchResultUrl = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("./freezoneAssetGateway", () => ({
-  ensureBackendImageUrl: vi.fn(),
-  ensureBackendImageUrls: vi.fn(),
+vi.mock("@/modules/creative_canvas/public", () => ({
+  prepareCanvasImageSource: vi.fn(),
+  prepareCanvasImageSources: vi.fn(),
+  readEmbeddedCanvasGenerationOutputUrl: (result: { output_url?: string } | null) =>
+    result?.output_url ?? null,
 }));
 vi.mock("./freezoneGenerationTaskGateway", () => ({
   freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
@@ -42,16 +44,16 @@ function gateway() {
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
-  vi.mocked(ensureBackendImageUrl).mockReset();
-  vi.mocked(ensureBackendImageUrls).mockReset();
+  vi.mocked(prepareCanvasImageSource).mockReset();
+  vi.mocked(prepareCanvasImageSources).mockReset();
   awaitCompletion.mockReset();
   fetchResultUrl.mockReset();
 });
 
 describe("freezoneAiGateway", () => {
   it("submits reference-image editing through its owned endpoint", async () => {
-    vi.mocked(ensureBackendImageUrl).mockResolvedValue("/static/base.png");
-    vi.mocked(ensureBackendImageUrls).mockResolvedValue([
+    vi.mocked(prepareCanvasImageSource).mockResolvedValue("/static/base.png");
+    vi.mocked(prepareCanvasImageSources).mockResolvedValue([
       "/static/extra.png",
     ]);
     vi.mocked(apiCall).mockResolvedValue({
@@ -80,11 +82,11 @@ describe("freezoneAiGateway", () => {
       ),
     ).resolves.toBe("/static/result.png");
 
-    expect(ensureBackendImageUrl).toHaveBeenCalledWith(
+    expect(prepareCanvasImageSource).toHaveBeenCalledWith(
       "project/1",
       "base-data",
     );
-    expect(ensureBackendImageUrls).toHaveBeenCalledWith("project/1", [
+    expect(prepareCanvasImageSources).toHaveBeenCalledWith("project/1", [
       "extra-data",
     ]);
     expect(apiCall).toHaveBeenCalledWith(

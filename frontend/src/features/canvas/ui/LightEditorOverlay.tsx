@@ -10,13 +10,13 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
+import { generateCanvasRelight } from '@/modules/creative_canvas/public';
 import {
   LightEditorPanel,
   type LightEditorSubmitPayload,
   type LightMainLightDescriptor,
   type LightSmartModeDescriptor,
 } from '@/features/canvas/ui/LightEditorPanel';
-import { generateCanvasRelight } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';

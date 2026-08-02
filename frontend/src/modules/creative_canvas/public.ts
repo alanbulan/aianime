@@ -655,7 +655,11 @@ export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationCo
 export {
   generateCanvasMultiAngle,
   generateCanvasOutpaint,
+  generateCanvasRelight,
+  generateCanvasScene360,
   generateCanvasUpscale,
+  prepareCanvasImageSource,
+  prepareCanvasImageSources,
 } from "@/modules/creative_canvas/imageOperationGenerationComposition";
 export {
   completeCanvasMediaGenerationTask,
@@ -682,6 +686,26 @@ export type {
   GenerateCanvasOutpaintParams,
   GenerateCanvasOutpaintResult,
 } from "@/modules/creative_canvas/application/generateCanvasOutpaint";
+export type {
+  CanvasRelightGenerationCommand,
+  CanvasRelightGenerationGateway,
+  GenerateCanvasRelightDependencies,
+  GenerateCanvasRelightParams,
+  GenerateCanvasRelightResult,
+} from "@/modules/creative_canvas/application/generateCanvasRelight";
+export type {
+  CanvasScene360GenerationCommand,
+  CanvasScene360GenerationGateway,
+  GenerateCanvasScene360Dependencies,
+  GenerateCanvasScene360Params,
+  GenerateCanvasScene360Result,
+} from "@/modules/creative_canvas/application/generateCanvasScene360";
+export type {
+  CanvasImageSourcePreparationGateway,
+  PrepareCanvasImageSourceDependencies,
+  PrepareCanvasImageSourceParams,
+  PrepareCanvasImageSourcesParams,
+} from "@/modules/creative_canvas/application/prepareCanvasImageSource";
 export type {
   CanvasUpscaleGenerationCommand,
   CanvasUpscaleGenerationGateway,

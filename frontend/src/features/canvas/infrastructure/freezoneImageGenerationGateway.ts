@@ -2,8 +2,10 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { CanvasImageGenerationSubmissionGateway } from "../application/generateCanvasImage";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
-import { ensureBackendImageUrls } from "./freezoneAssetGateway";
+import {
+  prepareCanvasImageSources,
+  type CanvasGenerationTaskRef,
+} from "@/modules/creative_canvas/public";
 
 export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway = {
   async submit(projectId, command) {
@@ -18,7 +20,7 @@ export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGate
     const style = command.style?.templateId
       ? { template_id: command.style.templateId }
       : null;
-    const referenceUrls = await ensureBackendImageUrls(
+    const referenceUrls = await prepareCanvasImageSources(
       projectId,
       command.referenceUrls,
     );

@@ -165,19 +165,3 @@ export function extractBase64Payload(dataUrl: string): string {
   const [, payload = ''] = dataUrl.split(',');
   return payload;
 }
-
-export function dataUrlToBlob(dataUrl: string): Blob {
-  const [header = '', payload = ''] = dataUrl.split(',');
-  const mimeMatch = header.match(/data:([^;]+)/);
-  const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
-  const isBase64 = /;base64/i.test(header);
-  if (!isBase64) {
-    return new Blob([decodeURIComponent(payload)], { type: mime });
-  }
-  const binary = atob(payload);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: mime });
-}

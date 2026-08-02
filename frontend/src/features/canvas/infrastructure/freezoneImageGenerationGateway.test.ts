@@ -2,17 +2,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
-import { ensureBackendImageUrls } from "./freezoneAssetGateway";
+import { prepareCanvasImageSources } from "@/modules/creative_canvas/public";
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrls: vi.fn() }));
+vi.mock("@/modules/creative_canvas/public", () => ({
+  prepareCanvasImageSources: vi.fn(),
+}));
 
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 beforeEach(() => {
   vi.mocked(apiCall).mockReset();
-  vi.mocked(ensureBackendImageUrls).mockReset();
-  vi.mocked(ensureBackendImageUrls).mockResolvedValue([]);
+  vi.mocked(prepareCanvasImageSources).mockReset();
+  vi.mocked(prepareCanvasImageSources).mockResolvedValue([]);
 });
 
 describe("freezoneImageGenerationGateway", () => {
@@ -22,7 +24,7 @@ describe("freezoneImageGenerationGateway", () => {
       task_key: "task-1",
       task_type: "freezone_gen",
     };
-    vi.mocked(ensureBackendImageUrls).mockResolvedValue([
+    vi.mocked(prepareCanvasImageSources).mockResolvedValue([
       "/static/reference.png",
     ]);
     vi.mocked(apiCall).mockResolvedValue(task);
@@ -49,7 +51,7 @@ describe("freezoneImageGenerationGateway", () => {
     await expect(
       freezoneImageGenerationGateway.submit("project/1", command),
     ).resolves.toEqual(task);
-    expect(ensureBackendImageUrls).toHaveBeenCalledWith("project/1", [
+    expect(prepareCanvasImageSources).toHaveBeenCalledWith("project/1", [
       "data:image/png;base64,eA==",
     ]);
     expect(apiCall).toHaveBeenCalledWith(

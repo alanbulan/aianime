@@ -4100,7 +4100,6 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(canvasPublicPath)).toEqual([
-      "@/features/canvas/application/imageData",
       "@/features/canvas/pricing/types",
     ]);
     expect(readFileSync(canvasPublicPath, "utf8")).not.toContain(
@@ -4667,6 +4666,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/application/assetUpload.ts",
     );
+    const imageSourceApplicationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/prepareCanvasImageSource.ts",
+    );
     const infrastructurePath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/infrastructure/httpFreezoneAssetUploadGateway.ts",
@@ -4675,6 +4678,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/assetTransferComposition.ts",
     );
+    const imageOperationCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
+    );
+    const dataUrlPath = resolve(SRC_ROOT, "shared/media/data-url.ts");
     const legacyFreezoneCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/composition.ts",
@@ -4700,6 +4708,10 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const imageSourceApplicationSource = readFileSync(
+      imageSourceApplicationPath,
+      "utf8",
+    );
     const creativeCanvasPublicSource = readFileSync(
       creativeCanvasPublicPath,
       "utf8",
@@ -4756,13 +4768,26 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(creativeCanvasPublicPath)).toContain(
       "@/modules/creative_canvas/assetTransferComposition",
     );
-    expect(helperOwners).toEqual(
-      helperDeclarations.map(() => [
-        "features/canvas/infrastructure/freezoneAssetGateway.ts",
-      ]),
+    expect(helperOwners).toEqual(helperDeclarations.map(() => []));
+    expect(importSpecifiers(dataUrlPath)).toEqual([]);
+    expect(new Set(importSpecifiers(imageSourceApplicationPath))).toEqual(
+      new Set(["@/shared/media/data-url", "./assetUpload"]),
     );
+    expect(imageSourceApplicationSource).toContain(
+      "export async function prepareCanvasImageSource(",
+    );
+    expect(imageSourceApplicationSource).toContain(
+      "dependencies.uploadGateway.upload({",
+    );
+    expect(importSpecifiers(imageOperationCompositionPath)).toContain(
+      "./infrastructure/httpFreezoneAssetUploadGateway",
+    );
+    expect(creativeCanvasPublicSource).toContain("prepareCanvasImageSource,");
     expect(importSpecifiers(canvasGatewayPath)).toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(canvasGatewayPath)).toContain(
+      "@/shared/media/data-url",
     );
     expect(importSpecifiers(canvasGatewayPath)).not.toContain("@/api/ops");
     expect(canvasGatewaySource).toContain("uploadFreezoneAsset(");
@@ -4772,6 +4797,9 @@ describe("frontend architecture boundaries", () => {
     expect(propGatewaySource).toContain("uploadFreezoneAsset(");
     expect(propGatewaySource).not.toContain("}/freezone/upload`");
     expect(importSpecifiers(aiGatewayPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(aiGatewayPath)).not.toContain(
       "./freezoneAssetGateway",
     );
     for (const consumerPath of pipelineConsumerPaths) {
@@ -18481,7 +18509,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/shared/api/client",
         "../application/generateCanvasReversePrompt",
-        "./freezoneAssetGateway",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -19482,7 +19509,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/shared/api/client",
         "../application/generateCanvasImage",
-        "./freezoneAssetGateway",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -19498,8 +19524,11 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).toContain(
       "./freezoneGenerationTaskGateway",
     );
-    expect(importSpecifiers(legacyGatewayPath)).toContain(
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "./freezoneAssetGateway",
+    );
+    expect(importSpecifiers(legacyGatewayPath)).toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(legacyGatewayPath)).toContain(
       "@/shared/api/client",
@@ -19824,15 +19853,15 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasScene360.ts",
+      "modules/creative_canvas/application/generateCanvasScene360.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneScene360GenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneScene360GenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -19859,7 +19888,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
+        "../domain/scene360",
+        "./completeCanvasMediaGenerationTask",
+        "./prepareCanvasImageSource",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -19868,9 +19899,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "export async function generateCanvasScene360(",
     );
-    expect(applicationSource).toContain(
-      'referenceUrl: params.referenceUrl.split("?")[0]',
-    );
+    expect(applicationSource).toContain("dependencies.sourceGateway.prepare(");
     expect(applicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
     );
@@ -19880,9 +19909,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasScene360",
-        "./freezoneAssetGateway",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -19894,15 +19922,35 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneScene360GenerationGateway",
     );
+    expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(overlaySource).toContain("await generateCanvasScene360(");
     expect(overlaySource).not.toContain("submitFreezoneScene360");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneScene360GenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneScene360GenerationGateway.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/generateCanvasScene360.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneScene360GenerationGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneScene360Payload",
       "submitFreezoneScene360",
@@ -19946,7 +19994,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sceneApplicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasScene360.ts",
+      "modules/creative_canvas/application/generateCanvasScene360.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -20054,15 +20102,15 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasRelight.ts",
+      "modules/creative_canvas/application/generateCanvasRelight.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneRelightGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneRelightGenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
     );
     const panelPath = resolve(
       SRC_ROOT,
@@ -20097,7 +20145,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
+        "../domain/relight",
+        "./completeCanvasMediaGenerationTask",
+        "./prepareCanvasImageSource",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -20113,12 +20163,12 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
     );
+    expect(applicationSource).toContain("dependencies.sourceGateway.prepare(");
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasRelight",
-        "./freezoneAssetGateway",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -20130,12 +20180,16 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneRelightGenerationGateway",
     );
+    expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
     expect(importSpecifiers(panelPath)).toContain(
       "@/modules/creative_canvas/public",
     );
     expect(panelSource).not.toContain("export type LightDirectionKey");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(overlaySource).toContain("await generateCanvasRelight(");
     expect(overlaySource).not.toContain("KEY_LIGHT_DIRECTIONS");
     expect(overlaySource).not.toContain("resolveKeyLightDirection");
@@ -20144,8 +20198,24 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneRelightGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneRelightGenerationGateway.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/generateCanvasRelight.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneRelightGenerationGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneRelightScope",
       "FreezoneRelightKeyLightDirection",
