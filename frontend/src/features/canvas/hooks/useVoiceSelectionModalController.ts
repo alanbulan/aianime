@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 import {
   customVoiceReferences,
+  createCanvasAudioVoice,
   filterCustomVoiceReferences,
   filterLibraryVoiceReferences,
   paginateVoiceReferences,
@@ -18,6 +19,7 @@ import {
   projectLibraryVoiceRows,
   resolveVoicePaginationJump,
   sanitizeVoicePaginationInput,
+  loadCanvasAudioReferences,
   voiceCloneFileStem,
   voiceCloneFileValidationError,
   voiceCloneUploadError,
@@ -27,10 +29,6 @@ import {
   type AudioVoiceRef,
   type CanvasAudioReference,
 } from '@/modules/creative_canvas/public';
-import {
-  createCanvasAudioVoice,
-  loadCanvasAudioReferences,
-} from '@/features/canvas/audioComposition';
 
 export interface VoiceSelectionModalControllerOptions {
   projectId: string;

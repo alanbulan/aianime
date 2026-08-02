@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { loadCanvasAudioReferences } from '@/features/canvas/audioComposition';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
@@ -20,6 +19,7 @@ import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {
   hasMainlineContexts,
   isAudioFile,
+  loadCanvasAudioReferences,
   type AudioVoiceRef,
   type CanvasAudioReference,
 } from '@/modules/creative_canvas/public';

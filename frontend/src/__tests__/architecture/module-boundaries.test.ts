@@ -17770,11 +17770,11 @@ describe("frontend architecture boundaries", () => {
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/audioComposition.ts",
+      "modules/creative_canvas/audioVoiceCatalogComposition.ts",
     );
     const audioControllerPath = resolve(
       SRC_ROOT,
@@ -17910,7 +17910,10 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasAudioVoiceCatalogGateway",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/shared/api/client", "@/modules/creative_canvas/public"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/audioVoiceCatalog",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway",
@@ -17970,7 +17973,7 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalControllerSource).not.toContain("createPortal(");
     expect(voiceModalControllerSource).not.toContain("readUrl");
     expect(importSpecifiers(voiceModalViewPath)).not.toContain(
-      "@/features/canvas/audioComposition",
+      "@/modules/creative_canvas/audioVoiceCatalogComposition",
     );
     expect(importSpecifiers(voiceModalViewPath)).not.toContain(
       "@/lib/url-params",
@@ -18011,8 +18014,19 @@ describe("frontend architecture boundaries", () => {
       "from './VoiceSelectionModalView'",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
     ]);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/audioComposition.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneAudioReferenceItem",
       "FreezoneAudioReferencesResult",
@@ -18030,15 +18044,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas audio generation orchestration in application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasAudio.ts",
+      "modules/creative_canvas/application/generateCanvasAudio.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAudioGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioGenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/audioComposition.ts",
+      "modules/creative_canvas/audioGenerationComposition.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
@@ -18068,11 +18082,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set([
-        "../domain/canvasNodes",
-        "./ports",
-        "@/modules/creative_canvas/public",
-      ]),
+      new Set(["../domain/audioVoice"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -18096,7 +18106,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/shared/api/client",
         "../application/generateCanvasAudio",
-        "../application/ports",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -18104,11 +18113,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
+        "@/modules/task_execution/public",
         "./application/generateCanvasAudio",
-        "./application/ports",
         "./infrastructure/freezoneAudioGenerationGateway",
-        "./infrastructure/freezoneAudioVoiceCatalogGateway",
-        "./infrastructure/freezoneGenerationTaskGateway",
+        "./infrastructure/freezoneGenerationResultGateway",
       ]),
     );
     expect(compositionSource).toContain("generateCanvasAudioUseCase(params, {");
@@ -18116,7 +18124,10 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneAudioGenerationGateway",
     );
     expect(compositionSource).toContain(
-      "taskGateway: freezoneGenerationTaskGateway",
+      "resultGateway: { fetchResultUrl: fetchCanvasGenerationResultUrl }",
+    );
+    expect(compositionSource).toContain(
+      "await awaitTaskCompletion(taskKey, projectId)",
     );
     expect(importSpecifiers(hookPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(hookPath)).not.toContain("@/api/tasks");
@@ -18128,14 +18139,30 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("fetchFreezoneJobResult");
     expect(hookSource).not.toContain("awaitTaskCompletion");
     expect(panelControllerSource).toContain(
-      "@/features/canvas/application/generateCanvasAudio",
+      "@/modules/creative_canvas/public",
     );
     expect(panelControllerSource).not.toContain(
       "deriveAudioText, useAudioGeneration",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAudioGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAudioGenerationGateway.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/generateCanvasAudio.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneAudioGenerationGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneAudioVoiceRefScope",
       "FreezoneAudioVoiceRef",
@@ -19529,12 +19556,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
     );
+    const resultGatewayPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/freezoneGenerationResultGateway.ts",
+    );
     const portsPath = resolve(
       SRC_ROOT,
       "features/canvas/application/ports.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const gatewaySource = readFileSync(gatewayPath, "utf8");
+    const resultGatewaySource = readFileSync(resultGatewayPath, "utf8");
     const portsSource = readFileSync(portsPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
@@ -19549,8 +19581,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(gatewayPath))).toEqual(
       new Set([
+        "@/modules/creative_canvas/public",
         "@/modules/task_execution/public",
-        "@/shared/api/client",
         "../application/ports",
       ]),
     );
@@ -19558,16 +19590,22 @@ describe("frontend architecture boundaries", () => {
       "freezoneGenerationTaskGateway: CanvasGenerationTaskGateway",
     );
     expect(gatewaySource).toContain(
-      "resultPath(projectId, 'freezone_image_reverse_prompt', jobId)",
+      "fetchCanvasGenerationResult<ReversePromptTransport>(",
     );
     expect(gatewaySource).toContain(
-      "resultPath(projectId, 'freezone_story_script', jobId)",
+      "fetchCanvasGenerationResult<CanvasStoryScriptResult>(",
+    );
+    expect(importSpecifiers(resultGatewayPath)).toEqual([
+      "@/shared/api/client",
+    ]);
+    expect(resultGatewaySource).toContain(
+      "export async function fetchCanvasGenerationResultUrl(",
     );
     expect(portsSource).toContain(
       "export interface CanvasStoryScriptResult",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneGenerationResultGateway.ts",
     ]);
     for (const legacySymbol of [
       "FreezoneJobResult",

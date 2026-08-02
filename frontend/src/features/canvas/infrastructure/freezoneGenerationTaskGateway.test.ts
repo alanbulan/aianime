@@ -3,13 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { awaitTaskCompletion, listTasks } from "@/modules/task_execution/public";
 import type { TaskState } from "@/modules/task_execution/public";
-import { apiCall } from "@/shared/api/client";
+import {
+  fetchCanvasGenerationResult,
+  fetchCanvasGenerationResultUrl,
+} from "@/modules/creative_canvas/public";
 
 vi.mock("@/modules/task_execution/public", () => ({
   awaitTaskCompletion: vi.fn(),
   listTasks: vi.fn(),
 }));
-vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+vi.mock("@/modules/creative_canvas/public", () => ({
+  fetchCanvasGenerationResult: vi.fn(),
+  fetchCanvasGenerationResultUrl: vi.fn(),
+}));
 
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 
@@ -36,7 +42,8 @@ function completedTask(taskKey: string, result: unknown = null): TaskState {
 }
 
 beforeEach(() => {
-  vi.mocked(apiCall).mockReset();
+  vi.mocked(fetchCanvasGenerationResult).mockReset();
+  vi.mocked(fetchCanvasGenerationResultUrl).mockReset();
   vi.mocked(awaitTaskCompletion).mockReset();
   vi.mocked(listTasks).mockReset();
 });
@@ -76,7 +83,9 @@ describe("freezoneGenerationTaskGateway", () => {
   });
 
   it("fetches a generated media result URL from the encoded task path", async () => {
-    vi.mocked(apiCall).mockResolvedValue({ url: "/result.png", size: 2048 });
+    vi.mocked(fetchCanvasGenerationResultUrl).mockResolvedValue(
+      "/result.png",
+    );
 
     await expect(
       freezoneGenerationTaskGateway.fetchResultUrl(
@@ -85,19 +94,25 @@ describe("freezoneGenerationTaskGateway", () => {
         "job/1",
       ),
     ).resolves.toBe("/result.png");
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F1/freezone/jobs/freezone%2Fvideo/job%2F1/result",
+    expect(fetchCanvasGenerationResultUrl).toHaveBeenCalledWith(
+      "project/1",
+      "freezone/video",
+      "job/1",
     );
   });
 
   it("fetches reverse-prompt text from its task result", async () => {
-    vi.mocked(apiCall).mockResolvedValue({ prompt: "cinematic rain" });
+    vi.mocked(fetchCanvasGenerationResult).mockResolvedValue({
+      prompt: "cinematic rain",
+    });
 
     await expect(
       freezoneGenerationTaskGateway.fetchReversePrompt("project/2", "job/2"),
     ).resolves.toBe("cinematic rain");
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F2/freezone/jobs/freezone_image_reverse_prompt/job%2F2/result",
+    expect(fetchCanvasGenerationResult).toHaveBeenCalledWith(
+      "project/2",
+      "freezone_image_reverse_prompt",
+      "job/2",
     );
   });
 
@@ -106,7 +121,7 @@ describe("freezoneGenerationTaskGateway", () => {
       title: "Episode 1",
       rows: [{ shot_no: 1, dialogue: "Hello" }],
     };
-    vi.mocked(apiCall).mockResolvedValue(result);
+    vi.mocked(fetchCanvasGenerationResult).mockResolvedValue(result);
 
     await expect(
       freezoneGenerationTaskGateway.fetchStoryScriptResult(
@@ -114,8 +129,10 @@ describe("freezoneGenerationTaskGateway", () => {
         "job/3",
       ),
     ).resolves.toBe(result);
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F3/freezone/jobs/freezone_story_script/job%2F3/result",
+    expect(fetchCanvasGenerationResult).toHaveBeenCalledWith(
+      "project/3",
+      "freezone_story_script",
+      "job/3",
     );
   });
 });

@@ -1,12 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
-import type { CanvasAudioGenerationSubmissionGateway } from "../application/generateCanvasAudio";
-import type { CanvasGenerationTaskRef } from "../application/ports";
+import type {
+  CanvasAudioGenerationSubmissionGateway,
+  CanvasAudioGenerationTaskRef,
+} from "../application/generateCanvasAudio";
 
 export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGateway = {
   async submitSpeech(projectId, command) {
-    return await apiCall<CanvasGenerationTaskRef>(
+    return await apiCall<CanvasAudioGenerationTaskRef>(
       `projects/${encodeURIComponent(projectId)}/freezone/audio/speech`,
       {
         method: "POST",
@@ -28,7 +30,7 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
     );
   },
   async submitMusic(projectId, command) {
-    return await apiCall<CanvasGenerationTaskRef>(
+    return await apiCall<CanvasAudioGenerationTaskRef>(
       `projects/${encodeURIComponent(projectId)}/freezone/audio/eleven-music`,
       {
         method: "POST",

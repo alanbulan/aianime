@@ -1,19 +1,27 @@
 // Copyright (c) 2026 AI anime
-import type {
-  AudioNodeData,
-  AudioTextSegment,
-} from "../domain/canvasNodes";
-import type { AudioVoiceRef } from "@/modules/creative_canvas/public";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
-} from "./ports";
+import type { AudioVoiceRef } from "../domain/audioVoice";
 
-export function deriveAudioText(data: AudioNodeData): string {
+export type CanvasAudioTextSegment =
+  | { readonly type: "text"; readonly value: string }
+  | { readonly type: "pause"; readonly durationSec: number }
+  | { readonly type: "filler"; readonly token: string };
+
+export interface CanvasAudioPromptSource {
+  readonly text?: string;
+  readonly segments?: readonly CanvasAudioTextSegment[];
+}
+
+export interface CanvasAudioGenerationTaskRef {
+  readonly job_id: string;
+  readonly task_key: string;
+  readonly task_type: string;
+}
+
+export function deriveAudioText(data: CanvasAudioPromptSource): string {
   if (typeof data.text === "string") return data.text;
   if (Array.isArray(data.segments)) {
     return data.segments
-      .map((segment: AudioTextSegment) =>
+      .map((segment: CanvasAudioTextSegment) =>
         segment.type === "text" ? segment.value : "",
       )
       .join("");
@@ -22,7 +30,7 @@ export function deriveAudioText(data: AudioNodeData): string {
 }
 
 export function buildCanvasAudioPrompt(
-  data: AudioNodeData,
+  data: CanvasAudioPromptSource,
   upstreamText: string,
 ): string {
   return [upstreamText.trim(), deriveAudioText(data).trim()]
@@ -49,11 +57,23 @@ export interface CanvasAudioGenerationSubmissionGateway {
   submitSpeech(
     projectId: string,
     command: CanvasAudioSpeechCommand,
-  ): Promise<CanvasGenerationTaskRef>;
+  ): Promise<CanvasAudioGenerationTaskRef>;
   submitMusic(
     projectId: string,
     command: CanvasAudioMusicCommand,
-  ): Promise<CanvasGenerationTaskRef>;
+  ): Promise<CanvasAudioGenerationTaskRef>;
+}
+
+export interface CanvasAudioGenerationResultGateway {
+  fetchResultUrl(
+    projectId: string,
+    taskType: "freezone_audio_speech" | "freezone_audio_eleven_music",
+    jobId: string,
+  ): Promise<string>;
+}
+
+export interface CanvasAudioGenerationTaskGateway {
+  awaitCompletion(taskKey: string, projectId: string): Promise<void>;
 }
 
 interface GenerateCanvasAudioBaseParams {
@@ -82,12 +102,13 @@ export type GenerateCanvasAudioParams =
 
 export interface GenerateCanvasAudioDependencies {
   readonly submissionGateway: CanvasAudioGenerationSubmissionGateway;
-  readonly taskGateway: CanvasTaskResultGateway;
-  readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
+  readonly resultGateway: CanvasAudioGenerationResultGateway;
+  readonly taskGateway: CanvasAudioGenerationTaskGateway;
+  readonly onTaskSubmitted: (task: CanvasAudioGenerationTaskRef) => void;
 }
 
 export interface GenerateCanvasAudioResult {
-  readonly task: CanvasGenerationTaskRef;
+  readonly task: CanvasAudioGenerationTaskRef;
   readonly audioUrl: string;
 }
 
@@ -124,7 +145,7 @@ export async function generateCanvasAudio(
     params.kind === "music"
       ? "freezone_audio_eleven_music"
       : "freezone_audio_speech";
-  const audioUrl = await dependencies.taskGateway.fetchResultUrl(
+  const audioUrl = await dependencies.resultGateway.fetchResultUrl(
     params.projectId,
     taskType,
     task.job_id,

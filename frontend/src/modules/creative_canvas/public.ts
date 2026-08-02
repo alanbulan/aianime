@@ -640,6 +640,26 @@ export type {
   ValidateVideoReferenceAudioDurationResult,
   VideoReferenceAudioDuration,
 } from "@/modules/creative_canvas/application/validateVideoReferenceAudioDuration";
+export {
+  buildCanvasAudioPrompt,
+  deriveAudioText,
+} from "@/modules/creative_canvas/application/generateCanvasAudio";
+export type {
+  CanvasAudioGenerationTaskRef,
+  CanvasAudioPromptSource,
+  CanvasAudioTextSegment,
+  GenerateCanvasAudioParams,
+  GenerateCanvasAudioResult,
+} from "@/modules/creative_canvas/application/generateCanvasAudio";
+export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationComposition";
+export {
+  createCanvasAudioVoice,
+  loadCanvasAudioReferences,
+} from "@/modules/creative_canvas/audioVoiceCatalogComposition";
+export {
+  fetchCanvasGenerationResult,
+  fetchCanvasGenerationResultUrl,
+} from "@/modules/creative_canvas/infrastructure/freezoneGenerationResultGateway";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

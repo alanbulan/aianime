@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   describeAudioVoiceRef,
+  deriveAudioText,
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
   musicBillingSecondsFromMs,
@@ -10,7 +11,6 @@ import {
   resolveAudioVoiceSettings,
   type VoicePickResult,
 } from '@/modules/creative_canvas/public';
-import { deriveAudioText } from '@/features/canvas/application/generateCanvasAudio';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { translateCanvasText } from '@/features/canvas/composition';
 import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';

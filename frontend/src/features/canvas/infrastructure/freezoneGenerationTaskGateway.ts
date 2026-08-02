@@ -1,22 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { awaitTaskCompletion, listTasks } from '@/modules/task_execution/public';
-import { apiCall } from '@/shared/api/client';
+import {
+  fetchCanvasGenerationResult,
+  fetchCanvasGenerationResultUrl,
+} from '@/modules/creative_canvas/public';
 
 import type {
   CanvasGenerationTaskGateway,
   CanvasStoryScriptResult,
 } from '../application/ports';
 
-interface ResultUrlTransport {
-  readonly url: string;
-}
-
 interface ReversePromptTransport {
   readonly prompt: string;
-}
-
-function resultPath(projectId: string, taskType: string, jobId: string): string {
-  return `projects/${encodeURIComponent(projectId)}/freezone/jobs/${encodeURIComponent(taskType)}/${encodeURIComponent(jobId)}/result`;
 }
 
 function canvasTaskResult(
@@ -41,22 +36,23 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   },
 
   async fetchResultUrl(projectId, taskType, jobId) {
-    const result = await apiCall<ResultUrlTransport>(
-      resultPath(projectId, taskType, jobId),
-    );
-    return result.url;
+    return await fetchCanvasGenerationResultUrl(projectId, taskType, jobId);
   },
 
   async fetchReversePrompt(projectId, jobId) {
-    const result = await apiCall<ReversePromptTransport>(
-      resultPath(projectId, 'freezone_image_reverse_prompt', jobId),
+    const result = await fetchCanvasGenerationResult<ReversePromptTransport>(
+      projectId,
+      'freezone_image_reverse_prompt',
+      jobId,
     );
     return result.prompt;
   },
 
   async fetchStoryScriptResult(projectId, jobId) {
-    return await apiCall<CanvasStoryScriptResult>(
-      resultPath(projectId, 'freezone_story_script', jobId),
+    return await fetchCanvasGenerationResult<CanvasStoryScriptResult>(
+      projectId,
+      'freezone_story_script',
+      jobId,
     );
   },
 };

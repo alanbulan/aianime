@@ -4,7 +4,7 @@
 >
 > 启动日期：2026-07-31
 >
-> 最近复核：2026-08-02（第二轮 GOAL 保持执行中）
+> 最近复核：2026-08-03（第二轮 GOAL 保持执行中）
 >
 > 代码基线：`refactor/ddd-modular-monolith@3d445092`
 >
@@ -80,13 +80,13 @@
 
 | 区域 | 当前事实 | 未满足的退出条件 |
 | --- | --- | --- |
-| 前端 Creative Canvas | `modules/creative_canvas` 已有 296 个 TS/TSX 文件；`features/canvas` 仍有 850 个 TS/TSX 文件，`features/freezone` 已归零并删除，旧 feature 合计 850 个文件 | 新模块已有真实生产所有权，Freezone 项目页与 Shell Controller/View、Mask Editor Controller/View、Canvas 入口生命周期、Shell 聊天 Dock、画布反馈、Canvas Browser、素材库完整展示链/入口/拖拽交互状态与替换 controller、素材节点生成/浏览器拖拽读取/替换拖影、媒体文件识别/交互目标/剪贴板与拖放传输 controller、音频文件/声线目录/选择/分离/时长验证与面板投影、生成目录领域/应用/HTTP/Hook/组合根，以及 CommitDialog 完整入口/控制器/视图、AB 对比和 Create Identity 对话框已迁入；项目页和最终 Shell 跨上下文装配均已上移到独立 App composition，Canvas Sync 行为与子控制器装配已进入 Creative Canvas 唯一 presentation/root composition；Freezone 前端根已无源文件和目录，App Shell 对旧 Canvas 的私有入口由 11 个收紧到 4 个，Canvas 其余所有权仍待迁移 |
+| 前端 Creative Canvas | `modules/creative_canvas` 已有 306 个 TS/TSX 文件；`features/canvas` 仍有 843 个 TS/TSX 文件，`features/freezone` 已归零并删除，旧 feature 合计 843 个文件 | 新模块已有真实生产所有权，Freezone 项目页与 Shell Controller/View、Mask Editor Controller/View、Canvas 入口生命周期、Shell 聊天 Dock、画布反馈、Canvas Browser、素材库完整展示链/入口/拖拽交互状态与替换 controller、素材节点生成/浏览器拖拽读取/替换拖影、媒体文件识别/交互目标/剪贴板与拖放传输 controller、音频文件/声线目录/选择/生成/分离/时长验证与面板投影、生成结果查询唯一 adapter、生成目录领域/应用/HTTP/Hook/组合根，以及 CommitDialog 完整入口/控制器/视图、AB 对比和 Create Identity 对话框已迁入；项目页和最终 Shell 跨上下文装配均已上移到独立 App composition，Canvas Sync 行为与子控制器装配已进入 Creative Canvas 唯一 presentation/root composition；Freezone 前端根已无源文件和目录，App Shell 对旧 Canvas 的私有入口由 11 个收紧到 4 个，Canvas 其余所有权仍待迁移 |
 | Canvas 网关方向 | `freezoneAiGateway.ts` 已改为显式依赖注入，不再读取 URL 或导入 Freezone；R1-B 十四个切片已把 Freezone 路由持有的 `projectId/canvasId` 显式传到 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询，生产代码中的 `readUrl()` 从 38 个文件、89 处降到 0；上下文查询、预设元数据和浏览器 Canvas 存储回收迁移后，旧 `features/freezone/public.ts` 及其生产消费者均为 0 | R1-B 路由上下文和旧聚合 public 已关闭；R1-C 至 R1-E 仍需按所有权切片收敛两个旧 feature 中的剩余实现 |
 | 后端 Creative Canvas | 已有 `modules/creative_canvas`；视觉、文件锁、路径、项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、预设和任务执行已有唯一所有者，模块内对旧 `ai_anime.freezone.*` 的生产导入为 0；模块外对 Creative Canvas infrastructure 的直接导入也为 0 | Creative Canvas 本域 job 与跨域提交/本地恢复边界已收敛；云端 Invocation 恢复单列在 R6 |
 | 后端 Freezone | 旧 `freezone` 包的 Python 源文件已全部删除；任务 runner 和测试对 `freezone.jobs` 的导入为 0，旧包对 `ai_anime.generators.*` 的导入为 0 | 无后端生产实现残余；后续门禁持续禁止旧包回流 |
 | Task Execution | 前端 `modules/task_execution` 已有 28 个 TS/TSX 文件，持有 Task 合同、类型/Scope、状态派生、事件总线/Context、来源链接、查询/取消、共享 SSE、轮询兜底、等待终态、Store、订阅和错误呈现；旧 `task-center` 源文件从 13 降到 0。后端 `modules/task_execution` 已有 50 个 Python 文件，接管端口、取消键、协作取消/超时、可终止子进程、执行生命周期、队列、限额、Inline/Mock backend、runner 注册表与 16 个内置 runner、任务身份、项目任务查询/清理/取消、统一跨上下文提交、客户端安全投影和本地 inline 重启恢复规则；旧生产导入归零 | 前端旧 Task Center、后端 runner、Story Intake、Narrative Planning、Asset World、Creative Canvas、Production、业务 route 和本地恢复边界均已迁移，旧 `task_backend` 包整体删除；云端 Invocation 跨进程恢复单列在 R6 |
 | AI Assistant | 后端已有 `modules/ai_assistant`；前端模块当前有 101 个 TS/TSX 文件，持有 ingest、Composer controllers、消息队列、滚动、浏览器语音、任务通知、完整聊天展示链、详情 overlay、根布局、主会话生命周期和根容器；`features/superchat` 生产与测试目录均已删除 | application 控制器通过 ports 编排，composition 唯一注入缓存、活动回合、偏好、WebSocket 和 HTTP adapters；三个外部容器只依赖模块 public，前端 AI Assistant 旧边界已收敛 |
-| 架构门禁 | 残余 ratchet 已覆盖旧目录，Creative Canvas 公共入口门禁与完整后端架构门禁 184 项通过；第 703 批音频媒体服务及消费链行为/初始化 7 个文件 22 项、残余边界 11 项、完整模块边界 323 项及前端 TypeScript 通过 | 后端当前检查点已全绿，前端组合根循环、十四个显式路由上下文切片、Creative Canvas 已登记切片、Freezone、AI Assistant 与 Task Execution 旧目录收敛已关闭；其余 Canvas 旧目录所有权和最终干净环境门禁仍未完成 |
+| 架构门禁 | 残余 ratchet 已覆盖旧目录，Creative Canvas 公共入口门禁与完整后端架构门禁 184 项通过；第 704 批音频生成/声线网关及共享结果链定向 9 个文件 37 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项及前端 TypeScript 通过 | 后端当前检查点已全绿，前端组合根循环、十四个显式路由上下文切片、Creative Canvas 已登记切片、Freezone、AI Assistant 与 Task Execution 旧目录收敛已关闭；其余 Canvas 旧目录所有权和最终干净环境门禁仍未完成 |
 
 这些数字用于限定迁移范围，不采用“批量移动文件即完成”的判断方式。每批必须切换调用方、删除旧实现并增加覆盖旧目录的门禁。
 
@@ -168,6 +168,7 @@
 | Creative Canvas 媒体传输 presentation 纵向链 | 视频文件识别迁入 domain；Canvas DOM 交互目标、剪贴板/拖入文件解析、拖放指示、粘贴、拖放和统一媒体传输 controller 连同测试整体迁入 presentation | 14 个旧生产/测试文件直接删除，不保留 facade、re-export 或第二套实现；旧 `useCanvasMediaSurfaceController` 成为唯一 Canvas 适配器，显式注入节点创建、事件发布、素材 hydration、素材生成与 Viewer 沉浸状态，模块内部对 `@/features/*` 的导入为 0。Creative Canvas 由 257 增到 271，Canvas 由 886 降到 872，残余 ratchet 收紧到 872/0，App Shell 私有入口保持 4 个，前端空目录为 0。迁移行为、Surface 适配、Viewer 合同和残余边界 10 个文件 58 项、完整模块边界 323 项及前端 TypeScript 通过；首次组合门禁唯一失败为旧出现次数断言将参数解构计入，改为 Paste/Drop 两端口语义断言后完整门禁复跑全绿。未调用真实模型、未构建安装包、未操作 UI，Cloud/BYOK、Hermes ACP、唯一 Gateway 与平台对象存储边界未改变。阶段 8/10、R1、R4-R7 与第二轮 GOAL 继续进行中 |
 | Creative Canvas Audio 领域/应用纵向链 | 音频文件识别、声线引用、声线目录 port/投影、声线选择、音频引用展示名、节点工具栏与操作面板投影及测试迁入 Creative Canvas domain/application | `AudioVoiceRef` 从旧 `canvasNodes.ts` 抽为唯一领域合同；工具栏与操作面板改用窄输入合同，不反向依赖旧节点巨型类型或旧 `ports`。12 个旧生产/测试文件直接删除，全部调用方经模块 public 使用，不保留 facade、re-export 或第二套实现。Creative Canvas 由 271 增到 284，Canvas 由 872 降到 860，残余 ratchet 收紧到 860/0，App Shell 私有入口保持 4 个；旧路径和迁移文件对 `@/features/*` 的导入均为 0。音频领域、控制器、视图、Gateway 与引用消费链 15 个文件 60 项、残余边界 11 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；首次行为回归 2 项失败为既有完整 public mock 未补新导出，补齐 mock 后 6 项复验通过；架构门禁先后暴露旧导入集合断言和新增唯一所有者断言自匹配，修正门禁后完整 323 项复跑全绿。未调用真实模型、未构建安装包、未操作 UI；Cloud/BYOK、Hermes ACP、唯一 Gateway 与平台对象存储边界未改变。阶段 8/10、R1、R4-R7 与第二轮 GOAL 继续进行中 |
 | Creative Canvas Audio 媒体服务纵向链 | 音视频分离结果投影/用例/HTTP adapter/组合根与视频引用音频时长用例/浏览器 metadata adapter/组合根及测试迁入 Creative Canvas application/infrastructure/root composition | 10 个旧生产/测试文件直接删除，旧 Canvas `composition.ts` 删除两项用例、两个 adapter 和两个 wrapper；分离组合根直接经 Task Execution public 等待任务，不复制旧共享 Task Gateway。视频节点与工具栏统一经 Creative Canvas public 使用，不保留 facade、re-export 或第二套实现。Creative Canvas 由 284 增到 296，Canvas 由 860 降到 850，残余 ratchet 收紧到 850/0，App Shell 私有入口保持 4 个；旧路径和迁移文件对 `@/features/*` 的导入均为 0。迁移行为、视频工具栏与模块初始化 7 个文件 22 项、残余边界 11 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；首次完整架构门禁唯一失败为视频工具栏旧精确导入集合，登记模块 public 后完整门禁复跑全绿。未调用真实模型、未构建安装包、未操作 UI；Cloud/BYOK、Hermes ACP、唯一 Gateway 与平台对象存储边界未改变。阶段 8/10、R1、R4-R7 与第二轮 GOAL 继续进行中 |
+| Creative Canvas Audio 生成与声线网关纵向链 | 音频生成用例、语音/音乐提交 adapter、声线目录 adapter 及两个组合根迁入 Creative Canvas application/infrastructure/root composition；生成提示词改用本域窄合同，任务完成只经 Task Execution public | 7 个旧 Canvas 生产/测试路径直接删除，生成 Hook、音频节点与声线选择 controller 全部改经 Creative Canvas public，不保留 facade 或第二套实现。新增生成结果唯一 adapter 持有 `/freezone/jobs/.../result`，旧通用 Canvas Gateway 与新音频链共同委托它，消除重复端点所有者。Creative Canvas 由 296 增到 306，Canvas 由 850 降到 843，残余 ratchet 收紧到 843/0，App Shell 私有入口保持 4 个；迁移文件对 `@/features/*` 的导入为 0。音频/声线/共享结果链定向 9 个文件 37 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 和 `git diff --check` 通过；首次完整架构门禁的唯一失败真实暴露重复结果端点，收敛唯一 adapter 后完整复跑全绿。未调用真实模型、未构建安装包、未操作 UI；Cloud/BYOK、Hermes ACP、唯一 Gateway 与平台对象存储边界未改变。阶段 8/10、R1、R4-R7 与第二轮 GOAL 继续进行中 |
 | AI Assistant 前端第一批 | `types.ts` 的聊天帧、消息、附件、审批和设置合同迁入 `modules/ai_assistant/domain/contracts.ts`，scope 映射/匹配规则及测试迁入同域；48 个生产与测试消费者统一改经模块 `public.ts`，旧文件、旧测试和旧路径导入直接删除 | `features/superchat` 从 50 降到 48，前端 AI Assistant 模块从 0 增到 4；领域 5 项、SuperChat 边界 39 项、第二轮残余边界 10 项、`module-boundaries` 322 项共 376 项及前端 TypeScript、`git diff --check` 通过。R2 已开始但未完成，Task Execution 未开始 |
 | AI Assistant 前端第二批 | 工具/历史消息识别、错误与完成提示分类及文本区间规则迁入 `domain/messagePresentationRules.ts`；过滤、搜索、置顶、流式消息和等待状态投影迁入 `application/panelMessageProjection.ts`，两组测试随所有者迁移；消息视图和根 panel 统一经模块 public 使用，旧生产文件与旧测试直接删除 | `features/superchat` 从 48 降到 46，前端 AI Assistant 模块从 4 增到 8；领域/应用 11 项、SuperChat 边界 39 项、第二轮残余边界 10 项、`module-boundaries` 322 项共 387 项及前端 TypeScript、`git diff --check` 通过。R2、阶段 9/10 与 GOAL 继续进行中 |
 | AI Assistant 前端第三批 | UI spec/JSON 结构化内容识别、修复、legacy 规范化及媒体展示模型迁入 `domain/structuredContent.ts`，消息文本/角色/时间/附件归一迁入 `domain/message.ts`；结构化内容测试随所有者迁移，原混在缓存测试中的消息归一用例拆回领域测试；全部消费者统一经模块 public | `features/superchat` 从 46 降到 44，前端 AI Assistant 模块从 8 增到 12；定向 12 个文件 430 项及前端 TypeScript、`git diff --check` 通过。机械替换曾误伤 `message-*` 前缀，测试前已精确恢复，`public-*` 错误路径和两个旧生产路径均扫描为 0；R2、阶段 9/10 与 GOAL 继续进行中 |
@@ -355,7 +356,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 ### R1：Creative Canvas 唯一边界
 
-状态：进行中。R1-A 的跨上下文装配环、R1-B 的十四个显式路由上下文切片和 R1-F 后端边界均已关闭；Freezone 前后端旧实现、旧聚合 public、runner 旧 jobs 导入、模块外 infrastructure 直连及 Canvas 生产 `readUrl()` 均为 0。前端 Creative Canvas 已持有同步、存储、Projection、提交、素材库、项目/Shell 展示、生成目录、素材节点插入/替换拖影、媒体传输 presentation 与 Audio 领域/应用/媒体服务等已登记纵向链，项目页与 Shell 的跨上下文装配均上移到 App composition。`modules/creative_canvas`、`features/canvas` 与 `features/freezone` 当前分别有 296/850/0 个 TS/TSX 文件，App Shell 对旧 Canvas 私有入口由 11 个收紧到 4 个；R1-C 至 R1-E 的其余 Canvas 领域、应用/适配器和展示所有权仍未迁完，R1 尚未达到退出条件。
+状态：进行中。R1-A 的跨上下文装配环、R1-B 的十四个显式路由上下文切片和 R1-F 后端边界均已关闭；Freezone 前后端旧实现、旧聚合 public、runner 旧 jobs 导入、模块外 infrastructure 直连及 Canvas 生产 `readUrl()` 均为 0。前端 Creative Canvas 已持有同步、存储、Projection、提交、素材库、项目/Shell 展示、生成目录、素材节点插入/替换拖影、媒体传输 presentation 与 Audio 领域/应用/媒体服务/生成网关及共享结果查询等已登记纵向链，项目页与 Shell 的跨上下文装配均上移到 App composition。`modules/creative_canvas`、`features/canvas` 与 `features/freezone` 当前分别有 306/843/0 个 TS/TSX 文件，App Shell 对旧 Canvas 私有入口由 11 个收紧到 4 个；R1-C 至 R1-E 的其余 Canvas 领域、应用/适配器和展示所有权仍未迁完，R1 尚未达到退出条件。
 
 执行批次：
 
@@ -582,7 +583,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。
-2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 888 个 TS/TSX 文件，最后一个消费者切换后删除旧目录，不做整目录复制。
+2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 843 个 TS/TSX 文件，最后一个消费者切换后删除旧目录，不做整目录复制。
 3. R2 已完成：AI Assistant 与 Task Execution 前端旧目录均已归零；后端核心协议、身份、限额、协作取消、可终止子进程、执行核心、Inline/Mock 执行、项目任务查询/清理/取消、客户端投影、16 个内置 runner、统一提交和本地重启恢复均由 Task Execution 持有，旧 `task_backend` 包和 route 组合直连已删除。Hermes ACP 已内置为唯一 Agent 执行运行时且没有 backend 选择器，模型仍只走 Cloud/BYOK 两条商业入口；云端 Invocation 跨进程恢复继续留在 R6。
 4. R5/R6：网关固定 file object、Invocation 和 SSE 合同后接入文件、调用记录、取消/恢复与额度刷新；安全制品 schema 未固定前继续禁止下载/安装。
 5. R4/R5 网关阻塞项具备合同后补离线验签、权威许可拒绝语义和更新安全链，最后执行 R7 干净环境门禁。

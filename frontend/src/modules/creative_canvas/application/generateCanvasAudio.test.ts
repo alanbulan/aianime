@@ -1,18 +1,20 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { AudioNodeData } from "../domain/canvasNodes";
-import type { CanvasTaskResultGateway } from "./ports";
 import {
   buildCanvasAudioPrompt,
   deriveAudioText,
   generateCanvasAudio,
+  type CanvasAudioGenerationResultGateway,
   type CanvasAudioGenerationSubmissionGateway,
+  type CanvasAudioGenerationTaskGateway,
+  type CanvasAudioPromptSource,
 } from "./generateCanvasAudio";
 
-function audioData(patch: Partial<AudioNodeData> = {}): AudioNodeData {
+function audioData(
+  patch: Partial<CanvasAudioPromptSource> = {},
+): CanvasAudioPromptSource {
   return {
-    audioUrl: null,
     ...patch,
   };
 }
@@ -22,12 +24,15 @@ function dependencies() {
     submitSpeech: vi.fn(),
     submitMusic: vi.fn(),
   };
-  const taskGateway: CanvasTaskResultGateway = {
-    awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
+  const resultGateway: CanvasAudioGenerationResultGateway = {
     fetchResultUrl: vi.fn().mockResolvedValue("/audio/result.mp3"),
+  };
+  const taskGateway: CanvasAudioGenerationTaskGateway = {
+    awaitCompletion: vi.fn().mockResolvedValue(undefined),
   };
   return {
     submissionGateway,
+    resultGateway,
     taskGateway,
     onTaskSubmitted: vi.fn(),
   };
@@ -88,7 +93,7 @@ describe("Canvas audio generation", () => {
       "speech-task",
       "project-1",
     );
-    expect(deps.taskGateway.fetchResultUrl).toHaveBeenCalledWith(
+    expect(deps.resultGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-1",
       "freezone_audio_speech",
       "speech-job",
@@ -124,7 +129,7 @@ describe("Canvas audio generation", () => {
         respectSectionsDurations: true,
       },
     );
-    expect(deps.taskGateway.fetchResultUrl).toHaveBeenCalledWith(
+    expect(deps.resultGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-2",
       "freezone_audio_eleven_music",
       "music-job",

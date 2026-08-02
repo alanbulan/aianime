@@ -13,15 +13,21 @@ const mocks = vi.hoisted(() => ({
   toastError: vi.fn(),
 }));
 
-vi.mock('@/features/canvas/audioComposition', () => ({
-  loadCanvasAudioReferences: (project: string) =>
-    mocks.loadReferences(project),
-  createCanvasAudioVoice: (
-    project: string,
-    file: File,
-    name?: string,
-  ) => mocks.createVoice(project, file, name),
-}));
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/modules/creative_canvas/public')
+  >();
+  return {
+    ...actual,
+    loadCanvasAudioReferences: (project: string) =>
+      mocks.loadReferences(project),
+    createCanvasAudioVoice: (
+      project: string,
+      file: File,
+      name?: string,
+    ) => mocks.createVoice(project, file, name),
+  };
+});
 
 vi.mock('sonner', () => ({
   toast: { error: (message: string) => mocks.toastError(message) },
