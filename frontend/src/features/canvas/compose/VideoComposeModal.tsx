@@ -3,7 +3,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
@@ -11,14 +10,15 @@ import {
   useVideoComposeExportController,
   useVideoComposeKeyboardController,
   useVideoComposePlaybackController,
+  useVideoComposeTimelineSessionController,
   useVideoComposeTimelineEditorController,
   useVideoComposeTimelinePointerController,
   type ComposeCover,
   type ComposeTimelineState,
   type VideoComposeExportDialogState,
   type VideoComposeExportLocation,
+  type VideoComposeSourceMedia,
 } from "@/modules/creative_canvas/public";
-import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 
 import { CoverEditor } from "./CoverEditor";
@@ -28,8 +28,8 @@ export interface VideoComposeModalProps {
   canvasId: string;
   /** 画布上被选中、用于初始化时间线的节点 id（按选择顺序）。 */
   seedNodeIds: string[];
-  /** 当前连接的上游节点快照，用于初始化时间线并校正已有草稿。 */
-  sourceNodes: CanvasNode[];
+  /** 当前连接的规范化媒体快照，用于初始化时间线并校正已有草稿。 */
+  sourceMedia: readonly VideoComposeSourceMedia[];
   onClose: () => void;
   /** 合成成功后回调，参数为最终视频 url + 封面 url（未设封面时为 null）。 */
   onComposed: (url: string, coverUrl: string | null) => void;
@@ -60,7 +60,7 @@ export function VideoComposeModal({
   project,
   canvasId,
   seedNodeIds,
-  sourceNodes,
+  sourceMedia,
   onClose,
   onComposed,
   initialTimeline,
@@ -90,8 +90,9 @@ export function VideoComposeModal({
     updateTimelineTracks,
   } = useVideoComposeTimelineSessionController({
     initialTimeline,
-    sourceNodes,
+    sourceMedia,
     seedNodeIds,
+    resolveMediaUrl: resolveImageDisplayUrl,
     createClipId: makeClipId,
     onPersistDraft,
   });

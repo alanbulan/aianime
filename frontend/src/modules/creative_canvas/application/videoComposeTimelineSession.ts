@@ -9,19 +9,10 @@ import {
   type ComposeClip,
   type ComposeTimelineState,
   type ComposeTrack,
-  type ComposeTrackKind,
 } from '../domain/videoComposeTimeline';
+import type { VideoComposeSourceMedia } from '../domain/videoComposeInputs';
 
 export type VideoComposeClipIdFactory = () => string;
-
-export interface VideoComposeSourceMedia {
-  readonly nodeId: string;
-  readonly kind: ComposeTrackKind;
-  readonly sourceUrl: string;
-  readonly displayName: string | null;
-  readonly thumbUrl: string | null;
-  readonly durationMs: number | null;
-}
 
 export function buildVideoComposeInitialTimeline(
   sources: readonly VideoComposeSourceMedia[],

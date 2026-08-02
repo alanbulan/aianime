@@ -1,77 +1,46 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
-  isAudioNode,
-  isVideoNode,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
-import {
-  applyVideoComposeTimelineEdit,
   buildVideoComposeInitialTimeline,
   resolveVideoComposeInitialTimeline,
-  type ComposeCover,
-  type ComposeTimelineState,
-  type ComposeTrack,
-  type VideoComposeClipReference,
   type VideoComposeClipIdFactory,
-  type VideoComposeSourceMedia,
+} from "../application/videoComposeTimelineSession";
+import type { VideoComposeSourceMedia } from "../domain/videoComposeInputs";
+import type {
+  ComposeCover,
+  ComposeTimelineState,
+  ComposeTrack,
+} from "../domain/videoComposeTimeline";
+import {
+  applyVideoComposeTimelineEdit,
+  type VideoComposeClipReference,
   type VideoComposeTimelineEdit,
-} from "@/modules/creative_canvas/public";
-import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
+} from "../domain/videoComposeTimelineEdits";
+import {
+  probeVideoComposeMediaDuration,
+  type VideoComposeMediaUrlResolver,
+} from "../infrastructure/browserVideoComposeMediaRuntime";
 
 const VIDEO_COMPOSE_HISTORY_LIMIT = 50;
 
-function projectVideoComposeSourceMedia(
-  nodes: readonly CanvasNode[],
-): VideoComposeSourceMedia[] {
-  return nodes.flatMap<VideoComposeSourceMedia>((node) => {
-    if (isVideoNode(node) && node.data.videoUrl) {
-      return [{
-        nodeId: node.id,
-        kind: "video" as const,
-        sourceUrl: node.data.videoUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: node.data.previewImageUrl ?? null,
-        durationMs:
-          typeof node.data.durationMs === "number" ? node.data.durationMs : null,
-      }];
-    }
-    if (isAudioNode(node) && node.data.audioUrl) {
-      return [{
-        nodeId: node.id,
-        kind: "audio" as const,
-        sourceUrl: node.data.audioUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: null,
-        durationMs:
-          typeof node.data.durationMs === "number" ? node.data.durationMs : null,
-      }];
-    }
-    return [];
-  });
-}
-
 export interface UseVideoComposeTimelineSessionControllerOptions {
   initialTimeline?: ComposeTimelineState | null;
-  sourceNodes: CanvasNode[];
-  seedNodeIds: string[];
+  sourceMedia: readonly VideoComposeSourceMedia[];
+  seedNodeIds: readonly string[];
+  resolveMediaUrl: VideoComposeMediaUrlResolver;
   onPersistDraft?: (timeline: ComposeTimelineState) => void;
   createClipId: VideoComposeClipIdFactory;
 }
 
 export function useVideoComposeTimelineSessionController({
   initialTimeline,
-  sourceNodes,
+  sourceMedia,
   seedNodeIds,
+  resolveMediaUrl,
   onPersistDraft,
   createClipId,
 }: UseVideoComposeTimelineSessionControllerOptions) {
-  const sourceMedia = useMemo(
-    () => projectVideoComposeSourceMedia(sourceNodes),
-    [sourceNodes],
-  );
   const [timeline, setTimeline] = useState<ComposeTimelineState>(() =>
     resolveVideoComposeInitialTimeline({
       initialTimeline,
@@ -185,7 +154,7 @@ export function useVideoComposeTimelineSessionController({
         const durationMs = await probeVideoComposeMediaDuration(
           clip.sourceUrl,
           kind,
-          resolveImageDisplayUrl,
+          resolveMediaUrl,
         );
         if (cancelled || durationMs == null) return;
         applyTimelineEdit({
@@ -200,6 +169,7 @@ export function useVideoComposeTimelineSessionController({
     };
   }, [
     applyTimelineEdit,
+    resolveMediaUrl,
     timeline.tracks
       .flatMap((track) =>
         track.clips.map((clip) => `${clip.id}:${clip.durationMs == null}`),

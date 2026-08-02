@@ -3,22 +3,58 @@ import { useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
+import {
+  MIN_VIDEO_COMPOSE_VIDEOS,
+  projectVideoComposeInputs,
+  type ComposeTimelineState,
+  type VideoComposeInputMedia,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
+  isAudioNode,
+  isVideoNode,
+  type CanvasNode,
   type CanvasNodeData,
   type VideoComposeNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import {
-  MIN_VIDEO_COMPOSE_VIDEOS,
-  projectVideoComposeInputs,
-} from '@/features/canvas/domain/videoComposeInputs';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 136;
+
+function mapCanvasVideoComposeInputs(
+  nodes: readonly CanvasNode[],
+): VideoComposeInputMedia[] {
+  return nodes.flatMap<VideoComposeInputMedia>((node) => {
+    if (isVideoNode(node) && node.data.videoUrl) {
+      return [{
+        nodeId: node.id,
+        kind: 'video',
+        sourceUrl: node.data.videoUrl,
+        displayName: node.data.displayName ?? null,
+        thumbUrl: node.data.previewImageUrl ?? null,
+        durationMs:
+          typeof node.data.durationMs === 'number' ? node.data.durationMs : null,
+        verticalPosition: node.position?.y ?? 0,
+      }];
+    }
+    if (isAudioNode(node) && node.data.audioUrl) {
+      return [{
+        nodeId: node.id,
+        kind: 'audio',
+        sourceUrl: node.data.audioUrl,
+        displayName: node.data.displayName ?? null,
+        thumbUrl: null,
+        durationMs:
+          typeof node.data.durationMs === 'number' ? node.data.durationMs : null,
+        verticalPosition: node.position?.y ?? 0,
+      }];
+    }
+    return [];
+  });
+}
 
 export interface VideoComposeNodeControllerOptions {
   id: string;
@@ -42,7 +78,7 @@ export function useVideoComposeNodeController({
   const upstreamNodes = useUpstreamNodes(id);
   const [isEditorOpen, setEditorOpen] = useState(false);
   const inputProjection = useMemo(
-    () => projectVideoComposeInputs(upstreamNodes),
+    () => projectVideoComposeInputs(mapCanvasVideoComposeInputs(upstreamNodes)),
     [upstreamNodes],
   );
   const title = useMemo(
@@ -88,7 +124,7 @@ export function useVideoComposeNodeController({
     title,
     size: { width: NODE_WIDTH, height: NODE_HEIGHT },
     seedNodeIds: inputProjection.seedNodeIds,
-    sourceNodes: upstreamNodes,
+    sourceMedia: inputProjection.sourceMedia,
     videoCount: inputProjection.videoCount,
     canOpen: inputProjection.canOpen,
     isEditorOpen,

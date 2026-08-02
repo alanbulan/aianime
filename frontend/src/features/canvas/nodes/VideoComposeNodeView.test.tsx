@@ -32,7 +32,7 @@ vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
     project,
     canvasId,
     seedNodeIds,
-    sourceNodes,
+    sourceMedia,
     onPersistDraft,
     onClose,
     onComposed,
@@ -40,14 +40,14 @@ vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
     project: string;
     canvasId: string;
     seedNodeIds: string[];
-    sourceNodes: unknown[];
+    sourceMedia: readonly unknown[];
     onPersistDraft(timeline: ComposeTimelineState): void;
     onClose(): void;
     onComposed(url: string, coverUrl: string | null): void;
   }) => (
     <div>
       <span>
-        modal:{project}:{canvasId}:{seedNodeIds.join(',')}:{sourceNodes.length}
+        modal:{project}:{canvasId}:{seedNodeIds.join(',')}:{sourceMedia.length}
       </span>
       <button type="button" onClick={() => onPersistDraft({
         tracks: [],
@@ -70,7 +70,7 @@ function createController(): VideoComposeNodeController {
     title: '视频合成',
     size: { width: 240, height: 136 },
     seedNodeIds: ['video-a', 'video-b'],
-    sourceNodes: [],
+    sourceMedia: [],
     videoCount: 2,
     canOpen: true,
     isEditorOpen: false,

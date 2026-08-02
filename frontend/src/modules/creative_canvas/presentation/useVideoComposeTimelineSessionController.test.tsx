@@ -6,11 +6,8 @@ import {
   VIDEO_TRACK_ID,
   type ComposeClip,
   type ComposeTimelineState,
-} from "@/modules/creative_canvas/public";
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
+} from "../domain/videoComposeTimeline";
+import type { VideoComposeSourceMedia } from "../domain/videoComposeInputs";
 
 import { useVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
 
@@ -19,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
+  "../infrastructure/browserVideoComposeMediaRuntime",
   () => ({
     probeVideoComposeMediaDuration: mocks.probeDuration,
   }),
@@ -62,8 +59,9 @@ function setup(
   return renderHook(() =>
     useVideoComposeTimelineSessionController({
       initialTimeline,
-      sourceNodes: [],
+      sourceMedia: [],
       seedNodeIds: [],
+      resolveMediaUrl: (url) => `display:${url}`,
       onPersistDraft,
       createClipId: () => "created-clip",
     }),
@@ -71,36 +69,32 @@ function setup(
 }
 
 describe("useVideoComposeTimelineSessionController", () => {
-  it("projects playable Canvas nodes into the module source contract", () => {
-    const sourceNodes = [
+  it("initializes the timeline from the normalized source contract", () => {
+    const sourceMedia: VideoComposeSourceMedia[] = [
       {
-        id: "video-a",
-        type: CANVAS_NODE_TYPES.video,
-        position: { x: 0, y: 0 },
-        data: {
-          videoUrl: "/video-a.mp4",
-          durationMs: 3000,
-          displayName: "Video A",
-          previewImageUrl: "/video-a.jpg",
-        },
+        nodeId: "video-a",
+        kind: "video",
+        sourceUrl: "/video-a.mp4",
+        durationMs: 3000,
+        displayName: "Video A",
+        thumbUrl: "/video-a.jpg",
       },
       {
-        id: "audio-a",
-        type: CANVAS_NODE_TYPES.audio,
-        position: { x: 0, y: 0 },
-        data: {
-          audioUrl: "/audio-a.wav",
-          durationMs: 2000,
-          displayName: "Audio A",
-        },
+        nodeId: "audio-a",
+        kind: "audio",
+        sourceUrl: "/audio-a.wav",
+        durationMs: 2000,
+        displayName: "Audio A",
+        thumbUrl: null,
       },
-    ] as CanvasNode[];
+    ];
     let clipIndex = 0;
 
     const { result } = renderHook(() =>
       useVideoComposeTimelineSessionController({
-        sourceNodes,
+        sourceMedia,
         seedNodeIds: ["audio-a", "video-a"],
+        resolveMediaUrl: (url) => `display:${url}`,
         createClipId: () => `clip-${clipIndex++}`,
       }),
     );

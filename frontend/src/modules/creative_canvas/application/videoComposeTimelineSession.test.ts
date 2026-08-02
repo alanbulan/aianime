@@ -5,12 +5,12 @@ import type {
   ComposeClip,
   ComposeTimelineState,
 } from '../domain/videoComposeTimeline';
+import type { VideoComposeSourceMedia } from '../domain/videoComposeInputs';
 
 import {
   buildVideoComposeInitialTimeline,
   reconcileVideoComposeDraftWithSources,
   resolveVideoComposeInitialTimeline,
-  type VideoComposeSourceMedia,
 } from './videoComposeTimelineSession';
 
 function videoSource(

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { ComposeTrackKind } from '@/modules/creative_canvas/public';
+import type { ComposeTrackKind } from '../domain/videoComposeTimeline';
 
 export type VideoComposeMediaUrlResolver = (url: string) => string;
 

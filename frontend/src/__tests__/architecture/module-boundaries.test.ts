@@ -845,11 +845,11 @@ describe("frontend architecture boundaries", () => {
     );
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeInputs.ts",
+      "modules/creative_canvas/domain/videoComposeInputs.ts",
     );
     const domainTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeInputs.test.ts",
+      "modules/creative_canvas/domain/videoComposeInputs.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -903,11 +903,11 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/VideoComposeNode.tsx"],
-      ["features/canvas/domain/videoComposeInputs.ts"],
+      ["modules/creative_canvas/domain/videoComposeInputs.ts"],
       ["features/canvas/hooks/useVideoComposeNodeController.ts"],
       ["features/canvas/nodes/VideoComposeNodeView.tsx"],
     ]);
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(importSpecifiers(domainPath)).toEqual(["./videoComposeTimeline"]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("useCanvasStore");
     expect(registrySource).toContain(
@@ -925,7 +925,15 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
     expect(controllerSource).toContain("useUpstreamNodes(id)");
+    expect(controllerSource).toContain("mapCanvasVideoComposeInputs(");
     expect(controllerSource).toContain("projectVideoComposeInputs(");
+    expect(controllerSource).toContain(
+      "sourceMedia: inputProjection.sourceMedia",
+    );
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain(
+      "@/features/canvas/domain/videoComposeInputs",
+    );
     expect(controllerSource).toContain("useCanvasStore.getState()");
     expect(controllerSource).toContain("store.findNodePosition(id, 580, 380)");
     expect(controllerSource).toContain(
@@ -25644,11 +25652,11 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoComposeMediaRuntime.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeMediaRuntime.ts",
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoComposeMediaRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeMediaRuntime.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -25656,7 +25664,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sessionControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineSessionController.ts",
     );
     const nodeControllerPath = resolve(
       SRC_ROOT,
@@ -25706,30 +25714,35 @@ describe("frontend architecture boundaries", () => {
     expect(timelineSource).not.toContain("document.");
     expect(timelineSource).not.toContain("useCanvasStore");
     expect(timelineSource).not.toContain("@/api/");
-    expect(new Set(importSpecifiers(sessionPath))).toEqual(
-      new Set(["../domain/videoComposeTimeline"]),
-    );
+    expect(new Set(importSpecifiers(sessionPath))).toEqual(new Set([
+      "../domain/videoComposeInputs",
+      "../domain/videoComposeTimeline",
+    ]));
     expect(sessionSource).not.toContain("react");
     expect(sessionSource).not.toContain("document.");
     expect(sessionSource).not.toContain("useCanvasStore");
     expect(sessionSource).not.toContain("className=");
     expect(importSpecifiers(runtimePath)).toEqual([
-      "@/modules/creative_canvas/public",
+      "../domain/videoComposeTimeline",
     ]);
     expect(runtimeSource).toContain("document.createElement(");
     expect(runtimeSource).toContain("element.src = resolveUrl(url)");
     expect(runtimeSource).not.toContain("resolveImageDisplayUrl");
     expect(runtimeSource).not.toContain("useCanvasStore");
     expect(importSpecifiers(sessionControllerPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../application/videoComposeTimelineSession",
+    );
+    expect(importSpecifiers(sessionControllerPath)).toContain(
+      "../domain/videoComposeInputs",
     );
     expect(importSpecifiers(sessionControllerPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimeline",
     );
     expect(importSpecifiers(sessionControllerPath)).toContain(
-      "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
+      "../infrastructure/browserVideoComposeMediaRuntime",
     );
-    expect(importSpecifiers(modalPath)).toContain(
+    expect(modalSource).toContain("useVideoComposeTimelineSessionController");
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposeTimelineSessionController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
@@ -25752,17 +25765,17 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("function buildInitialTimeline(");
     expect(modalSource).not.toContain("function reconcileDraftWithUpstream(");
     expect(modalSource).not.toContain("function probeMediaDuration(");
-    expect(nodeControllerSource).toContain("sourceNodes: upstreamNodes");
-    expect(viewSource).toContain("sourceNodes={controller.sourceNodes}");
+    expect(nodeControllerSource).toContain(
+      "sourceMedia: inputProjection.sourceMedia",
+    );
+    expect(viewSource).toContain("sourceMedia={controller.sourceMedia}");
     expect(existsSync(oldTimelinePath)).toBe(false);
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/videoComposeTimeline.ts"],
       ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
       ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
       ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
-      [
-        "features/canvas/infrastructure/browserVideoComposeMediaRuntime.ts",
-      ],
+      ["modules/creative_canvas/infrastructure/browserVideoComposeMediaRuntime.ts"],
     ]);
     expect(timelineTestSource).toContain(
       'from "./videoComposeTimeline"',
@@ -25778,11 +25791,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose timeline history, selection, and draft lifecycle in one session controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineSessionController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineSessionController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineSessionController.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -25808,10 +25821,11 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/imageData",
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
-        "@/modules/creative_canvas/public",
+        "../application/videoComposeTimelineSession",
+        "../domain/videoComposeInputs",
+        "../domain/videoComposeTimeline",
+        "../domain/videoComposeTimelineEdits",
+        "../infrastructure/browserVideoComposeMediaRuntime",
       ]),
     );
     expect(controllerSource).toContain("VIDEO_COMPOSE_HISTORY_LIMIT = 50");
@@ -25823,11 +25837,14 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("buildVideoComposeInitialTimeline(");
     expect(controllerSource).not.toContain("useCanvasStore");
     expect(controllerSource).not.toContain("@/api/");
+    expect(controllerSource).not.toContain("@/features/canvas/");
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/features/canvas/hooks/useVideoComposeTimelineSessionController",
+      "@/modules/creative_canvas/public",
     );
+    expect(modalSource).toContain("sourceMedia");
+    expect(modalSource).toContain("resolveMediaUrl: resolveImageDisplayUrl");
     expect(modalSource).not.toContain("setTimeline(");
     expect(modalSource).not.toContain("setPast(");
     expect(modalSource).not.toContain("setFuture(");
@@ -25840,7 +25857,7 @@ describe("frontend architecture boundaries", () => {
     expect(modalViewSource).toContain("disabled={!toolbar.canUndo}");
     expect(modalViewSource).toContain("disabled={!toolbar.canRedo}");
     expect(declarationOwners).toEqual([
-      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineSessionController.ts",
     ]);
     expect(controllerTestSource).toContain(
       'from "./useVideoComposeTimelineSessionController"',
@@ -25862,7 +25879,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sessionControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTimelineSessionController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTimelineSessionController.ts",
     );
     const editorControllerPath = resolve(
       SRC_ROOT,
@@ -25909,6 +25926,9 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/domain/videoComposeTimelineEdits",
     );
     expect(importSpecifiers(sessionControllerPath)).toContain(
+      "../domain/videoComposeTimelineEdits",
+    );
+    expect(importSpecifiers(sessionControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(editorControllerSource).toContain(

@@ -298,6 +298,8 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const videoComposeDomainFiles = [
       "videoCompose.ts",
+      "videoComposeInputs.ts",
+      "videoComposeInputs.test.ts",
       "videoClipRange.ts",
       "videoClipRange.test.ts",
       "videoComposeTimeline.ts",
@@ -310,12 +312,16 @@ describe("round 2 residual architecture boundaries", () => {
     const videoComposeInfrastructureFiles = [
       "browserVideoComposeExportRuntime.ts",
       "browserVideoComposeExportRuntime.test.ts",
+      "browserVideoComposeMediaRuntime.ts",
+      "browserVideoComposeMediaRuntime.test.ts",
       "browserVideoFrameStrip.ts",
       "browserVideoFrameStrip.test.ts",
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
     ];
     const videoComposePresentationFiles = [
+      "useVideoComposeTimelineSessionController.ts",
+      "useVideoComposeTimelineSessionController.test.tsx",
       "useVideoComposeTimelineEditorController.ts",
       "useVideoComposeTimelineEditorController.test.tsx",
       "useVideoComposeTimelinePointerController.ts",
@@ -1619,7 +1625,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 716],
+      ["features/canvas", 710],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

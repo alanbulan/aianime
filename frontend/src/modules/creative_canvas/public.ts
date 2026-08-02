@@ -845,6 +845,15 @@ export type {
   LaidClip,
 } from "@/modules/creative_canvas/domain/videoComposeTimeline";
 export {
+  MIN_VIDEO_COMPOSE_VIDEOS,
+  projectVideoComposeInputs,
+} from "@/modules/creative_canvas/domain/videoComposeInputs";
+export type {
+  VideoComposeInputMedia,
+  VideoComposeInputProjection,
+  VideoComposeSourceMedia,
+} from "@/modules/creative_canvas/domain/videoComposeInputs";
+export {
   VIDEO_COMPOSE_MAX_SPEED,
   VIDEO_COMPOSE_MIN_SPEED,
   applyVideoComposeTimelineEdit,
@@ -878,7 +887,6 @@ export {
 export type {
   ResolveVideoComposeInitialTimelineOptions,
   VideoComposeClipIdFactory,
-  VideoComposeSourceMedia,
 } from "@/modules/creative_canvas/application/videoComposeTimelineSession";
 export {
   projectVideoComposeActiveMediaClock,
@@ -897,6 +905,8 @@ export type {
 export { captureBrowserVideoFrameStrip } from "@/modules/creative_canvas/infrastructure/browserVideoFrameStrip";
 export { useVideoComposeTimelineEditorController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
 export type { UseVideoComposeTimelineEditorControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
+export { useVideoComposeTimelineSessionController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineSessionController";
+export type { UseVideoComposeTimelineSessionControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineSessionController";
 export { useVideoComposeTimelinePointerController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController";
 export type {
   UseVideoComposeTimelinePointerControllerOptions,
