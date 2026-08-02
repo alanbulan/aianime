@@ -538,6 +538,7 @@ export {
 } from "@/modules/creative_canvas/presentation/canvasBrowserViewModel";
 export { useCanvasBrowserController } from "@/modules/creative_canvas/canvasBrowserComposition";
 export type { CanvasBrowserControllerOptions } from "@/modules/creative_canvas/canvasBrowserComposition";
+export { CanvasesTab } from "@/modules/creative_canvas/presentation/CanvasesTab";
 export type {
   CanvasBrowserKind,
   CanvasBrowserSections,

@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { LibraryAsset } from "@/modules/creative_canvas/public";
 import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
 
-vi.mock("./CanvasesTab", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   CanvasesTab: ({ project }: { project: string }) => (
     <div>canvases:{project}</div>
   ),

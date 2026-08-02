@@ -232,6 +232,10 @@ describe("round 2 residual architecture boundaries", () => {
       "FreezoneChatDockView.tsx",
       "useFreezoneChatDockController.ts",
       "useFreezoneChatDockController.test.tsx",
+      "CanvasBrowserView.tsx",
+      "CanvasBrowserView.test.tsx",
+      "CanvasesTab.tsx",
+      "CanvasesTab.test.tsx",
     ];
 
     expect(existsSync(publicPath)).toBe(true);
@@ -392,6 +396,14 @@ describe("round 2 residual architecture boundaries", () => {
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredChatDockPath))).toBe(false);
     }
+    for (const retiredCanvasBrowserPath of [
+      "features/freezone/presentation/CanvasBrowserView.tsx",
+      "features/freezone/presentation/CanvasBrowserView.test.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredCanvasBrowserPath))).toBe(false);
+    }
     expect(
       existsSync(
         resolve(
@@ -548,6 +560,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/commitDialogViewModel",
         "@/modules/creative_canvas/presentation/FreezoneChatDock",
         "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback",
+        "@/modules/creative_canvas/presentation/CanvasesTab",
       ]),
     );
   });
@@ -1075,7 +1088,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 900],
-      ["features/freezone", 38],
+      ["features/freezone", 34],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);

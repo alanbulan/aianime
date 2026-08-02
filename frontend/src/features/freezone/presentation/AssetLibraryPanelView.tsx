@@ -2,13 +2,12 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import type { CanvasCommitMediaType } from "@/modules/creative_canvas/public";
-
-import { CanvasesTab } from "./CanvasesTab";
 import {
+  CanvasesTab,
   buildAssetLibraryTabs,
   filterAssetLibraryAssets,
   type AssetTab,
+  type CanvasCommitMediaType,
   type CanvasKind,
   type FreezoneBeatContextResponse,
   type LibraryAsset,

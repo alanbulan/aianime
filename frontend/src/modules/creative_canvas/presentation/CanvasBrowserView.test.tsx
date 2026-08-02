@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasDisplaySummary } from "@/modules/creative_canvas/public";
+import type { CanvasDisplaySummary } from "./canvasBrowserViewModel";
 import { CanvasBrowserView } from "./CanvasBrowserView";
 
 vi.mock("react-i18next", () => ({

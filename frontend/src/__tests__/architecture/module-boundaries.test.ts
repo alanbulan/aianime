@@ -4302,7 +4302,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasesTabPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasesTab.tsx",
+      "modules/creative_canvas/presentation/CanvasesTab.tsx",
     );
     const canvasBrowserControllerPath = resolve(
       SRC_ROOT,
@@ -4380,7 +4380,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../canvasBrowserComposition",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
@@ -4678,7 +4678,7 @@ describe("frontend architecture boundaries", () => {
     ];
     const canvasesTabPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasesTab.tsx",
+      "modules/creative_canvas/presentation/CanvasesTab.tsx",
     );
     const syncHookPath = resolve(
       SRC_ROOT,
@@ -4721,7 +4721,7 @@ describe("frontend architecture boundaries", () => {
       expect(source).not.toContain("@/features/canvas/composition");
     }
     expect(importSpecifiers(canvasesTabPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../canvasBrowserComposition",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
       "@/features/canvas/composition",
@@ -10448,11 +10448,11 @@ describe("frontend architecture boundaries", () => {
     );
     const tabPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasesTab.tsx",
+      "modules/creative_canvas/presentation/CanvasesTab.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasBrowserView.tsx",
+      "modules/creative_canvas/presentation/CanvasBrowserView.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -10464,7 +10464,10 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPaths = [
       viewPath,
-      resolve(SRC_ROOT, "features/freezone/presentation/CanvasBrowserView.test.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/CanvasBrowserView.test.tsx",
+      ),
     ];
     const viewModelSource = readFileSync(viewModelPath, "utf8");
     const tabSource = readFileSync(tabPath, "utf8");
@@ -10507,10 +10510,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("@/shared/api/");
     for (const consumerPath of consumerPaths) {
       expect(importSpecifiers(consumerPath)).toContain(
-        "@/modules/creative_canvas/public",
+        "./canvasBrowserViewModel",
       );
       expect(importSpecifiers(consumerPath)).not.toContain(
-        "./canvasBrowserViewModel",
+        "@/modules/creative_canvas/public",
       );
       expect(importSpecifiers(consumerPath)).not.toContain(
         "../presentation/canvasBrowserViewModel",
@@ -10533,7 +10536,7 @@ describe("frontend architecture boundaries", () => {
     );
     const tabPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasesTab.tsx",
+      "modules/creative_canvas/presentation/CanvasesTab.tsx",
     );
     const testPath = resolve(
       SRC_ROOT,
@@ -10581,6 +10584,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
     expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
     expect(importSpecifiers(tabPath)).toContain(
+      "../canvasBrowserComposition",
+    );
+    expect(importSpecifiers(tabPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     for (const legacyOwner of [
@@ -10604,11 +10610,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps the complete canvas-browser layout in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasBrowserView.tsx",
+      "modules/creative_canvas/presentation/CanvasBrowserView.tsx",
     );
     const tabPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasesTab.tsx",
+      "modules/creative_canvas/presentation/CanvasesTab.tsx",
     );
     const legacyTabPath = resolve(
       SRC_ROOT,
@@ -10616,7 +10622,7 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/CanvasBrowserView.test.tsx",
+      "modules/creative_canvas/presentation/CanvasBrowserView.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const tabSource = readFileSync(tabPath, "utf8");
@@ -10629,7 +10635,7 @@ describe("frontend architecture boundaries", () => {
       ["function", "CanvasListItem("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
-      sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+      sourceFiles(SRC_ROOT)
         .filter((path) => readFileSync(path, "utf8").includes(declaration))
         .map(relativeSource)
         .sort(),
@@ -10637,7 +10643,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/freezone/presentation/CanvasBrowserView.tsx",
+        "modules/creative_canvas/presentation/CanvasBrowserView.tsx",
       ]),
     );
     expect(new Set(importSpecifiers(viewPath))).toEqual(
@@ -10645,7 +10651,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
+        "./canvasBrowserViewModel",
       ]),
     );
     expect(viewSource).not.toContain("useCanvasBrowserController");
@@ -10654,7 +10660,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("@/shared/api/");
     expect(existsSync(legacyTabPath)).toBe(false);
     expect(importSpecifiers(tabPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../canvasBrowserComposition",
     );
     expect(importSpecifiers(tabPath)).toContain(
       "./CanvasBrowserView",
@@ -10672,6 +10678,14 @@ describe("frontend architecture boundaries", () => {
       expect(tabSource).not.toContain(legacyOwner);
     }
     expect(testSource).toContain('from "./CanvasBrowserView"');
+    for (const legacyPresentationPath of [
+      "features/freezone/presentation/CanvasBrowserView.tsx",
+      "features/freezone/presentation/CanvasBrowserView.test.tsx",
+      "features/freezone/presentation/CanvasesTab.tsx",
+      "features/freezone/presentation/CanvasesTab.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPresentationPath))).toBe(false);
+    }
   });
 
   it("keeps the complete asset-library layout in one presentation view", () => {
@@ -10722,7 +10736,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "@/modules/creative_canvas/public",
-        "./CanvasesTab",
         "./AssetLibraryAssetCard",
         "./AssetLibraryBeatPanels",
       ]),

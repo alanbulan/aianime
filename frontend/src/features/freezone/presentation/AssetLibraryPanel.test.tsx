@@ -19,7 +19,8 @@ vi.mock("@/modules/creative_canvas/contextQueryComposition", async () => {
   });
 });
 
-vi.mock("@/features/freezone/presentation/CanvasesTab", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   CanvasesTab: () => null,
 }));
 

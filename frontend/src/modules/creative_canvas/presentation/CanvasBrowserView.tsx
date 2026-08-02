@@ -34,7 +34,7 @@ import {
   type CanvasBrowserSections,
   type CanvasBrowserKind,
   type CanvasDisplaySummary,
-} from "@/modules/creative_canvas/public";
+} from "./canvasBrowserViewModel";
 
 const CANVAS_KIND_ICON: Record<CanvasBrowserKind, LucideIcon> = {
   default: Home,
