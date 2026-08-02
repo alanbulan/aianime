@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { FreezoneProjectPage } from "@/features/freezone/routeComposition";
+import { FreezoneProjectPage } from "@/app/creative-canvas-composition";
 
 function FreezoneProjectRoute() {
   const { project } = Route.useParams();

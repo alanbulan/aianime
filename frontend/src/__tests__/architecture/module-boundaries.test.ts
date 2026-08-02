@@ -144,6 +144,10 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
+      "app/creative-canvas-composition.tsx",
+    );
+    const legacyCompositionPath = resolve(
+      SRC_ROOT,
       "features/freezone/routeComposition.ts",
     );
     const controllerPath = resolve(
@@ -188,7 +192,7 @@ describe("frontend architecture boundaries", () => {
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
-    const pageOwners = sourceFiles(resolve(SRC_ROOT, "features/freezone"))
+    const pageOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
         readFileSync(path, "utf8").includes(
@@ -217,6 +221,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(routePath)).toContain(
+      "@/app/creative-canvas-composition",
+    );
+    expect(importSpecifiers(routePath)).not.toContain(
       "@/features/freezone/routeComposition",
     );
     expect(route).toContain("<FreezoneProjectPage projectId={project} />");
@@ -226,12 +233,13 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useRouterState(");
     expect(route).not.toContain("FreezoneShell");
     expect(existsSync(legacyPagePath)).toBe(false);
+    expect(existsSync(legacyCompositionPath)).toBe(false);
     expect(existsSync(legacyControllerPath)).toBe(false);
     expect(existsSync(legacyControllerTestPath)).toBe(false);
     expect(existsSync(legacyViewPath)).toBe(false);
     expect(existsSync(legacyViewTestPath)).toBe(false);
     expect(pageOwners).toEqual([
-      "features/freezone/routeComposition.ts",
+      "app/creative-canvas-composition.tsx",
     ]);
     expect(controllerOwners).toEqual([
       "modules/creative_canvas/presentation/useFreezoneProjectPageController.ts",
@@ -245,11 +253,11 @@ describe("frontend architecture boundaries", () => {
         "@tanstack/react-router",
         "@/components/GlobalErrorDialog",
         "@/features/app/errorDialogEvents",
+        "@/features/freezone/FreezoneShell",
         "@/lib/url-params",
         "@/modules/creative_canvas/public",
         "@/modules/identity_access/public",
         "@/modules/project_workspace/public",
-        "./FreezoneShell",
       ]),
     );
     expect(compositionSource).toContain(

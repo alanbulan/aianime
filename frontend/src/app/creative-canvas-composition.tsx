@@ -4,6 +4,7 @@ import { useRouterState } from "@tanstack/react-router";
 
 import { GlobalErrorDialog } from "@/components/GlobalErrorDialog";
 import { subscribeOpenGlobalErrorDialog } from "@/features/app/errorDialogEvents";
+import { FreezoneShell } from "@/features/freezone/FreezoneShell";
 import { readLastCanvas, writeUrl } from "@/lib/url-params";
 import {
   createUseFreezoneProjectPageController,
@@ -15,8 +16,6 @@ import {
   useAllProjectSummaries,
   type ProjectSummary,
 } from "@/modules/project_workspace/public";
-
-import { FreezoneShell } from "./FreezoneShell";
 
 const useFreezoneProjectPageController =
   createUseFreezoneProjectPageController({

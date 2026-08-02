@@ -409,6 +409,7 @@ describe("round 2 residual architecture boundaries", () => {
       "features/freezone/hooks/useFreezoneProjectPageController.test.tsx",
       "features/freezone/presentation/FreezoneProjectPageView.tsx",
       "features/freezone/presentation/FreezoneProjectPageView.test.tsx",
+      "features/freezone/routeComposition.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredProjectPagePath))).toBe(false);
     }
@@ -1165,7 +1166,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 898],
-      ["features/freezone", 3],
+      ["features/freezone", 2],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);
@@ -1207,7 +1208,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
     const allowed = new Set([
-      "routes/_app/projects.$project/freezone.lazy.tsx: @/features/freezone/routeComposition",
+      "app/creative-canvas-composition.tsx: @/features/freezone/FreezoneShell",
     ]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>
