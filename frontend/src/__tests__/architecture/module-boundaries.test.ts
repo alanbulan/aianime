@@ -25587,7 +25587,7 @@ describe("frontend architecture boundaries", () => {
     );
     const composeModalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const gesturesPath = resolve(
       SRC_ROOT,
@@ -25660,7 +25660,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const sessionControllerPath = resolve(
       SRC_ROOT,
@@ -25799,7 +25799,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const modalViewPath = resolve(
       SRC_ROOT,
@@ -25841,10 +25841,11 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposeTimelineSessionController",
     );
     expect(modalSource).toContain("sourceMedia");
-    expect(modalSource).toContain("resolveMediaUrl: resolveImageDisplayUrl");
+    expect(modalSource).toContain("resolveMediaUrl,");
+    expect(modalSource).not.toContain("resolveImageDisplayUrl");
     expect(modalSource).not.toContain("setTimeline(");
     expect(modalSource).not.toContain("setPast(");
     expect(modalSource).not.toContain("setFuture(");
@@ -25875,7 +25876,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const sessionControllerPath = resolve(
       SRC_ROOT,
@@ -25970,7 +25971,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
@@ -26003,7 +26004,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposeTimelineEditorController",
     );
     expect(modalSource).not.toContain("clipboardRef");
     expect(modalSource).not.toContain("const moveToNewTrack = useCallback");
@@ -26030,7 +26031,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const pointerControllerPath = resolve(
       SRC_ROOT,
@@ -26117,7 +26118,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
@@ -26155,7 +26156,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposeTimelinePointerController",
     );
     expect(modalSource).not.toContain("document.querySelectorAll");
     expect(modalSource).not.toContain('addEventListener("pointermove"');
@@ -26180,7 +26181,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
@@ -26207,7 +26208,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/features/canvas/composition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposeKeyboardController",
     );
     expect(modalSource).not.toContain('window.addEventListener("keydown"');
     expect(modalSource).not.toContain("const isTyping =");
@@ -26223,7 +26224,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose modal composition and presentation in separate owners", () => {
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -26233,9 +26234,29 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/VideoComposeModalView.test.tsx",
     );
+    const coverEditorPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CoverEditor.tsx",
+    );
+    const coverProjectionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/videoComposeCover.ts",
+    );
+    const coverRuntimePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserVideoComposeCoverRuntime.ts",
+    );
+    const nodeViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoComposeNodeView.tsx",
+    );
     const modalSource = readFileSync(modalPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const coverEditorSource = readFileSync(coverEditorPath, "utf8");
+    const coverProjectionSource = readFileSync(coverProjectionPath, "utf8");
+    const coverRuntimeSource = readFileSync(coverRuntimePath, "utf8");
+    const nodeViewSource = readFileSync(nodeViewPath, "utf8");
     const declaration = [
       "export function",
       "VideoComposeModalView(",
@@ -26244,16 +26265,52 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const modalDeclarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        ["export function", "VideoComposeModal("].join(" "),
+      ))
+      .map(relativeSource)
+      .sort();
     const portalOwners = [modalPath, viewPath]
       .filter((path) => readFileSync(path, "utf8").includes("createPortal("))
       .map(relativeSource)
       .sort();
 
     expect(importSpecifiers(modalPath)).toContain(
+      "./VideoComposeModalView",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/ui/VideoComposeModalView",
+    );
+    expect(importSpecifiers(modalPath)).toContain("./CoverEditor");
+    expect(importSpecifiers(coverEditorPath)).toContain(
+      "../application/videoComposeCover",
+    );
+    expect(importSpecifiers(coverEditorPath)).toContain(
+      "../infrastructure/browserVideoComposeCoverRuntime",
+    );
+    expect(importSpecifiers(coverEditorPath)).not.toContain(
+      "@/features/canvas/composition",
+    );
+    expect(coverEditorSource).toContain("uploadFreezoneAsset(");
+    expect(importSpecifiers(coverProjectionPath)).toEqual([
+      "../domain/videoComposeTimeline",
+    ]);
+    expect(importSpecifiers(coverRuntimePath)).toEqual([]);
+    expect(coverProjectionSource).not.toContain("react");
+    expect(coverProjectionSource).not.toContain("document.");
+    expect(coverRuntimeSource).toContain('document.createElement("canvas")');
+    expect(importSpecifiers(nodeViewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodeViewPath)).not.toContain(
+      "@/features/canvas/compose/VideoComposeModal",
+    );
+    expect(nodeViewSource).toContain(
+      "resolveMediaUrl={resolveImageDisplayUrl}",
     );
     expect(modalSource.match(/<VideoComposeModalView/g)?.length).toBe(1);
     expect(modalSource).not.toContain("className=");
@@ -26270,6 +26327,9 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("compose/CoverEditor");
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
+    ]);
+    expect(modalDeclarationOwners).toEqual([
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     ]);
     expect(portalOwners).toEqual([
       "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
@@ -26298,7 +26358,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const modalViewPath = resolve(
       SRC_ROOT,
@@ -26418,7 +26478,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const oldClockPath = resolve(
       SRC_ROOT,
@@ -26472,7 +26532,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/api/");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposePlaybackController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposePlaybackController",
@@ -26514,7 +26574,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const playbackControllerPath = resolve(
       SRC_ROOT,
@@ -26589,7 +26649,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modalPath = resolve(
       SRC_ROOT,
-      "features/canvas/compose/VideoComposeModal.tsx",
+      "modules/creative_canvas/presentation/VideoComposeModal.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
@@ -26636,7 +26696,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("URL.createObjectURL");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useVideoComposeExportController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposeExportController",
@@ -27411,8 +27471,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const coverEditorPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CoverEditor.tsx",
+    );
     const consumerPaths = [
-      "features/canvas/compose/CoverEditor.tsx",
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
@@ -27430,6 +27493,7 @@ describe("frontend architecture boundaries", () => {
     const directorCaptureSource = readFileSync(directorCapturePath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const coverEditorSource = readFileSync(coverEditorPath, "utf8");
     const consumerSources = consumerPaths.map((path) =>
       readFileSync(path, "utf8"),
     );
@@ -27468,6 +27532,14 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain("options");
     expect(compositionSource).toContain("uploadCanvasAssetUseCase(");
     expect(compositionSource).toContain("freezoneAssetGateway");
+    expect(importSpecifiers(coverEditorPath)).toContain(
+      "../assetTransferComposition",
+    );
+    expect(coverEditorSource).toContain("uploadFreezoneAsset(");
+    expect(coverEditorSource).not.toContain("uploadCanvasAsset(");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/compose/CoverEditor.tsx")),
+    ).toBe(false);
     expect(directorCaptureSource).toContain("uploadAsset(");
     expect(directorCaptureSource).not.toContain("uploadCanvasAsset");
     expect(
@@ -27477,12 +27549,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       directorCaptureSource.match(/DIRECTOR_CAPTURE_UPLOAD_OPTIONS/g),
     ).toHaveLength(4);
+    expect(consumerSources[4]).toContain("directorCaptureBundle");
     expect(consumerSources[5]).toContain("directorCaptureBundle");
-    expect(consumerSources[6]).toContain("directorCaptureBundle");
-    expect(consumerSources[5]).not.toContain(
+    expect(consumerSources[4]).not.toContain(
       "director-world-${nodeId}-combined-",
     );
-    expect(consumerSources[6]).not.toContain(
+    expect(consumerSources[5]).not.toContain(
       "director-world-${nodeId}-combined-",
     );
     expect(directImageUploadOwners).toEqual([]);

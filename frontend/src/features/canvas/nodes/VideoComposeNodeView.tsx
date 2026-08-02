@@ -2,8 +2,9 @@
 import { Handle, Position } from '@xyflow/react';
 import { Film } from 'lucide-react';
 
-import { VideoComposeModal } from '@/features/canvas/compose/VideoComposeModal';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
+import { VideoComposeModal } from '@/modules/creative_canvas/public';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -76,6 +77,7 @@ export function VideoComposeNodeView({
           canvasId={controller.canvasId}
           seedNodeIds={controller.seedNodeIds}
           sourceMedia={controller.sourceMedia}
+          resolveMediaUrl={resolveImageDisplayUrl}
           initialTimeline={controller.initialTimeline}
           onPersistDraft={controller.persistDraft}
           onClose={controller.closeEditor}

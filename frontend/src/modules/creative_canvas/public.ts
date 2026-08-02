@@ -924,6 +924,8 @@ export type {
   VideoComposeExportControllerOptions,
   VideoComposeExportTarget,
 } from "@/modules/creative_canvas/presentation/useVideoComposeExportController";
+export { VideoComposeModal } from "@/modules/creative_canvas/presentation/VideoComposeModal";
+export type { VideoComposeModalProps } from "@/modules/creative_canvas/presentation/VideoComposeModal";
 export { VideoComposeModalView } from "@/modules/creative_canvas/presentation/VideoComposeModalView";
 export type {
   VideoComposeExportDialogState,

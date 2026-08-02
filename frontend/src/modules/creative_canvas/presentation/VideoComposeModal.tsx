@@ -2,26 +2,27 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
+import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
-  VideoComposeModalView,
-  useVideoComposeExportController,
-  useVideoComposeKeyboardController,
-  useVideoComposePlaybackController,
-  useVideoComposeTimelineSessionController,
-  useVideoComposeTimelineEditorController,
-  useVideoComposeTimelinePointerController,
   type ComposeCover,
   type ComposeTimelineState,
-  type VideoComposeExportDialogState,
-  type VideoComposeExportLocation,
-  type VideoComposeSourceMedia,
-} from "@/modules/creative_canvas/public";
-import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
+} from "../domain/videoComposeTimeline";
+import type { VideoComposeSourceMedia } from "../domain/videoComposeInputs";
 
 import { CoverEditor } from "./CoverEditor";
+import {
+  VideoComposeModalView,
+  type VideoComposeExportDialogState,
+  type VideoComposeExportLocation,
+} from "./VideoComposeModalView";
+import { useVideoComposeExportController } from "./useVideoComposeExportController";
+import { useVideoComposeKeyboardController } from "./useVideoComposeKeyboardController";
+import { useVideoComposePlaybackController } from "./useVideoComposePlaybackController";
+import { useVideoComposeTimelineEditorController } from "./useVideoComposeTimelineEditorController";
+import { useVideoComposeTimelinePointerController } from "./useVideoComposeTimelinePointerController";
+import { useVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
 
 export interface VideoComposeModalProps {
   project: string;
@@ -30,6 +31,7 @@ export interface VideoComposeModalProps {
   seedNodeIds: string[];
   /** 当前连接的规范化媒体快照，用于初始化时间线并校正已有草稿。 */
   sourceMedia: readonly VideoComposeSourceMedia[];
+  resolveMediaUrl: (url: string) => string;
   onClose: () => void;
   /** 合成成功后回调，参数为最终视频 url + 封面 url（未设封面时为 null）。 */
   onComposed: (url: string, coverUrl: string | null) => void;
@@ -61,6 +63,7 @@ export function VideoComposeModal({
   canvasId,
   seedNodeIds,
   sourceMedia,
+  resolveMediaUrl,
   onClose,
   onComposed,
   initialTimeline,
@@ -92,7 +95,7 @@ export function VideoComposeModal({
     initialTimeline,
     sourceMedia,
     seedNodeIds,
-    resolveMediaUrl: resolveImageDisplayUrl,
+    resolveMediaUrl,
     createClipId: makeClipId,
     onPersistDraft,
   });
@@ -104,7 +107,7 @@ export function VideoComposeModal({
       onComposed,
       overlapErrorMessage: t("videoCompose.error.overlap"),
       missingUrlErrorMessage: t("videoCompose.error.noUrl"),
-      resolveMediaUrl: resolveImageDisplayUrl,
+      resolveMediaUrl,
     });
 
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
@@ -176,7 +179,7 @@ export function VideoComposeModal({
   } = useVideoComposePlaybackController(
     timeline,
     pxPerSec,
-    resolveImageDisplayUrl,
+    resolveMediaUrl,
   );
   const {
     selectedClip,
@@ -282,7 +285,7 @@ export function VideoComposeModal({
       timeline={timeline}
       header={{
         coverDisplayUrl: timeline.cover?.url
-          ? resolveImageDisplayUrl(timeline.cover.url)
+          ? resolveMediaUrl(timeline.cover.url)
           : null,
         canSetCover: hasClips,
         onOpenCoverEditor: () => setCoverEditorOpen(true),
@@ -348,7 +351,7 @@ export function VideoComposeModal({
       timelineSurface={{
         pxPerSec,
         pxPerMs,
-        resolveMediaUrl: resolveImageDisplayUrl,
+        resolveMediaUrl,
         durationMs,
         selected,
         selectedIds,
@@ -373,6 +376,7 @@ export function VideoComposeModal({
             durationMs={durationMs}
             defaultFrameMs={playheadMs}
             cover={timeline.cover ?? null}
+            resolveMediaUrl={resolveMediaUrl}
             onCancel={() => setCoverEditorOpen(false)}
             onApply={applyCover}
           />

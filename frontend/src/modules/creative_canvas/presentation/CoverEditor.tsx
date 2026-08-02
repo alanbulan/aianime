@@ -11,19 +11,20 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ImageUp, Loader2, X } from "lucide-react";
 
-import { uploadCanvasAsset } from "@/features/canvas/composition";
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { mediaNeedsCrossOrigin } from "@/shared/media/cross-origin";
 import {
-  captureVideoFrame,
   coverFrameSourceAt,
   hasCoverableVideo,
-  waitForVideoFrameReady,
-} from "./coverCapture";
+} from "../application/videoComposeCover";
+import { uploadFreezoneAsset } from "../assetTransferComposition";
 import type {
   ComposeCover,
   ComposeTimelineState,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimeline";
+import {
+  captureVideoComposeCoverFrame,
+  waitForVideoComposeCoverFrameReady,
+} from "../infrastructure/browserVideoComposeCoverRuntime";
 
 export interface CoverEditorProps {
   project: string;
@@ -33,6 +34,7 @@ export interface CoverEditorProps {
   defaultFrameMs: number;
   /** 已有封面（用于回显 tab / 滑块位置）。 */
   cover: ComposeCover | null;
+  resolveMediaUrl: (url: string) => string;
   onCancel: () => void;
   /** 确定时回传已上传落地的封面。 */
   onApply: (cover: ComposeCover) => void;
@@ -57,6 +59,7 @@ export function CoverEditor({
   durationMs,
   defaultFrameMs,
   cover,
+  resolveMediaUrl,
   onCancel,
   onApply,
 }: CoverEditorProps) {
@@ -87,12 +90,12 @@ export function CoverEditor({
       clamp(frameMs, 0, Math.max(0, durationMs - 1)),
     );
     if (!src) return;
-    const resolved = resolveImageDisplayUrl(src.sourceUrl);
+    const resolved = resolveMediaUrl(src.sourceUrl);
     const seekTo = src.sourceMs / 1000;
     if (el.dataset.src !== resolved) {
       el.dataset.src = resolved;
       // Cross-origin CDN media must load with CORS, otherwise drawing this frame
-      // to a canvas taints it and `captureVideoFrame` → toBlob throws a
+      // to a canvas taints it and `captureVideoComposeCoverFrame` -> toBlob throws a
       // SecurityError ("截取当前帧失败"). Same-origin /static (dev proxy) skips it.
       if (mediaNeedsCrossOrigin(resolved)) {
         el.crossOrigin = "anonymous";
@@ -120,7 +123,7 @@ export function CoverEditor({
     } catch {
       /* ignore */
     }
-  }, [tab, frameMs, timeline, durationMs]);
+  }, [tab, frameMs, timeline, durationMs, resolveMediaUrl]);
 
   // 释放上传预览的 object URL。
   useEffect(
@@ -155,16 +158,16 @@ export function CoverEditor({
       const name = `cover_${Date.now()}.jpg`;
       if (tab === "upload") {
         if (!uploadFile) return;
-        const res = await uploadCanvasAsset(project, uploadFile, name);
+        const res = await uploadFreezoneAsset(project, uploadFile, name);
         onApply({ source: "upload", frameMs: null, url: res.url });
       } else {
         const el = videoRef.current;
         // 拖完滑块立刻点确定时元素可能还在 seeking —— 等目标帧落定再截，
         // 否则截到的是上一个已解码帧。
-        if (el) await waitForVideoFrameReady(el);
-        const blob = el ? await captureVideoFrame(el) : null;
+        if (el) await waitForVideoComposeCoverFrameReady(el);
+        const blob = el ? await captureVideoComposeCoverFrame(el) : null;
         if (!blob) throw new Error(t("videoCompose.cover.captureFailed"));
-        const res = await uploadCanvasAsset(project, blob, name);
+        const res = await uploadFreezoneAsset(project, blob, name);
         onApply({ source: "frame", frameMs, url: res.url });
       }
       // 成功后由父级关闭编辑器，这里不复位 busy（避免闪烁）。

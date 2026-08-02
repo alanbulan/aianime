@@ -27,12 +27,13 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   VideoComposeModal: ({
     project,
     canvasId,
     seedNodeIds,
     sourceMedia,
+    resolveMediaUrl,
     onPersistDraft,
     onClose,
     onComposed,
@@ -41,13 +42,14 @@ vi.mock('@/features/canvas/compose/VideoComposeModal', () => ({
     canvasId: string;
     seedNodeIds: string[];
     sourceMedia: readonly unknown[];
+    resolveMediaUrl(url: string): string;
     onPersistDraft(timeline: ComposeTimelineState): void;
     onClose(): void;
     onComposed(url: string, coverUrl: string | null): void;
   }) => (
     <div>
       <span>
-        modal:{project}:{canvasId}:{seedNodeIds.join(',')}:{sourceMedia.length}
+        modal:{project}:{canvasId}:{seedNodeIds.join(',')}:{sourceMedia.length}:{resolveMediaUrl('/clip.mp4')}
       </span>
       <button type="button" onClick={() => onPersistDraft({
         tracks: [],
@@ -121,7 +123,7 @@ describe('VideoComposeNodeView', () => {
     render(<VideoComposeNodeView controller={controller} />);
 
     expect(screen.getByText(
-      'modal:project-a:canvas-a:video-a,video-b:0',
+      'modal:project-a:canvas-a:video-a,video-b:0:/clip.mp4',
     )).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'persist' }));
     fireEvent.click(screen.getByRole('button', { name: 'close' }));

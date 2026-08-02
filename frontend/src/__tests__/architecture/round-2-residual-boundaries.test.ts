@@ -293,6 +293,8 @@ describe("round 2 residual architecture boundaries", () => {
       "videoFrameStrip.ts",
       "videoComposePreview.ts",
       "videoComposePreview.test.ts",
+      "videoComposeCover.ts",
+      "videoComposeCover.test.ts",
       "videoComposeTimelineSession.ts",
       "videoComposeTimelineSession.test.ts",
     ];
@@ -314,12 +316,17 @@ describe("round 2 residual architecture boundaries", () => {
       "browserVideoComposeExportRuntime.test.ts",
       "browserVideoComposeMediaRuntime.ts",
       "browserVideoComposeMediaRuntime.test.ts",
+      "browserVideoComposeCoverRuntime.ts",
+      "browserVideoComposeCoverRuntime.test.ts",
       "browserVideoFrameStrip.ts",
       "browserVideoFrameStrip.test.ts",
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
     ];
     const videoComposePresentationFiles = [
+      "CoverEditor.tsx",
+      "CoverEditor.test.tsx",
+      "VideoComposeModal.tsx",
       "useVideoComposeTimelineSessionController.ts",
       "useVideoComposeTimelineSessionController.test.tsx",
       "useVideoComposeTimelineEditorController.ts",
@@ -731,11 +738,13 @@ describe("round 2 residual architecture boundaries", () => {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
         true,
       );
-      const legacyRoot = file.startsWith("VideoCompose")
-        ? "ui"
-        : file.startsWith("useVideoCompose")
-          ? "hooks"
-          : "compose";
+      const legacyRoot = file === "VideoComposeModal.tsx"
+        ? "compose"
+        : file.startsWith("VideoCompose")
+          ? "ui"
+          : file.startsWith("useVideoCompose")
+            ? "hooks"
+            : "compose";
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas", legacyRoot, file)),
         file,
@@ -747,6 +756,9 @@ describe("round 2 residual architecture boundaries", () => {
     expect(
       existsSync(resolve(moduleRoot, "videoComposeComposition.test.ts")),
     ).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/compose/coverCapture.ts")),
+    ).toBe(false);
     for (const file of videoSubtitleEraseApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
@@ -1625,7 +1637,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 710],
+      ["features/canvas", 707],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
