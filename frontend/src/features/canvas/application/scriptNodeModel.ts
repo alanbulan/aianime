@@ -1,6 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
+  isAudioNode,
+  isExportImageNode,
+  isImageEditNode,
+  isImageGenNode,
+  isTextAnnotationNode,
+  isUploadNode,
+  isVideoNode,
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeType,
@@ -8,13 +15,10 @@ import {
   type ScriptNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {
-  classifyCanvasStoryScriptReference,
   isCanvasStoryScriptResult,
   type CanvasStoryScriptReference,
-} from '@/features/canvas/application/generateCanvasStoryScript';
-import type {
-  CanvasStoryScriptResult,
-} from '@/features/canvas/application/ports';
+  type CanvasStoryScriptResult,
+} from '@/modules/creative_canvas/public';
 
 export const SCRIPT_NODE_SIZE_LIMITS = {
   minWidth: 360,
@@ -57,6 +61,72 @@ const SPAWN_UPLOAD_WIDTH = 320;
 const SPAWN_UPLOAD_HEIGHT = 350;
 const SPAWN_GAP_X = 40;
 const SPAWN_GAP_Y = 24;
+
+export function classifyCanvasStoryScriptReference(
+  node: CanvasNode,
+): CanvasStoryScriptReference | null {
+  if (isTextAnnotationNode(node)) {
+    return {
+      nodeId: node.id,
+      kind: 'text',
+      text: typeof node.data.content === 'string' ? node.data.content : '',
+      displayName: node.data.displayName ?? null,
+    };
+  }
+  if (isVideoNode(node)) {
+    const videoUrl =
+      typeof node.data.videoUrl === 'string' && node.data.videoUrl.length > 0
+        ? node.data.videoUrl
+        : null;
+    const thumbUrl =
+      (typeof node.data.previewImageUrl === 'string' &&
+        node.data.previewImageUrl) ||
+      null;
+    const durationSec =
+      typeof node.data.durationMs === 'number' && node.data.durationMs > 0
+        ? node.data.durationMs / 1000
+        : null;
+    return {
+      nodeId: node.id,
+      kind: 'video',
+      thumbUrl,
+      videoUrl,
+      durationSec,
+      displayName: node.data.displayName ?? null,
+    };
+  }
+  if (isAudioNode(node)) {
+    return {
+      nodeId: node.id,
+      kind: 'audio',
+      displayName: node.data.displayName ?? null,
+    };
+  }
+  if (isImageGenNode(node)) {
+    const data = node.data;
+    const referenceImageUrl =
+      typeof data.referenceImageUrl === 'string' &&
+      data.referenceImageUrl.length > 0
+        ? data.referenceImageUrl
+        : null;
+    return {
+      nodeId: node.id,
+      kind: 'image',
+      thumbUrl: data.previewImageUrl || data.imageUrl || referenceImageUrl,
+      displayName: data.displayName ?? null,
+    };
+  }
+  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
+    const data = node.data;
+    return {
+      nodeId: node.id,
+      kind: 'image',
+      thumbUrl: data.previewImageUrl || data.imageUrl || null,
+      displayName: data.displayName ?? null,
+    };
+  }
+  return null;
+}
 
 export function resolveScriptNodeSize(
   hasResult: boolean,

@@ -7,7 +7,7 @@ import {
   type CanvasNode,
   type ScriptNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasStoryScriptResult } from '@/features/canvas/application/ports';
+import type { CanvasStoryScriptResult } from '@/modules/creative_canvas/public';
 
 import {
   hasScriptGenerationSource,
@@ -99,6 +99,22 @@ describe('scriptNodeModel', () => {
     expect(references.map((reference) => reference.nodeId)).toEqual([
       'text-a',
       'video-a',
+    ]);
+    expect(references).toEqual([
+      {
+        nodeId: 'text-a',
+        kind: 'text',
+        text: '剧情正文',
+        displayName: null,
+      },
+      {
+        nodeId: 'video-a',
+        kind: 'video',
+        thumbUrl: null,
+        videoUrl: '/video.mp4',
+        durationSec: null,
+        displayName: null,
+      },
     ]);
     expect(hasScriptGenerationSource('', references)).toBe(true);
     expect(hasScriptGenerationSource(' 本地剧情 ', [])).toBe(true);

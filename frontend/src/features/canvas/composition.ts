@@ -14,11 +14,9 @@ import {
   getFreezoneCanvasMetadata,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
-  resolveCanvasTextModel,
   resolvePromptReferenceRoles,
   submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
-  type CanvasGenerationTaskRef,
 } from '@/modules/creative_canvas/public';
 import {
   analyzeCanvasVideoStory as analyzeCanvasVideoStoryUseCase,
@@ -49,10 +47,6 @@ import {
   eraseVideoSubtitles as eraseVideoSubtitlesUseCase,
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
-import {
-  generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
-  type GenerateCanvasStoryScriptParams,
-} from './application/generateCanvasStoryScript';
 import {
   submitVideoGeneration as submitVideoGenerationUseCase,
   type SubmitVideoGenerationParams,
@@ -135,7 +129,6 @@ import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerati
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
-import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoStoryAnalysisGateway } from './infrastructure/freezoneVideoStoryAnalysisGateway';
@@ -390,21 +383,6 @@ export function analyzeCanvasVideoStory(
     submissionGateway: freezoneVideoStoryAnalysisGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
-}
-
-export async function generateCanvasStoryScript(
-  params: GenerateCanvasStoryScriptParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  const model = await resolveCanvasTextModel(params.command.model);
-  return generateCanvasStoryScriptUseCase(
-    { ...params, command: { ...params.command, model } },
-    {
-    submissionGateway: freezoneStoryScriptGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-    },
-  );
 }
 
 export function awaitCanvasGenerationTaskCompletion(

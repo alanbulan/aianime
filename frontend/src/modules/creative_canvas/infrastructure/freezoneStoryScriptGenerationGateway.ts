@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 import type { CanvasStoryScriptSubmissionGateway } from "../application/generateCanvasStoryScript";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
 
 export const freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway = {
   async submit(projectId, command) {

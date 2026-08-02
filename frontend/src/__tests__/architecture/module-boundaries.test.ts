@@ -18341,17 +18341,22 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas story-script generation orchestration in application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasStoryScript.ts",
+      "modules/creative_canvas/application/generateCanvasStoryScript.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
     );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/textGenerationComposition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const portsPath = resolve(
       SRC_ROOT,
       "features/canvas/application/ports.ts",
     );
-    const compositionPath = resolve(
+    const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
@@ -18366,11 +18371,31 @@ describe("frontend architecture boundaries", () => {
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
-    const portsSource = readFileSync(portsPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const portsSource = readFileSync(portsPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
     const scriptModelSource = readFileSync(scriptModelPath, "utf8");
     const scriptControllerSource = readFileSync(scriptControllerPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const legacyPaths = [
+      "features/canvas/application/generateCanvasStoryScript.ts",
+      "features/canvas/application/generateCanvasStoryScript.test.ts",
+      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
+      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const applicationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "dependencies: GenerateCanvasStoryScriptDependencies",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -18379,17 +18404,14 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set([
-        "../domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-        "./ports",
-      ]),
-    );
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "./completeCanvasMediaGenerationTask",
+    ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
-    expect(applicationSource).toContain(
+    expect(applicationSource).not.toContain("@/features/");
+    expect(applicationSource).not.toContain(
       "export function classifyCanvasStoryScriptReference(",
     );
     expect(applicationSource).toContain(
@@ -18401,17 +18423,30 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "dependencies.onTaskSubmitted(task)",
     );
+    expect(applicationOwners).toEqual([
+      "modules/creative_canvas/application/generateCanvasStoryScript.ts",
+    ]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasStoryScript",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway",
     );
-    expect(portsSource).toContain("export interface CanvasStoryScriptRow");
+    expect(portsSource).not.toContain("export interface CanvasStoryScriptRow");
+    expect(portsSource).not.toContain("export interface CanvasStoryScriptResult");
+    expect(importSpecifiers(compositionPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/model_usage/public",
+        "@/modules/task_execution/public",
+        "./application/generateCanvasStoryScript",
+        "./infrastructure/freezoneGenerationResultGateway",
+        "./infrastructure/freezoneStoryScriptGenerationGateway",
+      ]),
+    );
     expect(compositionSource).toContain(
       "const model = await resolveCanvasTextModel(params.command.model)",
     );
@@ -18424,8 +18459,28 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneStoryScriptGenerationGateway",
     );
+    expect(compositionSource).toContain(
+      'fetchCanvasGenerationResult<CanvasStoryScriptResult>(',
+    );
+    expect(publicSource).toContain("generateCanvasStoryScript,");
+    expect(publicSource).toContain("buildCanvasStoryScriptCommand,");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/application/generateCanvasStoryScript",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "generateCanvasStoryScriptUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneStoryScriptGenerationGateway",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "export async function generateCanvasStoryScript(",
+    );
     expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/tasks");
+    expect(importSpecifiers(scriptControllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(scriptControllerSource).toContain(
       "buildCanvasStoryScriptCommand({",
     );
@@ -18441,8 +18496,9 @@ describe("frontend architecture boundaries", () => {
     expect(scriptControllerSource).not.toContain("FreezoneStoryScriptResult");
     expect(scriptControllerSource).not.toContain("FreezoneStoryScriptRow");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
     ]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     for (const legacySymbol of [
       "FreezoneStoryScriptCharacterRef",
       "FreezoneStoryScriptPayload",
@@ -19735,14 +19791,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/infrastructure/freezoneGenerationResultGateway.ts",
     );
-    const portsPath = resolve(
+    const storyScriptApplicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/ports.ts",
+      "modules/creative_canvas/application/generateCanvasStoryScript.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const gatewaySource = readFileSync(gatewayPath, "utf8");
     const resultGatewaySource = readFileSync(resultGatewayPath, "utf8");
-    const portsSource = readFileSync(portsPath, "utf8");
+    const storyScriptApplicationSource = readFileSync(
+      storyScriptApplicationPath,
+      "utf8",
+    );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -19776,7 +19835,7 @@ describe("frontend architecture boundaries", () => {
     expect(resultGatewaySource).toContain(
       "export async function fetchCanvasGenerationResultUrl(",
     );
-    expect(portsSource).toContain(
+    expect(storyScriptApplicationSource).toContain(
       "export interface CanvasStoryScriptResult",
     );
     expect(endpointOwners).toEqual([
@@ -26848,8 +26907,11 @@ describe("frontend architecture boundaries", () => {
         "@/modules/model_usage/public",
         "@/modules/task_execution/public",
         "./application/completeCanvasMediaGenerationTask",
+        "./application/generateCanvasStoryScript",
         "./application/translateCanvasText",
         "./infrastructure/freezoneCanvasTextTranslationGateway",
+        "./infrastructure/freezoneGenerationResultGateway",
+        "./infrastructure/freezoneStoryScriptGenerationGateway",
       ]),
     );
     expect(compositionSource).toContain(
@@ -26875,9 +26937,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyCompositionPath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(legacyCompositionSource).toContain(
-      "const model = await resolveCanvasTextModel(params.command.model)",
-    );
+    expect(legacyCompositionSource).not.toContain("resolveCanvasTextModel");
     expect(legacyCompositionSource).not.toContain(
       "freezoneCanvasTextTranslationGateway",
     );

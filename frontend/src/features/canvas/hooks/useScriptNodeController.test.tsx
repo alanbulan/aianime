@@ -78,17 +78,20 @@ vi.mock('@/modules/model_usage/public', () => ({
   },
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  translateCanvasText: (command: unknown) =>
-    mocks.translateCanvasText(command),
-}));
-
-vi.mock('@/features/canvas/composition', () => ({
-  generateCanvasStoryScript: (
-    command: unknown,
-    onTaskSubmitted: (task: unknown) => void,
-  ) => mocks.generateCanvasStoryScript(command, onTaskSubmitted),
-}));
+vi.mock('@/modules/creative_canvas/public', async () => {
+  const storyScript = await vi.importActual<
+    typeof import('@/modules/creative_canvas/application/generateCanvasStoryScript')
+  >('@/modules/creative_canvas/application/generateCanvasStoryScript');
+  return {
+    ...storyScript,
+    generateCanvasStoryScript: (
+      command: unknown,
+      onTaskSubmitted: (task: unknown) => void,
+    ) => mocks.generateCanvasStoryScript(command, onTaskSubmitted),
+    translateCanvasText: (command: unknown) =>
+      mocks.translateCanvasText(command),
+  };
+});
 
 const NODE_CONTEXT = {
   projectId: 'project-a',

@@ -13,19 +13,17 @@ import {
   scriptPromptHasContent,
   updateScriptResultCell,
 } from '@/features/canvas/application/scriptNodeModel';
-import {
-  buildCanvasStoryScriptCommand,
-  isCanvasStoryScriptResult,
-  STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
-  type CanvasStoryScriptReference,
-} from '@/features/canvas/application/generateCanvasStoryScript';
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
+  buildCanvasStoryScriptCommand,
   generateCanvasStoryScript,
-} from '@/features/canvas/composition';
-import { translateCanvasText } from '@/modules/creative_canvas/public';
+  isCanvasStoryScriptResult,
+  STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
+  translateCanvasText,
+  type CanvasStoryScriptReference,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';

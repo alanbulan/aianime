@@ -1,21 +1,8 @@
 // Copyright (c) 2026 AI anime
-import {
-  isAudioNode,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isTextAnnotationNode,
-  isUploadNode,
-  isVideoNode,
-  type CanvasNode,
-} from "../domain/canvasNodes";
 import type {
   CanvasGenerationTaskRef,
-} from "@/modules/creative_canvas/public";
-import type {
-  CanvasGenerationTaskGateway,
-  CanvasStoryScriptResult,
-} from "./ports";
+  CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 
 export const STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE =
   "请输入提示词描述剧情（视频 / 角色图片仅作参考）";
@@ -52,77 +39,33 @@ export interface CanvasStoryScriptCommand {
   readonly nodeId: string;
 }
 
+export interface CanvasStoryScriptRow {
+  shot_no?: string | number | null;
+  duration?: string | number | null;
+  visual_description?: string | null;
+  character?: string | null;
+  shot?: string | null;
+  action?: string | null;
+  emotion?: string | null;
+  scene_tags?: string | null;
+  lighting_mood?: string | null;
+  sound?: string | null;
+  dialogue?: string | null;
+  shot_prompt?: string | null;
+  video_motion_prompt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface CanvasStoryScriptResult {
+  title?: string | null;
+  rows: CanvasStoryScriptRow[];
+}
+
 export interface BuildCanvasStoryScriptCommandParams {
   readonly references: ReadonlyArray<CanvasStoryScriptReference>;
   readonly prompt: string;
   readonly canvasId: string;
   readonly nodeId: string;
-}
-
-export function classifyCanvasStoryScriptReference(
-  node: CanvasNode,
-): CanvasStoryScriptReference | null {
-  if (isTextAnnotationNode(node)) {
-    return {
-      nodeId: node.id,
-      kind: "text",
-      text: typeof node.data.content === "string" ? node.data.content : "",
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isVideoNode(node)) {
-    const videoUrl =
-      typeof node.data.videoUrl === "string" && node.data.videoUrl.length > 0
-        ? node.data.videoUrl
-        : null;
-    const thumbUrl =
-      (typeof node.data.previewImageUrl === "string" &&
-        node.data.previewImageUrl) ||
-      null;
-    const durationSec =
-      typeof node.data.durationMs === "number" && node.data.durationMs > 0
-        ? node.data.durationMs / 1000
-        : null;
-    return {
-      nodeId: node.id,
-      kind: "video",
-      thumbUrl,
-      videoUrl,
-      durationSec,
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isAudioNode(node)) {
-    return {
-      nodeId: node.id,
-      kind: "audio",
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isImageGenNode(node)) {
-    const data = node.data;
-    const referenceImageUrl =
-      typeof data.referenceImageUrl === "string" &&
-      data.referenceImageUrl.length > 0
-        ? data.referenceImageUrl
-        : null;
-    return {
-      nodeId: node.id,
-      kind: "image",
-      thumbUrl: data.previewImageUrl || data.imageUrl || referenceImageUrl,
-      displayName: data.displayName ?? null,
-    };
-  }
-  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
-    const data = node.data;
-    return {
-      nodeId: node.id,
-      kind: "image",
-      thumbUrl: data.previewImageUrl || data.imageUrl || null,
-      displayName: data.displayName ?? null,
-    };
-  }
-  return null;
 }
 
 export function buildCanvasStoryScriptCommand(
@@ -182,6 +125,14 @@ export interface CanvasStoryScriptSubmissionGateway {
   ): Promise<CanvasGenerationTaskRef>;
 }
 
+export interface CanvasStoryScriptTaskGateway
+  extends Pick<CanvasTaskResultGateway, "awaitCompletion"> {
+  fetchStoryScriptResult(
+    projectId: string,
+    jobId: string,
+  ): Promise<CanvasStoryScriptResult>;
+}
+
 export interface GenerateCanvasStoryScriptParams {
   readonly projectId: string;
   readonly command: CanvasStoryScriptCommand;
@@ -189,10 +140,7 @@ export interface GenerateCanvasStoryScriptParams {
 
 export interface GenerateCanvasStoryScriptDependencies {
   readonly submissionGateway: CanvasStoryScriptSubmissionGateway;
-  readonly taskGateway: Pick<
-    CanvasGenerationTaskGateway,
-    "awaitCompletion" | "fetchStoryScriptResult"
-  >;
+  readonly taskGateway: CanvasStoryScriptTaskGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
 }
 

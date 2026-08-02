@@ -707,9 +707,29 @@ export type {
   SubmitCanvasImageGenerationDependencies,
 } from "@/modules/creative_canvas/application/generateCanvasImage";
 export {
+  generateCanvasStoryScript,
   resolveCanvasTextModel,
   translateCanvasText,
 } from "@/modules/creative_canvas/textGenerationComposition";
+export {
+  STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
+  buildCanvasStoryScriptCommand,
+  isCanvasStoryScriptResult,
+} from "@/modules/creative_canvas/application/generateCanvasStoryScript";
+export type {
+  BuildCanvasStoryScriptCommandParams,
+  CanvasStoryScriptCharacterReference,
+  CanvasStoryScriptCommand,
+  CanvasStoryScriptReference,
+  CanvasStoryScriptReferenceKind,
+  CanvasStoryScriptResult,
+  CanvasStoryScriptRow,
+  CanvasStoryScriptSubmissionGateway,
+  CanvasStoryScriptTaskGateway,
+  GenerateCanvasStoryScriptDependencies,
+  GenerateCanvasStoryScriptParams,
+  GenerateCanvasStoryScriptResult,
+} from "@/modules/creative_canvas/application/generateCanvasStoryScript";
 export type {
   CanvasTextTranslationGateway,
   CanvasTextTranslationNodeType,

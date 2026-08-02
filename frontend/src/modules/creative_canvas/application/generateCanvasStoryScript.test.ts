@@ -2,64 +2,14 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from "../domain/canvasNodes";
-import type { CanvasGenerationTaskGateway } from "./ports";
-import {
   buildCanvasStoryScriptCommand,
-  classifyCanvasStoryScriptReference,
   generateCanvasStoryScript,
   isCanvasStoryScriptResult,
   type CanvasStoryScriptSubmissionGateway,
+  type CanvasStoryScriptTaskGateway,
 } from "./generateCanvasStoryScript";
 
-function canvasNode(
-  id: string,
-  type: string,
-  data: Record<string, unknown>,
-): CanvasNode {
-  return { id, type, data, position: { x: 0, y: 0 } } as CanvasNode;
-}
-
 describe("Canvas story script generation", () => {
-  it("classifies supported upstream Canvas nodes", () => {
-    expect(
-      classifyCanvasStoryScriptReference(
-        canvasNode("text-1", CANVAS_NODE_TYPES.textAnnotation, {
-          content: "Story context",
-          displayName: "Context",
-        }),
-      ),
-    ).toEqual({
-      nodeId: "text-1",
-      kind: "text",
-      text: "Story context",
-      displayName: "Context",
-    });
-    expect(
-      classifyCanvasStoryScriptReference(
-        canvasNode("video-1", CANVAS_NODE_TYPES.video, {
-          videoUrl: "/video.mp4",
-          previewImageUrl: "/poster.png",
-          durationMs: 2_500,
-        }),
-      ),
-    ).toEqual({
-      nodeId: "video-1",
-      kind: "video",
-      thumbUrl: "/poster.png",
-      videoUrl: "/video.mp4",
-      durationSec: 2.5,
-      displayName: null,
-    });
-    expect(
-      classifyCanvasStoryScriptReference(
-        canvasNode("script-1", CANVAS_NODE_TYPES.script, {}),
-      ),
-    ).toBeNull();
-  });
-
   it("builds the source priority, steering prompt and media references", () => {
     expect(
       buildCanvasStoryScriptCommand({
@@ -130,10 +80,7 @@ describe("Canvas story script generation", () => {
     const submissionGateway: CanvasStoryScriptSubmissionGateway = {
       submit: vi.fn().mockResolvedValue(task),
     };
-    const taskGateway: Pick<
-      CanvasGenerationTaskGateway,
-      "awaitCompletion" | "fetchStoryScriptResult"
-    > = {
+    const taskGateway: CanvasStoryScriptTaskGateway = {
       awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
       fetchStoryScriptResult: vi.fn().mockResolvedValue(scriptResult),
     };

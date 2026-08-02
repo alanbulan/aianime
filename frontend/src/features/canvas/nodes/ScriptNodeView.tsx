@@ -20,10 +20,12 @@ import {
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { isRenderableImageSrc, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNodeModel';
-import type { CanvasStoryScriptReference } from '@/features/canvas/application/generateCanvasStoryScript';
-import type { CanvasStoryScriptRow } from '@/features/canvas/application/ports';
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
-import { hasCompletedHistoryRecords } from '@/modules/creative_canvas/public';
+import {
+  hasCompletedHistoryRecords,
+  type CanvasStoryScriptReference,
+  type CanvasStoryScriptRow,
+} from '@/modules/creative_canvas/public';
 import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';

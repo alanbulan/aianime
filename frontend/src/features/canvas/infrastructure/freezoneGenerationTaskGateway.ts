@@ -3,12 +3,10 @@ import { awaitTaskCompletion, listTasks } from '@/modules/task_execution/public'
 import {
   fetchCanvasGenerationResult,
   fetchCanvasGenerationResultUrl,
+  type CanvasStoryScriptResult,
 } from '@/modules/creative_canvas/public';
 
-import type {
-  CanvasGenerationTaskGateway,
-  CanvasStoryScriptResult,
-} from '../application/ports';
+import type { CanvasGenerationTaskGateway } from '../application/ports';
 
 interface ReversePromptTransport {
   readonly prompt: string;

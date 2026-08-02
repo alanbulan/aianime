@@ -245,12 +245,16 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneVideoUpscaleGenerationGateway.test.ts",
     ];
     const textGenerationApplicationFiles = [
+      "generateCanvasStoryScript.ts",
+      "generateCanvasStoryScript.test.ts",
       "translateCanvasText.ts",
       "translateCanvasText.test.ts",
     ];
     const textGenerationInfrastructureFiles = [
       "freezoneCanvasTextTranslationGateway.ts",
       "freezoneCanvasTextTranslationGateway.test.ts",
+      "freezoneStoryScriptGenerationGateway.ts",
+      "freezoneStoryScriptGenerationGateway.test.ts",
     ];
     const generationCatalogDomainFiles = [
       "cameraMovementPresets.ts",
@@ -1375,7 +1379,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 787],
+      ["features/canvas", 783],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

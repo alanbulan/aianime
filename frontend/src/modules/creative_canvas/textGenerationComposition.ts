@@ -5,15 +5,37 @@ import {
 } from "@/modules/model_usage/public";
 import { awaitTaskCompletion } from "@/modules/task_execution/public";
 
-import type { CanvasTaskResultGateway } from "./application/completeCanvasMediaGenerationTask";
+import type {
+  CanvasGenerationTaskRef,
+  CanvasTaskResultGateway,
+} from "./application/completeCanvasMediaGenerationTask";
+import {
+  generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
+  type CanvasStoryScriptResult,
+  type CanvasStoryScriptTaskGateway,
+  type GenerateCanvasStoryScriptParams,
+} from "./application/generateCanvasStoryScript";
 import {
   translateCanvasText as translateCanvasTextUseCase,
   type TranslateCanvasTextParams,
 } from "./application/translateCanvasText";
 import { freezoneCanvasTextTranslationGateway } from "./infrastructure/freezoneCanvasTextTranslationGateway";
+import { fetchCanvasGenerationResult } from "./infrastructure/freezoneGenerationResultGateway";
+import { freezoneStoryScriptGenerationGateway } from "./infrastructure/freezoneStoryScriptGenerationGateway";
 
 const taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion"> = {
   awaitCompletion: awaitTaskCompletion,
+};
+
+const storyScriptTaskGateway: CanvasStoryScriptTaskGateway = {
+  awaitCompletion: awaitTaskCompletion,
+  fetchStoryScriptResult(projectId, jobId) {
+    return fetchCanvasGenerationResult<CanvasStoryScriptResult>(
+      projectId,
+      "freezone_story_script",
+      jobId,
+    );
+  },
 };
 
 export async function resolveCanvasTextModel(
@@ -43,6 +65,21 @@ export async function translateCanvasText(
     {
       translationGateway: freezoneCanvasTextTranslationGateway,
       taskGateway,
+    },
+  );
+}
+
+export async function generateCanvasStoryScript(
+  params: GenerateCanvasStoryScriptParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  const model = await resolveCanvasTextModel(params.command.model);
+  return generateCanvasStoryScriptUseCase(
+    { ...params, command: { ...params.command, model } },
+    {
+      submissionGateway: freezoneStoryScriptGenerationGateway,
+      taskGateway: storyScriptTaskGateway,
+      onTaskSubmitted,
     },
   );
 }
