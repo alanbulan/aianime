@@ -2,7 +2,7 @@
 import { apiCall } from "@/shared/api/client";
 
 import type { VideoSubtitleEraseGateway } from "../application/eraseVideoSubtitles";
-import type { CanvasGenerationTaskRef } from "@/modules/creative_canvas/public";
+import type { CanvasGenerationTaskRef } from "../application/completeCanvasMediaGenerationTask";
 
 export const freezoneVideoSubtitleEraseGateway: VideoSubtitleEraseGateway = {
   async submit(projectId, submission) {

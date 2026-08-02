@@ -28,10 +28,6 @@ import {
   type GetCanvasDirectorStagePaletteParams,
 } from './application/directorStagePalette';
 import {
-  eraseVideoSubtitles as eraseVideoSubtitlesUseCase,
-  type EraseVideoSubtitlesParams,
-} from './application/eraseVideoSubtitles';
-import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
@@ -109,7 +105,6 @@ import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerati
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
-import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
@@ -329,13 +324,6 @@ export function resumeNodeGeneration(params: ResumeNodeGenerationParams) {
     params,
     freezoneGenerationTaskGateway,
   );
-}
-
-export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
-  return eraseVideoSubtitlesUseCase(params, {
-    eraseGateway: freezoneVideoSubtitleEraseGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-  });
 }
 
 export function awaitCanvasGenerationTaskCompletion(

@@ -14,6 +14,7 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   analyzeCanvasVideoStory,
   separateCanvasAudioVideo,
+  type VideoSubtitleEraseMode,
 } from "@/modules/creative_canvas/public";
 import {
   CANVAS_NODE_TYPES,
@@ -50,7 +51,7 @@ export function useVideoNodeToolbarController({
   }, [data.isClipMode, nodeId, projection.hasVideo, updateNodeData]);
 
   const openSubtitleRemoval = useCallback(
-    (mode: "smart" | "box") => {
+    (mode: VideoSubtitleEraseMode) => {
       if (!projection.hasVideo) {
         console.info(
           `[video-toolbar] stub action triggered: subtitle-${mode}-erase`,

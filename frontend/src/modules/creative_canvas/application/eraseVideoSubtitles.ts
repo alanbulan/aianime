@@ -1,17 +1,17 @@
 // Copyright (c) 2026 AI anime
-import type { VideoNodeData } from "../domain/canvasNodes";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
-
-type SubtitleEraseMode = NonNullable<VideoNodeData["subtitleEraseMode"]>;
-type SubtitleEraseBox = NonNullable<VideoNodeData["subtitleEraseBox"]>;
+} from "./completeCanvasMediaGenerationTask";
+import type {
+  VideoSubtitleEraseBox,
+  VideoSubtitleEraseMode,
+} from "../domain/videoSubtitleErase";
 
 export interface VideoSubtitleEraseSubmission {
   readonly sourceUrl: string;
   readonly mode: "smart_subtitle" | "box";
-  readonly box: SubtitleEraseBox | null;
+  readonly box: VideoSubtitleEraseBox | null;
 }
 
 export interface VideoSubtitleEraseGateway {
@@ -24,8 +24,8 @@ export interface VideoSubtitleEraseGateway {
 export interface EraseVideoSubtitlesParams {
   readonly projectId: string;
   readonly sourceUrl: string;
-  readonly mode: SubtitleEraseMode;
-  readonly box: SubtitleEraseBox | null;
+  readonly mode: VideoSubtitleEraseMode;
+  readonly box: VideoSubtitleEraseBox | null;
 }
 
 export interface EraseVideoSubtitlesDependencies {

@@ -26864,20 +26864,35 @@ describe("frontend architecture boundaries", () => {
   it("keeps video subtitle erasure in one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/eraseVideoSubtitles.ts",
+      "modules/creative_canvas/application/eraseVideoSubtitles.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/videoSubtitleEraseComposition.ts",
+    );
+    const legacyCompositionPath = resolve(
+      SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/videoSubtitleErase.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyCompositionSource = readFileSync(
+      legacyCompositionPath,
+      "utf8",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
@@ -26898,18 +26913,24 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const legacyPaths = [
+      "features/canvas/application/eraseVideoSubtitles.ts",
+      "features/canvas/application/eraseVideoSubtitles.test.ts",
+      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/canvasNodes",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
+        "../domain/videoSubtitleErase",
       ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/eraseVideoSubtitles.ts",
+      "modules/creative_canvas/application/eraseVideoSubtitles.ts",
     ]);
     expect(applicationSource).toContain('params.mode === "box"');
     expect(applicationSource).toContain('"smart_subtitle"');
@@ -26917,7 +26938,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/shared/api/client",
         "../application/eraseVideoSubtitles",
-        "@/modules/creative_canvas/public",
+        "../application/completeCanvasMediaGenerationTask",
       ]),
     );
     expect(adapterSource).not.toContain("react");
@@ -26925,7 +26946,7 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain('method: "POST"');
     expect(adapterSource).toContain("source_url: submission.sourceUrl");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
     ]);
     for (const legacySymbol of [
       "FreezoneVideoEraseMode",
@@ -26940,8 +26961,26 @@ describe("frontend architecture boundaries", () => {
       "eraseGateway: freezoneVideoSubtitleEraseGateway",
     );
     expect(compositionSource).toContain(
-      "taskGateway: freezoneGenerationTaskGateway",
+      "fetchResultUrl: fetchCanvasGenerationResultUrl",
     );
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain("export type VideoSubtitleEraseMode");
+    expect(domainSource).toContain("export interface VideoSubtitleEraseBox");
+    expect(publicSource).toContain("eraseVideoSubtitles }");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/videoSubtitleErase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "eraseVideoSubtitlesUseCase",
+    );
+    expect(legacyCompositionSource).not.toContain(
+      "freezoneVideoSubtitleEraseGateway",
+    );
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useVideoNodeController.ts",
+    ))).toContain("@/modules/creative_canvas/public");
     expect(videoNode).toContain("eraseVideoSubtitles({");
     expect(videoNode).not.toContain("submitFreezoneVideoErase");
     expect(videoNode).not.toContain('mode: "smart_subtitle"');

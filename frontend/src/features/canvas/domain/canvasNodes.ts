@@ -11,6 +11,8 @@ import type {
   VideoGenQuality,
   VideoGenMode,
   VideoStoryRow,
+  VideoSubtitleEraseBox,
+  VideoSubtitleEraseMode,
 } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
@@ -115,9 +117,9 @@ export interface VideoNodeData extends NodeDisplayData {
   clipEndMs?: number | null;
   // subtitle erase (libtv-style 智能去字幕) ----------------------------------
   /** `smart` = auto-estimate bottom subtitle band; `box` = user-drawn region. */
-  subtitleEraseMode?: 'smart' | 'box' | null;
+  subtitleEraseMode?: VideoSubtitleEraseMode | null;
   /** Box coords normalized 0..1 against the source frame. Only set in 'box' mode. */
-  subtitleEraseBox?: { x: number; y: number; width: number; height: number } | null;
+  subtitleEraseBox?: VideoSubtitleEraseBox | null;
   // generation fields (libtv-style operation panel)
   prompt?: string;
   /**

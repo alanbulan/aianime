@@ -17,6 +17,10 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { CreditCostPill } from "@/components/credits/credit-visual";
+import type {
+  VideoSubtitleEraseBox,
+  VideoSubtitleEraseMode,
+} from "@/modules/creative_canvas/public";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
@@ -33,7 +37,7 @@ interface DisplayedRect {
 }
 
 export interface SubtitleEraseBoxOverlayProps {
-  box: { x: number; y: number; width: number; height: number } | null;
+  box: VideoSubtitleEraseBox | null;
   drag: { x0: number; y0: number; x1: number; y1: number } | null;
   disabled: boolean;
   getDisplayedRect: (containerW: number, containerH: number) => DisplayedRect;
@@ -45,7 +49,7 @@ export interface SubtitleEraseBoxOverlayProps {
   }) => void;
   onDragMove: (next: { x1: number; y1: number }) => void;
   onDragEnd: (
-    final: { x: number; y: number; width: number; height: number } | null,
+    final: VideoSubtitleEraseBox | null,
   ) => void;
 }
 
@@ -175,7 +179,7 @@ export function SubtitleEraseBoxOverlay({
 }
 
 export interface SubtitleEraseOpsPanelProps {
-  mode: "smart" | "box";
+  mode: VideoSubtitleEraseMode;
   isErasing: boolean;
   hasBox: boolean;
   onExit: () => void;

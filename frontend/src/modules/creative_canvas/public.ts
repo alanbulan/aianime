@@ -820,6 +820,18 @@ export type {
   ComposeVideoClipParams,
   ComposeVideoClipResult,
 } from "@/modules/creative_canvas/application/composeVideoClip";
+export { eraseVideoSubtitles } from "@/modules/creative_canvas/videoSubtitleEraseComposition";
+export type {
+  VideoSubtitleEraseBox,
+  VideoSubtitleEraseMode,
+} from "@/modules/creative_canvas/domain/videoSubtitleErase";
+export type {
+  EraseVideoSubtitlesDependencies,
+  EraseVideoSubtitlesParams,
+  EraseVideoSubtitlesResult,
+  VideoSubtitleEraseGateway,
+  VideoSubtitleEraseSubmission,
+} from "@/modules/creative_canvas/application/eraseVideoSubtitles";
 export {
   resolveCanvasImageTo3dSourceKind,
 } from "@/modules/creative_canvas/domain/imageTo3d";
