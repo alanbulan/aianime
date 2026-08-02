@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasAssetLibraryItem } from '@/features/canvas/domain/assetLibrary';
+import type { CanvasAssetLibraryItem } from '../domain/assetLibrary';
 
 import {
   assetLibraryAcceptsMimeType,

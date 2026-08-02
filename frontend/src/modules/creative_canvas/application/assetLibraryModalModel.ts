@@ -4,7 +4,7 @@ import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySelection,
   CanvasAssetLibrarySource,
-} from '@/features/canvas/domain/assetLibrary';
+} from '../domain/assetLibrary';
 
 export type AssetLibraryTabKey = 'image' | 'scene' | 'video' | 'audio';
 

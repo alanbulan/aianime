@@ -560,6 +560,18 @@ export type {
   LibraryAsset,
   PresetReference,
 } from "@/modules/creative_canvas/domain/assetLibraryModel";
+export type {
+  CanvasAssetLibraryItem,
+  CanvasAssetLibraryMedia,
+  CanvasAssetLibrarySelection,
+  CanvasAssetLibrarySource,
+} from "@/modules/creative_canvas/domain/assetLibrary";
+export {
+  AssetLibraryModal,
+} from "@/modules/creative_canvas/presentation/AssetLibraryModal";
+export type {
+  AssetLibraryModalProps,
+} from "@/modules/creative_canvas/presentation/AssetLibraryModal";
 export {
   CANVAS_ASSET_DRAG_MIME,
   parseCanvasAssetDragPayload,

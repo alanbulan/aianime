@@ -6,14 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   assetLibrarySelectionKey,
   resolveAssetLibraryTabs,
-} from '@/features/canvas/application/assetLibraryModalModel';
-import type { AssetLibraryModalController } from '@/features/canvas/hooks/useAssetLibraryModalController';
+} from '../application/assetLibraryModalModel';
+import type { AssetLibraryModalController } from './useAssetLibraryModalController';
 
 import { AssetLibraryModalView } from './AssetLibraryModalView';
 
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-}));
+const resolveMediaUrl = (url: string) => `display:${url}`;
 
 function controller(
   overrides: Partial<AssetLibraryModalController> = {},
@@ -57,7 +55,12 @@ function controller(
 
 describe('AssetLibraryModalView', () => {
   it('renders nothing while closed', () => {
-    render(<AssetLibraryModalView controller={controller({ open: false })} />);
+    render(
+      <AssetLibraryModalView
+        controller={controller({ open: false })}
+        resolveMediaUrl={resolveMediaUrl}
+      />,
+    );
 
     expect(screen.queryByText('资产库')).not.toBeInTheDocument();
   });
@@ -94,6 +97,7 @@ describe('AssetLibraryModalView', () => {
           totalCount: 2,
           hasSelection: true,
         })}
+        resolveMediaUrl={resolveMediaUrl}
       />,
     );
 
@@ -124,6 +128,7 @@ describe('AssetLibraryModalView', () => {
           activeTab: tabs[1],
           visiblePending: [],
         })}
+        resolveMediaUrl={resolveMediaUrl}
       />,
     );
 
@@ -150,6 +155,7 @@ describe('AssetLibraryModalView', () => {
           ],
           totalCount: 1,
         })}
+        resolveMediaUrl={resolveMediaUrl}
       />,
     );
 

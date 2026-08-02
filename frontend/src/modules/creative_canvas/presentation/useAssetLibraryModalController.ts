@@ -19,19 +19,19 @@ import {
   resolveAssetLibraryTabs,
   toggleAssetLibrarySelection,
   type AssetLibraryTabKey,
-} from '@/features/canvas/application/assetLibraryModalModel';
+} from '../application/assetLibraryModalModel';
 import {
   addCanvasAssetLibraryItem,
   deleteCanvasAssetLibraryItem,
   loadCanvasAssetLibrary,
   syncCanvasAssetLibraryFromMainline,
-} from '@/features/canvas/assetLibraryComposition';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
+} from '../assetLibraryComposition';
+import { uploadFreezoneAsset } from '../assetTransferComposition';
 import type {
   CanvasAssetLibraryItem,
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySelection,
-} from '@/features/canvas/domain/assetLibrary';
+} from '../domain/assetLibrary';
 
 export interface AssetLibraryModalControllerOptions {
   open: boolean;
@@ -210,8 +210,8 @@ export function useAssetLibraryModalController({
       try {
         const uploaded =
           entry.media === 'image'
-            ? await uploadCanvasAsset(project, file, file.name)
-            : await uploadCanvasAsset(project, file, file.name, {
+            ? await uploadFreezoneAsset(project, file, file.name)
+            : await uploadFreezoneAsset(project, file, file.name, {
                 disableTimeout: true,
               });
         const cleanUrl = uploaded.url.split('?')[0];

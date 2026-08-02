@@ -67,6 +67,7 @@ import {
   useCanvasCameraOptions,
   useCanvasImageModels,
   useCanvasStyleTemplates,
+  type CanvasAssetLibrarySelection,
   type CanvasImageMode,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
@@ -76,7 +77,6 @@ import {
   nodeMainlineFlags,
 } from '@/features/canvas/domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,

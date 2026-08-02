@@ -27483,7 +27483,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
       "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
-      "features/canvas/hooks/useAssetLibraryModalController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
       "features/canvas/hooks/useImageMatteController.ts",
       "features/canvas/ui/RedrawOverlay.tsx",
@@ -27569,55 +27568,59 @@ describe("frontend architecture boundaries", () => {
       consumerSources
         .join("\n")
         .match(/disableTimeout: true/g),
-    ).toHaveLength(5);
+    ).toHaveLength(4);
   });
 
   it("keeps Canvas asset-library contracts and transport mapping out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/assetLibrary.ts",
+      "modules/creative_canvas/domain/assetLibrary.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/assetLibrary.ts",
+      "modules/creative_canvas/application/assetLibrary.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAssetLibraryGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAssetLibraryGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/assetLibraryComposition.ts",
+      "modules/creative_canvas/assetLibraryComposition.ts",
     );
     const modalEntryPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/AssetLibraryModal.tsx",
+      "modules/creative_canvas/presentation/AssetLibraryModal.tsx",
     );
     const modalModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/assetLibraryModalModel.ts",
+      "modules/creative_canvas/application/assetLibraryModalModel.ts",
     );
     const modalModelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/assetLibraryModalModel.test.ts",
+      "modules/creative_canvas/application/assetLibraryModalModel.test.ts",
     );
     const modalControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useAssetLibraryModalController.ts",
+      "modules/creative_canvas/presentation/useAssetLibraryModalController.ts",
     );
     const modalControllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useAssetLibraryModalController.test.tsx",
+      "modules/creative_canvas/presentation/useAssetLibraryModalController.test.tsx",
     );
     const modalViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/AssetLibraryModalView.tsx",
+      "modules/creative_canvas/presentation/AssetLibraryModalView.tsx",
     );
     const modalViewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/AssetLibraryModalView.test.tsx",
+      "modules/creative_canvas/presentation/AssetLibraryModalView.test.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -27656,6 +27659,10 @@ describe("frontend architecture boundaries", () => {
     const videoNodeControllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useVideoNodeController.ts",
+    );
+    const videoNodeModelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeModel.ts",
     );
     const videoNodeViewPath = resolve(
       SRC_ROOT,
@@ -27720,15 +27727,20 @@ describe("frontend architecture boundaries", () => {
       "freezoneAssetLibraryGateway.syncFromMainline(projectId)",
     );
     expect(importSpecifiers(modalControllerPath)).toContain(
-      "@/features/canvas/assetLibraryComposition",
+      "../assetLibraryComposition",
     );
     expect(importSpecifiers(modalControllerPath)).toContain(
-      "@/features/canvas/domain/assetLibrary",
+      "../domain/assetLibrary",
     );
     expect(importSpecifiers(modalControllerPath)).toContain(
-      "@/features/canvas/composition",
+      "../assetTransferComposition",
     );
     expect(importSpecifiers(modalControllerPath)).not.toContain("@/api/ops");
+    expect(modalControllerSource).toContain("uploadFreezoneAsset(");
+    expect(modalControllerSource).not.toContain("uploadCanvasAsset(");
+    expect(
+      modalControllerSource.match(/disableTimeout: true/g),
+    ).toHaveLength(1);
     expect(modalControllerSource).not.toContain("normalizeLibraryList");
     expect(modalControllerSource).not.toContain(
       "fetchFreezoneVideoCharacterLibrary",
@@ -27742,32 +27754,31 @@ describe("frontend architecture boundaries", () => {
     expect(modalControllerSource).not.toContain(
       "deleteFreezoneVideoCharacterLibraryItem",
     );
-    expect(importSpecifiers(modalViewPath)).not.toContain(
-      "@/features/canvas/assetLibraryComposition",
-    );
-    expect(importSpecifiers(modalViewPath)).not.toContain(
-      "@/features/canvas/composition",
-    );
-    expect(importSpecifiers(modalViewPath)).not.toContain(
-      "@/features/canvas/domain/assetLibrary",
-    );
+    expect(
+      importSpecifiers(modalViewPath).some((specifier) =>
+        specifier.startsWith("@/features/"),
+      ),
+    ).toBe(false);
     expect(modalViewSource).not.toContain("useState(");
     expect(modalViewSource).not.toContain("useEffect(");
     expect(modalViewSource).toContain("createPortal(");
     expect(modalViewSource).toContain("<Button");
+    expect(modalViewSource).toContain("resolveMediaUrl(entry.url)");
+    expect(modalViewSource).not.toContain("resolveImageDisplayUrl");
     expect(new Set(importSpecifiers(modalEntryPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/hooks/useAssetLibraryModalController",
+        "./useAssetLibraryModalController",
         "./AssetLibraryModalView",
       ]),
     );
     expect(modalEntrySource).toContain(
-      "useAssetLibraryModalController(props)",
+      "useAssetLibraryModalController(controllerOptions)",
     );
     expect(modalEntrySource).toContain(
-      "createElement(AssetLibraryModalView, { controller })",
+      "createElement(AssetLibraryModalView, {",
     );
+    expect(modalEntrySource).toContain("resolveMediaUrl,");
     expect(modalEntrySource).not.toContain("useState(");
     expect(modalEntrySource).not.toContain("className=");
     expect(modalModelSource).not.toContain("react");
@@ -27775,11 +27786,35 @@ describe("frontend architecture boundaries", () => {
     expect(modalModelSource).not.toContain("document.");
     expect(modalModelSource).not.toContain("className=");
     expect(modalDeclarationOwners).toEqual([
-      ["features/canvas/ui/AssetLibraryModal.tsx"],
-      ["features/canvas/application/assetLibraryModalModel.ts"],
-      ["features/canvas/hooks/useAssetLibraryModalController.ts"],
-      ["features/canvas/ui/AssetLibraryModalView.tsx"],
+      ["modules/creative_canvas/presentation/AssetLibraryModal.tsx"],
+      ["modules/creative_canvas/application/assetLibraryModalModel.ts"],
+      ["modules/creative_canvas/presentation/useAssetLibraryModalController.ts"],
+      ["modules/creative_canvas/presentation/AssetLibraryModalView.tsx"],
     ]);
+    for (const retiredPath of [
+      "features/canvas/domain/assetLibrary.ts",
+      "features/canvas/application/assetLibrary.ts",
+      "features/canvas/application/assetLibraryModalModel.ts",
+      "features/canvas/application/assetLibraryModalModel.test.ts",
+      "features/canvas/infrastructure/freezoneAssetLibraryGateway.ts",
+      "features/canvas/infrastructure/freezoneAssetLibraryGateway.test.ts",
+      "features/canvas/assetLibraryComposition.ts",
+      "features/canvas/hooks/useAssetLibraryModalController.ts",
+      "features/canvas/hooks/useAssetLibraryModalController.test.tsx",
+      "features/canvas/ui/AssetLibraryModal.tsx",
+      "features/canvas/ui/AssetLibraryModalView.tsx",
+      "features/canvas/ui/AssetLibraryModalView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(
+        false,
+      );
+    }
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/assetLibrary",
+        "@/modules/creative_canvas/presentation/AssetLibraryModal",
+      ]),
+    );
     expect(modalModelTestSource).toContain(
       "from './assetLibraryModalModel'",
     );
@@ -27790,7 +27825,7 @@ describe("frontend architecture boundaries", () => {
       "from './AssetLibraryModalView'",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAssetLibraryGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAssetLibraryGateway.ts",
     ]);
     for (const legacySymbol of [
       "FreezoneVideoCharacterLibraryItem",
@@ -27810,44 +27845,56 @@ describe("frontend architecture boundaries", () => {
       "freezone/video/asset-library/sync-from-mainline",
     );
     expect(importSpecifiers(videoNodeControllerPath)).toContain(
-      "@/features/canvas/domain/assetLibrary",
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(videoNodeModelPath)).toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(videoNodeControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",
     );
     expect(importSpecifiers(videoNodeViewPath)).toContain(
-      "@/features/canvas/ui/AssetLibraryModal",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(videoNodeViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
     expect(importSpecifiers(imageEditModelPath)).toContain(
-      "@/features/canvas/domain/assetLibrary",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageEditControllerPath)).toContain(
-      "@/features/canvas/domain/assetLibrary",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageEditControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",
     );
     expect(importSpecifiers(imageEditViewPath)).toContain(
-      "@/features/canvas/ui/AssetLibraryModal",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageEditViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
     expect(importSpecifiers(imageGenControllerPath)).toContain(
-      "@/features/canvas/domain/assetLibrary",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageGenControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",
     );
     expect(importSpecifiers(imageGenViewPath)).toContain(
-      "@/features/canvas/ui/AssetLibraryModal",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageGenViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
+    for (const viewPath of [
+      videoNodeViewPath,
+      imageEditViewPath,
+      imageGenViewPath,
+    ]) {
+      expect(readFileSync(viewPath, "utf8")).toContain(
+        "resolveMediaUrl={resolveImageDisplayUrl}",
+      );
+    }
   });
 
   it("keeps generation history queries behind one application boundary", () => {

@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAssetLibraryItem } from '@/features/canvas/domain/assetLibrary';
+import type { CanvasAssetLibraryItem } from '../domain/assetLibrary';
 
 import { useAssetLibraryModalController } from './useAssetLibraryModalController';
 
@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   revokeObjectUrl: vi.fn(),
 }));
 
-vi.mock('@/features/canvas/assetLibraryComposition', () => ({
+vi.mock('../assetLibraryComposition', () => ({
   loadCanvasAssetLibrary: (project: string) => mocks.loadLibrary(project),
   syncCanvasAssetLibraryFromMainline: (project: string) =>
     mocks.syncLibrary(project),
@@ -26,8 +26,8 @@ vi.mock('@/features/canvas/assetLibraryComposition', () => ({
     mocks.deleteItem(project, id),
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
-  uploadCanvasAsset: (
+vi.mock('../assetTransferComposition', () => ({
+  uploadFreezoneAsset: (
     project: string,
     file: File,
     fileName: string,

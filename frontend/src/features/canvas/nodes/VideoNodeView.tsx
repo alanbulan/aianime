@@ -56,7 +56,6 @@ import {
   SubtitleEraseBoxOverlay,
   SubtitleEraseOpsPanel,
 } from '@/features/canvas/nodes/VideoSubtitleEraseControls';
-import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -82,7 +81,10 @@ import {
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
-import { NodeContextBadges } from '@/modules/creative_canvas/public';
+import {
+  AssetLibraryModal,
+  NodeContextBadges,
+} from '@/modules/creative_canvas/public';
 
 export interface VideoNodeViewProps {
   controller: VideoNodeController;
@@ -673,6 +675,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
       <AssetLibraryModal
         open={isCharacterLibraryOpen}
         project={projectId}
+        resolveMediaUrl={resolveImageDisplayUrl}
         onClose={() => setIsCharacterLibraryOpen(false)}
         onConfirm={spawnCharacterLibraryReferences}
       />

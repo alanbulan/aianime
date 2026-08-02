@@ -174,16 +174,31 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const beatContextDomainFiles = ["beatContext.ts"];
     const assetLibraryDomainFiles = [
+      "assetLibrary.ts",
       "assetLibraryModel.ts",
       "assetLibraryModel.test.ts",
       "assetDrag.ts",
     ];
     const assetLibraryApplicationFiles = [
+      "assetLibrary.ts",
+      "assetLibraryModalModel.ts",
+      "assetLibraryModalModel.test.ts",
       "assetLibraryProjection.ts",
       "assetLibraryProjection.test.ts",
       "assetLibraryCanvasInsertion.ts",
       "assetLibraryCanvasInsertion.test.ts",
       "canvasAssetNodeSpawning.ts",
+    ];
+    const assetLibraryInfrastructureFiles = [
+      "freezoneAssetLibraryGateway.ts",
+      "freezoneAssetLibraryGateway.test.ts",
+    ];
+    const assetLibraryPresentationFiles = [
+      "AssetLibraryModal.tsx",
+      "AssetLibraryModalView.tsx",
+      "AssetLibraryModalView.test.tsx",
+      "useAssetLibraryModalController.ts",
+      "useAssetLibraryModalController.test.tsx",
     ];
     const mediaTransferDomainFiles = [
       "videoFileTypes.ts",
@@ -565,6 +580,10 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
         file,
       ).toBe(false);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
     }
     for (const file of assetLibraryApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(true);
@@ -572,6 +591,40 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/freezone/application", file)),
         file,
       ).toBe(false);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of assetLibraryInfrastructureFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "infrastructure", file)),
+        file,
+      ).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of assetLibraryPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+    }
+    expect(existsSync(resolve(moduleRoot, "assetLibraryComposition.ts"))).toBe(
+      true,
+    );
+    for (const retiredPath of [
+      "features/canvas/assetLibraryComposition.ts",
+      "features/canvas/hooks/useAssetLibraryModalController.ts",
+      "features/canvas/hooks/useAssetLibraryModalController.test.tsx",
+      "features/canvas/ui/AssetLibraryModal.tsx",
+      "features/canvas/ui/AssetLibraryModalView.tsx",
+      "features/canvas/ui/AssetLibraryModalView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(
+        false,
+      );
     }
     for (const file of mediaTransferDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
@@ -1043,6 +1096,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/generationHistoryRecord",
         "@/modules/creative_canvas/domain/beatContext",
         "@/modules/creative_canvas/domain/assetLibraryModel",
+        "@/modules/creative_canvas/domain/assetLibrary",
         "@/modules/creative_canvas/application/assetLibraryProjection",
         "@/modules/creative_canvas/domain/toolImageGeometry",
         "@/modules/creative_canvas/domain/multiAngle",
@@ -1104,6 +1158,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/commitDialogViewModel",
         "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController",
         "@/modules/creative_canvas/presentation/AssetLibraryPanelView",
+        "@/modules/creative_canvas/presentation/AssetLibraryModal",
         "@/modules/creative_canvas/presentation/FreezoneChatDock",
         "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback",
         "@/modules/creative_canvas/presentation/CanvasesTab",
@@ -1637,7 +1692,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 707],
+      ["features/canvas", 695],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

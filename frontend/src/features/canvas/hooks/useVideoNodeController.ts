@@ -62,7 +62,6 @@ import {
   showErrorDialog,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
-import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   CANVAS_NODE_TYPES,
   isAudioNode,
@@ -124,6 +123,7 @@ import {
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
   videoReferenceCapsForMode,
+  type CanvasAssetLibrarySelection,
   type CameraMovementPreset,
   type VideoGenMode,
   type VideoGenerationReference,

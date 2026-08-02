@@ -11,12 +11,10 @@ import {
   X,
 } from 'lucide-react';
 
-import {
-  assetLibrarySourceLabel,
-} from '@/features/canvas/application/assetLibraryModalModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
-import type { AssetLibraryModalController } from '@/features/canvas/hooks/useAssetLibraryModalController';
 import { Button } from '@/components/ui/button';
+
+import { assetLibrarySourceLabel } from '../application/assetLibraryModalModel';
+import type { AssetLibraryModalController } from './useAssetLibraryModalController';
 
 const ASSET_LIBRARY_MODAL_CLASS =
   'relative flex h-[min(720px,82vh)] w-[min(1120px,92vw)] flex-col overflow-hidden rounded-[10px] border border-border bg-background/96 shadow-2xl backdrop-blur-md';
@@ -29,10 +27,12 @@ const ASSET_LIBRARY_UPLOAD_CARD_CLASS =
 
 export interface AssetLibraryModalViewProps {
   controller: AssetLibraryModalController;
+  resolveMediaUrl: (url: string) => string;
 }
 
 export function AssetLibraryModalView({
   controller,
+  resolveMediaUrl,
 }: AssetLibraryModalViewProps) {
   const {
     open,
@@ -283,14 +283,14 @@ export function AssetLibraryModalView({
                 >
                   {entry.media === 'image' ? (
                     <img
-                      src={resolveImageDisplayUrl(entry.url)}
+                      src={resolveMediaUrl(entry.url)}
                       alt={entry.name}
                       className="h-full w-full object-cover"
                       draggable={false}
                     />
                   ) : entry.media === 'video' ? (
                     <video
-                      src={resolveImageDisplayUrl(entry.url)}
+                      src={resolveMediaUrl(entry.url)}
                       className="h-full w-full object-cover"
                       muted
                       playsInline
@@ -300,7 +300,7 @@ export function AssetLibraryModalView({
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
                       <Music className="h-9 w-9" />
                       <audio
-                        src={resolveImageDisplayUrl(entry.url)}
+                        src={resolveMediaUrl(entry.url)}
                         controls
                         className="w-[86%]"
                         onClick={(event) => event.stopPropagation()}

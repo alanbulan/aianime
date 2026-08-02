@@ -47,7 +47,6 @@ import {
   replaceReferenceToken,
   resolveReferenceAwareDeleteRange,
 } from '@/features/canvas/application/referenceTokenEditing';
-import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   CANVAS_NODE_TYPES,
@@ -89,6 +88,7 @@ import {
   getCapability,
   listCapabilities,
   useCanvasImageModels,
+  type CanvasAssetLibrarySelection,
   type GenerationCapability,
 } from '@/modules/creative_canvas/public';
 import { backendErrorToastMessage } from '@/shared/api/errors';

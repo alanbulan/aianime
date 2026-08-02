@@ -27,6 +27,7 @@ import {
 } from '@/features/canvas/application/imageGenNodeModel';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
+  AssetLibraryModal,
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
@@ -42,7 +43,6 @@ import {
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPrompt';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
@@ -932,6 +932,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
         open={isAssetLibraryOpen}
         project={projectId}
         allowedMedia={['image']}
+        resolveMediaUrl={resolveImageDisplayUrl}
         onClose={() => setIsAssetLibraryOpen(false)}
         onConfirm={(selections) => spawnAssetLibraryReferences(selections)}
       />

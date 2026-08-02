@@ -6,8 +6,8 @@ import {
   IMAGE_EDIT_NODE_SIZE_LIMITS,
   projectImageEditPromptSegments,
 } from '@/features/canvas/application/imageEditNodeModel';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
-import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
@@ -30,6 +30,7 @@ import {
 import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
+  AssetLibraryModal,
   stringifyParamValue,
   type CapabilityParamDefinition,
 } from '@/modules/creative_canvas/public';
@@ -540,6 +541,7 @@ export function ImageEditNodeView({
         open={isAssetLibraryOpen}
         project={assetLibraryProject}
         allowedMedia={['image']}
+        resolveMediaUrl={resolveImageDisplayUrl}
         onClose={controller.closeAssetLibrary}
         onConfirm={controller.confirmAssetLibrarySelections}
       />

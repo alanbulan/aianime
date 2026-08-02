@@ -3,7 +3,6 @@ import {
   VIDEO_GENERATION_ASPECT_RATIOS,
   snapToAllowedAspectRatio,
 } from '@/features/canvas/application/imageData';
-import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   CANVAS_NODE_TYPES,
   isAudioNode,
@@ -23,6 +22,7 @@ import {
   referenceVideoUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
 import type {
+  CanvasAssetLibrarySelection,
   VideoGenerationAspectRatio,
   VideoReferenceItem,
 } from '@/modules/creative_canvas/public';
