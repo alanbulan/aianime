@@ -7,7 +7,7 @@ import {
   type ComposeTimelineState,
   type ComposeTrack,
   type ComposeTrackKind,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "../domain/videoComposeTimeline";
 
 import {
   projectVideoComposeActiveMediaClock,

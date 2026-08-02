@@ -25567,7 +25567,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps video clip range rules in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoClipRange.ts",
+      "modules/creative_canvas/domain/videoClipRange.ts",
     );
     const clipPanelPath = resolve(
       SRC_ROOT,
@@ -25575,7 +25575,7 @@ describe("frontend architecture boundaries", () => {
     );
     const timelinePath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimeline.ts",
+      "modules/creative_canvas/domain/videoComposeTimeline.ts",
     );
     const composeModalPath = resolve(
       SRC_ROOT,
@@ -25583,7 +25583,7 @@ describe("frontend architecture boundaries", () => {
     );
     const gesturesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimelineGestures.ts",
+      "modules/creative_canvas/domain/videoComposeTimelineGestures.ts",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
@@ -25608,10 +25608,12 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain("@/api/");
     expect(domainSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual(
-      declarations.map(() => ["features/canvas/domain/videoClipRange.ts"]),
+      declarations.map(() => [
+        "modules/creative_canvas/domain/videoClipRange.ts",
+      ]),
     );
     expect(clipPanelSource).toContain(
-      "@/features/canvas/domain/videoClipRange",
+      "@/modules/creative_canvas/public",
     );
     expect(clipPanelSource).toContain("resolveVideoClipRange({");
     expect(clipPanelSource).not.toContain("const MIN_CLIP_MS = 200");
@@ -25626,19 +25628,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose timeline state, session projection, and media probing in their layers", () => {
     const timelinePath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimeline.ts",
+      "modules/creative_canvas/domain/videoComposeTimeline.ts",
     );
     const timelineTestPath = resolve(
       SRC_ROOT,
-      "__tests__/features/canvas/timelineModel.test.ts",
+      "modules/creative_canvas/domain/videoComposeTimeline.test.ts",
     );
     const sessionPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoComposeTimelineSession.ts",
+      "modules/creative_canvas/application/videoComposeTimelineSession.ts",
     );
     const sessionTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoComposeTimelineSession.test.ts",
+      "modules/creative_canvas/application/videoComposeTimelineSession.test.ts",
     );
     const runtimePath = resolve(
       SRC_ROOT,
@@ -25698,33 +25700,30 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(timelinePath)).toEqual([
-      "@/modules/creative_canvas/public",
+      "./videoCompose",
     ]);
     expect(timelineSource).not.toContain("react");
     expect(timelineSource).not.toContain("document.");
     expect(timelineSource).not.toContain("useCanvasStore");
     expect(timelineSource).not.toContain("@/api/");
     expect(new Set(importSpecifiers(sessionPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/videoComposeTimeline",
-      ]),
+      new Set(["../domain/videoComposeTimeline"]),
     );
     expect(sessionSource).not.toContain("react");
     expect(sessionSource).not.toContain("document.");
     expect(sessionSource).not.toContain("useCanvasStore");
     expect(sessionSource).not.toContain("className=");
     expect(importSpecifiers(runtimePath)).toEqual([
-      "@/features/canvas/domain/videoComposeTimeline",
+      "@/modules/creative_canvas/public",
     ]);
     expect(runtimeSource).toContain("document.createElement(");
     expect(runtimeSource).toContain("element.src = resolveUrl(url)");
     expect(runtimeSource).not.toContain("resolveImageDisplayUrl");
     expect(runtimeSource).not.toContain("useCanvasStore");
     expect(importSpecifiers(sessionControllerPath)).toContain(
-      "@/features/canvas/application/videoComposeTimelineSession",
+      "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(sessionControllerPath)).toContain(
+    expect(importSpecifiers(sessionControllerPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimeline",
     );
     expect(importSpecifiers(sessionControllerPath)).toContain(
@@ -25757,16 +25756,16 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("sourceNodes={controller.sourceNodes}");
     expect(existsSync(oldTimelinePath)).toBe(false);
     expect(declarationOwners).toEqual([
-      ["features/canvas/domain/videoComposeTimeline.ts"],
-      ["features/canvas/application/videoComposeTimelineSession.ts"],
-      ["features/canvas/application/videoComposeTimelineSession.ts"],
-      ["features/canvas/application/videoComposeTimelineSession.ts"],
+      ["modules/creative_canvas/domain/videoComposeTimeline.ts"],
+      ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
+      ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
+      ["modules/creative_canvas/application/videoComposeTimelineSession.ts"],
       [
         "features/canvas/infrastructure/browserVideoComposeMediaRuntime.ts",
       ],
     ]);
     expect(timelineTestSource).toContain(
-      "@/features/canvas/domain/videoComposeTimeline",
+      'from "./videoComposeTimeline"',
     );
     expect(sessionTestSource).toContain(
       "from './videoComposeTimelineSession'",
@@ -25810,11 +25809,9 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/application/imageData",
-        "@/features/canvas/application/videoComposeTimelineSession",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/videoComposeTimelineEdits",
-        "@/features/canvas/domain/videoComposeTimeline",
         "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).toContain("VIDEO_COMPOSE_HISTORY_LIMIT = 50");
@@ -25853,11 +25850,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose selection and editing rules in one pure domain reducer", () => {
     const editsPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimelineEdits.ts",
+      "modules/creative_canvas/domain/videoComposeTimelineEdits.ts",
     );
     const editsTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimelineEdits.test.ts",
+      "modules/creative_canvas/domain/videoComposeTimelineEdits.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -25906,13 +25903,13 @@ describe("frontend architecture boundaries", () => {
     expect(editsSource).not.toContain("@/stores/");
     expect(editsSource).not.toContain("className=");
     expect(importSpecifiers(editorControllerPath)).toContain(
-      "@/features/canvas/domain/videoComposeTimelineEdits",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimelineEdits",
     );
     expect(importSpecifiers(sessionControllerPath)).toContain(
-      "@/features/canvas/domain/videoComposeTimelineEdits",
+      "@/modules/creative_canvas/public",
     );
     expect(editorControllerSource).toContain(
       "resolveVideoComposeClipSelection(",
@@ -25934,7 +25931,7 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("muted: v <= 0");
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/domain/videoComposeTimelineEdits.ts",
+        "modules/creative_canvas/domain/videoComposeTimelineEdits.ts",
       ]),
     );
     expect(editsTestSource).toContain(
@@ -25968,11 +25965,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set([
-        "react",
-        "@/features/canvas/domain/videoComposeTimelineEdits",
-        "@/features/canvas/domain/videoComposeTimeline",
-      ]),
+      new Set(["react", "@/modules/creative_canvas/public"]),
     );
     expect(controllerSource).toContain("clipboardRef");
     expect(controllerSource).toContain("const moveToNewTrack = useCallback");
@@ -26005,11 +25998,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose drag, snap, and trim projections in one pure domain module", () => {
     const gesturesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimelineGestures.ts",
+      "modules/creative_canvas/domain/videoComposeTimelineGestures.ts",
     );
     const gesturesTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimelineGestures.test.ts",
+      "modules/creative_canvas/domain/videoComposeTimelineGestures.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26052,7 +26045,7 @@ describe("frontend architecture boundaries", () => {
     expect(gesturesSource).not.toContain("@/stores/");
     expect(gesturesSource).not.toContain("className=");
     expect(importSpecifiers(pointerControllerPath)).toContain(
-      "@/features/canvas/domain/videoComposeTimelineGestures",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimelineGestures",
@@ -26081,7 +26074,7 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("const sourceMaxEnd =");
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/domain/videoComposeTimelineGestures.ts",
+        "modules/creative_canvas/domain/videoComposeTimelineGestures.ts",
       ]),
     );
     expect(gesturesTestSource).toContain(
@@ -26115,12 +26108,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set([
-        "react",
-        "@/features/canvas/domain/videoComposeTimelineEdits",
-        "@/features/canvas/domain/videoComposeTimelineGestures",
-        "@/features/canvas/domain/videoComposeTimeline",
-      ]),
+      new Set(["react", "@/modules/creative_canvas/public"]),
     );
     expect(controllerSource).toContain(
       'document.querySelectorAll<HTMLElement>("[data-compose-track-id]")',
@@ -26308,7 +26296,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "@/features/canvas/domain/videoComposeTimelineEdits",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(new Set(importSpecifiers(trackRowPath))).toEqual(
@@ -26316,7 +26304,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
-        "@/features/canvas/domain/videoComposeTimeline",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/compose/audioPeaks",
         "@/features/canvas/compose/filmstrip",
       ]),
@@ -26368,11 +26356,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose preview projection, clock, and browser playback in their layers", () => {
     const previewPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoComposePreview.ts",
+      "modules/creative_canvas/application/videoComposePreview.ts",
     );
     const previewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoComposePreview.test.ts",
+      "modules/creative_canvas/application/videoComposePreview.test.ts",
     );
     const clockPath = resolve(
       SRC_ROOT,
@@ -26420,7 +26408,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(previewPath)).toEqual([
-      "@/features/canvas/domain/videoComposeTimeline",
+      "../domain/videoComposeTimeline",
     ]);
     expect(previewSource).not.toContain("react");
     expect(previewSource).not.toContain("document.");
@@ -26434,8 +26422,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/application/imageData",
-        "@/features/canvas/application/videoComposePreview",
-        "@/features/canvas/domain/videoComposeTimeline",
+        "@/modules/creative_canvas/public",
         "./useVideoComposePlaybackClock",
         "./useVideoComposeTrackMediaSync",
       ]),
@@ -26458,9 +26445,9 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("requestFullscreen");
     expect(existsSync(oldClockPath)).toBe(false);
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/videoComposePreview.ts"],
-      ["features/canvas/application/videoComposePreview.ts"],
-      ["features/canvas/application/videoComposePreview.ts"],
+      ["modules/creative_canvas/application/videoComposePreview.ts"],
+      ["modules/creative_canvas/application/videoComposePreview.ts"],
+      ["modules/creative_canvas/application/videoComposePreview.ts"],
       ["features/canvas/hooks/useVideoComposePlaybackClock.ts"],
       ["features/canvas/hooks/useVideoComposePlaybackController.ts"],
     ]);
@@ -26510,7 +26497,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/application/imageData",
-        "@/features/canvas/domain/videoComposeTimeline",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(hookSource).toContain("activeClipAt(track, playheadMs)");
@@ -26591,7 +26578,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/application/imageData",
         "@/features/canvas/composition",
-        "@/features/canvas/domain/videoComposeTimeline",
         "@/features/canvas/infrastructure/browserVideoComposeExportRuntime",
         "@/modules/creative_canvas/public",
       ]),
@@ -26753,7 +26739,7 @@ describe("frontend architecture boundaries", () => {
     );
     const timelinePath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/videoComposeTimeline.ts",
+      "modules/creative_canvas/domain/videoComposeTimeline.ts",
     );
     const exportControllerPath = resolve(
       SRC_ROOT,
@@ -26819,9 +26805,7 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/composeCanvasVideo.ts",
     ]);
-    expect(importSpecifiers(timelinePath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(importSpecifiers(timelinePath)).toEqual(["./videoCompose"]);
     expect(importSpecifiers(timelinePath)).not.toContain("@/api/ops");
     expect(timelineSource).toContain(
       "): CanvasVideoComposeRequest {",

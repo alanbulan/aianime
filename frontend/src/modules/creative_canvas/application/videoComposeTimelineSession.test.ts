@@ -1,54 +1,46 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
 import type {
   ComposeClip,
   ComposeTimelineState,
-} from '@/features/canvas/domain/videoComposeTimeline';
+} from '../domain/videoComposeTimeline';
 
 import {
   buildVideoComposeInitialTimeline,
   reconcileVideoComposeDraftWithSources,
   resolveVideoComposeInitialTimeline,
+  type VideoComposeSourceMedia,
 } from './videoComposeTimelineSession';
 
-function videoNode(
+function videoSource(
   id: string,
   url: string,
   durationMs?: number,
-): CanvasNode {
+): VideoComposeSourceMedia {
   return {
-    id,
-    type: CANVAS_NODE_TYPES.video,
-    position: { x: 0, y: 0 },
-    data: {
-      videoUrl: url,
-      durationMs,
-      displayName: `video-${id}`,
-      previewImageUrl: `/covers/${id}.jpg`,
-    },
-  } as CanvasNode;
+    nodeId: id,
+    kind: 'video',
+    sourceUrl: url,
+    durationMs: durationMs ?? null,
+    displayName: `video-${id}`,
+    thumbUrl: `/covers/${id}.jpg`,
+  };
 }
 
-function audioNode(
+function audioSource(
   id: string,
   url: string,
   durationMs?: number,
-): CanvasNode {
+): VideoComposeSourceMedia {
   return {
-    id,
-    type: CANVAS_NODE_TYPES.audio,
-    position: { x: 0, y: 0 },
-    data: {
-      audioUrl: url,
-      durationMs,
-      displayName: `audio-${id}`,
-    },
-  } as CanvasNode;
+    nodeId: id,
+    kind: 'audio',
+    sourceUrl: url,
+    durationMs: durationMs ?? null,
+    displayName: `audio-${id}`,
+    thumbUrl: null,
+  };
 }
 
 function clip(
@@ -82,9 +74,9 @@ function idFactory(...ids: string[]): () => string {
 describe('videoComposeTimelineSession', () => {
   it('builds separate sequential video and audio tracks in seed order', () => {
     const nodes = [
-      videoNode('video-a', '/a.mp4', 3_000),
-      videoNode('video-b', '/b.mp4'),
-      audioNode('audio-a', '/a.wav', 2_000),
+      videoSource('video-a', '/a.mp4', 3_000),
+      videoSource('video-b', '/b.mp4'),
+      audioSource('audio-a', '/a.wav', 2_000),
     ];
 
     const timeline = buildVideoComposeInitialTimeline(
@@ -127,7 +119,7 @@ describe('videoComposeTimelineSession', () => {
 
   it('omits the audio track when no playable audio source exists', () => {
     const timeline = buildVideoComposeInitialTimeline(
-      [videoNode('video-a', '/a.mp4')],
+      [videoSource('video-a', '/a.mp4')],
       ['video-a'],
       idFactory('clip-video'),
     );
@@ -167,7 +159,10 @@ describe('videoComposeTimelineSession', () => {
 
     const reconciled = reconcileVideoComposeDraftWithSources(
       draft,
-      [videoNode('video-a', '/a.mp4'), videoNode('video-b', '/b.mp4', 2_000)],
+      [
+        videoSource('video-a', '/a.mp4'),
+        videoSource('video-b', '/b.mp4', 2_000),
+      ],
       ['video-a', 'video-b'],
       idFactory('new-video'),
     );
@@ -204,7 +199,7 @@ describe('videoComposeTimelineSession', () => {
 
     const reconciled = reconcileVideoComposeDraftWithSources(
       draft,
-      [audioNode('audio-a', '/a.wav', 1_500)],
+      [audioSource('audio-a', '/a.wav', 1_500)],
       ['audio-a'],
       idFactory('new-audio'),
     );
@@ -224,10 +219,10 @@ describe('videoComposeTimelineSession', () => {
   });
 
   it('uses only non-empty drafts and rebuilds an empty draft from sources', () => {
-    const node = videoNode('video-a', '/a.mp4', 1_000);
+    const node = videoSource('video-a', '/a.mp4', 1_000);
     const rebuilt = resolveVideoComposeInitialTimeline({
       initialTimeline: { tracks: [], resolution: '720p' },
-      nodes: [node],
+      sources: [node],
       seedNodeIds: ['video-a'],
       createClipId: idFactory('rebuilt'),
     });
@@ -252,7 +247,7 @@ describe('videoComposeTimelineSession', () => {
     };
     const restored = resolveVideoComposeInitialTimeline({
       initialTimeline: existing,
-      nodes: [node],
+      sources: [node],
       seedNodeIds: ['video-a'],
       createClipId: idFactory('unused'),
     });

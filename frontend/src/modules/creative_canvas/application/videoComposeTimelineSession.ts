@@ -1,10 +1,5 @@
 // Copyright (c) 2026 AI anime
 import {
-  isAudioNode,
-  isVideoNode,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   AUDIO_TRACK_ID,
   FALLBACK_CLIP_MS,
   VIDEO_TRACK_ID,
@@ -14,35 +9,46 @@ import {
   type ComposeClip,
   type ComposeTimelineState,
   type ComposeTrack,
-} from '@/features/canvas/domain/videoComposeTimeline';
+  type ComposeTrackKind,
+} from '../domain/videoComposeTimeline';
 
 export type VideoComposeClipIdFactory = () => string;
 
+export interface VideoComposeSourceMedia {
+  readonly nodeId: string;
+  readonly kind: ComposeTrackKind;
+  readonly sourceUrl: string;
+  readonly displayName: string | null;
+  readonly thumbUrl: string | null;
+  readonly durationMs: number | null;
+}
+
 export function buildVideoComposeInitialTimeline(
-  nodes: CanvasNode[],
-  seedNodeIds: string[],
+  sources: readonly VideoComposeSourceMedia[],
+  seedNodeIds: readonly string[],
   createClipId: VideoComposeClipIdFactory,
 ): ComposeTimelineState {
-  const byId = new Map(nodes.map((node) => [node.id, node] as const));
+  const byId = new Map(
+    sources.map((source) => [source.nodeId, source] as const),
+  );
   const videoClips: ComposeClip[] = [];
   const audioClips: ComposeClip[] = [];
   let videoCursor = 0;
   let audioCursor = 0;
 
   for (const nodeId of seedNodeIds) {
-    const node = byId.get(nodeId);
-    if (!node) continue;
-    if (isVideoNode(node) && node.data.videoUrl) {
-      const durationMs =
-        typeof node.data.durationMs === 'number' ? node.data.durationMs : null;
+    const source = byId.get(nodeId);
+    if (!source) continue;
+    if (source.kind === 'video') {
+      const durationMs = source.durationMs;
       const length = durationMs ?? FALLBACK_CLIP_MS;
       videoClips.push({
         id: createClipId(),
         nodeId,
         kind: 'video',
-        sourceUrl: node.data.videoUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: node.data.previewImageUrl ?? null,
+        sourceUrl: source.sourceUrl,
+        displayName: source.displayName,
+        thumbUrl: source.thumbUrl,
         durationMs,
         timelineStartMs: videoCursor,
         trimStartMs: 0,
@@ -54,27 +60,24 @@ export function buildVideoComposeInitialTimeline(
       videoCursor += length;
       continue;
     }
-    if (isAudioNode(node) && node.data.audioUrl) {
-      const durationMs =
-        typeof node.data.durationMs === 'number' ? node.data.durationMs : null;
-      const length = durationMs ?? FALLBACK_CLIP_MS;
-      audioClips.push({
-        id: createClipId(),
-        nodeId,
-        kind: 'audio',
-        sourceUrl: node.data.audioUrl,
-        displayName: node.data.displayName ?? null,
-        thumbUrl: null,
-        durationMs,
-        timelineStartMs: audioCursor,
-        trimStartMs: 0,
-        trimEndMs: length,
-        volume: 1,
-        muted: false,
-        speed: 1,
-      });
-      audioCursor += length;
-    }
+    const durationMs = source.durationMs;
+    const length = durationMs ?? FALLBACK_CLIP_MS;
+    audioClips.push({
+      id: createClipId(),
+      nodeId,
+      kind: 'audio',
+      sourceUrl: source.sourceUrl,
+      displayName: source.displayName,
+      thumbUrl: null,
+      durationMs,
+      timelineStartMs: audioCursor,
+      trimStartMs: 0,
+      trimEndMs: length,
+      volume: 1,
+      muted: false,
+      speed: 1,
+    });
+    audioCursor += length;
   }
 
   const tracks: ComposeTrack[] = [
@@ -88,8 +91,8 @@ export function buildVideoComposeInitialTimeline(
 
 export function reconcileVideoComposeDraftWithSources(
   draft: ComposeTimelineState,
-  nodes: CanvasNode[],
-  seedNodeIds: string[],
+  sources: readonly VideoComposeSourceMedia[],
+  seedNodeIds: readonly string[],
   createClipId: VideoComposeClipIdFactory,
 ): ComposeTimelineState {
   const connected = new Set(seedNodeIds);
@@ -108,7 +111,7 @@ export function reconcileVideoComposeDraftWithSources(
 
   if (missingNodeIds.length > 0) {
     const fresh = buildVideoComposeInitialTimeline(
-      nodes,
+      sources,
       missingNodeIds,
       createClipId,
     );
@@ -135,23 +138,23 @@ export function reconcileVideoComposeDraftWithSources(
 
 export interface ResolveVideoComposeInitialTimelineOptions {
   initialTimeline?: ComposeTimelineState | null;
-  nodes: CanvasNode[];
-  seedNodeIds: string[];
+  sources: readonly VideoComposeSourceMedia[];
+  seedNodeIds: readonly string[];
   createClipId: VideoComposeClipIdFactory;
 }
 
 export function resolveVideoComposeInitialTimeline({
   initialTimeline,
-  nodes,
+  sources,
   seedNodeIds,
   createClipId,
 }: ResolveVideoComposeInitialTimelineOptions): ComposeTimelineState {
   return initialTimeline && initialTimeline.tracks?.length > 0
     ? reconcileVideoComposeDraftWithSources(
         initialTimeline,
-        nodes,
+        sources,
         seedNodeIds,
         createClipId,
       )
-    : buildVideoComposeInitialTimeline(nodes, seedNodeIds, createClipId);
+    : buildVideoComposeInitialTimeline(sources, seedNodeIds, createClipId);
 }

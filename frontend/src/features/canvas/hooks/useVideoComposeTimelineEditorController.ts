@@ -8,15 +8,13 @@ import {
 
 import {
   resolveVideoComposeClipSelection,
-  type VideoComposeClipReference,
-  type VideoComposeTimelineEdit,
-} from "@/features/canvas/domain/videoComposeTimelineEdits";
-import {
   sourceSpanMs,
   type ComposeClip,
   type ComposeTimelineState,
   type ComposeTrack,
-} from "@/features/canvas/domain/videoComposeTimeline";
+  type VideoComposeClipReference,
+  type VideoComposeTimelineEdit,
+} from "@/modules/creative_canvas/public";
 
 export interface UseVideoComposeTimelineEditorControllerOptions {
   timeline: ComposeTimelineState;

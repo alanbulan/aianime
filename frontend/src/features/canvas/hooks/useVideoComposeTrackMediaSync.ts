@@ -5,7 +5,7 @@ import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData'
 import {
   activeClipAt,
   type ComposeTrack,
-} from '@/features/canvas/domain/videoComposeTimeline';
+} from '@/modules/creative_canvas/public';
 
 export function useVideoComposeTrackMediaSync<
   T extends HTMLMediaElement,

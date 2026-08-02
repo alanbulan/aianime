@@ -25,7 +25,7 @@ import {
 import type {
   ComposeCover,
   ComposeTimelineState,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 
 export interface CoverEditorProps {
   project: string;

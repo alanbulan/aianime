@@ -7,7 +7,7 @@ import type {
   ComposeTimelineState,
   ComposeTrack,
   ComposeTrackKind,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 
 import { useVideoComposePlaybackController } from "./useVideoComposePlaybackController";
 

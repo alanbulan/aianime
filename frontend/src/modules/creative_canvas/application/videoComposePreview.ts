@@ -5,7 +5,7 @@ import {
   type ComposeTimelineState,
   type ComposeTrack,
   type ComposeTrackKind,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "../domain/videoComposeTimeline";
 
 export interface VideoComposeActiveMediaClock {
   clipId: string;

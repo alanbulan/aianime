@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
+import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,

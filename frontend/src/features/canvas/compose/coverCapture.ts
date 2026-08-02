@@ -2,7 +2,7 @@
 import {
   activeClipAt,
   type ComposeTimelineState,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 
 /**
  * 封面选帧的纯逻辑工具（无 React）。把「时间线某 ms」解析成可截帧的源地址 + 源内

@@ -5,19 +5,17 @@ import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData'
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
   buildComposePayload,
+  composeCanvasVideo,
   hasExportableClips,
   hasOverlappingVideoClips,
+  type CanvasVideoComposeResolution,
   type ComposeTimelineState,
-} from '@/features/canvas/domain/videoComposeTimeline';
+} from '@/modules/creative_canvas/public';
 import {
   downloadVideoComposeBlob,
   fetchVideoComposeResultBlob,
   resolveVideoComposeResultFileName,
 } from '@/features/canvas/infrastructure/browserVideoComposeExportRuntime';
-import {
-  composeCanvasVideo,
-  type CanvasVideoComposeResolution,
-} from '@/modules/creative_canvas/public';
 
 export type VideoComposeExportTarget = 'local' | 'canvas';
 

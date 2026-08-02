@@ -6,7 +6,11 @@ import {
   VIDEO_TRACK_ID,
   type ComposeClip,
   type ComposeTimelineState,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasNode,
+} from "@/features/canvas/domain/canvasNodes";
 
 import { useVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
 
@@ -67,6 +71,70 @@ function setup(
 }
 
 describe("useVideoComposeTimelineSessionController", () => {
+  it("projects playable Canvas nodes into the module source contract", () => {
+    const sourceNodes = [
+      {
+        id: "video-a",
+        type: CANVAS_NODE_TYPES.video,
+        position: { x: 0, y: 0 },
+        data: {
+          videoUrl: "/video-a.mp4",
+          durationMs: 3000,
+          displayName: "Video A",
+          previewImageUrl: "/video-a.jpg",
+        },
+      },
+      {
+        id: "audio-a",
+        type: CANVAS_NODE_TYPES.audio,
+        position: { x: 0, y: 0 },
+        data: {
+          audioUrl: "/audio-a.wav",
+          durationMs: 2000,
+          displayName: "Audio A",
+        },
+      },
+    ] as CanvasNode[];
+    let clipIndex = 0;
+
+    const { result } = renderHook(() =>
+      useVideoComposeTimelineSessionController({
+        sourceNodes,
+        seedNodeIds: ["audio-a", "video-a"],
+        createClipId: () => `clip-${clipIndex++}`,
+      }),
+    );
+
+    expect(result.current.timeline.tracks).toEqual([
+      {
+        id: VIDEO_TRACK_ID,
+        kind: "video",
+        clips: [
+          expect.objectContaining({
+            nodeId: "video-a",
+            sourceUrl: "/video-a.mp4",
+            displayName: "Video A",
+            thumbUrl: "/video-a.jpg",
+            trimEndMs: 3000,
+          }),
+        ],
+      },
+      {
+        id: "track_audio",
+        kind: "audio",
+        clips: [
+          expect.objectContaining({
+            nodeId: "audio-a",
+            sourceUrl: "/audio-a.wav",
+            displayName: "Audio A",
+            thumbUrl: null,
+            trimEndMs: 2000,
+          }),
+        ],
+      },
+    ]);
+  });
+
   it("persists the latest reducer result when the session unmounts", () => {
     const onPersistDraft = vi.fn();
     const { result, unmount } = setup(

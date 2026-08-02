@@ -20,7 +20,7 @@ import {
   layoutTrack,
   type ComposeClip,
   type ComposeTrack,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 import {
   getCachedAudioPeaks,
   loadAudioPeaks,

@@ -809,6 +809,86 @@ export type {
   CanvasVideoComposeTrack,
   CanvasVideoComposeTrackKind,
 } from "@/modules/creative_canvas/domain/videoCompose";
+export {
+  VIDEO_CLIP_MIN_DURATION_MS,
+  constrainVideoClipEndMs,
+  constrainVideoClipStartMs,
+  resolveVideoClipRange,
+} from "@/modules/creative_canvas/domain/videoClipRange";
+export type { ResolvedVideoClipRange } from "@/modules/creative_canvas/domain/videoClipRange";
+export {
+  AUDIO_TRACK_ID,
+  FALLBACK_CLIP_MS,
+  VIDEO_TRACK_ID,
+  activeClipAt,
+  buildComposePayload,
+  clipLengthMs,
+  compactVideoTracks,
+  hasExportableClips,
+  hasOverlappingVideoClips,
+  layoutTrack,
+  neighborBoundsMs,
+  overlappingVideoClipIds,
+  packTrackClips,
+  reorderIndexForDrag,
+  sourceSpanMs,
+  timelineDurationMs,
+} from "@/modules/creative_canvas/domain/videoComposeTimeline";
+export type {
+  ActiveClip,
+  BuildComposeOptions,
+  ComposeClip,
+  ComposeCover,
+  ComposeTimelineState,
+  ComposeTrack,
+  ComposeTrackKind,
+  LaidClip,
+} from "@/modules/creative_canvas/domain/videoComposeTimeline";
+export {
+  VIDEO_COMPOSE_MAX_SPEED,
+  VIDEO_COMPOSE_MIN_SPEED,
+  applyVideoComposeTimelineEdit,
+  resolveVideoComposeClipSelection,
+} from "@/modules/creative_canvas/domain/videoComposeTimelineEdits";
+export type {
+  ResolvedVideoComposeClipSelection,
+  VideoComposeClipReference,
+  VideoComposeTimelineEdit,
+} from "@/modules/creative_canvas/domain/videoComposeTimelineEdits";
+export {
+  createVideoComposeClipDragSession,
+  createVideoComposeTrimDragSession,
+  projectVideoComposeClipDrag,
+  projectVideoComposeTrimDrag,
+  snapVideoComposeClipStart,
+  snapVideoComposePlayhead,
+} from "@/modules/creative_canvas/domain/videoComposeTimelineGestures";
+export type {
+  AppliedVideoComposeClipDragProjection,
+  BlockedVideoComposeClipDragProjection,
+  VideoComposeClipDragProjection,
+  VideoComposeClipDragSession,
+  VideoComposeTrimDragSession,
+} from "@/modules/creative_canvas/domain/videoComposeTimelineGestures";
+export {
+  buildVideoComposeInitialTimeline,
+  reconcileVideoComposeDraftWithSources,
+  resolveVideoComposeInitialTimeline,
+} from "@/modules/creative_canvas/application/videoComposeTimelineSession";
+export type {
+  ResolveVideoComposeInitialTimelineOptions,
+  VideoComposeClipIdFactory,
+  VideoComposeSourceMedia,
+} from "@/modules/creative_canvas/application/videoComposeTimelineSession";
+export {
+  projectVideoComposeActiveMediaClock,
+  resolveVideoComposeMediaClockMs,
+  resolveVideoComposePreviewTrack,
+} from "@/modules/creative_canvas/application/videoComposePreview";
+export type {
+  VideoComposeActiveMediaClock,
+  VideoComposeMediaClockSample,
+} from "@/modules/creative_canvas/application/videoComposePreview";
 export type {
   CanvasVideoComposeGateway,
   ComposeCanvasVideoDependencies,

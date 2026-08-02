@@ -1,26 +1,57 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
-  buildVideoComposeInitialTimeline,
-  resolveVideoComposeInitialTimeline,
-  type VideoComposeClipIdFactory,
-} from "@/features/canvas/application/videoComposeTimelineSession";
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
+  isAudioNode,
+  isVideoNode,
+  type CanvasNode,
+} from "@/features/canvas/domain/canvasNodes";
 import {
   applyVideoComposeTimelineEdit,
+  buildVideoComposeInitialTimeline,
+  resolveVideoComposeInitialTimeline,
+  type ComposeCover,
+  type ComposeTimelineState,
+  type ComposeTrack,
   type VideoComposeClipReference,
+  type VideoComposeClipIdFactory,
+  type VideoComposeSourceMedia,
   type VideoComposeTimelineEdit,
-} from "@/features/canvas/domain/videoComposeTimelineEdits";
-import type {
-  ComposeCover,
-  ComposeTimelineState,
-  ComposeTrack,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 import { probeVideoComposeMediaDuration } from "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime";
 
 const VIDEO_COMPOSE_HISTORY_LIMIT = 50;
+
+function projectVideoComposeSourceMedia(
+  nodes: readonly CanvasNode[],
+): VideoComposeSourceMedia[] {
+  return nodes.flatMap<VideoComposeSourceMedia>((node) => {
+    if (isVideoNode(node) && node.data.videoUrl) {
+      return [{
+        nodeId: node.id,
+        kind: "video" as const,
+        sourceUrl: node.data.videoUrl,
+        displayName: node.data.displayName ?? null,
+        thumbUrl: node.data.previewImageUrl ?? null,
+        durationMs:
+          typeof node.data.durationMs === "number" ? node.data.durationMs : null,
+      }];
+    }
+    if (isAudioNode(node) && node.data.audioUrl) {
+      return [{
+        nodeId: node.id,
+        kind: "audio" as const,
+        sourceUrl: node.data.audioUrl,
+        displayName: node.data.displayName ?? null,
+        thumbUrl: null,
+        durationMs:
+          typeof node.data.durationMs === "number" ? node.data.durationMs : null,
+      }];
+    }
+    return [];
+  });
+}
 
 export interface UseVideoComposeTimelineSessionControllerOptions {
   initialTimeline?: ComposeTimelineState | null;
@@ -37,10 +68,14 @@ export function useVideoComposeTimelineSessionController({
   onPersistDraft,
   createClipId,
 }: UseVideoComposeTimelineSessionControllerOptions) {
+  const sourceMedia = useMemo(
+    () => projectVideoComposeSourceMedia(sourceNodes),
+    [sourceNodes],
+  );
   const [timeline, setTimeline] = useState<ComposeTimelineState>(() =>
     resolveVideoComposeInitialTimeline({
       initialTimeline,
-      nodes: sourceNodes,
+      sources: sourceMedia,
       seedNodeIds,
       createClipId,
     }),
@@ -193,13 +228,13 @@ export function useVideoComposeTimelineSessionController({
     pushHistory();
     setTimeline(
       buildVideoComposeInitialTimeline(
-        sourceNodes,
+        sourceMedia,
         seedNodeIds,
         createClipId,
       ),
     );
     clearSelection();
-  }, [clearSelection, createClipId, pushHistory, seedNodeIds, sourceNodes]);
+  }, [clearSelection, createClipId, pushHistory, seedNodeIds, sourceMedia]);
 
   const updateTimelineTracks = useCallback((tracks: ComposeTrack[]) => {
     setTimeline((previous) => ({ ...previous, tracks }));

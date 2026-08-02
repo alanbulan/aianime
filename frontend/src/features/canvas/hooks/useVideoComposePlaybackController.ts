@@ -3,16 +3,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
+  activeClipAt,
   projectVideoComposeActiveMediaClock,
   resolveVideoComposeMediaClockMs,
   resolveVideoComposePreviewTrack,
-  type VideoComposeActiveMediaClock,
-} from "@/features/canvas/application/videoComposePreview";
-import {
-  activeClipAt,
   timelineDurationMs,
   type ComposeTimelineState,
-} from "@/features/canvas/domain/videoComposeTimeline";
+  type VideoComposeActiveMediaClock,
+} from "@/modules/creative_canvas/public";
 
 import { useVideoComposePlaybackClock } from "./useVideoComposePlaybackClock";
 import { useVideoComposeTrackMediaSync } from "./useVideoComposeTrackMediaSync";

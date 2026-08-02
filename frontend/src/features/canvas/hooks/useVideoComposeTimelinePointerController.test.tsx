@@ -12,8 +12,8 @@ import {
   type ComposeTimelineState,
   type ComposeTrack,
   type ComposeTrackKind,
-} from "@/features/canvas/domain/videoComposeTimeline";
-import type { VideoComposeTimelineEdit } from "@/features/canvas/domain/videoComposeTimelineEdits";
+  type VideoComposeTimelineEdit,
+} from "@/modules/creative_canvas/public";
 
 import { useVideoComposeTimelinePointerController } from "./useVideoComposeTimelinePointerController";
 

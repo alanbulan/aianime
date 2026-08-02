@@ -290,8 +290,22 @@ describe("round 2 residual architecture boundaries", () => {
       "composeCanvasVideo.test.ts",
       "composeVideoClip.ts",
       "composeVideoClip.test.ts",
+      "videoComposePreview.ts",
+      "videoComposePreview.test.ts",
+      "videoComposeTimelineSession.ts",
+      "videoComposeTimelineSession.test.ts",
     ];
-    const videoComposeDomainFiles = ["videoCompose.ts"];
+    const videoComposeDomainFiles = [
+      "videoCompose.ts",
+      "videoClipRange.ts",
+      "videoClipRange.test.ts",
+      "videoComposeTimeline.ts",
+      "videoComposeTimeline.test.ts",
+      "videoComposeTimelineEdits.ts",
+      "videoComposeTimelineEdits.test.ts",
+      "videoComposeTimelineGestures.ts",
+      "videoComposeTimelineGestures.test.ts",
+    ];
     const videoComposeInfrastructureFiles = [
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
@@ -978,6 +992,12 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/cameraMovementPresets",
         "@/modules/creative_canvas/domain/imageModelCapability",
         "@/modules/creative_canvas/domain/videoGenerationMode",
+        "@/modules/creative_canvas/domain/videoClipRange",
+        "@/modules/creative_canvas/domain/videoComposeTimeline",
+        "@/modules/creative_canvas/domain/videoComposeTimelineEdits",
+        "@/modules/creative_canvas/domain/videoComposeTimelineGestures",
+        "@/modules/creative_canvas/application/videoComposePreview",
+        "@/modules/creative_canvas/application/videoComposeTimelineSession",
         "@/modules/creative_canvas/application/generationCatalog",
         "@/modules/creative_canvas/generationCatalogComposition",
         "@/modules/creative_canvas/assetTransferComposition",
@@ -1550,7 +1570,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 755],
+      ["features/canvas", 744],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

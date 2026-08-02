@@ -17,7 +17,7 @@ import {
   constrainVideoClipEndMs,
   constrainVideoClipStartMs,
   resolveVideoClipRange,
-} from '@/features/canvas/domain/videoClipRange';
+} from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 
 interface VideoClipPanelProps {

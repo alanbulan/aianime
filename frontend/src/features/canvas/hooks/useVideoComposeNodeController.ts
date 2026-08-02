@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
+import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,

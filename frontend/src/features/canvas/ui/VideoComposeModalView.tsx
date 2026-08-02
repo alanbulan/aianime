@@ -31,9 +31,11 @@ import {
   X,
 } from "lucide-react";
 
-import type { CanvasVideoComposeResolution } from "@/modules/creative_canvas/public";
-import type { VideoComposeClipReference } from "@/features/canvas/domain/videoComposeTimelineEdits";
-import type { ComposeTimelineState } from "@/features/canvas/domain/videoComposeTimeline";
+import type {
+  CanvasVideoComposeResolution,
+  ComposeTimelineState,
+  VideoComposeClipReference,
+} from "@/modules/creative_canvas/public";
 
 import {
   VideoComposeTrackRow,

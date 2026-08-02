@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/features/canvas/domain/videoComposeTimeline';
+import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
 import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
 
 import { VideoComposeNodeView } from './VideoComposeNodeView';

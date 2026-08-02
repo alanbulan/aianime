@@ -8,23 +8,19 @@ import {
   type RefObject,
 } from "react";
 
-import type {
-  VideoComposeClipReference,
-  VideoComposeTimelineEdit,
-} from "@/features/canvas/domain/videoComposeTimelineEdits";
 import {
   createVideoComposeClipDragSession,
   createVideoComposeTrimDragSession,
   projectVideoComposeClipDrag,
   projectVideoComposeTrimDrag,
   snapVideoComposePlayhead,
-} from "@/features/canvas/domain/videoComposeTimelineGestures";
-import type {
-  ComposeClip,
-  ComposeTimelineState,
-  ComposeTrack,
-  ComposeTrackKind,
-} from "@/features/canvas/domain/videoComposeTimeline";
+  type ComposeClip,
+  type ComposeTimelineState,
+  type ComposeTrack,
+  type ComposeTrackKind,
+  type VideoComposeClipReference,
+  type VideoComposeTimelineEdit,
+} from "@/modules/creative_canvas/public";
 
 export interface VideoComposePointerDragGhost {
   clipId: string;

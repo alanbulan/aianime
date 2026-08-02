@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   ComposeClip,
   ComposeTrack,
-} from "@/features/canvas/domain/videoComposeTimeline";
+} from "@/modules/creative_canvas/public";
 
 import {
   VideoComposeTrackRow,

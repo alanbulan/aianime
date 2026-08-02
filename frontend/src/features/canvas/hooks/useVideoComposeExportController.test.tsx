@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   ComposeClip,
   ComposeTimelineState,
-} from '@/features/canvas/domain/videoComposeTimeline';
+} from '@/modules/creative_canvas/public';
 
 import { useVideoComposeExportController } from './useVideoComposeExportController';
 
@@ -21,7 +21,8 @@ vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (...args: unknown[]) => mocks.upload(...args),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   composeCanvasVideo: (input: unknown) => mocks.compose(input),
 }));
 
