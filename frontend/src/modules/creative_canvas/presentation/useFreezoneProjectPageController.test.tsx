@@ -2,16 +2,15 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useFreezoneProjectPageController } from "./useFreezoneProjectPageController";
+import {
+  createUseFreezoneProjectPageController,
+  type FreezoneProjectPageError,
+} from "./useFreezoneProjectPageController";
 
-const mocks = vi.hoisted(() => ({
+const mocks = {
   canvasParam: null as string | null,
-  errorHandler: null as ((detail: {
-    title: string;
-    message: string;
-    details?: string;
-    copyText?: string;
-  }) => void) | null,
+  errorHandler: null as ((detail: FreezoneProjectPageError) => void) | null,
+  navigateToProjects: vi.fn(),
   projectsQuery: {
     data: undefined as Array<{
       id: string;
@@ -23,47 +22,31 @@ const mocks = vi.hoisted(() => ({
   readLastCanvas: vi.fn(),
   unsubscribe: vi.fn(),
   username: "writer@example.com" as string | null,
-  writeUrl: vi.fn(),
-}));
+};
 
-vi.mock("@tanstack/react-router", () => ({
-  useRouterState: ({ select }: {
-    select(state: { location: { search: { canvas: string | null } } }): unknown;
-  }) => select({ location: { search: { canvas: mocks.canvasParam } } }),
-}));
-
-vi.mock("@/features/app/errorDialogEvents", () => ({
-  subscribeOpenGlobalErrorDialog: (callback: typeof mocks.errorHandler) => {
-    mocks.errorHandler = callback;
-    return mocks.unsubscribe;
-  },
-}));
-
-vi.mock("@/lib/url-params", () => ({
-  readLastCanvas: (...args: unknown[]) => mocks.readLastCanvas(...args),
-  writeUrl: (...args: unknown[]) => mocks.writeUrl(...args),
-}));
-
-vi.mock("@/modules/identity_access/public", () => ({
-  useAuthStore: (
-    selector: (state: { username: string | null }) => unknown,
-  ) => selector({ username: mocks.username }),
-}));
-
-vi.mock("@/modules/project_workspace/public", () => ({
-  useAllProjectSummaries: () => mocks.projectsQuery,
-}));
+const useFreezoneProjectPageController =
+  createUseFreezoneProjectPageController({
+    useUsername: () => mocks.username,
+    useProjectSummaries: () => mocks.projectsQuery,
+    useCanvasParam: () => mocks.canvasParam,
+    subscribeGlobalError: (listener) => {
+      mocks.errorHandler = listener;
+      return mocks.unsubscribe;
+    },
+    readLastCanvas: (projectId) => mocks.readLastCanvas(projectId),
+    navigateToProjects: mocks.navigateToProjects,
+  });
 
 describe("useFreezoneProjectPageController", () => {
   beforeEach(() => {
     mocks.canvasParam = null;
     mocks.errorHandler = null;
+    mocks.navigateToProjects.mockReset();
     mocks.projectsQuery.data = undefined;
     mocks.projectsQuery.isLoading = true;
     mocks.readLastCanvas.mockReset().mockReturnValue(null);
     mocks.unsubscribe.mockReset();
     mocks.username = "writer@example.com";
-    mocks.writeUrl.mockReset();
   });
 
   it("keeps the page loading until project summaries exist", () => {
@@ -128,10 +111,7 @@ describe("useFreezoneProjectPageController", () => {
     if (controller.status === "not-found") {
       act(() => controller.returnToProjects());
     }
-    expect(mocks.writeUrl).toHaveBeenCalledWith({
-      project: null,
-      canvas: null,
-    });
+    expect(mocks.navigateToProjects).toHaveBeenCalledOnce();
   });
 
   it("exposes global errors and removes the subscription on unmount", () => {

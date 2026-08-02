@@ -451,6 +451,14 @@ export type {
   AssetDropState,
   PendingAssetReplace,
 } from "@/modules/creative_canvas/presentation/assetDropStore";
+export { createUseFreezoneProjectPageController } from "@/modules/creative_canvas/presentation/useFreezoneProjectPageController";
+export type {
+  FreezoneProjectPageController,
+  FreezoneProjectPageControllerDependencies,
+  FreezoneProjectPageError,
+} from "@/modules/creative_canvas/presentation/useFreezoneProjectPageController";
+export { FreezoneProjectPageView } from "@/modules/creative_canvas/presentation/FreezoneProjectPageView";
+export type { FreezoneProjectPageViewProps } from "@/modules/creative_canvas/presentation/FreezoneProjectPageView";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

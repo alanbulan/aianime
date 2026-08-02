@@ -2,41 +2,33 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FreezoneProjectPageController } from "../hooks/useFreezoneProjectPageController";
-import { FreezoneProjectPageView } from "./FreezoneProjectPageView";
+import type { FreezoneProjectPageController } from "./useFreezoneProjectPageController";
+import {
+  FreezoneProjectPageView,
+  type FreezoneProjectPageViewProps,
+} from "./FreezoneProjectPageView";
 
 vi.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock("@/components/GlobalErrorDialog", () => ({
-  GlobalErrorDialog: ({
-    isOpen,
-    onClose,
-    title,
-  }: {
-    isOpen: boolean;
-    onClose(): void;
-    title: string;
-  }) => isOpen
-    ? <button type="button" onClick={onClose}>{title}</button>
+const renderPorts: Pick<
+  FreezoneProjectPageViewProps,
+  "renderShell" | "renderGlobalError"
+> = {
+  renderShell: (project, canvasId) => <div>{project.id}:{canvasId}</div>,
+  renderGlobalError: (error, onClose) => error
+    ? <button type="button" onClick={onClose}>{error.title}</button>
     : null,
-}));
-
-vi.mock("../FreezoneShell", () => ({
-  FreezoneShell: ({
-    canvasId,
-    project,
-  }: {
-    canvasId: string;
-    project: { id: string };
-  }) => <div>{project.id}:{canvasId}</div>,
-}));
+};
 
 describe("FreezoneProjectPageView", () => {
   it("renders the loading state", () => {
     const { container } = render(
-      <FreezoneProjectPageView controller={{ status: "loading" }} />,
+      <FreezoneProjectPageView
+        controller={{ status: "loading" }}
+        {...renderPorts}
+      />,
     );
 
     expect(container.querySelector(".animate-spin")).not.toBeNull();
@@ -51,6 +43,7 @@ describe("FreezoneProjectPageView", () => {
           projectId: "missing-project",
           returnToProjects,
         }}
+        {...renderPorts}
       />,
     );
 
@@ -73,7 +66,9 @@ describe("FreezoneProjectPageView", () => {
       globalError: { title: "失败", message: "保存失败" },
       closeGlobalError,
     };
-    render(<FreezoneProjectPageView controller={controller} />);
+    render(
+      <FreezoneProjectPageView controller={controller} {...renderPorts} />,
+    );
 
     expect(screen.getByText("project-a:canvas-a")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "失败" }));

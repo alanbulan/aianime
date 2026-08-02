@@ -1,16 +1,28 @@
 // Copyright (c) 2026 AI anime
+import type { ReactNode } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import { GlobalErrorDialog } from "@/components/GlobalErrorDialog";
+import type { ProjectSummary } from "@/modules/project_workspace/public";
 
-import type { FreezoneProjectPageController } from "../hooks/useFreezoneProjectPageController";
-import { FreezoneShell } from "../FreezoneShell";
+import type {
+  FreezoneProjectPageController,
+  FreezoneProjectPageError,
+} from "./useFreezoneProjectPageController";
+
+export interface FreezoneProjectPageViewProps {
+  controller: FreezoneProjectPageController;
+  renderShell(project: ProjectSummary, canvasId: string): ReactNode;
+  renderGlobalError(
+    error: FreezoneProjectPageError | null,
+    onClose: () => void,
+  ): ReactNode;
+}
 
 export function FreezoneProjectPageView({
   controller,
-}: {
-  controller: FreezoneProjectPageController;
-}) {
+  renderShell,
+  renderGlobalError,
+}: FreezoneProjectPageViewProps) {
   if (controller.status === "loading") {
     return (
       <div className="-m-6 flex h-[calc(100%+3rem)] items-center justify-center bg-bg-dark text-text-muted">
@@ -46,18 +58,11 @@ export function FreezoneProjectPageView({
   return (
     <ReactFlowProvider>
       <div className="-m-6 h-[calc(100%+3rem)] w-[calc(100%+3rem)] bg-bg-dark">
-        <FreezoneShell
-          project={controller.project}
-          canvasId={controller.canvasId}
-        />
-        <GlobalErrorDialog
-          isOpen={Boolean(controller.globalError)}
-          title={controller.globalError?.title ?? ""}
-          message={controller.globalError?.message ?? ""}
-          details={controller.globalError?.details}
-          copyText={controller.globalError?.copyText}
-          onClose={controller.closeGlobalError}
-        />
+        {renderShell(controller.project, controller.canvasId)}
+        {renderGlobalError(
+          controller.globalError,
+          controller.closeGlobalError,
+        )}
       </div>
     </ReactFlowProvider>
   );

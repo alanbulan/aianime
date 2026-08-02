@@ -148,17 +148,33 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneProjectPageController.ts",
+      "modules/creative_canvas/presentation/useFreezoneProjectPageController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/freezone/hooks/useFreezoneProjectPageController.test.tsx",
+      "modules/creative_canvas/presentation/useFreezoneProjectPageController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/FreezoneProjectPageView.tsx",
+      "modules/creative_canvas/presentation/FreezoneProjectPageView.tsx",
     );
     const viewTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/FreezoneProjectPageView.test.tsx",
+    );
+    const legacyControllerPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneProjectPageController.ts",
+    );
+    const legacyControllerTestPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useFreezoneProjectPageController.test.tsx",
+    );
+    const legacyViewPath = resolve(
+      SRC_ROOT,
+      "features/freezone/presentation/FreezoneProjectPageView.tsx",
+    );
+    const legacyViewTestPath = resolve(
       SRC_ROOT,
       "features/freezone/presentation/FreezoneProjectPageView.test.tsx",
     );
@@ -181,6 +197,24 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export function createUseFreezoneProjectPageController(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const viewOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export function FreezoneProjectPageView(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(routePath)).toContain(
       "@/features/freezone/routeComposition",
@@ -192,45 +226,79 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useRouterState(");
     expect(route).not.toContain("FreezoneShell");
     expect(existsSync(legacyPagePath)).toBe(false);
+    expect(existsSync(legacyControllerPath)).toBe(false);
+    expect(existsSync(legacyControllerTestPath)).toBe(false);
+    expect(existsSync(legacyViewPath)).toBe(false);
+    expect(existsSync(legacyViewTestPath)).toBe(false);
     expect(pageOwners).toEqual([
       "features/freezone/routeComposition.ts",
+    ]);
+    expect(controllerOwners).toEqual([
+      "modules/creative_canvas/presentation/useFreezoneProjectPageController.ts",
+    ]);
+    expect(viewOwners).toEqual([
+      "modules/creative_canvas/presentation/FreezoneProjectPageView.tsx",
     ]);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
         "react",
-        "./hooks/useFreezoneProjectPageController",
-        "./presentation/FreezoneProjectPageView",
+        "@tanstack/react-router",
+        "@/components/GlobalErrorDialog",
+        "@/features/app/errorDialogEvents",
+        "@/lib/url-params",
+        "@/modules/creative_canvas/public",
+        "@/modules/identity_access/public",
+        "@/modules/project_workspace/public",
+        "./FreezoneShell",
       ]),
+    );
+    expect(compositionSource).toContain(
+      "createUseFreezoneProjectPageController({",
     );
     expect(compositionSource).toContain(
       "useFreezoneProjectPageController(projectId)",
     );
     expect(compositionSource).toContain(
-      "createElement(FreezoneProjectPageView, { controller })",
+      "createElement(FreezoneProjectPageView, {",
+    );
+    expect(compositionSource).toContain("renderShell,");
+    expect(compositionSource).toContain("renderGlobalError,");
+    expect(compositionSource).toContain(
+      "writeUrl({ project: null, canvas: null })",
     );
     expect(compositionSource).not.toContain("export {");
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@tanstack/react-router",
-        "@/features/app/errorDialogEvents",
-        "@/lib/url-params",
-        "@/modules/identity_access/public",
         "@/modules/project_workspace/public",
-        "@/modules/creative_canvas/public",
+        "../domain/canvasIdentity",
       ]),
     );
+    expect(controllerSource).not.toContain("@/features/");
+    expect(controllerSource).not.toContain("@/lib/");
+    expect(controllerSource).not.toContain("@tanstack/react-router");
+    expect(controllerSource).not.toContain("useAuthStore");
+    expect(controllerSource).toContain("useProjectSummaries()");
+    expect(controllerSource).toContain("subscribeGlobalError(setGlobalError)");
+    expect(controllerSource).toContain("navigateToProjects");
     expect(controllerSource).not.toContain("<FreezoneShell");
     expect(controllerSource).not.toContain("<GlobalErrorDialog\n");
     expect(controllerSource).not.toContain("className=");
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
+        "react",
         "@xyflow/react",
-        "@/components/GlobalErrorDialog",
-        "../hooks/useFreezoneProjectPageController",
-        "../FreezoneShell",
+        "@/modules/project_workspace/public",
+        "./useFreezoneProjectPageController",
       ]),
     );
+    expect(viewSource).not.toContain("@/features/");
+    expect(viewSource).not.toContain("GlobalErrorDialog");
+    expect(viewSource).not.toContain("FreezoneShell");
+    expect(viewSource).toContain(
+      "renderShell(controller.project, controller.canvasId)",
+    );
+    expect(viewSource).toContain("renderGlobalError(");
     for (const controllerOwner of [
       "useRouterState(",
       "useAllProjectSummaries(",
