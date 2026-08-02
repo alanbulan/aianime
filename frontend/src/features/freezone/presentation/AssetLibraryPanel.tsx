@@ -3,13 +3,12 @@ import {
   hasLegacyPresetCanvasMetadata,
   resolveCanvasKind,
   useAssetLibraryCatalogController,
-} from "@/modules/creative_canvas/public";
-
-import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
-import {
   useAssetLibraryReplacementController,
   type AssetLibraryReplacementHandler,
-} from "../hooks/useAssetLibraryReplacementController";
+} from "@/modules/creative_canvas/public";
+import { useAssetDropStore } from "@/features/canvas/assetDropStore";
+
+import { addAssetToCanvas } from "../assetLibraryCanvasInsertionComposition";
 import { AssetLibraryPanelView } from "./AssetLibraryPanelView";
 
 interface AssetLibraryPanelProps {
@@ -41,9 +40,27 @@ export function AssetLibraryPanel({
 }: AssetLibraryPanelProps) {
   const canvasKind = resolveCanvasKind(metadata);
   const hasPresetLabel = hasLegacyPresetCanvasMetadata(metadata);
+  const activeDragMediaType = useAssetDropStore(
+    (state) => state.activeDrag?.mediaType ?? null,
+  );
+  const hoverAssetId = useAssetDropStore((state) => state.hoverAssetId);
+  const pendingReplacement = useAssetDropStore(
+    (state) => state.pendingReplace,
+  );
+  const clearPendingReplacement = useAssetDropStore(
+    (state) => state.clearPendingReplace,
+  );
   const replacementController = useAssetLibraryReplacementController({
     project,
     onReplaced,
+    store: {
+      activeDragMediaType,
+      hoverAssetId,
+      pendingReplacement,
+      readPendingReplacement: () =>
+        useAssetDropStore.getState().pendingReplace,
+      clearPendingReplacement,
+    },
   });
   const catalogController = useAssetLibraryCatalogController({
     project,

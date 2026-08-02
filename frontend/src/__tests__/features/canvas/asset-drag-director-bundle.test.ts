@@ -154,7 +154,7 @@ describe("director bundle canvas assets", () => {
     const source = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/freezone/hooks/useAssetLibraryReplacementController.ts",
+        "src/modules/creative_canvas/presentation/useAssetLibraryReplacementController.ts",
       ),
       "utf8",
     );

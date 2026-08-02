@@ -6137,7 +6137,6 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const internalConsumerPaths = [
       "features/freezone/hooks/useFreezoneShellController.ts",
-      "features/freezone/hooks/useAssetLibraryReplacementController.ts",
     ];
     const domainConsumerPaths = [
       "features/canvas/domain/assetDrag.ts",
@@ -10955,6 +10954,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps asset library replacement orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/useAssetLibraryReplacementController.ts",
+    );
+    const legacyControllerPath = resolve(
+      SRC_ROOT,
       "features/freezone/hooks/useAssetLibraryReplacementController.ts",
     );
     const panelPath = resolve(
@@ -10967,6 +10970,10 @@ describe("frontend architecture boundaries", () => {
     );
     const testPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/useAssetLibraryReplacementController.test.tsx",
+    );
+    const legacyTestPath = resolve(
+      SRC_ROOT,
       "features/freezone/hooks/useAssetLibraryReplacementController.test.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -10977,42 +10984,52 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "useAssetLibraryReplacementController(",
     ].join(" ");
-    const declarationOwners = sourceFiles(
-      resolve(SRC_ROOT, "features/freezone"),
-    )
+    const declarationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
 
     expect(declarationOwners).toEqual([
-      "features/freezone/hooks/useAssetLibraryReplacementController.ts",
+      "modules/creative_canvas/presentation/useAssetLibraryReplacementController.ts",
     ]);
+    expect(existsSync(legacyControllerPath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/assetDropStore",
-        "@/modules/creative_canvas/public",
+        "../assetTransferComposition",
+        "../directorCommitComposition",
+        "../domain/assetCommit",
+        "../domain/assetLibraryModel",
+        "../domain/canvasCommitSource",
+        "../domain/pushTarget",
       ]),
     );
-    expect(controllerSource).toContain(
-      "useAssetDropStore.getState().pendingReplace",
-    );
+    expect(controllerSource).not.toContain("@/features/");
+    expect(controllerSource).not.toContain("zustand");
+    expect(controllerSource).not.toContain("useAssetDropStore");
+    expect(controllerSource).toContain("readPendingReplacement()");
+    expect(controllerSource).toContain("clearPendingReplacement()");
     expect(controllerSource).toContain(
       "commitDirectorRenderFromCanvasSource(project, target, {",
     );
     expect(controllerSource).toContain(
       "promoteToAsset(project, replacement.sourceUrl, target, {",
     );
-    expect(importSpecifiers(panelPath)).toContain(
+    expect(importSpecifiers(panelPath)).toContain("@/features/canvas/assetDropStore");
+    expect(importSpecifiers(panelPath)).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(panelPath)).not.toContain(
       "../hooks/useAssetLibraryReplacementController",
     );
+    expect(panelSource).toContain("useAssetDropStore.getState().pendingReplace");
+    expect(panelSource).toContain("clearPendingReplacement,");
     expect(panelSource).toContain("replacement={replacementController}");
     expect(panelViewSource).toContain(
       "replacement.confirmReplacement(asset)",
     );
     for (const legacyDependency of [
       "AssetReplaceContext",
-      "useAssetDropStore",
       "commitDirectorRenderFromCanvasSource",
       "promoteToAsset",
       "replaceBusyId",
@@ -11025,6 +11042,7 @@ describe("frontend architecture boundaries", () => {
     expect(testSource).toContain(
       'from "./useAssetLibraryReplacementController"',
     );
+    expect(testSource).not.toContain("@/features/canvas/assetDropStore");
   });
 
   it("keeps asset library canvas insertion behind one application use case", () => {

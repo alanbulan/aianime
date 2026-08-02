@@ -434,6 +434,13 @@ export {
 } from "@/modules/creative_canvas/contextQueryComposition";
 export { useAssetLibraryCatalogController } from "@/modules/creative_canvas/assetLibraryCatalogComposition";
 export type { AssetLibraryCatalogControllerOptions } from "@/modules/creative_canvas/assetLibraryCatalogComposition";
+export { useAssetLibraryReplacementController } from "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController";
+export type {
+  AssetLibraryPendingReplacement,
+  AssetLibraryReplacementControllerOptions,
+  AssetLibraryReplacementHandler,
+  AssetLibraryReplacementStorePort,
+} from "@/modules/creative_canvas/presentation/useAssetLibraryReplacementController";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

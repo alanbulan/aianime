@@ -2,22 +2,31 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAssetDropStore } from "@/features/canvas/assetDropStore";
-import type { LibraryAsset } from "@/modules/creative_canvas/public";
-
-import { useAssetLibraryReplacementController } from "./useAssetLibraryReplacementController";
+import type { LibraryAsset } from "../domain/assetLibraryModel";
+import {
+  useAssetLibraryReplacementController,
+  type AssetLibraryPendingReplacement,
+  type AssetLibraryReplacementHandler,
+} from "./useAssetLibraryReplacementController";
 
 const mocks = vi.hoisted(() => ({
   commitDirectorRenderFromCanvasSource: vi.fn(),
   promoteToAsset: vi.fn(),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+vi.mock("../directorCommitComposition", () => ({
   commitDirectorRenderFromCanvasSource:
     mocks.commitDirectorRenderFromCanvasSource,
+}));
+
+vi.mock("../assetTransferComposition", () => ({
   commitFreezoneAsset: mocks.promoteToAsset,
 }));
+
+let pendingReplacement: AssetLibraryPendingReplacement | null = null;
+const clearPendingReplacement = vi.fn(() => {
+  pendingReplacement = null;
+});
 
 function asset(
   id: string,
@@ -37,25 +46,33 @@ function asset(
 }
 
 function setPendingReplacement(assetId: string) {
-  useAssetDropStore.setState({
-    pendingReplace: {
-      assetId,
-      nodeId: "node-a",
-      sourceUrl: "/static/source.png",
-      label: "画布节点",
-      directorControlBundle: { schema_version: "director_control_bundle_v1" },
-      token: 1,
+  pendingReplacement = {
+    assetId,
+    nodeId: "node-a",
+    sourceUrl: "/static/source.png",
+    label: "画布节点",
+    directorControlBundle: { schema_version: "director_control_bundle_v1" },
+  };
+}
+
+function useController(onReplaced: AssetLibraryReplacementHandler) {
+  return useAssetLibraryReplacementController({
+    project: "demo",
+    onReplaced,
+    store: {
+      activeDragMediaType: "image",
+      hoverAssetId: "asset-a",
+      pendingReplacement,
+      readPendingReplacement: () => pendingReplacement,
+      clearPendingReplacement,
     },
   });
 }
 
 describe("asset library replacement controller", () => {
   beforeEach(() => {
-    useAssetDropStore.setState({
-      activeDrag: null,
-      hoverAssetId: null,
-      pendingReplace: null,
-    });
+    pendingReplacement = null;
+    clearPendingReplacement.mockClear();
     mocks.commitDirectorRenderFromCanvasSource.mockReset().mockResolvedValue({
       target_path: "renders/ep001/beat_02.png",
       target_url: "/static/director.png",
@@ -76,9 +93,7 @@ describe("asset library replacement controller", () => {
     });
     const onReplaced = vi.fn();
     setPendingReplacement(currentAsset.id);
-    const { result } = renderHook(() =>
-      useAssetLibraryReplacementController({ project: "demo", onReplaced }),
-    );
+    const { result } = renderHook(() => useController(onReplaced));
 
     act(() => result.current.confirmReplacement(currentAsset));
 
@@ -95,7 +110,7 @@ describe("asset library replacement controller", () => {
       }),
       "已用画布节点替换「当前帧」",
     );
-    expect(useAssetDropStore.getState().pendingReplace).toBeNull();
+    expect(pendingReplacement).toBeNull();
   });
 
   it("commits director renders with the complete canvas source bundle", async () => {
@@ -106,9 +121,7 @@ describe("asset library replacement controller", () => {
     });
     const onReplaced = vi.fn();
     setPendingReplacement(currentAsset.id);
-    const { result } = renderHook(() =>
-      useAssetLibraryReplacementController({ project: "demo", onReplaced }),
-    );
+    const { result } = renderHook(() => useController(onReplaced));
 
     act(() => result.current.confirmReplacement(currentAsset));
 
@@ -141,15 +154,11 @@ describe("asset library replacement controller", () => {
     const onReplaced = vi.fn();
     mocks.promoteToAsset.mockRejectedValueOnce(new Error("network down"));
     setPendingReplacement(currentAsset.id);
-    const { result } = renderHook(() =>
-      useAssetLibraryReplacementController({ project: "demo", onReplaced }),
-    );
+    const { result } = renderHook(() => useController(onReplaced));
 
     act(() => result.current.confirmReplacement(currentAsset));
 
-    await waitFor(() => {
-      expect(useAssetDropStore.getState().pendingReplace).toBeNull();
-    });
+    await waitFor(() => expect(pendingReplacement).toBeNull());
     expect(result.current.reloadToken).toBe(0);
     expect(result.current.busyAssetId).toBeNull();
     expect(onReplaced).toHaveBeenCalledWith(
@@ -166,9 +175,7 @@ describe("asset library replacement controller", () => {
     const onReplaced = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     setPendingReplacement(currentAsset.id);
-    const { result } = renderHook(() =>
-      useAssetLibraryReplacementController({ project: "demo", onReplaced }),
-    );
+    const { result } = renderHook(() => useController(onReplaced));
 
     act(() => result.current.confirmReplacement(currentAsset));
 
@@ -178,7 +185,7 @@ describe("asset library replacement controller", () => {
     );
     expect(mocks.promoteToAsset).not.toHaveBeenCalled();
     expect(mocks.commitDirectorRenderFromCanvasSource).not.toHaveBeenCalled();
-    expect(useAssetDropStore.getState().pendingReplace).toBeNull();
+    expect(pendingReplacement).toBeNull();
     warn.mockRestore();
   });
 });
