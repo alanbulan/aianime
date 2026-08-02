@@ -901,6 +901,13 @@ export { useVideoComposeKeyboardController } from "@/modules/creative_canvas/pre
 export type { UseVideoComposeKeyboardControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeKeyboardController";
 export { useVideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
 export type { VideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
+export { useVideoComposePlaybackController } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackController";
+export { useVideoComposeExportController } from "@/modules/creative_canvas/presentation/useVideoComposeExportController";
+export type {
+  VideoComposeExportController,
+  VideoComposeExportControllerOptions,
+  VideoComposeExportTarget,
+} from "@/modules/creative_canvas/presentation/useVideoComposeExportController";
 export {
   VideoComposeSpeedPopover,
   VideoComposeToolButton,

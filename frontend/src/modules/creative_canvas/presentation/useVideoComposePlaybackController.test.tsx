@@ -7,13 +7,14 @@ import type {
   ComposeTimelineState,
   ComposeTrack,
   ComposeTrackKind,
-} from "@/modules/creative_canvas/public";
+} from "../domain/videoComposeTimeline";
 
 import { useVideoComposePlaybackController } from "./useVideoComposePlaybackController";
 
 const mocks = vi.hoisted(() => ({
   syncTrack: vi.fn(),
 }));
+const resolveMediaUrl = (url: string) => url;
 
 vi.mock("./useVideoComposeTrackMediaSync", () => ({
   useVideoComposeTrackMediaSync: mocks.syncTrack,
@@ -67,7 +68,7 @@ describe("useVideoComposePlaybackController", () => {
   it("projects preview tracks, duration, source, and media synchronization", () => {
     const state = timeline();
     const { result } = renderHook(() =>
-      useVideoComposePlaybackController(state, 80),
+      useVideoComposePlaybackController(state, 80, resolveMediaUrl),
     );
 
     expect(result.current.durationMs).toBe(4000);
@@ -81,12 +82,14 @@ describe("useVideoComposePlaybackController", () => {
       0,
       false,
       true,
+      resolveMediaUrl,
     ]);
     expect(mocks.syncTrack.mock.calls[1].slice(1)).toEqual([
       state.tracks[2],
       0,
       false,
       false,
+      resolveMediaUrl,
     ]);
   });
 
@@ -97,7 +100,7 @@ describe("useVideoComposePlaybackController", () => {
     vi.stubGlobal("cancelAnimationFrame", cancelFrame);
     const requestFullscreen = vi.fn(() => Promise.resolve());
     const { result, unmount } = renderHook(() =>
-      useVideoComposePlaybackController(timeline(), 80),
+      useVideoComposePlaybackController(timeline(), 80, resolveMediaUrl),
     );
     const playhead = document.createElement("div");
     result.current.playheadElRef.current = playhead;

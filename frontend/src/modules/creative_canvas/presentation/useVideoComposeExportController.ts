@@ -1,21 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef, useState } from 'react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
+import { uploadFreezoneAsset } from '../assetTransferComposition';
 import {
   buildComposePayload,
-  composeCanvasVideo,
   hasExportableClips,
   hasOverlappingVideoClips,
-  type CanvasVideoComposeResolution,
   type ComposeTimelineState,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoComposeTimeline';
+import type { CanvasVideoComposeResolution } from '../domain/videoCompose';
 import {
   downloadVideoComposeBlob,
   fetchVideoComposeResultBlob,
   resolveVideoComposeResultFileName,
-} from '@/features/canvas/infrastructure/browserVideoComposeExportRuntime';
+  type VideoComposeExportUrlResolver,
+} from '../infrastructure/browserVideoComposeExportRuntime';
+import { composeCanvasVideo } from '../videoComposeComposition';
 
 export type VideoComposeExportTarget = 'local' | 'canvas';
 
@@ -26,6 +26,7 @@ export interface VideoComposeExportControllerOptions {
   onComposed: (url: string, coverUrl: string | null) => void;
   overlapErrorMessage: string;
   missingUrlErrorMessage: string;
+  resolveMediaUrl: VideoComposeExportUrlResolver;
 }
 
 export function useVideoComposeExportController({
@@ -35,6 +36,7 @@ export function useVideoComposeExportController({
   onComposed,
   overlapErrorMessage,
   missingUrlErrorMessage,
+  resolveMediaUrl,
 }: VideoComposeExportControllerOptions) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -44,21 +46,21 @@ export function useVideoComposeExportController({
   const exportToLocal = useCallback(async (url: string) => {
     const blob = await fetchVideoComposeResultBlob(
       url,
-      resolveImageDisplayUrl,
+      resolveMediaUrl,
     );
     downloadVideoComposeBlob(
       blob,
       resolveVideoComposeResultFileName(url),
     );
-  }, []);
+  }, [resolveMediaUrl]);
 
   const exportToCanvas = useCallback(
     async (url: string) => {
       const blob = await fetchVideoComposeResultBlob(
         url,
-        resolveImageDisplayUrl,
+        resolveMediaUrl,
       );
-      const uploaded = await uploadCanvasAsset(
+      const uploaded = await uploadFreezoneAsset(
         project,
         blob,
         resolveVideoComposeResultFileName(url),
@@ -66,7 +68,7 @@ export function useVideoComposeExportController({
       );
       onComposed(uploaded.url, timelineRef.current.cover?.url ?? null);
     },
-    [onComposed, project],
+    [onComposed, project, resolveMediaUrl],
   );
 
   const runExport = useCallback(

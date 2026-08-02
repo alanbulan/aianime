@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   ComposeClip,
   ComposeTimelineState,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoComposeTimeline';
 
 import { useVideoComposeExportController } from './useVideoComposeExportController';
 
@@ -17,21 +17,16 @@ const mocks = vi.hoisted(() => ({
   fileName: vi.fn(),
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
-  uploadCanvasAsset: (...args: unknown[]) => mocks.upload(...args),
+vi.mock('../assetTransferComposition', () => ({
+  uploadFreezoneAsset: (...args: unknown[]) => mocks.upload(...args),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('../videoComposeComposition', () => ({
   composeCanvasVideo: (input: unknown) => mocks.compose(input),
 }));
 
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-}));
-
 vi.mock(
-  '@/features/canvas/infrastructure/browserVideoComposeExportRuntime',
+  '../infrastructure/browserVideoComposeExportRuntime',
   () => ({
     fetchVideoComposeResultBlob: (...args: unknown[]) =>
       mocks.fetchBlob(...args),
@@ -95,6 +90,7 @@ function options(
     onComposed,
     overlapErrorMessage: '视频片段重叠',
     missingUrlErrorMessage: '缺少结果地址',
+    resolveMediaUrl: (url: string) => `display:${url}`,
   };
 }
 

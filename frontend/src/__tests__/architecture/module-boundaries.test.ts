@@ -26381,11 +26381,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposePlaybackController.ts",
+      "modules/creative_canvas/presentation/useVideoComposePlaybackController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposePlaybackController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposePlaybackController.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26430,8 +26430,9 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/imageData",
-        "@/modules/creative_canvas/public",
+        "../application/videoComposePreview",
+        "../domain/videoComposeTimeline",
+        "./useVideoComposePlaybackClock",
         "./useVideoComposeTrackMediaSync",
       ]),
     );
@@ -26442,6 +26443,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/api/");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposePlaybackController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
@@ -26457,7 +26461,9 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/application/videoComposePreview.ts"],
       ["modules/creative_canvas/application/videoComposePreview.ts"],
       ["modules/creative_canvas/presentation/useVideoComposePlaybackClock.ts"],
-      ["features/canvas/hooks/useVideoComposePlaybackController.ts"],
+      [
+        "modules/creative_canvas/presentation/useVideoComposePlaybackController.ts",
+      ],
     ]);
     expect(previewTestSource).toContain('from "./videoComposePreview"');
     expect(clockTestSource).toContain(
@@ -26471,11 +26477,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose track media synchronization in one hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTrackMediaSync.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTrackMediaSync.ts",
     );
     const hookTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeTrackMediaSync.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeTrackMediaSync.test.tsx",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26483,7 +26489,7 @@ describe("frontend architecture boundaries", () => {
     );
     const playbackControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposePlaybackController.ts",
+      "modules/creative_canvas/presentation/useVideoComposePlaybackController.ts",
     );
     const hookSource = readFileSync(hookPath, "utf8");
     const hookTestSource = readFileSync(hookTestPath, "utf8");
@@ -26504,8 +26510,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(hookPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/imageData",
-        "@/modules/creative_canvas/public",
+        "../domain/videoComposeTimeline",
       ]),
     );
     expect(hookSource).toContain("activeClipAt(track, playheadMs)");
@@ -26529,7 +26534,7 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("function useTrackMediaSync(");
     expect(modalSource).not.toContain("desiredSourceSecRef");
     expect(declarationOwners).toEqual([
-      "features/canvas/hooks/useVideoComposeTrackMediaSync.ts",
+      "modules/creative_canvas/presentation/useVideoComposeTrackMediaSync.ts",
     ]);
     expect(hookTestSource).toContain(
       "from './useVideoComposeTrackMediaSync'",
@@ -26539,19 +26544,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps video-compose export orchestration and browser delivery out of the modal", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeExportController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeExportController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeExportController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeExportController.test.tsx",
     );
     const runtimePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.ts",
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoComposeExportRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -26584,14 +26589,15 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/imageData",
-        "@/features/canvas/composition",
-        "@/features/canvas/infrastructure/browserVideoComposeExportRuntime",
-        "@/modules/creative_canvas/public",
+        "../assetTransferComposition",
+        "../domain/videoComposeTimeline",
+        "../domain/videoCompose",
+        "../infrastructure/browserVideoComposeExportRuntime",
+        "../videoComposeComposition",
       ]),
     );
     expect(controllerSource).toContain("await composeCanvasVideo({");
-    expect(controllerSource).toContain("await uploadCanvasAsset(");
+    expect(controllerSource).toContain("await uploadFreezoneAsset(");
     expect(controllerSource).toContain("buildComposePayload(");
     expect(controllerSource).toContain("hasOverlappingVideoClips(timeline)");
     expect(controllerSource).toContain(
@@ -26601,6 +26607,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("URL.createObjectURL");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposeExportController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
@@ -26615,15 +26624,17 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("setIsExporting");
     expect(declarationOwners).toEqual([
       [
-        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+        "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.ts",
       ],
       [
-        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+        "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.ts",
       ],
       [
-        "features/canvas/infrastructure/browserVideoComposeExportRuntime.ts",
+        "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.ts",
       ],
-      ["features/canvas/hooks/useVideoComposeExportController.ts"],
+      [
+        "modules/creative_canvas/presentation/useVideoComposeExportController.ts",
+      ],
     ]);
     expect(controllerTestSource).toContain(
       "from './useVideoComposeExportController'",
@@ -26751,7 +26762,7 @@ describe("frontend architecture boundaries", () => {
     );
     const exportControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeExportController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeExportController.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -26819,10 +26830,13 @@ describe("frontend architecture boundaries", () => {
       "): CanvasVideoComposeRequest {",
     );
     expect(importSpecifiers(exportControllerPath)).toContain(
-      "@/features/canvas/composition",
+      "../assetTransferComposition",
     );
     expect(importSpecifiers(exportControllerPath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../videoComposeComposition",
+    );
+    expect(importSpecifiers(exportControllerPath)).not.toContain(
+      "@/features/canvas/composition",
     );
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/tasks");
@@ -27370,7 +27384,6 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPaths = [
       "features/canvas/compose/CoverEditor.tsx",
-      "features/canvas/hooks/useVideoComposeExportController.ts",
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
@@ -27435,12 +27448,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       directorCaptureSource.match(/DIRECTOR_CAPTURE_UPLOAD_OPTIONS/g),
     ).toHaveLength(4);
+    expect(consumerSources[5]).toContain("directorCaptureBundle");
     expect(consumerSources[6]).toContain("directorCaptureBundle");
-    expect(consumerSources[7]).toContain("directorCaptureBundle");
-    expect(consumerSources[6]).not.toContain(
+    expect(consumerSources[5]).not.toContain(
       "director-world-${nodeId}-combined-",
     );
-    expect(consumerSources[7]).not.toContain(
+    expect(consumerSources[6]).not.toContain(
       "director-world-${nodeId}-combined-",
     );
     expect(directImageUploadOwners).toEqual([]);
@@ -27455,7 +27468,7 @@ describe("frontend architecture boundaries", () => {
       consumerSources
         .join("\n")
         .match(/disableTimeout: true/g),
-    ).toHaveLength(6);
+    ).toHaveLength(5);
   });
 
   it("keeps Canvas asset-library contracts and transport mapping out of views", () => {

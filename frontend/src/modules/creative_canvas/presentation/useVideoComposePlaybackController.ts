@@ -1,23 +1,28 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import {
-  activeClipAt,
   projectVideoComposeActiveMediaClock,
   resolveVideoComposeMediaClockMs,
   resolveVideoComposePreviewTrack,
-  timelineDurationMs,
-  useVideoComposePlaybackClock,
-  type ComposeTimelineState,
   type VideoComposeActiveMediaClock,
-} from "@/modules/creative_canvas/public";
+} from "../application/videoComposePreview";
+import {
+  activeClipAt,
+  timelineDurationMs,
+  type ComposeTimelineState,
+} from "../domain/videoComposeTimeline";
 
-import { useVideoComposeTrackMediaSync } from "./useVideoComposeTrackMediaSync";
+import { useVideoComposePlaybackClock } from "./useVideoComposePlaybackClock";
+import {
+  useVideoComposeTrackMediaSync,
+  type VideoComposeMediaUrlResolver,
+} from "./useVideoComposeTrackMediaSync";
 
 export function useVideoComposePlaybackController(
   timeline: ComposeTimelineState,
   pxPerSec: number,
+  resolveMediaUrl: VideoComposeMediaUrlResolver,
 ) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -114,6 +119,7 @@ export function useVideoComposePlaybackController(
     playheadMs,
     isPlaying,
     hasAudioTrack,
+    resolveMediaUrl,
   );
   useVideoComposeTrackMediaSync(
     audioRef,
@@ -121,6 +127,7 @@ export function useVideoComposePlaybackController(
     playheadMs,
     isPlaying,
     false,
+    resolveMediaUrl,
   );
 
   const videoActive = useMemo(
@@ -132,9 +139,9 @@ export function useVideoComposePlaybackController(
   const videoSource = useMemo(
     () =>
       videoActive
-        ? resolveImageDisplayUrl(videoActive.laid.clip.sourceUrl)
+        ? resolveMediaUrl(videoActive.laid.clip.sourceUrl)
         : null,
-    [videoActive],
+    [resolveMediaUrl, videoActive],
   );
 
   return {

@@ -6,13 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   ComposeClip,
   ComposeTrack,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoComposeTimeline';
 
 import { useVideoComposeTrackMediaSync } from './useVideoComposeTrackMediaSync';
 
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-}));
+const resolveMediaUrl = (url: string) => `display:${url}`;
 
 interface FakeMedia {
   element: HTMLVideoElement;
@@ -112,6 +110,7 @@ describe('useVideoComposeTrackMediaSync', () => {
           playheadMs,
           isPlaying,
           false,
+          resolveMediaUrl,
         ),
       { initialProps: { playheadMs: 500, isPlaying: true } },
     );
@@ -145,6 +144,7 @@ describe('useVideoComposeTrackMediaSync', () => {
           200,
           isPlaying,
           forceMuted,
+          resolveMediaUrl,
         ),
       { initialProps: { isPlaying: false, forceMuted: true } },
     );
@@ -173,6 +173,7 @@ describe('useVideoComposeTrackMediaSync', () => {
           playheadMs,
           false,
           false,
+          resolveMediaUrl,
         ),
       { initialProps: { playheadMs: 100 } },
     );
@@ -199,7 +200,14 @@ describe('useVideoComposeTrackMediaSync', () => {
     const ref = createRef<HTMLVideoElement>();
     ref.current = media.element;
     const { unmount } = renderHook(() =>
-      useVideoComposeTrackMediaSync(ref, track(), 0, false, false),
+      useVideoComposeTrackMediaSync(
+        ref,
+        track(),
+        0,
+        false,
+        false,
+        resolveMediaUrl,
+      ),
     );
 
     expect(media.listenerCount('loadedmetadata')).toBe(1);

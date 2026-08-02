@@ -7,14 +7,14 @@ import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   hasExportableClips,
   overlappingVideoClipIds,
+  useVideoComposeExportController,
   useVideoComposeKeyboardController,
+  useVideoComposePlaybackController,
   useVideoComposeTimelineEditorController,
   useVideoComposeTimelinePointerController,
   type ComposeCover,
   type ComposeTimelineState,
 } from "@/modules/creative_canvas/public";
-import { useVideoComposeExportController } from "@/features/canvas/hooks/useVideoComposeExportController";
-import { useVideoComposePlaybackController } from "@/features/canvas/hooks/useVideoComposePlaybackController";
 import { useVideoComposeTimelineSessionController } from "@/features/canvas/hooks/useVideoComposeTimelineSessionController";
 import {
   VideoComposeModalView,
@@ -105,6 +105,7 @@ export function VideoComposeModal({
       onComposed,
       overlapErrorMessage: t("videoCompose.error.overlap"),
       missingUrlErrorMessage: t("videoCompose.error.noUrl"),
+      resolveMediaUrl: resolveImageDisplayUrl,
     });
 
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
@@ -173,7 +174,11 @@ export function VideoComposeModal({
     videoTrack,
     audioTrack,
     videoSource,
-  } = useVideoComposePlaybackController(timeline, pxPerSec);
+  } = useVideoComposePlaybackController(
+    timeline,
+    pxPerSec,
+    resolveImageDisplayUrl,
+  );
   const {
     selectedClip,
     canSplitInside,

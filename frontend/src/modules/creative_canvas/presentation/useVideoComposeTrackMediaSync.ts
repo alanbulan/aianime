@@ -1,11 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   activeClipAt,
   type ComposeTrack,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoComposeTimeline';
+
+export type VideoComposeMediaUrlResolver = (url: string) => string;
 
 export function useVideoComposeTrackMediaSync<
   T extends HTMLMediaElement,
@@ -15,6 +16,7 @@ export function useVideoComposeTrackMediaSync<
   playheadMs: number,
   isPlaying: boolean,
   forceMuted: boolean,
+  resolveMediaUrl: VideoComposeMediaUrlResolver,
 ): void {
   const active = useMemo(
     () => (track ? activeClipAt(track, playheadMs) : null),
@@ -44,7 +46,7 @@ export function useVideoComposeTrackMediaSync<
       return;
     }
     element.dataset.clipId = activeClipId ?? '';
-    element.src = resolveImageDisplayUrl(sourceUrl);
+    element.src = resolveMediaUrl(sourceUrl);
     try {
       element.load();
     } catch {
@@ -63,7 +65,7 @@ export function useVideoComposeTrackMediaSync<
     };
     element.addEventListener('loadedmetadata', onReady, { once: true });
     return () => element.removeEventListener('loadedmetadata', onReady);
-  }, [activeClipId, ref, sourceUrl]);
+  }, [activeClipId, ref, resolveMediaUrl, sourceUrl]);
 
   useEffect(() => {
     const element = ref.current;
