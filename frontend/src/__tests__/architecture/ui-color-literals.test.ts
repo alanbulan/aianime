@@ -59,7 +59,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "lib/project-cover.ts": 24,
   "lib/sketch-colors.ts": 1,
   "modules/creative_canvas/presentation/CompareDialog.tsx": 1,
-  "features/freezone/presentation/MaskEditor.tsx": 4,
+  "modules/creative_canvas/presentation/useMaskEditorController.ts": 4,
   "features/canvas/canvasStore.ts": 2,
   "stores/settingsStore.ts": 2,
 };

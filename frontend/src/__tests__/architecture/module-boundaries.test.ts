@@ -360,6 +360,8 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/Canvas",
         "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
+        "@/features/canvas/domain/assetDrag",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useFreezoneCameraOptions",
         "@/features/canvas/hooks/useFreezoneImageModels",
@@ -373,9 +375,7 @@ describe("frontend architecture boundaries", () => {
         "@/lib/runtime-config",
         "@/lib/url-params",
         "@/shared/media/image-cache",
-        "./assetLibraryCanvasInsertionComposition",
         "./hooks/useCanvasSync",
-        "./presentation/MaskEditor",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -4570,7 +4570,7 @@ describe("frontend architecture boundaries", () => {
         "CreateIdentityDialog",
         "modules/creative_canvas/presentation/CreateIdentityDialog.tsx",
       ],
-      ["MaskEditor", "features/freezone/presentation/MaskEditor.tsx"],
+      ["MaskEditor", "modules/creative_canvas/presentation/MaskEditor.tsx"],
     ] as const;
     const declarationOwners = dialogs.map(([name]) =>
       sourceFiles(SRC_ROOT)
@@ -4598,15 +4598,42 @@ describe("frontend architecture boundaries", () => {
       dialogs.map(([, path]) => [path]),
     );
     expect(shellImports).toContain("@/modules/creative_canvas/public");
-    expect(shellImports).toContain("./presentation/MaskEditor");
+    expect(shellImports).not.toContain("./presentation/MaskEditor");
     expect(shellImports).not.toContain("./CompareDialog");
     expect(shellImports).not.toContain("./CreateIdentityDialog");
     expect(shellViewImports).toContain("./CompareDialog");
     expect(shellViewImports).toContain("./CreateIdentityDialog");
     expect(shellViewImports).not.toContain("./MaskEditor");
+    const maskEntryPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/MaskEditor.tsx",
+    );
+    const maskControllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useMaskEditorController.ts",
+    );
+    const maskViewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/MaskEditorView.tsx",
+    );
+    expect(new Set(importSpecifiers(maskEntryPath))).toEqual(
+      new Set(["./MaskEditorView", "./useMaskEditorController"]),
+    );
+    for (const maskModulePath of [
+      maskEntryPath,
+      maskControllerPath,
+      maskViewPath,
+    ]) {
+      expect(
+        importSpecifiers(maskModulePath).filter((specifier) =>
+          specifier.startsWith("@/features/"),
+        ),
+      ).toEqual([]);
+    }
     for (const legacyDialogPath of [
       "features/freezone/presentation/CompareDialog.tsx",
       "features/freezone/presentation/CreateIdentityDialog.tsx",
+      "features/freezone/presentation/MaskEditor.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyDialogPath))).toBe(false);
     }
@@ -4659,7 +4686,7 @@ describe("frontend architecture boundaries", () => {
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     );
     const pipelineConsumerPaths = [
-      "features/freezone/presentation/MaskEditor.tsx",
+      "features/freezone/FreezoneShell.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
@@ -4742,7 +4769,7 @@ describe("frontend architecture boundaries", () => {
       expect(importSpecifiers(consumerPath)).toContain(
         "@/features/canvas/composition",
       );
-      expect(source).toContain("uploadCanvasAsset(");
+      expect(source).toContain("uploadAsset: uploadCanvasAsset");
       expect(source).not.toContain("uploadFreezoneImage");
     }
   });
@@ -11299,7 +11326,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/domain/assetDrag.ts",
     );
-    const compositionPath = resolve(
+    const retiredCompositionPath = resolve(
       SRC_ROOT,
       "features/freezone/assetLibraryCanvasInsertionComposition.ts",
     );
@@ -11329,7 +11356,6 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const dragContractSource = readFileSync(dragContractPath, "utf8");
-    const compositionSource = readFileSync(compositionPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const shellViewSource = readFileSync(shellViewPath, "utf8");
     const shellAdapterSource = readFileSync(shellAdapterPath, "utf8");
@@ -11338,13 +11364,13 @@ describe("frontend architecture boundaries", () => {
       ["export function", "assetToDragPayload("].join(" "),
       ["export function", "viewportCenteredPosition("].join(" "),
       ["export async function", "insertAssetLibraryAsset("].join(" "),
-      ["export function", "addAssetToCanvas("].join(" "),
+      ["function", "addAssetToCanvas("].join(" "),
     ];
     const expectedOwners = [
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
       "modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
-      "features/freezone/assetLibraryCanvasInsertionComposition.ts",
+      "features/freezone/FreezoneShell.tsx",
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -11366,15 +11392,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(dragContractPath))).toEqual(
       new Set(["@/modules/asset_world/public"]),
     );
-    expect(new Set(importSpecifiers(compositionPath))).toEqual(
-      new Set([
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/composition",
-        "@/features/canvas/domain/assetDrag",
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-      ]),
-    );
+    expect(existsSync(retiredCompositionPath)).toBe(false);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("zustand");
     expect(applicationSource).not.toContain("window.");
@@ -11385,9 +11403,14 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(dragContractSource).not.toContain("DataTransfer");
     expect(dragContractSource).not.toContain("@/features/");
-    expect(compositionSource).toContain("insertAssetLibraryAsset({");
-    expect(compositionSource).toContain("nodeWidth: DEFAULT_NODE_WIDTH");
-    expect(compositionSource).toContain("spawnAssetNode(canvasState, payload, position)");
+    expect(shellAdapterSource).toContain("insertAssetLibraryAsset({");
+    expect(shellAdapterSource).toContain("nodeWidth: DEFAULT_NODE_WIDTH");
+    expect(shellAdapterSource).toContain(
+      "spawnAssetNode(canvasState, payload, position)",
+    );
+    expect(shellAdapterSource).toContain(
+      "hydratePayload: hydrateAssetDragPayload",
+    );
     expect(importSpecifiers(beatPresentationPath)).toContain(
       "../application/assetLibraryCanvasInsertion",
     );
@@ -11404,6 +11427,9 @@ describe("frontend architecture boundaries", () => {
       "../application/assetLibraryCanvasInsertion",
     );
     expect(importSpecifiers(shellAdapterPath)).toContain(
+      "@/features/canvas/domain/assetDrag",
+    );
+    expect(importSpecifiers(shellAdapterPath)).not.toContain(
       "./assetLibraryCanvasInsertionComposition",
     );
     expect(importSpecifiers(shellViewPath)).not.toContain(
@@ -22197,7 +22223,7 @@ describe("frontend architecture boundaries", () => {
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const pipelineEditorPath = resolve(
       SRC_ROOT,
-      "features/freezone/presentation/MaskEditor.tsx",
+      "features/freezone/FreezoneShell.tsx",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -22283,7 +22309,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/tasks");
-    expect(pipelineEditorSource).toContain("await generateCanvasRedraw(");
+    expect(pipelineEditorSource).toContain(
+      "generateCanvasRedraw(request, onTaskSubmitted)",
+    );
     expect(opsSource).not.toContain("@/features/canvas/domain/redraw");
     expect(opsSource).not.toContain("FreezoneRedrawPayload");
     expect(opsSource).not.toContain("submitFreezoneRedraw");

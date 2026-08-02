@@ -7,22 +7,38 @@ import {
   useCanvasStore,
   type CanvasNodeData,
 } from "@/features/canvas/canvasStore";
+import {
+  generateCanvasRedraw,
+  hydrateAssetDragPayload,
+  uploadCanvasAsset,
+} from "@/features/canvas/composition";
+import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
+import {
+  CANVAS_NODE_TYPES,
+  DEFAULT_NODE_WIDTH,
+} from "@/features/canvas/domain/canvasNodes";
 import { prefetchFreezoneCameraOptions } from "@/features/canvas/hooks/useFreezoneCameraOptions";
-import { prefetchFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
+import {
+  prefetchFreezoneImageModels,
+  useFreezoneImageModels,
+} from "@/features/canvas/hooks/useFreezoneImageModels";
 import { prefetchFreezoneStyleTemplates } from "@/features/canvas/hooks/useFreezoneStyleTemplates";
 import { prefetchFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
 import { prefetchFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
 import {
   createCanvasCommitControllerHook,
   createUseFreezoneCanvasEntryLifecycle,
   createUseFreezoneShellController,
   FreezoneShellView,
+  insertAssetLibraryAsset,
+  MaskEditor,
   useCanvasProjectionCommandController,
   useCanvasProjectionStatusLifecycle,
   type FreezoneShellCanvasRenderProps,
   type FreezoneShellMaskEditorRenderProps,
+  type LibraryAsset,
+  type MaskEditorControllerDependencies,
 } from "@/modules/creative_canvas/public";
 import type { ProjectSummary } from "@/modules/project_workspace/public";
 import { currentCanvasParam } from "@/lib/app-router";
@@ -30,9 +46,7 @@ import { isCeRuntime } from "@/lib/runtime-config";
 import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 
-import { addAssetToCanvas } from "./assetLibraryCanvasInsertionComposition";
 import { useCanvasSync } from "./hooks/useCanvasSync";
-import { MaskEditor } from "./presentation/MaskEditor";
 
 interface FreezoneShellProps {
   project: ProjectSummary;
@@ -87,6 +101,42 @@ function addMaskResultNode(url: string, label: string): void {
   );
 }
 
+function addAssetToCanvas(asset: LibraryAsset, index: number): void {
+  const canvasState = useCanvasStore.getState();
+  void insertAssetLibraryAsset({
+    asset,
+    index,
+    nodeWidth: DEFAULT_NODE_WIDTH,
+    canvas: {
+      canvasViewportSize: canvasState.canvasViewportSize,
+      currentViewport: canvasState.currentViewport,
+      nodes: canvasState.nodes,
+      spawnAsset: (payload, position) =>
+        spawnAssetNode(canvasState, payload, position),
+      requestFocusNode: canvasState.requestFocusNode,
+    },
+    hydratePayload: hydrateAssetDragPayload,
+    onHydrationError: (error) => {
+      console.warn(
+        "[freezone] scene director world manifest unavailable during import",
+        error,
+      );
+    },
+  });
+}
+
+const maskEditorDependencies: MaskEditorControllerDependencies = {
+  useImageModels: (projectId) =>
+    useFreezoneImageModels(projectId, "edit"),
+  uploadAsset: uploadCanvasAsset,
+  generateRedraw: (request, onTaskSubmitted) =>
+    generateCanvasRedraw(request, onTaskSubmitted),
+  createImage: () => new Image(),
+  createCanvas: () => document.createElement("canvas"),
+  createMaskFile: (blob) =>
+    new File([blob], "mask.png", { type: "image/png" }),
+};
+
 const useFreezoneShellController = createUseFreezoneShellController({
   useTranslate,
   isChatDockVisible: () => !isCeRuntime(),
@@ -108,7 +158,10 @@ function renderNodeReplaceDragPreview() {
 }
 
 function renderMaskEditor(props: FreezoneShellMaskEditorRenderProps) {
-  return createElement(MaskEditor, props);
+  return createElement(MaskEditor, {
+    ...props,
+    dependencies: maskEditorDependencies,
+  });
 }
 
 /** Mounts the shared xyflow canvas inside the Beat Workbench shell. */

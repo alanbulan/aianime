@@ -111,7 +111,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/assetLibraryCanvasInsertion.ts",
     );
     const assetLibraryInsertionComposition = read(
-      "src/features/freezone/assetLibraryCanvasInsertionComposition.ts",
+      "src/features/freezone/FreezoneShell.tsx",
     );
     const mediaTransferController = read(
       "src/features/canvas/hooks/useCanvasMediaTransferController.ts",

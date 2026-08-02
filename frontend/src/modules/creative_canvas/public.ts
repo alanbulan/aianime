@@ -479,6 +479,13 @@ export type {
   FreezoneShellMaskEditorRenderProps,
   FreezoneShellViewProps,
 } from "@/modules/creative_canvas/presentation/FreezoneShellView";
+export { MaskEditor } from "@/modules/creative_canvas/presentation/MaskEditor";
+export type {
+  MaskEditorProps,
+} from "@/modules/creative_canvas/presentation/MaskEditor";
+export type {
+  MaskEditorControllerDependencies,
+} from "@/modules/creative_canvas/presentation/useMaskEditorController";
 export {
   useCanvasProjectionStatusLifecycle,
 } from "@/modules/creative_canvas/canvasProjectionStatusLifecycleComposition";

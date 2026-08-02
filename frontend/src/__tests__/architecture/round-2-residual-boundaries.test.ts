@@ -227,6 +227,11 @@ describe("round 2 residual architecture boundaries", () => {
       "useFreezoneShellController.test.tsx",
       "FreezoneShellView.tsx",
       "FreezoneShellView.test.tsx",
+      "MaskEditor.tsx",
+      "MaskEditorView.tsx",
+      "MaskEditorView.test.tsx",
+      "useMaskEditorController.ts",
+      "useMaskEditorController.test.tsx",
       "commitDialogViewModel.ts",
       "useAssetLibraryReplacementController.ts",
       "useAssetLibraryReplacementController.test.tsx",
@@ -412,6 +417,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/freezone/hooks/useFreezoneShellController.test.tsx",
       "features/freezone/presentation/FreezoneShellView.tsx",
       "features/freezone/presentation/FreezoneShellView.test.tsx",
+      "features/freezone/presentation/MaskEditor.tsx",
+      "features/freezone/assetLibraryCanvasInsertionComposition.ts",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredShellPresentationPath)),
@@ -1158,7 +1165,7 @@ describe("round 2 residual architecture boundaries", () => {
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
       ["features/canvas", 898],
-      ["features/freezone", 5],
+      ["features/freezone", 3],
       ["features/superchat", 0],
       ["task-center", 0],
     ]);
