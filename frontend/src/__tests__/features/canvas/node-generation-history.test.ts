@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { hasCompletedHistoryRecords } from "@/modules/creative_canvas/public";
-import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
+import {
+  hasCompletedHistoryRecords,
+  type CanvasGenerationHistoryRecord,
+} from "@/modules/creative_canvas/public";
 
 function record(status: string): CanvasGenerationHistoryRecord {
   return { id: `r-${status}`, status, recorded_at: "2026-06-15T00:00:00Z" } as unknown as CanvasGenerationHistoryRecord;

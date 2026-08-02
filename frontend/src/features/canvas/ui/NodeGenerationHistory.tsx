@@ -13,12 +13,12 @@ import {
   RotateCw,
 } from 'lucide-react';
 
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import {
   historyRecordOutputUrl,
   historyRecordPreviewImageUrl,
   historyRecordPrompt,
   isCompletedHistoryRecord,
+  type CanvasGenerationHistoryRecord,
 } from '@/modules/creative_canvas/public';
 import { resolveMediaUrl } from '@/lib/media-url';
 

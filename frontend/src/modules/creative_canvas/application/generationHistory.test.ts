@@ -5,8 +5,10 @@ import {
   queryCanvasGenerationHistory,
   queryNodeGenerationHistory,
   type CanvasGenerationHistoryGateway,
-  type CanvasGenerationHistoryRecord,
 } from "./generationHistory";
+import type {
+  CanvasGenerationHistoryRecord,
+} from "../domain/generationHistoryRecord";
 
 function record(id: string, recordedAt: string): CanvasGenerationHistoryRecord {
   return {

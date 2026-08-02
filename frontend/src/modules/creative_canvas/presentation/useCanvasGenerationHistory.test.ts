@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCanvasGenerationHistory = vi.hoisted(() => vi.fn());
 
-vi.mock("@/features/canvas/composition", () => ({
+vi.mock("../generationHistoryComposition", () => ({
   getCanvasGenerationHistory,
 }));
 
-import { useCanvasGenerationHistory } from "@/features/canvas/hooks/useCanvasGenerationHistory";
+import { useCanvasGenerationHistory } from "./useCanvasGenerationHistory";
 
 const historyContext = { projectId: "p1", canvasId: "c1" };
 

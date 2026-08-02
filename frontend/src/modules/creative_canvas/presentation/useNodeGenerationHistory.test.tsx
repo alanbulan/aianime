@@ -1,13 +1,13 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
+import { useNodeGenerationHistory } from "./useNodeGenerationHistory";
 
 const mocks = vi.hoisted(() => ({
   getNodeGenerationHistory: vi.fn(),
 }));
 
-vi.mock("@/features/canvas/composition", () => ({
+vi.mock("../generationHistoryComposition", () => ({
   getNodeGenerationHistory: (...args: unknown[]) =>
     mocks.getNodeGenerationHistory(...args),
 }));

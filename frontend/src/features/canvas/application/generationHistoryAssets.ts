@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import type {
   CanvasAssetBuckets,
   CanvasAssetKind,
@@ -11,6 +10,7 @@ import {
   historyRecordPrompt,
   historyRecordStrictWorldUrl,
   historyRecordWorldUrl,
+  type CanvasGenerationHistoryRecord,
 } from '@/modules/creative_canvas/public';
 
 export interface HistoryNodeMeta {

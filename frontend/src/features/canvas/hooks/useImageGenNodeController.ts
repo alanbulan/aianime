@@ -43,7 +43,6 @@ import {
   shouldWriteGenerationError,
 } from '@/features/canvas/application/generationTaskArbitration';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
@@ -66,8 +65,10 @@ import {
   translateCanvasText,
   useCanvasCameraOptions,
   useCanvasImageModels,
+  useNodeGenerationHistory,
   useCanvasStyleTemplates,
   type CanvasAssetLibrarySelection,
+  type CanvasGenerationHistoryRecord,
   type CanvasImageMode,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
@@ -83,7 +84,6 @@ import {
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import {

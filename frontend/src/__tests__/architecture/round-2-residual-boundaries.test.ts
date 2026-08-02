@@ -172,6 +172,23 @@ describe("round 2 residual architecture boundaries", () => {
       "generationHistoryRecord.ts",
       "generationHistoryRecord.test.ts",
     ];
+    const generationHistoryApplicationFiles = [
+      "generationHistory.ts",
+      "generationHistory.test.ts",
+    ];
+    const generationHistoryInfrastructureFiles = [
+      "freezoneGenerationHistoryGateway.ts",
+      "freezoneGenerationHistoryGateway.test.ts",
+    ];
+    const generationHistoryPresentationFiles = [
+      "useCanvasGenerationHistory.ts",
+      "useCanvasGenerationHistory.test.ts",
+      "useNodeGenerationHistory.ts",
+      "useNodeGenerationHistory.test.tsx",
+    ];
+    const generationHistoryCompositionFiles = [
+      "generationHistoryComposition.ts",
+    ];
     const beatContextDomainFiles = ["beatContext.ts"];
     const assetLibraryDomainFiles = [
       "assetLibrary.ts",
@@ -566,6 +583,41 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
         file,
       ).toBe(false);
+    }
+    for (const file of generationHistoryApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of generationHistoryInfrastructureFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "infrastructure", file)),
+        file,
+      ).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of generationHistoryPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+    }
+    for (const file of [
+      "features/canvas/hooks/useCanvasGenerationHistory.ts",
+      "features/canvas/hooks/useNodeGenerationHistory.ts",
+      "__tests__/features/canvas/use-canvas-generation-history.test.ts",
+      "__tests__/features/canvas/use-node-generation-history.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, file)), file).toBe(false);
+    }
+    for (const file of generationHistoryCompositionFiles) {
+      expect(existsSync(resolve(moduleRoot, file)), file).toBe(true);
     }
     for (const file of beatContextDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
@@ -1094,6 +1146,8 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/skillInputResolution",
         "@/modules/creative_canvas/domain/inferSkillConnectionRole",
         "@/modules/creative_canvas/domain/generationHistoryRecord",
+        "@/modules/creative_canvas/presentation/useCanvasGenerationHistory",
+        "@/modules/creative_canvas/presentation/useNodeGenerationHistory",
         "@/modules/creative_canvas/domain/beatContext",
         "@/modules/creative_canvas/domain/assetLibraryModel",
         "@/modules/creative_canvas/domain/assetLibrary",
@@ -1692,7 +1746,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 695],
+      ["features/canvas", 689],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

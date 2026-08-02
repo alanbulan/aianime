@@ -1,19 +1,7 @@
 // Copyright (c) 2026 AI anime
-export interface CanvasGenerationHistoryRecord {
-  readonly schema_version: number;
-  readonly canvas_id: string;
-  readonly node_id: string;
-  readonly recorded_at: string;
-  readonly id: string;
-  readonly task_type: string;
-  readonly task_key: string;
-  readonly job_id: string;
-  readonly status: string;
-  readonly media_type: string;
-  readonly result: Record<string, unknown>;
-  readonly model?: string;
-  readonly gen_mode?: string;
-}
+import type {
+  CanvasGenerationHistoryRecord,
+} from "../domain/generationHistoryRecord";
 
 export interface CanvasGenerationHistoryGateway {
   fetchNode(

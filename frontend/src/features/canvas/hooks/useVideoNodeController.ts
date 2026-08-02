@@ -52,7 +52,6 @@ import {
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { resolveDroppedVideoFile } from '@/features/canvas/application/resolveDroppedVideoFile';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
@@ -75,7 +74,6 @@ import {
   submittableImageUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
@@ -118,12 +116,14 @@ import {
   supportedVideoModesForModel,
   useCanvasVideoCameraTemplates,
   useCanvasVideoModels,
+  useNodeGenerationHistory,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
   videoReferenceCapsForMode,
   type CanvasAssetLibrarySelection,
+  type CanvasGenerationHistoryRecord,
   type CameraMovementPreset,
   type VideoGenMode,
   type VideoGenerationReference,

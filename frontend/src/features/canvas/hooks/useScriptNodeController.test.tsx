@@ -63,14 +63,6 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationHistory', () => ({
-  useNodeGenerationHistory: () => ({
-    records: mocks.historyRecords,
-    isLoading: false,
-    refresh: mocks.refreshHistory,
-  }),
-}));
-
 vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: (kind: string) => {
     mocks.generationCreditCost(kind);
@@ -84,6 +76,11 @@ vi.mock('@/modules/creative_canvas/public', async () => {
   >('@/modules/creative_canvas/application/generateCanvasStoryScript');
   return {
     ...storyScript,
+    useNodeGenerationHistory: () => ({
+      records: mocks.historyRecords,
+      isLoading: false,
+      refresh: mocks.refreshHistory,
+    }),
     generateCanvasStoryScript: (
       command: unknown,
       onTaskSubmitted: (task: unknown) => void,

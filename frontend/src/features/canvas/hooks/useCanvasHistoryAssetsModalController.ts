@@ -14,7 +14,7 @@ import {
   type CanvasAssetKind,
 } from '@/features/canvas/domain/canvasAssets';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasGenerationHistory } from '@/features/canvas/hooks/useCanvasGenerationHistory';
+import { useCanvasGenerationHistory } from '@/modules/creative_canvas/public';
 import {
   buildStandaloneWorldManifest,
   type DirectorStageManifest,

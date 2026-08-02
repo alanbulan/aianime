@@ -455,8 +455,23 @@ export {
   isCompletedHistoryRecord,
 } from "@/modules/creative_canvas/domain/generationHistoryRecord";
 export type {
+  CanvasGenerationHistoryRecord,
   GenerationHistoryRecordProjection,
 } from "@/modules/creative_canvas/domain/generationHistoryRecord";
+export {
+  useCanvasGenerationHistory,
+} from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";
+export type {
+  CanvasGenerationHistoryContext,
+  UseCanvasGenerationHistoryResult,
+} from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";
+export {
+  useNodeGenerationHistory,
+} from "@/modules/creative_canvas/presentation/useNodeGenerationHistory";
+export type {
+  UseNodeGenerationHistoryOptions,
+  UseNodeGenerationHistoryResult,
+} from "@/modules/creative_canvas/presentation/useNodeGenerationHistory";
 export type {
   FreezoneAssetMediaType,
   FreezoneBeatContextBeat,

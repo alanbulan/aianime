@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState } from "react";
 
-import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
-import { getCanvasGenerationHistory } from "@/features/canvas/composition";
+import type {
+  CanvasGenerationHistoryRecord,
+} from "../domain/generationHistoryRecord";
+import { getCanvasGenerationHistory } from "../generationHistoryComposition";
 
 export interface UseCanvasGenerationHistoryResult {
   records: CanvasGenerationHistoryRecord[];

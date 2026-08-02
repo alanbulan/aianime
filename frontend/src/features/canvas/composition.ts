@@ -32,12 +32,6 @@ import {
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
 import {
-  queryCanvasGenerationHistory,
-  queryNodeGenerationHistory,
-  type GetCanvasGenerationHistoryParams,
-  type GetNodeGenerationHistoryParams,
-} from './application/generationHistory';
-import {
   migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
   type MigratePastedNodeAssetsParams,
 } from './application/crossProjectAssets';
@@ -101,7 +95,6 @@ import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
-import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
@@ -148,24 +141,6 @@ export const CURRENT_RUNTIME_SESSION_ID =
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();
-}
-
-export function getNodeGenerationHistory(
-  params: GetNodeGenerationHistoryParams,
-) {
-  return queryNodeGenerationHistory(
-    params,
-    freezoneGenerationHistoryGateway,
-  );
-}
-
-export function getCanvasGenerationHistory(
-  params: GetCanvasGenerationHistoryParams,
-) {
-  return queryCanvasGenerationHistory(
-    params,
-    freezoneGenerationHistoryGateway,
-  );
 }
 
 export function prepareNodeImage(

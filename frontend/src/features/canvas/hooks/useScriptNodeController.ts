@@ -13,7 +13,6 @@ import {
   scriptPromptHasContent,
   updateScriptResultCell,
 } from '@/features/canvas/application/scriptNodeModel';
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -22,11 +21,12 @@ import {
   isCanvasStoryScriptResult,
   STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
   translateCanvasText,
+  useNodeGenerationHistory,
+  type CanvasGenerationHistoryRecord,
   type CanvasStoryScriptReference,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

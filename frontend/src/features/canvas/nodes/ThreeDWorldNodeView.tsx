@@ -3,7 +3,6 @@ import { Handle, Position } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Loader2, Orbit } from 'lucide-react';
 
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   pickThreeDWorldPlyUrl,
@@ -11,7 +10,10 @@ import {
   type ThreeDWorldReferenceImage,
   type ThreeDWorldReferenceText,
 } from '@/features/canvas/application/threeDWorldNodeModel';
-import type { CanvasImageTo3dVisibleSourceKind } from '@/modules/creative_canvas/public';
+import type {
+  CanvasGenerationHistoryRecord,
+  CanvasImageTo3dVisibleSourceKind,
+} from '@/modules/creative_canvas/public';
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';

@@ -10,7 +10,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import {
   uploadDirectorCaptureBundle,
   type DirectorCaptureAssetUploader,
@@ -52,14 +51,15 @@ import {
   readDirectorCaptureImageSize,
 } from '@/features/canvas/infrastructure/browserDirectorCaptureRuntime';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
-import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,
   resolveCanvasImageTo3dSourceKind,
   setDirectorWorldSceneSaveHandler,
+  useNodeGenerationHistory,
   validMainlineContexts,
+  type CanvasGenerationHistoryRecord,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';

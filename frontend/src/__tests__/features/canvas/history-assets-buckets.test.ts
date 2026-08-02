@@ -6,8 +6,8 @@ import {
   historyRecordInputImageUrl,
   historyRecordPreviewImageUrl,
   historyRecordStrictWorldUrl,
+  type CanvasGenerationHistoryRecord,
 } from "@/modules/creative_canvas/public";
-import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 
 function record(
   partial: Partial<CanvasGenerationHistoryRecord>,

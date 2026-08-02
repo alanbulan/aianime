@@ -4,8 +4,10 @@ import { ApiError } from "@/shared/api/errors";
 
 import type {
   CanvasGenerationHistoryGateway,
-  CanvasGenerationHistoryRecord,
 } from "../application/generationHistory";
+import type {
+  CanvasGenerationHistoryRecord,
+} from "../domain/generationHistoryRecord";
 
 function toCanvasRecord(
   record: CanvasGenerationHistoryRecord,

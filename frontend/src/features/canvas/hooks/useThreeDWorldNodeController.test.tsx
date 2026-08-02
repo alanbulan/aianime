@@ -85,14 +85,6 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationHistory', () => ({
-  useNodeGenerationHistory: () => ({
-    records: mocks.historyRecords,
-    isLoading: false,
-    refresh: mocks.refreshHistory,
-  }),
-}));
-
 vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
   useNodeGenerationTaskState: () => ({
     isGenerating: mocks.isGenerating,
@@ -113,6 +105,11 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useNodeGenerationHistory: () => ({
+    records: mocks.historyRecords,
+    isLoading: false,
+    refresh: mocks.refreshHistory,
+  }),
   generateCanvasImageTo3d: (...args: unknown[]) =>
     mocks.generateImageTo3d(...args),
   setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>

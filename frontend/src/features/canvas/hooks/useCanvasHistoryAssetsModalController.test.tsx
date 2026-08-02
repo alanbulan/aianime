@@ -33,7 +33,7 @@ vi.mock('@/features/canvas/canvasStore', () => ({
   ) => selector({ nodes: mocks.nodes }),
 }));
 
-vi.mock('@/features/canvas/hooks/useCanvasGenerationHistory', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasGenerationHistory: (
     context: { projectId: string; canvasId: string | null },
     nodeIds: string[],
