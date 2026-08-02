@@ -18456,15 +18456,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas reverse-prompt generation orchestration in application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasReversePrompt.ts",
+      "modules/creative_canvas/application/generateCanvasReversePrompt.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
     );
     const textNodeControllerPath = resolve(
       SRC_ROOT,
@@ -18489,10 +18489,12 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(applicationPath)).toEqual([
-      "@/modules/creative_canvas/public",
-      "./ports",
-    ]);
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "./completeCanvasMediaGenerationTask",
+        "./prepareCanvasImageSource",
+      ]),
+    );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
@@ -18500,7 +18502,7 @@ describe("frontend architecture boundaries", () => {
       "export async function generateCanvasReversePrompt(",
     );
     expect(applicationSource).toContain(
-      "dependencies.submissionGateway.prepareSourceUrl(",
+      "dependencies.sourceGateway.prepare(",
     );
     expect(applicationSource).toContain(
       "dependencies.onTaskSubmitted(task)",
@@ -18508,8 +18510,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasReversePrompt",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -18522,13 +18524,19 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneReversePromptGenerationGateway",
     );
     expect(compositionSource).toContain(
-      "freezoneGenerationTaskGateway.awaitCompletion(taskKey, projectId)",
+      "taskGateway: reversePromptTaskGateway",
+    );
+    expect(compositionSource).toContain(
+      '"freezone_image_reverse_prompt"',
     );
     expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/api/ops",
     );
     expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/api/tasks",
+    );
+    expect(importSpecifiers(textNodeControllerPath)).toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(textNodeControllerSource).toContain(
       "await generateCanvasReversePrompt(",
@@ -18547,8 +18555,24 @@ describe("frontend architecture boundaries", () => {
     );
     expect(textNodeControllerSource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/generateCanvasReversePrompt.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneReversePromptPayload",
       "submitFreezoneReversePrompt",
@@ -20572,7 +20596,7 @@ describe("frontend architecture boundaries", () => {
         "@/components/ui",
         "@/features/canvas/application/nodeActionToolbarShellModel",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/gridAction",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/ui/AudioNodeToolbarActions",
         "@/features/canvas/ui/GroupNodeToolbarActions",
         "@/features/canvas/ui/ImageNodeToolbarActions",
@@ -21402,7 +21426,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(importSpecifiers(modelPath)).toEqual([
-      "@/features/canvas/domain/gridAction",
+      "@/modules/creative_canvas/public",
     ]);
     for (const forbiddenDependency of [
       "react",
@@ -21422,7 +21446,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/application/imageGridToolbarModel",
-        "@/features/canvas/domain/gridAction",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useHoverMenuController",
       ]),
     );
@@ -21866,7 +21890,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/application/imageNodeToolbarModel",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/gridAction",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/tools",
       ]),
     );
@@ -22019,19 +22043,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas grid-action rules and generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/gridAction.ts",
+      "modules/creative_canvas/domain/gridAction.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/generateCanvasGridAction.ts",
+      "modules/creative_canvas/application/generateCanvasGridAction.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/imageOperationGenerationComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -22068,7 +22092,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/gridAction",
-        "@/modules/creative_canvas/public",
+        "./completeCanvasMediaGenerationTask",
+        "./prepareCanvasImageSource",
       ]),
     );
     expect(applicationSource).not.toContain("react");
@@ -22083,11 +22108,12 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
     );
+    expect(applicationSource).toContain("dependencies.sourceGateway.prepare(");
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
         "@/shared/api/client",
+        "../application/completeCanvasMediaGenerationTask",
         "../application/generateCanvasGridAction",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -22099,8 +22125,9 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneGridActionGenerationGateway",
     );
+    expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
     expect(importSpecifiers(overlayPath)).toContain(
-      "@/features/canvas/domain/gridAction",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
@@ -22110,17 +22137,24 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/domain/gridAction",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "./GridActionConfirmOverlay",
     );
     expect(importSpecifiers(selectedOverlayPath)).toContain(
-      "@/features/canvas/domain/gridAction",
+      "@/modules/creative_canvas/public",
     );
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
     ]);
+    for (const legacyPath of [
+      "features/canvas/domain/gridAction.ts",
+      "features/canvas/application/generateCanvasGridAction.ts",
+      "features/canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
     for (const legacySymbol of [
       "FreezoneTemplateEditMode",
       "FreezoneTemplateEditPayload",

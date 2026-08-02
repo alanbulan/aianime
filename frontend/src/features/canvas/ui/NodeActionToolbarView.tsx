@@ -4,7 +4,7 @@ import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
 import { UiPanel } from "@/components/ui";
 import type { NodeActionToolbarShellProjection } from "@/features/canvas/application/nodeActionToolbarShellModel";
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
+import type { GridActionRequest } from "@/modules/creative_canvas/public";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";

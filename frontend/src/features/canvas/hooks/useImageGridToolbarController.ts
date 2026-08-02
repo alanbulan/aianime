@@ -10,7 +10,7 @@ import { projectImageGridToolbarActions } from "@/features/canvas/application/im
 import type {
   GridActionKey,
   GridActionRequest,
-} from "@/features/canvas/domain/gridAction";
+} from "@/modules/creative_canvas/public";
 import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 
 export interface ImageGridToolbarControllerOptions {

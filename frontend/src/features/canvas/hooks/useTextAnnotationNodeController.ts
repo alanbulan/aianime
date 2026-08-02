@@ -10,7 +10,6 @@ import type { VideoGenerationAspectRatio } from '@/features/canvas/application/s
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   awaitCanvasGenerationTaskCompletion,
-  generateCanvasReversePrompt,
   submitVideoGeneration,
   translateCanvasText,
 } from '@/features/canvas/composition';
@@ -42,7 +41,10 @@ import {
 } from '@/features/canvas/domain/textAnnotationNodeModel';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
-import { useCanvasVideoModels } from '@/modules/creative_canvas/public';
+import {
+  generateCanvasReversePrompt,
+  useCanvasVideoModels,
+} from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const SPAWN_UPLOAD_WIDTH = 320;

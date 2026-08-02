@@ -51,14 +51,6 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
-  generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
-  type GenerateCanvasReversePromptParams,
-} from './application/generateCanvasReversePrompt';
-import {
-  generateCanvasGridAction as generateCanvasGridActionUseCase,
-  type GenerateCanvasGridActionParams,
-} from './application/generateCanvasGridAction';
-import {
   generateCanvasImage as generateCanvasImageUseCase,
   type GenerateCanvasImageParams,
 } from './application/generateCanvasImage';
@@ -163,11 +155,9 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
-import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
 import { freezoneImageGenerationGateway } from './infrastructure/freezoneImageGenerationGateway';
 import { freezoneImageTo3dGenerationGateway } from './infrastructure/freezoneImageTo3dGenerationGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
-import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
@@ -437,28 +427,6 @@ export async function generateCanvasStoryScript(
     onTaskSubmitted,
     },
   );
-}
-
-export function generateCanvasReversePrompt(
-  params: GenerateCanvasReversePromptParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasReversePromptUseCase(params, {
-    submissionGateway: freezoneReversePromptGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-  });
-}
-
-export function generateCanvasGridAction(
-  params: GenerateCanvasGridActionParams,
-  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
-) {
-  return generateCanvasGridActionUseCase(params, {
-    submissionGateway: freezoneGridActionGenerationGateway,
-    taskGateway: freezoneGenerationTaskGateway,
-    onTaskSubmitted,
-  });
 }
 
 export function generateCanvasImageTo3d(

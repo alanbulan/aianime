@@ -653,14 +653,24 @@ export type {
 } from "@/modules/creative_canvas/application/generateCanvasAudio";
 export { generateCanvasAudio } from "@/modules/creative_canvas/audioGenerationComposition";
 export {
+  generateCanvasGridAction,
   generateCanvasMultiAngle,
   generateCanvasOutpaint,
   generateCanvasRelight,
+  generateCanvasReversePrompt,
   generateCanvasScene360,
   generateCanvasUpscale,
   prepareCanvasImageSource,
   prepareCanvasImageSources,
 } from "@/modules/creative_canvas/imageOperationGenerationComposition";
+export {
+  resolveGridActionTemplateMode,
+} from "@/modules/creative_canvas/domain/gridAction";
+export type {
+  CanvasTemplateEditMode,
+  GridActionKey,
+  GridActionRequest,
+} from "@/modules/creative_canvas/domain/gridAction";
 export {
   completeCanvasMediaGenerationTask,
   readEmbeddedCanvasGenerationOutputUrl,
@@ -672,6 +682,13 @@ export type {
   CompleteCanvasMediaGenerationTaskDependencies,
   CompleteCanvasMediaGenerationTaskParams,
 } from "@/modules/creative_canvas/application/completeCanvasMediaGenerationTask";
+export type {
+  CanvasGridActionGenerationCommand,
+  CanvasGridActionGenerationGateway,
+  GenerateCanvasGridActionDependencies,
+  GenerateCanvasGridActionParams,
+  GenerateCanvasGridActionResult,
+} from "@/modules/creative_canvas/application/generateCanvasGridAction";
 export type {
   CanvasMultiAngleGenerationCommand,
   CanvasMultiAngleGenerationGateway,
@@ -693,6 +710,14 @@ export type {
   GenerateCanvasRelightParams,
   GenerateCanvasRelightResult,
 } from "@/modules/creative_canvas/application/generateCanvasRelight";
+export type {
+  CanvasReversePromptCommand,
+  CanvasReversePromptSubmissionGateway,
+  CanvasReversePromptTaskGateway,
+  GenerateCanvasReversePromptDependencies,
+  GenerateCanvasReversePromptParams,
+  GenerateCanvasReversePromptResult,
+} from "@/modules/creative_canvas/application/generateCanvasReversePrompt";
 export type {
   CanvasScene360GenerationCommand,
   CanvasScene360GenerationGateway,

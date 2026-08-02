@@ -8,7 +8,8 @@ import {
   completeCanvasMediaGenerationTask,
   type CanvasGenerationTaskRef,
   type CanvasTaskResultGateway,
-} from "@/modules/creative_canvas/public";
+} from "./completeCanvasMediaGenerationTask";
+import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasGridActionGenerationCommand {
   readonly sourceUrl: string;
@@ -33,6 +34,7 @@ export interface GenerateCanvasGridActionParams {
 }
 
 export interface GenerateCanvasGridActionDependencies {
+  readonly sourceGateway: CanvasImageSourcePreparationGateway;
   readonly submissionGateway: CanvasGridActionGenerationGateway;
   readonly taskGateway: CanvasTaskResultGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
@@ -47,8 +49,12 @@ export async function generateCanvasGridAction(
   params: GenerateCanvasGridActionParams,
   dependencies: GenerateCanvasGridActionDependencies,
 ): Promise<GenerateCanvasGridActionResult> {
+  const sourceUrl = await dependencies.sourceGateway.prepare(
+    params.projectId,
+    params.sourceUrl,
+  );
   const task = await dependencies.submissionGateway.submit(params.projectId, {
-    sourceUrl: params.sourceUrl.split("?")[0],
+    sourceUrl,
     mode: resolveGridActionTemplateMode(params.actionKey),
     prompt: params.prompt,
     model: params.model,

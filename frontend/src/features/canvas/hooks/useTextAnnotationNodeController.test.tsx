@@ -75,6 +75,10 @@ vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  generateCanvasReversePrompt: (
+    command: unknown,
+    onTaskSubmitted: (task: unknown) => void,
+  ) => mocks.generateCanvasReversePrompt(command, onTaskSubmitted),
   useCanvasVideoModels: () => ({ models: mocks.videoModels }),
 }));
 
@@ -115,10 +119,6 @@ const NODE_CONTEXT = {
 } as const;
 
 vi.mock('@/features/canvas/composition', () => ({
-  generateCanvasReversePrompt: (
-    command: unknown,
-    onTaskSubmitted: (task: unknown) => void,
-  ) => mocks.generateCanvasReversePrompt(command, onTaskSubmitted),
   submitVideoGeneration: (command: unknown) =>
     mocks.submitVideoGeneration(command),
   awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>

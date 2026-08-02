@@ -11,15 +11,15 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import type {
-  GridActionKey,
-  GridActionRequest,
-} from '@/features/canvas/domain/gridAction';
+import {
+  generateCanvasGridAction,
+  useCanvasImageModels,
+  type GridActionKey,
+  type GridActionRequest,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { generateCanvasGridAction } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { useCanvasImageModels } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';

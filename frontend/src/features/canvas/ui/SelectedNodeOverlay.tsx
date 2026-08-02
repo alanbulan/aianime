@@ -20,7 +20,7 @@ import {
   type CanvasNode,
   type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
-import type { GridActionRequest } from '@/features/canvas/domain/gridAction';
+import type { GridActionRequest } from '@/modules/creative_canvas/public';
 import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
 import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';

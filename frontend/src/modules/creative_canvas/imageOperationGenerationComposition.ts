@@ -6,6 +6,10 @@ import type {
   CanvasTaskResultGateway,
 } from "./application/completeCanvasMediaGenerationTask";
 import {
+  generateCanvasGridAction as generateCanvasGridActionUseCase,
+  type GenerateCanvasGridActionParams,
+} from "./application/generateCanvasGridAction";
+import {
   generateCanvasMultiAngle as generateCanvasMultiAngleUseCase,
   type GenerateCanvasMultiAngleParams,
 } from "./application/generateCanvasMultiAngle";
@@ -13,6 +17,11 @@ import {
   generateCanvasRelight as generateCanvasRelightUseCase,
   type GenerateCanvasRelightParams,
 } from "./application/generateCanvasRelight";
+import {
+  generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
+  type CanvasReversePromptTaskGateway,
+  type GenerateCanvasReversePromptParams,
+} from "./application/generateCanvasReversePrompt";
 import {
   generateCanvasScene360 as generateCanvasScene360UseCase,
   type GenerateCanvasScene360Params,
@@ -30,10 +39,15 @@ import {
   prepareCanvasImageSources as prepareCanvasImageSourcesUseCase,
   type CanvasImageSourcePreparationGateway,
 } from "./application/prepareCanvasImageSource";
+import { freezoneGridActionGenerationGateway } from "./infrastructure/freezoneGridActionGenerationGateway";
 import { freezoneMultiAngleGenerationGateway } from "./infrastructure/freezoneMultiAngleGenerationGateway";
 import { freezoneOutpaintGenerationGateway } from "./infrastructure/freezoneOutpaintGenerationGateway";
-import { fetchCanvasGenerationResultUrl } from "./infrastructure/freezoneGenerationResultGateway";
+import {
+  fetchCanvasGenerationResult,
+  fetchCanvasGenerationResultUrl,
+} from "./infrastructure/freezoneGenerationResultGateway";
 import { freezoneRelightGenerationGateway } from "./infrastructure/freezoneRelightGenerationGateway";
+import { freezoneReversePromptGenerationGateway } from "./infrastructure/freezoneReversePromptGenerationGateway";
 import { freezoneScene360GenerationGateway } from "./infrastructure/freezoneScene360GenerationGateway";
 import { freezoneUpscaleGenerationGateway } from "./infrastructure/freezoneUpscaleGenerationGateway";
 import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
@@ -54,6 +68,18 @@ const imageSourceGateway: CanvasImageSourcePreparationGateway = {
       { projectId, rawUrl },
       imageSourceDependencies,
     );
+  },
+};
+
+const reversePromptTaskGateway: CanvasReversePromptTaskGateway = {
+  awaitCompletion: awaitTaskCompletion,
+  async fetchReversePrompt(projectId, jobId) {
+    const result = await fetchCanvasGenerationResult<{ readonly prompt: string }>(
+      projectId,
+      "freezone_image_reverse_prompt",
+      jobId,
+    );
+    return result.prompt;
   },
 };
 
@@ -82,6 +108,18 @@ export function generateCanvasMultiAngle(
   });
 }
 
+export function generateCanvasGridAction(
+  params: GenerateCanvasGridActionParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasGridActionUseCase(params, {
+    sourceGateway: imageSourceGateway,
+    submissionGateway: freezoneGridActionGenerationGateway,
+    taskGateway,
+    onTaskSubmitted,
+  });
+}
+
 export function generateCanvasOutpaint(
   params: GenerateCanvasOutpaintParams,
   onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
@@ -101,6 +139,18 @@ export function generateCanvasRelight(
     sourceGateway: imageSourceGateway,
     submissionGateway: freezoneRelightGenerationGateway,
     taskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasReversePrompt(
+  params: GenerateCanvasReversePromptParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasReversePromptUseCase(params, {
+    sourceGateway: imageSourceGateway,
+    submissionGateway: freezoneReversePromptGenerationGateway,
+    taskGateway: reversePromptTaskGateway,
     onTaskSubmitted,
   });
 }

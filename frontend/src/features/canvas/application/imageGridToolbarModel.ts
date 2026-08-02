@@ -2,7 +2,7 @@
 import type {
   GridActionKey,
   GridActionRequest,
-} from "@/features/canvas/domain/gridAction";
+} from "@/modules/creative_canvas/public";
 
 interface ImageGridActionDefinition {
   key: GridActionKey;

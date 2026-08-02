@@ -9,7 +9,7 @@ import {
   type CanvasNode,
   type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
+import type { GridActionRequest } from "@/modules/creative_canvas/public";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 
 export interface ImageNodeToolbarControllerOptions {

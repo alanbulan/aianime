@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasGenerationTaskRef,
-} from "@/modules/creative_canvas/public";
-import type { CanvasGenerationTaskGateway } from "./ports";
+import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
+import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasReversePromptCommand {
   readonly sourceUrl: string;
@@ -11,11 +9,15 @@ export interface CanvasReversePromptCommand {
 }
 
 export interface CanvasReversePromptSubmissionGateway {
-  prepareSourceUrl(projectId: string, rawUrl: string): Promise<string>;
   submit(
     projectId: string,
     command: CanvasReversePromptCommand,
   ): Promise<CanvasGenerationTaskRef>;
+}
+
+export interface CanvasReversePromptTaskGateway {
+  awaitCompletion(taskKey: string, projectId: string): Promise<unknown>;
+  fetchReversePrompt(projectId: string, jobId: string): Promise<string>;
 }
 
 export interface GenerateCanvasReversePromptParams {
@@ -26,11 +28,9 @@ export interface GenerateCanvasReversePromptParams {
 }
 
 export interface GenerateCanvasReversePromptDependencies {
+  readonly sourceGateway: CanvasImageSourcePreparationGateway;
   readonly submissionGateway: CanvasReversePromptSubmissionGateway;
-  readonly taskGateway: Pick<
-    CanvasGenerationTaskGateway,
-    "awaitCompletion" | "fetchReversePrompt"
-  >;
+  readonly taskGateway: CanvasReversePromptTaskGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
 }
 
@@ -43,7 +43,7 @@ export async function generateCanvasReversePrompt(
   params: GenerateCanvasReversePromptParams,
   dependencies: GenerateCanvasReversePromptDependencies,
 ): Promise<GenerateCanvasReversePromptResult> {
-  const sourceUrl = await dependencies.submissionGateway.prepareSourceUrl(
+  const sourceUrl = await dependencies.sourceGateway.prepare(
     params.projectId,
     params.rawSourceUrl,
   );

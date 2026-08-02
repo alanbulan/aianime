@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
-import type { GridActionKey } from "@/features/canvas/domain/gridAction";
+import type { GridActionKey } from "@/modules/creative_canvas/public";
 import type { ImageGridToolbarController } from "@/features/canvas/hooks/useImageGridToolbarController";
 
 import {

@@ -2,7 +2,7 @@
 import { memo } from "react";
 
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
+import type { GridActionRequest } from "@/modules/creative_canvas/public";
 import { useImageNodeToolbarController } from "@/features/canvas/hooks/useImageNodeToolbarController";
 
 import { ImageNodeToolbarActionsView } from "./ImageNodeToolbarActionsView";

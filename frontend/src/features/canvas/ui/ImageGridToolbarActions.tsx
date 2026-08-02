@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { GridActionRequest } from "@/features/canvas/domain/gridAction";
+import type { GridActionRequest } from "@/modules/creative_canvas/public";
 import { useImageGridToolbarController } from "@/features/canvas/hooks/useImageGridToolbarController";
 
 import { ImageGridToolbarActionsView } from "./ImageGridToolbarActionsView";

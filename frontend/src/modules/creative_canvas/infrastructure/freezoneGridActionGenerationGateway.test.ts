@@ -12,7 +12,7 @@ beforeEach(() => {
 });
 
 describe("freezoneGridActionGenerationGateway", () => {
-  it("maps the Canvas command to the encoded template-edit endpoint", async () => {
+  it("maps the prepared source command to the encoded template-edit endpoint", async () => {
     const task = {
       task_key: "grid-action-task",
       task_type: "freezone_template_edit",

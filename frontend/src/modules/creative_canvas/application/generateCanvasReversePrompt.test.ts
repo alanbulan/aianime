@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasGenerationTaskGateway } from "./ports";
 import {
   generateCanvasReversePrompt,
   type CanvasReversePromptSubmissionGateway,
+  type CanvasReversePromptTaskGateway,
 } from "./generateCanvasReversePrompt";
 
 describe("generateCanvasReversePrompt", () => {
@@ -14,14 +14,11 @@ describe("generateCanvasReversePrompt", () => {
       task_type: "freezone_image_reverse_prompt",
       job_id: "reverse-job",
     };
+    const sourceGateway = { prepare: vi.fn().mockResolvedValue("/static/source.png") };
     const submissionGateway: CanvasReversePromptSubmissionGateway = {
-      prepareSourceUrl: vi.fn().mockResolvedValue("/static/source.png"),
       submit: vi.fn().mockResolvedValue(task),
     };
-    const taskGateway: Pick<
-      CanvasGenerationTaskGateway,
-      "awaitCompletion" | "fetchReversePrompt"
-    > = {
+    const taskGateway: CanvasReversePromptTaskGateway = {
       awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
       fetchReversePrompt: vi.fn().mockResolvedValue("A cinematic portrait"),
     };
@@ -31,16 +28,16 @@ describe("generateCanvasReversePrompt", () => {
       generateCanvasReversePrompt(
         {
           projectId: "project-1",
-          rawSourceUrl: "data:image/png;base64,source",
+          rawSourceUrl: "data:image/png;base64,eA==",
           canvasId: "canvas-1",
           nodeId: "text-1",
         },
-        { submissionGateway, taskGateway, onTaskSubmitted },
+        { sourceGateway, submissionGateway, taskGateway, onTaskSubmitted },
       ),
     ).resolves.toEqual({ task, prompt: "A cinematic portrait" });
-    expect(submissionGateway.prepareSourceUrl).toHaveBeenCalledWith(
+    expect(sourceGateway.prepare).toHaveBeenCalledWith(
       "project-1",
-      "data:image/png;base64,source",
+      "data:image/png;base64,eA==",
     );
     expect(submissionGateway.submit).toHaveBeenCalledWith("project-1", {
       sourceUrl: "/static/source.png",

@@ -992,6 +992,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百零六批将 Data URL 解码从旧 Canvas `application/imageData.ts` 下沉到唯一共享媒体工具 `shared/media/data-url.ts`，并在 Creative Canvas application 新建平台图片源准备用例：普通 URL 只移除临时查询串，Data URL 解码后只经既有 `httpFreezoneAssetUploadGateway` 上传平台对象存储，批量入口过滤空值并保持顺序；不增加媒体存储设置或用户 BYOK 存储入口。全景与补光生成用例、HTTP adapter 及测试整体迁入 Creative Canvas，application 在提交前显式调用图片源准备端口，HTTP adapter 只保留路径、方法和 snake_case 协议映射；旧 Canvas composition 删除两组装配，两个浮层直接使用模块 public，图片生成、通用编辑与反推提示词三个旧 adapter 同步改用唯一准备入口。8 个旧全景/补光生产与测试路径及 `ensureBackendImageUrl(s)` 旧实现直接删除，不保留 facade、别名或第二套上传逻辑。Creative Canvas 由 321 增到 331，Canvas 由 829 降到 821，残余 ratchet 收紧到 821/0，前端空目录保持 0；平台对象存储、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。图片源、全景、补光及既有消费者行为 Vitest 10 个文件 18 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；未启动 UI、未构建安装包、未调用真实模型。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百零七批将网格模板动作规则及测试、网格模板编辑与反推提示词两条生成用例、两个 HTTP adapter 及测试整体迁入 Creative Canvas domain/application/infrastructure，并统一由 `imageOperationGenerationComposition.ts` 装配。两个用例在提交前显式调用第 706 批的平台图片源准备端口，HTTP adapter 只映射编码后的项目路径、POST 方法和 snake_case payload；反推结果继续复用唯一生成结果 adapter，任务等待继续只经 Task Execution public，不新增结果端点或轮询实现。文本节点 controller、网格确认浮层及全部网格工具栏类型消费者统一经 Creative Canvas public 使用，旧 Canvas composition 删除两个 wrapper 及 Gateway 装配；10 个旧生产/测试路径直接删除，不保留 facade、re-export、兼容别名或第二套规则。Creative Canvas 由 331 增到 341，Canvas 由 821 降到 811，残余 ratchet 收紧到 811/0，旧路径和旧网格领域导入均为 0，前端空目录保持 0。两条生成链及既有消费者行为 Vitest 8 个文件 13 项、应用初始化/残余边界/完整模块边界 3 个文件 336 项、前端 TypeScript 与 `git diff --check` 通过；未启动 UI、未构建安装包、未调用真实模型，平台对象存储、唯一商业 Gateway、普通版 Cloud、专业版授权后 BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
