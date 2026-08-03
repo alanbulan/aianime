@@ -9,6 +9,7 @@ import {
   migratePastedNodeAssets,
 } from '@/features/canvas/composition';
 import {
+  cloneCanvasNodeData,
   createCanvasClipboardSession,
   createCanvasClipboardSnapshot,
   useCanvasClipboardDuplicationController,
@@ -19,7 +20,6 @@ import {
   type CanvasClipboardNodeSelectionCommit,
   type CanvasNodeClipboardController,
 } from '@/modules/creative_canvas/public';
-import { cloneCanvasNodeData } from '../application/canvasNodeData';
 import { getNodeSize, hasRectCollision } from '../domain/canvasGeometry';
 import type {
   CanvasEdge,

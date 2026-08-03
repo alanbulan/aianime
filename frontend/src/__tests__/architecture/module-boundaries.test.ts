@@ -15131,8 +15131,12 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node data updates out of the Zustand store", () => {
     const nodeDataPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeData.ts",
+      "modules/creative_canvas/application/canvasNodeData.ts",
     );
+    const legacyNodeDataPaths = [
+      "features/canvas/application/canvasNodeData.ts",
+      "features/canvas/application/canvasNodeData.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const nodeDataModel = readFileSync(nodeDataPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
@@ -15170,12 +15174,12 @@ describe("frontend architecture boundaries", () => {
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const updateDeclaration = [
       "export function",
-      "updateCanvasNodeData(",
+      "updateCanvasNodeData<",
     ].join(" ");
     const cloneDeclaration = [
       "export function",
@@ -15191,19 +15195,27 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(ruleOwners).toEqual([
-      "features/canvas/application/canvasNodeData.ts",
+      "modules/creative_canvas/application/canvasNodeData.ts",
     ]);
+    for (const legacyPath of legacyNodeDataPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(nodeDataModel).toContain(updateDeclaration);
     expect(nodeDataModel).toContain(cloneDeclaration);
-    expect(nodeDataModel).toContain("maybeApplyImageAutoResize(");
-    expect(nodeMutationSlice).toContain("../application/canvasNodeData");
+    expect(nodeDataModel).toContain("ports.applyMergedNodeData(");
+    expect(nodeDataModel).not.toContain("maybeApplyImageAutoResize(");
+    expect(nodeMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeMutationSlice).toContain("../application/imageNodeLayout");
+    expect(nodeMutationSlice).toContain("canvasNodeDataUpdatePorts");
+    expect(nodeMutationSlice).not.toContain("../application/canvasNodeData");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeData",
     );
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
     expect(clipboardDuplicationPlanner).not.toContain("canvasNodeData");
-    expect(clipboardController).toContain("../application/canvasNodeData");
+    expect(clipboardController).toContain("@/modules/creative_canvas/public");
+    expect(clipboardController).not.toContain("../application/canvasNodeData");
     expect(clipboardController).toContain("cloneNodeData: cloneCanvasNodeData");
     expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasNodeData",
@@ -26038,7 +26050,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasNodes",
       "../application/canvasNodeConversion",
       "../application/canvasNodeCreation",
-      "../application/canvasNodeData",
+      "../application/imageNodeLayout",
       "../application/canvasNodeSize",
       "../application/ports",
     ]));

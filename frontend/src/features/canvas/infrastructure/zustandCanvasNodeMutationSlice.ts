@@ -6,11 +6,13 @@ import {
   reorderStoryboardFrameInGraph,
   setCanvasNodePositions,
   trackEdit,
+  updateCanvasNodeData,
   updateStoryboardFrameInGraph,
   updateCanvasNodePosition,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type CanvasNodeDataUpdatePorts,
   type StoryboardFrameGraphPorts,
 } from '@/modules/creative_canvas/public';
 import {
@@ -23,7 +25,7 @@ import {
 } from '../domain/canvasNodes';
 import { convertCanvasNodeType } from '../application/canvasNodeConversion';
 import { createCanvasNode } from '../application/canvasNodeCreation';
-import { updateCanvasNodeData } from '../application/canvasNodeData';
+import { maybeApplyImageAutoResize } from '../application/imageNodeLayout';
 import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
@@ -47,6 +49,13 @@ const storyboardFrameGraphPorts = {
     };
   },
 } satisfies StoryboardFrameGraphPorts<CanvasNode, StoryboardFrameItem>;
+
+const canvasNodeDataUpdatePorts = {
+  applyMergedNodeData: (node, data, patch) => maybeApplyImageAutoResize(
+    { ...node, data },
+    patch,
+  ),
+} satisfies CanvasNodeDataUpdatePorts<CanvasNode, CanvasNodeData>;
 
 export interface CanvasNodeMutationSlice {
   addNode: (
@@ -160,7 +169,12 @@ export function createZustandCanvasNodeMutationSlice(
 
     updateNodeData(nodeId, data) {
       dependencies.updateState((state) => {
-        const result = updateCanvasNodeData(state.nodes, nodeId, data);
+        const result = updateCanvasNodeData(
+          state.nodes,
+          nodeId,
+          data,
+          canvasNodeDataUpdatePorts,
+        );
         if (!result.changed) {
           return {};
         }

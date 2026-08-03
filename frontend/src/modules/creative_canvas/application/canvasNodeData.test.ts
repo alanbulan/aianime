@@ -1,21 +1,42 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
-import { cloneCanvasNodeData, updateCanvasNodeData } from './canvasNodeData';
+import {
+  cloneCanvasNodeData,
+  updateCanvasNodeData,
+  type CanvasNodeDataUpdatePorts,
+} from './canvasNodeData';
+
+interface TestNodeData {
+  content: string;
+  count: number;
+}
+
+interface TestNode {
+  id: string;
+  data: TestNodeData;
+  layoutVersion: number;
+}
+
+const updatePorts: CanvasNodeDataUpdatePorts<TestNode, TestNodeData> = {
+  applyMergedNodeData: (node, data) => ({
+    ...node,
+    data,
+    layoutVersion: node.layoutVersion + 1,
+  }),
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function node(overrides: Partial<CanvasNode> = {}): CanvasNode {
+function node(overrides: Partial<TestNode> = {}): TestNode {
   return {
     id: 'node',
-    type: CANVAS_NODE_TYPES.textAnnotation,
-    position: { x: 0, y: 0 },
     data: { content: 'before', count: Number.NaN },
+    layoutVersion: 0,
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas node data updates', () => {
@@ -37,20 +58,22 @@ describe('Canvas node data updates', () => {
     expect(cloneCanvasNodeData(source).nested).not.toBe(source.nested);
   });
 
-  it('merges a changed patch and preserves unrelated nodes', () => {
+  it('merges a changed patch through the layout port and preserves other nodes', () => {
     const target = node();
     const other = node({ id: 'other' });
     const result = updateCanvasNodeData(
       [target, other],
       target.id,
       { content: 'after' },
+      updatePorts,
     );
 
     expect(result.changed).toBe(true);
     expect(result.nodes[0]).not.toBe(target);
-    expect(result.nodes[0]?.data).toMatchObject({
-      content: 'after',
-      count: Number.NaN,
+    expect(result.nodes[0]).toEqual({
+      id: 'node',
+      data: { content: 'after', count: Number.NaN },
+      layoutVersion: 1,
     });
     expect(result.nodes[1]).toBe(other);
   });
@@ -59,35 +82,17 @@ describe('Canvas node data updates', () => {
     const target = node();
     const nodes = [target];
 
-    expect(updateCanvasNodeData(nodes, target.id, { count: Number.NaN })).toEqual({
+    expect(updateCanvasNodeData(
       nodes,
-      changed: false,
-    });
-    expect(updateCanvasNodeData(nodes, 'missing', { content: 'after' })).toEqual({
+      target.id,
+      { count: Number.NaN },
+      updatePorts,
+    )).toEqual({ nodes, changed: false });
+    expect(updateCanvasNodeData(
       nodes,
-      changed: false,
-    });
-  });
-
-  it('applies the existing image auto-resize rule after merging data', () => {
-    const image = node({
-      type: CANVAS_NODE_TYPES.exportImage,
-      width: 300,
-      height: 300,
-      style: { width: 300, height: 300 },
-      data: { imageUrl: null, aspectRatio: '1:1' },
-    });
-    const result = updateCanvasNodeData([image], image.id, {
-      imageUrl: '/wide.png',
-      aspectRatio: '2:1',
-    });
-
-    expect(result.changed).toBe(true);
-    expect(result.nodes[0]).toMatchObject({
-      width: 600,
-      height: 300,
-      style: { width: 600, height: 300 },
-      data: { imageUrl: '/wide.png', aspectRatio: '2:1' },
-    });
+      'missing',
+      { content: 'after' },
+      updatePorts,
+    )).toEqual({ nodes, changed: false });
   });
 });

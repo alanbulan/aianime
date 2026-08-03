@@ -546,6 +546,15 @@ export type {
 export type { CanvasClipboardSnapshot } from "@/modules/creative_canvas/domain/canvasClipboard";
 export { createCanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
 export type { CanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
+export {
+  cloneCanvasNodeData,
+  updateCanvasNodeData,
+} from "@/modules/creative_canvas/application/canvasNodeData";
+export type {
+  CanvasNodeDataNode,
+  CanvasNodeDataUpdatePorts,
+  CanvasNodeDataUpdateResult,
+} from "@/modules/creative_canvas/application/canvasNodeData";
 export { planCanvasClipboardDuplication } from "@/modules/creative_canvas/application/canvasClipboardDuplication";
 export type {
   CanvasClipboardDuplicationConnectionPlan,
