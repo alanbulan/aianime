@@ -1860,19 +1860,19 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserStoryboardGenRuntime.ts",
+      "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts",
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
     );
     const caretRuntimePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserTextareaCaret.ts",
+      "modules/creative_canvas/infrastructure/browserTextareaCaret.ts",
     );
     const caretRuntimeTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserTextareaCaret.test.ts",
+      "modules/creative_canvas/infrastructure/browserTextareaCaret.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -1915,6 +1915,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/referenceTokenEditing.ts",
       "features/canvas/application/storyboardText.ts",
       "__tests__/features/canvas/reference-token-replace.test.ts",
+      "features/canvas/infrastructure/browserStoryboardGenRuntime.ts",
+      "features/canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
+      "features/canvas/infrastructure/browserTextareaCaret.ts",
+      "features/canvas/infrastructure/browserTextareaCaret.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const declarations = [
       ["export const", "StoryboardGenNode", "=", "memo("].join(" "),
@@ -1943,8 +1947,8 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/StoryboardGenNode.tsx"],
       ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
-      ["features/canvas/infrastructure/browserStoryboardGenRuntime.ts"],
-      ["features/canvas/infrastructure/browserTextareaCaret.ts"],
+      ["modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts"],
+      ["modules/creative_canvas/infrastructure/browserTextareaCaret.ts"],
       ["features/canvas/hooks/useStoryboardGenNodeController.ts"],
       ["features/canvas/nodes/StoryboardGenNodeView.tsx"],
     ]);
@@ -1965,6 +1969,9 @@ describe("frontend architecture boundaries", () => {
     expect(runtimeSource).toContain("document.createElement('canvas')");
     expect(runtimeSource).toContain("measureTextareaCaretOffset(");
     expect(runtimeSource).not.toContain("document.createElement('div')");
+    expect(importSpecifiers(runtimePath)).toEqual(["./browserTextareaCaret"]);
+    expect(importSpecifiers(caretRuntimePath)).toEqual([]);
+    expect(runtimeSource).not.toContain("@/features/");
     expect(caretRuntimeSource).toContain("document.createElement('div')");
     expect(caretRuntimeSource).not.toContain("useCanvasStore");
     expect(runtimeSource).not.toContain("useCanvasStore");
@@ -1986,6 +1993,12 @@ describe("frontend architecture boundaries", () => {
       "canvasAiGateway.submitGenerateImageJob(",
     );
     expect(controllerSource).toContain("generateStoryboardGridImageDataUrl(");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/infrastructure/browserStoryboardGenRuntime",
+    );
     expect(controllerSource).toContain(
       "useCanvasImageModels(projectId, 'edit')",
     );
@@ -2121,6 +2134,9 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
     expect(runtimeSource).toContain("measureTextareaCaretOffset(");
+    expect(importSpecifiers(runtimePath)).toEqual([
+      "@/modules/creative_canvas/public",
+    ]);
     expect(runtimeSource).not.toContain("document.createElement('div')");
     expect(runtimeSource).not.toContain("useCanvasStore");
     expect(registrySource).toContain(

@@ -97,6 +97,13 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
+  generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
+    mocks.generateGridImage(...args),
+  resolveStoryboardPointerAnchor: (...args: unknown[]) =>
+    mocks.resolvePointerAnchor(...args),
+  resolveStoryboardPickerAnchor: (...args: unknown[]) =>
+    mocks.resolvePickerAnchor(...args),
   useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 
@@ -122,16 +129,6 @@ vi.mock('@/features/canvas/composition', () => ({
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
-}));
-
-vi.mock('@/features/canvas/infrastructure/browserStoryboardGenRuntime', () => ({
-  STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
-    mocks.generateGridImage(...args),
-  resolveStoryboardPointerAnchor: (...args: unknown[]) =>
-    mocks.resolvePointerAnchor(...args),
-  resolveStoryboardPickerAnchor: (...args: unknown[]) =>
-    mocks.resolvePickerAnchor(...args),
 }));
 
 vi.mock('@/features/canvas/application/errorDialog', () => ({

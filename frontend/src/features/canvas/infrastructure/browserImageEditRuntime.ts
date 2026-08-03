@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { measureTextareaCaretOffset } from './browserTextareaCaret';
+import { measureTextareaCaretOffset } from '@/modules/creative_canvas/public';
 
 export interface ImageEditPickerAnchor {
   left: number;

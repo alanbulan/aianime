@@ -40,9 +40,11 @@ import {
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
+  STORYBOARD_PICKER_FALLBACK_ANCHOR,
   areStoryboardFrameDraftsEqual,
   buildStoryboardFrameDescriptionDrafts,
   buildStoryboardGenerationPrompt,
+  generateStoryboardGridImageDataUrl,
   insertReferenceToken,
   parseAspectRatio,
   pickClosestAspectRatio,
@@ -51,6 +53,8 @@ import {
   resolveAutoStoryboardRequestAspectRatio,
   resolveImageDisplayUrl,
   resolveReferenceAwareDeleteRange,
+  resolveStoryboardPickerAnchor,
+  resolveStoryboardPointerAnchor,
   resolveStoryboardGenAspectRatios,
   resolveStoryboardGenControlAspectRatio,
   resolveStoryboardGenLayout,
@@ -60,16 +64,10 @@ import {
   updateStoryboardGenFrameDescription,
   useCanvasImageModels,
   type StoryboardAspectRatioChoice,
+  type StoryboardPickerAnchor,
   type StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
-import {
-  generateStoryboardGridImageDataUrl,
-  resolveStoryboardPickerAnchor,
-  resolveStoryboardPointerAnchor,
-  STORYBOARD_PICKER_FALLBACK_ANCHOR,
-  type StoryboardPickerAnchor,
-} from '@/features/canvas/infrastructure/browserStoryboardGenRuntime';
 import {
   imageModelDefinitions,
   resolveImageModelResolution,

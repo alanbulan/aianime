@@ -30,7 +30,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/infrastructure/browserToolImageGateway.ts": 2,
   "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts": 1,
   "modules/creative_canvas/infrastructure/browserStoryboardExportRuntime.ts": 2,
-  "features/canvas/infrastructure/browserStoryboardGenRuntime.ts": 2,
+  "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts": 2,
   "features/canvas/nodes/BeatContextNodeView.tsx": 22,
   "features/canvas/nodes/contextPromptPalette.ts": 22,
   "features/canvas/nodes/VideoNodeView.tsx": 6,
@@ -112,6 +112,7 @@ function category(path: string): string | null {
     path.startsWith("modules/production/presentation/") ||
     path.startsWith("modules/creative_canvas/presentation/") ||
     path === "modules/creative_canvas/infrastructure/browserStoryboardExportRuntime.ts" ||
+    path === "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts" ||
     path.startsWith("features/canvas/") ||
     path.startsWith("features/freezone/presentation/") ||
     path.startsWith("features/viewer-kit/") ||

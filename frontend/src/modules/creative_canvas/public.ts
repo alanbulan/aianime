@@ -661,6 +661,15 @@ export {
   sanitizeStoryboardText,
 } from "@/modules/creative_canvas/domain/storyboardText";
 export {
+  STORYBOARD_PICKER_FALLBACK_ANCHOR,
+  generateStoryboardGridImageDataUrl,
+  resolveStoryboardPickerAnchor,
+  resolveStoryboardPointerAnchor,
+} from "@/modules/creative_canvas/infrastructure/browserStoryboardGenRuntime";
+export type { StoryboardPickerAnchor } from "@/modules/creative_canvas/infrastructure/browserStoryboardGenRuntime";
+export { measureTextareaCaretOffset } from "@/modules/creative_canvas/infrastructure/browserTextareaCaret";
+export type { TextareaCaretOffset } from "@/modules/creative_canvas/infrastructure/browserTextareaCaret";
+export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,
   extractBase64Payload,
