@@ -75,6 +75,8 @@ vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  DEFAULT_SHARED_MODEL_ID: '',
+  DEFAULT_VIDEO_MODEL_ID: '',
   generateCanvasReversePrompt: (
     command: unknown,
     onTaskSubmitted: (task: unknown) => void,

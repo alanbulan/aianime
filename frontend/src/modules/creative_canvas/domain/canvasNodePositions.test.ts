@@ -1,19 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import {
   setCanvasNodePositions,
   updateCanvasNodePosition,
 } from './canvasNodePositions';
 
-function node(id: string, x: number, y: number): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x, y },
-    data: {},
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  position: { x: number; y: number };
+  kind: 'test';
+}
+
+function node(id: string, x: number, y: number): TestNode {
+  return { id, position: { x, y }, kind: 'test' };
 }
 
 describe('Canvas node position rules', () => {
@@ -30,6 +30,7 @@ describe('Canvas node position rules', () => {
     expect(result.changed).toBe(true);
     expect(result.nodes[0]).toBe(first);
     expect(result.nodes[1]?.position).toBe(position);
+    expect(result.nodes[1]?.kind).toBe('test');
   });
 
   it('returns the original graph for an equal or missing single-node update', () => {
@@ -55,6 +56,7 @@ describe('Canvas node position rules', () => {
 
     expect(result.changed).toBe(true);
     expect(result.nodes[0]?.position).toEqual({ x: 10, y: 21 });
+    expect(result.nodes[0]?.kind).toBe('test');
     expect(result.nodes[1]).toBe(second);
   });
 

@@ -476,6 +476,22 @@ export type {
   CanvasCapturePartnerEdge,
   CanvasCapturePartnerNode,
 } from "@/modules/creative_canvas/domain/canvasCapturePartners";
+export { elevateCanvasNodes } from "@/modules/creative_canvas/domain/canvasNodeLayering";
+export type { CanvasLayeredNode } from "@/modules/creative_canvas/domain/canvasNodeLayering";
+export {
+  setCanvasNodePositions,
+  updateCanvasNodePosition,
+} from "@/modules/creative_canvas/domain/canvasNodePositions";
+export type {
+  CanvasNodePosition,
+  CanvasNodePositionResult,
+  CanvasPositionedNode,
+} from "@/modules/creative_canvas/domain/canvasNodePositions";
+export {
+  DEFAULT_IMAGE_MODEL_ID,
+  DEFAULT_SHARED_MODEL_ID,
+  DEFAULT_VIDEO_MODEL_ID,
+} from "@/modules/creative_canvas/domain/modelDefaults";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

@@ -15,10 +15,6 @@ import {
   type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import {
-  DEFAULT_SHARED_MODEL_ID,
-  DEFAULT_VIDEO_MODEL_ID,
-} from '@/features/canvas/domain/modelDefaults';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,
@@ -35,6 +31,8 @@ import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
+  DEFAULT_SHARED_MODEL_ID,
+  DEFAULT_VIDEO_MODEL_ID,
   isSystemManagedNodeData,
   resolveGenerationOutputUrl,
   submitVideoGeneration,

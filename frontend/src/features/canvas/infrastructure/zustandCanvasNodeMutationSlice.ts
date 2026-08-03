@@ -5,12 +5,13 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
-import { elevateCanvasNodes } from '../domain/canvasNodeLayering';
 import {
+  elevateCanvasNodes,
   setCanvasNodePositions,
+  trackEdit,
   updateCanvasNodePosition,
-} from '../domain/canvasNodePositions';
-import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
+  type CanvasMutationState,
+} from '@/modules/creative_canvas/public';
 import type {
   CanvasEdge,
   CanvasNode,

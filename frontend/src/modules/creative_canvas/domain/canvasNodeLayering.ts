@@ -1,11 +1,15 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from './canvasNodes';
+export interface CanvasLayeredNode {
+  id: string;
+  zIndex?: number;
+  style?: { zIndex?: string | number };
+}
 
-export function elevateCanvasNodes(
-  nodes: CanvasNode[],
+export function elevateCanvasNodes<TNode extends CanvasLayeredNode>(
+  nodes: TNode[],
   nodeIds: readonly string[],
   zIndex: number,
-): CanvasNode[] {
+): TNode[] {
   const nodeIdSet = new Set(nodeIds);
   return nodes.map((node) =>
     nodeIdSet.has(node.id)

@@ -1,20 +1,16 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
 import { elevateCanvasNodes } from './canvasNodeLayering';
 
-function node(id: string, style?: CanvasNode['style']): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x: 0, y: 0 },
-    data: {},
-    style,
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  zIndex?: number;
+  style?: { opacity?: number; zIndex?: number };
+}
+
+function node(id: string, style?: TestNode['style']): TestNode {
+  return { id, style };
 }
 
 describe('elevateCanvasNodes', () => {

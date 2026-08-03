@@ -1,21 +1,24 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from './canvasNodes';
-
 export interface CanvasNodePosition {
   x: number;
   y: number;
 }
 
-export interface CanvasNodePositionResult {
-  nodes: CanvasNode[];
+export interface CanvasPositionedNode {
+  id: string;
+  position: CanvasNodePosition;
+}
+
+export interface CanvasNodePositionResult<TNode extends CanvasPositionedNode> {
+  nodes: TNode[];
   changed: boolean;
 }
 
-export function updateCanvasNodePosition(
-  nodes: CanvasNode[],
+export function updateCanvasNodePosition<TNode extends CanvasPositionedNode>(
+  nodes: TNode[],
   nodeId: string,
   position: CanvasNodePosition,
-): CanvasNodePositionResult {
+): CanvasNodePositionResult<TNode> {
   let changed = false;
   const nextNodes = nodes.map((node) => {
     if (node.id !== nodeId) {
@@ -38,10 +41,10 @@ export function updateCanvasNodePosition(
   };
 }
 
-export function setCanvasNodePositions(
-  nodes: CanvasNode[],
+export function setCanvasNodePositions<TNode extends CanvasPositionedNode>(
+  nodes: TNode[],
   positions: Readonly<Record<string, CanvasNodePosition>>,
-): CanvasNodePositionResult {
+): CanvasNodePositionResult<TNode> {
   let changed = false;
   const nextNodes = nodes.map((node) => {
     const next = positions[node.id];

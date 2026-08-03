@@ -3208,6 +3208,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps blank Canvas defaults in one domain owner and catalog models runtime-owned", () => {
     const defaultsPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/modelDefaults.ts",
+    );
+    const legacyDefaultsPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/modelDefaults.ts",
     );
     const nodeRegistryPath = resolve(
@@ -3222,14 +3226,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/ProviderModelPicker.tsx",
     );
+    const textControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+    );
     const defaultNames = [
       "DEFAULT_IMAGE_MODEL_ID",
       "DEFAULT_SHARED_MODEL_ID",
       "DEFAULT_VIDEO_MODEL_ID",
     ];
-    const declarationOwners = sourceFiles(
-      resolve(SRC_ROOT, "features/canvas"),
-    )
+    const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) => {
         const source = readFileSync(path, "utf8");
@@ -3243,10 +3249,14 @@ describe("frontend architecture boundaries", () => {
     const modelRegistrySource = readFileSync(modelRegistryPath, "utf8");
 
     expect(importSpecifiers(defaultsPath)).toEqual([]);
+    expect(existsSync(legacyDefaultsPath)).toBe(false);
     expect(declarationOwners).toEqual([
-      "features/canvas/domain/modelDefaults.ts",
+      "modules/creative_canvas/domain/modelDefaults.ts",
     ]);
-    expect(importSpecifiers(nodeRegistryPath)).toContain("./modelDefaults");
+    expect(importSpecifiers(nodeRegistryPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodeRegistryPath)).not.toContain("./modelDefaults");
     expect(importSpecifiers(nodeRegistryPath)).not.toContain("../models");
     expect(importSpecifiers(nodeRegistryPath)).not.toContain(
       "../ui/ProviderModelPicker",
@@ -3255,7 +3265,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/modelDefaults",
     );
     for (const name of defaultNames) {
-      expect(defaultsSource).toContain(`export const ${name} = ""`);
+      expect(defaultsSource).toContain(`export const ${name} = ''`);
     }
     expect(modelRegistrySource).toContain(
       "models: readonly CatalogImageModel[]",
@@ -3264,6 +3274,16 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(pickerPath, "utf8")).not.toContain(
       "export const DEFAULT_",
     );
+    expect(importSpecifiers(textControllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(textControllerPath)).not.toContain(
+      "@/features/canvas/domain/modelDefaults",
+    );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain("@/modules/creative_canvas/domain/modelDefaults");
   });
 
   it("publishes Freezone capabilities and Creative Canvas contracts through public APIs", () => {
@@ -13577,6 +13597,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/canvasNodePositions.ts",
+    );
+    const legacyPositionsPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/canvasNodePositions.ts",
     );
     const positionsModel = readFileSync(positionsPath, "utf8");
@@ -13603,11 +13627,11 @@ describe("frontend architecture boundaries", () => {
     );
     const singleDeclaration = [
       "export function",
-      "updateCanvasNodePosition(",
+      "updateCanvasNodePosition<",
     ].join(" ");
     const batchDeclaration = [
       "export function",
-      "setCanvasNodePositions(",
+      "setCanvasNodePositions<",
     ].join(" ");
     const ruleOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -13618,19 +13642,23 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyPositionsPath)).toBe(false);
     expect(ruleOwners).toEqual([
-      "features/canvas/domain/canvasNodePositions.ts",
+      "modules/creative_canvas/domain/canvasNodePositions.ts",
     ]);
     expect(positionsModel).toContain(singleDeclaration);
     expect(positionsModel).toContain(batchDeclaration);
-    expect(nodeMutationSlice).toContain(
-      "../domain/canvasNodePositions",
-    );
+    expect(nodeMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeMutationSlice).not.toContain("../domain/canvasNodePositions");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasNodePositions",
     );
     expect(canvasStore).not.toContain("const nextX = Math.round(next.x)");
     expect(canvasStore).not.toContain("node.position.x === position.x");
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain("@/modules/creative_canvas/domain/canvasNodePositions");
   });
 
   it("keeps Canvas edge hydration rules in the domain model", () => {
@@ -25296,6 +25324,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node layering in one domain rule and Store command", () => {
     const layeringPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/canvasNodeLayering.ts",
+    );
+    const legacyLayeringPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/canvasNodeLayering.ts",
     );
     const layeringSource = readFileSync(layeringPath, "utf8");
@@ -25337,7 +25369,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "elevateCanvasNodes(",
+      "elevateCanvasNodes<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -25345,8 +25377,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyLayeringPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasNodeLayering.ts",
+      "modules/creative_canvas/domain/canvasNodeLayering.ts",
     ]);
     expect(layeringSource).toContain("style: { ...(node.style ?? {}), zIndex }");
     expect(nodeMutationSlice).toContain(
@@ -25359,6 +25392,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).toContain("state.elevateNodes");
     expect(canvasSource).not.toContain("useCanvasStore.setState");
     expect(canvasSource).not.toContain("const nodeIdSet = new Set(nodeIds)");
+    expect(nodeMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeMutationSlice).not.toContain("../domain/canvasNodeLayering");
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain("@/modules/creative_canvas/domain/canvasNodeLayering");
   });
 
   it("keeps Canvas system clipboard access in one browser adapter", () => {
@@ -25820,8 +25859,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasHistory",
-      "../domain/canvasNodeLayering",
-      "../domain/canvasNodePositions",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/storyboardFrames",
