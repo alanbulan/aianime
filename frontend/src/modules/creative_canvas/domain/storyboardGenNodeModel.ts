@@ -2,18 +2,22 @@
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   DEFAULT_ASPECT_RATIO,
-  type StoryboardGenFrameItem,
-  type StoryboardRatioControlMode,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   parseAspectRatio,
-  pickClosestAspectRatio,
-} from '@/modules/creative_canvas/public';
-import { findReferenceTokens } from '@/features/canvas/application/referenceTokenEditing';
+} from './aspectRatio';
+import { pickClosestAspectRatio } from './imageData';
+import { findReferenceTokens } from './referenceTokenEditing';
 import {
   sanitizeStoryboardPromptText,
   sanitizeStoryboardText,
-} from '@/features/canvas/application/storyboardText';
+} from './storyboardText';
+
+export interface StoryboardGenFrameItem {
+  id: string;
+  description: string;
+  referenceIndex: number | null;
+}
+
+export type StoryboardRatioControlMode = 'overall' | 'cell';
 
 export interface StoryboardAspectRatioChoice {
   value: string;

@@ -8,7 +8,7 @@ import {
 } from "@/features/canvas/domain/canvasNodes";
 
 import { buildGenerationErrorReport } from "./generationErrorReport";
-import { sanitizeStoryboardText } from "./storyboardText";
+import { sanitizeStoryboardText } from "@/modules/creative_canvas/public";
 
 export interface NodeActionGenerationErrorProjection {
   canCopy: boolean;

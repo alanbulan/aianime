@@ -36,14 +36,6 @@ import {
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
 import {
-  findReferenceTokenAtSelection,
-  insertReferenceToken,
-  removeTextRange,
-  replaceReferenceToken,
-  resolveReferenceAwareDeleteRange,
-} from '@/features/canvas/application/referenceTokenEditing';
-import {
-  AUTO_REQUEST_ASPECT_RATIO,
   CANVAS_NODE_TYPES,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -78,11 +70,17 @@ import {
 } from '@/features/canvas/models';
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
+  AUTO_REQUEST_ASPECT_RATIO,
   coercePushTarget,
   defaultCapabilityParams,
+  findReferenceTokenAtSelection,
   getCapability,
+  insertReferenceToken,
   listCapabilities,
   parseAspectRatio,
+  removeTextRange,
+  replaceReferenceToken,
+  resolveReferenceAwareDeleteRange,
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,

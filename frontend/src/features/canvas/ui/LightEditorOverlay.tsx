@@ -4,13 +4,13 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
+  DEFAULT_ASPECT_RATIO,
   generateCanvasRelight,
   inheritMainlineFields,
 } from '@/modules/creative_canvas/public';

@@ -5,8 +5,10 @@ import { Minus, Plus, Sparkles } from 'lucide-react';
 
 import { CreditSparkIcon } from '@/components/credits/credit-visual';
 import { UiButton } from '@/components/ui';
-import { findReferenceTokens } from '@/features/canvas/application/referenceTokenEditing';
-import { STORYBOARD_GEN_FRAME_GRID_GAP_PX } from '@/features/canvas/application/storyboardGenNodeModel';
+import {
+  STORYBOARD_GEN_FRAME_GRID_GAP_PX,
+  findReferenceTokens,
+} from '@/modules/creative_canvas/public';
 import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';

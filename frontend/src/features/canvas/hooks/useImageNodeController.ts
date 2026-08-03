@@ -14,7 +14,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
   EXPORT_RESULT_NODE_RESIZE_MIN_EDGE,
@@ -25,6 +24,7 @@ import {
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
+  DEFAULT_ASPECT_RATIO,
   aspectRatioFromImageDimensions,
   collectCandidateBindingsForNode,
   hasMainlineContexts,

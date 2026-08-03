@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
-  AUTO_REQUEST_ASPECT_RATIO,
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   type BeatContextNodeData,
   type AudioNodeData,
   type ImageSize,
@@ -26,6 +24,8 @@ import {
 } from './canvasNodes';
 import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
 import {
+  AUTO_REQUEST_ASPECT_RATIO,
+  DEFAULT_ASPECT_RATIO,
   DEFAULT_IMAGE_MODEL_ID,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,

@@ -4,7 +4,6 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
@@ -15,6 +14,7 @@ import {
   type MultiAngleSubmitPayload,
 } from '@/features/canvas/ui/MultiAngleEditorPanel';
 import {
+  DEFAULT_ASPECT_RATIO,
   generateCanvasMultiAngle,
   inheritMainlineFields,
 } from '@/modules/creative_canvas/public';

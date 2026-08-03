@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   DEFAULT_NODE_WIDTH,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -20,7 +19,10 @@ import {
   type CanvasNode,
   type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
-import type { GridActionRequest } from '@/modules/creative_canvas/public';
+import {
+  DEFAULT_ASPECT_RATIO,
+  type GridActionRequest,
+} from '@/modules/creative_canvas/public';
 import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
 import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';

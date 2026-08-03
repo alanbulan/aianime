@@ -9,6 +9,7 @@ import {
 import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 
 import {
+  DEFAULT_ASPECT_RATIO,
   resolveImageDisplayUrl,
   resolveStoryboardIncomingImages,
   resolveStoryboardNodeProjection,
@@ -20,7 +21,6 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {

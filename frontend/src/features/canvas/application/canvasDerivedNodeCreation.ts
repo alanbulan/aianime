@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
   type CanvasNode,
@@ -9,6 +8,7 @@ import {
   type ExportImageNodeResultKind,
 } from '../domain/canvasNodes';
 import {
+  DEFAULT_ASPECT_RATIO,
   createDefaultStoryboardExportOptions,
   resolveDerivedAspectRatio,
   resolveStoryboardSplitNodeDimensions,

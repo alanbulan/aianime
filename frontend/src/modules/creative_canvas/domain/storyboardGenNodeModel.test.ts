@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from 'vitest';
 
-import type { StoryboardGenFrameItem } from '@/features/canvas/domain/canvasNodes';
-
 import {
   areStoryboardFrameDraftsEqual,
   buildStoryboardFrameDescriptionDrafts,
@@ -17,6 +15,7 @@ import {
   resolveStoryboardGenerationFrameNotes,
   resolveStoryboardGridCount,
   storyboardRatioValueToAspectRatio,
+  type StoryboardGenFrameItem,
   updateStoryboardGenFrameDescription,
 } from './storyboardGenNodeModel';
 

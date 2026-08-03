@@ -611,7 +611,55 @@ export type {
   StoryboardNodeTypeCatalog,
   StoryboardSourceNode,
 } from "@/modules/creative_canvas/domain/storyboardNodeModel";
-export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
+export {
+  AUTO_REQUEST_ASPECT_RATIO,
+  DEFAULT_ASPECT_RATIO,
+  parseAspectRatio,
+} from "@/modules/creative_canvas/domain/aspectRatio";
+export {
+  STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
+  STORYBOARD_GEN_FRAME_GRID_GAP_PX,
+  STORYBOARD_GEN_NODE_SIZE_LIMITS,
+  areStoryboardFrameDraftsEqual,
+  buildStoryboardFrameDescriptionDrafts,
+  buildStoryboardGenerationPrompt,
+  formatStoryboardAspectRatio,
+  resizeStoryboardGenFrames,
+  resolveAutoStoryboardRequestAspectRatio,
+  resolveStoryboardGenAspectRatios,
+  resolveStoryboardGenControlAspectRatio,
+  resolveStoryboardGenLayout,
+  resolveStoryboardGenRatioControlMode,
+  resolveStoryboardGenerationFrameNotes,
+  resolveStoryboardGridCount,
+  resolveStoryboardReferenceIndex,
+  storyboardRatioValueToAspectRatio,
+  updateStoryboardGenFrameDescription,
+} from "@/modules/creative_canvas/domain/storyboardGenNodeModel";
+export type {
+  StoryboardAspectRatioChoice,
+  StoryboardGenFrameItem,
+  StoryboardGenLayoutProjection,
+  StoryboardGenResolvedAspectRatios,
+  StoryboardRatioControlMode,
+} from "@/modules/creative_canvas/domain/storyboardGenNodeModel";
+export {
+  findReferenceTokenAtSelection,
+  findReferenceTokens,
+  insertReferenceToken,
+  removeTextRange,
+  replaceReferenceToken,
+  resolveReferenceAwareDeleteRange,
+} from "@/modules/creative_canvas/domain/referenceTokenEditing";
+export type {
+  DeleteDirection,
+  ReferenceTokenMatch,
+  TextRange,
+} from "@/modules/creative_canvas/domain/referenceTokenEditing";
+export {
+  sanitizeStoryboardPromptText,
+  sanitizeStoryboardText,
+} from "@/modules/creative_canvas/domain/storyboardText";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,

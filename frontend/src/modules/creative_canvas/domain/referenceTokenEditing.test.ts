@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   findReferenceTokenAtSelection,
   replaceReferenceToken,
-} from "@/features/canvas/application/referenceTokenEditing";
+} from "./referenceTokenEditing";
 
 describe("findReferenceTokenAtSelection", () => {
   const text = "让 @图1 和 @图2 同框"; // @图1 在 [2,5)，@图2 在 [8,11)

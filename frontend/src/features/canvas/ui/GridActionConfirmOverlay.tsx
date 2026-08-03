@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next';
 
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  DEFAULT_ASPECT_RATIO,
   generateCanvasGridAction,
   useCanvasImageModels,
   type GridActionKey,

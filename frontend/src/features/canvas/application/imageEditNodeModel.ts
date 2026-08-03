@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type { ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
-import { findReferenceTokens } from '@/features/canvas/application/referenceTokenEditing';
 import {
   coercePushTarget,
+  findReferenceTokens,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,
 } from '@/modules/creative_canvas/public';

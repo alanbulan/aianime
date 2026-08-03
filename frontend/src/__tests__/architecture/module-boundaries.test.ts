@@ -1840,11 +1840,23 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardGenNodeModel.ts",
+      "modules/creative_canvas/domain/storyboardGenNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardGenNodeModel.test.ts",
+      "modules/creative_canvas/domain/storyboardGenNodeModel.test.ts",
+    );
+    const referenceTokenPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/referenceTokenEditing.ts",
+    );
+    const storyboardTextPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/storyboardText.ts",
+    );
+    const aspectRatioPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/aspectRatio.ts",
     );
     const runtimePath = resolve(
       SRC_ROOT,
@@ -1884,7 +1896,6 @@ describe("frontend architecture boundaries", () => {
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
-    const modelTestSource = readFileSync(modelTestPath, "utf8");
     const runtimeSource = readFileSync(runtimePath, "utf8");
     const runtimeTestSource = readFileSync(runtimeTestPath, "utf8");
     const caretRuntimeSource = readFileSync(caretRuntimePath, "utf8");
@@ -1894,6 +1905,17 @@ describe("frontend architecture boundaries", () => {
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const registrySource = readFileSync(registryPath, "utf8");
+    const canvasNodesSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/domain/canvasNodes.ts"),
+      "utf8",
+    );
+    const legacyStoryboardGenPaths = [
+      "features/canvas/application/storyboardGenNodeModel.ts",
+      "features/canvas/application/storyboardGenNodeModel.test.ts",
+      "features/canvas/application/referenceTokenEditing.ts",
+      "features/canvas/application/storyboardText.ts",
+      "__tests__/features/canvas/reference-token-replace.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const declarations = [
       ["export const", "StoryboardGenNode", "=", "memo("].join(" "),
       ["export function", "resolveStoryboardGenLayout("].join(" "),
@@ -1920,7 +1942,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/StoryboardGenNode.tsx"],
-      ["features/canvas/application/storyboardGenNodeModel.ts"],
+      ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
       ["features/canvas/infrastructure/browserStoryboardGenRuntime.ts"],
       ["features/canvas/infrastructure/browserTextareaCaret.ts"],
       ["features/canvas/hooks/useStoryboardGenNodeController.ts"],
@@ -1930,6 +1952,16 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/");
+    expect(importSpecifiers(modelPath)).toEqual([
+      "./aspectRatio",
+      "./imageData",
+      "./referenceTokenEditing",
+      "./storyboardText",
+    ]);
+    expect(importSpecifiers(referenceTokenPath)).toEqual([]);
+    expect(importSpecifiers(storyboardTextPath)).toEqual([]);
+    expect(importSpecifiers(aspectRatioPath)).toEqual([]);
     expect(runtimeSource).toContain("document.createElement('canvas')");
     expect(runtimeSource).toContain("measureTextareaCaretOffset(");
     expect(runtimeSource).not.toContain("document.createElement('div')");
@@ -1967,7 +1999,9 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useCanvasStore(");
     expect(viewSource).not.toContain("useSettingsStore(");
     expect(viewSource).not.toContain("canvasAiGateway");
-    expect(modelTestSource).toContain("from './storyboardGenNodeModel'");
+    expect(importSpecifiers(modelTestPath)).toContain(
+      "./storyboardGenNodeModel",
+    );
     expect(runtimeTestSource).toContain(
       "from './browserStoryboardGenRuntime'",
     );
@@ -1978,6 +2012,30 @@ describe("frontend architecture boundaries", () => {
       "from './useStoryboardGenNodeController'",
     );
     expect(viewTestSource).toContain("from './StoryboardGenNodeView'");
+    const migratedDeclarations = [
+      ["export interface", "StoryboardGenFrameItem"].join(" "),
+      ["export type", "StoryboardRatioControlMode"].join(" "),
+      ["export const", "DEFAULT_ASPECT_RATIO", "="].join(" "),
+      ["export const", "AUTO_REQUEST_ASPECT_RATIO", "="].join(" "),
+    ];
+    const migratedDeclarationOwners = migratedDeclarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    expect(migratedDeclarationOwners).toEqual([
+      ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
+      ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
+      ["modules/creative_canvas/domain/aspectRatio.ts"],
+      ["modules/creative_canvas/domain/aspectRatio.ts"],
+    ]);
+    for (const declaration of migratedDeclarations) {
+      expect(canvasNodesSource).not.toContain(declaration);
+    }
+    for (const legacyPath of legacyStoryboardGenPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
   });
 
   it("separates the Canvas image-edit model, runtime, controller, and view", () => {
@@ -22190,8 +22248,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "./generationErrorReport",
-        "./storyboardText",
       ]),
     );
     for (const forbiddenDependency of [

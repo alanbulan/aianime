@@ -16,6 +16,8 @@ import type {
   TextNodeMode,
   StoryboardExportOptions,
   StoryboardFrameItem,
+  StoryboardGenFrameItem,
+  StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
@@ -40,8 +42,6 @@ export const CANVAS_NODE_TYPES = {
 
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES];
 
-export const DEFAULT_ASPECT_RATIO = '1:1';
-export const AUTO_REQUEST_ASPECT_RATIO = 'auto';
 export const DEFAULT_NODE_WIDTH = 320;
 export const EXPORT_RESULT_NODE_DEFAULT_WIDTH = 480;
 export const EXPORT_RESULT_NODE_LAYOUT_HEIGHT = 360;
@@ -366,14 +366,6 @@ export interface StoryboardSplitNodeData {
   exportOptions?: StoryboardExportOptions;
   [key: string]: unknown;
 }
-
-export interface StoryboardGenFrameItem {
-  id: string;
-  description: string;
-  referenceIndex: number | null;
-}
-
-export type StoryboardRatioControlMode = 'overall' | 'cell';
 
 export interface StoryboardGenNodeData {
   displayName?: string;

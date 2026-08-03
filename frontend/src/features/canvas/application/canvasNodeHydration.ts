@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
 } from '../domain/canvasNodes';
 import {
+  DEFAULT_ASPECT_RATIO,
   createDefaultStoryboardExportOptions,
   type StoryboardExportOptions,
   type StoryboardFrameItem,

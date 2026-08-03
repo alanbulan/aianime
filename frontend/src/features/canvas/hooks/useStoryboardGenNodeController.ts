@@ -10,22 +10,6 @@ import {
 import { useUpdateNodeInternals, useViewport } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  areStoryboardFrameDraftsEqual,
-  buildStoryboardFrameDescriptionDrafts,
-  buildStoryboardGenerationPrompt,
-  resizeStoryboardGenFrames,
-  resolveAutoStoryboardRequestAspectRatio,
-  resolveStoryboardGenAspectRatios,
-  resolveStoryboardGenControlAspectRatio,
-  resolveStoryboardGenLayout,
-  resolveStoryboardGenRatioControlMode,
-  resolveStoryboardGenerationFrameNotes,
-  resolveStoryboardGridCount,
-  STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
-  type StoryboardAspectRatioChoice,
-  updateStoryboardGenFrameDescription,
-} from '@/features/canvas/application/storyboardGenNodeModel';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import {
   buildGenerationErrorReport,
@@ -33,11 +17,6 @@ import {
   resolveGenerationErrorDiagnostics,
   type GenerationDebugContext,
 } from '@/features/canvas/application/generationErrorReport';
-import {
-  insertReferenceToken,
-  removeTextRange,
-  resolveReferenceAwareDeleteRange,
-} from '@/features/canvas/application/referenceTokenEditing';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   canvasAiGateway,
@@ -48,23 +27,40 @@ import {
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import {
-  AUTO_REQUEST_ASPECT_RATIO,
   CANVAS_NODE_TYPES,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type ImageSize,
   type StoryboardGenNodeData,
-  type StoryboardRatioControlMode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
 } from '@/features/canvas/domain/nodeDisplay';
 import {
+  AUTO_REQUEST_ASPECT_RATIO,
+  STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
+  areStoryboardFrameDraftsEqual,
+  buildStoryboardFrameDescriptionDrafts,
+  buildStoryboardGenerationPrompt,
+  insertReferenceToken,
   parseAspectRatio,
-  useCanvasImageModels,
   pickClosestAspectRatio,
+  removeTextRange,
+  resizeStoryboardGenFrames,
+  resolveAutoStoryboardRequestAspectRatio,
   resolveImageDisplayUrl,
+  resolveReferenceAwareDeleteRange,
+  resolveStoryboardGenAspectRatios,
+  resolveStoryboardGenControlAspectRatio,
+  resolveStoryboardGenLayout,
+  resolveStoryboardGenRatioControlMode,
+  resolveStoryboardGenerationFrameNotes,
+  resolveStoryboardGridCount,
+  updateStoryboardGenFrameDescription,
+  useCanvasImageModels,
+  type StoryboardAspectRatioChoice,
+  type StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {

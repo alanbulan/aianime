@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { SlidersHorizontal, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { AUTO_REQUEST_ASPECT_RATIO } from '@/features/canvas/domain/canvasNodes';
+import { AUTO_REQUEST_ASPECT_RATIO } from '@/modules/creative_canvas/public';
 import {
   type AspectRatioOption,
   type ImageModelDefinition,
