@@ -1,21 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useReactFlow } from '@xyflow/react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type GroupNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
-import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
-import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
+import type { CanvasAsset } from '@/modules/creative_canvas/domain/canvasAsset';
 import {
   STORYBOARD_CELL_GAP,
   STORYBOARD_HEADER_PADDING,
@@ -23,26 +9,117 @@ import {
   computeStoryboardBoardLayout,
   resolveStoryboardCols,
   storyboardSlotRect,
-  useCanvasProjectionStatus,
-  type CanvasAsset,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/domain/storyboardGroup';
+import { useCanvasProjectionStatus } from '@/modules/creative_canvas/presentation/useCanvasProjectionStatus';
 
-interface Point {
+export interface GroupNodePoint {
   x: number;
   y: number;
 }
 
 interface DragState {
   from: number;
-  start: Point;
-  cur: Point;
+  start: GroupNodePoint;
+  cur: GroupNodePoint;
+}
+
+export interface GroupNodePresentationData {
+  label?: string;
+  displayName?: string;
+  backgroundColor?: string | null;
+  storyboardGroup?: boolean;
+  storyboardAspect?: string;
+  storyboardCols?: number;
+  storyboardShowIndex?: boolean;
+  user_spawned?: boolean;
+  projection_key?: string;
+  [key: string]: unknown;
+}
+
+export interface GroupNodeSnapNode {
+  position: GroupNodePoint;
+  measured?: { width?: number; height?: number };
+  width?: number;
+  height?: number;
+}
+
+export interface GroupNodeScopedNode extends GroupNodeSnapNode {
+  id: string;
+  parentId?: string;
+  type?: string;
+  data?: unknown;
+}
+
+export type StoryboardCellKind =
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'script'
+  | 'empty';
+
+export interface StoryboardCellPreview {
+  nodeId: string;
+  kind: StoryboardCellKind;
+  imageUrl: string | null;
+  label: string;
+}
+
+export interface GroupNodeSnapGuides {
+  vertical: number[];
+  horizontal: number[];
+}
+
+export interface GroupNodeControllerPorts {
+  translate: (key: string, options?: Record<string, unknown>) => string;
+  uploadAsset: (
+    projectId: string,
+    file: File,
+    displayName: string,
+  ) => Promise<{ url: string }>;
+  notify: (message: string) => void;
+  reportUploadError: (error: unknown) => void;
+  updateNodeData: (
+    nodeId: string,
+    patch: Record<string, unknown>,
+  ) => void;
+  fitGroupToChildren: (groupNodeId: string) => void;
+  reorderStoryboardMember: (
+    groupNodeId: string,
+    fromIndex: number,
+    toIndex: number,
+  ) => void;
+  addStoryboardMembers: (
+    groupNodeId: string,
+    members: Array<{
+      imageUrl: string;
+      previewImageUrl: string;
+      displayName?: string;
+    }>,
+  ) => void;
+  deleteNode: (nodeId: string) => unknown;
+  resolveGroupTitle: (data: GroupNodePresentationData) => string;
+  resolveStoryboardCellPreview: (
+    node: GroupNodeScopedNode,
+  ) => StoryboardCellPreview;
+  computeSnapAlign: (
+    draggedNode: GroupNodeSnapNode,
+    proposedPosition: GroupNodePoint,
+    otherNodes: GroupNodeSnapNode[],
+  ) => { position: GroupNodePoint; guides: GroupNodeSnapGuides };
+  getViewportZoom: () => number;
+  setSnapGuides: (guides: GroupNodeSnapGuides) => void;
+  clearSnapGuides: () => void;
 }
 
 export interface GroupNodeControllerOptions {
   id: string;
-  data: GroupNodeData;
+  data: GroupNodePresentationData;
   projectId: string;
   selected?: boolean;
+  groupScopedNodes: GroupNodeScopedNode[];
+  isInteracting: boolean;
+  snapEnabled: boolean;
+  ports: GroupNodeControllerPorts;
 }
 
 function clamp(value: number, lo: number, hi: number): number {
@@ -54,29 +131,13 @@ export function useGroupNodeController({
   data,
   projectId,
   selected,
+  groupScopedNodes,
+  isInteracting,
+  snapEnabled,
+  ports,
 }: GroupNodeControllerOptions) {
-  const { t } = useTranslation();
-  const reactFlow = useReactFlow();
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const fitGroupToChildren = useCanvasStore((state) => state.fitGroupToChildren);
-  const reorderStoryboardMember = useCanvasStore(
-    (state) => state.reorderStoryboardMember,
-  );
-  const addStoryboardMembers = useCanvasStore(
-    (state) => state.addStoryboardMembers,
-  );
-  const deleteNode = useCanvasStore((state) => state.deleteNode);
-  const isInteracting = useCanvasStore(
-    (state) => state.dragHistorySnapshot !== null,
-  );
   const isStoryboard = data.storyboardGroup === true;
   const showIndex = isStoryboard && data.storyboardShowIndex === true;
-
-  const groupScopedNodes = useCanvasStore(
-    useShallow((state) =>
-      state.nodes.filter((node) => node.id === id || node.parentId === id),
-    ),
-  );
   const childCount = groupScopedNodes.reduce(
     (count, node) => (node.parentId === id ? count + 1 : count),
     0,
@@ -102,14 +163,14 @@ export function useGroupNodeController({
         file.type.startsWith('image/'),
       );
       if (imageFiles.length === 0) {
-        toast(t('canvas.storyboardGroup.imageOnlyHint'));
+        ports.notify(ports.translate('canvas.storyboardGroup.imageOnlyHint'));
         return;
       }
       setUploading(true);
       try {
         const uploaded = await Promise.all(
           imageFiles.map(async (file) => {
-            const result = await uploadCanvasAsset(projectId, file, file.name);
+            const result = await ports.uploadAsset(projectId, file, file.name);
             return {
               imageUrl: result.url,
               previewImageUrl: result.url,
@@ -117,21 +178,21 @@ export function useGroupNodeController({
             };
           }),
         );
-        addStoryboardMembers(id, uploaded);
+        ports.addStoryboardMembers(id, uploaded);
       } catch (error) {
-        console.error('[storyboard] upload failed', error);
-        toast(t('canvas.storyboardGroup.uploadFailed'));
+        ports.reportUploadError(error);
+        ports.notify(ports.translate('canvas.storyboardGroup.uploadFailed'));
       } finally {
         setUploading(false);
       }
     },
-    [addStoryboardMembers, id, projectId, t],
+    [id, ports, projectId],
   );
 
   const pickHistoryAsset = useCallback(
     (asset: CanvasAsset) => {
       setHistoryOpen(false);
-      addStoryboardMembers(id, [
+      ports.addStoryboardMembers(id, [
         {
           imageUrl: asset.url,
           previewImageUrl: asset.previewUrl ?? asset.url,
@@ -139,7 +200,7 @@ export function useGroupNodeController({
         },
       ]);
     },
-    [addStoryboardMembers, id],
+    [id, ports],
   );
 
   useEffect(() => {
@@ -156,9 +217,6 @@ export function useGroupNodeController({
     return () => window.removeEventListener('pointerdown', onPointerDown, true);
   }, [addMenuOpen]);
 
-  const snapEnabled = useSnapAlignStore((state) => state.enabled);
-  const setSnapGuides = useSnapAlignStore((state) => state.setGuides);
-  const clearSnapGuides = useSnapAlignStore((state) => state.clearGuides);
   const groupPosition = useMemo(() => {
     const self = groupScopedNodes.find((node) => node.id === id);
     return self?.position ?? { x: 0, y: 0 };
@@ -181,7 +239,9 @@ export function useGroupNodeController({
       aspectKey: data.storyboardAspect,
     });
     return {
-      previews: members.map((node) => getStoryboardCellPreview(node)),
+      previews: members.map((node) =>
+        ports.resolveStoryboardCellPreview(node),
+      ),
       cols: layout.cols,
       rows: layout.rows,
       cellWidth: layout.cellWidth,
@@ -193,6 +253,7 @@ export function useGroupNodeController({
     groupScopedNodes,
     id,
     isStoryboard,
+    ports,
   ]);
   const count = board?.previews.length ?? 0;
 
@@ -205,7 +266,7 @@ export function useGroupNodeController({
       if (!board || count === 0) {
         return 0;
       }
-      const zoom = reactFlow.getViewport().zoom || 1;
+      const zoom = ports.getViewportZoom() || 1;
       const dx = (state.cur.x - state.start.x) / zoom;
       const dy = (state.cur.y - state.start.y) / zoom;
       const fromRect = storyboardSlotRect(
@@ -234,7 +295,7 @@ export function useGroupNodeController({
       );
       return clamp(row * board.cols + col, 0, count - 1);
     },
-    [board, count, reactFlow],
+    [board, count, ports],
   );
 
   const isDragging = drag !== null;
@@ -254,10 +315,10 @@ export function useGroupNodeController({
       if (state) {
         const over = resolveOverIndex(state);
         if (over !== state.from) {
-          reorderStoryboardMember(id, state.from, over);
+          ports.reorderStoryboardMember(id, state.from, over);
         }
       }
-      clearSnapGuides();
+      ports.clearSnapGuides();
       setDrag(null);
     };
     window.addEventListener('pointermove', onMove, true);
@@ -269,10 +330,9 @@ export function useGroupNodeController({
       window.removeEventListener('pointercancel', onUp, true);
     };
   }, [
-    clearSnapGuides,
     id,
     isDragging,
-    reorderStoryboardMember,
+    ports,
     resolveOverIndex,
   ]);
 
@@ -292,7 +352,7 @@ export function useGroupNodeController({
     if (!drag || !board) {
       return null;
     }
-    const zoom = reactFlow.getViewport().zoom || 1;
+    const zoom = ports.getViewportZoom() || 1;
     const fromRect = storyboardSlotRect(
       drag.from,
       board.cols,
@@ -314,8 +374,8 @@ export function useGroupNodeController({
         position: draggedFlow,
         width: board.cellWidth,
         height: board.cellHeight,
-      } as unknown as CanvasNode;
-      const others: CanvasNode[] = [];
+      } satisfies GroupNodeSnapNode;
+      const others: GroupNodeSnapNode[] = [];
       for (let index = 0; index < count; index += 1) {
         if (index === drag.from) {
           continue;
@@ -334,9 +394,9 @@ export function useGroupNodeController({
           },
           width: board.cellWidth,
           height: board.cellHeight,
-        } as unknown as CanvasNode);
+        });
       }
-      const snap = computeSnapAlign(pseudo, draggedFlow, others);
+      const snap = ports.computeSnapAlign(pseudo, draggedFlow, others);
       left = snap.position.x - groupPosition.x;
       top = snap.position.y - groupPosition.y;
       guides = snap.guides;
@@ -355,7 +415,7 @@ export function useGroupNodeController({
     count,
     drag,
     groupPosition,
-    reactFlow,
+    ports,
     slotOf,
     snapEnabled,
   ]);
@@ -364,8 +424,8 @@ export function useGroupNodeController({
     if (!isDragging || !snapEnabled || !floating) {
       return;
     }
-    setSnapGuides(floating.guides);
-  }, [floating, isDragging, setSnapGuides, snapEnabled]);
+    ports.setSnapGuides(floating.guides);
+  }, [floating, isDragging, ports, snapEnabled]);
 
   const storyboardCells = useMemo(() => {
     if (!board) {
@@ -436,21 +496,23 @@ export function useGroupNodeController({
     if (isStoryboard || isInteracting) {
       return;
     }
-    fitGroupToChildren(id);
+    ports.fitGroupToChildren(id);
   }, [
     childGeometrySignature,
-    fitGroupToChildren,
     id,
     isInteracting,
     isStoryboard,
+    ports,
   ]);
 
   const resolvedTitle = useMemo(
-    () => resolveNodeDisplayName(CANVAS_NODE_TYPES.group, data),
-    [data],
+    () => ports.resolveGroupTitle(data),
+    [data, ports],
   );
   const headerTitle = isStoryboard
-    ? t('canvas.storyboardGroup.headerCount', { count: childCount })
+    ? ports.translate('canvas.storyboardGroup.headerCount', {
+        count: childCount,
+      })
     : resolvedTitle;
   const projectionKey =
     data.user_spawned !== true &&
@@ -481,7 +543,7 @@ export function useGroupNodeController({
     emptyCells,
     floating,
     rename: (nextTitle: string) =>
-      updateNodeData(id, {
+      ports.updateNodeData(id, {
         displayName: nextTitle,
         label: nextTitle,
       }),
@@ -500,8 +562,8 @@ export function useGroupNodeController({
     closeHistory: () => setHistoryOpen(false),
     uploadLocalFiles,
     pickHistoryAsset,
-    deleteHistoryNode: deleteNode,
-    startStoryboardDrag: (from: number, start: Point) => {
+    deleteHistoryNode: ports.deleteNode,
+    startStoryboardDrag: (from: number, start: GroupNodePoint) => {
       setDrag({ from, start, cur: start });
     },
   };

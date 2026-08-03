@@ -17,9 +17,9 @@ import { useTranslation } from 'react-i18next';
 import {
   groupColorBackground,
   groupColorBorder,
+  type GroupNodeController,
+  type StoryboardCellKind,
 } from '@/modules/creative_canvas/public';
-import type { StoryboardCellKind } from '@/features/canvas/domain/storyboardCellPreview';
-import type { GroupNodeController } from '@/features/canvas/hooks/useGroupNodeController';
 import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,

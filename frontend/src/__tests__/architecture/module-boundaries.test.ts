@@ -962,11 +962,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useGroupNodeController.ts",
+      "modules/creative_canvas/presentation/useGroupNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useGroupNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useGroupNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -1002,19 +1002,28 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "react-i18next",
+        "sonner",
+        "zustand/react/shallow",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/hooks/useGroupNodeController",
+        "@/features/canvas/domain/nodeDisplay",
+        "@/features/canvas/domain/storyboardCellPreview",
+        "@/features/canvas/snap-align/computeSnapAlign",
+        "@/features/canvas/snap-align/snapAlignStore",
+        "@/modules/creative_canvas/public",
         "./GroupNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/GroupNode.tsx"],
-      ["features/canvas/hooks/useGroupNodeController.ts"],
+      ["modules/creative_canvas/presentation/useGroupNodeController.ts"],
       ["features/canvas/nodes/GroupNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
     expect(registrySource).toContain("groupNode: BoundGroupNode");
-    expect(entrySource).toContain("useGroupNodeController(props)");
+    expect(entrySource).toContain("useGroupNodeController({");
     expect(entrySource).toContain("projectId: string");
     expect(entrySource).toContain(
       "createElement(GroupNodeView, { controller })",
@@ -1022,14 +1031,36 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
-    expect(controllerSource).toContain("uploadCanvasAsset(projectId");
-    expect(controllerSource).toContain("useReactFlow()");
-    expect(controllerSource).toContain("computeSnapAlign(");
-    expect(controllerSource).toContain("fitGroupToChildren(id)");
+    expect(entrySource).toContain("useCanvasStore(");
+    expect(entrySource).toContain("uploadCanvasAsset(targetProjectId");
+    expect(entrySource).toContain("useReactFlow()");
+    expect(entrySource).toContain("computeSnapAlign(");
+    expect(entrySource).toContain("useSnapAlignStore(");
+    expect(controllerSource).toContain("ports.computeSnapAlign(");
+    expect(controllerSource).toContain("ports.fitGroupToChildren(id)");
     expect(controllerSource).toContain(
       "useCanvasProjectionStatus(projectionKey)",
     );
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/modules/creative_canvas/domain/canvasAsset",
+        "@/modules/creative_canvas/domain/storyboardGroup",
+        "@/modules/creative_canvas/presentation/useCanvasProjectionStatus",
+      ]),
+    );
+    for (const forbiddenControllerDependency of [
+      "@/features/canvas",
+      "useCanvasStore",
+      "useReactFlow",
+      "useTranslation",
+      "useSnapAlignStore",
+      "uploadCanvasAsset",
+      "resolveNodeDisplayName",
+      "getStoryboardCellPreview",
+    ]) {
+      expect(controllerSource).not.toContain(forbiddenControllerDependency);
+    }
     expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
@@ -1049,6 +1080,15 @@ describe("frontend architecture boundaries", () => {
       "from './useGroupNodeController'",
     );
     expect(viewTestSource).toContain("from './GroupNodeView'");
+    for (const retiredControllerPath of [
+      "features/canvas/hooks/useGroupNodeController.ts",
+      "features/canvas/hooks/useGroupNodeController.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredControllerPath)),
+        retiredControllerPath,
+      ).toBe(false);
+    }
   });
 
   it("separates the Canvas text-annotation model, controller, and view", () => {
@@ -5303,8 +5343,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/useCanvasProjectionStatus.ts",
     );
+    const moduleConsumerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useGroupNodeController.ts",
+    );
     const canvasConsumerPaths = [
-      "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/hooks/useNodeManagementToolbarController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const stateSource = readFileSync(statePath, "utf8");
@@ -5324,6 +5367,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(stateSource).not.toContain("react");
     expect(stateSource).not.toContain("useSyncExternalStore");
+    expect(importSpecifiers(moduleConsumerPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasProjectionStatus",
+    );
     for (const consumerPath of canvasConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
       expect(imports).toContain("@/modules/creative_canvas/public");
@@ -28268,7 +28314,7 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPaths = [
       "features/canvas/hooks/useAudioNodeController.ts",
-      "features/canvas/hooks/useGroupNodeController.ts",
+      "features/canvas/nodes/GroupNode.tsx",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",

@@ -583,7 +583,7 @@ describe("freezone viewer contracts", () => {
     );
     const ports = read("src/features/canvas/application/ports.ts");
     const groupNodeController = read(
-      "src/features/canvas/hooks/useGroupNodeController.ts",
+      "src/modules/creative_canvas/presentation/useGroupNodeController.ts",
     );
     const groupNodeView = read(
       "src/features/canvas/nodes/GroupNodeView.tsx",

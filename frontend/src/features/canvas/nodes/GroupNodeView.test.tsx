@@ -3,8 +3,10 @@ import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/modules/creative_canvas/public';
-import type { GroupNodeController } from '@/features/canvas/hooks/useGroupNodeController';
+import type {
+  CanvasAsset,
+  GroupNodeController,
+} from '@/modules/creative_canvas/public';
 
 import { GroupNodeView } from './GroupNodeView';
 

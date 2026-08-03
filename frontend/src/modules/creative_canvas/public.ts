@@ -289,6 +289,21 @@ export type {
   GroupNodeToolbarStyleClasses,
 } from "@/modules/creative_canvas/presentation/GroupNodeToolbarActionsView";
 export {
+  useGroupNodeController,
+} from "@/modules/creative_canvas/presentation/useGroupNodeController";
+export type {
+  GroupNodeController,
+  GroupNodeControllerOptions,
+  GroupNodeControllerPorts,
+  GroupNodePoint,
+  GroupNodePresentationData,
+  GroupNodeScopedNode,
+  GroupNodeSnapGuides,
+  GroupNodeSnapNode,
+  StoryboardCellKind,
+  StoryboardCellPreview,
+} from "@/modules/creative_canvas/presentation/useGroupNodeController";
+export {
   useStoryboardGroupToolbarController,
 } from "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController";
 export type {
