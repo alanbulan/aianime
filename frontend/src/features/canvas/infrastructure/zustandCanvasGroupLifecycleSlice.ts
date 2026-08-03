@@ -8,14 +8,17 @@ import {
 } from '../domain/canvasHistory';
 import {
   arrangeCanvasGroupChildren,
+  createCanvasNodeGroup,
   fitCanvasGroupToChildren,
   planCanvasAutoGroupSpawn,
   trackEdit,
   ungroupCanvasNode,
+  type CanvasGroupCreationOptions,
   type CanvasGroupArrangementMode,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import {
+  CANVAS_NODE_TYPES,
   isGroupNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
@@ -23,10 +26,6 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import {
-  createCanvasNodeGroup,
-  type CanvasGroupCreationOptions,
-} from '../application/canvasGroupCreation';
 import type { NodeFactory } from '../application/ports';
 
 const canvasGroupLifecyclePorts = {
@@ -78,6 +77,20 @@ interface CanvasGroupLifecycleSliceDependencies {
 export function createZustandCanvasGroupLifecycleSlice(
   dependencies: CanvasGroupLifecycleSliceDependencies,
 ): CanvasGroupLifecycleSlice {
+  const groupCreationPorts = {
+    createGroupNode: (
+      position: { x: number; y: number },
+      data: Record<string, unknown>,
+    ) => dependencies.nodeFactory.createNode(
+      CANVAS_NODE_TYPES.group,
+      position,
+      data,
+    ),
+    getNodeSize,
+    isGroupNode,
+    resolveAbsolutePosition,
+  };
+
   const commitGroupNodes = (
     nodeIds: string[],
     options?: CanvasGroupCreationOptions,
@@ -87,7 +100,7 @@ export function createZustandCanvasGroupLifecycleSlice(
       state.nodes,
       nodeIds,
       options,
-      dependencies.nodeFactory,
+      groupCreationPorts,
     );
     if (!result) {
       return null;

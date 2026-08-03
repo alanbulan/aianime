@@ -1,36 +1,78 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
 import { createCanvasStoryboardGroup } from './canvasStoryboardGroupCreation';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  selected?: boolean;
+  extent?: unknown;
+  hidden?: boolean;
+  dragHandle?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  data?: Record<string, unknown>;
+  hidden?: boolean;
+}
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.imageEdit,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 300, height: 200 },
     data: { imageUrl: `/${id}.png` },
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function factory(id: string): NodeFactory {
+function resolveAbsolutePosition(
+  candidate: TestNode,
+  nodeMap: ReadonlyMap<string, TestNode>,
+): { x: number; y: number } {
+  let x = candidate.position.x;
+  let y = candidate.position.y;
+  let parentId = candidate.parentId;
+  const visited = new Set<string>();
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = nodeMap.get(parentId);
+    if (!parent) {
+      break;
+    }
+    x += parent.position.x;
+    y += parent.position.y;
+    parentId = parent.parentId;
+  }
+  return { x, y };
+}
+
+function ports(id: string) {
   return {
-    createNode: (type, position, data = {}) => ({
-      id,
-      type,
-      position,
-      data,
-    }) as CanvasNode,
+    createGroupNode: (
+      position: { x: number; y: number },
+      data: Record<string, unknown>,
+    ) => node(id, { kind: 'group', position, data }),
+    defaultNodeWidth: 320,
+    getNodeSize: (candidate: TestNode) => candidate.measured,
+    isStoryboardGroupNode: (candidate: TestNode) =>
+      candidate.kind === 'group' && candidate.data.storyboardGroup === true,
+    resolveAbsolutePosition,
   };
 }
 
@@ -42,7 +84,7 @@ describe('Canvas storyboard group creation', () => {
         [only],
         [],
         [only.id, 'missing'],
-        factory('group'),
+        ports('group'),
       ),
     ).toBeNull();
   });
@@ -60,7 +102,7 @@ describe('Canvas storyboard group creation', () => {
       position: { x: 0, y: 0 },
       selected: true,
     });
-    const edges: CanvasEdge[] = [
+    const edges: TestEdge[] = [
       { id: 'internal', source: first.id, target: second.id },
       { id: 'outgoing', source: second.id, target: external.id },
       { id: 'incoming', source: external.id, target: first.id },
@@ -70,7 +112,7 @@ describe('Canvas storyboard group creation', () => {
       [external, second, first],
       edges,
       [second.id, first.id],
-      factory('storyboard-group'),
+      ports('storyboard-group'),
     );
 
     expect(result?.groupedNodeIds).toEqual(new Set([second.id, first.id]));
@@ -82,7 +124,7 @@ describe('Canvas storyboard group creation', () => {
     ]);
     expect(result?.nodes[0]?.selected).toBe(false);
     expect(result?.nodes[1]).toMatchObject({
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       position: { x: 0, y: 0 },
       style: { width: 1152, height: 361 },
       dragHandle: '.storyboard-group-drag-handle',

@@ -1,19 +1,23 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from './canvasNodes';
-
-export interface CanvasGroupMembers {
-  nodeMap: ReadonlyMap<string, CanvasNode>;
-  memberIds: string[];
-  members: CanvasNode[];
+export interface CanvasGroupingNode {
+  id: string;
+  parentId?: string;
+  selected?: boolean;
 }
 
-export function assembleCanvasGroupNodes(
-  nodes: readonly CanvasNode[],
-  groupNode: CanvasNode,
-  updatedMembers: ReadonlyMap<string, CanvasNode>,
-): CanvasNode[] {
+export interface CanvasGroupMembers<TNode extends CanvasGroupingNode> {
+  nodeMap: ReadonlyMap<string, TNode>;
+  memberIds: string[];
+  members: TNode[];
+}
+
+export function assembleCanvasGroupNodes<TNode extends CanvasGroupingNode>(
+  nodes: readonly TNode[],
+  groupNode: TNode,
+  updatedMembers: ReadonlyMap<string, TNode>,
+): TNode[] {
   const firstMemberIndex = nodes.findIndex((node) => updatedMembers.has(node.id));
-  const nextNodes: CanvasNode[] = [];
+  const nextNodes: TNode[] = [];
   let insertedGroup = false;
 
   for (let index = 0; index < nodes.length; index += 1) {
@@ -34,10 +38,10 @@ export function assembleCanvasGroupNodes(
   return nextNodes;
 }
 
-export function resolveCanvasGroupMembers(
-  nodes: readonly CanvasNode[],
+export function resolveCanvasGroupMembers<TNode extends CanvasGroupingNode>(
+  nodes: readonly TNode[],
   nodeIds: Iterable<string>,
-): CanvasGroupMembers | null {
+): CanvasGroupMembers<TNode> | null {
   const uniqueIds = Array.from(
     new Set(Array.from(nodeIds).filter((nodeId) => nodeId.trim().length > 0)),
   );
@@ -71,6 +75,6 @@ export function resolveCanvasGroupMembers(
   return {
     nodeMap,
     memberIds,
-    members: memberIds.map((nodeId) => nodeMap.get(nodeId) as CanvasNode),
+    members: memberIds.map((nodeId) => nodeMap.get(nodeId) as TNode),
   };
 }

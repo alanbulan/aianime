@@ -1,35 +1,51 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
-  getNodeSize,
-  resolveAbsolutePosition,
-} from '../domain/canvasGeometry';
-import {
   assembleCanvasGroupNodes,
   resolveCanvasGroupMembers,
-} from '../domain/canvasGrouping';
-import type { NodeFactory } from './ports';
+  type CanvasGroupingNode,
+} from '@/modules/creative_canvas/domain/canvasGrouping';
+import type { StoryboardGroupNode } from '@/modules/creative_canvas/domain/storyboardGroup';
+
+export interface CanvasGroupCreationNode
+  extends CanvasGroupingNode, StoryboardGroupNode {
+  extent?: unknown;
+  type?: unknown;
+}
+
+export interface CanvasGroupCreationPorts<
+  TNode extends CanvasGroupCreationNode,
+> {
+  createGroupNode: (
+    position: { x: number; y: number },
+    data: Record<string, unknown>,
+  ) => TNode;
+  getNodeSize: (node: TNode) => { width: number; height: number };
+  isGroupNode: (node: TNode) => boolean;
+  resolveAbsolutePosition: (
+    node: TNode,
+    nodeMap: ReadonlyMap<string, TNode>,
+  ) => { x: number; y: number };
+}
 
 export interface CanvasGroupCreationOptions {
   label?: string;
   extraPadding?: number;
 }
 
-export interface CanvasGroupCreationResult {
-  nodes: CanvasNode[];
+export interface CanvasGroupCreationResult<
+  TNode extends CanvasGroupCreationNode,
+> {
+  nodes: TNode[];
   groupNodeId: string;
   groupedNodeIds: ReadonlySet<string>;
 }
 
-export function createCanvasNodeGroup(
-  nodes: readonly CanvasNode[],
+export function createCanvasNodeGroup<TNode extends CanvasGroupCreationNode>(
+  nodes: readonly TNode[],
   nodeIds: Iterable<string>,
   options: CanvasGroupCreationOptions | undefined,
-  nodeFactory: NodeFactory,
-): CanvasGroupCreationResult | null {
+  ports: CanvasGroupCreationPorts<TNode>,
+): CanvasGroupCreationResult<TNode> | null {
   const resolved = resolveCanvasGroupMembers(nodes, nodeIds);
   if (!resolved) {
     return null;
@@ -39,8 +55,8 @@ export function createCanvasNodeGroup(
   const groupedNodeIds = new Set(memberIds);
   const absoluteBounds = members.reduce(
     (bounds, node) => {
-      const absolute = resolveAbsolutePosition(node, nodeMap);
-      const size = getNodeSize(node);
+      const absolute = ports.resolveAbsolutePosition(node, nodeMap);
+      const size = ports.getNodeSize(node);
       return {
         minX: Math.min(bounds.minX, absolute.x),
         minY: Math.min(bounds.minY, absolute.y),
@@ -55,7 +71,10 @@ export function createCanvasNodeGroup(
       maxY: Number.NEGATIVE_INFINITY,
     },
   );
-  if (!Number.isFinite(absoluteBounds.minX) || !Number.isFinite(absoluteBounds.minY)) {
+  if (
+    !Number.isFinite(absoluteBounds.minX)
+    || !Number.isFinite(absoluteBounds.minY)
+  ) {
     return null;
   }
 
@@ -81,12 +100,10 @@ export function createCanvasNodeGroup(
     ),
   );
 
-  const existingGroupCount = nodes.filter(
-    (node) => node.type === CANVAS_NODE_TYPES.group,
-  ).length;
-  const groupDisplayName = options?.label?.trim() || `组 ${existingGroupCount + 1}`;
-  const groupNode = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.group,
+  const existingGroupCount = nodes.filter(ports.isGroupNode).length;
+  const groupDisplayName =
+    options?.label?.trim() || `组 ${existingGroupCount + 1}`;
+  const groupNode = ports.createGroupNode(
     { x: groupX, y: groupY },
     {
       label: groupDisplayName,
@@ -98,9 +115,9 @@ export function createCanvasNodeGroup(
   groupNode.style = { width: groupWidth, height: groupHeight };
   groupNode.selected = true;
 
-  const updatedMembers = new Map<string, CanvasNode>();
+  const updatedMembers = new Map<string, TNode>();
   for (const node of members) {
-    const absolute = resolveAbsolutePosition(node, nodeMap);
+    const absolute = ports.resolveAbsolutePosition(node, nodeMap);
     updatedMembers.set(node.id, {
       ...node,
       parentId: groupNode.id,

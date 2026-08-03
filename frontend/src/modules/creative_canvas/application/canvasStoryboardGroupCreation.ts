@@ -1,44 +1,50 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
-  isStoryboardGroupNode,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
-  getNodeSize,
-  resolveAbsolutePosition,
-} from '../domain/canvasGeometry';
-import {
   assembleCanvasGroupNodes,
   resolveCanvasGroupMembers,
-} from '../domain/canvasGrouping';
+} from '@/modules/creative_canvas/domain/canvasGrouping';
 import {
   layoutCanvasStoryboardGroupMembers,
   mapCanvasStoryboardMemberPositions,
-} from '@/modules/creative_canvas/public';
-import type { NodeFactory } from './ports';
+} from '@/modules/creative_canvas/domain/canvasStoryboardGroupMembers';
+import type {
+  StoryboardGroupEdge,
+  StoryboardGroupNodePorts,
+} from '@/modules/creative_canvas/domain/storyboardGroup';
+import type { CanvasGroupCreationNode } from '@/modules/creative_canvas/application/canvasGroupCreation';
 
-const storyboardGroupPorts = {
-  defaultNodeWidth: DEFAULT_NODE_WIDTH,
-  getNodeSize,
-  isStoryboardGroupNode,
-};
+export interface CanvasStoryboardGroupCreationPorts<
+  TNode extends CanvasGroupCreationNode,
+> extends StoryboardGroupNodePorts<TNode> {
+  createGroupNode: (
+    position: { x: number; y: number },
+    data: Record<string, unknown>,
+  ) => TNode;
+  resolveAbsolutePosition: (
+    node: TNode,
+    nodeMap: ReadonlyMap<string, TNode>,
+  ) => { x: number; y: number };
+}
 
-export interface CanvasStoryboardGroupCreationResult {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+export interface CanvasStoryboardGroupCreationResult<
+  TNode extends CanvasGroupCreationNode,
+  TEdge extends StoryboardGroupEdge,
+> {
+  nodes: TNode[];
+  edges: TEdge[];
   groupNodeId: string;
   groupedNodeIds: ReadonlySet<string>;
 }
 
-export function createCanvasStoryboardGroup(
-  nodes: readonly CanvasNode[],
-  edges: readonly CanvasEdge[],
+export function createCanvasStoryboardGroup<
+  TNode extends CanvasGroupCreationNode,
+  TEdge extends StoryboardGroupEdge,
+>(
+  nodes: readonly TNode[],
+  edges: readonly TEdge[],
   nodeIds: Iterable<string>,
-  nodeFactory: NodeFactory,
-): CanvasStoryboardGroupCreationResult | null {
+  ports: CanvasStoryboardGroupCreationPorts<TNode>,
+): CanvasStoryboardGroupCreationResult<TNode, TEdge> | null {
   const resolved = resolveCanvasGroupMembers(nodes, nodeIds);
   if (!resolved) {
     return null;
@@ -46,8 +52,8 @@ export function createCanvasStoryboardGroup(
   const { nodeMap, memberIds, members } = resolved;
 
   const ordered = [...members].sort((first, second) => {
-    const firstPosition = resolveAbsolutePosition(first, nodeMap);
-    const secondPosition = resolveAbsolutePosition(second, nodeMap);
+    const firstPosition = ports.resolveAbsolutePosition(first, nodeMap);
+    const secondPosition = ports.resolveAbsolutePosition(second, nodeMap);
     return (
       firstPosition.y - secondPosition.y
       || firstPosition.x - secondPosition.x
@@ -59,7 +65,7 @@ export function createCanvasStoryboardGroup(
     aspectKey,
     memberLayout,
     board,
-  } = layoutCanvasStoryboardGroupMembers(ordered, {}, storyboardGroupPorts);
+  } = layoutCanvasStoryboardGroupMembers(ordered, {}, ports);
   const memberPositions = mapCanvasStoryboardMemberPositions(
     ordered,
     memberLayout,
@@ -67,7 +73,7 @@ export function createCanvasStoryboardGroup(
 
   const anchor = ordered.reduce(
     (position, node) => {
-      const absolute = resolveAbsolutePosition(node, nodeMap);
+      const absolute = ports.resolveAbsolutePosition(node, nodeMap);
       return {
         x: Math.min(position.x, absolute.x),
         y: Math.min(position.y, absolute.y),
@@ -79,11 +85,10 @@ export function createCanvasStoryboardGroup(
   const groupY = Math.round(Number.isFinite(anchor.y) ? anchor.y : 0);
 
   const existingStoryboardCount = nodes.filter((node) =>
-    isStoryboardGroupNode(node),
+    ports.isStoryboardGroupNode(node),
   ).length;
   const groupDisplayName = `分镜组 ${existingStoryboardCount + 1}`;
-  const groupNode = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.group,
+  const groupNode = ports.createGroupNode(
     { x: groupX, y: groupY },
     {
       label: groupDisplayName,
@@ -101,7 +106,7 @@ export function createCanvasStoryboardGroup(
   groupNode.selected = true;
 
   const groupedNodeIds = new Set(memberIds);
-  const updatedMembers = new Map<string, CanvasNode>();
+  const updatedMembers = new Map<string, TNode>();
   ordered.forEach((node) => {
     const position = memberPositions.get(node.id) ?? node.position;
     updatedMembers.set(node.id, {
@@ -113,7 +118,7 @@ export function createCanvasStoryboardGroup(
     });
   });
 
-  const nextEdges = edges.map((edge) => {
+  const nextEdges = edges.map((edge): TEdge => {
     const sourceMember = groupedNodeIds.has(edge.source);
     const targetMember = groupedNodeIds.has(edge.target);
     if (sourceMember && targetMember) {

@@ -234,6 +234,38 @@ export type {
   CanvasStoryboardMemberLayoutOptions,
 } from "@/modules/creative_canvas/domain/canvasStoryboardGroupMembers";
 export {
+  assembleCanvasGroupNodes,
+  resolveCanvasGroupMembers,
+} from "@/modules/creative_canvas/domain/canvasGrouping";
+export type {
+  CanvasGroupingNode,
+  CanvasGroupMembers,
+} from "@/modules/creative_canvas/domain/canvasGrouping";
+export {
+  createCanvasNodeGroup,
+} from "@/modules/creative_canvas/application/canvasGroupCreation";
+export type {
+  CanvasGroupCreationNode,
+  CanvasGroupCreationOptions,
+  CanvasGroupCreationPorts,
+  CanvasGroupCreationResult,
+} from "@/modules/creative_canvas/application/canvasGroupCreation";
+export {
+  createCanvasStoryboardGroup,
+} from "@/modules/creative_canvas/application/canvasStoryboardGroupCreation";
+export type {
+  CanvasStoryboardGroupCreationPorts,
+  CanvasStoryboardGroupCreationResult,
+} from "@/modules/creative_canvas/application/canvasStoryboardGroupCreation";
+export {
+  addCanvasStoryboardGroupMembers,
+} from "@/modules/creative_canvas/application/canvasStoryboardGroupMemberAddition";
+export type {
+  CanvasStoryboardMemberAdditionPorts,
+  CanvasStoryboardMemberAdditionResult,
+  CanvasStoryboardMemberImage,
+} from "@/modules/creative_canvas/application/canvasStoryboardGroupMemberAddition";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";

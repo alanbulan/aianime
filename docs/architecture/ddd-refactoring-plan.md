@@ -1062,6 +1062,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百四十一批将 Canvas Storyboard Group 配置、成员排序/布局/位置映射/重排、Storyboard 转普通组及三组领域测试整体迁入 Creative Canvas domain；复用现有 `storyboardGroup.ts` 承载共享泛型节点和端口合同，Storyboard 判定、节点尺寸与默认节点宽度由旧 Canvas 边界显式注入，不导入旧 Canvas 节点枚举、几何、React Flow、Zustand、Store 或 feature。Storyboard 创建、成员追加 application 与 Zustand storyboard group slice 统一经 `creative_canvas/public.ts` 使用，6 个旧生产/测试所有者直接删除，不保留 facade、兼容 re-export、旧路径转发或第二套实现。Creative Canvas 由 555 增到 561，Canvas 由 628 降到 622，Freezone 保持 0，残余 ratchet 收紧到 622/0。行为 Vitest 6 个文件 23 项、定向模块边界 3 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；旧路径精确扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百四十二批将 Canvas 分组成员解析/祖先去重/父子顺序装配 domain、普通组创建、Storyboard 创建、Storyboard 成员追加及三组 application 测试整体迁入 Creative Canvas；三个 application 改为泛型节点/边合同，通过 `createGroupNode/createMemberNode`、绝对坐标、节点尺寸、普通组与 Storyboard 判定窄端口完成装配，不导入旧 Canvas 节点枚举、几何、宽 `NodeFactory`、React Flow、Zustand、Store 或 feature。普通组与 Storyboard 两个 Zustand slice 统一经 `creative_canvas/public.ts` 使用并在 Canvas 边界绑定既有 `NodeFactory`，7 个旧生产/测试所有者直接删除，不保留 facade、兼容 re-export、旧路径转发或第二套实现。Creative Canvas 由 561 增到 568，Canvas 由 622 降到 615，Freezone 保持 0，残余 ratchet 收紧到 615/0。行为 Vitest 8 个文件 41 项、定向模块边界 4 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；旧路径精确扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

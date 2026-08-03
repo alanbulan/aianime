@@ -1,24 +1,17 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
-  isStoryboardGroupNode,
-  type CanvasNode,
-  type GroupNodeData,
-} from '../domain/canvasNodes';
-import { getNodeSize } from '../domain/canvasGeometry';
-import {
   layoutCanvasStoryboardGroupMembers,
   mapCanvasStoryboardMemberPositions,
   sortCanvasStoryboardGroupMembers,
-} from '@/modules/creative_canvas/public';
-import type { NodeFactory } from './ports';
+} from '@/modules/creative_canvas/domain/canvasStoryboardGroupMembers';
+import type { StoryboardGroupNodePorts } from '@/modules/creative_canvas/domain/storyboardGroup';
+import type { CanvasGroupCreationNode } from '@/modules/creative_canvas/application/canvasGroupCreation';
 
-const storyboardGroupPorts = {
-  defaultNodeWidth: DEFAULT_NODE_WIDTH,
-  getNodeSize,
-  isStoryboardGroupNode,
-};
+export interface CanvasStoryboardMemberAdditionPorts<
+  TNode extends CanvasGroupCreationNode,
+> extends StoryboardGroupNodePorts<TNode> {
+  createMemberNode: (data: Record<string, unknown>) => TNode;
+}
 
 export interface CanvasStoryboardMemberImage {
   imageUrl: string;
@@ -26,17 +19,21 @@ export interface CanvasStoryboardMemberImage {
   displayName?: string;
 }
 
-export interface CanvasStoryboardMemberAdditionResult {
-  nodes: CanvasNode[];
+export interface CanvasStoryboardMemberAdditionResult<
+  TNode extends CanvasGroupCreationNode,
+> {
+  nodes: TNode[];
   createdNodeIds: string[];
 }
 
-export function addCanvasStoryboardGroupMembers(
-  nodes: readonly CanvasNode[],
+export function addCanvasStoryboardGroupMembers<
+  TNode extends CanvasGroupCreationNode,
+>(
+  nodes: readonly TNode[],
   groupNodeId: string,
   images: readonly CanvasStoryboardMemberImage[],
-  nodeFactory: NodeFactory,
-): CanvasStoryboardMemberAdditionResult | null {
+  ports: CanvasStoryboardMemberAdditionPorts<TNode>,
+): CanvasStoryboardMemberAdditionResult<TNode> | null {
   const validImages = images.filter(
     (image) => image.imageUrl.trim().length > 0,
   );
@@ -45,31 +42,31 @@ export function addCanvasStoryboardGroupMembers(
   }
 
   const group = nodes.find((node) => node.id === groupNodeId);
-  if (!isStoryboardGroupNode(group)) {
+  if (!group || !ports.isStoryboardGroupNode(group)) {
     return null;
   }
 
   const existing = sortCanvasStoryboardGroupMembers(nodes, groupNodeId);
-  const currentLayout = layoutCanvasStoryboardGroupMembers(existing, {
-    baseWidth: group.data.storyboardBaseWidth,
-    baseHeight: group.data.storyboardBaseHeight,
-    aspectKey: group.data.storyboardAspect,
-    cols: group.data.storyboardCols,
-  }, storyboardGroupPorts);
+  const currentLayout = layoutCanvasStoryboardGroupMembers(
+    existing,
+    {
+      baseWidth: group.data.storyboardBaseWidth,
+      baseHeight: group.data.storyboardBaseHeight,
+      aspectKey: group.data.storyboardAspect,
+      cols: group.data.storyboardCols,
+    },
+    ports,
+  );
   const { baseWidth, baseHeight, aspectKey } = currentLayout;
   const roundedWidth = Math.round(baseWidth);
   const roundedHeight = Math.round(baseHeight);
 
   const newNodes = validImages.map((image) => {
-    const node = nodeFactory.createNode(
-      CANVAS_NODE_TYPES.exportImage,
-      { x: 0, y: 0 },
-      {
-        imageUrl: image.imageUrl,
-        previewImageUrl: image.previewImageUrl ?? image.imageUrl,
-        displayName: image.displayName ?? '分镜',
-      },
-    );
+    const node = ports.createMemberNode({
+      imageUrl: image.imageUrl,
+      previewImageUrl: image.previewImageUrl ?? image.imageUrl,
+      displayName: image.displayName ?? '分镜',
+    });
     node.parentId = groupNodeId;
     node.hidden = true;
     node.selected = false;
@@ -88,14 +85,14 @@ export function addCanvasStoryboardGroupMembers(
       aspectKey,
       cols: group.data.storyboardCols,
     },
-    storyboardGroupPorts,
+    ports,
   );
   const positions = mapCanvasStoryboardMemberPositions(
     allMembers,
     memberLayout,
   );
 
-  const updatedExisting = nodes.map((node) => {
+  const updatedExisting = nodes.map((node): TNode => {
     if (node.id === groupNodeId) {
       return {
         ...node,
@@ -107,7 +104,7 @@ export function addCanvasStoryboardGroupMembers(
           height: board.groupHeight,
         },
         data: {
-          ...(node.data as GroupNodeData),
+          ...node.data,
           storyboardCols: board.cols,
         },
       };

@@ -1,41 +1,72 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
 import { createCanvasNodeGroup } from './canvasGroupCreation';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  selected?: boolean;
+  extent?: unknown;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 100, height: 100 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function factory(id: string): NodeFactory {
+function resolveAbsolutePosition(
+  candidate: TestNode,
+  nodeMap: ReadonlyMap<string, TestNode>,
+): { x: number; y: number } {
+  let x = candidate.position.x;
+  let y = candidate.position.y;
+  let parentId = candidate.parentId;
+  const visited = new Set<string>();
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = nodeMap.get(parentId);
+    if (!parent) {
+      break;
+    }
+    x += parent.position.x;
+    y += parent.position.y;
+    parentId = parent.parentId;
+  }
+  return { x, y };
+}
+
+function ports(id: string) {
   return {
-    createNode: (type, position, data = {}) => ({
-      id,
-      type,
-      position,
-      data,
-    }) as CanvasNode,
+    createGroupNode: (
+      position: { x: number; y: number },
+      data: Record<string, unknown>,
+    ) => node(id, { kind: 'group', position, data }),
+    getNodeSize: (candidate: TestNode) => candidate.measured,
+    isGroupNode: (candidate: TestNode) => candidate.kind === 'group',
+    resolveAbsolutePosition,
   };
 }
 
 describe('Canvas group creation', () => {
   it('requires at least two top-level existing members', () => {
-    const parent = node('parent', { type: CANVAS_NODE_TYPES.group });
+    const parent = node('parent', { kind: 'group' });
     const child = node('child', { parentId: parent.id });
 
     expect(
@@ -43,7 +74,7 @@ describe('Canvas group creation', () => {
         [parent, child],
         [parent.id, child.id],
         undefined,
-        factory('group'),
+        ports('group'),
       ),
     ).toBeNull();
     expect(
@@ -51,7 +82,7 @@ describe('Canvas group creation', () => {
         [parent],
         [parent.id, 'missing'],
         undefined,
-        factory('group'),
+        ports('group'),
       ),
     ).toBeNull();
   });
@@ -59,7 +90,7 @@ describe('Canvas group creation', () => {
   it('creates a parent-first group from absolute member bounds', () => {
     const unrelated = node('unrelated', { selected: true });
     const parent = node('parent', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       position: { x: 100, y: 200 },
       selected: true,
     });
@@ -78,7 +109,7 @@ describe('Canvas group creation', () => {
       [unrelated, parent, child, peer],
       [parent.id, child.id, peer.id, peer.id],
       undefined,
-      factory('created-group'),
+      ports('created-group'),
     );
 
     expect(result?.groupNodeId).toBe('created-group');
@@ -92,7 +123,7 @@ describe('Canvas group creation', () => {
     ]);
     expect(result?.nodes[0]?.selected).toBe(false);
     expect(result?.nodes[1]).toMatchObject({
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       position: { x: 80, y: 166 },
       width: 640,
       height: 204,
@@ -126,7 +157,7 @@ describe('Canvas group creation', () => {
       [first, second],
       [first.id, second.id],
       { label: '  Shots  ', extraPadding: 20 },
-      factory('group'),
+      ports('group'),
     );
 
     expect(result?.nodes[0]).toMatchObject({

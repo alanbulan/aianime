@@ -5,27 +5,26 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
-import { getNodeSize } from '../domain/canvasGeometry';
+import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
+  addCanvasStoryboardGroupMembers,
   configureCanvasStoryboardGroup,
   convertCanvasStoryboardGroupToPlain,
+  createCanvasStoryboardGroup,
   reorderCanvasStoryboardGroupMember,
   trackEdit,
+  type CanvasStoryboardMemberImage,
   type CanvasMutationState,
   type CanvasStoryboardGroupConfig,
 } from '@/modules/creative_canvas/public';
 import {
+  CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
   isStoryboardGroupNode,
   type ActiveToolDialog,
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import { createCanvasStoryboardGroup } from '../application/canvasStoryboardGroupCreation';
-import {
-  addCanvasStoryboardGroupMembers,
-  type CanvasStoryboardMemberImage,
-} from '../application/canvasStoryboardGroupMemberAddition';
 import type { NodeFactory } from '../application/ports';
 
 const storyboardGroupPorts = {
@@ -75,6 +74,28 @@ interface CanvasStoryboardGroupSliceDependencies {
 export function createZustandCanvasStoryboardGroupSlice(
   dependencies: CanvasStoryboardGroupSliceDependencies,
 ): CanvasStoryboardGroupSlice {
+  const storyboardCreationPorts = {
+    ...storyboardGroupPorts,
+    createGroupNode: (
+      position: { x: number; y: number },
+      data: Record<string, unknown>,
+    ) => dependencies.nodeFactory.createNode(
+      CANVAS_NODE_TYPES.group,
+      position,
+      data,
+    ),
+    resolveAbsolutePosition,
+  };
+  const storyboardMemberAdditionPorts = {
+    ...storyboardGroupPorts,
+    createMemberNode: (data: Record<string, unknown>) =>
+      dependencies.nodeFactory.createNode(
+        CANVAS_NODE_TYPES.exportImage,
+        { x: 0, y: 0 },
+        data,
+      ),
+  };
+
   return {
     mergeStoryboardGroup(nodeIds) {
       const state = dependencies.getState();
@@ -82,7 +103,7 @@ export function createZustandCanvasStoryboardGroupSlice(
         state.nodes,
         state.edges,
         nodeIds,
-        dependencies.nodeFactory,
+        storyboardCreationPorts,
       );
       if (!result) {
         return null;
@@ -167,7 +188,7 @@ export function createZustandCanvasStoryboardGroupSlice(
         state.nodes,
         groupNodeId,
         images,
-        dependencies.nodeFactory,
+        storyboardMemberAdditionPorts,
       );
       if (!result) {
         return;

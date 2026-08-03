@@ -1,47 +1,63 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
 import { addCanvasStoryboardGroupMembers } from './canvasStoryboardGroupMemberAddition';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  nodeType?: 'exportImage';
+  parentId?: string;
+  selected?: boolean;
+  extent?: unknown;
+  hidden?: boolean;
+  dragHandle?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
+    measured: { width: 320, height: 200 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function factory(...ids: string[]): NodeFactory {
+function ports(...ids: string[]) {
   let index = 0;
   return {
-    createNode: (type, position, data = {}) => ({
-      id: ids[index++] ?? `created-${index}`,
-      type,
-      position,
-      data,
-    }) as CanvasNode,
+    createMemberNode: (data: Record<string, unknown>) =>
+      node(ids[index++] ?? `created-${index}`, {
+        nodeType: 'exportImage',
+        data,
+      }),
+    defaultNodeWidth: 320,
+    getNodeSize: (candidate: TestNode) => candidate.measured,
+    isStoryboardGroupNode: (candidate: TestNode) =>
+      candidate.kind === 'group' && candidate.data.storyboardGroup === true,
   };
 }
 
 describe('Canvas storyboard member addition', () => {
   it('returns null for empty images or an ordinary group', () => {
-    const ordinary = node('ordinary', { type: CANVAS_NODE_TYPES.group });
+    const ordinary = node('ordinary', { kind: 'group' });
     expect(
       addCanvasStoryboardGroupMembers(
         [ordinary],
         ordinary.id,
         [{ imageUrl: '  ' }],
-        factory('image'),
+        ports('image'),
       ),
     ).toBeNull();
     expect(
@@ -49,14 +65,14 @@ describe('Canvas storyboard member addition', () => {
         [ordinary],
         ordinary.id,
         [{ imageUrl: '/image.png' }],
-        factory('image'),
+        ports('image'),
       ),
     ).toBeNull();
   });
 
   it('creates hidden images using fallback dimensions and expands the board', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       style: { borderColor: 'red' },
       data: {
         storyboardGroup: true,
@@ -77,7 +93,7 @@ describe('Canvas storyboard member addition', () => {
           displayName: 'Second',
         },
       ],
-      factory('first', 'second'),
+      ports('first', 'second'),
     );
 
     expect(result?.createdNodeIds).toEqual(['first', 'second']);
@@ -91,7 +107,7 @@ describe('Canvas storyboard member addition', () => {
     expect(result?.nodes[1]).toBe(outside);
     expect(result?.nodes[2]).toMatchObject({
       id: 'first',
-      type: CANVAS_NODE_TYPES.exportImage,
+      nodeType: 'exportImage',
       parentId: group.id,
       hidden: true,
       selected: false,

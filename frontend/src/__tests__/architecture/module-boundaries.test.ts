@@ -13431,11 +13431,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas group creation outside the Zustand store", () => {
     const groupingPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasGrouping.ts",
+      "modules/creative_canvas/domain/canvasGrouping.ts",
     );
     const creationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasGroupCreation.ts",
+      "modules/creative_canvas/application/canvasGroupCreation.ts",
     );
     const autoGroupingPath = resolve(
       SRC_ROOT,
@@ -13443,7 +13443,7 @@ describe("frontend architecture boundaries", () => {
     );
     const storyboardCreationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasStoryboardGroupCreation.ts",
+      "modules/creative_canvas/application/canvasStoryboardGroupCreation.ts",
     );
     const groupingModel = readFileSync(groupingPath, "utf8");
     const creationModel = readFileSync(creationPath, "utf8");
@@ -13495,11 +13495,11 @@ describe("frontend architecture boundaries", () => {
     );
     const groupingDeclaration = [
       "export function",
-      "resolveCanvasGroupMembers(",
+      "resolveCanvasGroupMembers<",
     ].join(" ");
     const creationDeclaration = [
       "export function",
-      "createCanvasNodeGroup(",
+      "createCanvasNodeGroup<",
     ].join(" ");
     const autoGroupingDeclaration = [
       "export function",
@@ -13507,11 +13507,11 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const storyboardCreationDeclaration = [
       "export function",
-      "createCanvasStoryboardGroup(",
+      "createCanvasStoryboardGroup<",
     ].join(" ");
     const assemblyDeclaration = [
       "export function",
-      "assembleCanvasGroupNodes(",
+      "assembleCanvasGroupNodes<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -13529,10 +13529,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasGroupCreation.ts",
-      "features/canvas/application/canvasStoryboardGroupCreation.ts",
-      "features/canvas/domain/canvasGrouping.ts",
+      "modules/creative_canvas/application/canvasGroupCreation.ts",
+      "modules/creative_canvas/application/canvasStoryboardGroupCreation.ts",
       "modules/creative_canvas/domain/canvasAutoGrouping.ts",
+      "modules/creative_canvas/domain/canvasGrouping.ts",
     ]);
     expect(groupingModel).toContain(groupingDeclaration);
     expect(groupingModel).toContain(assemblyDeclaration);
@@ -13540,13 +13540,16 @@ describe("frontend architecture boundaries", () => {
     expect(autoGroupingModel).toContain(autoGroupingDeclaration);
     expect(importSpecifiers(autoGroupingPath)).toEqual([]);
     expect(storyboardCreationModel).toContain(storyboardCreationDeclaration);
-    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("ports: CanvasGroupCreationPorts<TNode>");
     expect(creationModel).toContain("resolveCanvasGroupMembers(nodes, nodeIds)");
-    expect(storyboardCreationModel).toContain("nodeFactory: NodeFactory");
+    expect(storyboardCreationModel).toContain(
+      "ports: CanvasStoryboardGroupCreationPorts<TNode>",
+    );
     expect(storyboardCreationModel).toContain(
       "assembleCanvasGroupNodes(nodes, groupNode, updatedMembers)",
     );
-    expect(groupLifecycleSlice).toContain(
+    expect(groupLifecycleSlice).toContain("@/modules/creative_canvas/public");
+    expect(groupLifecycleSlice).not.toContain(
       "../application/canvasGroupCreation",
     );
     expect(canvasStore).not.toContain(
@@ -13569,9 +13572,24 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasAutoGrouping",
     );
-    expect(storyboardGroupSlice).toContain(
+    expect(storyboardGroupSlice).toContain("@/modules/creative_canvas/public");
+    expect(storyboardGroupSlice).not.toContain(
       "../application/canvasStoryboardGroupCreation",
     );
+    for (const retiredCreationPath of [
+      "features/canvas/domain/canvasGrouping.ts",
+      "features/canvas/application/canvasGroupCreation.ts",
+      "features/canvas/application/canvasGroupCreation.test.ts",
+      "features/canvas/application/canvasStoryboardGroupCreation.ts",
+      "features/canvas/application/canvasStoryboardGroupCreation.test.ts",
+      "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
+      "features/canvas/application/canvasStoryboardGroupMemberAddition.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredCreationPath)),
+        retiredCreationPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasStoryboardGroupCreation",
     );
@@ -13713,7 +13731,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas storyboard member addition outside the Zustand store", () => {
     const additionPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
+      "modules/creative_canvas/application/canvasStoryboardGroupMemberAddition.ts",
     );
     const membersPath = resolve(
       SRC_ROOT,
@@ -13721,7 +13739,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasStoryboardGroupCreation.ts",
+      "modules/creative_canvas/application/canvasStoryboardGroupCreation.ts",
     );
     const additionModel = readFileSync(additionPath, "utf8");
     const membersModel = readFileSync(membersPath, "utf8");
@@ -13752,7 +13770,7 @@ describe("frontend architecture boundaries", () => {
     );
     const additionDeclaration = [
       "export function",
-      "addCanvasStoryboardGroupMembers(",
+      "addCanvasStoryboardGroupMembers<",
     ].join(" ");
     const layoutDeclaration = [
       "export function",
@@ -13768,17 +13786,20 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
+      "modules/creative_canvas/application/canvasStoryboardGroupMemberAddition.ts",
       "modules/creative_canvas/domain/canvasStoryboardGroupMembers.ts",
     ]);
     expect(additionModel).toContain(additionDeclaration);
-    expect(additionModel).toContain("nodeFactory: NodeFactory");
+    expect(additionModel).toContain(
+      "ports: CanvasStoryboardMemberAdditionPorts<TNode>",
+    );
     expect(membersModel).toContain(layoutDeclaration);
     expect(creationModel).toContain(
-      "layoutCanvasStoryboardGroupMembers(ordered, {}, storyboardGroupPorts)",
+      "layoutCanvasStoryboardGroupMembers(ordered, {}, ports)",
     );
     expect(additionModel).toContain("layoutCanvasStoryboardGroupMembers(existing,");
-    expect(storyboardGroupSlice).toContain(
+    expect(storyboardGroupSlice).toContain("@/modules/creative_canvas/public");
+    expect(storyboardGroupSlice).not.toContain(
       "../application/canvasStoryboardGroupMemberAddition",
     );
     expect(canvasStore).not.toContain(
@@ -25187,7 +25208,6 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasGroupCreation",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasGroupLifecycleSlice");
@@ -25236,8 +25256,6 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasGeometry",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasStoryboardGroupCreation",
-      "../application/canvasStoryboardGroupMemberAddition",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasStoryboardGroupSlice");
