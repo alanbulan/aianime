@@ -56,6 +56,11 @@ vi.mock('@xyflow/react', () => ({
 vi.mock('@/components/credits/credit-visual', () => ({
   CreditDisplayHiddenProvider: ({ children }: { children: ReactNode }) => children,
 }));
+vi.mock('@/modules/creative_canvas/public', () => ({
+  PAN_ACTIVATION_KEY_CODE: 'Space',
+  ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
+  VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
+}));
 vi.mock('@/lib/runtime-config', () => ({ isCeRuntime: () => false }));
 vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlay', () => ({
   CanvasMinimapBookmarksOverlay: () => (
@@ -99,9 +104,6 @@ vi.mock('./CanvasTransientOverlays', () => ({
 vi.mock('./CanvasZoomControl', () => ({
   CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
 }));
-vi.mock('./ImageViewerModal', () => ({
-  ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
-}));
 vi.mock('./MultiSelectionConnectButton', () => ({
   MultiSelectionConnectButton: () => (
     <div data-testid="multi-selection-connect-button" />
@@ -121,9 +123,6 @@ vi.mock('./SelectedNodeOverlay', () => ({
     stageMocks.selectedNodeOverlayProps(props);
     return <div data-testid="selected-node-overlay" />;
   },
-}));
-vi.mock('./VideoViewerModal', () => ({
-  VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
 
 function createProps(

@@ -6774,12 +6774,20 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("let nextDragHistorySnapshot =");
   });
 
-  it("keeps Canvas image viewer transitions outside the Zustand store", () => {
+  it("keeps Canvas media viewer state and presentation in Creative Canvas", () => {
     const viewerPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasImageViewer.ts",
+      "modules/creative_canvas/domain/canvasImageViewer.ts",
     );
     const viewerModel = readFileSync(viewerPath, "utf8");
+    const imageModalPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/ImageViewerModal.tsx",
+    );
+    const videoModalPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoViewerModal.tsx",
+    );
     const viewportSlice = readFileSync(
       resolve(
         SRC_ROOT,
@@ -6790,6 +6798,18 @@ describe("frontend architecture boundaries", () => {
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
+    );
+    const canvasStagePath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasStageView.tsx",
+    );
+    const historyAdapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
     );
     const forbiddenImports = importSpecifiers(viewerPath).filter(
       (specifier) =>
@@ -6814,11 +6834,12 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(viewerContractOwners).toEqual([
-      "features/canvas/application/canvasImageViewer.ts",
+      "modules/creative_canvas/domain/canvasImageViewer.ts",
     ]);
     expect(viewerModel).toContain("export function openCanvasImageViewer(");
     expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
-    expect(viewportSlice).toContain("../application/canvasImageViewer");
+    expect(viewportSlice).toContain("@/modules/creative_canvas/public");
+    expect(viewportSlice).not.toContain("../application/canvasImageViewer");
     expect(viewportSlice).toContain(
       "imageViewer: createClosedCanvasImageViewer()",
     );
@@ -6827,9 +6848,44 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("const list = imageList.length");
     expect(canvasStore).not.toContain("const newIndex = currentIndex");
-    expect(
-      existsSync(resolve(SRC_ROOT, "features/canvas/hooks/useImageViewer.ts")),
-    ).toBe(false);
+    expect(importSpecifiers(canvasStagePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(historyAdapterPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(imageModalPath)).toEqual([
+      "react",
+      "react-i18next",
+      "lucide-react",
+      "@/components/ui/motion",
+      "./useImageViewerTransform",
+      "./mediaViewerStyles",
+    ]);
+    expect(importSpecifiers(videoModalPath)).toEqual([
+      "react",
+      "react-i18next",
+      "lucide-react",
+      "./mediaViewerStyles",
+    ]);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/canvasImageViewer",
+        "@/modules/creative_canvas/presentation/ImageViewerModal",
+        "@/modules/creative_canvas/presentation/VideoViewerModal",
+      ]),
+    );
+    for (const legacyPath of [
+      "features/canvas/application/canvasImageViewer.ts",
+      "features/canvas/application/canvasImageViewer.test.ts",
+      "features/canvas/hooks/useImageViewer.ts",
+      "features/canvas/hooks/useImageViewerTransform.ts",
+      "features/canvas/ui/ImageViewerModal.tsx",
+      "features/canvas/ui/VideoViewerModal.tsx",
+      "features/canvas/ui/closeButtonStyles.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
   });
 
   it("keeps Canvas mutation and persistence state in Creative Canvas", () => {
@@ -24236,7 +24292,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(importSpecifiers(slicePath)).toEqual([
       "@xyflow/react",
-      "../application/canvasImageViewer",
+      "@/modules/creative_canvas/public",
       "../domain/canvasGeometry",
       "../domain/canvasNodes",
       "../domain/viewportBookmarks",

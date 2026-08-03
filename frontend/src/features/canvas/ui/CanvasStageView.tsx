@@ -23,10 +23,14 @@ import { NodeSelectionMenu } from '../NodeSelectionMenu';
 import { createCanvasNodeTypes } from '../nodes';
 import { CanvasSnapAlignButton } from '../snap-align/CanvasSnapAlignButton';
 import { SnapAlignGuides } from '../snap-align/SnapAlignGuides';
+import {
+  ImageViewerModal,
+  PAN_ACTIVATION_KEY_CODE,
+  VideoViewerModal,
+} from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
-import { PAN_ACTIVATION_KEY_CODE } from '@/modules/creative_canvas/public';
 import { CanvasMinimapButton } from './CanvasMinimapButton';
 import { CanvasMinimapBookmarksOverlay } from './CanvasMinimapBookmarksOverlay';
 import { CanvasQuickActionBar } from './CanvasQuickActionBar';
@@ -35,13 +39,11 @@ import {
   CanvasTransientOverlays,
 } from './CanvasTransientOverlays';
 import { CanvasZoomControl } from './CanvasZoomControl';
-import { ImageViewerModal } from './ImageViewerModal';
 import { MultiSelectionConnectButton } from './MultiSelectionConnectButton';
 import { MultiSelectionToolbar } from './MultiSelectionToolbar';
 import { NodeSpawnPlusOverlay } from './NodeSpawnPlusOverlay';
 import { NodeToolDialog } from './NodeToolDialog';
 import { SelectedNodeOverlay } from './SelectedNodeOverlay';
-import { VideoViewerModal } from './VideoViewerModal';
 
 const DEFAULT_EDGE_OPTIONS: NonNullable<
   ReactFlowProps<CanvasNode, CanvasEdge>['defaultEdgeOptions']

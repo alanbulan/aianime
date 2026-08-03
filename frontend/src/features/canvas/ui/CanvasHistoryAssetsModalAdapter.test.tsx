@@ -45,21 +45,6 @@ vi.mock('@/modules/creative_canvas/public', () => ({
     const ViewerLayer = props.ViewerLayer;
     return <ViewerLayer controller={mocks.viewerController} />;
   },
-}));
-
-vi.mock('@/lib/media-url', () => ({
-  resolveMediaUrl: (url: string | null | undefined) => url ?? null,
-}));
-
-vi.mock('@/lib/browserDownload', () => ({
-  downloadUrlAsFile: (url: string) => mocks.download(url),
-}));
-
-vi.mock('@/features/viewer-kit/three-d/directorManifest', () => ({
-  buildStandaloneWorldManifest: (input: unknown) => mocks.buildManifest(input),
-}));
-
-vi.mock('./ImageViewerModal', () => ({
   ImageViewerModal: ({
     open,
     imageUrl,
@@ -78,9 +63,6 @@ vi.mock('./ImageViewerModal', () => ({
         <button type="button" onClick={() => onNavigate('next')}>next-image</button>
       </div>
     ) : null,
-}));
-
-vi.mock('./VideoViewerModal', () => ({
   VideoViewerModal: ({
     open,
     videoUrl,
@@ -93,6 +75,18 @@ vi.mock('./VideoViewerModal', () => ({
     open ? (
       <button type="button" onClick={onClose}>video:{videoUrl}</button>
     ) : null,
+}));
+
+vi.mock('@/lib/media-url', () => ({
+  resolveMediaUrl: (url: string | null | undefined) => url ?? null,
+}));
+
+vi.mock('@/lib/browserDownload', () => ({
+  downloadUrlAsFile: (url: string) => mocks.download(url),
+}));
+
+vi.mock('@/features/viewer-kit/three-d/directorManifest', () => ({
+  buildStandaloneWorldManifest: (input: unknown) => mocks.buildManifest(input),
 }));
 
 vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({

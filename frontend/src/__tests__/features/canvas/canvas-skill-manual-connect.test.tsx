@@ -185,11 +185,9 @@ vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
   NodeToolDialog: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/ImageViewerModal", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   ImageViewerModal: () => null,
-}));
-
-vi.mock("@/features/canvas/ui/VideoViewerModal", () => ({
   VideoViewerModal: () => null,
 }));
 

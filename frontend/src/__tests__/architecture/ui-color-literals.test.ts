@@ -52,7 +52,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/ui/RedrawOverlay.tsx": 9,
   "features/canvas/ui/tool-editors/AnnotateToolEditor.tsx": 4,
   "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx": 4,
-  "features/canvas/ui/VideoViewerModal.tsx": 4,
+  "modules/creative_canvas/presentation/VideoViewerModal.tsx": 4,
   "features/viewer-kit/pano/PanoCaptureSurface.tsx": 1,
   "features/viewer-kit/three-d/engine/viewerApp.ts": 9,
   "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx": 26,

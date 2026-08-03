@@ -10,14 +10,13 @@ import {
   type CanvasHistoryAssetsModalCommandProps,
   type CanvasHistoryAssetsModalController,
   type HistoryNodeMeta,
+  ImageViewerModal,
+  VideoViewerModal,
 } from '@/modules/creative_canvas/public';
 import { buildStandaloneWorldManifest } from '@/features/viewer-kit/three-d/directorManifest';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { resolveMediaUrl } from '@/lib/media-url';
-
-import { ImageViewerModal } from './ImageViewerModal';
-import { VideoViewerModal } from './VideoViewerModal';
 
 const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
   CANVAS_NODE_TYPES.imageGen,

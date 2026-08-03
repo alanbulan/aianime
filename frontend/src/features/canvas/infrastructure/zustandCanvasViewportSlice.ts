@@ -7,7 +7,7 @@ import {
   openCanvasImageViewer,
   type CanvasImageViewerDirection,
   type CanvasImageViewerState,
-} from '../application/canvasImageViewer';
+} from '@/modules/creative_canvas/public';
 import { findAvailableNodePosition } from '../domain/canvasGeometry';
 import type { CanvasNode } from '../domain/canvasNodes';
 import {

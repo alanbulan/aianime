@@ -513,6 +513,19 @@ export type {
   CanvasHistoryWorldViewerRequest,
 } from "@/modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController";
 export {
+  createClosedCanvasImageViewer,
+  navigateCanvasImageViewer,
+  openCanvasImageViewer,
+} from "@/modules/creative_canvas/domain/canvasImageViewer";
+export type {
+  CanvasImageViewerDirection,
+  CanvasImageViewerState,
+} from "@/modules/creative_canvas/domain/canvasImageViewer";
+export { ImageViewerModal } from "@/modules/creative_canvas/presentation/ImageViewerModal";
+export type { ImageViewerModalProps } from "@/modules/creative_canvas/presentation/ImageViewerModal";
+export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
+export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
+export {
   useCanvasGenerationHistory,
 } from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";
 export type {

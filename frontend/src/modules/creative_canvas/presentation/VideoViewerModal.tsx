@@ -5,7 +5,7 @@ import { Maximize2, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
 import {
   MEDIA_VIEWER_CLOSE_BUTTON_CLASS,
   MEDIA_VIEWER_CLOSE_ICON_CLASS,
-} from './closeButtonStyles';
+} from './mediaViewerStyles';
 
 export interface VideoViewerModalProps {
   open: boolean;

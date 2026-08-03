@@ -3,11 +3,11 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
 import { UI_CONTENT_OVERLAY_INSET_CLASS } from '@/components/ui/motion';
-import { useImageViewerTransform } from '../hooks/useImageViewerTransform';
+import { useImageViewerTransform } from './useImageViewerTransform';
 import {
   MEDIA_VIEWER_CLOSE_BUTTON_CLASS,
   MEDIA_VIEWER_CLOSE_ICON_CLASS,
-} from './closeButtonStyles';
+} from './mediaViewerStyles';
 
 export interface ImageViewerModalProps {
   open: boolean;
