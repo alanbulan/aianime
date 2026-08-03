@@ -172,12 +172,15 @@ describe("round 2 residual architecture boundaries", () => {
       "generationHistoryRecord.ts",
       "generationHistoryRecord.test.ts",
       "canvasAsset.ts",
+      "canvasAsset.test.ts",
     ];
     const generationHistoryApplicationFiles = [
       "generationHistory.ts",
       "generationHistory.test.ts",
       "generationHistoryAssets.ts",
       "generationHistoryAssets.test.ts",
+      "canvasHistoryAssetSpawn.ts",
+      "canvasHistoryAssetSpawn.test.ts",
     ];
     const generationHistoryInfrastructureFiles = [
       "freezoneGenerationHistoryGateway.ts",
@@ -192,6 +195,13 @@ describe("round 2 residual architecture boundaries", () => {
       "NodeGenerationHistory.test.tsx",
       "CanvasHistoryAssetCard.tsx",
       "CanvasHistoryAssetCard.test.tsx",
+      "useCanvasHistoryAssetController.ts",
+      "useCanvasHistoryAssetController.test.tsx",
+      "useCanvasHistoryAssetsModalController.ts",
+      "useCanvasHistoryAssetsModalController.test.tsx",
+      "CanvasHistoryAssetsModal.tsx",
+      "CanvasHistoryAssetsModalView.tsx",
+      "CanvasHistoryAssetsModalView.test.tsx",
     ];
     const generationHistoryCompositionFiles = [
       "generationHistoryComposition.ts",
@@ -625,6 +635,15 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/NodeGenerationHistory.tsx",
       "features/canvas/ui/CanvasHistoryAssetCard.tsx",
       "features/canvas/ui/CanvasHistoryAssetCard.test.tsx",
+      "features/canvas/application/canvasHistoryAssetSpawn.ts",
+      "features/canvas/application/canvasHistoryAssetSpawn.test.ts",
+      "features/canvas/hooks/useCanvasHistoryAssetController.ts",
+      "features/canvas/hooks/useCanvasHistoryAssetController.test.tsx",
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.test.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModalView.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModalView.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, file)), file).toBe(false);
     }
@@ -1160,10 +1179,14 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/generationHistoryRecord",
         "@/modules/creative_canvas/domain/canvasAsset",
         "@/modules/creative_canvas/application/generationHistoryAssets",
+        "@/modules/creative_canvas/application/canvasHistoryAssetSpawn",
         "@/modules/creative_canvas/presentation/useCanvasGenerationHistory",
         "@/modules/creative_canvas/presentation/useNodeGenerationHistory",
         "@/modules/creative_canvas/presentation/NodeGenerationHistory",
         "@/modules/creative_canvas/presentation/CanvasHistoryAssetCard",
+        "@/modules/creative_canvas/presentation/useCanvasHistoryAssetController",
+        "@/modules/creative_canvas/presentation/CanvasHistoryAssetsModal",
+        "@/modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController",
         "@/modules/creative_canvas/domain/beatContext",
         "@/modules/creative_canvas/domain/assetLibraryModel",
         "@/modules/creative_canvas/domain/assetLibrary",
@@ -1762,7 +1785,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 685],
+      ["features/canvas", 678],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

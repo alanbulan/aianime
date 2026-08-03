@@ -7787,11 +7787,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas history-asset planning and orchestration outside the view", () => {
     const plannerPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasHistoryAssetSpawn.ts",
+      "modules/creative_canvas/application/canvasHistoryAssetSpawn.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasHistoryAssetController.ts",
+      "modules/creative_canvas/presentation/useCanvasHistoryAssetController.ts",
     );
     const plannerModel = readFileSync(plannerPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
@@ -7806,7 +7806,7 @@ describe("frontend architecture boundaries", () => {
     const historyAssetsController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+        "modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController.ts",
       ),
       "utf8",
     );
@@ -7851,9 +7851,11 @@ describe("frontend architecture boundaries", () => {
     expect(plannerForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      ["features/canvas/application/canvasHistoryAssetSpawn.ts"],
-      ["features/canvas/application/canvasHistoryAssetSpawn.ts"],
-      ["features/canvas/hooks/useCanvasHistoryAssetController.ts"],
+      ["modules/creative_canvas/application/canvasHistoryAssetSpawn.ts"],
+      ["modules/creative_canvas/application/canvasHistoryAssetSpawn.ts"],
+      [
+        "modules/creative_canvas/presentation/useCanvasHistoryAssetController.ts",
+      ],
     ]);
     expect(plannerModel).toContain("restoreAsGeneratedImage: true");
     expect(plannerModel).toContain("HISTORY_ASSET_GRID_MAX_COLUMNS = 4");
@@ -7868,6 +7870,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("restoreAsGeneratedImage: true");
     expect(canvasView).not.toContain("Math.min(4, placement.total)");
     expect(canvasView).not.toContain("@/features/canvas/domain/canvasAssets");
+    expect(plannerModel).not.toContain("@/features/");
+    expect(hookModel).not.toContain("@/features/");
     expect(quickActionView).toContain("CanvasHistoryAssetPlacement");
     expect(historyAssetsController).toContain("CanvasHistoryAssetPlacement");
     expect(quickActionView).not.toContain(
@@ -8223,7 +8227,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/viewer-kit/useViewerImmersiveBody",
         "@/modules/creative_canvas/public",
         "../domain/canvasNodes",
-        "./useCanvasHistoryAssetController",
       ]),
     );
     expect(implementationOwners).toEqual([
@@ -22959,10 +22962,17 @@ describe("frontend architecture boundaries", () => {
     );
     const assetContractSource = readFileSync(assetContractPath, "utf8");
     const assetSource = readFileSync(assetPath, "utf8");
+    const historyAdapterSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+      ),
+      "utf8",
+    );
     const historyControllerSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+        "modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController.ts",
       ),
       "utf8",
     );
@@ -22978,7 +22988,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(assetPath)).not.toContain("@/lib/media-url");
     expect(assetSource).not.toContain("export interface CanvasAsset");
     expect(assetSource).toContain("resolveMediaUrl: CanvasMediaUrlResolver");
-    expect(historyControllerSource).toContain(
+    expect(historyAdapterSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
     );
     expect(historyControllerSource).toContain(
@@ -22987,33 +22997,42 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas history-assets modal split into controller, view, and media leaf", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const entryPath = resolve(
-      SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+      moduleRoot,
+      "presentation/CanvasHistoryAssetsModal.tsx",
     );
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      moduleRoot,
+      "presentation/useCanvasHistoryAssetsModalController.ts",
     );
     const controllerTestPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasHistoryAssetsModalController.test.tsx",
+      moduleRoot,
+      "presentation/useCanvasHistoryAssetsModalController.test.tsx",
     );
     const viewPath = resolve(
-      SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModalView.tsx",
+      moduleRoot,
+      "presentation/CanvasHistoryAssetsModalView.tsx",
     );
     const viewTestPath = resolve(
-      SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModalView.test.tsx",
+      moduleRoot,
+      "presentation/CanvasHistoryAssetsModalView.test.tsx",
     );
     const cardPath = resolve(
-      SRC_ROOT,
-      "modules/creative_canvas/presentation/CanvasHistoryAssetCard.tsx",
+      moduleRoot,
+      "presentation/CanvasHistoryAssetCard.tsx",
     );
     const cardTestPath = resolve(
+      moduleRoot,
+      "presentation/CanvasHistoryAssetCard.test.tsx",
+    );
+    const adapterPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/presentation/CanvasHistoryAssetCard.test.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+    );
+    const adapterTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.test.tsx",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -23022,6 +23041,8 @@ describe("frontend architecture boundaries", () => {
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const cardSource = readFileSync(cardPath, "utf8");
     const cardTestSource = readFileSync(cardTestPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const adapterTestSource = readFileSync(adapterTestPath, "utf8");
     const declarations = [
       ["export function", "CanvasHistoryAssetsModal("].join(" "),
       ["export function", "useCanvasHistoryAssetsModalController("].join(
@@ -23040,42 +23061,36 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/hooks/useCanvasHistoryAssetsModalController",
+        "./useCanvasHistoryAssetsModalController",
         "./CanvasHistoryAssetsModalView",
       ]),
     );
     expect(entrySource).toContain(
-      "useCanvasHistoryAssetsModalController(props)",
+      "useCanvasHistoryAssetsModalController(controllerOptions)",
     );
-    expect(entrySource).toContain(
-      "createElement(CanvasHistoryAssetsModalView, { controller })",
-    );
+    expect(entrySource).toContain("createElement(CanvasHistoryAssetsModalView");
+    expect(entrySource).toContain("ViewerLayer,");
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("className=");
+    expect(entrySource).not.toContain("@/features/");
+    expect(entrySource).not.toContain("@/lib/");
     expect(controllerSource).toContain("useCanvasGenerationHistory(");
     expect(controllerSource).toContain(
       "recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)",
     );
-    expect(controllerSource).toContain(
-      "extractCanvasAssets(nodes, resolveMediaUrl)",
-    );
-    expect(controllerSource).toContain("downloadUrlAsFile(asset.url)");
-    expect(controllerSource).toContain("buildStandaloneWorldManifest({");
+    expect(controllerSource).toContain(": liveAssetBuckets");
+    expect(controllerSource).toContain("await downloadAsset(asset.url)");
+    expect(controllerSource).toContain("setWorldViewerRequest({");
     expect(controllerSource).toContain("projectId: string");
     expect(controllerSource).toContain("canvasId: string | null");
-    expect(controllerSource).not.toContain("@/lib/url-params");
+    expect(controllerSource).not.toContain("@/features/");
+    expect(controllerSource).not.toContain("@/lib/");
     expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("lucide-react");
     expect(controllerSource).not.toContain("<ImageViewerModal");
-    expect(importSpecifiers(viewPath)).not.toContain(
-      "@/features/canvas/canvasStore",
-    );
-    expect(importSpecifiers(viewPath)).not.toContain(
-      "@/features/canvas/hooks/useCanvasGenerationHistory",
-    );
-    expect(importSpecifiers(viewPath)).not.toContain("@/lib/browserDownload");
-    expect(importSpecifiers(viewPath)).not.toContain("@/lib/url-params");
+    expect(viewSource).not.toContain("@/features/");
+    expect(viewSource).not.toContain("@/lib/");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useMemo(");
@@ -23084,14 +23099,21 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("<audio");
     expect(viewSource).toContain("<CanvasHistoryAssetCard");
     expect(importSpecifiers(viewPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(viewPath)).not.toContain(
       "./CanvasHistoryAssetCard",
     );
-    expect(viewSource).toContain("<ImageViewerModal");
-    expect(viewSource).toContain("<VideoViewerModal");
-    expect(viewSource).toContain("<ThreeDDirectorDialog");
+    expect(viewSource).toContain("<ViewerLayer controller={controller}");
+    expect(viewSource).not.toContain("<ImageViewerModal");
+    expect(viewSource).not.toContain("<VideoViewerModal");
+    expect(viewSource).not.toContain("<ThreeDDirectorDialog");
+    expect(importSpecifiers(adapterPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(adapterSource).toContain("extractCanvasAssets(nodes, resolveMediaUrl)");
+    expect(adapterSource).toContain("buildStandaloneWorldManifest({");
+    expect(adapterSource).toContain("downloadAsset={downloadUrlAsFile}");
+    expect(adapterSource).toContain("<ImageViewerModal");
+    expect(adapterSource).toContain("<VideoViewerModal");
+    expect(adapterSource).toContain("<ThreeDDirectorDialog");
     expect(cardSource).toContain("<audio");
     expect(cardSource).toContain("requestAnimationFrame(tick)");
     expect(cardSource).not.toContain("@/features/canvas/canvasStore");
@@ -23101,9 +23123,13 @@ describe("frontend architecture boundaries", () => {
     expect(cardSource).not.toContain("@/features/");
     expect(cardSource).not.toContain("@/lib/");
     expect(declarationOwners).toEqual([
-      ["features/canvas/ui/CanvasHistoryAssetsModal.tsx"],
-      ["features/canvas/hooks/useCanvasHistoryAssetsModalController.ts"],
-      ["features/canvas/ui/CanvasHistoryAssetsModalView.tsx"],
+      ["modules/creative_canvas/presentation/CanvasHistoryAssetsModal.tsx"],
+      [
+        "modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController.ts",
+      ],
+      [
+        "modules/creative_canvas/presentation/CanvasHistoryAssetsModalView.tsx",
+      ],
       ["modules/creative_canvas/presentation/CanvasHistoryAssetCard.tsx"],
     ]);
     expect(controllerTestSource).toContain(
@@ -23113,19 +23139,20 @@ describe("frontend architecture boundaries", () => {
       "from './CanvasHistoryAssetsModalView'",
     );
     expect(cardTestSource).toContain("from './CanvasHistoryAssetCard'");
-    expect(
-      existsSync(
-        resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetCard.tsx"),
-      ),
-    ).toBe(false);
-    expect(
-      existsSync(
-        resolve(
-          SRC_ROOT,
-          "features/canvas/ui/CanvasHistoryAssetCard.test.tsx",
-        ),
-      ),
-    ).toBe(false);
+    expect(adapterTestSource).toContain(
+      "from './CanvasHistoryAssetsModalAdapter'",
+    );
+    for (const legacyPath of [
+      "features/canvas/ui/CanvasHistoryAssetsModal.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModalView.tsx",
+      "features/canvas/ui/CanvasHistoryAssetsModalView.test.tsx",
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      "features/canvas/hooks/useCanvasHistoryAssetsModalController.test.tsx",
+      "features/canvas/ui/CanvasHistoryAssetCard.tsx",
+      "features/canvas/ui/CanvasHistoryAssetCard.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
   });
 
   it("keeps generation-history record parsing and asset projection out of UI", () => {
@@ -23165,8 +23192,8 @@ describe("frontend architecture boundaries", () => {
       "presentation/NodeGenerationHistory.test.tsx",
     );
     const historyAssetsControllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
+      moduleRoot,
+      "presentation/useCanvasHistoryAssetsModalController.ts",
     );
     const imageViewPath = resolve(
       SRC_ROOT,
@@ -23273,7 +23300,10 @@ describe("frontend architecture boundaries", () => {
     expect(historyViewSource).not.toContain(
       "export function hasCompletedHistoryRecords",
     );
-    expect(historyAssetsControllerSource).toContain(
+    expect(importSpecifiers(historyAssetsControllerPath)).toContain(
+      "../application/generationHistoryAssets",
+    );
+    expect(historyAssetsControllerSource).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(historyAssetsControllerSource).not.toContain(
@@ -27989,6 +28019,10 @@ describe("frontend architecture boundaries", () => {
       "generationHistoryComposition.ts",
     );
     const publicPath = resolve(moduleRoot, "public.ts");
+    const historyAssetsControllerPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasHistoryAssetsModalController.ts",
+    );
     const hookPaths = [
       "presentation/useCanvasGenerationHistory.ts",
       "presentation/useNodeGenerationHistory.ts",
@@ -28008,10 +28042,6 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
-      resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasHistoryAssetsModalController.ts",
-      ),
       resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNodeView.tsx"),
     ];
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -28097,6 +28127,12 @@ describe("frontend architecture boundaries", () => {
     expect(nodeHistoryHookSource).toContain("canvasId: string");
     expect(nodeHistoryHookSource).not.toContain("readUrl()");
     expect(nodeHistoryHookSource).not.toContain("@/lib/url-params");
+    expect(importSpecifiers(historyAssetsControllerPath)).toContain(
+      "./useCanvasGenerationHistory",
+    );
+    expect(readFileSync(historyAssetsControllerPath, "utf8")).not.toContain(
+      "@/features/",
+    );
     for (const consumerPath of consumerPaths) {
       const consumerSource = readFileSync(consumerPath, "utf8");
       expect(

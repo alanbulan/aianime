@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/modules/creative_canvas/public';
+import type { CanvasAsset } from '../domain/canvasAsset';
 import {
   useCanvasHistoryAssetController,
   type CanvasHistoryAssetControllerOptions,

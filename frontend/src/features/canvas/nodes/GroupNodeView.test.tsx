@@ -40,8 +40,8 @@ vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/CanvasHistoryAssetsModal', () => ({
-  CanvasHistoryAssetsModal: ({
+vi.mock('@/features/canvas/ui/CanvasHistoryAssetsModalAdapter', () => ({
+  CanvasHistoryAssetsModalAdapter: ({
     onClose,
     onUseAsset,
     onDeleteNode,

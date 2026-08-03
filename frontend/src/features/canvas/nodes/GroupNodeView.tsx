@@ -20,7 +20,7 @@ import {
 } from '@/features/canvas/domain/groupColors';
 import type { StoryboardCellKind } from '@/features/canvas/domain/storyboardCellPreview';
 import type { GroupNodeController } from '@/features/canvas/hooks/useGroupNodeController';
-import { CanvasHistoryAssetsModal } from '@/features/canvas/ui/CanvasHistoryAssetsModal';
+import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -152,7 +152,7 @@ export function GroupNodeView({
       ) : null}
 
       {controller.historyOpen ? (
-        <CanvasHistoryAssetsModal
+        <CanvasHistoryAssetsModalAdapter
           projectId={controller.projectId}
           canvasId={null}
           imageOnly

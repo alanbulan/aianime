@@ -466,6 +466,16 @@ export type {
   CanvasMediaUrlResolver,
 } from "@/modules/creative_canvas/domain/canvasAsset";
 export {
+  groupCanvasAssetsByDate,
+} from "@/modules/creative_canvas/domain/canvasAsset";
+export {
+  createCanvasHistoryAssetPayload,
+  resolveCanvasHistoryAssetPosition,
+} from "@/modules/creative_canvas/application/canvasHistoryAssetSpawn";
+export type {
+  CanvasHistoryAssetPlacement,
+} from "@/modules/creative_canvas/application/canvasHistoryAssetSpawn";
+export {
   recordsToAssetBuckets,
 } from "@/modules/creative_canvas/application/generationHistoryAssets";
 export type {
@@ -483,6 +493,25 @@ export {
 export type {
   CanvasHistoryAssetCardProps,
 } from "@/modules/creative_canvas/presentation/CanvasHistoryAssetCard";
+export {
+  useCanvasHistoryAssetController,
+} from "@/modules/creative_canvas/presentation/useCanvasHistoryAssetController";
+export type {
+  CanvasHistoryAssetController,
+  CanvasHistoryAssetControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasHistoryAssetController";
+export {
+  CanvasHistoryAssetsModal,
+} from "@/modules/creative_canvas/presentation/CanvasHistoryAssetsModal";
+export type {
+  CanvasHistoryAssetsModalProps,
+} from "@/modules/creative_canvas/presentation/CanvasHistoryAssetsModal";
+export type {
+  CanvasHistoryAssetsModalCommandProps,
+  CanvasHistoryAssetsModalController,
+  CanvasHistoryAssetsModalControllerOptions,
+  CanvasHistoryWorldViewerRequest,
+} from "@/modules/creative_canvas/presentation/useCanvasHistoryAssetsModalController";
 export {
   useCanvasGenerationHistory,
 } from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";

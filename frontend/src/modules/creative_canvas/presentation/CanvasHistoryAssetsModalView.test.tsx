@@ -2,8 +2,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/modules/creative_canvas/public';
-import type { CanvasHistoryAssetsModalController } from '@/features/canvas/hooks/useCanvasHistoryAssetsModalController';
+import type { CanvasAsset } from '../domain/canvasAsset';
+import type { CanvasHistoryAssetsModalController } from './useCanvasHistoryAssetsModalController';
 
 import { CanvasHistoryAssetsModalView } from './CanvasHistoryAssetsModalView';
 
@@ -14,7 +14,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./CanvasHistoryAssetCard', () => ({
   CanvasHistoryAssetCard: ({
     asset,
     onToggleSelect,
@@ -42,41 +42,39 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   ),
 }));
 
-vi.mock('./ImageViewerModal', () => ({
-  ImageViewerModal: ({
-    open,
-    onClose,
-    onNavigate,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    onNavigate: (direction: 'prev' | 'next') => void;
-  }) =>
-    open ? (
-      <div>
-        <button type="button" onClick={onClose}>close-image-viewer</button>
-        <button type="button" onClick={() => onNavigate('next')}>next-image</button>
-      </div>
-    ) : null,
-}));
-
-vi.mock('./VideoViewerModal', () => ({
-  VideoViewerModal: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
-    open ? <button type="button" onClick={onClose}>close-video-viewer</button> : null,
-}));
-
-vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({
-  ThreeDDirectorDialog: ({
-    open,
-    onOpenChange,
-  }: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-  }) =>
-    open ? (
-      <button type="button" onClick={() => onOpenChange(false)}>close-world-viewer</button>
-    ) : null,
-}));
+function ViewerLayer({
+  controller: value,
+}: {
+  controller: CanvasHistoryAssetsModalController;
+}) {
+  return (
+    <>
+      {value.imageViewerIndex !== null ? (
+        <>
+          <button type="button" onClick={value.closeImageViewer}>
+            close-image-viewer
+          </button>
+          <button
+            type="button"
+            onClick={() => value.navigateImageViewer('next')}
+          >
+            next-image
+          </button>
+        </>
+      ) : null}
+      {value.videoViewerUrl ? (
+        <button type="button" onClick={value.closeVideoViewer}>
+          close-video-viewer
+        </button>
+      ) : null}
+      {value.worldViewerRequest ? (
+        <button type="button" onClick={() => value.setWorldViewerOpen(false)}>
+          close-world-viewer
+        </button>
+      ) : null}
+    </>
+  );
+}
 
 function asset(id: string): CanvasAsset {
   return {
@@ -132,7 +130,7 @@ function controller(
     navigateImageViewer: vi.fn(),
     videoViewerUrl: null,
     closeVideoViewer: vi.fn(),
-    worldManifest: null,
+    worldViewerRequest: null,
     setWorldViewerOpen: vi.fn(),
     promptDialogText: null,
     openPromptDialog: vi.fn(),
@@ -155,6 +153,7 @@ describe('CanvasHistoryAssetsModalView', () => {
     const openPromptDialog = vi.fn();
     render(
       <CanvasHistoryAssetsModalView
+        ViewerLayer={ViewerLayer}
         controller={controller({
           selectTab,
           toggleDirection,
@@ -214,6 +213,7 @@ describe('CanvasHistoryAssetsModalView', () => {
     const closePromptDialog = vi.fn();
     render(
       <CanvasHistoryAssetsModalView
+        ViewerLayer={ViewerLayer}
         controller={controller({
           selectionMode: true,
           selectedIds: new Set(['image-a']),
@@ -228,7 +228,11 @@ describe('CanvasHistoryAssetsModalView', () => {
           navigateImageViewer,
           videoViewerUrl: '/video-a.mp4',
           closeVideoViewer,
-          worldManifest: { id: 'world-a' } as never,
+          worldViewerRequest: {
+            projectId: 'project-a',
+            url: '/world-a.sog',
+            displayName: 'world-a',
+          },
           setWorldViewerOpen,
           promptDialogText: '完整提示词',
           closePromptDialog,
@@ -260,6 +264,7 @@ describe('CanvasHistoryAssetsModalView', () => {
     const emptyBuckets = { image: [], video: [], audio: [], model: [] };
     const { rerender } = render(
       <CanvasHistoryAssetsModalView
+        ViewerLayer={ViewerLayer}
         controller={controller({
           isLoading: true,
           buckets: emptyBuckets,
@@ -272,6 +277,7 @@ describe('CanvasHistoryAssetsModalView', () => {
 
     rerender(
       <CanvasHistoryAssetsModalView
+        ViewerLayer={ViewerLayer}
         controller={controller({
           useHistory: false,
           isLoading: true,

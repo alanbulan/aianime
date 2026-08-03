@@ -6,8 +6,11 @@ import type { CanvasEventBus } from '@/features/canvas/application/ports';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   spawnCanvasAssetNode,
+  useCanvasHistoryAssetController,
   useCanvasMediaTransferController,
   type CanvasAssetDragPayload,
+  type CanvasHistoryAssetController,
+  type CanvasHistoryAssetControllerOptions,
   type CanvasAssetNodeSpawnPort,
   type CanvasMediaPasteEventPort,
   type CanvasMediaTransferController,
@@ -18,11 +21,6 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from '../domain/canvasNodes';
-import {
-  useCanvasHistoryAssetController,
-  type CanvasHistoryAssetController,
-  type CanvasHistoryAssetControllerOptions,
-} from './useCanvasHistoryAssetController';
 
 interface CanvasPosition {
   x: number;

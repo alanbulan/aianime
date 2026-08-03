@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import type {
-  CanvasAsset,
   CanvasAssetBuckets,
-  CanvasAssetDateGroup,
   CanvasAssetKind,
   CanvasMediaUrlResolver,
 } from '@/modules/creative_canvas/public';
@@ -161,61 +159,4 @@ export function extractCanvasAssets(
   }
 
   return buckets;
-}
-
-function dateKey(timestamp: number | null): string | null {
-  if (timestamp === null) {
-    return null;
-  }
-  const d = new Date(timestamp);
-  const year = d.getFullYear();
-  const month = `${d.getMonth() + 1}`.padStart(2, '0');
-  const day = `${d.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-/**
- * Group assets by calendar day and sort. Dated groups come first (ordered by
- * `direction`); the undated bucket always sinks to the end.
- */
-export function groupAssetsByDate(
-  assets: CanvasAsset[],
-  direction: 'desc' | 'asc',
-): CanvasAssetDateGroup[] {
-  const groups = new Map<string | null, CanvasAsset[]>();
-  for (const asset of assets) {
-    const key = dateKey(asset.timestamp);
-    const bucket = groups.get(key);
-    if (bucket) {
-      bucket.push(asset);
-    } else {
-      groups.set(key, [asset]);
-    }
-  }
-
-  const sortByTime = (a: CanvasAsset, b: CanvasAsset) => {
-    const ta = a.timestamp ?? 0;
-    const tb = b.timestamp ?? 0;
-    return direction === 'desc' ? tb - ta : ta - tb;
-  };
-
-  const dated: CanvasAssetDateGroup[] = [];
-  let undated: CanvasAsset[] | null = null;
-  for (const [key, bucket] of groups) {
-    bucket.sort(sortByTime);
-    if (key === null) {
-      undated = bucket;
-    } else {
-      dated.push({ date: key, assets: bucket });
-    }
-  }
-
-  dated.sort((a, b) =>
-    direction === 'desc' ? (a.date! < b.date! ? 1 : -1) : a.date! < b.date! ? -1 : 1,
-  );
-
-  if (undated) {
-    dated.push({ date: null, assets: undated });
-  }
-  return dated;
 }

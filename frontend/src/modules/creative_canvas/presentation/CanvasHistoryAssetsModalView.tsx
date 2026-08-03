@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowDownUp,
@@ -10,15 +11,9 @@ import {
   X,
 } from 'lucide-react';
 
-import type { CanvasHistoryAssetsModalController } from '@/features/canvas/hooks/useCanvasHistoryAssetsModalController';
-import {
-  CanvasHistoryAssetCard,
-  type CanvasAssetKind,
-} from '@/modules/creative_canvas/public';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
-
-import { ImageViewerModal } from './ImageViewerModal';
-import { VideoViewerModal } from './VideoViewerModal';
+import type { CanvasAssetKind } from '../domain/canvasAsset';
+import { CanvasHistoryAssetCard } from './CanvasHistoryAssetCard';
+import type { CanvasHistoryAssetsModalController } from './useCanvasHistoryAssetsModalController';
 
 const TAB_LABEL_KEY: Record<CanvasAssetKind, string> = {
   image: 'canvas.history.tabs.image',
@@ -29,10 +24,14 @@ const TAB_LABEL_KEY: Record<CanvasAssetKind, string> = {
 
 export interface CanvasHistoryAssetsModalViewProps {
   controller: CanvasHistoryAssetsModalController;
+  ViewerLayer: ComponentType<{
+    controller: CanvasHistoryAssetsModalController;
+  }>;
 }
 
 export function CanvasHistoryAssetsModalView({
   controller,
+  ViewerLayer,
 }: CanvasHistoryAssetsModalViewProps) {
   const { t } = useTranslation();
   const {
@@ -65,14 +64,6 @@ export function CanvasHistoryAssetsModalView({
     isDownloading,
     downloadSelected,
     useSelected,
-    imageViewerIndex,
-    orderedImageUrls,
-    closeImageViewer,
-    navigateImageViewer,
-    videoViewerUrl,
-    closeVideoViewer,
-    worldManifest,
-    setWorldViewerOpen,
     promptDialogText,
     openPromptDialog,
     closePromptDialog,
@@ -265,30 +256,7 @@ export function CanvasHistoryAssetsModalView({
         )}
       </div>
 
-      <ImageViewerModal
-        open={imageViewerIndex !== null}
-        imageUrl={
-          imageViewerIndex !== null
-            ? (orderedImageUrls[imageViewerIndex] ?? '')
-            : ''
-        }
-        imageList={orderedImageUrls}
-        currentIndex={imageViewerIndex ?? 0}
-        onClose={closeImageViewer}
-        onNavigate={navigateImageViewer}
-      />
-      <VideoViewerModal
-        open={Boolean(videoViewerUrl)}
-        videoUrl={videoViewerUrl ?? ''}
-        onClose={closeVideoViewer}
-      />
-      <ThreeDDirectorDialog
-        open={Boolean(worldManifest)}
-        onOpenChange={setWorldViewerOpen}
-        manifest={worldManifest}
-        title={t('viewer.threeD.directorWorld')}
-        viewerPurpose="freezone"
-      />
+      <ViewerLayer controller={controller} />
 
       {promptDialogText !== null && (
         <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">

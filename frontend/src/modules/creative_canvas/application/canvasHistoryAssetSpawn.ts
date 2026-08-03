@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasAsset,
-  CanvasAssetDragPayload,
-} from '@/modules/creative_canvas/public';
+import type { CanvasAsset } from '../domain/canvasAsset';
+import type { CanvasAssetDragPayload } from '../domain/assetDrag';
 
 const HISTORY_ASSET_GRID_MAX_COLUMNS = 4;
 const HISTORY_ASSET_GRID_GAP = 320;

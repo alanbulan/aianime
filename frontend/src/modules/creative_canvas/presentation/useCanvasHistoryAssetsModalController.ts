@@ -1,40 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  extractCanvasAssets,
-  groupAssetsByDate,
-} from '@/features/canvas/domain/canvasAssets';
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasHistoryAssetPlacement } from '../application/canvasHistoryAssetSpawn';
 import {
   recordsToAssetBuckets,
-  useCanvasGenerationHistory,
-  type CanvasAsset,
-  type CanvasAssetKind,
   type HistoryNodeMeta,
-} from '@/modules/creative_canvas/public';
+} from '../application/generationHistoryAssets';
 import {
-  buildStandaloneWorldManifest,
-  type DirectorStageManifest,
-} from '@/features/viewer-kit/three-d/directorManifest';
-import { downloadUrlAsFile } from '@/lib/browserDownload';
-import { resolveMediaUrl } from '@/lib/media-url';
-
-const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
-  CANVAS_NODE_TYPES.imageGen,
-  CANVAS_NODE_TYPES.imageEdit,
-  CANVAS_NODE_TYPES.exportImage,
-  CANVAS_NODE_TYPES.storyboardSplit,
-  CANVAS_NODE_TYPES.storyboardGen,
-  CANVAS_NODE_TYPES.video,
-  CANVAS_NODE_TYPES.videoStory,
-  CANVAS_NODE_TYPES.videoCompose,
-  CANVAS_NODE_TYPES.audio,
-  CANVAS_NODE_TYPES.script,
-  CANVAS_NODE_TYPES.threeDWorld,
-]);
+  type CanvasAsset,
+  type CanvasAssetBuckets,
+  type CanvasAssetKind,
+  type CanvasMediaUrlResolver,
+  groupCanvasAssetsByDate,
+} from '../domain/canvasAsset';
+import { useCanvasGenerationHistory } from './useCanvasGenerationHistory';
 
 const TAB_ORDER: CanvasAssetKind[] = ['image', 'video', 'audio', 'model'];
 const ZOOM_MIN = 50;
@@ -42,7 +21,7 @@ const ZOOM_MAX = 200;
 const ZOOM_STEP = 25;
 const THUMB_BASE_PX = 256;
 
-export interface CanvasHistoryAssetsModalControllerOptions {
+export interface CanvasHistoryAssetsModalCommandProps {
   projectId: string;
   canvasId: string | null;
   onClose: () => void;
@@ -55,6 +34,21 @@ export interface CanvasHistoryAssetsModalControllerOptions {
   assetSource?: 'generation-history' | 'live-canvas';
 }
 
+export interface CanvasHistoryAssetsModalControllerOptions
+  extends CanvasHistoryAssetsModalCommandProps {
+  historyNodeIds: string[];
+  resolveNodeMeta: (nodeId: string) => HistoryNodeMeta;
+  liveAssetBuckets: CanvasAssetBuckets;
+  resolveMediaUrl: CanvasMediaUrlResolver;
+  downloadAsset: (url: string) => Promise<void>;
+}
+
+export interface CanvasHistoryWorldViewerRequest {
+  projectId: string;
+  url: string;
+  displayName: string;
+}
+
 export function useCanvasHistoryAssetsModalController({
   projectId,
   canvasId,
@@ -63,19 +57,16 @@ export function useCanvasHistoryAssetsModalController({
   onDeleteNode,
   imageOnly = false,
   assetSource = 'generation-history',
+  historyNodeIds,
+  resolveNodeMeta,
+  liveAssetBuckets,
+  resolveMediaUrl,
+  downloadAsset,
 }: CanvasHistoryAssetsModalControllerOptions) {
-  const nodes = useCanvasStore((state) => state.nodes);
   const useHistory = assetSource === 'generation-history';
-  const fallbackNodeIds = useMemo(
-    () =>
-      nodes
-        .filter((node) => GENERATIVE_HISTORY_NODE_TYPES.has(node.type))
-        .map((node) => node.id),
-    [nodes],
-  );
   const { records, isLoading } = useCanvasGenerationHistory(
     { projectId, canvasId },
-    fallbackNodeIds,
+    historyNodeIds,
     { enabled: useHistory && canvasId !== null },
   );
 
@@ -88,41 +79,20 @@ export function useCanvasHistoryAssetsModalController({
   const [isDownloading, setIsDownloading] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState<number | null>(null);
   const [videoViewerUrl, setVideoViewerUrl] = useState<string | null>(null);
-  const [worldManifest, setWorldManifest] =
-    useState<DirectorStageManifest | null>(null);
+  const [worldViewerRequest, setWorldViewerRequest] =
+    useState<CanvasHistoryWorldViewerRequest | null>(null);
   const [promptDialogText, setPromptDialogText] = useState<string | null>(null);
-
-  const resolveNodeMeta = useMemo(() => {
-    const byId = new Map(nodes.map((node) => [node.id, node]));
-    const trimmed = (value: unknown): string | null =>
-      typeof value === 'string' && value.trim().length > 0 ? value : null;
-    return (nodeId: string): HistoryNodeMeta => {
-      const node = byId.get(nodeId);
-      if (!node) return { cover: null, name: null };
-      const data = node.data as Record<string, unknown>;
-      const cover = trimmed(data.previewImageUrl);
-      const sourceNodeId = trimmed(data.sourceNodeId);
-      const sourceData = (sourceNodeId
-        ? byId.get(sourceNodeId)?.data
-        : undefined) as Record<string, unknown> | undefined;
-      const name =
-        trimmed(sourceData?.displayName) ??
-        trimmed(sourceData?.sourceFileName) ??
-        trimmed(data.displayName);
-      return { cover, name };
-    };
-  }, [nodes]);
 
   const buckets = useMemo(
     () =>
       useHistory
         ? recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)
-        : extractCanvasAssets(nodes, resolveMediaUrl),
-    [nodes, records, resolveNodeMeta, useHistory],
+        : liveAssetBuckets,
+    [liveAssetBuckets, records, resolveMediaUrl, resolveNodeMeta, useHistory],
   );
   const activeAssets = buckets[activeTab];
   const groups = useMemo(
-    () => groupAssetsByDate(activeAssets, direction),
+    () => groupCanvasAssetsByDate(activeAssets, direction),
     [activeAssets, direction],
   );
   const orderedImageUrls = useMemo(
@@ -144,7 +114,7 @@ export function useCanvasHistoryAssetsModalController({
       } else if (
         imageViewerIndex === null &&
         !videoViewerUrl &&
-        !worldManifest
+        !worldViewerRequest
       ) {
         onClose();
       }
@@ -156,7 +126,7 @@ export function useCanvasHistoryAssetsModalController({
     onClose,
     promptDialogText,
     videoViewerUrl,
-    worldManifest,
+    worldViewerRequest,
   ]);
 
   useEffect(() => {
@@ -210,12 +180,11 @@ export function useCanvasHistoryAssetsModalController({
         return;
       }
       if (asset.kind !== 'model') return;
-      const manifest = buildStandaloneWorldManifest({
-        project: projectId,
+      setWorldViewerRequest({
+        projectId,
         url: asset.url,
         displayName: asset.label ?? fallbackWorldName,
       });
-      if (manifest) setWorldManifest(manifest);
     },
     [orderedImageUrls, projectId],
   );
@@ -237,13 +206,13 @@ export function useCanvasHistoryAssetsModalController({
     setIsDownloading(true);
     try {
       for (const asset of selectedAssets) {
-        await downloadUrlAsFile(asset.url);
+        await downloadAsset(asset.url);
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
     } finally {
       setIsDownloading(false);
     }
-  }, [isDownloading, selectedAssets]);
+  }, [downloadAsset, isDownloading, selectedAssets]);
 
   const useSelected = useCallback(() => {
     if (selectedAssets.length === 0) return;
@@ -301,9 +270,9 @@ export function useCanvasHistoryAssetsModalController({
     navigateImageViewer,
     videoViewerUrl,
     closeVideoViewer: () => setVideoViewerUrl(null),
-    worldManifest,
+    worldViewerRequest,
     setWorldViewerOpen: (open: boolean) => {
-      if (!open) setWorldManifest(null);
+      if (!open) setWorldViewerRequest(null);
     },
     promptDialogText,
     openPromptDialog: (text: string) => setPromptDialogText(text),

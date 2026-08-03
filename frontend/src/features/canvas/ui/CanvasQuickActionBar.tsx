@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
 import type {
   CanvasAsset,
+  CanvasHistoryAssetPlacement,
   SkillDefinition,
 } from '@/modules/creative_canvas/public';
 
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
-import { CanvasHistoryAssetsModal } from './CanvasHistoryAssetsModal';
+import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 import { CanvasHelpMenu } from './CanvasHelpMenu';
 
 type QuickPanel = 'add' | 'history' | 'shortcuts' | 'help';
@@ -238,7 +238,7 @@ export function CanvasQuickActionBar({
       </div>
 
       {openPanel === 'history' && (
-        <CanvasHistoryAssetsModal
+        <CanvasHistoryAssetsModalAdapter
           projectId={projectId}
           canvasId={canvasId}
           onClose={() => setOpenPanel(null)}

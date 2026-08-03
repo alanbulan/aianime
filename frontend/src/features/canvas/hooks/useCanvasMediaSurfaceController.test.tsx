@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasHistoryAssetControllerOptions,
-} from './useCanvasHistoryAssetController';
-import type {
   CanvasMediaTransferControllerOptions,
 } from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
@@ -45,6 +43,7 @@ const controllerMocks = vi.hoisted(() => {
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   spawnCanvasAssetNode: controllerMocks.spawnCanvasAssetNode,
+  useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
   useCanvasMediaTransferController: controllerMocks.useMediaTransfer,
 }));
 vi.mock('@/features/canvas/composition', () => ({
@@ -52,9 +51,6 @@ vi.mock('@/features/canvas/composition', () => ({
 }));
 vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
   isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
-}));
-vi.mock('./useCanvasHistoryAssetController', () => ({
-  useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
 }));
 
 function createOptions(): CanvasMediaSurfaceControllerOptions {
