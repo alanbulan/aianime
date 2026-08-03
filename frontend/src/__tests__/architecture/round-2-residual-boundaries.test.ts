@@ -328,6 +328,20 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasEdgeCreation.ts",
       "canvasEdgeCreation.test.ts",
     ];
+    const canvasConnectionPresentationFiles = [
+      "canvasConnectionInteraction.ts",
+      "canvasConnectionInteraction.test.ts",
+      "useCanvasConnectionController.ts",
+      "useCanvasConnectionController.test.tsx",
+      "useCanvasBatchConnectionController.ts",
+      "useCanvasBatchConnectionController.test.tsx",
+      "useCanvasPlusConnectionController.ts",
+      "useCanvasPlusConnectionController.test.tsx",
+      "useCanvasReactFlowConnectionController.ts",
+      "useCanvasReactFlowConnectionController.test.tsx",
+      "useCanvasConnectionGestureController.ts",
+      "useCanvasConnectionGestureController.test.tsx",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -907,6 +921,12 @@ describe("round 2 residual architecture boundaries", () => {
         true,
       );
     }
+    for (const file of canvasConnectionPresentationFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "presentation", file)),
+        file,
+      ).toBe(true);
+    }
     for (const retiredConnectionPath of [
       "features/canvas/domain/canvasConnection.ts",
       "features/canvas/domain/canvasConnection.test.ts",
@@ -919,6 +939,18 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/domain/canvasBatchConnection.test.ts",
       "features/canvas/application/canvasEdgeCreation.ts",
       "features/canvas/application/canvasEdgeCreation.test.ts",
+      "features/canvas/ui/canvasConnectionInteraction.ts",
+      "features/canvas/ui/canvasConnectionInteraction.test.ts",
+      "features/canvas/hooks/useCanvasConnectionController.ts",
+      "features/canvas/hooks/useCanvasConnectionController.test.tsx",
+      "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+      "features/canvas/hooks/useCanvasBatchConnectionController.test.tsx",
+      "features/canvas/hooks/useCanvasPlusConnectionController.ts",
+      "features/canvas/hooks/useCanvasPlusConnectionController.test.tsx",
+      "features/canvas/hooks/useCanvasReactFlowConnectionController.ts",
+      "features/canvas/hooks/useCanvasReactFlowConnectionController.test.tsx",
+      "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+      "features/canvas/hooks/useCanvasConnectionGestureController.test.tsx",
       "__tests__/features/canvas/skill-connection-edges.test.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredConnectionPath))).toBe(false);
@@ -2247,7 +2279,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 416],
+      ["features/canvas", 404],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

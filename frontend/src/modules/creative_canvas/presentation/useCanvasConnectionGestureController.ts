@@ -2,13 +2,18 @@
 import { useCallback, type RefObject } from 'react';
 
 import type {
+  CanvasConnectionNodeType,
+} from '../domain/canvasConnection';
+import type {
+  CanvasBatchConnectionNode,
+} from '../domain/canvasBatchConnection';
+import type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
   CanvasPendingConnectionStart,
-} from '@/modules/creative_canvas/public';
+} from '../domain/canvasConnectionPreview';
 
-import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
-import type { CanvasManualConnectionRequest } from '../ui/canvasConnectionInteraction';
+import type { CanvasManualConnectionRequest } from './canvasConnectionInteraction';
 import {
   useCanvasBatchConnectionController,
   type CanvasBatchConnectionController,
@@ -30,7 +35,7 @@ interface CanvasPosition {
 
 export interface CanvasConnectionGestureControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasBatchConnectionNode[];
   screenToFlowPosition: (clientPosition: CanvasPosition) => CanvasPosition;
   clearHoveredNodeTimer: () => void;
   setHoveredNodeId: (nodeId: string | null) => void;
@@ -44,7 +49,7 @@ export interface CanvasConnectionGestureControllerOptions {
     preview: CanvasConnectionPreviewRequest | null,
   ) => void;
   openConnectionMenuState: (
-    request: CanvasConnectionMenuRequest<CanvasNodeType>,
+    request: CanvasConnectionMenuRequest<CanvasConnectionNodeType>,
     spawnFlowPosition: CanvasPosition,
   ) => void;
   openBatchConnectionMenuState: (
@@ -76,7 +81,7 @@ export function useCanvasConnectionGestureController({
   connectNodes,
 }: CanvasConnectionGestureControllerOptions): CanvasConnectionGestureController {
   const openConnectionMenu = useCallback(
-    (request: CanvasConnectionMenuRequest<CanvasNodeType>) => {
+    (request: CanvasConnectionMenuRequest<CanvasConnectionNodeType>) => {
       openConnectionMenuState(
         request,
         screenToFlowPosition(request.clientPosition),

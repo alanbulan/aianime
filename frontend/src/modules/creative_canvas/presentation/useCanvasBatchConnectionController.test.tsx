@@ -3,10 +3,12 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+  type CanvasConnectionNodeType as CanvasNodeType,
+} from '../domain/canvasConnection';
+import type {
+  CanvasBatchConnectionNode as CanvasNode,
+} from '../domain/canvasBatchConnection';
 import {
   useCanvasBatchConnectionController,
   type CanvasBatchConnectionControllerOptions,

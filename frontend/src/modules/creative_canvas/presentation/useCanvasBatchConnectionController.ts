@@ -4,10 +4,11 @@ import { useCallback, useMemo, useRef, type RefObject } from 'react';
 import {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
-  type CanvasConnectionPreviewRequest,
-} from '@/modules/creative_canvas/public';
-import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
-import type { CanvasManualConnectionRequest } from '../ui/canvasConnectionInteraction';
+  type CanvasBatchConnectionNode,
+} from '../domain/canvasBatchConnection';
+import type { CanvasConnectionNodeType } from '../domain/canvasConnection';
+import type { CanvasConnectionPreviewRequest } from '../domain/canvasConnectionPreview';
+import type { CanvasManualConnectionRequest } from './canvasConnectionInteraction';
 
 const BATCH_CONNECT_SPAWN_GAP = 140;
 const BATCH_CONNECT_SPAWN_VERTICAL_OFFSET = 160;
@@ -18,14 +19,14 @@ interface CanvasBatchConnectParams {
 
 export interface CanvasBatchConnectionMenuRequest {
   sourceIds: string[];
-  allowedTypes: CanvasNodeType[];
+  allowedTypes: CanvasConnectionNodeType[];
   spawnFlowPosition: { x: number; y: number };
   menuPosition: { x: number; y: number };
 }
 
 export interface CanvasBatchConnectionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasBatchConnectionNode[];
   screenToFlowPosition: (
     clientPosition: { x: number; y: number },
   ) => { x: number; y: number };
@@ -74,7 +75,7 @@ export function useCanvasBatchConnectionController({
       menuClientPosition,
     }: {
       sourceIds: string[];
-      allowedTypes: CanvasNodeType[];
+      allowedTypes: CanvasConnectionNodeType[];
       spawnFlowPosition: { x: number; y: number };
       menuClientPosition: { x: number; y: number };
     }) => {

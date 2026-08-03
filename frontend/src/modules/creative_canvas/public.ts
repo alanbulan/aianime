@@ -146,6 +146,7 @@ export type {
   CanvasEdgeDeletionLike,
 } from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
 export {
+  CANVAS_CONNECTION_NODE_TYPES,
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   canNodeTypeBeManualConnectionSource,
@@ -618,6 +619,51 @@ export type {
   CanvasPreparedConnection,
   CanvasSpawnConnectionOrigin,
 } from "@/modules/creative_canvas/application/canvasEdgeCreation";
+export {
+  cssEscape,
+  getClientPosition,
+  resolveCanvasConnectionEnd,
+  resolveCanvasConnectionStart,
+  resolveCanvasPlusConnectionEnd,
+  resolveCanvasPlusConnectionStart,
+  resolveConnectEndHandleId,
+  resolveManualDropTargetElement,
+} from "@/modules/creative_canvas/presentation/canvasConnectionInteraction";
+export type {
+  CanvasConnectionEndResolution,
+  CanvasManualConnectionRequest,
+  CanvasPlusConnectionParams,
+  CanvasPlusConnectionStartResolution,
+} from "@/modules/creative_canvas/presentation/canvasConnectionInteraction";
+export { useCanvasConnectionController } from "@/modules/creative_canvas/presentation/useCanvasConnectionController";
+export type {
+  CanvasConnectionController,
+  CanvasConnectionControllerOptions,
+  CanvasConnectionSpawnedNodeRequest,
+  CanvasConnectionValidationCandidate,
+  CanvasGraphSnapshot,
+} from "@/modules/creative_canvas/presentation/useCanvasConnectionController";
+export { useCanvasBatchConnectionController } from "@/modules/creative_canvas/presentation/useCanvasBatchConnectionController";
+export type {
+  CanvasBatchConnectionController,
+  CanvasBatchConnectionControllerOptions,
+  CanvasBatchConnectionMenuRequest,
+} from "@/modules/creative_canvas/presentation/useCanvasBatchConnectionController";
+export { useCanvasPlusConnectionController } from "@/modules/creative_canvas/presentation/useCanvasPlusConnectionController";
+export type {
+  CanvasPlusConnectionController,
+  CanvasPlusConnectionControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasPlusConnectionController";
+export { useCanvasReactFlowConnectionController } from "@/modules/creative_canvas/presentation/useCanvasReactFlowConnectionController";
+export type {
+  CanvasReactFlowConnectionController,
+  CanvasReactFlowConnectionControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasReactFlowConnectionController";
+export { useCanvasConnectionGestureController } from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureController";
+export type {
+  CanvasConnectionGestureController,
+  CanvasConnectionGestureControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureController";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

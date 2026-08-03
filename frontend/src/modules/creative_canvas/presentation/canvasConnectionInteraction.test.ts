@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
+import {
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+  type CanvasConnectionNodeLike as CanvasNode,
+} from '../domain/canvasConnection';
 import {
   cssEscape,
   getClientPosition,

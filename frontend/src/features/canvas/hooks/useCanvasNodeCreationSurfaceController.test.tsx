@@ -74,11 +74,9 @@ const controllerMocks = vi.hoisted(() => {
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   loadCanvasSkillRegistry: vi.fn(),
+  useCanvasConnectionController: controllerMocks.useConnection,
   useCanvasNodeMenuStateController: controllerMocks.useNodeMenu,
   useCanvasNodeCatalogController: controllerMocks.useNodeCatalog,
-}));
-vi.mock('./useCanvasConnectionController', () => ({
-  useCanvasConnectionController: controllerMocks.useConnection,
 }));
 vi.mock('./useCanvasNodeInteractionController', () => ({
   useCanvasNodeInteractionController: controllerMocks.useNodeInteraction,

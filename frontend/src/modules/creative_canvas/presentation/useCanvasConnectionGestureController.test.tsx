@@ -3,9 +3,11 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+} from '../domain/canvasConnection';
+import type {
+  CanvasBatchConnectionNode as CanvasNode,
+} from '../domain/canvasBatchConnection';
 import {
   useCanvasConnectionGestureController,
   type CanvasConnectionGestureControllerOptions,

@@ -1,15 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
-  useCanvasNodeHover,
-  type CanvasNodeHoverController,
-} from '@/modules/creative_canvas/public';
-
-import {
   useCanvasConnectionGestureController,
+  useCanvasNodeHover,
   type CanvasConnectionGestureController,
   type CanvasConnectionGestureControllerOptions,
-} from './useCanvasConnectionGestureController';
+  type CanvasNodeHoverController,
+} from '@/modules/creative_canvas/public';
 
 export type CanvasConnectionGestureSurfaceControllerOptions = Omit<
   CanvasConnectionGestureControllerOptions,

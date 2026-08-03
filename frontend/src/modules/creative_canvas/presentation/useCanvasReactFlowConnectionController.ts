@@ -6,27 +6,29 @@ import type {
 } from '@xyflow/react';
 
 import type {
+  CanvasConnectionNodeLike,
+  CanvasConnectionNodeType,
+} from '../domain/canvasConnection';
+import type {
   CanvasConnectionMenuRequest,
   CanvasPendingConnectionStart,
-} from '@/modules/creative_canvas/public';
-
-import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
+} from '../domain/canvasConnectionPreview';
 import {
   resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
   type CanvasManualConnectionRequest,
-} from '../ui/canvasConnectionInteraction';
+} from './canvasConnectionInteraction';
 
 export interface CanvasReactFlowConnectionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   pendingConnection: CanvasPendingConnectionStart | null;
   prepareConnectionStart: (
     pending: CanvasPendingConnectionStart | null,
   ) => void;
   clearConnection: () => void;
   openConnectionMenu: (
-    request: CanvasConnectionMenuRequest<CanvasNodeType>,
+    request: CanvasConnectionMenuRequest<CanvasConnectionNodeType>,
   ) => void;
   connectNodes: (connection: CanvasManualConnectionRequest) => void;
 }

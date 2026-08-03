@@ -1,50 +1,60 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
-import type { Connection, Edge } from '@xyflow/react';
 
 import {
-  canNodeBeManualConnectionSource,
   planCanvasGraphConnection,
   planCanvasSpawnConnections,
   planSingleBeatContextBinding,
-  validateCanvasConnection,
+  type CanvasEdgeCreationEdge,
+  type CanvasEdgeCreationNode,
+  type CanvasGraphConnection,
   type CanvasSpawnConnectionOrigin,
-  type SkillDefinition,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+} from '../application/canvasEdgeCreation';
+import {
+  canNodeBeManualConnectionSource,
+  validateCanvasConnection,
+} from '../domain/canvasConnection';
+import type { SkillDefinition } from '../domain/skillContract';
 
 export interface CanvasGraphSnapshot {
-  nodes: readonly CanvasNode[];
-  edges: readonly CanvasEdge[];
+  nodes: readonly CanvasEdgeCreationNode[];
+  edges: readonly CanvasEdgeCreationEdge[];
 }
 
 export interface CanvasConnectionControllerOptions {
   getGraph: () => CanvasGraphSnapshot;
-  connectRegular: (connection: Connection) => void;
-  replaceEdges: (edges: CanvasEdge[]) => void;
+  connectRegular: (connection: CanvasGraphConnection) => void;
+  replaceEdges: (edges: CanvasEdgeCreationEdge[]) => void;
   skillById: ReadonlyMap<string, SkillDefinition>;
   reportMissingSkill?: (skillId: string, skillNodeId: string) => void;
 }
 
-export interface CanvasSpawnedNodeConnectionRequest {
+export interface CanvasConnectionSpawnedNodeRequest {
   spawnedNodeId: string;
   pendingConnection: CanvasSpawnConnectionOrigin | null;
   batchSourceIds: readonly string[] | null;
   explicitSkill?: SkillDefinition | null;
 }
 
+export interface CanvasConnectionValidationCandidate {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
 export interface CanvasConnectionController {
   connectGraphNodes: (
-    connection: Connection,
+    connection: CanvasGraphConnection,
     explicitSkill?: SkillDefinition | null,
   ) => void;
-  connectManualGraphNodes: (connection: Connection) => void;
+  connectManualGraphNodes: (connection: CanvasGraphConnection) => void;
   bindSingleBeatContextInput: (
     skillNodeId: string,
     skill: SkillDefinition,
   ) => void;
-  connectSpawnedNode: (request: CanvasSpawnedNodeConnectionRequest) => void;
-  isValidGraphConnection: (connection: Connection | Edge) => boolean;
+  connectSpawnedNode: (request: CanvasConnectionSpawnedNodeRequest) => void;
+  isValidGraphConnection: (connection: CanvasConnectionValidationCandidate) => boolean;
 }
 
 function reportMissingCanvasSkill(skillId: string, skillNodeId: string): void {
@@ -62,7 +72,7 @@ export function useCanvasConnectionController({
   reportMissingSkill = reportMissingCanvasSkill,
 }: CanvasConnectionControllerOptions): CanvasConnectionController {
   const connectGraphNodes = useCallback(
-    (connection: Connection, explicitSkill?: SkillDefinition | null): void => {
+    (connection: CanvasGraphConnection, explicitSkill?: SkillDefinition | null): void => {
       const graph = getGraph();
       const plan = planCanvasGraphConnection({
         ...graph,
@@ -86,7 +96,7 @@ export function useCanvasConnectionController({
   );
 
   const connectManualGraphNodes = useCallback(
-    (connection: Connection): void => {
+    (connection: CanvasGraphConnection): void => {
       const { nodes } = getGraph();
       if (!canNodeBeManualConnectionSource(connection.source, nodes, connection.target)) {
         return;
@@ -116,7 +126,7 @@ export function useCanvasConnectionController({
       pendingConnection,
       batchSourceIds,
       explicitSkill,
-    }: CanvasSpawnedNodeConnectionRequest): void => {
+    }: CanvasConnectionSpawnedNodeRequest): void => {
       const connections = planCanvasSpawnConnections({
         spawnedNodeId,
         pendingConnection,
@@ -130,7 +140,7 @@ export function useCanvasConnectionController({
   );
 
   const isValidGraphConnection = useCallback(
-    (connection: Connection | Edge): boolean => {
+    (connection: CanvasConnectionValidationCandidate): boolean => {
       const graph = getGraph();
       return validateCanvasConnection(
         graph.nodes,

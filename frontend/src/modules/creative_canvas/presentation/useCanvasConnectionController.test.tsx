@@ -2,13 +2,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+} from '../domain/canvasConnection';
+import type {
+  CanvasEdgeCreationEdge as CanvasEdge,
+  CanvasEdgeCreationNode as CanvasNode,
+} from '../application/canvasEdgeCreation';
+import type { SkillDefinition } from '../domain/skillContract';
 import {
   useCanvasConnectionController,
   type CanvasConnectionControllerOptions,

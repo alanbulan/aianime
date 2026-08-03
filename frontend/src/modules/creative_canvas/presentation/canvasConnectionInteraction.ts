@@ -1,18 +1,17 @@
 // Copyright (c) 2026 AI anime
 import {
+  CANVAS_CONNECTION_NODE_TYPES,
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   resolveAllowedNodeTypes,
-  type CanvasHandleType,
-  type CanvasPendingConnectionStart,
-  type PreviewConnectionLine,
-} from '@/modules/creative_canvas/public';
-
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+  type CanvasConnectionNodeLike,
+  type CanvasConnectionNodeType,
+} from '../domain/canvasConnection';
+import type {
+  CanvasHandleType,
+  CanvasPendingConnectionStart,
+  PreviewConnectionLine,
+} from '../domain/canvasConnectionPreview';
 
 const MANUAL_DROP_PROXIMITY_PX = 56;
 
@@ -32,7 +31,7 @@ export interface CanvasPlusConnectionParams {
 export interface CanvasPlusConnectionStartResolution {
   pending: CanvasPendingConnectionStart;
   menuPosition: { x: number; y: number };
-  allowedTypes: CanvasNodeType[];
+  allowedTypes: CanvasConnectionNodeType[];
 }
 
 export type CanvasConnectionEndResolution =
@@ -48,7 +47,7 @@ export type CanvasConnectionEndResolution =
       kind: 'open_menu';
       clientPosition: { x: number; y: number };
       menuPosition: { x: number; y: number };
-      allowedTypes: CanvasNodeType[];
+      allowedTypes: CanvasConnectionNodeType[];
       previewLine: PreviewConnectionLine | null;
       containerSize: { width: number; height: number };
     };
@@ -75,7 +74,7 @@ export function resolveCanvasConnectionStart({
     handleType: CanvasHandleType | null;
     handleId?: string | null;
   };
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   containerRect: { left: number; top: number } | null | undefined;
 }): CanvasPendingConnectionStart | null {
   if (!params.nodeId || !params.handleType) {
@@ -87,7 +86,7 @@ export function resolveCanvasConnectionStart({
     && !canNodeBeManualConnectionSource(
       params.nodeId,
       nodes,
-      CANVAS_NODE_TYPES.threeDWorld,
+      CANVAS_CONNECTION_NODE_TYPES.threeDWorld,
     )
   ) {
     return null;
@@ -130,7 +129,7 @@ export function resolveCanvasPlusConnectionStart({
   wrapperElement,
 }: {
   params: CanvasPlusConnectionParams;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   wrapperElement: HTMLElement | null;
 }): CanvasPlusConnectionStartResolution | null {
   const containerRect = wrapperElement?.getBoundingClientRect();
@@ -284,7 +283,7 @@ function resolveConnectionAtNodeElement({
   clientPosition,
 }: {
   pending: CanvasPendingConnectionStart;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   dropNodeElement: HTMLElement | null;
   eventTarget: Element | null;
   clientPosition: { x: number; y: number };
@@ -345,7 +344,7 @@ function resolveConnectionOpenMenu({
 }: {
   clientPosition: { x: number; y: number };
   pending: CanvasPendingConnectionStart;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   wrapperElement: HTMLElement;
   containerRect: { left: number; top: number; width: number; height: number };
   fallbackStart?: { x: number; y: number } | null;
@@ -417,7 +416,7 @@ export function resolveCanvasConnectionEnd({
     from?: { x: number; y: number } | null;
   };
   pending: CanvasPendingConnectionStart | null;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   wrapperElement: HTMLElement | null;
 }): CanvasConnectionEndResolution {
   if (connectionState.isValid || !pending) {
@@ -466,7 +465,7 @@ export function resolveCanvasPlusConnectionEnd({
 }: {
   clientPosition: { x: number; y: number };
   pending: CanvasPendingConnectionStart | null;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   wrapperElement: HTMLElement | null;
 }): CanvasConnectionEndResolution {
   const containerRect = wrapperElement?.getBoundingClientRect();
@@ -509,7 +508,7 @@ export function resolveManualDropTargetElement({
 }: {
   clientPosition: { x: number; y: number };
   pending: { nodeId: string; handleType: CanvasHandleType };
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   wrapperElement: HTMLElement | null;
   maxDistance?: number;
 }): HTMLElement | null {

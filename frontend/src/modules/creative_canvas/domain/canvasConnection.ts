@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 
-const NODE_TYPE = {
+export const CANVAS_CONNECTION_NODE_TYPES = {
   upload: 'uploadNode',
   imageEdit: 'imageNode',
   imageGen: 'imageGenNode',
@@ -20,8 +20,10 @@ const NODE_TYPE = {
   skill: 'skillNode',
 } as const;
 
+const NODE_TYPE = CANVAS_CONNECTION_NODE_TYPES;
+
 export type CanvasConnectionNodeType =
-  (typeof NODE_TYPE)[keyof typeof NODE_TYPE];
+  (typeof CANVAS_CONNECTION_NODE_TYPES)[keyof typeof CANVAS_CONNECTION_NODE_TYPES];
 
 export interface CanvasConnectionNodeLike {
   id: string;

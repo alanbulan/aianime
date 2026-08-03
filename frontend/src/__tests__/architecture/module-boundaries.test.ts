@@ -7816,6 +7816,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas connection gesture adapters in one UI helper", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const interactionPath = resolve(
+      moduleRoot,
+      "presentation/canvasConnectionInteraction.ts",
+    );
+    const legacyInteractionPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/canvasConnectionInteraction.ts",
     );
@@ -7831,8 +7835,8 @@ describe("frontend architecture boundaries", () => {
     );
     const gestureController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+        moduleRoot,
+        "presentation/useCanvasConnectionGestureController.ts",
       ),
       "utf8",
     );
@@ -7845,6 +7849,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
@@ -7888,8 +7893,9 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(previewForbiddenImports).toEqual([]);
+    expect(existsSync(legacyInteractionPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/ui/canvasConnectionInteraction.ts",
+      "modules/creative_canvas/presentation/canvasConnectionInteraction.ts",
     ]);
     expect(previewOwners).toEqual([
       "modules/creative_canvas/domain/canvasConnectionPreview.ts",
@@ -7897,8 +7903,8 @@ describe("frontend architecture boundaries", () => {
     for (const declaration of declarations) {
       expect(interactionModel).toContain(declaration);
     }
-    expect(gestureController).toContain("../ui/canvasConnectionInteraction");
-    expect(gestureController).toContain("@/modules/creative_canvas/public");
+    expect(gestureController).toContain("./canvasConnectionInteraction");
+    expect(gestureController).not.toContain("@/modules/creative_canvas/public");
     expect(previewModel).toContain("CanvasPendingConnectionStart");
     expect(previewModel).toContain(previewDeclaration);
     expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
@@ -7929,7 +7935,11 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasPendingConnectionStart",
     );
     expect(interactionModel).not.toContain(previewDeclaration);
-    expect(interactionModel).toContain("@/modules/creative_canvas/public");
+    expect(interactionModel).toContain("../domain/canvasConnection");
+    expect(interactionModel).toContain("../domain/canvasConnectionPreview");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/canvasConnectionInteraction",
+    );
     expect(interactionModel).toContain(
       "export type CanvasConnectionEndResolution",
     );
@@ -8131,21 +8141,23 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = ["./useCanvasConnectionGestureController"];
-
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasConnectionGestureSurfaceController.ts",
     ]);
-    for (const childController of childControllers) {
-      expect(controllerSource).toContain(childController);
-      expect(canvasView).not.toContain(
-        childController.replace("./", "./hooks/"),
-      );
-    }
-    expect(controllerSource).toContain("useCanvasNodeHover");
+    expect(controllerSource).toContain("useCanvasConnectionGestureController,");
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain(
+      "./useCanvasConnectionGestureController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasConnectionGestureController",
+    );
+    expect(controllerSource).toContain("useCanvasNodeHover");
     expect(controllerSource).not.toContain("./useCanvasNodeHover");
+    expect(controllerSource).not.toContain(
+      "./useCanvasConnectionGestureController",
+    );
     expect(controllerSource).toContain("@/features/canvas/canvasStore");
     expect(controllerSource).toContain(
       "clearHoveredNodeTimer: hover.clearHoveredNodeTimer",
@@ -16049,8 +16061,8 @@ describe("frontend architecture boundaries", () => {
     const edgeCreationModel = readFileSync(edgeCreationPath, "utf8");
     const interactionModel = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/ui/canvasConnectionInteraction.ts",
+        moduleRoot,
+        "presentation/canvasConnectionInteraction.ts",
       ),
       "utf8",
     );
@@ -16129,7 +16141,7 @@ describe("frontend architecture boundaries", () => {
     expect(edgeCreationModel).toContain(
       "from '../domain/canvasConnection'",
     );
-    expect(interactionModel).toContain("@/modules/creative_canvas/public");
+    expect(interactionModel).toContain("../domain/canvasConnection");
     expect(nodeRegistryModel).not.toContain("connectivity:");
     expect(nodeRegistryModel).not.toContain(
       "export function nodeHasSourceHandle(",
@@ -16184,8 +16196,8 @@ describe("frontend architecture boundaries", () => {
     );
     const batchConnectionController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+        moduleRoot,
+        "presentation/useCanvasBatchConnectionController.ts",
       ),
       "utf8",
     );
@@ -16228,7 +16240,7 @@ describe("frontend architecture boundaries", () => {
     expect(planningModel).toContain("canConnectCanvasNodesManually(");
     expect(planningModel).toContain("getDownstreamSpawnTypes(");
     expect(planningModel).toContain("getNodeSize(");
-    expect(batchConnectionController).toContain("@/modules/creative_canvas/public");
+    expect(batchConnectionController).toContain("../domain/canvasBatchConnection");
     expect(batchConnectionController).toContain(
       "resolveCanvasBatchConnectContext(nodes)",
     );
@@ -16258,7 +16270,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas batch-connection orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasBatchConnectionController.ts",
+    );
+    const legacyHookPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasBatchConnectionController.ts",
     );
@@ -16269,8 +16286,8 @@ describe("frontend architecture boundaries", () => {
     );
     const gestureController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+        moduleRoot,
+        "presentation/useCanvasConnectionGestureController.ts",
       ),
       "utf8",
     );
@@ -16279,6 +16296,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16296,12 +16314,16 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyHookPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+      "modules/creative_canvas/presentation/useCanvasBatchConnectionController.ts",
     ]);
     expect(hookModel).toContain("resolveCanvasBatchConnectContext(nodes)");
     expect(hookModel).toContain("planCanvasBatchConnectTarget(");
     expect(gestureController).toContain("./useCanvasBatchConnectionController");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasBatchConnectionController",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasConnectionGestureSurfaceController",
     );
@@ -16407,7 +16429,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas connection orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasConnectionController.ts",
+    );
+    const legacyHookPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasConnectionController.ts",
     );
@@ -16421,6 +16448,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition" ||
         specifier === "@/features/canvas/nodeFactoryComposition",
@@ -16435,13 +16463,17 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyHookPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasConnectionController.ts",
+      "modules/creative_canvas/presentation/useCanvasConnectionController.ts",
     ]);
     expect(hookModel).toContain("planCanvasGraphConnection({");
     expect(hookModel).toContain("planCanvasSpawnConnections({");
     expect(hookModel).toContain("planSingleBeatContextBinding(");
     expect(hookModel).toContain("validateCanvasConnection(");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasConnectionController",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -16463,7 +16495,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas React Flow connection gestures in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasReactFlowConnectionController.ts",
+    );
+    const legacyHookPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasReactFlowConnectionController.ts",
     );
@@ -16474,8 +16511,8 @@ describe("frontend architecture boundaries", () => {
     );
     const gestureController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+        moduleRoot,
+        "presentation/useCanvasConnectionGestureController.ts",
       ),
       "utf8",
     );
@@ -16484,6 +16521,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16501,13 +16539,17 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyHookPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasReactFlowConnectionController.ts",
+      "modules/creative_canvas/presentation/useCanvasReactFlowConnectionController.ts",
     ]);
     expect(hookModel).toContain("resolveCanvasConnectionStart({");
     expect(hookModel).toContain("resolveCanvasConnectionEnd({");
     expect(gestureController).toContain(
       "./useCanvasReactFlowConnectionController",
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasReactFlowConnectionController",
     );
     expect(canvasView).toContain(
       "./hooks/useCanvasConnectionGestureSurfaceController",
@@ -16531,7 +16573,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas plus-connection gesture state in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasPlusConnectionController.ts",
+    );
+    const legacyHookPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasPlusConnectionController.ts",
     );
@@ -16541,6 +16588,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const gestureControllerPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasConnectionGestureController.ts",
+    );
+    const legacyGestureControllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasConnectionGestureController.ts",
     );
@@ -16550,6 +16601,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16573,6 +16625,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16593,11 +16646,13 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(gestureForbiddenImports).toEqual([]);
+    expect(existsSync(legacyHookPath)).toBe(false);
+    expect(existsSync(legacyGestureControllerPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasPlusConnectionController.ts",
+      "modules/creative_canvas/presentation/useCanvasPlusConnectionController.ts",
     ]);
     expect(gestureOwners).toEqual([
-      "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+      "modules/creative_canvas/presentation/useCanvasConnectionGestureController.ts",
     ]);
     expect(hookModel).toContain("resolveCanvasPlusConnectionStart({");
     expect(hookModel).toContain("resolveCanvasPlusConnectionEnd({");
@@ -16612,6 +16667,12 @@ describe("frontend architecture boundaries", () => {
       "screenToFlowPosition(request.clientPosition)",
     );
     expect(gestureController).toContain("suppressNextPaneClick()");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/presentation/useCanvasPlusConnectionController",
+        "@/modules/creative_canvas/presentation/useCanvasConnectionGestureController",
+      ]),
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasConnectionGestureSurfaceController",
     );
@@ -25573,10 +25634,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = [
-      "./useCanvasConnectionController",
-      "./useCanvasNodeInteractionController",
-    ];
+    const childControllers = ["./useCanvasNodeInteractionController"];
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
@@ -25589,6 +25647,8 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("useCanvasConnectionController,");
+    expect(controllerSource).not.toContain("./useCanvasConnectionController");
     expect(controllerSource).toContain("useCanvasNodeCatalogController<");
     expect(controllerSource).not.toContain("./useCanvasNodeCatalogController");
     expect(controllerSource).toContain(

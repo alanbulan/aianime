@@ -8,25 +8,27 @@ import {
 } from 'react';
 
 import type {
+  CanvasConnectionNodeLike,
+  CanvasConnectionNodeType,
+} from '../domain/canvasConnection';
+import type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
   CanvasPendingConnectionStart,
-} from '@/modules/creative_canvas/public';
-
-import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
+} from '../domain/canvasConnectionPreview';
 import {
   resolveCanvasPlusConnectionEnd,
   resolveCanvasPlusConnectionStart,
   resolveManualDropTargetElement,
   type CanvasManualConnectionRequest,
   type CanvasPlusConnectionParams,
-} from '../ui/canvasConnectionInteraction';
+} from './canvasConnectionInteraction';
 
 const DROP_TARGET_CLASS_NAME = 'canvas-node-drop-target';
 
 export interface CanvasPlusConnectionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasConnectionNodeLike[];
   clearHoveredNodeTimer: () => void;
   clearHoveredNode: () => void;
   prepareConnectionDrag: (pending: CanvasPendingConnectionStart) => void;
@@ -35,7 +37,7 @@ export interface CanvasPlusConnectionControllerOptions {
     preview: CanvasConnectionPreviewRequest | null,
   ) => void;
   openConnectionMenu: (
-    request: CanvasConnectionMenuRequest<CanvasNodeType>,
+    request: CanvasConnectionMenuRequest<CanvasConnectionNodeType>,
   ) => void;
   connectNodes: (connection: CanvasManualConnectionRequest) => void;
 }

@@ -2,7 +2,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
+import {
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+  type CanvasConnectionNodeLike as CanvasNode,
+} from '../domain/canvasConnection';
 import {
   useCanvasPlusConnectionController,
   type CanvasPlusConnectionControllerOptions,

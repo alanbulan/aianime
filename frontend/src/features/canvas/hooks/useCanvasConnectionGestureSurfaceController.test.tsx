@@ -42,11 +42,9 @@ vi.mock('@/features/canvas/canvasStore', () => ({
   useCanvasStore: controllerMocks.useStore,
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({
-  useCanvasNodeHover: controllerMocks.useNodeHover,
-}));
-vi.mock('./useCanvasConnectionGestureController', () => ({
   useCanvasConnectionGestureController:
     controllerMocks.useConnectionGestures,
+  useCanvasNodeHover: controllerMocks.useNodeHover,
 }));
 
 function createOptions(): CanvasConnectionGestureSurfaceControllerOptions {

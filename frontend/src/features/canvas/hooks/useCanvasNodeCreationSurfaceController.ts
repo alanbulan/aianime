@@ -3,8 +3,11 @@ import { useCallback } from 'react';
 
 import {
   useCanvasNodeCatalogController,
+  useCanvasConnectionController,
   useCanvasNodeMenuStateController,
   loadCanvasSkillRegistry,
+  type CanvasConnectionController,
+  type CanvasConnectionControllerOptions,
   type CanvasNodeCatalogController,
   type CanvasNodeCatalogControllerOptions,
   type CanvasNodeMenuStateController,
@@ -12,11 +15,6 @@ import {
 
 import { nodeCatalog } from '../application/nodeCatalog';
 import type { CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
-import {
-  useCanvasConnectionController,
-  type CanvasConnectionController,
-  type CanvasConnectionControllerOptions,
-} from './useCanvasConnectionController';
 import {
   useCanvasNodeInteractionController,
   type CanvasNodeInteractionController,
