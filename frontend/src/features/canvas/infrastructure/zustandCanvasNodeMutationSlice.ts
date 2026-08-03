@@ -13,6 +13,7 @@ import {
   type CanvasHistoryState,
   type CanvasMutationState,
   type CanvasNodeDataUpdatePorts,
+  type StoryboardFrameItem,
   type StoryboardFrameGraphPorts,
 } from '@/modules/creative_canvas/public';
 import {
@@ -21,7 +22,6 @@ import {
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
-  type StoryboardFrameItem,
 } from '../domain/canvasNodes';
 import { convertCanvasNodeType } from '../application/canvasNodeConversion';
 import { createCanvasNode } from '../application/canvasNodeCreation';

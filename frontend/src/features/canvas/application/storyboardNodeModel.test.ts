@@ -4,16 +4,15 @@ import { describe, expect, it } from 'vitest';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
-  type StoryboardFrameItem,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 
 import {
   createDefaultStoryboardExportOptions,
   resolveDerivedAspectRatio,
   resolveStoryboardIncomingImages,
   resolveStoryboardNodeProjection,
-  resolveStoryboardPackPlan,
   resolveStoryboardSplitNodeDimensions,
   storyboardAspectRatioCss,
 } from './storyboardNodeModel';
@@ -157,22 +156,4 @@ describe('storyboardNodeModel', () => {
     ]);
   });
 
-  it('builds sanitized pack paths while preserving visible frame numbers', () => {
-    expect(
-      resolveStoryboardPackPlan(
-        [
-          frame('first', 0, { note: '第一 / 格*?' }),
-          frame('empty', 1, { imageUrl: null }),
-          frame('third', 2, { note: '' }),
-        ],
-        '  漫剧:<A>.  ',
-      ),
-    ).toEqual({
-      outputDir: 'downloads/漫剧A',
-      entries: [
-        { source: '/first.png', fileStem: '漫剧A_01_第一 格' },
-        { source: '/third.png', fileStem: '漫剧A_03' },
-      ],
-    });
-  });
 });

@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
-  type StoryboardFrameItem,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 
 import { useStoryboardNodeController } from './useStoryboardNodeController';
 

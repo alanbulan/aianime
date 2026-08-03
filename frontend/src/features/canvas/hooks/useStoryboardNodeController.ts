@@ -16,12 +16,12 @@ import {
 import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
+  type StoryboardExportOptions,
+  type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  type StoryboardExportOptions,
-  type StoryboardFrameItem,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {

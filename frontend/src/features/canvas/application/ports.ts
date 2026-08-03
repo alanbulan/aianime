@@ -6,13 +6,13 @@ import type {
   CanvasNodeType,
   CanvasPosition,
   NodeToolType,
-  StoryboardFrameItem,
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
   CanvasImageDimensions,
   CanvasStoryScriptResult,
   CanvasTaskResultGateway,
+  StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 
 export interface IdGenerator {

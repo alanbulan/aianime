@@ -5,8 +5,8 @@ import {
   CANVAS_NODE_TYPES,
   NODE_TOOL_TYPES,
   type CanvasNode,
-  type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 function sourceNode(): CanvasNode {

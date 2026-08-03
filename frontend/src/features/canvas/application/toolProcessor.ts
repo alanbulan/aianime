@@ -2,9 +2,11 @@
 import {
   NODE_TOOL_TYPES,
   type NodeToolType,
-  type StoryboardFrameItem,
 } from '../domain/canvasNodes';
-import { resolveMaxAllowedLineThickness } from '@/modules/creative_canvas/public';
+import {
+  resolveMaxAllowedLineThickness,
+  type StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import type {
   CanvasToolImageGateway,
   IdGenerator,

@@ -14,11 +14,11 @@ import {
   STORYBOARD_GRID_GAP_PX,
   STORYBOARD_NODE_SIZE_LIMITS,
 } from '@/features/canvas/application/storyboardNodeModel';
-import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
-import type {
-  StoryboardExportOptions,
-  StoryboardFrameItem,
-} from '@/features/canvas/domain/canvasNodes';
+import {
+  resolveImageDisplayUrl,
+  type StoryboardExportOptions,
+  type StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import type { StoryboardNodeController } from '@/features/canvas/hooks/useStoryboardNodeController';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';

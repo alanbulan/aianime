@@ -1,15 +1,15 @@
 // Copyright (c) 2026 AI anime
 import type {
   StoryboardMergeLayout,
-} from '@/features/canvas/application/storyboardExport';
+} from '../application/storyboardExport';
 import type {
   StoryboardExportOptions,
   StoryboardFrameItem,
-} from '@/features/canvas/domain/canvasNodes';
+} from '../domain/storyboard';
 import {
   canvasToDataUrl,
   loadImageElement,
-} from '@/modules/creative_canvas/public';
+} from './browserImageRuntime';
 
 function trimTextToWidth(
   context: CanvasRenderingContext2D,

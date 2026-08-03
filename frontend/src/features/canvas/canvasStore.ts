@@ -8,8 +8,8 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
   type NodeToolType,
-  type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 import {
   canvasNodeDefaultDataGateway,
   canvasNodeFactory,

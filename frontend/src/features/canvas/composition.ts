@@ -11,22 +11,27 @@ import {
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
 import {
+  applyStoryboardTextOverlay,
   browserImageRuntimeGateway,
   composeCapability,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
   detectAspectRatio as detectAspectRatioUseCase,
+  exportStoryboardGrid as exportStoryboardGridUseCase,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
+  getStoryboardReferenceFrameHeight,
   migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
   prepareNodeImage as prepareNodeImageUseCase,
   prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
+  packStoryboardFrames as packStoryboardFramesUseCase,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
   submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
   type CanvasClipboardAssetMigrationRequest,
+  type ExportStoryboardGridCommand,
 } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from './application/canvasServices';
 import { useCanvasStore } from './canvasStore';
@@ -47,11 +52,6 @@ import {
   pollExportImageGeneration as pollExportImageGenerationUseCase,
   type PollExportImageGenerationParams,
 } from './application/pollExportImageGeneration';
-import {
-  exportStoryboardGrid as exportStoryboardGridUseCase,
-  packStoryboardFrames as packStoryboardFramesUseCase,
-  type ExportStoryboardGridCommand,
-} from './application/storyboardExport';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
@@ -89,10 +89,6 @@ import {
 } from './application/uploadCanvasAsset';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
-import {
-  applyStoryboardTextOverlay,
-  getStoryboardReferenceFrameHeight,
-} from './infrastructure/browserStoryboardExportRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';

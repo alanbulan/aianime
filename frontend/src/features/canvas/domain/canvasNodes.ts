@@ -14,6 +14,8 @@ import type {
   VideoSubtitleEraseBox,
   VideoSubtitleEraseMode,
   TextNodeMode,
+  StoryboardExportOptions,
+  StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
@@ -352,28 +354,6 @@ export interface ImageGenNodeData extends NodeImageData {
   generationError?: string | null;
   /** Gateway request id parsed from the last failure, for support tracing. */
   generationErrorRequestId?: string | null;
-}
-
-export interface StoryboardFrameItem {
-  id: string;
-  imageUrl: string | null;
-  previewImageUrl?: string | null;
-  aspectRatio?: string;
-  note: string;
-  order: number;
-}
-
-export interface StoryboardExportOptions {
-  showFrameIndex: boolean;
-  showFrameNote: boolean;
-  notePlacement: 'overlay' | 'bottom';
-  imageFit: 'cover' | 'contain';
-  frameIndexPrefix: string;
-  cellGap: number;
-  outerPadding: number;
-  fontSize: number;
-  backgroundColor: string;
-  textColor: string;
 }
 
 export interface StoryboardSplitNodeData {

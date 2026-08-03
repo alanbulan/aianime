@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   CANVAS_NODE_TYPES,
-  type StoryboardFrameItem,
 } from "@/features/canvas/domain/canvasNodes";
+import type { StoryboardFrameItem } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 const frames: StoryboardFrameItem[] = [

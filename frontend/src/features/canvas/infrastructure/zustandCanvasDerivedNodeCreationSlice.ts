@@ -8,13 +8,13 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import type {
   ActiveToolDialog,
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
-  StoryboardFrameItem,
 } from '../domain/canvasNodes';
 import {
   createCanvasDerivedExportNode,

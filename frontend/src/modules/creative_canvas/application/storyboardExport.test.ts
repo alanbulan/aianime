@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   StoryboardExportOptions,
   StoryboardFrameItem,
-} from '@/features/canvas/domain/canvasNodes';
+} from '../domain/storyboard';
 
 import {
   exportStoryboardGrid,
@@ -12,7 +12,6 @@ import {
   type ExportStoryboardGridDependencies,
   type StoryboardMergeLayout,
 } from './storyboardExport';
-import { createDefaultStoryboardExportOptions } from './storyboardNodeModel';
 
 function frame(
   id: string,
@@ -61,7 +60,19 @@ function dependencies(
 function options(
   patch: Partial<StoryboardExportOptions> = {},
 ): StoryboardExportOptions {
-  return { ...createDefaultStoryboardExportOptions(), ...patch };
+  return {
+    showFrameIndex: false,
+    showFrameNote: false,
+    notePlacement: 'overlay',
+    imageFit: 'cover',
+    frameIndexPrefix: 'S',
+    cellGap: 8,
+    outerPadding: 0,
+    fontSize: 4,
+    backgroundColor: 'black',
+    textColor: 'white',
+    ...patch,
+  };
 }
 
 describe('storyboardExport', () => {
@@ -208,5 +219,24 @@ describe('storyboardExport', () => {
         saveImage,
       }),
     ).rejects.toThrow('该格没有可导出的图片');
+  });
+
+  it('sanitizes pack paths while preserving visible frame numbers', async () => {
+    const saveImage = vi.fn(async () => undefined);
+
+    await packStoryboardFrames(
+      [
+        frame('first', '/first.png', '第一 / 格*?'),
+        frame('empty', null),
+        frame('third', '/third.png'),
+      ],
+      '  漫剧:<A>.  ',
+      { saveImage },
+    );
+
+    expect(saveImage.mock.calls).toEqual([
+      ['/first.png', 'downloads/漫剧A', '漫剧A_01_第一 格'],
+      ['/third.png', 'downloads/漫剧A', '漫剧A_03'],
+    ]);
   });
 });

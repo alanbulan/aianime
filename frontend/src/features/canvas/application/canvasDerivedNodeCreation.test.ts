@@ -5,8 +5,8 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
   type CanvasNodeData,
-  type StoryboardFrameItem,
 } from '../domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 import {
   createCanvasDerivedExportNode,
   createCanvasDerivedUploadNode,

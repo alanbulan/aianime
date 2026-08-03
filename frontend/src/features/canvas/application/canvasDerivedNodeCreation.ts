@@ -7,8 +7,8 @@ import {
   type CanvasNode,
   type CanvasNodeData,
   type ExportImageNodeResultKind,
-  type StoryboardFrameItem,
 } from '../domain/canvasNodes';
+import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 import {
   findAvailableNodePosition,
   getDerivedNodePosition,

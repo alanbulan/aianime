@@ -6,10 +6,12 @@ import {
   isImageEditNode,
   isUploadNode,
   type CanvasNode,
-  type StoryboardExportOptions,
-  type StoryboardFrameItem,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
+import type {
+  StoryboardExportOptions,
+  StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 
 export const STORYBOARD_NODE_SIZE_LIMITS = {
   minWidth: 440,
@@ -40,11 +42,6 @@ export interface StoryboardNodeProjection {
   totalFrames: number;
   size: { width: number; height: number };
   exportOptions: StoryboardExportOptions;
-}
-
-export interface StoryboardPackPlan {
-  outputDir: string;
-  entries: Array<{ source: string; fileStem: string }>;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -290,50 +287,4 @@ export function resolveStoryboardIncomingImages(
     ...item,
     label: `图${index + 1}`,
   }));
-}
-
-function sanitizePathSegment(raw: string, fallback: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return fallback;
-  const sanitized = Array.from(trimmed)
-    .filter((character) =>
-      !/[<>:"/\\|?*]/.test(character) && character >= ' ',
-    )
-    .join('')
-    .trim()
-    .replace(/\.+$/g, '');
-  return sanitized || fallback;
-}
-
-function sanitizeExportLabel(raw: string, maxLength: number): string {
-  const compact = sanitizePathSegment(raw, '').replace(/\s+/g, ' ').trim();
-  return compact ? compact.slice(0, maxLength) : '';
-}
-
-export function resolveStoryboardPackPlan(
-  frames: readonly StoryboardFrameItem[],
-  projectName: string,
-): StoryboardPackPlan {
-  const normalizedProjectName = sanitizePathSegment(
-    projectName,
-    '未命名项目',
-  );
-  const fileProjectName =
-    sanitizeExportLabel(normalizedProjectName, 40) || '项目';
-  return {
-    outputDir: ['downloads', normalizedProjectName].join('/'),
-    entries: frames
-      .map((frame, index) => ({
-        source: frame.imageUrl ?? frame.previewImageUrl ?? '',
-        frameNumber: String(index + 1).padStart(2, '0'),
-        note: sanitizeExportLabel(frame.note ?? '', 60),
-      }))
-      .filter((entry) => entry.source.length > 0)
-      .map((entry) => ({
-        source: entry.source,
-        fileStem: entry.note
-          ? `${fileProjectName}_${entry.frameNumber}_${entry.note}`
-          : `${fileProjectName}_${entry.frameNumber}`,
-      })),
-  };
 }

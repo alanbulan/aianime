@@ -5,9 +5,11 @@ import {
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
-  type StoryboardExportOptions,
-  type StoryboardFrameItem,
 } from '../domain/canvasNodes';
+import type {
+  StoryboardExportOptions,
+  StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import { nodeCatalog } from './nodeCatalog';
 import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import type { CanvasNodeDefaultDataGateway } from './ports';

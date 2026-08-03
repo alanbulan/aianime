@@ -572,6 +572,26 @@ export {
   loadImageElement,
   persistImageLocally,
 } from "@/modules/creative_canvas/infrastructure/browserImageRuntime";
+export {
+  exportStoryboardGrid,
+  packStoryboardFrames,
+} from "@/modules/creative_canvas/application/storyboardExport";
+export type {
+  ExportStoryboardGridCommand,
+  ExportStoryboardGridDependencies,
+  ExportStoryboardGridResult,
+  PackStoryboardFramesDependencies,
+  StoryboardMergeCommand,
+  StoryboardMergeLayout,
+} from "@/modules/creative_canvas/application/storyboardExport";
+export {
+  applyStoryboardTextOverlay,
+  getStoryboardReferenceFrameHeight,
+} from "@/modules/creative_canvas/infrastructure/browserStoryboardExportRuntime";
+export type {
+  StoryboardExportOptions,
+  StoryboardFrameItem,
+} from "@/modules/creative_canvas/domain/storyboard";
 export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,
