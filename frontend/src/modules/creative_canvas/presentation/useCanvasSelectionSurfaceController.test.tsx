@@ -1,23 +1,29 @@
 // Copyright (c) 2026 AI anime
-import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  CanvasMarqueeSelectionOptions,
-  CanvasSelectionCommandControllerOptions,
-  CanvasSelectionSyncOptions,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import type { CanvasMarqueeSelectionOptions } from "./useCanvasMarqueeSelection";
+import type { CanvasSelectionCommandControllerOptions } from "./useCanvasSelectionCommandController";
+import type { CanvasSelectionSyncOptions } from "./useCanvasSelectionSync";
 import {
   useCanvasSelectionSurfaceController,
   type CanvasSelectionSurfaceControllerOptions,
-} from './useCanvasSelectionSurfaceController';
+  type CanvasSelectionSurfaceEdge,
+  type CanvasSelectionSurfaceNode,
+} from "./useCanvasSelectionSurfaceController";
+
+interface TestNode extends CanvasSelectionSurfaceNode {
+  hit?: boolean;
+  upload?: boolean;
+}
+
+type TestEdge = CanvasSelectionSurfaceEdge;
 
 const controllerMocks = vi.hoisted(() => {
   const marqueeController = { marqueeSelectionRect: null };
   const selectionResult = {
-    selectedNodeIds: ['selected-node'],
-    selectedUploadNodeId: 'selected-node',
+    selectedNodeIds: ["selected-node"],
+    selectedUploadNodeId: "selected-node",
   };
   const commandController = {
     groupSelection: vi.fn(),
@@ -28,42 +34,53 @@ const controllerMocks = vi.hoisted(() => {
     selectionResult,
     commandController,
     useMarqueeSelection: vi.fn(
-      (_options: CanvasMarqueeSelectionOptions) => marqueeController,
+      (_options: CanvasMarqueeSelectionOptions<TestNode>) => marqueeController,
     ),
     useSelectionSync: vi.fn(
-      (_options: CanvasSelectionSyncOptions<CanvasNode>) => selectionResult,
+      (_options: CanvasSelectionSyncOptions<TestNode>) => selectionResult,
     ),
     useSelectionCommands: vi.fn(
-      (_options: CanvasSelectionCommandControllerOptions<CanvasNode, CanvasEdge>) =>
+      (_options: CanvasSelectionCommandControllerOptions<TestNode, TestEdge>) =>
         commandController,
     ),
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock("./useCanvasMarqueeSelection", () => ({
   useCanvasMarqueeSelection: controllerMocks.useMarqueeSelection,
+}));
+vi.mock("./useCanvasSelectionCommandController", () => ({
   useCanvasSelectionCommandController: controllerMocks.useSelectionCommands,
+}));
+vi.mock("./useCanvasSelectionSync", () => ({
   useCanvasSelectionSync: controllerMocks.useSelectionSync,
 }));
 
-function createOptions(): CanvasSelectionSurfaceControllerOptions & {
-  graph: { edges: CanvasEdge[] };
+function createOptions(): CanvasSelectionSurfaceControllerOptions<
+  TestNode,
+  TestEdge
+> & {
+  graph: { edges: TestEdge[] };
 } {
-  const graph = { edges: [] as CanvasEdge[] };
+  const graph = { edges: [] as TestEdge[] };
   return {
     wrapperRef: { current: null },
     disabled: false,
-    nodes: [],
+    nodes: [{ id: "selected-node", selected: true, hit: true, upload: true }],
     coordinatePort: {
       screenToFlowPosition: (position) => position,
     },
+    nodeIntersectsSelectionRect: vi.fn((node) => node.hit === true),
+    isImmersiveViewerActive: vi.fn(() => false),
     applyNodeSelectionChanges: vi.fn(),
     nativeSelectionStore: { setState: vi.fn() },
-    selectedNodeId: 'selected-node',
+    selectedNodeId: "selected-node",
     setSelectedNodeId: vi.fn(),
     onMarqueeStart: vi.fn(),
+    isUploadNode: vi.fn((node) => node.upload === true),
     getGraph: vi.fn(() => graph),
+    isNodeDeletionLocked: vi.fn(() => false),
+    isEdgeDeletionLocked: vi.fn(() => false),
     groupNodes: vi.fn(),
     deleteEdge: vi.fn(),
     deleteNode: vi.fn(),
@@ -72,12 +89,12 @@ function createOptions(): CanvasSelectionSurfaceControllerOptions & {
   };
 }
 
-describe('useCanvasSelectionSurfaceController', () => {
+describe("useCanvasSelectionSurfaceController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('assembles marquee, projection and commands through one selection surface', () => {
+  it("assembles marquee, projection and commands through explicit ports", () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasSelectionSurfaceController(options),
@@ -90,7 +107,7 @@ describe('useCanvasSelectionSurfaceController', () => {
         nodes: options.nodes,
         coordinatePort: options.coordinatePort,
         collectCanvasNodeIdsInRect: expect.any(Function),
-        isImmersiveViewerActive: expect.any(Function),
+        isImmersiveViewerActive: options.isImmersiveViewerActive,
         applyNodeSelectionChanges: options.applyNodeSelectionChanges,
         setSelectedNodeId: options.setSelectedNodeId,
         onMarqueeStart: options.onMarqueeStart,
@@ -101,15 +118,15 @@ describe('useCanvasSelectionSurfaceController', () => {
       nodes: options.nodes,
       selectedNodeId: options.selectedNodeId,
       setSelectedNodeId: options.setSelectedNodeId,
-      isUploadNode: expect.any(Function),
+      isUploadNode: options.isUploadNode,
     });
     expect(controllerMocks.useSelectionCommands).toHaveBeenCalledWith(
       expect.objectContaining({
         nodes: options.nodes,
-        selectedNodeIds: ['selected-node'],
+        selectedNodeIds: ["selected-node"],
         selectedNodeId: options.selectedNodeId,
-        isNodeDeletionLocked: expect.any(Function),
-        isEdgeDeletionLocked: expect.any(Function),
+        isNodeDeletionLocked: options.isNodeDeletionLocked,
+        isEdgeDeletionLocked: options.isEdgeDeletionLocked,
         groupNodes: options.groupNodes,
         deleteEdge: options.deleteEdge,
         deleteNode: options.deleteNode,
@@ -123,18 +140,27 @@ describe('useCanvasSelectionSurfaceController', () => {
     });
   });
 
-  it('owns native selection state and latest-edge adapters', () => {
+  it("owns geometry, native-selection and latest-edge adapters", () => {
     const options = createOptions();
     renderHook(() => useCanvasSelectionSurfaceController(options));
 
     const marqueeOptions = controllerMocks.useMarqueeSelection.mock.calls[0][0];
+    const selectionRect = { x: 0, y: 0, width: 100, height: 100 };
+    expect(
+      [...marqueeOptions.collectCanvasNodeIdsInRect(options.nodes, selectionRect)],
+    ).toEqual(["selected-node"]);
+    expect(options.nodeIntersectsSelectionRect).toHaveBeenCalledWith(
+      options.nodes[0],
+      selectionRect,
+      expect.any(Map),
+    );
     marqueeOptions.setNativeSelectionActive(true);
     expect(options.nativeSelectionStore.setState).toHaveBeenCalledWith({
       nodesSelectionActive: true,
     });
 
     const commandOptions = controllerMocks.useSelectionCommands.mock.calls[0][0];
-    const currentEdge = { id: 'edge-1' } as CanvasEdge;
+    const currentEdge = { id: "edge-1" } as TestEdge;
     options.graph.edges.push(currentEdge);
     expect(commandOptions.getCurrentEdges()).toEqual([currentEdge]);
     expect(options.getGraph).toHaveBeenCalledOnce();

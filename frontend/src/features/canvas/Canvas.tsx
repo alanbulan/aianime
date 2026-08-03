@@ -10,8 +10,16 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { useCanvasSelectionSurfaceController } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
+import { canvasNodeIntersectsSelectionRect } from './domain/canvasGeometry';
+import { isUploadNode } from './domain/canvasNodes';
+import {
+  isPresetManagedEdge,
+  isPresetManagedNode,
+} from './domain/mainlineNodeFlags';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionGestureSurfaceController } from './hooks/useCanvasConnectionGestureSurfaceController';
@@ -20,7 +28,6 @@ import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCre
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
-import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 import { useCanvasViewerSurfaceController } from './composition';
 
@@ -183,12 +190,17 @@ export function Canvas({
     disabled: placementActive,
     nodes,
     coordinatePort: reactFlowInstance,
+    nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect,
+    isImmersiveViewerActive,
     applyNodeSelectionChanges: applyNodesChange,
     nativeSelectionStore: reactFlowStore,
     selectedNodeId,
     setSelectedNodeId: setSelectedNode,
     onMarqueeStart: handleMarqueeStart,
+    isUploadNode,
     getGraph: getCanvasGraph,
+    isNodeDeletionLocked: isPresetManagedNode,
+    isEdgeDeletionLocked: isPresetManagedEdge,
     groupNodes,
     deleteEdge,
     deleteNode,

@@ -8165,8 +8165,8 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionSurface = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+        moduleRoot,
+        "presentation/useCanvasSelectionSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8199,11 +8199,16 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
     expect(marqueeView).toContain("./useCanvasSpacePan");
-    expect(selectionSurface).toContain(
+    expect(selectionSurface).not.toContain(
       "@/features/viewer-kit/useViewerImmersiveBody",
     );
     expect(selectionSurface).toContain("isImmersiveViewerActive,");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).toContain(
+      "@/features/viewer-kit/useViewerImmersiveBody",
+    );
+    expect(canvasView).toContain("isImmersiveViewerActive,");
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("./hooks/useCanvasSpacePan");
     expect(canvasView).not.toContain("spacePanActiveRef");
@@ -9065,8 +9070,8 @@ describe("frontend architecture boundaries", () => {
     const controllerModel = readFileSync(controllerPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const selectionSurfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionSurfaceController.ts",
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
@@ -9139,15 +9144,20 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("resolveCanvasSelectionDeletion({");
     expect(controllerModel).toContain("edges: getCurrentEdges()");
     expect(importSpecifiers(selectionSurfacePath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useCanvasSelectionCommandController",
     );
-    expect(selectionSurface).toContain(
+    expect(selectionSurface).toContain("isNodeDeletionLocked,");
+    expect(selectionSurface).toContain("isEdgeDeletionLocked,");
+    expect(selectionSurface).not.toContain("isPresetManagedNode");
+    expect(selectionSurface).not.toContain("isPresetManagedEdge");
+    expect(canvasView).toContain(
       "isNodeDeletionLocked: isPresetManagedNode",
     );
-    expect(selectionSurface).toContain(
+    expect(canvasView).toContain(
       "isEdgeDeletionLocked: isPresetManagedEdge",
     );
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasSelectionCommandController",
     );
@@ -9477,15 +9487,21 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas selection surface assembly in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const legacyPaths = [
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(controllerPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -9494,49 +9510,68 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasSelectionSurfaceController(",
+      "useCanvasSelectionSurfaceController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const privateModuleImport =
+      "@/modules/creative_canvas/presentation/useCanvasSelectionSurfaceController";
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => specifier === privateModuleImport)
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
     const childControllers = [
+      "useCanvasMarqueeSelection",
       "useCanvasSelectionSync",
       "useCanvasSelectionCommandController",
     ];
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(forbiddenImports).toEqual([]);
+    expect(directPrivateConsumers).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasSelectionSurfaceController.ts",
     ]);
+    expect(importSpecifiers(publicPath)).toContain(privateModuleImport);
     for (const childController of childControllers) {
       expect(controllerSource).toContain(childController);
-      expect(controllerSource).not.toContain(`./${childController}`);
+      expect(controllerSource).toContain(`./${childController}`);
       expect(canvasView).not.toContain(`./hooks/${childController}`);
     }
-    expect(importSpecifiers(controllerPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(controllerSource).toContain("useCanvasMarqueeSelection");
-    expect(controllerSource).not.toContain("./useCanvasMarqueeSelection");
-    expect(controllerSource).toContain("collectCanvasNodeIdsInRect,");
+    expect(controllerSource).toContain("collectCanvasNodeIdsInRect(");
+    expect(controllerSource).toContain("nodeIntersectsSelectionRect,");
     expect(controllerSource).toContain("isImmersiveViewerActive,");
-    expect(controllerSource).toContain("isUploadNode: isCanvasUploadNode");
-    expect(controllerSource).toContain(
-      "isNodeDeletionLocked: isPresetManagedNode",
-    );
-    expect(controllerSource).toContain(
-      "isEdgeDeletionLocked: isPresetManagedEdge",
-    );
+    expect(controllerSource).toContain("isUploadNode,");
+    expect(controllerSource).toContain("isNodeDeletionLocked,");
+    expect(controllerSource).toContain("isEdgeDeletionLocked,");
+    expect(controllerSource).not.toContain("CANVAS_NODE_TYPES");
+    expect(controllerSource).not.toContain("isPresetManagedNode");
+    expect(controllerSource).not.toContain("isPresetManagedEdge");
     expect(controllerSource).toContain("nativeSelectionStore.setState({");
     expect(controllerSource).toContain("() => getGraph().edges");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(
+      "nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect",
+    );
+    expect(canvasView).toContain("isUploadNode,");
+    expect(canvasView).toContain(
+      "isNodeDeletionLocked: isPresetManagedNode",
+    );
+    expect(canvasView).toContain(
+      "isEdgeDeletionLocked: isPresetManagedEdge",
+    );
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("setNativeSelectionActive");
     expect(canvasView).not.toContain("getCurrentSelectionEdges");
   });
@@ -9550,8 +9585,8 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const selectionSurfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionSurfaceController.ts",
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
@@ -9601,10 +9636,13 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isUploadNode(selectedNode)");
     expect(hookModel).not.toContain("CANVAS_NODE_TYPES");
     expect(importSpecifiers(selectionSurfacePath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useCanvasSelectionSync",
     );
-    expect(selectionSurface).toContain("isUploadNode: isCanvasUploadNode");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(selectionSurface).toContain("isUploadNode,");
+    expect(selectionSurface).not.toContain("CANVAS_NODE_TYPES");
+    expect(canvasView).toContain("isUploadNode,");
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSync");
     expect(canvasView).not.toContain("selectedNodeIds.length === 1");
     expect(canvasView).not.toContain(
@@ -12911,8 +12949,8 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const selectionSurfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionSurfaceController.ts",
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
@@ -12922,6 +12960,8 @@ describe("frontend architecture boundaries", () => {
     const legacyPaths = [
       "features/canvas/domain/canvasSelection.ts",
       "features/canvas/domain/canvasSelection.test.ts",
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.test.tsx",
       "features/canvas/hooks/useCanvasMarqueeSelection.ts",
       "features/canvas/hooks/useCanvasMarqueeSelection.test.tsx",
       "features/canvas/hooks/useCanvasSpacePan.ts",
@@ -12947,6 +12987,7 @@ describe("frontend architecture boundaries", () => {
     const privateModuleImports = new Set([
       "@/modules/creative_canvas/domain/canvasSelection",
       "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection",
+      "@/modules/creative_canvas/presentation/useCanvasSelectionSurfaceController",
       "@/modules/creative_canvas/presentation/useCanvasSpacePan",
     ]);
     const directPrivateConsumers = sourceFiles(SRC_ROOT)
@@ -12973,12 +13014,16 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("useCanvasSpacePan");
     expect(hookModel).not.toContain("@/features/");
     expect(importSpecifiers(selectionSurfacePath)).toContain(
-      "@/modules/creative_canvas/public",
+      "../domain/canvasSelection",
     );
-    expect(selectionSurface).not.toContain("../domain/canvasSelection");
-    expect(selectionSurface).toContain("collectCanvasNodeIdsInRect,");
-    expect(selectionSurface).toContain("canvasNodeIntersectsSelectionRect");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(selectionSurface).toContain("collectCanvasNodeIdsInRect(");
+    expect(selectionSurface).toContain("nodeIntersectsSelectionRect,");
+    expect(selectionSurface).not.toContain("canvasNodeIntersectsSelectionRect");
+    expect(canvasView).toContain(
+      "nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect",
+    );
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("marqueeSelectionRef");
     expect(canvasView).not.toContain("swallowMarqueeClickRef");
@@ -13867,8 +13912,8 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionSurface = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+        moduleRoot,
+        "presentation/useCanvasSelectionSurfaceController.ts",
       ),
       "utf8",
     );
@@ -13949,8 +13994,12 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleView).toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).not.toContain("../domain/canvasSelection");
-    expect(selectionSurface).not.toContain("../domain/canvasSelection");
-    expect(selectionSurface).toContain("canvasNodeIntersectsSelectionRect");
+    expect(selectionSurface).toContain("../domain/canvasSelection");
+    expect(selectionSurface).toContain("nodeIntersectsSelectionRect,");
+    expect(selectionSurface).not.toContain("canvasNodeIntersectsSelectionRect");
+    expect(canvasView).toContain(
+      "nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect",
+    );
     expect(canvasView).not.toContain(
       "from '@/features/canvas/domain/canvasSelection'",
     );

@@ -729,6 +729,15 @@ export type {
   CanvasSelectionSyncOptions,
   CanvasSelectionSyncResult,
 } from "@/modules/creative_canvas/presentation/useCanvasSelectionSync";
+export { useCanvasSelectionSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasSelectionSurfaceController";
+export type {
+  CanvasNativeSelectionStorePort,
+  CanvasSelectionGraph,
+  CanvasSelectionSurfaceController,
+  CanvasSelectionSurfaceControllerOptions,
+  CanvasSelectionSurfaceEdge,
+  CanvasSelectionSurfaceNode,
+} from "@/modules/creative_canvas/presentation/useCanvasSelectionSurfaceController";
 export { useCanvasSelectionCommandController } from "@/modules/creative_canvas/presentation/useCanvasSelectionCommandController";
 export type {
   CanvasSelectionCommandController,
