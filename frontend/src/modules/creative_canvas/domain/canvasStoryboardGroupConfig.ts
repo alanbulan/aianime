@@ -1,14 +1,11 @@
 // Copyright (c) 2026 AI anime
 import {
-  isStoryboardGroupNode,
-  type CanvasNode,
-  type GroupNodeData,
-} from './canvasNodes';
-import {
   DEFAULT_STORYBOARD_ASPECT,
   computeStoryboardBoardLayout,
   resolveStoryboardCols,
-} from '@/modules/creative_canvas/public';
+  type StoryboardGroupNode,
+  type StoryboardGroupNodePorts,
+} from './storyboardGroup';
 
 export interface CanvasStoryboardGroupConfig {
   aspectKey?: string;
@@ -16,13 +13,16 @@ export interface CanvasStoryboardGroupConfig {
   showIndex?: boolean;
 }
 
-export function configureCanvasStoryboardGroup(
-  nodes: readonly CanvasNode[],
+export function configureCanvasStoryboardGroup<
+  TNode extends StoryboardGroupNode,
+>(
+  nodes: readonly TNode[],
   groupNodeId: string,
   config: CanvasStoryboardGroupConfig,
-): CanvasNode[] | null {
+  ports: StoryboardGroupNodePorts<TNode>,
+): TNode[] | null {
   const groupNode = nodes.find((node) => node.id === groupNodeId);
-  if (!isStoryboardGroupNode(groupNode)) {
+  if (!groupNode || !ports.isStoryboardGroupNode(groupNode)) {
     return null;
   }
 
@@ -48,7 +48,7 @@ export function configureCanvasStoryboardGroup(
     aspectKey,
   });
 
-  return nodes.map((node) =>
+  return nodes.map((node): TNode =>
     node.id === groupNodeId
       ? {
           ...node,
@@ -60,7 +60,7 @@ export function configureCanvasStoryboardGroup(
             height: board.groupHeight,
           },
           data: {
-            ...(node.data as GroupNodeData),
+            ...node.data,
             storyboardAspect: aspectKey,
             storyboardCols: board.cols,
             storyboardShowIndex: showIndex,

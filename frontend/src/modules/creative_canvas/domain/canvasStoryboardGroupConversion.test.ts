@@ -1,41 +1,75 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from './canvasNodes';
 import { convertCanvasStoryboardGroupToPlain } from './canvasStoryboardGroupConversion';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  hidden?: boolean;
+  dragHandle?: string;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  data?: Record<string, unknown>;
+  hidden?: boolean;
+}
+
+const ports = {
+  defaultNodeWidth: 320,
+  getNodeSize: (candidate: TestNode) => candidate.measured,
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.kind === 'group' && candidate.data.storyboardGroup === true,
+};
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 300, height: 200 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas storyboard group conversion', () => {
   it('returns null for a missing or ordinary group', () => {
-    const ordinary = node('ordinary', { type: CANVAS_NODE_TYPES.group });
+    const ordinary = node('ordinary', { kind: 'group' });
     expect(
-      convertCanvasStoryboardGroupToPlain([ordinary], [], 'missing'),
+      convertCanvasStoryboardGroupToPlain(
+        [ordinary],
+        [],
+        'missing',
+        ports,
+      ),
     ).toBeNull();
     expect(
-      convertCanvasStoryboardGroupToPlain([ordinary], [], ordinary.id),
+      convertCanvasStoryboardGroupToPlain(
+        [ordinary],
+        [],
+        ordinary.id,
+        ports,
+      ),
     ).toBeNull();
   });
 
   it('reveals members, strips storyboard data, and restores edges', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       dragHandle: '.storyboard-group-drag-handle',
       style: { borderColor: 'red', width: 100, height: 100 },
       data: {
@@ -59,7 +93,7 @@ describe('Canvas storyboard group conversion', () => {
       position: { x: 376, y: 34 },
     });
     const outside = node('outside');
-    const edges: CanvasEdge[] = [
+    const edges: TestEdge[] = [
       {
         id: 'outgoing',
         source: group.id,
@@ -84,6 +118,7 @@ describe('Canvas storyboard group conversion', () => {
       [group, first, second, outside],
       edges,
       group.id,
+      ports,
     );
 
     expect(result?.nodes[0]).toMatchObject({

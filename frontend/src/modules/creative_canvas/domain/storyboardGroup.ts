@@ -44,6 +44,34 @@ export interface StoryboardGroupEdge {
   hidden?: boolean;
 }
 
+export interface StoryboardGroupNodeData {
+  storyboardGroup?: boolean;
+  storyboardAspect?: string;
+  storyboardCols?: number;
+  storyboardShowIndex?: boolean;
+  storyboardBaseWidth?: number;
+  storyboardBaseHeight?: number;
+  [key: string]: unknown;
+}
+
+export interface StoryboardGroupNode {
+  id: string;
+  parentId?: string;
+  position: { x: number; y: number };
+  width?: number;
+  height?: number;
+  hidden?: boolean;
+  dragHandle?: string;
+  style?: { width?: unknown; height?: unknown };
+  data: StoryboardGroupNodeData;
+}
+
+export interface StoryboardGroupNodePorts<TNode extends StoryboardGroupNode> {
+  defaultNodeWidth: number;
+  getNodeSize: (node: TNode) => { width: number; height: number };
+  isStoryboardGroupNode: (node: TNode) => boolean;
+}
+
 export function restoreStoryboardEdges<TEdge extends StoryboardGroupEdge>(
   edges: readonly TEdge[],
   groupNodeId: string,

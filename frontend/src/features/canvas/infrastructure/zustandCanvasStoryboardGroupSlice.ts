@@ -5,24 +5,34 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
-import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+import { getNodeSize } from '../domain/canvasGeometry';
 import {
   configureCanvasStoryboardGroup,
+  convertCanvasStoryboardGroupToPlain,
+  reorderCanvasStoryboardGroupMember,
+  trackEdit,
+  type CanvasMutationState,
   type CanvasStoryboardGroupConfig,
-} from '../domain/canvasStoryboardGroupConfig';
-import { convertCanvasStoryboardGroupToPlain } from '../domain/canvasStoryboardGroupConversion';
-import { reorderCanvasStoryboardGroupMember } from '../domain/canvasStoryboardGroupMembers';
+} from '@/modules/creative_canvas/public';
+import {
+  DEFAULT_NODE_WIDTH,
+  isStoryboardGroupNode,
+  type ActiveToolDialog,
+  type CanvasEdge,
+  type CanvasNode,
+} from '../domain/canvasNodes';
 import { createCanvasStoryboardGroup } from '../application/canvasStoryboardGroupCreation';
 import {
   addCanvasStoryboardGroupMembers,
   type CanvasStoryboardMemberImage,
 } from '../application/canvasStoryboardGroupMemberAddition';
 import type { NodeFactory } from '../application/ports';
+
+const storyboardGroupPorts = {
+  defaultNodeWidth: DEFAULT_NODE_WIDTH,
+  getNodeSize,
+  isStoryboardGroupNode,
+};
 
 export interface CanvasStoryboardGroupSlice {
   /** Create a storyboard grid group and return its id. */
@@ -106,6 +116,7 @@ export function createZustandCanvasStoryboardGroupSlice(
         state.nodes,
         groupNodeId,
         config,
+        storyboardGroupPorts,
       );
       if (!nodes) {
         return;
@@ -131,6 +142,7 @@ export function createZustandCanvasStoryboardGroupSlice(
         groupNodeId,
         fromIndex,
         toIndex,
+        storyboardGroupPorts,
       );
       if (!nodes) {
         return;
@@ -180,6 +192,7 @@ export function createZustandCanvasStoryboardGroupSlice(
         state.nodes,
         state.edges,
         groupNodeId,
+        storyboardGroupPorts,
       );
       if (!result) {
         return;

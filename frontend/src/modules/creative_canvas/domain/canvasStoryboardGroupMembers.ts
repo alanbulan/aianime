@@ -1,18 +1,14 @@
 // Copyright (c) 2026 AI anime
 import {
-  DEFAULT_NODE_WIDTH,
-  isStoryboardGroupNode,
-  type CanvasNode,
-} from './canvasNodes';
-import { getNodeSize } from './canvasGeometry';
-import {
   DEFAULT_STORYBOARD_ASPECT,
   computeStoryboardBoardLayout,
   computeStoryboardCell,
   computeStoryboardGridLayout,
   resolveStoryboardCols,
+  type StoryboardGroupNode,
+  type StoryboardGroupNodePorts,
   type StoryboardGridLayout,
-} from '@/modules/creative_canvas/public';
+} from './storyboardGroup';
 
 export interface CanvasStoryboardMemberLayoutOptions {
   baseWidth?: number;
@@ -29,10 +25,12 @@ export interface CanvasStoryboardMemberLayout {
   board: StoryboardGridLayout;
 }
 
-export function sortCanvasStoryboardGroupMembers(
-  nodes: readonly CanvasNode[],
+export function sortCanvasStoryboardGroupMembers<
+  TNode extends StoryboardGroupNode,
+>(
+  nodes: readonly TNode[],
   groupNodeId: string,
-): CanvasNode[] {
+): TNode[] {
   return nodes
     .filter((node) => node.parentId === groupNodeId)
     .sort(
@@ -42,19 +40,22 @@ export function sortCanvasStoryboardGroupMembers(
     );
 }
 
-export function layoutCanvasStoryboardGroupMembers(
-  members: readonly CanvasNode[],
+export function layoutCanvasStoryboardGroupMembers<
+  TNode extends StoryboardGroupNode,
+>(
+  members: readonly TNode[],
   options: CanvasStoryboardMemberLayoutOptions = {},
+  ports: StoryboardGroupNodePorts<TNode>,
 ): CanvasStoryboardMemberLayout {
   const baseWidth =
     options.baseWidth
     ?? (members.length > 0
-      ? Math.max(...members.map((node) => getNodeSize(node).width))
-      : DEFAULT_NODE_WIDTH);
+      ? Math.max(...members.map((node) => ports.getNodeSize(node).width))
+      : ports.defaultNodeWidth);
   const baseHeight =
     options.baseHeight
     ?? (members.length > 0
-      ? Math.max(...members.map((node) => getNodeSize(node).height))
+      ? Math.max(...members.map((node) => ports.getNodeSize(node).height))
       : 200);
   const aspectKey = options.aspectKey ?? DEFAULT_STORYBOARD_ASPECT;
   const cols = resolveStoryboardCols(members.length, options.cols);
@@ -82,8 +83,10 @@ export function layoutCanvasStoryboardGroupMembers(
   };
 }
 
-export function mapCanvasStoryboardMemberPositions(
-  members: readonly CanvasNode[],
+export function mapCanvasStoryboardMemberPositions<
+  TNode extends StoryboardGroupNode,
+>(
+  members: readonly TNode[],
   layout: StoryboardGridLayout,
 ): ReadonlyMap<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
@@ -96,14 +99,17 @@ export function mapCanvasStoryboardMemberPositions(
   return positions;
 }
 
-export function reorderCanvasStoryboardGroupMember(
-  nodes: readonly CanvasNode[],
+export function reorderCanvasStoryboardGroupMember<
+  TNode extends StoryboardGroupNode,
+>(
+  nodes: readonly TNode[],
   groupNodeId: string,
   fromIndex: number,
   toIndex: number,
-): CanvasNode[] | null {
+  ports: StoryboardGroupNodePorts<TNode>,
+): TNode[] | null {
   const group = nodes.find((node) => node.id === groupNodeId);
-  if (!isStoryboardGroupNode(group)) {
+  if (!group || !ports.isStoryboardGroupNode(group)) {
     return null;
   }
 
@@ -127,10 +133,10 @@ export function reorderCanvasStoryboardGroupMember(
     baseHeight: group.data.storyboardBaseHeight,
     aspectKey: group.data.storyboardAspect,
     cols: group.data.storyboardCols,
-  });
+  }, ports);
   const positions = mapCanvasStoryboardMemberPositions(reordered, memberLayout);
 
-  return nodes.map((node) => {
+  return nodes.map((node): TNode => {
     const position = positions.get(node.id);
     return position ? { ...node, position } : node;
   });

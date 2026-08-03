@@ -1,16 +1,24 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
+  DEFAULT_NODE_WIDTH,
   isStoryboardGroupNode,
   type CanvasNode,
   type GroupNodeData,
 } from '../domain/canvasNodes';
+import { getNodeSize } from '../domain/canvasGeometry';
 import {
   layoutCanvasStoryboardGroupMembers,
   mapCanvasStoryboardMemberPositions,
   sortCanvasStoryboardGroupMembers,
-} from '../domain/canvasStoryboardGroupMembers';
+} from '@/modules/creative_canvas/public';
 import type { NodeFactory } from './ports';
+
+const storyboardGroupPorts = {
+  defaultNodeWidth: DEFAULT_NODE_WIDTH,
+  getNodeSize,
+  isStoryboardGroupNode,
+};
 
 export interface CanvasStoryboardMemberImage {
   imageUrl: string;
@@ -47,7 +55,7 @@ export function addCanvasStoryboardGroupMembers(
     baseHeight: group.data.storyboardBaseHeight,
     aspectKey: group.data.storyboardAspect,
     cols: group.data.storyboardCols,
-  });
+  }, storyboardGroupPorts);
   const { baseWidth, baseHeight, aspectKey } = currentLayout;
   const roundedWidth = Math.round(baseWidth);
   const roundedHeight = Math.round(baseHeight);
@@ -80,6 +88,7 @@ export function addCanvasStoryboardGroupMembers(
       aspectKey,
       cols: group.data.storyboardCols,
     },
+    storyboardGroupPorts,
   );
   const positions = mapCanvasStoryboardMemberPositions(
     allMembers,

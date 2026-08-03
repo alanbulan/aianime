@@ -191,6 +191,12 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasGroupArrangement.test.ts",
       "canvasGroupFit.ts",
       "canvasGroupFit.test.ts",
+      "canvasStoryboardGroupConfig.ts",
+      "canvasStoryboardGroupConfig.test.ts",
+      "canvasStoryboardGroupConversion.ts",
+      "canvasStoryboardGroupConversion.test.ts",
+      "canvasStoryboardGroupMembers.ts",
+      "canvasStoryboardGroupMembers.test.ts",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -1907,7 +1913,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 628],
+      ["features/canvas", 622],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

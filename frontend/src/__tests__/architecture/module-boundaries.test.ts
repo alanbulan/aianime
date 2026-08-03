@@ -13589,15 +13589,15 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas storyboard group updates in the domain model", () => {
     const configPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupConfig.ts",
     );
     const membersPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupMembers.ts",
     );
     const conversionPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasStoryboardGroupConversion.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupConversion.ts",
     );
     const configModel = readFileSync(configPath, "utf8");
     const membersModel = readFileSync(membersPath, "utf8");
@@ -13633,15 +13633,15 @@ describe("frontend architecture boundaries", () => {
     );
     const configDeclaration = [
       "export function",
-      "configureCanvasStoryboardGroup(",
+      "configureCanvasStoryboardGroup<",
     ].join(" ");
     const reorderDeclaration = [
       "export function",
-      "reorderCanvasStoryboardGroupMember(",
+      "reorderCanvasStoryboardGroupMember<",
     ].join(" ");
     const conversionDeclaration = [
       "export function",
-      "convertCanvasStoryboardGroupToPlain(",
+      "convertCanvasStoryboardGroupToPlain<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -13657,22 +13657,36 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasStoryboardGroupConfig.ts",
-      "features/canvas/domain/canvasStoryboardGroupConversion.ts",
-      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupConfig.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupConversion.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupMembers.ts",
     ]);
     expect(configModel).toContain(configDeclaration);
     expect(membersModel).toContain(reorderDeclaration);
     expect(conversionModel).toContain(conversionDeclaration);
-    expect(storyboardGroupSlice).toContain(
+    expect(storyboardGroupSlice).toContain("@/modules/creative_canvas/public");
+    expect(storyboardGroupSlice).not.toContain(
       "../domain/canvasStoryboardGroupConfig",
     );
-    expect(storyboardGroupSlice).toContain(
+    expect(storyboardGroupSlice).not.toContain(
       "../domain/canvasStoryboardGroupMembers",
     );
-    expect(storyboardGroupSlice).toContain(
+    expect(storyboardGroupSlice).not.toContain(
       "../domain/canvasStoryboardGroupConversion",
     );
+    for (const retiredStoryboardPath of [
+      "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+      "features/canvas/domain/canvasStoryboardGroupConfig.test.ts",
+      "features/canvas/domain/canvasStoryboardGroupConversion.ts",
+      "features/canvas/domain/canvasStoryboardGroupConversion.test.ts",
+      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+      "features/canvas/domain/canvasStoryboardGroupMembers.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredStoryboardPath)),
+        retiredStoryboardPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasStoryboardGroupConfig",
     );
@@ -13703,7 +13717,7 @@ describe("frontend architecture boundaries", () => {
     );
     const membersPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupMembers.ts",
     );
     const creationPath = resolve(
       SRC_ROOT,
@@ -13742,7 +13756,7 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const layoutDeclaration = [
       "export function",
-      "layoutCanvasStoryboardGroupMembers(",
+      "layoutCanvasStoryboardGroupMembers<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -13755,12 +13769,14 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
-      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+      "modules/creative_canvas/domain/canvasStoryboardGroupMembers.ts",
     ]);
     expect(additionModel).toContain(additionDeclaration);
     expect(additionModel).toContain("nodeFactory: NodeFactory");
     expect(membersModel).toContain(layoutDeclaration);
-    expect(creationModel).toContain("layoutCanvasStoryboardGroupMembers(ordered)");
+    expect(creationModel).toContain(
+      "layoutCanvasStoryboardGroupMembers(ordered, {}, storyboardGroupPorts)",
+    );
     expect(additionModel).toContain("layoutCanvasStoryboardGroupMembers(existing,");
     expect(storyboardGroupSlice).toContain(
       "../application/canvasStoryboardGroupMemberAddition",
@@ -25217,11 +25233,9 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasHistory",
+      "../domain/canvasGeometry",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../domain/canvasStoryboardGroupConfig",
-      "../domain/canvasStoryboardGroupConversion",
-      "../domain/canvasStoryboardGroupMembers",
       "../application/canvasStoryboardGroupCreation",
       "../application/canvasStoryboardGroupMemberAddition",
       "../application/ports",

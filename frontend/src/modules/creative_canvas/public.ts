@@ -177,6 +177,9 @@ export type {
   StoryboardGridInput,
   StoryboardGridLayout,
   StoryboardGroupEdge,
+  StoryboardGroupNode,
+  StoryboardGroupNodeData,
+  StoryboardGroupNodePorts,
 } from "@/modules/creative_canvas/domain/storyboardGroup";
 export { ungroupCanvasNode } from "@/modules/creative_canvas/domain/canvasGroupRemoval";
 export type {
@@ -208,6 +211,28 @@ export type {
   CanvasGroupFitNode,
   CanvasGroupFitPorts,
 } from "@/modules/creative_canvas/domain/canvasGroupFit";
+export {
+  configureCanvasStoryboardGroup,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupConfig";
+export type {
+  CanvasStoryboardGroupConfig,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupConfig";
+export {
+  convertCanvasStoryboardGroupToPlain,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupConversion";
+export type {
+  CanvasStoryboardGroupConversionResult,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupConversion";
+export {
+  layoutCanvasStoryboardGroupMembers,
+  mapCanvasStoryboardMemberPositions,
+  reorderCanvasStoryboardGroupMember,
+  sortCanvasStoryboardGroupMembers,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupMembers";
+export type {
+  CanvasStoryboardMemberLayout,
+  CanvasStoryboardMemberLayoutOptions,
+} from "@/modules/creative_canvas/domain/canvasStoryboardGroupMembers";
 export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,

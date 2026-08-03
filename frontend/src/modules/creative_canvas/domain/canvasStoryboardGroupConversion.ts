@@ -1,25 +1,30 @@
 // Copyright (c) 2026 AI anime
 import {
-  isStoryboardGroupNode,
-  type CanvasEdge,
-  type CanvasNode,
-  type GroupNodeData,
-} from './canvasNodes';
-import { getNodeSize } from './canvasGeometry';
-import { restoreStoryboardEdges } from '@/modules/creative_canvas/public';
+  restoreStoryboardEdges,
+  type StoryboardGroupEdge,
+  type StoryboardGroupNode,
+  type StoryboardGroupNodePorts,
+} from './storyboardGroup';
 
-export interface CanvasStoryboardGroupConversionResult {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+export interface CanvasStoryboardGroupConversionResult<
+  TNode extends StoryboardGroupNode,
+  TEdge extends StoryboardGroupEdge,
+> {
+  nodes: TNode[];
+  edges: TEdge[];
 }
 
-export function convertCanvasStoryboardGroupToPlain(
-  nodes: readonly CanvasNode[],
-  edges: readonly CanvasEdge[],
+export function convertCanvasStoryboardGroupToPlain<
+  TNode extends StoryboardGroupNode,
+  TEdge extends StoryboardGroupEdge,
+>(
+  nodes: readonly TNode[],
+  edges: readonly TEdge[],
   groupNodeId: string,
-): CanvasStoryboardGroupConversionResult | null {
+  ports: StoryboardGroupNodePorts<TNode>,
+): CanvasStoryboardGroupConversionResult<TNode, TEdge> | null {
   const groupNode = nodes.find((node) => node.id === groupNodeId);
-  if (!isStoryboardGroupNode(groupNode)) {
+  if (!groupNode || !ports.isStoryboardGroupNode(groupNode)) {
     return null;
   }
 
@@ -27,14 +32,14 @@ export function convertCanvasStoryboardGroupToPlain(
   let maxX = 0;
   let maxY = 0;
   for (const child of children) {
-    const size = getNodeSize(child);
+    const size = ports.getNodeSize(child);
     maxX = Math.max(maxX, child.position.x + size.width);
     maxY = Math.max(maxY, child.position.y + size.height);
   }
   const groupWidth = Math.max(220, Math.round(maxX + 20));
   const groupHeight = Math.max(140, Math.round(maxY + 20));
 
-  const nextNodes = nodes.map((node) => {
+  const nextNodes = nodes.map((node): TNode => {
     if (node.id === groupNodeId) {
       const {
         storyboardGroup: _storyboardGroup,
@@ -44,7 +49,7 @@ export function convertCanvasStoryboardGroupToPlain(
         storyboardBaseWidth: _storyboardBaseWidth,
         storyboardBaseHeight: _storyboardBaseHeight,
         ...restData
-      } = node.data as GroupNodeData;
+      } = node.data;
       return {
         ...node,
         dragHandle: undefined,
@@ -55,7 +60,7 @@ export function convertCanvasStoryboardGroupToPlain(
           width: groupWidth,
           height: groupHeight,
         },
-        data: restData as GroupNodeData,
+        data: restData,
       };
     }
     if (node.parentId === groupNodeId && node.hidden) {

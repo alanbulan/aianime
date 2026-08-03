@@ -1,29 +1,44 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
 import { reorderCanvasStoryboardGroupMember } from './canvasStoryboardGroupMembers';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+const ports = {
+  defaultNodeWidth: 320,
+  getNodeSize: (candidate: TestNode) => candidate.measured,
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.kind === 'group' && candidate.data.storyboardGroup === true,
+};
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 300, height: 200 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas storyboard member reordering', () => {
   it('returns null for invalid groups and indexes', () => {
-    const ordinary = node('ordinary', { type: CANVAS_NODE_TYPES.group });
+    const ordinary = node('ordinary', { kind: 'group' });
     const member = node('member', { parentId: ordinary.id });
 
     expect(
@@ -32,11 +47,12 @@ describe('Canvas storyboard member reordering', () => {
         ordinary.id,
         0,
         1,
+        ports,
       ),
     ).toBeNull();
 
     const storyboard = node('storyboard', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: { storyboardGroup: true },
     });
     expect(
@@ -45,6 +61,7 @@ describe('Canvas storyboard member reordering', () => {
         storyboard.id,
         0,
         0,
+        ports,
       ),
     ).toBeNull();
     expect(
@@ -53,13 +70,14 @@ describe('Canvas storyboard member reordering', () => {
         storyboard.id,
         -1,
         0,
+        ports,
       ),
     ).toBeNull();
   });
 
   it('moves a reading-order member and reassigns full-grid positions', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: {
         storyboardGroup: true,
         storyboardAspect: '16:9',
@@ -87,6 +105,7 @@ describe('Canvas storyboard member reordering', () => {
       group.id,
       0,
       2,
+      ports,
     );
 
     expect(result?.find((item) => item.id === second.id)?.position).toEqual({

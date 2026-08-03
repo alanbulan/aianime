@@ -1,42 +1,58 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
 import { configureCanvasStoryboardGroup } from './canvasStoryboardGroupConfig';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+const ports = {
+  defaultNodeWidth: 320,
+  getNodeSize: (candidate: TestNode) => candidate.measured,
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.kind === 'group' && candidate.data.storyboardGroup === true,
+};
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
+    measured: { width: 300, height: 200 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas storyboard group configuration', () => {
   it('returns null for a missing or ordinary group', () => {
     const ordinary = node('ordinary', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
     });
 
     expect(
-      configureCanvasStoryboardGroup([ordinary], 'missing', {}),
+      configureCanvasStoryboardGroup([ordinary], 'missing', {}, ports),
     ).toBeNull();
     expect(
-      configureCanvasStoryboardGroup([ordinary], ordinary.id, {}),
+      configureCanvasStoryboardGroup([ordinary], ordinary.id, {}, ports),
     ).toBeNull();
   });
 
   it('updates board dimensions and persisted display settings', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       style: { borderColor: 'red', width: 100, height: 100 },
       data: {
         storyboardGroup: true,
@@ -53,6 +69,7 @@ describe('Canvas storyboard group configuration', () => {
       [group, ...children],
       group.id,
       { aspectKey: '4:3', cols: 4, showIndex: true },
+      ports,
     );
 
     expect(result?.[0]).toMatchObject({
@@ -74,7 +91,7 @@ describe('Canvas storyboard group configuration', () => {
 
   it('keeps current settings when a patch omits them', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: {
         storyboardGroup: true,
         storyboardAspect: '1:1',
@@ -85,7 +102,12 @@ describe('Canvas storyboard group configuration', () => {
     const child = node('child', { parentId: group.id });
 
     expect(
-      configureCanvasStoryboardGroup([group, child], group.id, {})?.[0]?.data,
+      configureCanvasStoryboardGroup(
+        [group, child],
+        group.id,
+        {},
+        ports,
+      )?.[0]?.data,
     ).toMatchObject({
       storyboardAspect: '1:1',
       storyboardCols: 1,
