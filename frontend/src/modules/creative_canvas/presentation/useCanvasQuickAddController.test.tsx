@@ -2,13 +2,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import {
   useCanvasQuickAddController,
   type CanvasQuickAddControllerOptions,
 } from './useCanvasQuickAddController';
+
+type TestNodeType = 'video' | 'skill';
 
 const skill: SkillDefinition = {
   id: 'skill-1',
@@ -21,13 +22,14 @@ const skill: SkillDefinition = {
 
 function createOptions(
   wrapperElement: HTMLDivElement | null,
-): CanvasQuickAddControllerOptions {
+): CanvasQuickAddControllerOptions<TestNodeType> {
   return {
     wrapperRef: { current: wrapperElement },
     screenToFlowPosition: vi.fn(({ x, y }) => ({ x: x / 2, y: y / 2 })),
     createNode: vi.fn(() => 'new-node'),
     selectNode: vi.fn(),
     bindSkill: vi.fn(),
+    skillNodeType: 'skill',
   };
 }
 
@@ -50,11 +52,11 @@ describe('useCanvasQuickAddController', () => {
       useCanvasQuickAddController(options),
     );
 
-    act(() => result.current.quickAddNode(CANVAS_NODE_TYPES.video));
+    act(() => result.current.quickAddNode('video'));
 
     expect(options.screenToFlowPosition).toHaveBeenCalledWith({ x: 210, y: 170 });
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.video,
+      'video',
       { x: 105, y: 85 },
     );
     expect(options.selectNode).toHaveBeenCalledWith('new-node');
@@ -87,7 +89,7 @@ describe('useCanvasQuickAddController', () => {
     act(() => result.current.quickAddSkill(skill));
 
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.skill,
+      'skill',
       {
         x: window.innerWidth / 4,
         y: window.innerHeight / 4,

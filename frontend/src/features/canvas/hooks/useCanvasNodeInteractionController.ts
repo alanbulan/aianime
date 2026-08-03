@@ -3,20 +3,27 @@ import { useCallback, type RefObject } from 'react';
 
 import {
   useCanvasNodeClickController,
+  useCanvasNodeMenuSelectionController,
   useCanvasNodeMenuShortcut,
   useCanvasNodePlacementController,
   useCanvasPaneClickController,
+  useCanvasQuickAddController,
   type CanvasNodeClickController,
   type CanvasNodeClickControllerOptions,
+  type CanvasNodeMenuSelectionController,
+  type CanvasNodeMenuSelectionControllerOptions,
   type CanvasNodeMenuShortcutController,
+  type CanvasNodeMenuTypes,
   type CanvasNodePlacement,
   type CanvasNodePlacementController,
   type CanvasPaneClickController,
+  type CanvasQuickAddController,
   type SkillDefinition,
 } from '@/modules/creative_canvas/public';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
 import {
+  CANVAS_NODE_TYPES,
   isStoryboardGroupNode,
   type CanvasNode,
   type CanvasNodeData,
@@ -25,20 +32,18 @@ import {
 import type {
   CanvasNodeMenuStateController,
 } from './useCanvasNodeMenuStateController';
-import {
-  useCanvasNodeMenuSelectionController,
-  type CanvasNodeMenuSelectionController,
-  type CanvasNodeMenuSelectionControllerOptions,
-} from './useCanvasNodeMenuSelectionController';
-import {
-  useCanvasQuickAddController,
-  type CanvasQuickAddController,
-} from './useCanvasQuickAddController';
 
 interface CanvasPosition {
   x: number;
   y: number;
 }
+
+const CANVAS_NODE_MENU_TYPES = {
+  imageEdit: CANVAS_NODE_TYPES.imageEdit,
+  upload: CANVAS_NODE_TYPES.upload,
+  imageGen: CANVAS_NODE_TYPES.imageGen,
+  skill: CANVAS_NODE_TYPES.skill,
+} satisfies CanvasNodeMenuTypes<CanvasNodeType>;
 
 export interface CanvasNodeInteractionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
@@ -64,11 +69,20 @@ export interface CanvasNodeInteractionControllerOptions {
   menuPosition: CanvasPosition;
   menuAllowedTypes: readonly CanvasNodeType[] | undefined;
   pendingConnection:
-    CanvasNodeMenuSelectionControllerOptions['pendingConnection'];
+    CanvasNodeMenuSelectionControllerOptions<
+      CanvasNodeType,
+      CanvasNode
+    >['pendingConnection'];
   pendingBatchSourceIds:
-    CanvasNodeMenuSelectionControllerOptions['pendingBatchSourceIds'];
+    CanvasNodeMenuSelectionControllerOptions<
+      CanvasNodeType,
+      CanvasNode
+    >['pendingBatchSourceIds'];
   connectSpawnedNode:
-    CanvasNodeMenuSelectionControllerOptions['connectSpawnedNode'];
+    CanvasNodeMenuSelectionControllerOptions<
+      CanvasNodeType,
+      CanvasNode
+    >['connectSpawnedNode'];
   hideMenuForPlacement:
     CanvasNodeMenuStateController['hideNodeMenuForPlacement'];
   closeNodeMenu: CanvasNodeMenuStateController['closeNodeMenu'];
@@ -79,8 +93,8 @@ export interface CanvasNodeInteractionController
   CanvasPaneClickController,
   CanvasNodeMenuShortcutController,
   CanvasNodeClickController<CanvasNode>,
-  CanvasNodeMenuSelectionController,
-  CanvasQuickAddController {
+  CanvasNodeMenuSelectionController<CanvasNodeType>,
+  CanvasQuickAddController<CanvasNodeType> {
   openNodeMenuAtClientPosition: (clientPosition: CanvasPosition) => void;
 }
 
@@ -106,7 +120,10 @@ export function useCanvasNodeInteractionController({
   hideMenuForPlacement,
   closeNodeMenu,
 }: CanvasNodeInteractionControllerOptions): CanvasNodeInteractionController {
-  const placement = useCanvasNodePlacementController({
+  const placement = useCanvasNodePlacementController<
+    CanvasNodeType,
+    CanvasNodeData
+  >({
     wrapperRef,
     screenToFlowPosition,
     createNode,
@@ -159,9 +176,13 @@ export function useCanvasNodeInteractionController({
     centerViewport,
     isStoryboardGroupNode,
   });
-  const menuSelection = useCanvasNodeMenuSelectionController({
+  const menuSelection = useCanvasNodeMenuSelectionController<
+    CanvasNodeType,
+    CanvasNode
+  >({
     wrapperRef,
     nodes,
+    nodeTypes: CANVAS_NODE_MENU_TYPES,
     flowPosition,
     menuPosition,
     menuAllowedTypes,
@@ -176,12 +197,13 @@ export function useCanvasNodeInteractionController({
     closeNodeMenu,
     releasePaneClickSuppression: paneClick.releasePaneClickSuppression,
   });
-  const quickAdd = useCanvasQuickAddController({
+  const quickAdd = useCanvasQuickAddController<CanvasNodeType>({
     wrapperRef,
     screenToFlowPosition,
     createNode,
     selectNode,
     bindSkill,
+    skillNodeType: CANVAS_NODE_TYPES.skill,
   });
 
   return {

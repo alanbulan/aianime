@@ -1,40 +1,48 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import type {
-  CanvasNodePlacement,
-  SkillDefinition,
-} from '@/modules/creative_canvas/public';
-
-import type { CanvasSpawnConnectionOrigin } from '../application/canvasEdgeCreation';
 import {
   createCanvasSkillNodeData,
   planCanvasNodeMenuSelection,
-} from '../application/canvasNodeMenuSelection';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
-import type { CanvasSpawnedNodeConnectionRequest } from './useCanvasConnectionController';
+  type CanvasNodeMenuConnectionOrigin,
+  type CanvasNodeMenuCreationData,
+  type CanvasNodeMenuSelectionNode,
+  type CanvasNodeMenuTypes,
+} from '@/modules/creative_canvas/application/canvasNodeMenuSelection';
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
-export interface CanvasNodeMenuSelectionControllerOptions {
+export interface CanvasNodeMenuPlacement<TNodeType extends string = string> {
+  type: TNodeType;
+  initialData?: CanvasNodeMenuCreationData;
+  skill?: SkillDefinition;
+}
+
+export interface CanvasSpawnedNodeConnectionRequest {
+  spawnedNodeId: string;
+  pendingConnection: CanvasNodeMenuConnectionOrigin | null;
+  batchSourceIds: readonly string[] | null;
+}
+
+export interface CanvasNodeMenuSelectionControllerOptions<
+  TNodeType extends string = string,
+  TNode extends CanvasNodeMenuSelectionNode = CanvasNodeMenuSelectionNode,
+> {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly TNode[];
+  nodeTypes: CanvasNodeMenuTypes<TNodeType>;
   flowPosition: { x: number; y: number };
   menuPosition: { x: number; y: number };
-  menuAllowedTypes: readonly CanvasNodeType[] | undefined;
-  pendingConnection: CanvasSpawnConnectionOrigin | null;
+  menuAllowedTypes: readonly TNodeType[] | undefined;
+  pendingConnection: CanvasNodeMenuConnectionOrigin | null;
   pendingBatchSourceIds: readonly string[] | null;
   getLastCanvasPointerPosition: () => { x: number; y: number } | null;
   createNode: (
-    type: CanvasNodeType,
+    type: TNodeType,
     position: { x: number; y: number },
-    data?: Partial<CanvasNodeData>,
+    data?: CanvasNodeMenuCreationData,
   ) => string;
   beginNodePlacement: (
-    placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+    placement: CanvasNodeMenuPlacement<TNodeType>,
     clientPosition: { x: number; y: number } | null,
   ) => void;
   connectSpawnedNode: (request: CanvasSpawnedNodeConnectionRequest) => void;
@@ -44,17 +52,23 @@ export interface CanvasNodeMenuSelectionControllerOptions {
   releasePaneClickSuppression: () => void;
 }
 
-export interface CanvasNodeMenuSelectionController {
+export interface CanvasNodeMenuSelectionController<
+  TNodeType extends string = string,
+> {
   selectNodeType: (
-    type: CanvasNodeType,
+    type: TNodeType,
     selectionClientPosition?: { x: number; y: number },
   ) => void;
   selectSkill: (skill: SkillDefinition) => void;
 }
 
-export function useCanvasNodeMenuSelectionController({
+export function useCanvasNodeMenuSelectionController<
+  TNodeType extends string,
+  TNode extends CanvasNodeMenuSelectionNode,
+>({
   wrapperRef,
   nodes,
+  nodeTypes,
   flowPosition,
   menuPosition,
   menuAllowedTypes,
@@ -68,7 +82,10 @@ export function useCanvasNodeMenuSelectionController({
   hideMenuForPlacement,
   closeNodeMenu,
   releasePaneClickSuppression,
-}: CanvasNodeMenuSelectionControllerOptions): CanvasNodeMenuSelectionController {
+}: CanvasNodeMenuSelectionControllerOptions<
+  TNodeType,
+  TNode
+>): CanvasNodeMenuSelectionController<TNodeType> {
   const resolvePlacementClientPosition = useCallback(
     (preferredPosition?: { x: number; y: number }) => {
       const containerRect = wrapperRef.current?.getBoundingClientRect();
@@ -87,7 +104,7 @@ export function useCanvasNodeMenuSelectionController({
 
   const startPlacement = useCallback(
     (
-      placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+      placement: CanvasNodeMenuPlacement<TNodeType>,
       preferredPosition?: { x: number; y: number },
     ) => {
       hideMenuForPlacement();
@@ -126,12 +143,13 @@ export function useCanvasNodeMenuSelectionController({
 
   const selectNodeType = useCallback(
     (
-      type: CanvasNodeType,
+      type: TNodeType,
       selectionClientPosition?: { x: number; y: number },
     ) => {
       const plan = planCanvasNodeMenuSelection({
         type,
         nodes,
+        nodeTypes,
         pendingConnection,
         hasPendingBatchConnection: pendingBatchSourceIds !== null,
         hasAllowedTypeFilter: menuAllowedTypes !== undefined,
@@ -151,6 +169,7 @@ export function useCanvasNodeMenuSelectionController({
       finalizeSpawn,
       flowPosition,
       menuAllowedTypes,
+      nodeTypes,
       nodes,
       pendingBatchSourceIds,
       pendingConnection,
@@ -161,12 +180,12 @@ export function useCanvasNodeMenuSelectionController({
   const selectSkill = useCallback(
     (skill: SkillDefinition) => {
       startPlacement({
-        type: CANVAS_NODE_TYPES.skill,
+        type: nodeTypes.skill,
         initialData: createCanvasSkillNodeData(skill),
         skill,
       });
     },
-    [startPlacement],
+    [nodeTypes.skill, startPlacement],
   );
 
   return {

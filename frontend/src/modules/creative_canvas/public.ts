@@ -443,6 +443,37 @@ export type {
   CanvasNodePlacementPreview,
 } from "@/modules/creative_canvas/presentation/useCanvasNodePlacementController";
 export {
+  createCanvasSkillNodeData,
+  planCanvasNodeMenuSelection,
+} from "@/modules/creative_canvas/application/canvasNodeMenuSelection";
+export type {
+  CanvasImageOnlyNodeInitialData,
+  CanvasImageReferenceNodeInitialData,
+  CanvasNodeMenuConnectionOrigin,
+  CanvasNodeMenuCreationData,
+  CanvasNodeMenuInitialData,
+  CanvasNodeMenuSelectionNode,
+  CanvasNodeMenuSelectionPlan,
+  CanvasNodeMenuTypes,
+  CanvasSkillNodeInitialData,
+} from "@/modules/creative_canvas/application/canvasNodeMenuSelection";
+export {
+  useCanvasNodeMenuSelectionController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController";
+export type {
+  CanvasNodeMenuPlacement,
+  CanvasNodeMenuSelectionController,
+  CanvasNodeMenuSelectionControllerOptions,
+  CanvasSpawnedNodeConnectionRequest,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController";
+export {
+  useCanvasQuickAddController,
+} from "@/modules/creative_canvas/presentation/useCanvasQuickAddController";
+export type {
+  CanvasQuickAddController,
+  CanvasQuickAddControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasQuickAddController";
+export {
   useCanvasPaneClickController,
 } from "@/modules/creative_canvas/presentation/useCanvasPaneClickController";
 export type {

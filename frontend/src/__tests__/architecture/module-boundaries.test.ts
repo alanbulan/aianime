@@ -7801,7 +7801,6 @@ describe("frontend architecture boundaries", () => {
     );
     for (const consumerPath of [
       "features/canvas/hooks/useCanvasNodeInteractionController.ts",
-      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
       "features/canvas/hooks/useCanvasNodeCatalogController.ts",
     ]) {
       const consumer = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
@@ -8197,11 +8196,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas quick-add orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasQuickAddController.ts",
+      moduleRoot,
+      "presentation/useCanvasQuickAddController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const nodeInteractionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -8213,14 +8220,11 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasQuickAddController(",
+      "useCanvasQuickAddController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -8229,12 +8233,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasQuickAddController.ts",
+      "modules/creative_canvas/presentation/useCanvasQuickAddController.ts",
     ]);
     expect(hookModel).toContain("wrapperRef.current?.getBoundingClientRect()");
     expect(hookModel).toContain("window.innerWidth / 2");
     expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
     expect(hookModel).toContain("bindSkill(nodeId, skill)");
+    expect(nodeInteractionSource).toContain("skillNodeType:");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasQuickAddController",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -8249,6 +8257,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const handleQuickAddNode = useCallback");
     expect(canvasView).not.toContain("const handleQuickAddSkill = useCallback");
     expect(canvasView).not.toContain("window.innerWidth / 2");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasQuickAddController.ts",
+      "features/canvas/hooks/useCanvasQuickAddController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
@@ -9072,11 +9086,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas node-menu selection orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+      moduleRoot,
+      "presentation/useCanvasNodeMenuSelectionController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const nodeInteractionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -9089,13 +9111,11 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasNodeMenuSelectionController(",
+      "useCanvasNodeMenuSelectionController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9104,7 +9124,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController.ts",
     ]);
     expect(hookModel).toContain("planCanvasNodeMenuSelection({");
     expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
@@ -9113,6 +9133,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("fallbackPosition");
     expect(hookModel).toContain("connectSpawnedNode({");
     expect(hookModel).toContain("closeNodeMenu()");
+    expect(nodeInteractionSource).toContain("nodeTypes: CANVAS_NODE_MENU_TYPES");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -9129,6 +9153,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const handleSkillSelect = useCallback");
     expect(canvasView).not.toContain("planCanvasNodeMenuSelection({");
     expect(canvasView).not.toContain("createCanvasSkillNodeData(skill)");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+      "features/canvas/hooks/useCanvasNodeMenuSelectionController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas project assembly in one presentation controller", () => {
@@ -14661,15 +14691,16 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas node-menu selection rules in the application layer", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const selectionPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasNodeMenuSelection.ts",
+      moduleRoot,
+      "application/canvasNodeMenuSelection.ts",
     );
     const selectionModel = readFileSync(selectionPath, "utf8");
     const menuController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+        moduleRoot,
+        "presentation/useCanvasNodeMenuSelectionController.ts",
       ),
       "utf8",
     );
@@ -14686,10 +14717,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/"),
     );
     const declarations = [
       "planCanvasNodeMenuSelection(",
@@ -14705,13 +14733,15 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasNodeMenuSelection.ts",
+      "modules/creative_canvas/application/canvasNodeMenuSelection.ts",
     ]);
     for (const declaration of declarations) {
       expect(selectionModel).toContain(declaration);
     }
     expect(selectionModel).toContain("SKILL_SCHEMA_VERSION");
-    expect(menuController).toContain("../application/canvasNodeMenuSelection");
+    expect(menuController).toContain(
+      "@/modules/creative_canvas/application/canvasNodeMenuSelection",
+    );
     expect(menuController).toContain("planCanvasNodeMenuSelection({");
     expect(menuController).toContain("createCanvasSkillNodeData(skill)");
     expect(canvasView).not.toContain(
@@ -14721,6 +14751,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("generationMode: 'image_reference'");
     expect(canvasView).not.toContain("initialData = { imageOnly: true }");
     expect(canvasView).not.toContain("skill_schema_version:");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/application/canvasNodeMenuSelection",
+    );
+    for (const retiredPath of [
+      "features/canvas/application/canvasNodeMenuSelection.ts",
+      "features/canvas/application/canvasNodeMenuSelection.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas derived node creation in the application layer", () => {
@@ -24735,10 +24774,10 @@ describe("frontend architecture boundaries", () => {
     expect(nodeInteractionSource).not.toContain("./useCanvasPaneClickController");
     expect(nodeInteractionSource).not.toContain("./useCanvasNodeMenuShortcut");
     expect(nodeInteractionSource).not.toContain("./useCanvasNodeClickController");
-    expect(nodeInteractionSource).toContain(
+    expect(nodeInteractionSource).not.toContain(
       "./useCanvasNodeMenuSelectionController",
     );
-    expect(nodeInteractionSource).toContain("./useCanvasQuickAddController");
+    expect(nodeInteractionSource).not.toContain("./useCanvasQuickAddController");
     expect(nodeInteractionSource).toContain(
       "flowPosition: screenToFlowPosition(clientPosition)",
     );

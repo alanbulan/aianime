@@ -2,16 +2,26 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
 import {
   useCanvasNodeMenuSelectionController,
   type CanvasNodeMenuSelectionControllerOptions,
 } from './useCanvasNodeMenuSelectionController';
+
+const NODE_TYPES = {
+  imageEdit: 'image-edit',
+  upload: 'upload',
+  imageGen: 'image-gen',
+  skill: 'skill',
+} as const;
+
+type TestNodeType = typeof NODE_TYPES[keyof typeof NODE_TYPES] | 'video';
+
+interface TestNode {
+  id: string;
+  type: TestNodeType;
+}
 
 const skill: SkillDefinition = {
   id: 'skill-1',
@@ -22,17 +32,14 @@ const skill: SkillDefinition = {
   outputs: [],
 };
 
-function node(id: string, type: CanvasNode['type']): CanvasNode {
-  return {
-    id,
-    type,
-    position: { x: 0, y: 0 },
-    data: {},
-  } as CanvasNode;
+function node(id: string, type: TestNodeType): TestNode {
+  return { id, type };
 }
 
 function createOptions(
-  overrides: Partial<CanvasNodeMenuSelectionControllerOptions> = {},
+  overrides: Partial<
+    CanvasNodeMenuSelectionControllerOptions<TestNodeType, TestNode>
+  > = {},
 ) {
   const wrapperElement = document.createElement('div');
   vi.spyOn(wrapperElement, 'getBoundingClientRect').mockReturnValue({
@@ -46,9 +53,13 @@ function createOptions(
     y: 20,
     toJSON: () => ({}),
   });
-  const options: CanvasNodeMenuSelectionControllerOptions = {
+  const options: CanvasNodeMenuSelectionControllerOptions<
+    TestNodeType,
+    TestNode
+  > = {
     wrapperRef: { current: wrapperElement },
     nodes: [],
+    nodeTypes: NODE_TYPES,
     flowPosition: { x: 100, y: 200 },
     menuPosition: { x: 30, y: 40 },
     menuAllowedTypes: undefined,
@@ -75,13 +86,13 @@ describe('useCanvasNodeMenuSelectionController', () => {
     );
 
     act(() => result.current.selectNodeType(
-      CANVAS_NODE_TYPES.video,
+      'video',
       { x: 300, y: 400 },
     ));
 
     expect(options.hideMenuForPlacement).toHaveBeenCalledOnce();
     expect(options.beginNodePlacement).toHaveBeenCalledWith(
-      { type: CANVAS_NODE_TYPES.video, initialData: undefined },
+      { type: 'video', initialData: undefined },
       { x: 300, y: 400 },
     );
     expect(options.getLastCanvasPointerPosition).not.toHaveBeenCalled();
@@ -102,7 +113,7 @@ describe('useCanvasNodeMenuSelectionController', () => {
 
     expect(pointerOptions.beginNodePlacement).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: CANVAS_NODE_TYPES.skill,
+        type: NODE_TYPES.skill,
         skill,
         initialData: expect.objectContaining({
           skill_id: skill.id,
@@ -130,17 +141,17 @@ describe('useCanvasNodeMenuSelectionController', () => {
       handleType: 'source' as const,
     };
     const options = createOptions({
-      nodes: [node('origin', CANVAS_NODE_TYPES.imageGen)],
+      nodes: [node('origin', NODE_TYPES.imageGen)],
       pendingConnection,
     });
     const { result } = renderHook(() =>
       useCanvasNodeMenuSelectionController(options),
     );
 
-    act(() => result.current.selectNodeType(CANVAS_NODE_TYPES.imageEdit));
+    act(() => result.current.selectNodeType(NODE_TYPES.imageEdit));
 
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.imageEdit,
+      NODE_TYPES.imageEdit,
       { x: 100, y: 200 },
       {
         generationMode: 'image_reference',
@@ -159,16 +170,16 @@ describe('useCanvasNodeMenuSelectionController', () => {
   it('uses immediate spawn for a batch-connection or filtered menu', () => {
     const options = createOptions({
       pendingBatchSourceIds: ['source-a', 'source-b'],
-      menuAllowedTypes: [CANVAS_NODE_TYPES.video],
+      menuAllowedTypes: ['video'],
     });
     const { result } = renderHook(() =>
       useCanvasNodeMenuSelectionController(options),
     );
 
-    act(() => result.current.selectNodeType(CANVAS_NODE_TYPES.video));
+    act(() => result.current.selectNodeType('video'));
 
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.video,
+      'video',
       { x: 100, y: 200 },
       undefined,
     );
