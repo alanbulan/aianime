@@ -1,15 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useEffect } from 'react';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
-import { isTypingTarget } from '@/modules/creative_canvas/public';
+import { isTypingTarget } from './canvasInteractionTargets';
 
 export interface CanvasKeyboardShortcutOptions {
   placementActive: boolean;
   nodeMenuOpen: boolean;
   canCopySelection: boolean;
   canGroupSelection: boolean;
+  isImmersiveViewerActive: () => boolean;
   cancelPlacement: () => void;
   closeNodeMenu: () => void;
   organizeCanvas: () => void;
@@ -26,6 +25,7 @@ export function useCanvasKeyboardShortcuts({
   nodeMenuOpen,
   canCopySelection,
   canGroupSelection,
+  isImmersiveViewerActive,
   cancelPlacement,
   closeNodeMenu,
   organizeCanvas,
@@ -121,6 +121,7 @@ export function useCanvasKeyboardShortcuts({
     copySelection,
     deleteSelection,
     groupSelection,
+    isImmersiveViewerActive,
     nodeMenuOpen,
     organizeCanvas,
     pasteSelection,

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMemo, type RefObject } from 'react';
 
-import type { CanvasContextMenuItem } from '../ui/CanvasContextMenu';
+import type { CanvasContextMenuItem } from './CanvasContextMenu';
 import {
   useCanvasPaneContextMenu,
   type CanvasPaneContextMenuCapabilities,

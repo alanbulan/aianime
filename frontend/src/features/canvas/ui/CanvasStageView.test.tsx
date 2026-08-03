@@ -58,6 +58,7 @@ vi.mock('@/components/credits/credit-visual', () => ({
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
+  CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
   CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
@@ -80,9 +81,6 @@ vi.mock('../NodeSelectionMenu', () => ({
 }));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,
-}));
-vi.mock('./CanvasContextMenu', () => ({
-  CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
 }));
 vi.mock('./CanvasFpsMeter', () => ({
   CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,

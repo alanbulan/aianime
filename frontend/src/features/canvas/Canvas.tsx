@@ -14,18 +14,19 @@ import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiv
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
+  useCanvasCommandSurfaceController,
   useCanvasSelectionSurfaceController,
+  type CanvasCommandHistoryPort,
 } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { canvasNodeIntersectsSelectionRect } from './domain/canvasGeometry';
-import { isUploadNode } from './domain/canvasNodes';
+import { CANVAS_NODE_TYPES, isUploadNode } from './domain/canvasNodes';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionGestureSurfaceController } from './hooks/useCanvasConnectionGestureSurfaceController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
-import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
@@ -37,6 +38,16 @@ interface CanvasProps {
   onBlankPaneClick?: () => void;
   controlsPlacement?: 'bottom-right' | 'top-right';
 }
+
+const CANVAS_COMMAND_HISTORY_PORT: CanvasCommandHistoryPort = {
+  getCapabilities: () => {
+    const history = useCanvasStore.getState().history;
+    return {
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+    };
+  },
+};
 
 export function Canvas({
   projectId,
@@ -302,6 +313,9 @@ export function Canvas({
     nodeMenuOpen: showNodeMenu,
     selectedNodeCount: selectedNodeIds.length,
     hasCopiedNodes,
+    historyPort: CANVAS_COMMAND_HISTORY_PORT,
+    uploadNodeType: CANVAS_NODE_TYPES.upload,
+    isImmersiveViewerActive,
     screenToFlowPosition,
     createNode: addNode,
     openNodeMenu: openNodeMenuAtClientPosition,

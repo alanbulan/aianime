@@ -8457,9 +8457,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas editing keyboard mapping in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasKeyboardShortcuts.ts",
+      moduleRoot,
+      "presentation/useCanvasKeyboardShortcuts.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -8468,8 +8469,8 @@ describe("frontend architecture boundaries", () => {
     );
     const commandSurface = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+        moduleRoot,
+        "presentation/useCanvasCommandSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8480,9 +8481,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -8495,17 +8494,27 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasKeyboardShortcuts.ts",
+      "modules/creative_canvas/presentation/useCanvasKeyboardShortcuts.ts",
     ]);
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
     expect(hookModel).toContain("event.key === 'Escape'");
     expect(commandSurface).toContain("./useCanvasKeyboardShortcuts");
-    expect(canvasView).toContain("./hooks/useCanvasCommandSurfaceController");
+    expect(hookModel).not.toContain("useViewerImmersiveBody");
+    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain("useCanvasCommandSurfaceController");
+    expect(canvasView).toContain("isImmersiveViewerActive,");
+    expect(canvasView).not.toContain("./hooks/useCanvasCommandSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasKeyboardShortcuts");
     expect(canvasView).not.toContain("document.addEventListener('keydown'");
     expect(canvasView).not.toContain("const isUndo =");
     expect(canvasView).not.toContain("const isOrganize =");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasKeyboardShortcuts.ts",
+      "features/canvas/hooks/useCanvasKeyboardShortcuts.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas media surface assembly in one presentation controller", () => {
@@ -9620,15 +9629,16 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+      moduleRoot,
+      "presentation/useCanvasPaneContextMenu.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasContextMenuController.ts",
+        moduleRoot,
+        "presentation/useCanvasContextMenuController.ts",
       ),
       "utf8",
     );
@@ -9638,8 +9648,8 @@ describe("frontend architecture boundaries", () => {
     );
     const commandSurface = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+        moduleRoot,
+        "presentation/useCanvasCommandSurfaceController.ts",
       ),
       "utf8",
     );
@@ -9650,9 +9660,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -9665,7 +9673,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+      "modules/creative_canvas/presentation/useCanvasPaneContextMenu.ts",
     ]);
     expect(hookModel).toContain("isCanvasPaneTarget");
     expect(controllerModel).toContain("./useCanvasPaneContextMenu");
@@ -9675,6 +9683,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const [contextMenu, setContextMenu]");
     expect(canvasView).not.toContain("addEventListener('contextmenu'");
     expect(canvasView).not.toContain("setContextMenu(");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+      "features/canvas/hooks/useCanvasPaneContextMenu.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas node-menu pointer and shortcut state in one presentation hook", () => {
@@ -24678,9 +24692,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas context-menu commands in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasContextMenuController.ts",
+      moduleRoot,
+      "presentation/useCanvasContextMenuController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasSource = readFileSync(
@@ -24688,10 +24703,16 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const commandSurfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasCommandSurfaceController.ts",
     );
     const commandSurface = readFileSync(commandSurfacePath, "utf8");
+    const menuViewPath = resolve(moduleRoot, "presentation/CanvasContextMenu.tsx");
+    const menuView = readFileSync(menuViewPath, "utf8");
+    const stageView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -24700,9 +24721,17 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
+    );
+    const forbiddenCommandImports = importSpecifiers(commandSurfacePath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
@@ -24714,7 +24743,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const commandSurfaceDeclaration = [
       "export function",
-      "useCanvasCommandSurfaceController(",
+      "useCanvasCommandSurfaceController<",
     ].join(" ");
     const commandSurfaceOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -24722,24 +24751,60 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const menuViewDeclaration = [
+      "export function",
+      "CanvasContextMenu(",
+    ].join(" ");
+    const menuViewOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(menuViewDeclaration))
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(forbiddenCommandImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasContextMenuController.ts",
+      "modules/creative_canvas/presentation/useCanvasContextMenuController.ts",
     ]);
     expect(commandSurfaceOwners).toEqual([
-      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasCommandSurfaceController.ts",
+    ]);
+    expect(menuViewOwners).toEqual([
+      "modules/creative_canvas/presentation/CanvasContextMenu.tsx",
     ]);
     expect(controllerSource).toContain("useCanvasPaneContextMenu({");
     expect(controllerSource).toContain("label: '上传'");
     expect(controllerSource).toContain("screenToFlowPosition(clientPosition)");
     expect(commandSurface).toContain("getContextMenuCapabilities");
-    expect(commandSurface).toContain("CANVAS_NODE_TYPES.upload");
+    expect(commandSurface).toContain("historyPort.getCapabilities()");
+    expect(commandSurface).toContain("createNode(uploadNodeType, position)");
+    expect(commandSurface).toContain("isImmersiveViewerActive,");
+    expect(commandSurface).not.toContain("useCanvasStore");
+    expect(commandSurface).not.toContain("CANVAS_NODE_TYPES");
+    expect(menuView).toContain("MENU_VIEWPORT_MARGIN = 12");
+    expect(stageView).toContain("@/modules/creative_canvas/public");
+    expect(stageView).not.toContain("./CanvasContextMenu");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/presentation/useCanvasCommandSurfaceController",
+        "@/modules/creative_canvas/presentation/CanvasContextMenu",
+      ]),
+    );
+    expect(canvasSource).toContain("CANVAS_COMMAND_HISTORY_PORT");
+    expect(canvasSource).toContain("uploadNodeType: CANVAS_NODE_TYPES.upload");
     expect(canvasSource).toContain("sections: contextMenuSections");
     expect(canvasSource).not.toContain("getContextMenuCapabilities");
     expect(canvasSource).not.toContain("createContextMenuUploadNode");
     expect(canvasSource).not.toContain("contextMenu.clientX");
     expect(canvasSource).not.toContain("label: '上传'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasContextMenuController.ts",
+      "features/canvas/hooks/useCanvasContextMenuController.test.tsx",
+      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      "features/canvas/hooks/useCanvasCommandSurfaceController.test.tsx",
+      "features/canvas/ui/CanvasContextMenu.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas render assembly in one presentation controller", () => {

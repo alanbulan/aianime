@@ -1,13 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
 import {
   useCanvasContextMenuController,
   type CanvasContextMenuController,
@@ -19,17 +12,30 @@ interface CanvasPosition {
   y: number;
 }
 
-export interface CanvasCommandSurfaceControllerOptions {
+export interface CanvasCommandHistoryPort {
+  getCapabilities: () => {
+    canUndo: boolean;
+    canRedo: boolean;
+  };
+}
+
+export interface CanvasCommandSurfaceControllerOptions<
+  TNodeType = string,
+  TNodeData extends object = Record<string, unknown>,
+> {
   wrapperRef: RefObject<HTMLDivElement | null>;
   placementActive: boolean;
   nodeMenuOpen: boolean;
   selectedNodeCount: number;
   hasCopiedNodes: () => boolean;
+  historyPort: CanvasCommandHistoryPort;
+  uploadNodeType: TNodeType;
+  isImmersiveViewerActive: () => boolean;
   screenToFlowPosition: (position: CanvasPosition) => CanvasPosition;
   createNode: (
-    type: CanvasNodeType,
+    type: TNodeType,
     position: CanvasPosition,
-    data?: Partial<CanvasNodeData>,
+    data?: Partial<TNodeData>,
   ) => string;
   openNodeMenu: (position: CanvasPosition) => void;
   cancelPlacement: () => void;
@@ -44,12 +50,18 @@ export interface CanvasCommandSurfaceControllerOptions {
   pasteAt: (position: CanvasPosition) => void;
 }
 
-export function useCanvasCommandSurfaceController({
+export function useCanvasCommandSurfaceController<
+  TNodeType,
+  TNodeData extends object,
+>({
   wrapperRef,
   placementActive,
   nodeMenuOpen,
   selectedNodeCount,
   hasCopiedNodes,
+  historyPort,
+  uploadNodeType,
+  isImmersiveViewerActive,
   screenToFlowPosition,
   createNode,
   openNodeMenu,
@@ -63,20 +75,21 @@ export function useCanvasCommandSurfaceController({
   groupSelection,
   deleteSelection,
   pasteAt,
-}: CanvasCommandSurfaceControllerOptions): CanvasContextMenuController {
+}: CanvasCommandSurfaceControllerOptions<
+  TNodeType,
+  TNodeData
+>): CanvasContextMenuController {
   const getContextMenuCapabilities = useCallback(() => {
-    const history = useCanvasStore.getState().history;
     return {
-      canUndo: history.past.length > 0,
-      canRedo: history.future.length > 0,
+      ...historyPort.getCapabilities(),
       canPaste: hasCopiedNodes(),
     };
-  }, [hasCopiedNodes]);
+  }, [hasCopiedNodes, historyPort]);
   const createContextMenuUploadNode = useCallback(
     (position: CanvasPosition) => {
-      createNode(CANVAS_NODE_TYPES.upload, position);
+      createNode(uploadNodeType, position);
     },
-    [createNode],
+    [createNode, uploadNodeType],
   );
   const contextMenuController = useCanvasContextMenuController({
     wrapperRef,
@@ -94,6 +107,7 @@ export function useCanvasCommandSurfaceController({
     nodeMenuOpen,
     canCopySelection: selectedNodeCount > 0,
     canGroupSelection: selectedNodeCount >= 2,
+    isImmersiveViewerActive,
     cancelPlacement,
     closeNodeMenu,
     organizeCanvas,

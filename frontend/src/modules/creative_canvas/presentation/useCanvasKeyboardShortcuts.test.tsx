@@ -2,8 +2,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { useViewerImmersiveBody } from '@/features/viewer-kit/useViewerImmersiveBody';
-
 import {
   useCanvasKeyboardShortcuts,
   type CanvasKeyboardShortcutOptions,
@@ -17,6 +15,7 @@ function createOptions(
     nodeMenuOpen: false,
     canCopySelection: true,
     canGroupSelection: true,
+    isImmersiveViewerActive: vi.fn(() => false),
     cancelPlacement: vi.fn(),
     closeNodeMenu: vi.fn(),
     organizeCanvas: vi.fn(),
@@ -110,9 +109,8 @@ describe('useCanvasKeyboardShortcuts', () => {
     document.body.append(input);
     act(() => input.dispatchEvent(keyboardEvent('z', { ctrlKey: true })));
 
-    const immersiveViewer = renderHook(() => useViewerImmersiveBody(true));
+    vi.mocked(options.isImmersiveViewerActive).mockReturnValue(true);
     act(() => document.dispatchEvent(keyboardEvent('z', { ctrlKey: true })));
-    immersiveViewer.unmount();
     input.remove();
 
     expect(copyEvent.defaultPrevented).toBe(false);

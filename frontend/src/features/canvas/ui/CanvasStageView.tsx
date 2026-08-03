@@ -23,6 +23,7 @@ import { edgeTypes as canvasEdgeTypes } from '../edges';
 import { NodeSelectionMenu } from '../NodeSelectionMenu';
 import { createCanvasNodeTypes } from '../nodes';
 import {
+  CanvasContextMenu,
   CanvasMinimapButton,
   CanvasSnapAlignButton,
   CanvasSnapAlignGuides,
@@ -32,7 +33,6 @@ import {
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
-import { CanvasContextMenu } from './CanvasContextMenu';
 import {
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,

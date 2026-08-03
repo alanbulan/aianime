@@ -177,16 +177,13 @@ vi.mock("@/features/canvas/ui/NodeSpawnPlusOverlay", () => ({
   NodeSpawnPlusOverlay: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/CanvasContextMenu", () => ({
-  CanvasContextMenu: () => null,
-}));
-
 vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
   NodeToolDialog: () => null,
 }));
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  CanvasContextMenu: () => null,
   CanvasMinimapButton: () => null,
   CanvasSnapAlignButton: () => null,
   CanvasSnapAlignGuides: () => null,

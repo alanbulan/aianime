@@ -2,7 +2,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import {
   useCanvasCommandSurfaceController,
   type CanvasCommandSurfaceControllerOptions,
@@ -52,6 +51,11 @@ describe('useCanvasCommandSurfaceController', () => {
       nodeMenuOpen: false,
       selectedNodeCount: 2,
       hasCopiedNodes: vi.fn(() => true),
+      historyPort: {
+        getCapabilities: vi.fn(() => ({ canUndo: true, canRedo: true })),
+      },
+      uploadNodeType: 'upload',
+      isImmersiveViewerActive: vi.fn(() => false),
       screenToFlowPosition: vi.fn(({ x, y }) => ({ x: x / 2, y: y / 2 })),
       createNode: vi.fn(() => 'upload-node'),
       openNodeMenu: vi.fn(),
@@ -85,7 +89,7 @@ describe('useCanvasCommandSurfaceController', () => {
       .find((item) => item.key === 'upload');
     act(() => uploadItem?.onSelect());
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.upload,
+      'upload',
       { x: 70, y: 37.5 },
     );
 

@@ -415,6 +415,20 @@ export type {
   CanvasNodeFocusRuntimePort,
 } from "@/modules/creative_canvas/presentation/useCanvasNodeFocusController";
 export {
+  useCanvasCommandSurfaceController,
+} from "@/modules/creative_canvas/presentation/useCanvasCommandSurfaceController";
+export type {
+  CanvasCommandHistoryPort,
+  CanvasCommandSurfaceControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasCommandSurfaceController";
+export {
+  CanvasContextMenu,
+} from "@/modules/creative_canvas/presentation/CanvasContextMenu";
+export type {
+  CanvasContextMenuItem,
+  CanvasContextMenuProps,
+} from "@/modules/creative_canvas/presentation/CanvasContextMenu";
+export {
   useCanvasMinimapVisibility,
 } from "@/modules/creative_canvas/presentation/useCanvasMinimapVisibility";
 export type {

@@ -275,6 +275,17 @@ describe("round 2 residual architecture boundaries", () => {
       "CanvasZoomControl.tsx",
       "CanvasZoomControl.test.tsx",
     ];
+    const canvasCommandPresentationFiles = [
+      "useCanvasKeyboardShortcuts.ts",
+      "useCanvasKeyboardShortcuts.test.tsx",
+      "useCanvasPaneContextMenu.ts",
+      "useCanvasPaneContextMenu.test.tsx",
+      "useCanvasContextMenuController.ts",
+      "useCanvasContextMenuController.test.tsx",
+      "useCanvasCommandSurfaceController.ts",
+      "useCanvasCommandSurfaceController.test.tsx",
+      "CanvasContextMenu.tsx",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -829,6 +840,12 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(true);
     }
+    for (const file of canvasCommandPresentationFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "presentation", file)),
+        file,
+      ).toBe(true);
+    }
     for (const retiredViewportPath of [
       "features/canvas/domain/viewportBookmarks.ts",
       "__tests__/features/canvas/viewport-bookmarks-domain.test.ts",
@@ -868,6 +885,22 @@ describe("round 2 residual architecture boundaries", () => {
       expect(
         existsSync(resolve(SRC_ROOT, retiredViewportPath)),
         retiredViewportPath,
+      ).toBe(false);
+    }
+    for (const retiredCommandPath of [
+      "features/canvas/hooks/useCanvasKeyboardShortcuts.ts",
+      "features/canvas/hooks/useCanvasKeyboardShortcuts.test.tsx",
+      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+      "features/canvas/hooks/useCanvasPaneContextMenu.test.tsx",
+      "features/canvas/hooks/useCanvasContextMenuController.ts",
+      "features/canvas/hooks/useCanvasContextMenuController.test.tsx",
+      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      "features/canvas/hooks/useCanvasCommandSurfaceController.test.tsx",
+      "features/canvas/ui/CanvasContextMenu.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredCommandPath)),
+        retiredCommandPath,
       ).toBe(false);
     }
     expect(
@@ -2110,7 +2143,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 571],
+      ["features/canvas", 562],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

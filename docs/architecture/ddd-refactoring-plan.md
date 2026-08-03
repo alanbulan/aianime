@@ -1088,6 +1088,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百五十四批将 Auto Layout 领域算法/测试、布局 Controller、Pending Node Focus、Node Focus Controller 及测试迁入 Creative Canvas domain/presentation；Auto Layout 改为只依赖 `CanvasAutoLayoutNode/Edge` 最小结构合同，不再导入旧 Canvas 类型，Pending Focus 以泛型 `resolveNodeSize` 端口保留调用方的具体节点类型与现有节点尺寸规则。`useCanvasViewportSurfaceController` 成为唯一 React Flow/节点尺寸适配点，多选工具栏与 Surface 均经 Creative Canvas public 使用新所有者；8 个旧生产/测试路径直接删除，不保留 facade、re-export 或第二套算法。Creative Canvas 由 618 增到 626，Canvas 由 578 降到 571，Freezone 保持 0，残余 ratchet 收紧到 571/0。Auto Layout/Node Focus 与 Surface 适配定向 Vitest 5 个文件 14 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；模块内部 `features/*` 静态引用为 0。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百五十五批将 Canvas 编辑键盘映射、Pane 右键菜单状态、菜单命令投影、Command Surface、菜单 View 及测试整体迁入 Creative Canvas presentation；键盘 Hook 以必需函数端口读取沉浸查看器状态，Command Surface 通过 `CanvasCommandHistoryPort`、上传节点类型和现有命令端口读取历史、剪贴板及节点创建能力，不再导入旧 Canvas Store、Viewer Kit 或节点类型。Canvas 保留唯一历史 Store/上传类型组合适配，Canvas Stage 经 Creative Canvas public 渲染菜单；9 个旧生产/测试/View 路径直接删除，不保留 facade、re-export 或第二套菜单。Creative Canvas 由 626 增到 635，Canvas 由 571 降到 562，Freezone 保持 0，残余 ratchet 收紧到 562/0。命令/菜单与消费方定向 Vitest 6 个文件 13 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；模块内部旧 feature/Store/Viewer/节点常量引用为 0。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

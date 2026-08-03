@@ -9,7 +9,7 @@ export interface CanvasContextMenuItem {
   onSelect: () => void;
 }
 
-interface CanvasContextMenuProps {
+export interface CanvasContextMenuProps {
   /** Position relative to the canvas wrapper (its `offsetParent`). */
   position: { x: number; y: number };
   /** Item groups; a divider is drawn between groups. */
