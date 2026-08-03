@@ -1,23 +1,36 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
 import { planCanvasAutoGroupSpawn } from './canvasAutoGrouping';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  extent?: unknown;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+
+const ports = {
+  isGroupNode: (candidate: TestNode) => candidate.kind === 'group',
+  isProtectedGroupNode: (candidate: TestNode) =>
+    typeof candidate.data.projection_key === 'string',
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.data.storyboardGroup === true,
+};
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas automatic grouping', () => {
@@ -26,10 +39,20 @@ describe('Canvas automatic grouping', () => {
     const attached = node('attached', { parentId: 'existing-group' });
 
     expect(
-      planCanvasAutoGroupSpawn([source, attached], 'missing', [attached.id]),
+      planCanvasAutoGroupSpawn(
+        [source, attached],
+        'missing',
+        [attached.id],
+        ports,
+      ),
     ).toBeNull();
     expect(
-      planCanvasAutoGroupSpawn([source, attached], source.id, [attached.id]),
+      planCanvasAutoGroupSpawn(
+        [source, attached],
+        source.id,
+        [attached.id],
+        ports,
+      ),
     ).toBeNull();
   });
 
@@ -43,12 +66,13 @@ describe('Canvas automatic grouping', () => {
         [source, free, attached],
         source.id,
         [free.id, attached.id],
+        ports,
       ),
     ).toEqual({ kind: 'create_group', nodeIds: [source.id, free.id] });
   });
 
   it('appends free nodes to the nearest ordinary ancestor group', () => {
-    const group = node('group', { type: CANVAS_NODE_TYPES.group });
+    const group = node('group', { kind: 'group' });
     const wrapper = node('wrapper', { parentId: group.id });
     const source = node('source', { parentId: wrapper.id });
     const free = node('free', {
@@ -62,6 +86,7 @@ describe('Canvas automatic grouping', () => {
       nodes,
       source.id,
       [free.id, attached.id],
+      ports,
     );
 
     expect(plan?.kind).toBe('append_to_group');
@@ -82,14 +107,19 @@ describe('Canvas automatic grouping', () => {
     { projection_key: 'beat:1:4' },
   ])('rejects protected enclosing group data %o', (data) => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data,
     });
     const source = node('source', { parentId: group.id });
     const free = node('free');
 
     expect(
-      planCanvasAutoGroupSpawn([group, source, free], source.id, [free.id]),
+      planCanvasAutoGroupSpawn(
+        [group, source, free],
+        source.id,
+        [free.id],
+        ports,
+      ),
     ).toBeNull();
   });
 });

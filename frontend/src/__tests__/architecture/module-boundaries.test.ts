@@ -13439,7 +13439,7 @@ describe("frontend architecture boundaries", () => {
     );
     const autoGroupingPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasAutoGrouping.ts",
+      "modules/creative_canvas/domain/canvasAutoGrouping.ts",
     );
     const storyboardCreationPath = resolve(
       SRC_ROOT,
@@ -13503,7 +13503,7 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const autoGroupingDeclaration = [
       "export function",
-      "planCanvasAutoGroupSpawn(",
+      "planCanvasAutoGroupSpawn<",
     ].join(" ");
     const storyboardCreationDeclaration = [
       "export function",
@@ -13531,13 +13531,14 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "features/canvas/application/canvasGroupCreation.ts",
       "features/canvas/application/canvasStoryboardGroupCreation.ts",
-      "features/canvas/domain/canvasAutoGrouping.ts",
       "features/canvas/domain/canvasGrouping.ts",
+      "modules/creative_canvas/domain/canvasAutoGrouping.ts",
     ]);
     expect(groupingModel).toContain(groupingDeclaration);
     expect(groupingModel).toContain(assemblyDeclaration);
     expect(creationModel).toContain(creationDeclaration);
     expect(autoGroupingModel).toContain(autoGroupingDeclaration);
+    expect(importSpecifiers(autoGroupingPath)).toEqual([]);
     expect(storyboardCreationModel).toContain(storyboardCreationDeclaration);
     expect(creationModel).toContain("nodeFactory: NodeFactory");
     expect(creationModel).toContain("resolveCanvasGroupMembers(nodes, nodeIds)");
@@ -13554,9 +13555,17 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGrouping",
     );
-    expect(groupLifecycleSlice).toContain(
-      "../domain/canvasAutoGrouping",
-    );
+    expect(groupLifecycleSlice).toContain("@/modules/creative_canvas/public");
+    expect(groupLifecycleSlice).not.toContain("../domain/canvasAutoGrouping");
+    for (const retiredAutoGroupingPath of [
+      "features/canvas/domain/canvasAutoGrouping.ts",
+      "features/canvas/domain/canvasAutoGrouping.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredAutoGroupingPath)),
+        retiredAutoGroupingPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasAutoGrouping",
     );
@@ -13767,11 +13776,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas group layout in the domain model", () => {
     const fitPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasGroupFit.ts",
+      "modules/creative_canvas/domain/canvasGroupFit.ts",
     );
     const arrangementPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasGroupArrangement.ts",
+      "modules/creative_canvas/domain/canvasGroupArrangement.ts",
     );
     const fitModel = readFileSync(fitPath, "utf8");
     const arrangementModel = readFileSync(arrangementPath, "utf8");
@@ -13806,11 +13815,11 @@ describe("frontend architecture boundaries", () => {
     );
     const fitDeclaration = [
       "export function",
-      "fitCanvasGroupToChildren(",
+      "fitCanvasGroupToChildren<",
     ].join(" ");
     const arrangementDeclaration = [
       "export function",
-      "arrangeCanvasGroupChildren(",
+      "arrangeCanvasGroupChildren<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -13822,17 +13831,29 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasGroupArrangement.ts",
-      "features/canvas/domain/canvasGroupFit.ts",
+      "modules/creative_canvas/domain/canvasGroupArrangement.ts",
+      "modules/creative_canvas/domain/canvasGroupFit.ts",
     ]);
     expect(fitModel).toContain(fitDeclaration);
     expect(arrangementModel).toContain(arrangementDeclaration);
-    expect(groupLifecycleSlice).toContain(
-      "../domain/canvasGroupFit",
-    );
-    expect(groupLifecycleSlice).toContain(
+    expect(importSpecifiers(fitPath)).toEqual([]);
+    expect(importSpecifiers(arrangementPath)).toEqual([]);
+    expect(groupLifecycleSlice).toContain("@/modules/creative_canvas/public");
+    expect(groupLifecycleSlice).not.toContain("../domain/canvasGroupFit");
+    expect(groupLifecycleSlice).not.toContain(
       "../domain/canvasGroupArrangement",
     );
+    for (const retiredLayoutPath of [
+      "features/canvas/domain/canvasGroupFit.ts",
+      "features/canvas/domain/canvasGroupFit.test.ts",
+      "features/canvas/domain/canvasGroupArrangement.ts",
+      "features/canvas/domain/canvasGroupArrangement.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredLayoutPath)),
+        retiredLayoutPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGroupFit",
     );
@@ -22073,7 +22094,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasGroupArrangement",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/domain/groupColors",
       ]),
     );
@@ -25146,9 +25167,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasAutoGrouping",
-      "../domain/canvasGroupArrangement",
-      "../domain/canvasGroupFit",
       "../domain/canvasGeometry",
       "../domain/canvasHistory",
       "@/modules/creative_canvas/public",

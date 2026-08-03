@@ -1,58 +1,81 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
 import { fitCanvasGroupToChildren } from './canvasGroupFit';
+
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+const ports = {
+  isGroupNode: (candidate: TestNode) => candidate.kind === 'group',
+  isProtectedGroupNode: (candidate: TestNode) =>
+    typeof candidate.data.projection_key === 'string',
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.data.storyboardGroup === true,
+  getNodeSize: (candidate: TestNode) => candidate.measured,
+};
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 100, height: 100 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas group fitting', () => {
   it('rejects non-groups, protected groups, and groups without children', () => {
     const ordinary = node('ordinary');
-    const emptyGroup = node('empty', { type: CANVAS_NODE_TYPES.group });
+    const emptyGroup = node('empty', { kind: 'group' });
     const storyboard = node('storyboard', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: { storyboardGroup: true },
     });
     const projection = node('projection', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: { projection_key: 'beat:1:4' },
     });
 
-    expect(fitCanvasGroupToChildren([ordinary], ordinary.id)).toBeNull();
-    expect(fitCanvasGroupToChildren([emptyGroup], emptyGroup.id)).toBeNull();
+    expect(
+      fitCanvasGroupToChildren([ordinary], ordinary.id, ports),
+    ).toBeNull();
+    expect(
+      fitCanvasGroupToChildren([emptyGroup], emptyGroup.id, ports),
+    ).toBeNull();
     expect(
       fitCanvasGroupToChildren(
         [storyboard, node('story-child', { parentId: storyboard.id })],
         storyboard.id,
+        ports,
       ),
     ).toBeNull();
     expect(
       fitCanvasGroupToChildren(
         [projection, node('projection-child', { parentId: projection.id })],
         projection.id,
+        ports,
       ),
     ).toBeNull();
   });
 
   it('shifts top-left overflow inward and grows without shrinking width', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       position: { x: 100, y: 100 },
       width: 220,
       height: 140,
@@ -63,7 +86,7 @@ describe('Canvas group fitting', () => {
       position: { x: -10, y: -20 },
     });
 
-    const result = fitCanvasGroupToChildren([group, child], group.id);
+    const result = fitCanvasGroupToChildren([group, child], group.id, ports);
 
     expect(result?.[0]).toMatchObject({
       position: { x: 70, y: 46 },
@@ -76,7 +99,7 @@ describe('Canvas group fitting', () => {
 
   it('grows to contain right-bottom overflow and returns null when it fits', () => {
     const group = node('group', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       width: 220,
       height: 140,
       style: { width: 220, height: 140 },
@@ -85,12 +108,12 @@ describe('Canvas group fitting', () => {
       parentId: group.id,
       position: { x: 300, y: 200 },
     });
-    const grown = fitCanvasGroupToChildren([group, child], group.id);
+    const grown = fitCanvasGroupToChildren([group, child], group.id, ports);
 
     expect(grown?.[0]).toMatchObject({ width: 420, height: 320 });
     expect(grown?.[1]).toBe(child);
     expect(
-      fitCanvasGroupToChildren(grown ?? [], group.id),
+      fitCanvasGroupToChildren(grown ?? [], group.id, ports),
     ).toBeNull();
   });
 });

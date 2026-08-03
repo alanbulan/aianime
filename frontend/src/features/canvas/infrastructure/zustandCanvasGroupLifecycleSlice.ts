@@ -1,11 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { planCanvasAutoGroupSpawn } from '../domain/canvasAutoGrouping';
-import {
-  arrangeCanvasGroupChildren,
-  type CanvasGroupArrangementMode,
-} from '../domain/canvasGroupArrangement';
-import { fitCanvasGroupToChildren } from '../domain/canvasGroupFit';
-import { resolveAbsolutePosition } from '../domain/canvasGeometry';
+import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   createSnapshot,
   pushSnapshot,
@@ -13,13 +7,18 @@ import {
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
 import {
+  arrangeCanvasGroupChildren,
+  fitCanvasGroupToChildren,
+  planCanvasAutoGroupSpawn,
   trackEdit,
   ungroupCanvasNode,
+  type CanvasGroupArrangementMode,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import {
   isGroupNode,
   isProtectedProjectionGroupNode,
+  isStoryboardGroupNode,
   type ActiveToolDialog,
   type CanvasEdge,
   type CanvasNode,
@@ -29,6 +28,13 @@ import {
   type CanvasGroupCreationOptions,
 } from '../application/canvasGroupCreation';
 import type { NodeFactory } from '../application/ports';
+
+const canvasGroupLifecyclePorts = {
+  isGroupNode,
+  isProtectedGroupNode: isProtectedProjectionGroupNode,
+  isStoryboardGroupNode,
+  getNodeSize,
+};
 
 export interface CanvasGroupLifecycleSlice {
   groupNodes: (
@@ -110,7 +116,11 @@ export function createZustandCanvasGroupLifecycleSlice(
 
   const fitGroup = (groupNodeId: string): void => {
     const state = dependencies.getState();
-    const nodes = fitCanvasGroupToChildren(state.nodes, groupNodeId);
+    const nodes = fitCanvasGroupToChildren(
+      state.nodes,
+      groupNodeId,
+      canvasGroupLifecyclePorts,
+    );
     if (nodes) {
       dependencies.setState({ nodes });
     }
@@ -127,6 +137,7 @@ export function createZustandCanvasGroupLifecycleSlice(
         state.nodes,
         sourceNodeId,
         spawnedNodeIds,
+        canvasGroupLifecyclePorts,
       );
       if (!plan) {
         return null;
@@ -164,6 +175,7 @@ export function createZustandCanvasGroupLifecycleSlice(
         state.nodes,
         groupNodeId,
         mode,
+        canvasGroupLifecyclePorts,
       );
       if (!nodes) {
         return;

@@ -1,27 +1,33 @@
 // Copyright (c) 2026 AI anime
-import {
-  isGroupNode,
-  isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
-  type CanvasNode,
-} from './canvasNodes';
+export interface CanvasAutoGroupingNode {
+  id: string;
+  parentId?: string;
+  extent?: unknown;
+}
 
-export type CanvasAutoGroupSpawnPlan =
+export interface CanvasAutoGroupingPorts<TNode extends CanvasAutoGroupingNode> {
+  isGroupNode: (node: TNode) => boolean;
+  isProtectedGroupNode: (node: TNode) => boolean;
+  isStoryboardGroupNode: (node: TNode) => boolean;
+}
+
+export type CanvasAutoGroupSpawnPlan<TNode extends CanvasAutoGroupingNode> =
   | {
       kind: 'create_group';
       nodeIds: string[];
     }
   | {
       kind: 'append_to_group';
-      nodes: CanvasNode[];
+      nodes: TNode[];
       groupNodeId: string;
     };
 
-export function planCanvasAutoGroupSpawn(
-  nodes: readonly CanvasNode[],
+export function planCanvasAutoGroupSpawn<TNode extends CanvasAutoGroupingNode>(
+  nodes: readonly TNode[],
   sourceNodeId: string,
   spawnedNodeIds: Iterable<string>,
-): CanvasAutoGroupSpawnPlan | null {
+  ports: CanvasAutoGroupingPorts<TNode>,
+): CanvasAutoGroupSpawnPlan<TNode> | null {
   const nodeMap = new Map(nodes.map((node) => [node.id, node] as const));
   const source = nodeMap.get(sourceNodeId);
   if (!source) {
@@ -30,12 +36,12 @@ export function planCanvasAutoGroupSpawn(
 
   const spawned = Array.from(spawnedNodeIds)
     .map((nodeId) => nodeMap.get(nodeId))
-    .filter((node): node is CanvasNode => Boolean(node && !node.parentId));
+    .filter((node): node is TNode => Boolean(node && !node.parentId));
   if (spawned.length === 0) {
     return null;
   }
 
-  let enclosingGroup: CanvasNode | null = null;
+  let enclosingGroup: TNode | null = null;
   let parentId = source.parentId;
   const visited = new Set<string>();
   while (parentId && !visited.has(parentId)) {
@@ -44,7 +50,7 @@ export function planCanvasAutoGroupSpawn(
     if (!parent) {
       break;
     }
-    if (isGroupNode(parent)) {
+    if (ports.isGroupNode(parent)) {
       enclosingGroup = parent;
       break;
     }
@@ -60,8 +66,8 @@ export function planCanvasAutoGroupSpawn(
 
   const groupNodeId = enclosingGroup.id;
   if (
-    isStoryboardGroupNode(enclosingGroup)
-    || isProtectedProjectionGroupNode(enclosingGroup)
+    ports.isStoryboardGroupNode(enclosingGroup)
+    || ports.isProtectedGroupNode(enclosingGroup)
   ) {
     return null;
   }
@@ -70,7 +76,7 @@ export function planCanvasAutoGroupSpawn(
   return {
     kind: 'append_to_group',
     groupNodeId,
-    nodes: nodes.map((node) =>
+    nodes: nodes.map((node): TNode =>
       spawnedIds.has(node.id)
         ? { ...node, parentId: groupNodeId, extent: undefined }
         : node,

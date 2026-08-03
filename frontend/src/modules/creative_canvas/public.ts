@@ -186,6 +186,29 @@ export type {
   CanvasGroupRemovalResult,
 } from "@/modules/creative_canvas/domain/canvasGroupRemoval";
 export {
+  planCanvasAutoGroupSpawn,
+} from "@/modules/creative_canvas/domain/canvasAutoGrouping";
+export type {
+  CanvasAutoGroupingNode,
+  CanvasAutoGroupingPorts,
+  CanvasAutoGroupSpawnPlan,
+} from "@/modules/creative_canvas/domain/canvasAutoGrouping";
+export {
+  arrangeCanvasGroupChildren,
+} from "@/modules/creative_canvas/domain/canvasGroupArrangement";
+export type {
+  CanvasGroupArrangementMode,
+  CanvasGroupArrangementNode,
+  CanvasGroupArrangementPorts,
+} from "@/modules/creative_canvas/domain/canvasGroupArrangement";
+export {
+  fitCanvasGroupToChildren,
+} from "@/modules/creative_canvas/domain/canvasGroupFit";
+export type {
+  CanvasGroupFitNode,
+  CanvasGroupFitPorts,
+} from "@/modules/creative_canvas/domain/canvasGroupFit";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";

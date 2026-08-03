@@ -1,24 +1,33 @@
 // Copyright (c) 2026 AI anime
-import {
-  isGroupNode,
-  isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
-  type CanvasNode,
-} from './canvasNodes';
-import { getNodeSize } from './canvasGeometry';
+export interface CanvasGroupFitNode {
+  id: string;
+  parentId?: string;
+  position: { x: number; y: number };
+  width?: number;
+  height?: number;
+  style?: { width?: unknown; height?: unknown };
+}
 
-export function fitCanvasGroupToChildren(
-  nodes: readonly CanvasNode[],
+export interface CanvasGroupFitPorts<TNode extends CanvasGroupFitNode> {
+  isGroupNode: (node: TNode) => boolean;
+  isProtectedGroupNode: (node: TNode) => boolean;
+  isStoryboardGroupNode: (node: TNode) => boolean;
+  getNodeSize: (node: TNode) => { width: number; height: number };
+}
+
+export function fitCanvasGroupToChildren<TNode extends CanvasGroupFitNode>(
+  nodes: readonly TNode[],
   groupNodeId: string,
-): CanvasNode[] | null {
+  ports: CanvasGroupFitPorts<TNode>,
+): TNode[] | null {
   const group = nodes.find((node) => node.id === groupNodeId);
-  if (!isGroupNode(group)) {
+  if (!group || !ports.isGroupNode(group)) {
     return null;
   }
   const groupStyle = group.style;
   if (
-    isProtectedProjectionGroupNode(group)
-    || isStoryboardGroupNode(group)
+    ports.isProtectedGroupNode(group)
+    || ports.isStoryboardGroupNode(group)
   ) {
     return null;
   }
@@ -33,7 +42,7 @@ export function fitCanvasGroupToChildren(
   let maxX = Number.NEGATIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
   for (const child of children) {
-    const size = getNodeSize(child);
+    const size = ports.getNodeSize(child);
     minX = Math.min(minX, child.position.x);
     minY = Math.min(minY, child.position.y);
     maxX = Math.max(maxX, child.position.x + size.width);
@@ -67,7 +76,7 @@ export function fitCanvasGroupToChildren(
   }
 
   const childIds = new Set(children.map((child) => child.id));
-  return nodes.map((node) => {
+  return nodes.map((node): TNode => {
     if (node.id === groupNodeId) {
       return {
         ...node,

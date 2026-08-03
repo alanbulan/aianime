@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type { CanvasGroupArrangementMode } from "@/features/canvas/domain/canvasGroupArrangement";
+import type { CanvasGroupArrangementMode } from "@/modules/creative_canvas/public";
 import { GROUP_COLOR_PRESETS } from "@/features/canvas/domain/groupColors";
 
 export interface GroupNodeToolbarControllerOptions {

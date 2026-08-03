@@ -2,31 +2,48 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from './canvasNodes';
-import {
   arrangeCanvasGroupChildren,
   type CanvasGroupArrangementMode,
 } from './canvasGroupArrangement';
 
+interface TestNode {
+  id: string;
+  kind: 'group' | 'node';
+  parentId?: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown>;
+  data: Record<string, unknown>;
+}
+
+const ports = {
+  isGroupNode: (candidate: TestNode) => candidate.kind === 'group',
+  isProtectedGroupNode: (candidate: TestNode) =>
+    typeof candidate.data.projection_key === 'string',
+  isStoryboardGroupNode: (candidate: TestNode) =>
+    candidate.data.storyboardGroup === true,
+  getNodeSize: (candidate: TestNode) => candidate.measured,
+};
+
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    kind: 'node',
     position: { x: 0, y: 0 },
     measured: { width: 100, height: 100 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function graph(): CanvasNode[] {
+function graph(): TestNode[] {
   const group = node('group', {
-    type: CANVAS_NODE_TYPES.group,
+    kind: 'group',
     style: { borderColor: 'red' },
   });
   return [
@@ -52,20 +69,26 @@ function graph(): CanvasNode[] {
 describe('Canvas group arrangement', () => {
   it('rejects invalid, protected, and undersized groups', () => {
     const ordinary = node('ordinary');
-    const group = node('group', { type: CANVAS_NODE_TYPES.group });
+    const group = node('group', { kind: 'group' });
     const projection = node('projection', {
-      type: CANVAS_NODE_TYPES.group,
+      kind: 'group',
       data: { projection_key: 'beat:1:4' },
     });
 
     expect(
-      arrangeCanvasGroupChildren([ordinary], ordinary.id, 'horizontal'),
+      arrangeCanvasGroupChildren(
+        [ordinary],
+        ordinary.id,
+        'horizontal',
+        ports,
+      ),
     ).toBeNull();
     expect(
       arrangeCanvasGroupChildren(
         [group, node('only', { parentId: group.id })],
         group.id,
         'horizontal',
+        ports,
       ),
     ).toBeNull();
     expect(
@@ -73,6 +96,7 @@ describe('Canvas group arrangement', () => {
         [projection, node('child', { parentId: projection.id })],
         projection.id,
         'grid',
+        ports,
       ),
     ).toBeNull();
   });
@@ -98,7 +122,7 @@ describe('Canvas group arrangement', () => {
       size: { width: 272, height: 266 },
     },
   ])('arranges children in $mode mode and tightens the group', ({ mode, positions, size }) => {
-    const result = arrangeCanvasGroupChildren(graph(), 'group', mode);
+    const result = arrangeCanvasGroupChildren(graph(), 'group', mode, ports);
 
     expect(result?.[0]).toMatchObject({
       ...size,

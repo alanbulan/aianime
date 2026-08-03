@@ -1058,6 +1058,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百三十九批将 Storyboard Group 边恢复与 Canvas 解组规则及测试整体迁入 Creative Canvas domain；两个实现改用泛型节点/边合同，组节点判定、受保护投影组判定和嵌套节点绝对坐标解析由旧 Canvas 边界显式注入，模块内部直接复用唯一 `restoreStoryboardEdges`，不导入旧 Canvas 类型、React Flow、Zustand、Store 或 feature。Config、Conversion、Members、Toolbar、Group Controller、Zustand group lifecycle slice 及 Store 集成测试统一经 `creative_canvas/public.ts` 使用；纯 Storyboard 领域行为从 Store 测试拆回模块领域测试，3 个旧生产/测试所有者直接删除，不保留 facade、兼容 re-export、旧路径转发或第二套实现。Creative Canvas 由 545 增到 549，Canvas 由 637 降到 634，Freezone 保持 0，残余 ratchet 收紧到 634/0。行为 Vitest 7 个文件 30 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；首次行为回归 27/30，3 项仅因 Hook 测试的 Creative Canvas 整体 mock 未暴露新统一出口，改为保留真实领域导出并只替换 Projection Hook 后同组复跑 30/30。旧路径精确扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百四十批将 Canvas 自动归组、普通组内横向/纵向/网格排列、组边界适配及三组领域测试整体迁入 Creative Canvas domain；三个实现改为泛型节点合同，组类型、Storyboard、受保护投影组判定和节点尺寸解析均由旧 Canvas 边界显式注入，不导入旧 Canvas 节点枚举、几何、React Flow、Zustand、Store 或 feature。Zustand group lifecycle slice 与 Toolbar controller 统一经 `creative_canvas/public.ts` 使用，6 个旧生产/测试所有者直接删除，不保留 facade、兼容 re-export、旧路径转发或第二套实现。Creative Canvas 由 549 增到 555，Canvas 由 634 降到 628，Freezone 保持 0，残余 ratchet 收紧到 628/0。行为 Vitest 7 个文件 21 项、定向模块边界 4 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 323 项、前端 TypeScript 和 `git diff --check` 通过；旧路径精确扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

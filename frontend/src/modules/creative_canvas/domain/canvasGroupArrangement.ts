@@ -1,31 +1,45 @@
 // Copyright (c) 2026 AI anime
-import {
-  isGroupNode,
-  isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
-  type CanvasNode,
-} from './canvasNodes';
-import { getNodeSize } from './canvasGeometry';
-
 export type CanvasGroupArrangementMode = 'horizontal' | 'vertical' | 'grid';
 
-export function arrangeCanvasGroupChildren(
-  nodes: readonly CanvasNode[],
+export interface CanvasGroupArrangementNode {
+  id: string;
+  parentId?: string;
+  position: { x: number; y: number };
+  width?: number;
+  height?: number;
+  style?: { width?: unknown; height?: unknown };
+}
+
+export interface CanvasGroupArrangementPorts<
+  TNode extends CanvasGroupArrangementNode,
+> {
+  isGroupNode: (node: TNode) => boolean;
+  isProtectedGroupNode: (node: TNode) => boolean;
+  isStoryboardGroupNode: (node: TNode) => boolean;
+  getNodeSize: (node: TNode) => { width: number; height: number };
+}
+
+export function arrangeCanvasGroupChildren<
+  TNode extends CanvasGroupArrangementNode,
+>(
+  nodes: readonly TNode[],
   groupNodeId: string,
   mode: CanvasGroupArrangementMode,
-): CanvasNode[] | null {
+  ports: CanvasGroupArrangementPorts<TNode>,
+): TNode[] | null {
   const group = nodes.find((node) => node.id === groupNodeId);
   if (
-    !isGroupNode(group)
-    || isProtectedProjectionGroupNode(group)
-    || isStoryboardGroupNode(group)
+    !group
+    || !ports.isGroupNode(group)
+    || ports.isProtectedGroupNode(group)
+    || ports.isStoryboardGroupNode(group)
   ) {
     return null;
   }
 
   const ordered = nodes
     .filter((node) => node.parentId === groupNodeId)
-    .map((node) => ({ node, size: getNodeSize(node) }))
+    .map((node) => ({ node, size: ports.getNodeSize(node) }))
     .sort(
       (first, second) =>
         first.node.position.y - second.node.position.y
@@ -73,7 +87,7 @@ export function arrangeCanvasGroupChildren(
   const width = Math.round(maxX + 20);
   const height = Math.round(maxY + 20);
 
-  return nodes.map((node) => {
+  return nodes.map((node): TNode => {
     if (node.id === groupNodeId) {
       return {
         ...node,
