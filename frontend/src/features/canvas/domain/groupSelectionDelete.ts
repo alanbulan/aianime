@@ -5,7 +5,7 @@ import {
   type CanvasNode,
 } from "./canvasNodes";
 import { resolveAbsolutePosition } from "./canvasGeometry";
-import { isPresetManagedNode } from "./mainlineNodeFlags";
+import { isPresetManagedNode } from "@/modules/creative_canvas/public";
 
 export function collectNodeIdsWithDescendants(
   nodes: readonly CanvasNode[],

@@ -14,7 +14,7 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
+import { isPresetManagedEdge } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '@/stores/settingsStore';

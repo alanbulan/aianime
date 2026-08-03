@@ -11,15 +11,15 @@ import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-import { useCanvasSelectionSurfaceController } from '@/modules/creative_canvas/public';
+import {
+  isPresetManagedEdge,
+  isPresetManagedNode,
+  useCanvasSelectionSurfaceController,
+} from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { canvasNodeIntersectsSelectionRect } from './domain/canvasGeometry';
 import { isUploadNode } from './domain/canvasNodes';
-import {
-  isPresetManagedEdge,
-  isPresetManagedNode,
-} from './domain/mainlineNodeFlags';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionGestureSurfaceController } from './hooks/useCanvasConnectionGestureSurfaceController';

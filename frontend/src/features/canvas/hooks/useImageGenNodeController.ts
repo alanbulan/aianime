@@ -60,6 +60,9 @@ import {
   generateCanvasImage,
   getFreezoneCanvasMetadata,
   historyRecordOutputUrl,
+  isSystemManagedNodeData,
+  mainlineNodeVisualState,
+  nodeMainlineFlags,
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
   translateCanvasText,
@@ -72,11 +75,6 @@ import {
   type CanvasImageMode,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import {
-  isSystemManagedNodeData,
-  mainlineNodeVisualState,
-  nodeMainlineFlags,
-} from '@/features/canvas/domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   getCanvasBeatDirectorManifest,

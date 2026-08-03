@@ -118,6 +118,19 @@ export type {
   PropagatingEdgeValidationResult,
 } from "@/modules/creative_canvas/domain/mainlineContext";
 export {
+  isPresetManagedEdge,
+  isPresetManagedNode,
+  isSystemManagedNodeData,
+  mainlineNodeVisualState,
+  nodeMainlineFlags,
+} from "@/modules/creative_canvas/domain/mainlineNodeFlags";
+export type {
+  MainlineEdgeLike,
+  MainlineNodeFlags,
+  MainlineNodeLike,
+  MainlineNodeVisualState,
+} from "@/modules/creative_canvas/domain/mainlineNodeFlags";
+export {
   currentBeatContextToMainlineContext,
   getCurrentBeatContextFromNode,
   parseBeatContextVisualMarkers,

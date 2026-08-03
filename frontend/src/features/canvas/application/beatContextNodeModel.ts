@@ -6,11 +6,9 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  extractMainlineContextsFromNode,
   isPresetManagedEdge,
   isPresetManagedNode,
-} from '@/features/canvas/domain/mainlineNodeFlags';
-import {
-  extractMainlineContextsFromNode,
   parseBeatContextVisualMarkers,
 } from '@/modules/creative_canvas/public';
 import { sceneNameToRef } from '@/lib/scene-ref';

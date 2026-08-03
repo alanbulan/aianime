@@ -15,7 +15,6 @@ import {
   type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
 import {
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
@@ -36,6 +35,7 @@ import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
+  isSystemManagedNodeData,
   resolveGenerationOutputUrl,
   submitVideoGeneration,
   translateCanvasText,

@@ -10,7 +10,7 @@ import {
   type CanvasNode,
   type VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
-import { nodeMainlineFlags } from "@/features/canvas/domain/mainlineNodeFlags";
+import { nodeMainlineFlags } from "@/modules/creative_canvas/public";
 
 export interface NodeActionToolbarShellProjection {
   isStoryboardGroup: boolean;

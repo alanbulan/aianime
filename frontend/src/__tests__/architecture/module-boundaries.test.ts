@@ -6273,6 +6273,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/domain/pushTarget.ts",
     );
+    const mainlineFlagsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/mainlineNodeFlags.ts",
+    );
     const legacyFreezonePushTargetPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/pushTarget.ts",
@@ -6296,6 +6300,7 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const pushTargetSource = readFileSync(pushTargetPath, "utf8");
+    const mainlineFlagsSource = readFileSync(mainlineFlagsPath, "utf8");
     const modulePublicSource = readFileSync(modulePublicPath, "utf8");
     const directLegacyConsumers = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -6342,7 +6347,6 @@ describe("frontend architecture boundaries", () => {
     ];
     const domainConsumerPaths = [
       "features/canvas/domain/mainlineNodeTypes.ts",
-      "features/canvas/domain/mainlineNodeFlags.ts",
       "features/canvas/application/imageEditNodeModel.ts",
       "features/canvas/hooks/useImageEditNodeController.ts",
     ];
@@ -6361,6 +6365,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(importSpecifiers(pushTargetPath)).toEqual(["./assetCommit"]);
     expect(pushTargetSource).not.toContain("@/features/");
+    expect(importSpecifiers(mainlineFlagsPath)).toEqual(["./pushTarget"]);
+    expect(mainlineFlagsSource).not.toContain("@/features/");
     expect(importSpecifiers(modulePublicPath)).toContain(
       "@/modules/creative_canvas/domain/assetCommit",
     );
@@ -21292,7 +21298,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(modelPath))).toEqual(
       new Set([
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/mainlineNodeFlags",
+        "@/modules/creative_canvas/public",
       ]),
     );
     for (const forbiddenModelDependency of [

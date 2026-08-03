@@ -21,7 +21,7 @@ const viewSource = readFileSync(
   "utf8",
 );
 const mainlineFlagsSource = readFileSync(
-  resolve(process.cwd(), "src/features/canvas/domain/mainlineNodeFlags.ts"),
+  resolve(process.cwd(), "src/modules/creative_canvas/domain/mainlineNodeFlags.ts"),
   "utf8",
 );
 const canvasCss = readFileSync(

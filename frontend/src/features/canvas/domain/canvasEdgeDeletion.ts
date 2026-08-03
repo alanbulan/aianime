@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasEdge } from './canvasNodes';
-import { isPresetManagedEdge } from './mainlineNodeFlags';
+import { isPresetManagedEdge } from '@/modules/creative_canvas/public';
 
 export function canDeleteCanvasEdge(
   edge: CanvasEdge | undefined,

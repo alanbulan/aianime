@@ -3,7 +3,7 @@ import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
-} from '../domain/mainlineNodeFlags';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasChangeLike {
   type: string;

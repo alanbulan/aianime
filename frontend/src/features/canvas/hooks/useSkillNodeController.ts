@@ -57,7 +57,6 @@ import {
   type CanvasNodeData,
   type SkillNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
 import {
   normalizedSkillParameters,
   skillParameterEntries,
@@ -67,6 +66,7 @@ import { useCanvasSkillRegistry } from '@/features/canvas/hooks/useCanvasSkillRe
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
+  isSystemManagedNodeData,
   publishCanvasCommitRequested,
   resolveInputsForSkill,
   skillRunErrorMessage,
