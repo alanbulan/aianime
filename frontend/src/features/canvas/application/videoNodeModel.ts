@@ -16,8 +16,6 @@ import {
 import {
   referenceImageUrl,
   referenceVideoUrl,
-} from '@/features/canvas/domain/videoReferenceMedia';
-import {
   type CanvasAssetLibrarySelection,
   type VideoGenerationAspectRatio,
   type VideoReferenceItem,

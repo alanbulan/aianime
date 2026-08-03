@@ -1,8 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from 'vitest';
 
-import { extractCanvasAssets } from './canvasAssets';
-import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
+import {
+  extractCanvasAssets,
+  type CanvasAssetExtractionNode as CanvasNode,
+} from './canvasAssets';
+import {
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+} from './canvasConnection';
 
 function videoNode(
   id: string,
@@ -12,9 +17,8 @@ function videoNode(
   return {
     id,
     type: CANVAS_NODE_TYPES.video,
-    position: { x: 0, y: 0 },
     data: { videoUrl, previewImageUrl },
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas assets', () => {

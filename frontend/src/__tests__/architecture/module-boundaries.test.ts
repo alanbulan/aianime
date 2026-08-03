@@ -25101,11 +25101,16 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const assetContractPath = resolve(
-      SRC_ROOT,
-      "modules/creative_canvas/domain/canvasAsset.ts",
+      moduleRoot,
+      "domain/canvasAsset.ts",
     );
     const assetPath = resolve(
+      moduleRoot,
+      "domain/canvasAssets.ts",
+    );
+    const legacyAssetPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasAssets.ts",
     );
@@ -25131,14 +25136,27 @@ describe("frontend architecture boundaries", () => {
     expect(assetContractSource).not.toContain("@/features/");
     expect(assetContractSource).not.toContain("@/lib/");
     expect(assetContractSource).toContain("export interface CanvasAsset");
-    expect(importSpecifiers(assetPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(existsSync(legacyAssetPath)).toBe(false);
+    expect(importSpecifiers(assetPath)).toEqual([
+      "./canvasAsset",
+      "./canvasConnection",
+    ]);
     expect(importSpecifiers(assetPath)).not.toContain("@/lib/media-url");
-    expect(assetSource).not.toContain("export interface CanvasAsset");
+    expect(assetSource).not.toContain("@/features/");
+    expect(assetSource).not.toContain("@/modules/creative_canvas/public");
+    expect(assetSource).not.toContain(
+      ["export interface", "CanvasAsset {"].join(" "),
+    );
     expect(assetSource).toContain("resolveMediaUrl: CanvasMediaUrlResolver");
     expect(historyAdapterSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
+    );
+    expect(historyAdapterSource).toContain("@/modules/creative_canvas/public");
+    expect(historyAdapterSource).not.toContain(
+      "@/features/canvas/domain/canvasAssets",
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/canvasAssets",
     );
     expect(historyControllerSource).toContain(
       "recordsToAssetBuckets(records, resolveNodeMeta, resolveMediaUrl)",
@@ -30416,7 +30434,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps video reference URL projection in one pure domain module", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const domainPath = resolve(
+      moduleRoot,
+      "domain/videoReferenceMedia.ts",
+    );
+    const legacyDomainPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/videoReferenceMedia.ts",
     );
@@ -30437,18 +30460,26 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(existsSync(legacyDomainPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasConnection"]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window");
     expect(domainSource).not.toContain("@/api/");
     expect(domainSource).not.toContain("@/stores/");
+    expect(domainSource).not.toContain("@/features/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/domain/videoReferenceMedia.ts",
+        "modules/creative_canvas/domain/videoReferenceMedia.ts",
       ]),
     );
     expect(videoNode).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(videoNode).not.toContain(
       "@/features/canvas/domain/videoReferenceMedia",
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/videoReferenceMedia",
     );
     expect(videoNode).not.toContain("function referenceImageUrl(");
     expect(videoNode).not.toContain("function referenceVideoUrl(");

@@ -1658,6 +1658,14 @@ export type {
 export {
   groupCanvasAssetsByDate,
 } from "@/modules/creative_canvas/domain/canvasAsset";
+export { extractCanvasAssets } from "@/modules/creative_canvas/domain/canvasAssets";
+export type { CanvasAssetExtractionNode } from "@/modules/creative_canvas/domain/canvasAssets";
+export {
+  referenceImageUrl,
+  referenceVideoUrl,
+  submittableImageUrl,
+} from "@/modules/creative_canvas/domain/videoReferenceMedia";
+export type { CanvasMediaReferenceNode } from "@/modules/creative_canvas/domain/videoReferenceMedia";
 export {
   createCanvasHistoryAssetPayload,
   resolveCanvasHistoryAssetPosition,

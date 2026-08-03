@@ -54,11 +54,6 @@ import {
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import {
-  referenceImageUrl,
-  referenceVideoUrl,
-  submittableImageUrl,
-} from '@/features/canvas/domain/videoReferenceMedia';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
@@ -104,11 +99,14 @@ import {
   resolveErrorContent,
   resolveGenerationErrorDiagnostics,
   qualityToResolution,
+  referenceImageUrl,
+  referenceVideoUrl,
   resolveAudioReferenceDisplayName,
   resolveImageDisplayUrl,
   sceneOptimizeOptionsForModel,
   submitVideoGeneration,
   supportedVideoModesForModel,
+  submittableImageUrl,
   translateCanvasText,
   useCanvasVideoCameraTemplates,
   useCanvasVideoModels,

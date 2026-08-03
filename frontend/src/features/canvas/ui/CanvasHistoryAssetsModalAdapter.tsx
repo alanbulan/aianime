@@ -3,10 +3,10 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { extractCanvasAssets } from '@/features/canvas/domain/canvasAssets';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import {
   CanvasHistoryAssetsModal,
+  extractCanvasAssets,
   type CanvasHistoryAssetsModalCommandProps,
   type CanvasHistoryAssetsModalController,
   type HistoryNodeMeta,

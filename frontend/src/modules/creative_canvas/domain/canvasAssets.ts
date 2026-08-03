@@ -1,10 +1,19 @@
 // Copyright (c) 2026 AI anime
-import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import type {
   CanvasAssetBuckets,
   CanvasAssetKind,
   CanvasMediaUrlResolver,
-} from '@/modules/creative_canvas/public';
+} from './canvasAsset';
+import {
+  CANVAS_CONNECTION_NODE_TYPES,
+  type CanvasConnectionNodeType,
+} from './canvasConnection';
+
+export interface CanvasAssetExtractionNode {
+  id: string;
+  type: CanvasConnectionNodeType;
+  data: unknown;
+}
 
 function asRecord(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
@@ -57,7 +66,7 @@ function labelOf(data: Record<string, unknown>): string | null {
  * dedupe by resolved url so the same asset referenced twice shows once.
  */
 export function extractCanvasAssets(
-  nodes: CanvasNode[],
+  nodes: readonly CanvasAssetExtractionNode[],
   resolveMediaUrl: CanvasMediaUrlResolver,
 ): CanvasAssetBuckets {
   const buckets: CanvasAssetBuckets = { image: [], video: [], audio: [], model: [] };
@@ -90,10 +99,10 @@ export function extractCanvasAssets(
     const label = labelOf(data);
 
     switch (node.type) {
-      case CANVAS_NODE_TYPES.upload:
-      case CANVAS_NODE_TYPES.imageEdit:
-      case CANVAS_NODE_TYPES.imageGen:
-      case CANVAS_NODE_TYPES.exportImage: {
+      case CANVAS_CONNECTION_NODE_TYPES.upload:
+      case CANVAS_CONNECTION_NODE_TYPES.imageEdit:
+      case CANVAS_CONNECTION_NODE_TYPES.imageGen:
+      case CANVAS_CONNECTION_NODE_TYPES.exportImage: {
         push('image', firstStr(data.imageUrl, data.committed_slot_url, data.previewImageUrl), {
           nodeId: node.id,
           label,
@@ -101,8 +110,8 @@ export function extractCanvasAssets(
         });
         break;
       }
-      case CANVAS_NODE_TYPES.storyboardSplit:
-      case CANVAS_NODE_TYPES.storyboardGen: {
+      case CANVAS_CONNECTION_NODE_TYPES.storyboardSplit:
+      case CANVAS_CONNECTION_NODE_TYPES.storyboardGen: {
         const frames = Array.isArray(data.frames) ? data.frames : [];
         frames.forEach((frame, index) => {
           const frameData = asRecord(frame);
@@ -115,8 +124,8 @@ export function extractCanvasAssets(
         });
         break;
       }
-      case CANVAS_NODE_TYPES.video:
-      case CANVAS_NODE_TYPES.videoStory: {
+      case CANVAS_CONNECTION_NODE_TYPES.video:
+      case CANVAS_CONNECTION_NODE_TYPES.videoStory: {
         push('video', firstStr(data.videoUrl, data.sourceVideoUrl), {
           nodeId: node.id,
           previewUrl: str(data.previewImageUrl),
@@ -125,7 +134,7 @@ export function extractCanvasAssets(
         });
         break;
       }
-      case CANVAS_NODE_TYPES.videoCompose: {
+      case CANVAS_CONNECTION_NODE_TYPES.videoCompose: {
         push('video', firstStr(data.resultVideoUrl), {
           nodeId: node.id,
           previewUrl: str(data.previewImageUrl),
@@ -134,7 +143,7 @@ export function extractCanvasAssets(
         });
         break;
       }
-      case CANVAS_NODE_TYPES.audio: {
+      case CANVAS_CONNECTION_NODE_TYPES.audio: {
         push('audio', firstStr(data.audioUrl), {
           nodeId: node.id,
           label,
@@ -142,7 +151,7 @@ export function extractCanvasAssets(
         });
         break;
       }
-      case CANVAS_NODE_TYPES.threeDWorld: {
+      case CANVAS_CONNECTION_NODE_TYPES.threeDWorld: {
         // The world's "asset" is its 3GS package (plyUrl, preferred) or a 360
         // pano image. The cover image is what we actually show on the card.
         push('model', firstStr(data.plyUrl, data.panoUrl), {

@@ -30,14 +30,11 @@ vi.mock('@/features/canvas/canvasStore', () => ({
     selector({ nodes: mocks.nodes }),
 }));
 
-vi.mock('@/features/canvas/domain/canvasAssets', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   extractCanvasAssets: (...args: unknown[]) => {
     mocks.extractLive(...args);
     return mocks.liveBuckets;
   },
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasHistoryAssetsModal: (props: {
     ViewerLayer: (input: { controller: unknown }) => ReactNode;
   }) => {

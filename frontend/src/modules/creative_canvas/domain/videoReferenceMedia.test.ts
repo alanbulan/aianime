@@ -2,22 +2,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from "./canvasNodes";
+  CANVAS_CONNECTION_NODE_TYPES as CANVAS_NODE_TYPES,
+  type CanvasConnectionNodeType,
+} from "./canvasConnection";
 import {
   referenceImageUrl,
   referenceVideoUrl,
   submittableImageUrl,
+  type CanvasMediaReferenceNode as CanvasNode,
 } from "./videoReferenceMedia";
 
-function node(type: string, data: Record<string, unknown>): CanvasNode {
+function node(type: CanvasConnectionNodeType, data: Record<string, unknown>): CanvasNode {
   return {
     id: `${type}-1`,
     type,
-    position: { x: 0, y: 0 },
     data,
-  } as CanvasNode;
+  };
 }
 
 describe("videoReferenceMedia", () => {
