@@ -1,17 +1,16 @@
 // Copyright (c) 2026 AI anime
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { CanvasBookmarkContextMenu } from "./CanvasBookmarkContextMenu";
 import {
-  type ViewportBookmarks,
   bookmarkIndexToDigit,
   createEmptyBookmarks,
-} from "@/modules/creative_canvas/public";
+  type ViewportBookmarks,
+} from '@/modules/creative_canvas/domain/viewportBookmarks';
+import { CanvasBookmarkContextMenu } from './CanvasBookmarkContextMenu';
 
-interface CanvasViewportBookmarksProps {
+export interface CanvasViewportBookmarksProps {
   bookmarks: ViewportBookmarks;
-  /** Slot index the camera is currently parked on, or -1. Rendered as selected. */
   activeIndex?: number;
   onJump: (index: number) => void;
   onSetCurrent: (index: number) => void;
@@ -30,22 +29,28 @@ export function CanvasViewportBookmarks({
   onClearAll,
 }: CanvasViewportBookmarksProps) {
   const { t } = useTranslation();
-  const [menu, setMenu] = useState<{ index: number; x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<{
+    index: number;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // NOTE: keep this row free of backdrop-blur/filter/transform. Any of those would
-  // make this box the containing block for the context menu's `position: fixed`,
-  // throwing its viewport-coordinate (clientX/clientY) placement off-screen.
   return (
     <div className="pointer-events-auto flex items-center gap-0.5 rounded-sm border border-border bg-card px-2 py-1 shadow-lg">
       {SLOT_INDICES.map((index) => {
-        const digit = bookmarkIndexToDigit(index) ?? "";
+        const digit = bookmarkIndexToDigit(index) ?? '';
         const filled = Boolean(bookmarks[index]);
         const active = index === activeIndex;
         return (
           <button
             key={index}
             type="button"
-            title={t(filled ? "canvas.bookmarks.jumpTooltip" : "canvas.bookmarks.emptyTooltip", { digit })}
+            title={t(
+              filled
+                ? 'canvas.bookmarks.jumpTooltip'
+                : 'canvas.bookmarks.emptyTooltip',
+              { digit },
+            )}
             onClick={() => {
               if (filled) {
                 onJump(index);
@@ -58,12 +63,12 @@ export function CanvasViewportBookmarks({
               setMenu({ index, x: event.clientX, y: event.clientY });
             }}
             className={
-              "flex h-6 w-6 items-center justify-center rounded-sm text-xs font-medium underline-offset-[3px] transition-colors " +
-              (active
-                ? "bg-foreground font-semibold text-background"
+              'flex h-6 w-6 items-center justify-center rounded-sm text-xs font-medium underline-offset-[3px] transition-colors '
+              + (active
+                ? 'bg-foreground font-semibold text-background'
                 : filled
-                  ? "text-foreground underline decoration-foreground decoration-2 hover:bg-muted"
-                  : "text-muted-foreground/65 hover:bg-muted hover:text-foreground")
+                  ? 'text-foreground underline decoration-foreground decoration-2 hover:bg-muted'
+                  : 'text-muted-foreground/65 hover:bg-muted hover:text-foreground')
             }
           >
             {digit}

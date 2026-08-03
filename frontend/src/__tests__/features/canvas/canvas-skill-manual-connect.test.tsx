@@ -187,6 +187,7 @@ vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  CanvasMinimapButton: () => null,
   CanvasSnapAlignButton: () => null,
   CanvasSnapAlignGuides: () => null,
   ImageViewerModal: () => null,
@@ -201,8 +202,8 @@ vi.mock("@/features/canvas/ui/CanvasQuickActionBar", () => ({
   CanvasQuickActionBar: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/CanvasMinimapButton", () => ({
-  CanvasMinimapButton: () => null,
+vi.mock("@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({
+  CanvasMinimapBookmarksOverlayAdapter: () => null,
 }));
 
 vi.mock("@/features/canvas/ui/CanvasFpsMeter", () => ({

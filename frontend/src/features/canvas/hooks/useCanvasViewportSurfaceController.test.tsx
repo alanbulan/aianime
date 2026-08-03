@@ -58,12 +58,11 @@ const controllerMocks = vi.hoisted(() => {
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,
   useSnapAlignStore: {
     getState: () => controllerMocks.snapState,
   },
   useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
-}));
-vi.mock('../trackpad-pan/trackpadPanStore', () => ({
   useTrackpadPanStore: (
     selector: (state: { enabled: boolean }) => unknown,
   ) => selector(controllerMocks.trackpadState),
@@ -73,9 +72,6 @@ vi.mock('./useCanvasAutoLayoutController', () => ({
 }));
 vi.mock('./useCanvasLifecycle', () => ({
   useCanvasLifecycle: controllerMocks.useLifecycle,
-}));
-vi.mock('./useCanvasMinimapVisibility', () => ({
-  useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,
 }));
 vi.mock('./useCanvasNodeFocusController', () => ({
   useCanvasNodeFocusController: controllerMocks.useNodeFocus,

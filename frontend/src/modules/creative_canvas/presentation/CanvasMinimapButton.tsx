@@ -1,16 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { Map } from 'lucide-react';
 
-import {
-  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
-  CANVAS_CONTROL_ICON_BUTTON_CLASS,
-} from './canvasControlStyles';
+export interface CanvasMinimapButtonStyles {
+  button: string;
+  activeButton: string;
+}
 
-interface CanvasMinimapButtonProps {
+export interface CanvasMinimapButtonProps {
   pinned: boolean;
   onTogglePin: () => void;
   onHoverChange: (hovered: boolean) => void;
   placement?: 'bottom-right' | 'top-right';
+  styles: CanvasMinimapButtonStyles;
 }
 
 export function CanvasMinimapButton({
@@ -18,6 +19,7 @@ export function CanvasMinimapButton({
   onTogglePin,
   onHoverChange,
   placement = 'bottom-right',
+  styles,
 }: CanvasMinimapButtonProps) {
   const isTop = placement === 'top-right';
   return (
@@ -32,9 +34,9 @@ export function CanvasMinimapButton({
       <button
         type="button"
         onClick={onTogglePin}
-        className={`${CANVAS_CONTROL_ICON_BUTTON_CLASS} ${
+        className={`${styles.button} ${
           pinned
-            ? CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS
+            ? styles.activeButton
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
         aria-label="画布缩略图"

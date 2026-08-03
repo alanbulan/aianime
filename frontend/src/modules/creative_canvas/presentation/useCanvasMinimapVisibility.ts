@@ -1,11 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
-import { isTypingTarget } from '@/modules/creative_canvas/public';
+import { isTypingTarget } from './canvasInteractionTargets';
 
 const MINIMAP_HIDE_DELAY_MS = 180;
+
+export interface CanvasMinimapVisibilityOptions {
+  isImmersiveViewerActive: () => boolean;
+}
 
 export interface CanvasMinimapVisibilityController {
   pinned: boolean;
@@ -14,7 +16,9 @@ export interface CanvasMinimapVisibilityController {
   togglePinned: () => void;
 }
 
-export function useCanvasMinimapVisibility(): CanvasMinimapVisibilityController {
+export function useCanvasMinimapVisibility({
+  isImmersiveViewerActive,
+}: CanvasMinimapVisibilityOptions): CanvasMinimapVisibilityController {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHoveredState] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
@@ -61,7 +65,7 @@ export function useCanvasMinimapVisibility(): CanvasMinimapVisibilityController 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePinned]);
+  }, [isImmersiveViewerActive, togglePinned]);
 
   useEffect(() => clearHideTimer, [clearHideTimer]);
 

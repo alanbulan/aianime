@@ -242,6 +242,16 @@ describe("round 2 residual architecture boundaries", () => {
     const canvasViewportBookmarkPresentationFiles = [
       "useCanvasViewportBookmarkShortcuts.ts",
       "useCanvasViewportBookmarkShortcuts.test.tsx",
+      "useCanvasMinimapVisibility.ts",
+      "useCanvasMinimapVisibility.test.tsx",
+      "trackpadPanStore.ts",
+      "trackpadPanStore.test.ts",
+      "CanvasMinimapButton.tsx",
+      "CanvasBookmarkContextMenu.tsx",
+      "CanvasBookmarkContextMenu.test.tsx",
+      "CanvasViewportBookmarks.tsx",
+      "CanvasViewportBookmarks.test.tsx",
+      "CanvasMinimapBookmarksOverlay.tsx",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -803,12 +813,29 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/application/bookmarkActions.ts",
       "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
       "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.test.tsx",
+      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+      "features/canvas/hooks/useCanvasMinimapVisibility.test.tsx",
+      "features/canvas/trackpad-pan/trackpadPanStore.ts",
+      "features/canvas/ui/CanvasMinimapButton.tsx",
+      "features/canvas/ui/CanvasBookmarkContextMenu.tsx",
+      "features/canvas/ui/CanvasViewportBookmarks.tsx",
+      "features/canvas/ui/CanvasMinimapBookmarksOverlay.tsx",
+      "__tests__/features/canvas/canvas-bookmark-context-menu.test.tsx",
+      "__tests__/features/canvas/canvas-viewport-bookmarks.test.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredViewportBookmarkPath)),
         retiredViewportBookmarkPath,
       ).toBe(false);
     }
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
+        ),
+      ),
+    ).toBe(true);
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
     }
@@ -2041,7 +2068,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 596],
+      ["features/canvas", 590],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

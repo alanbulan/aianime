@@ -7470,7 +7470,6 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const childControllers = [
-      "./useCanvasMinimapVisibility",
       "./useCanvasViewportRuntimeController",
       "./useCanvasLifecycle",
       "./useCanvasNodeFocusController",
@@ -7487,8 +7486,10 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
-    expect(controllerSource).toContain("../trackpad-pan/trackpadPanStore");
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("useCanvasMinimapVisibility({");
+    expect(controllerSource).toContain("useTrackpadPanStore(");
+    expect(controllerSource).not.toContain("../trackpad-pan/");
     expect(controllerSource).toContain("useCanvasSnapAlignment(");
     expect(controllerSource).not.toContain("../snap-align/");
     expect(controllerSource).toContain("viewportPort.fitView(options)");
@@ -7501,23 +7502,48 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas minimap visibility state in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
+      moduleRoot,
+      "presentation/useCanvasMinimapVisibility.ts",
+    );
+    const presentationPaths = [
+      hookPath,
+      resolve(moduleRoot, "presentation/trackpadPanStore.ts"),
+      resolve(moduleRoot, "presentation/CanvasMinimapButton.tsx"),
+      resolve(moduleRoot, "presentation/CanvasBookmarkContextMenu.tsx"),
+      resolve(moduleRoot, "presentation/CanvasViewportBookmarks.tsx"),
+      resolve(moduleRoot, "presentation/CanvasMinimapBookmarksOverlay.tsx"),
+    ];
+    const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+      "features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(hookPath).filter(
-      (specifier) =>
-        specifier === "zustand" ||
-        specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const stageView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      "utf8",
+    );
+    const viewportSurface = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+      ),
+      "utf8",
+    );
+    const forbiddenImports = presentationPaths.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/features/") ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/api/"),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     const hookDeclaration = [
       "export function",
@@ -7530,11 +7556,19 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+      "modules/creative_canvas/presentation/useCanvasMinimapVisibility.ts",
     ]);
     expect(hookModel).toContain(hookDeclaration);
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
+    expect(viewportSurface).toContain("isImmersiveViewerActive");
+    expect(stageView).toContain("CanvasMinimapBookmarksOverlayAdapter");
+    expect(stageView).toContain("CanvasMinimapButton");
+    expect(importSpecifiers(adapterPath)).toEqual([
+      "@xyflow/react",
+      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
+    ]);
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMinimapVisibility");
     expect(canvasView).not.toContain("const [minimapPinned,");
@@ -7543,6 +7577,22 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("setMinimapPinned(");
     expect(canvasView).not.toContain("handleMinimapKey");
     expect(canvasView).not.toContain("event.key.toLowerCase() !== 'm'");
+    for (const retiredMinimapPath of [
+      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+      "features/canvas/hooks/useCanvasMinimapVisibility.test.tsx",
+      "features/canvas/trackpad-pan/trackpadPanStore.ts",
+      "features/canvas/ui/CanvasMinimapButton.tsx",
+      "features/canvas/ui/CanvasBookmarkContextMenu.tsx",
+      "features/canvas/ui/CanvasViewportBookmarks.tsx",
+      "features/canvas/ui/CanvasMinimapBookmarksOverlay.tsx",
+      "__tests__/features/canvas/canvas-bookmark-context-menu.test.tsx",
+      "__tests__/features/canvas/canvas-viewport-bookmarks.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredMinimapPath)),
+        retiredMinimapPath,
+      ).toBe(false);
+    }
   });
 
   it("keeps Canvas connection-gesture assembly in one presentation controller", () => {

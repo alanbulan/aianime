@@ -355,6 +355,29 @@ export type {
   CanvasViewportBookmarkShortcutOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts";
 export {
+  useCanvasMinimapVisibility,
+} from "@/modules/creative_canvas/presentation/useCanvasMinimapVisibility";
+export type {
+  CanvasMinimapVisibilityController,
+  CanvasMinimapVisibilityOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasMinimapVisibility";
+export {
+  useTrackpadPanStore,
+} from "@/modules/creative_canvas/presentation/trackpadPanStore";
+export {
+  CanvasMinimapButton,
+} from "@/modules/creative_canvas/presentation/CanvasMinimapButton";
+export type {
+  CanvasMinimapButtonProps,
+  CanvasMinimapButtonStyles,
+} from "@/modules/creative_canvas/presentation/CanvasMinimapButton";
+export {
+  CanvasMinimapBookmarksOverlay,
+} from "@/modules/creative_canvas/presentation/CanvasMinimapBookmarksOverlay";
+export type {
+  CanvasMinimapBookmarksOverlayProps,
+} from "@/modules/creative_canvas/presentation/CanvasMinimapBookmarksOverlay";
+export {
   useCanvasSnapAlignment,
 } from "@/modules/creative_canvas/presentation/useCanvasSnapAlignment";
 export type {

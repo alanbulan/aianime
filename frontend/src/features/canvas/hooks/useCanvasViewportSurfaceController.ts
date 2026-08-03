@@ -6,10 +6,13 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import { useTrackpadPanStore } from '../trackpad-pan/trackpadPanStore';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
+  useCanvasMinimapVisibility,
   useCanvasSnapAlignment,
   useSnapAlignStore,
+  useTrackpadPanStore,
+  type CanvasMinimapVisibilityController,
   type CanvasSnapAlignmentController,
   type CanvasSnapAlignmentPort,
   type CanvasViewportPort,
@@ -24,10 +27,6 @@ import {
   useCanvasLifecycle,
   type CanvasLifecycleOptions,
 } from './useCanvasLifecycle';
-import {
-  useCanvasMinimapVisibility,
-  type CanvasMinimapVisibilityController,
-} from './useCanvasMinimapVisibility';
 import {
   useCanvasNodeFocusController,
   type CanvasNodeFocusController,
@@ -91,7 +90,7 @@ export function useCanvasViewportSurfaceController({
   isCanvasEmpty,
   closeImageViewer,
 }: CanvasViewportSurfaceControllerOptions): CanvasViewportSurfaceController {
-  const minimap = useCanvasMinimapVisibility();
+  const minimap = useCanvasMinimapVisibility({ isImmersiveViewerActive });
   const trackpadPanEnabled = useTrackpadPanStore((state) => state.enabled);
   const viewportRuntime = useCanvasViewportRuntimeController({
     wrapperRef,

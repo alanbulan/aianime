@@ -58,14 +58,15 @@ vi.mock('@/components/credits/credit-visual', () => ({
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
+  CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
 vi.mock('@/lib/runtime-config', () => ({ isCeRuntime: () => false }));
-vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlay', () => ({
-  CanvasMinimapBookmarksOverlay: () => (
+vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter', () => ({
+  CanvasMinimapBookmarksOverlayAdapter: () => (
     <div data-testid="canvas-minimap-bookmarks" />
   ),
 }));
@@ -84,9 +85,6 @@ vi.mock('./CanvasContextMenu', () => ({
 }));
 vi.mock('./CanvasFpsMeter', () => ({
   CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,
-}));
-vi.mock('./CanvasMinimapButton', () => ({
-  CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
 }));
 vi.mock('./CanvasQuickActionBar', () => ({
   CanvasQuickActionBar: () => <div data-testid="canvas-quick-action-bar" />,

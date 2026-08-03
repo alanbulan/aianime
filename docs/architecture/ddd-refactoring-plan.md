@@ -1080,6 +1080,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百五十批将 Canvas Viewport Bookmark 的固定槽位、持久化规范化、坐标投影、当前相机捕获、平滑跳转和快捷键 Hook 连同领域/应用/presentation 测试整体迁入 Creative Canvas；模块快捷键通过必需的 `isImmersiveViewerActive` 端口接收 Viewer Kit 状态，不反向导入旧 feature。Zustand viewport slice、Canvas 生命周期与边缘平移、Viewport Runtime Controller、缩略图书签 UI 和 Store 测试统一经 Creative Canvas public 使用唯一规则与命令；旧 domain/application/hook、Hook 测试和外置领域测试共 5 个文件直接删除，不保留 facade、re-export 或第二套书签逻辑。Creative Canvas 由 588 增到 594，Canvas 由 600 降到 596，Freezone 保持 0，残余 ratchet 收紧到 596/0。领域/应用/presentation/Canvas 适配与残余门禁 Vitest 9 个文件 39 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；运行时旧路径扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百五十一批将 Canvas Minimap 可见性 Hook、Minimap 按钮、Viewport Bookmark 行与上下文菜单、Minimap Bookmark 覆盖层 View、触控板平移偏好及相关测试整体迁入 Creative Canvas presentation；可见性 Hook 通过必需的 `isImmersiveViewerActive` 端口接收 Viewer Kit 状态，Minimap 按钮通过显式样式合同复用 Canvas 控件类名，模块不反向导入旧 feature 或复制样式。旧覆盖层收敛为唯一 `CanvasMinimapBookmarksOverlayAdapter`，只负责注入 React Flow 相机和现有 Zustand 窄状态/命令，DOM 测量、激活判定、书签投影与 UI 仅在模块 View 中实现；旧 Hook/UI/Store 与两个外置 UI 测试共 9 个文件删除，空 `trackpad-pan` 目录清理，不保留 facade、re-export 或第二套 UI/状态。Creative Canvas 由 594 增到 604，Canvas 由 596 降到 590，Freezone 保持 0，残余 ratchet 收紧到 590/0。Minimap/Viewport presentation、Canvas 适配与残余门禁 Vitest 8 个文件 28 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；首次类型检查发现覆盖层 map 闭包未保留可空 ViewBox 窄化，提取稳定局部值后复跑全绿。运行时旧路径扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
