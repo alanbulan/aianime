@@ -58,11 +58,6 @@ import {
   useUpstreamImages,
 } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
-  resolveImageEditPickerAnchor,
-  type ImageEditPickerAnchor,
-} from '@/features/canvas/infrastructure/browserImageEditRuntime';
-import {
   imageModelDefinitions,
   resolveImageModelResolution,
   resolveImageModelResolutions,
@@ -71,6 +66,7 @@ import {
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
   coercePushTarget,
   defaultCapabilityParams,
   findReferenceTokenAtSelection,
@@ -80,10 +76,12 @@ import {
   parseAspectRatio,
   removeTextRange,
   replaceReferenceToken,
+  resolveImageEditPickerAnchor,
   resolveReferenceAwareDeleteRange,
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,
+  type ImageEditPickerAnchor,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';

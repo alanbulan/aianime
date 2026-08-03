@@ -670,6 +670,11 @@ export type { StoryboardPickerAnchor } from "@/modules/creative_canvas/infrastru
 export { measureTextareaCaretOffset } from "@/modules/creative_canvas/infrastructure/browserTextareaCaret";
 export type { TextareaCaretOffset } from "@/modules/creative_canvas/infrastructure/browserTextareaCaret";
 export {
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+  resolveImageEditPickerAnchor,
+} from "@/modules/creative_canvas/infrastructure/browserImageEditRuntime";
+export type { ImageEditPickerAnchor } from "@/modules/creative_canvas/infrastructure/browserImageEditRuntime";
+export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,
   extractBase64Payload,

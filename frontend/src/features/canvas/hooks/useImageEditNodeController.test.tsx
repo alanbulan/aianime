@@ -150,12 +150,15 @@ vi.mock('@/features/canvas/pricing', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
   coercePushTarget: (value: unknown) =>
     value && typeof value === 'object' && 'kind' in value ? value : null,
   defaultCapabilityParams: () => ({ strength: 50 }),
   getCapability: (id: string | undefined) =>
     id === mocks.capability.id ? mocks.capability : null,
   listCapabilities: () => [mocks.capability],
+  resolveImageEditPickerAnchor: (...args: unknown[]) =>
+    mocks.resolvePickerAnchor(...args),
   useCanvasImageModels: (...args: unknown[]) =>
     mocks.useCanvasImageModels(...args),
 }));
@@ -169,12 +172,6 @@ vi.mock('@/features/canvas/composition', () => ({
   detectAspectRatio: (...args: unknown[]) => mocks.detectAspectRatio(...args),
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
-}));
-
-vi.mock('@/features/canvas/infrastructure/browserImageEditRuntime', () => ({
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  resolveImageEditPickerAnchor: (...args: unknown[]) =>
-    mocks.resolvePickerAnchor(...args),
 }));
 
 vi.mock('@/features/canvas/application/errorDialog', () => ({

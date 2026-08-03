@@ -2066,11 +2066,11 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserImageEditRuntime.ts",
+      "modules/creative_canvas/infrastructure/browserImageEditRuntime.ts",
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserImageEditRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserImageEditRuntime.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -2125,7 +2125,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageEditNode.tsx"],
       ["features/canvas/application/imageEditNodeModel.ts"],
-      ["features/canvas/infrastructure/browserImageEditRuntime.ts"],
+      ["modules/creative_canvas/infrastructure/browserImageEditRuntime.ts"],
       ["features/canvas/hooks/useImageEditNodeController.ts"],
       ["features/canvas/nodes/ImageEditNodeView.tsx"],
     ]);
@@ -2134,9 +2134,8 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
     expect(runtimeSource).toContain("measureTextareaCaretOffset(");
-    expect(importSpecifiers(runtimePath)).toEqual([
-      "@/modules/creative_canvas/public",
-    ]);
+    expect(importSpecifiers(runtimePath)).toEqual(["./browserTextareaCaret"]);
+    expect(runtimeSource).not.toContain("@/features/");
     expect(runtimeSource).not.toContain("document.createElement('div')");
     expect(runtimeSource).not.toContain("useCanvasStore");
     expect(registrySource).toContain(
@@ -2161,6 +2160,12 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "useCanvasImageModels(projectId, 'edit')",
     );
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/infrastructure/browserImageEditRuntime",
+    );
     expect(controllerSource).toContain("assetLibraryProject = projectId");
     expect(controllerSource).not.toContain("readUrl");
     expect(controllerSource).toContain("planImageEditAssetReferences({");
@@ -2180,6 +2185,14 @@ describe("frontend architecture boundaries", () => {
       "from './useImageEditNodeController'",
     );
     expect(viewTestSource).toContain("from './ImageEditNodeView'");
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserImageEditRuntime.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserImageEditRuntime.test.ts",
+    ))).toBe(false);
   });
 
   it("separates the Canvas Beat Context model, controller, and view", () => {
