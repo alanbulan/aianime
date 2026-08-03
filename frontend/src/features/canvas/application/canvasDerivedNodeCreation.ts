@@ -1,16 +1,18 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
   type CanvasNode,
   type CanvasNodeData,
   type ExportImageNodeResultKind,
 } from '../domain/canvasNodes';
 import {
   DEFAULT_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_MIN_HEIGHT,
+  EXPORT_RESULT_NODE_MIN_WIDTH,
   createDefaultStoryboardExportOptions,
   resolveDerivedAspectRatio,
+  resolveAutoImageNodeDimensions,
+  resolveGeneratedImageNodeDimensions,
   resolveStoryboardSplitNodeDimensions,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
@@ -21,10 +23,6 @@ import {
   type CanvasNodeSize,
 } from '../domain/canvasGeometry';
 import { EXPORT_RESULT_DISPLAY_NAME } from '../domain/nodeDisplay';
-import {
-  resolveAutoImageNodeDimensions,
-  resolveGeneratedImageNodeDimensions,
-} from './imageNodeLayout';
 import type { NodeFactory } from './ports';
 
 export interface CanvasDerivedExportNodeOptions {

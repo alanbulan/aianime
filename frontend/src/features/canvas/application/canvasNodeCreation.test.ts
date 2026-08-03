@@ -6,12 +6,12 @@ import {
   type CanvasNode,
   type CanvasNodeData,
 } from '../domain/canvasNodes';
+import { resolveAutoImageNodeDimensions } from '@/modules/creative_canvas/public';
 import { createCanvasNode } from './canvasNodeCreation';
 import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
 } from './canvasNodeHydration';
-import { resolveAutoImageNodeDimensions } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
 
 function factory(overrides: Partial<CanvasNode> = {}): NodeFactory {

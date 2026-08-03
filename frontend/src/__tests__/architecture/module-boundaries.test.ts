@@ -2485,17 +2485,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("separates the Canvas image-generation model, controller, controls, and view", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const entryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/ImageGenNode.tsx",
     );
     const modelPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/imageGenNodeModel.ts",
+      moduleRoot,
+      "domain/imageGenNodeModel.ts",
     );
     const modelTestPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/imageGenNodeModel.test.ts",
+      moduleRoot,
+      "domain/imageGenNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -2517,6 +2519,10 @@ describe("frontend architecture boundaries", () => {
     const controlsSource = readFileSync(controlsPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const registrySource = readFileSync(registryPath, "utf8");
+    const legacyModelPaths = [
+      "features/canvas/application/imageGenNodeModel.ts",
+      "features/canvas/application/imageGenNodeModel.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const declarations = [
       ["export const", "ImageGenNode", "=", "memo("].join(" "),
       ["export function", "isImage2Model("].join(" "),
@@ -2542,7 +2548,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageGenNode.tsx"],
-      ["features/canvas/application/imageGenNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageGenNodeModel.ts"],
       ["features/canvas/hooks/useImageGenNodeController.ts"],
       ["features/canvas/nodes/ImageGenNodeControls.tsx"],
       ["features/canvas/nodes/ImageGenNodeView.tsx"],
@@ -2552,6 +2558,26 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(importSpecifiers(modelPath)).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(
+      importSpecifiers(modelPath).filter((specifier) =>
+        specifier.startsWith("@/features/"),
+      ),
+    ).toEqual([]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/imageGenNodeModel",
+    );
+    expect(legacyModelPaths.every((path) => !existsSync(path))).toBe(true);
+    for (const consumerPath of [controllerPath, controlsPath, viewPath]) {
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "@/features/canvas/application/imageGenNodeModel",
+      );
+    }
     expect(modelTestSource).toContain("from './imageGenNodeModel'");
     expect(registrySource).toContain(
       "import { ImageGenNode } from './ImageGenNode'",
@@ -15291,25 +15317,46 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas image node layout rules out of the Zustand store", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const layoutPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/imageNodeLayout.ts",
+      moduleRoot,
+      "domain/imageNodeLayout.ts",
     );
     const changeEffectsPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasNodeChangeEffects.ts",
     );
-    const layoutModel = readFileSync(layoutPath, "utf8");
     const changeEffectsModel = readFileSync(changeEffectsPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
+    const canvasNodesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodes.ts",
+    );
+    const canvasNodesModel = readFileSync(canvasNodesPath, "utf8");
+    const legacyLayoutPaths = [
+      "features/canvas/application/imageNodeLayout.ts",
+      "features/canvas/application/imageNodeLayout.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const layoutConsumers = [
+      changeEffectsPath,
+      resolve(SRC_ROOT, "features/canvas/application/canvasNodeCreation.ts"),
+      resolve(SRC_ROOT, "features/canvas/application/canvasDerivedNodeCreation.ts"),
+      resolve(SRC_ROOT, "features/canvas/application/panoCaptureNodes.ts"),
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+    ];
     const forbiddenLayoutImports = importSpecifiers(layoutPath).filter(
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/"),
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const ruleNames = [
       "isImageAutoResizableType",
@@ -15318,17 +15365,57 @@ describe("frontend architecture boundaries", () => {
       "resolveGeneratedImageNodeDimensions",
       "maybeApplyImageAutoResize",
     ];
+    const layoutConstantNames = [
+      "EXPORT_RESULT_NODE_DEFAULT_WIDTH",
+      "EXPORT_RESULT_NODE_LAYOUT_HEIGHT",
+      "EXPORT_RESULT_NODE_MIN_HEIGHT",
+      "EXPORT_RESULT_NODE_MIN_WIDTH",
+      "EXPORT_RESULT_NODE_RESIZE_MIN_EDGE",
+    ];
 
     expect(forbiddenLayoutImports).toEqual([]);
-    expect(changeEffectsModel).toContain(
-      "from './imageNodeLayout'",
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/imageNodeLayout",
     );
+    expect(legacyLayoutPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(changeEffectsModel).toContain("@/modules/creative_canvas/public");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/imageNodeLayout",
     );
+    for (const consumerPath of layoutConsumers) {
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "../application/imageNodeLayout",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "./imageNodeLayout",
+      );
+    }
     for (const ruleName of ruleNames) {
-      expect(layoutModel).toContain(`export function ${ruleName}(`);
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) =>
+          readFileSync(path, "utf8").includes(`export function ${ruleName}`),
+        )
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "modules/creative_canvas/domain/imageNodeLayout.ts",
+      ]);
       expect(canvasStore).not.toContain(`function ${ruleName}(`);
+    }
+    for (const constantName of layoutConstantNames) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) =>
+          readFileSync(path, "utf8").includes(`export const ${constantName} =`),
+        )
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "modules/creative_canvas/domain/imageNodeLayout.ts",
+      ]);
+      expect(canvasNodesModel).not.toContain(`export const ${constantName} =`);
     }
   });
 
@@ -15609,7 +15696,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeDataModel).toContain("ports.applyMergedNodeData(");
     expect(nodeDataModel).not.toContain("maybeApplyImageAutoResize(");
     expect(nodeMutationSlice).toContain("@/modules/creative_canvas/public");
-    expect(nodeMutationSlice).toContain("../application/imageNodeLayout");
+    expect(nodeMutationSlice).not.toContain("../application/imageNodeLayout");
     expect(nodeMutationSlice).toContain("canvasNodeDataUpdatePorts");
     expect(nodeMutationSlice).not.toContain("../application/canvasNodeData");
     expect(canvasStore).not.toContain(
@@ -26528,7 +26615,6 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasNodes",
       "../application/canvasNodeConversion",
       "../application/canvasNodeCreation",
-      "../application/imageNodeLayout",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");

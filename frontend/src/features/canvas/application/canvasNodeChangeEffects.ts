@@ -2,10 +2,12 @@
 import {
   createSnapshot,
   isDeleteToEmpty,
+  isImageAutoResizableType,
   recordCanvasInteractionHistory,
   resolveActiveToolDialog,
   resolveSelectedNodeId,
   trackEdit,
+  withManualSizeLock,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
@@ -19,10 +21,6 @@ import {
   classifyCanvasNodeChanges,
   type CanvasNodeChangeLike,
 } from './canvasChangeIntent';
-import {
-  isImageAutoResizableType,
-  withManualSizeLock,
-} from './imageNodeLayout';
 
 export interface CanvasNodeChangeEffectState extends CanvasMutationState {
   nodes: CanvasNode[];

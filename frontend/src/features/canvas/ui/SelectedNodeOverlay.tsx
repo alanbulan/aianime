@@ -7,8 +7,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   isExportImageNode,
   isImageEditNode,
   isImageGenNode,
@@ -21,6 +19,8 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   DEFAULT_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type GridActionRequest,
 } from '@/modules/creative_canvas/public';
 import { NodeActionToolbar } from './NodeActionToolbar';

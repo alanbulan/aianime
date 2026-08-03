@@ -24,13 +24,13 @@ import {
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_REDRAW_IMAGE_SIZES,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   generationTaskDescriptor,
   generateCanvasRedraw,
   useCanvasImageModels,

@@ -17,8 +17,6 @@ import {
 } from '@/features/canvas/application/graphContentResolver';
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type ImageEditNodeData,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
@@ -46,6 +44,8 @@ import {
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
   buildGenerationErrorReport,
   buildImageEditGenerationPrompt,

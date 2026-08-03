@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 
 import {
+  AssetLibraryModal,
+  CandidateBindingBadges,
+  hasCompletedHistoryRecords,
+  historyRecordOutputUrl,
   IMAGE_GEN_NODE_MAX_HEIGHT,
   IMAGE_GEN_NODE_MAX_WIDTH,
   IMAGE_GEN_NODE_MIN_HEIGHT,
@@ -24,12 +28,6 @@ import {
   IMAGE_GEN_OPERATIONS_PANEL_EXPANDED_MIN_WIDTH,
   IMAGE_GEN_OPERATIONS_PANEL_GAP,
   IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
-} from '@/features/canvas/application/imageGenNodeModel';
-import {
-  AssetLibraryModal,
-  CandidateBindingBadges,
-  hasCompletedHistoryRecords,
-  historyRecordOutputUrl,
   NodeGenerationHistory,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';

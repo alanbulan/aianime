@@ -9,7 +9,7 @@ import {
   IMAGE_GEN_QUALITY_OPTIONS,
   IMAGE_GEN_SIZE_OPTIONS,
   resolveNearestImageGenAspectOption,
-} from '@/features/canvas/application/imageGenNodeModel';
+} from '@/modules/creative_canvas/public';
 import type {
   ImageGenCameraSelection,
   ImageGenCount,

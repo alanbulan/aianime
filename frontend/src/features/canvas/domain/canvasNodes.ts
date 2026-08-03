@@ -43,13 +43,6 @@ export const CANVAS_NODE_TYPES = {
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES];
 
 export const DEFAULT_NODE_WIDTH = 320;
-export const EXPORT_RESULT_NODE_DEFAULT_WIDTH = 480;
-export const EXPORT_RESULT_NODE_LAYOUT_HEIGHT = 360;
-export const EXPORT_RESULT_NODE_MIN_WIDTH = 300;
-export const EXPORT_RESULT_NODE_MIN_HEIGHT = 300;
-// 缩放下限刻意小于创建/紧凑尺寸，否则节点缩不到比初始更小（配合 keepAspectRatio
-// 时短边为绑定约束，按比例换算后宽屏/竖屏都能缩到一个一致的小框）。
-export const EXPORT_RESULT_NODE_RESIZE_MIN_EDGE = 140;
 
 export const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
 export const IMAGE_ASPECT_RATIOS = [

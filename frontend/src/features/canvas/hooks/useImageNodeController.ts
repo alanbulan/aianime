@@ -13,9 +13,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
-  EXPORT_RESULT_NODE_RESIZE_MIN_EDGE,
   type CanvasNodeType,
   type ExportImageNodeData,
   type ImageEditNodeData,
@@ -23,6 +20,9 @@ import {
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   DEFAULT_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_MIN_HEIGHT,
+  EXPORT_RESULT_NODE_MIN_WIDTH,
+  EXPORT_RESULT_NODE_RESIZE_MIN_EDGE,
   aspectRatioFromImageDimensions,
   canRegenerateExportImageNode,
   collectCandidateBindingsForNode,

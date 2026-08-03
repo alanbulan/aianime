@@ -11,26 +11,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  hasEffectiveImageGenPrompt,
-  hasImageGenCameraSelection,
-  imageGenAlbumUrls,
-  IMAGE_GEN_DEFAULT_QUALITY,
-  IMAGE_GEN_NODE_DEFAULT_HEIGHT,
-  IMAGE_GEN_NODE_DEFAULT_WIDTH,
-  IMAGE_GEN_NODE_MIN_HEIGHT,
-  IMAGE_GEN_NODE_MIN_WIDTH,
-  IMAGE_GEN_OPERATIONS_PANEL_HEIGHT,
-  IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH,
-  isImage2Model,
-  resolveImageGenEffectivePrompt,
-  resolveImageGenModel,
-  resolveImageGenNaturalSize,
-  resolveImageGenNodeDimensions,
-  resolveImageGenPreviewUrl,
-  resolveImageGenReferencePreviewPosition,
-  snapImageGenAspectRatio,
-} from '@/features/canvas/application/imageGenNodeModel';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
@@ -47,6 +27,17 @@ import {
   collectCandidateBindingsForNode,
   filterCanvasImageModels,
   generationTaskDescriptor,
+  hasEffectiveImageGenPrompt,
+  hasImageGenCameraSelection,
+  imageGenAlbumUrls,
+  IMAGE_GEN_DEFAULT_QUALITY,
+  IMAGE_GEN_NODE_DEFAULT_HEIGHT,
+  IMAGE_GEN_NODE_DEFAULT_WIDTH,
+  IMAGE_GEN_NODE_MIN_HEIGHT,
+  IMAGE_GEN_NODE_MIN_WIDTH,
+  IMAGE_GEN_OPERATIONS_PANEL_HEIGHT,
+  IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH,
+  isImage2Model,
   extractRequestId,
   generateCanvasImage,
   getFreezoneCanvasMetadata,
@@ -58,6 +49,13 @@ import {
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
   resolveMinEdgeFittedSize,
+  resolveImageGenEffectivePrompt,
+  resolveImageGenModel,
+  resolveImageGenNaturalSize,
+  resolveImageGenNodeDimensions,
+  resolveImageGenPreviewUrl,
+  resolveImageGenReferencePreviewPosition,
+  snapImageGenAspectRatio,
   shouldForceNaturalImageSize,
   shouldWriteGenerationError,
   translateCanvasText,

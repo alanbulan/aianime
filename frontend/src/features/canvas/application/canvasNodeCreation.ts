@@ -9,7 +9,7 @@ import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
 } from './canvasNodeHydration';
-import { maybeApplyImageAutoResize } from './imageNodeLayout';
+import { maybeApplyImageAutoResize } from '@/modules/creative_canvas/public';
 import type { NodeFactory } from './ports';
 
 export function createCanvasNode(

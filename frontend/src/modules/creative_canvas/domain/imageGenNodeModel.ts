@@ -1,18 +1,25 @@
 // Copyright (c) 2026 AI anime
+import { parseAspectRatio } from './aspectRatio';
 import {
-  parseAspectRatio,
   IMAGE_GENERATION_ASPECT_RATIOS,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
-} from '@/modules/creative_canvas/public';
-import type {
-  ImageGenCameraSelection,
-  ImageGenCount,
-  ImageGenNodeData,
-  ImageQuality,
-  ImageSize,
-} from '@/features/canvas/domain/canvasNodes';
+} from './imageData';
+
+export interface ImageGenCameraSelectionData {
+  readonly cameraBodyId?: string | null;
+  readonly lensId?: string | null;
+  readonly focalLengthMm?: number | null;
+  readonly aperture?: string | null;
+}
+
+export interface ImageGenPreviewData {
+  readonly previewImageUrl?: string | null;
+  readonly imageUrl?: string | null;
+  readonly imageNaturalWidth?: unknown;
+  readonly imageNaturalHeight?: unknown;
+}
 
 export const IMAGE_GEN_NODE_DEFAULT_WIDTH = 580;
 export const IMAGE_GEN_NODE_DEFAULT_HEIGHT = 360;
@@ -44,25 +51,22 @@ export const IMAGE_GEN_ASPECT_OPTIONS: ReadonlyArray<{
   { value: '21:9', label: '21:9' },
 ];
 
-export const IMAGE_GEN_SIZE_OPTIONS: ReadonlyArray<ImageSize> = [
+export const IMAGE_GEN_SIZE_OPTIONS = [
   '1K',
   '2K',
   '4K',
-];
-export const IMAGE_GEN_COUNT_OPTIONS: ReadonlyArray<ImageGenCount> = [1, 2, 4];
+] as const;
+export const IMAGE_GEN_COUNT_OPTIONS = [1, 2, 4] as const;
 export const IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS = [
   '2:3',
   '16:9',
 ] as const;
-export const IMAGE_GEN_QUALITY_OPTIONS: ReadonlyArray<{
-  value: ImageQuality;
-  label: string;
-}> = [
+export const IMAGE_GEN_QUALITY_OPTIONS = [
   { value: 'low', label: '低画质' },
   { value: 'medium', label: '标准画质' },
   { value: 'high', label: '高画质' },
-];
-export const IMAGE_GEN_DEFAULT_QUALITY: ImageQuality = 'medium';
+] as const;
+export const IMAGE_GEN_DEFAULT_QUALITY = 'medium' as const;
 
 export interface ImageGenModelOption {
   id: string;
@@ -116,7 +120,7 @@ export function resolveImageGenNodeDimensions(
 }
 
 export function resolveImageGenPreviewUrl(
-  data: ImageGenNodeData,
+  data: ImageGenPreviewData,
   referenceImageUrl: string | null,
 ): string | null {
   if (data.previewImageUrl) return resolveImageDisplayUrl(data.previewImageUrl);
@@ -132,12 +136,12 @@ export function imageGenAlbumUrls(value: unknown): string[] {
     : [];
 }
 
-export function resolveImageGenNaturalSize(data: ImageGenNodeData): {
+export function resolveImageGenNaturalSize(data: ImageGenPreviewData): {
   width: number;
   height: number;
 } | null {
-  const width = (data as { imageNaturalWidth?: unknown }).imageNaturalWidth;
-  const height = (data as { imageNaturalHeight?: unknown }).imageNaturalHeight;
+  const width = data.imageNaturalWidth;
+  const height = data.imageNaturalHeight;
   return (
     typeof width === 'number' &&
     typeof height === 'number' &&
@@ -162,7 +166,7 @@ export function resolveImageGenReferencePreviewPosition(
 }
 
 export function hasImageGenCameraSelection(
-  selection: ImageGenCameraSelection | null,
+  selection: ImageGenCameraSelectionData | null,
 ): boolean {
   return Boolean(
     selection &&

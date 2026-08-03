@@ -8,6 +8,7 @@ import {
 } from '../domain/canvasNodes';
 import {
   createDefaultStoryboardExportOptions,
+  resolveGeneratedImageNodeDimensions,
   resolveStoryboardSplitNodeDimensions,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
@@ -16,7 +17,6 @@ import {
   createCanvasDerivedUploadNode,
   createCanvasStoryboardSplitNode,
 } from './canvasDerivedNodeCreation';
-import { resolveGeneratedImageNodeDimensions } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
 
 function node(

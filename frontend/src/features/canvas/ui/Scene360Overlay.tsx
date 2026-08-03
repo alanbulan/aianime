@@ -6,13 +6,13 @@ import { useTranslation } from 'react-i18next';
 
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_SCENE_360_ASPECT_RATIOS,
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   generationTaskDescriptor,
   generateCanvasScene360,
   useCanvasImageModels,

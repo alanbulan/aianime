@@ -1,16 +1,18 @@
 // Copyright (c) 2026 AI anime
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
 import {
+  EXPORT_RESULT_NODE_MIN_HEIGHT,
+  EXPORT_RESULT_NODE_MIN_WIDTH,
+  resolveAutoImageNodeDimensions,
+} from '@/modules/creative_canvas/public';
+import {
   getNodeSize,
   resolveAbsolutePosition,
 } from '../domain/canvasGeometry';
-import { resolveAutoImageNodeDimensions } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
 
 export interface CanvasPanoCapture {

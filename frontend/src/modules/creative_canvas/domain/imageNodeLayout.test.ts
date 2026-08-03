@@ -1,25 +1,32 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 import {
+  type CanvasImageLayoutNode,
   maybeApplyImageAutoResize,
   resolveAutoImageNodeDimensions,
   resolveGeneratedImageNodeDimensions,
   withManualSizeLock,
 } from './imageNodeLayout';
 
-function imageNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
+interface TestImageLayoutNode extends CanvasImageLayoutNode {
+  readonly id: string;
+  readonly position: { x: number; y: number };
+}
+
+function imageNode(
+  overrides: Partial<TestImageLayoutNode> = {},
+): TestImageLayoutNode {
   return {
     id: 'image',
-    type: CANVAS_NODE_TYPES.exportImage,
+    type: 'exportImageNode',
     position: { x: 0, y: 0 },
     width: 400,
     height: 400,
     style: { width: 400, height: 400 },
     data: { imageUrl: '/image.png', aspectRatio: '2:1' },
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas image node layout', () => {
@@ -70,7 +77,7 @@ describe('Canvas image node layout', () => {
 
   it('uses real video pixels instead of the generation preset', () => {
     const node = imageNode({
-      type: CANVAS_NODE_TYPES.video,
+      type: 'videoNode',
       data: { videoUrl: '/vertical.mp4', aspectRatio: '16:9' },
     });
     const resized = maybeApplyImageAutoResize(node, {

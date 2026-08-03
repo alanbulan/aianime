@@ -21,8 +21,6 @@ import {
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type ImageSize,
   type StoryboardGenNodeData,
 } from '@/features/canvas/domain/canvasNodes';
@@ -32,6 +30,8 @@ import {
 } from '@/features/canvas/domain/nodeDisplay';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
   STORYBOARD_PICKER_FALLBACK_ANCHOR,
   areStoryboardFrameDraftsEqual,

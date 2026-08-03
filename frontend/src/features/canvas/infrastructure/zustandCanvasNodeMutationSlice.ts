@@ -2,6 +2,7 @@
 import {
   createSnapshot,
   elevateCanvasNodes,
+  maybeApplyImageAutoResize,
   pushSnapshot,
   reorderStoryboardFrameInGraph,
   setCanvasNodePositions,
@@ -27,7 +28,6 @@ import {
 } from '../domain/canvasNodes';
 import { convertCanvasNodeType } from '../application/canvasNodeConversion';
 import { createCanvasNode } from '../application/canvasNodeCreation';
-import { maybeApplyImageAutoResize } from '../application/imageNodeLayout';
 import type {
   CanvasNodeDefaultDataGateway,
   NodeFactory,

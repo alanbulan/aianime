@@ -5,8 +5,6 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
   CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNodeData,
 } from "@/features/canvas/domain/canvasNodes";
 import {
@@ -17,6 +15,8 @@ import {
   buildImageMatteFailurePatch,
   buildImageMatteInitialData,
   buildImageMatteSuccessPatch,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   resolveImageMatteUploadFilename,
 } from "@/modules/creative_canvas/public";
 

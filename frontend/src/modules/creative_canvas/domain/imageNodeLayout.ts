@@ -1,38 +1,64 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
-import {
-  DEFAULT_ASPECT_RATIO,
   aspectRatioFromImageDimensions,
   ensureAtLeastOneMinEdge,
   resolveMinEdgeFittedSize,
   resolveSizeInsideTargetBox,
-} from '@/modules/creative_canvas/public';
+} from './imageNodeSizing';
+import { DEFAULT_ASPECT_RATIO } from './aspectRatio';
+
+export const EXPORT_RESULT_NODE_DEFAULT_WIDTH = 480;
+export const EXPORT_RESULT_NODE_LAYOUT_HEIGHT = 360;
+export const EXPORT_RESULT_NODE_MIN_WIDTH = 300;
+export const EXPORT_RESULT_NODE_MIN_HEIGHT = 300;
+export const EXPORT_RESULT_NODE_RESIZE_MIN_EDGE = 140;
+
+export interface CanvasImageLayoutNode {
+  readonly type: string;
+  readonly width?: number | null;
+  readonly height?: number | null;
+  readonly measured?: {
+    readonly width?: number;
+    readonly height?: number;
+  };
+  readonly style?: {
+    readonly width?: unknown;
+    readonly height?: unknown;
+  };
+  readonly data: object;
+}
+
+interface CanvasImageLayoutData {
+  readonly imageUrl?: string | null;
+  readonly previewImageUrl?: string | null;
+  readonly videoUrl?: string | null;
+  readonly aspectRatio?: string;
+  readonly widthPx?: number | null;
+  readonly heightPx?: number | null;
+  readonly isSizeManuallyAdjusted?: boolean;
+  readonly [key: string]: unknown;
+}
+
+const AUTO_RESIZABLE_NODE_TYPES = new Set([
+  'uploadNode',
+  'imageNode',
+  'exportImageNode',
+  'imageGenNode',
+  'videoNode',
+]);
 
 const IMAGE_NODE_VISUAL_MIN_EDGE = 300;
 
-export function isImageAutoResizableType(type: CanvasNodeType): boolean {
-  return type === CANVAS_NODE_TYPES.upload
-    || type === CANVAS_NODE_TYPES.imageEdit
-    || type === CANVAS_NODE_TYPES.exportImage
-    || type === CANVAS_NODE_TYPES.imageGen
-    || type === CANVAS_NODE_TYPES.video;
+export function isImageAutoResizableType(type: string | undefined): boolean {
+  return typeof type === 'string' && AUTO_RESIZABLE_NODE_TYPES.has(type);
 }
 
-export function withManualSizeLock(node: CanvasNode): CanvasNode {
-  const nodeData = node.data as CanvasNodeData & {
-    isSizeManuallyAdjusted?: boolean;
-    aspectRatio?: string;
-  };
-  const aspectRatio = typeof nodeData.aspectRatio === 'string' ? nodeData.aspectRatio : '';
+export function withManualSizeLock<TNode extends CanvasImageLayoutNode>(
+  node: TNode,
+): TNode {
+  const nodeData = node.data as CanvasImageLayoutData;
+  const aspectRatio =
+    typeof nodeData.aspectRatio === 'string' ? nodeData.aspectRatio : '';
   const currentWidth =
     (typeof node.width === 'number' ? node.width : null)
     ?? (typeof node.measured?.width === 'number' ? node.measured.width : null)
@@ -44,12 +70,19 @@ export function withManualSizeLock(node: CanvasNode): CanvasNode {
 
   // A distorted React Flow box would expose letterboxing around object-contain media.
   let snapped: { width: number; height: number } | null = null;
-  if (aspectRatio && typeof currentWidth === 'number' && typeof currentHeight === 'number') {
+  if (
+    aspectRatio
+    && typeof currentWidth === 'number'
+    && typeof currentHeight === 'number'
+  ) {
     const fitted = resolveSizeInsideTargetBox(aspectRatio, {
       width: currentWidth,
       height: currentHeight,
     });
-    if (Math.abs(fitted.width - currentWidth) > 1 || Math.abs(fitted.height - currentHeight) > 1) {
+    if (
+      Math.abs(fitted.width - currentWidth) > 1
+      || Math.abs(fitted.height - currentHeight) > 1
+    ) {
       snapped = fitted;
     }
   }
@@ -64,14 +97,18 @@ export function withManualSizeLock(node: CanvasNode): CanvasNode {
       ? {
           width: snapped.width,
           height: snapped.height,
-          style: { ...(node.style ?? {}), width: snapped.width, height: snapped.height },
+          style: {
+            ...(node.style ?? {}),
+            width: snapped.width,
+            height: snapped.height,
+          },
         }
       : {}),
     data: {
       ...node.data,
       isSizeManuallyAdjusted: true,
-    } as CanvasNodeData,
-  };
+    },
+  } as TNode;
 }
 
 export function resolveAutoImageNodeDimensions(
@@ -103,36 +140,30 @@ export function resolveGeneratedImageNodeDimensions(
   return ensureAtLeastOneMinEdge(size, { minWidth, minHeight });
 }
 
-export function maybeApplyImageAutoResize(
-  node: CanvasNode,
-  patch: Partial<CanvasNodeData>,
-): CanvasNode {
+export function maybeApplyImageAutoResize<TNode extends CanvasImageLayoutNode>(
+  node: TNode,
+  patch: object,
+): TNode {
   if (!isImageAutoResizableType(node.type)) {
     return node;
   }
 
-  const isVideo = node.type === CANVAS_NODE_TYPES.video;
-  const nodeData = node.data as CanvasNodeData & {
-    imageUrl?: string | null;
-    videoUrl?: string | null;
-    aspectRatio?: string;
-    widthPx?: number;
-    heightPx?: number;
-    isSizeManuallyAdjusted?: boolean;
-  };
-  const patchData = patch as Partial<CanvasNodeData> & {
-    imageUrl?: string | null;
-    videoUrl?: string | null;
-    aspectRatio?: string;
-    widthPx?: number;
-    heightPx?: number;
-    isSizeManuallyAdjusted?: boolean;
-  };
+  const isVideo = node.type === 'videoNode';
+  const nodeData = node.data as CanvasImageLayoutData;
+  const patchData = patch as CanvasImageLayoutData;
 
   // Video waits for metadata fields; a URL alone does not reveal its rendered ratio.
   const hasImageRelatedChange = isVideo
-    ? ('aspectRatio' in patchData || 'widthPx' in patchData || 'heightPx' in patchData)
-    : ('imageUrl' in patchData || 'previewImageUrl' in patchData || 'aspectRatio' in patchData);
+    ? (
+        'aspectRatio' in patchData
+        || 'widthPx' in patchData
+        || 'heightPx' in patchData
+      )
+    : (
+        'imageUrl' in patchData
+        || 'previewImageUrl' in patchData
+        || 'aspectRatio' in patchData
+      );
   if (!hasImageRelatedChange) {
     return node;
   }
@@ -157,7 +188,12 @@ export function maybeApplyImageAutoResize(
     ? (() => {
         const width = patchData.widthPx ?? nodeData.widthPx;
         const height = patchData.heightPx ?? nodeData.heightPx;
-        return typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0
+        return (
+          typeof width === 'number'
+          && typeof height === 'number'
+          && width > 0
+          && height > 0
+        )
           ? aspectRatioFromImageDimensions(width, height)
           : null;
       })()
@@ -165,13 +201,16 @@ export function maybeApplyImageAutoResize(
   const nextAspectRatio = videoPixelAspectRatio ?? presetAspectRatio;
   // Match each node component's own minimums so React Flow does not clamp the ratio again.
   const resizeMins = (() => {
-    if (node.type === CANVAS_NODE_TYPES.exportImage) {
-      return { minWidth: EXPORT_RESULT_NODE_MIN_WIDTH, minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT };
+    if (node.type === 'exportImageNode') {
+      return {
+        minWidth: EXPORT_RESULT_NODE_MIN_WIDTH,
+        minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT,
+      };
     }
-    if (node.type === CANVAS_NODE_TYPES.video) {
+    if (node.type === 'videoNode') {
       return { minWidth: 480, minHeight: 280 };
     }
-    if (node.type === CANVAS_NODE_TYPES.imageGen) {
+    if (node.type === 'imageGenNode') {
       return { minWidth: 480, minHeight: 260 };
     }
     return undefined;
@@ -189,5 +228,5 @@ export function maybeApplyImageAutoResize(
       width: nextSize.width,
       height: nextSize.height,
     },
-  };
+  } as TNode;
 }
