@@ -2,8 +2,9 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { CanvasSnapAlignmentPort } from '@/modules/creative_canvas/public';
+
 import type { CanvasAutoLayoutControllerOptions } from './useCanvasAutoLayoutController';
-import type { CanvasSnapAlignmentPort } from './useCanvasSnapAlignment';
 import {
   useCanvasViewportSurfaceController,
   type CanvasViewportSurfaceControllerOptions,
@@ -46,7 +47,8 @@ const controllerMocks = vi.hoisted(() => {
     useViewportRuntime: vi.fn(() => viewportRuntimeController),
     useLifecycle: vi.fn(),
     useSnapAlignment: vi.fn(
-      (_port: CanvasSnapAlignmentPort) => snapAlignmentController,
+      (_port: CanvasSnapAlignmentPort<CanvasViewportSurfaceControllerOptions['nodes'][number]>) =>
+        snapAlignmentController,
     ),
     useNodeFocus: vi.fn(() => focusController),
     useAutoLayout: vi.fn(
@@ -55,10 +57,11 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('../snap-align/snapAlignStore', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   useSnapAlignStore: {
     getState: () => controllerMocks.snapState,
   },
+  useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
 }));
 vi.mock('../trackpad-pan/trackpadPanStore', () => ({
   useTrackpadPanStore: (
@@ -76,9 +79,6 @@ vi.mock('./useCanvasMinimapVisibility', () => ({
 }));
 vi.mock('./useCanvasNodeFocusController', () => ({
   useCanvasNodeFocusController: controllerMocks.useNodeFocus,
-}));
-vi.mock('./useCanvasSnapAlignment', () => ({
-  useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
 }));
 vi.mock('./useCanvasViewportRuntimeController', () => ({
   useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,

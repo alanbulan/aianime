@@ -3,28 +3,34 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasSnapAlignment,
+  type CanvasSnapAlignmentNode,
   type CanvasSnapAlignmentPort,
 } from './useCanvasSnapAlignment';
 
-function node(id: string, x: number, y: number): CanvasNode {
+interface TestNode extends CanvasSnapAlignmentNode {
+  excluded?: boolean;
+}
+
+function node(
+  id: string,
+  x: number,
+  y: number,
+  excluded = false,
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
     position: { x, y },
     width: 200,
     height: 100,
-    data: {},
-  } as CanvasNode;
+    excluded,
+  };
 }
 
-function createPort(enabled = true): CanvasSnapAlignmentPort {
+function createPort(enabled = true): CanvasSnapAlignmentPort<TestNode> {
   return {
     isEnabled: vi.fn(() => enabled),
+    isExcludedNode: vi.fn((candidate) => candidate.excluded === true),
     setGuides: vi.fn(),
     clearGuides: vi.fn(),
   };
@@ -50,6 +56,29 @@ describe('useCanvasSnapAlignment', () => {
     expect(aligned[0].position).toEqual({ x: 0, y: 50 });
     expect(port.setGuides).toHaveBeenCalledWith({
       vertical: [0, 100, 200],
+      horizontal: [],
+    });
+  });
+
+  it('excludes nodes selected by the composition port from the snap index', () => {
+    const port = createPort();
+    const { result } = renderHook(() => useCanvasSnapAlignment(port));
+    const change = {
+      id: 'dragged',
+      type: 'position',
+      position: { x: 3, y: 50 },
+      dragging: true,
+    };
+
+    const aligned = result.current.alignNodeChanges({
+      nodes: [node('dragged', 0, 0), node('group', 0, 300, true)],
+      changes: [change],
+      copyDragActive: false,
+    });
+
+    expect(aligned[0].position).toEqual({ x: 3, y: 50 });
+    expect(port.setGuides).toHaveBeenCalledWith({
+      vertical: [],
       horizontal: [],
     });
   });

@@ -1,18 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { Magnet } from 'lucide-react';
 
-import {
-  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
-  CANVAS_CONTROL_ICON_BUTTON_CLASS,
-} from '../ui/canvasControlStyles';
 import { useSnapAlignStore } from './snapAlignStore';
 
-interface CanvasSnapAlignButtonProps {
+export interface CanvasSnapAlignButtonStyles {
+  button: string;
+  activeButton: string;
+}
+
+export interface CanvasSnapAlignButtonProps {
   placement?: 'bottom-right' | 'top-right';
+  styles: CanvasSnapAlignButtonStyles;
 }
 
 export function CanvasSnapAlignButton({
   placement = 'bottom-right',
+  styles,
 }: CanvasSnapAlignButtonProps) {
   const enabled = useSnapAlignStore((state) => state.enabled);
   const toggle = useSnapAlignStore((state) => state.toggle);
@@ -27,9 +30,9 @@ export function CanvasSnapAlignButton({
       <button
         type="button"
         onClick={toggle}
-        className={`${CANVAS_CONTROL_ICON_BUTTON_CLASS} ${
+        className={`${styles.button} ${
           enabled
-            ? CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS
+            ? styles.activeButton
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
         aria-pressed={enabled}

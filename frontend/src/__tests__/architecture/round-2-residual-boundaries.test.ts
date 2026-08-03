@@ -224,6 +224,13 @@ describe("round 2 residual architecture boundaries", () => {
       "useStoryboardGroupToolbarController.test.tsx",
       "StoryboardGroupToolbarView.tsx",
     ];
+    const canvasSnapPresentationFiles = [
+      "useCanvasSnapAlignment.ts",
+      "useCanvasSnapAlignment.test.tsx",
+      "snapAlignStore.ts",
+      "CanvasSnapAlignButton.tsx",
+      "CanvasSnapAlignGuides.tsx",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -745,6 +752,11 @@ describe("round 2 residual architecture boundaries", () => {
       ),
     ).toBe(false);
     for (const retiredSnapAlignmentPath of [
+      "features/canvas/hooks/useCanvasSnapAlignment.ts",
+      "features/canvas/hooks/useCanvasSnapAlignment.test.tsx",
+      "features/canvas/snap-align/snapAlignStore.ts",
+      "features/canvas/snap-align/CanvasSnapAlignButton.tsx",
+      "features/canvas/snap-align/SnapAlignGuides.tsx",
       "features/canvas/snap-align/computeSnapAlign.ts",
       "__tests__/features/canvas/snap-align-index.test.ts",
     ]) {
@@ -752,6 +764,12 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(SRC_ROOT, retiredSnapAlignmentPath)),
         retiredSnapAlignmentPath,
       ).toBe(false);
+    }
+    for (const file of canvasSnapPresentationFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "presentation", file)),
+        file,
+      ).toBe(true);
     }
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
@@ -1985,7 +2003,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 605],
+      ["features/canvas", 600],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

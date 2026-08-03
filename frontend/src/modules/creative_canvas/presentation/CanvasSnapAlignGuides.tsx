@@ -3,14 +3,9 @@ import { useViewport } from '@xyflow/react';
 
 import { useSnapAlignStore } from './snapAlignStore';
 
-/**
- * 蓝色虚线对齐引导：拖动节点时绘制。线本身在 flow 坐标里是常值（x 或 y 固定），
- * 需要乘上 viewport 缩放并加上平移得到屏幕坐标。SVG 满铺画布父级，pointer-events
- * 关掉避免抢拖拽事件。
- */
-export function SnapAlignGuides() {
+export function CanvasSnapAlignGuides() {
   const guides = useSnapAlignStore((state) => state.guides);
-  const { x: vx, y: vy, zoom } = useViewport();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
 
   if (guides.vertical.length === 0 && guides.horizontal.length === 0) {
     return null;
@@ -21,13 +16,13 @@ export function SnapAlignGuides() {
       className="pointer-events-none absolute inset-0 z-[5] h-full w-full"
       style={{ overflow: 'visible' }}
     >
-      {guides.vertical.map((xFlow) => {
-        const xScreen = vx + xFlow * zoom;
+      {guides.vertical.map((flowX) => {
+        const screenX = viewportX + flowX * zoom;
         return (
           <line
-            key={`v-${xFlow}`}
-            x1={xScreen}
-            x2={xScreen}
+            key={`v-${flowX}`}
+            x1={screenX}
+            x2={screenX}
             y1={0}
             y2="100%"
             stroke="rgb(var(--accent-rgb))"
@@ -36,13 +31,13 @@ export function SnapAlignGuides() {
           />
         );
       })}
-      {guides.horizontal.map((yFlow) => {
-        const yScreen = vy + yFlow * zoom;
+      {guides.horizontal.map((flowY) => {
+        const screenY = viewportY + flowY * zoom;
         return (
           <line
-            key={`h-${yFlow}`}
-            y1={yScreen}
-            y2={yScreen}
+            key={`h-${flowY}`}
+            y1={screenY}
+            y2={screenY}
             x1={0}
             x2="100%"
             stroke="rgb(var(--accent-rgb))"

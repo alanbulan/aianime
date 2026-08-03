@@ -2,15 +2,16 @@
 import { useCallback, useRef } from 'react';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   buildSnapAlignIndex,
   computeSnapAlignFromIndex,
+  type CanvasSnapNode,
   type SnapAlignGuides,
   type SnapAlignIndex,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/domain/canvasSnapAlignment';
+
+export interface CanvasSnapAlignmentNode extends CanvasSnapNode {
+  id: string;
+}
 
 export interface CanvasPositionChangeLike {
   id?: string;
@@ -19,30 +20,38 @@ export interface CanvasPositionChangeLike {
   dragging?: boolean;
 }
 
-export interface CanvasSnapAlignmentPort {
+export interface CanvasSnapAlignmentPort<
+  TNode extends CanvasSnapAlignmentNode = CanvasSnapAlignmentNode,
+> {
   isEnabled: () => boolean;
+  isExcludedNode: (node: TNode) => boolean;
   setGuides: (guides: SnapAlignGuides) => void;
   clearGuides: () => void;
 }
 
 export interface AlignCanvasNodeChangesParams<
+  TNode extends CanvasSnapAlignmentNode,
   TChange extends CanvasPositionChangeLike,
 > {
-  nodes: readonly CanvasNode[];
+  nodes: readonly TNode[];
   changes: TChange[];
   copyDragActive: boolean;
 }
 
-export interface CanvasSnapAlignmentController {
+export interface CanvasSnapAlignmentController<
+  TNode extends CanvasSnapAlignmentNode = CanvasSnapAlignmentNode,
+> {
   alignNodeChanges: <TChange extends CanvasPositionChangeLike>(
-    params: AlignCanvasNodeChangesParams<TChange>,
+    params: AlignCanvasNodeChangesParams<TNode, TChange>,
   ) => TChange[];
   clearSnapAlignment: () => void;
 }
 
-export function useCanvasSnapAlignment(
-  port: CanvasSnapAlignmentPort,
-): CanvasSnapAlignmentController {
+export function useCanvasSnapAlignment<
+  TNode extends CanvasSnapAlignmentNode,
+>(
+  port: CanvasSnapAlignmentPort<TNode>,
+): CanvasSnapAlignmentController<TNode> {
   const snapAlignIndexRef = useRef<{
     nodeId: string;
     index: SnapAlignIndex;
@@ -53,7 +62,7 @@ export function useCanvasSnapAlignment(
       nodes,
       changes,
       copyDragActive,
-    }: AlignCanvasNodeChangesParams<TChange>): TChange[] => {
+    }: AlignCanvasNodeChangesParams<TNode, TChange>): TChange[] => {
       if (!port.isEnabled() || copyDragActive) {
         return changes;
       }
@@ -84,7 +93,7 @@ export function useCanvasSnapAlignment(
           nodeId,
           index: buildSnapAlignIndex(
             nodes.filter(
-              (node) => node.id !== nodeId && node.type !== CANVAS_NODE_TYPES.group,
+              (node) => node.id !== nodeId && !port.isExcludedNode(node),
             ),
           ),
         };

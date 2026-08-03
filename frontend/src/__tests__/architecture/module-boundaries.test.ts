@@ -1009,7 +1009,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/domain/nodeDisplay",
-        "@/features/canvas/snap-align/snapAlignStore",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/features/canvas/ui/NodeHeader",
         "@/features/canvas/ui/NodeResizeHandle",
@@ -7474,7 +7473,6 @@ describe("frontend architecture boundaries", () => {
       "./useCanvasMinimapVisibility",
       "./useCanvasViewportRuntimeController",
       "./useCanvasLifecycle",
-      "./useCanvasSnapAlignment",
       "./useCanvasNodeFocusController",
       "./useCanvasAutoLayoutController",
     ];
@@ -7490,7 +7488,9 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(controllerSource).toContain("../trackpad-pan/trackpadPanStore");
-    expect(controllerSource).toContain("../snap-align/snapAlignStore");
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("useCanvasSnapAlignment(");
+    expect(controllerSource).not.toContain("../snap-align/");
     expect(controllerSource).toContain("viewportPort.fitView(options)");
     expect(controllerSource).toContain("useSnapAlignStore.getState()");
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
@@ -9386,7 +9386,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas snap-alignment orchestration in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasSnapAlignment.ts",
+      "modules/creative_canvas/presentation/useCanvasSnapAlignment.ts",
     );
     const computePath = resolve(
       SRC_ROOT,
@@ -9394,7 +9394,15 @@ describe("frontend architecture boundaries", () => {
     );
     const storePath = resolve(
       SRC_ROOT,
-      "features/canvas/snap-align/snapAlignStore.ts",
+      "modules/creative_canvas/presentation/snapAlignStore.ts",
+    );
+    const buttonPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasSnapAlignButton.tsx",
+    );
+    const guidesPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasSnapAlignGuides.tsx",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const computeModel = readFileSync(computePath, "utf8");
@@ -9409,16 +9417,19 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(hookPath).filter(
-      (specifier) =>
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@xyflow/react/") ||
-        specifier === "zustand" ||
-        specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const modulePresentationPaths = [
+      hookPath,
+      storePath,
+      buttonPath,
+      guidesPath,
+    ];
+    const forbiddenImports = modulePresentationPaths.flatMap((path) =>
+      importSpecifiers(path).filter(
+        (specifier) =>
+          specifier.startsWith("@/features/canvas/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/api/"),
+      ),
     );
 
     expect(forbiddenImports).toEqual([]);
@@ -9429,21 +9440,23 @@ describe("frontend architecture boundaries", () => {
     expect(computeModel).not.toContain("@/features/canvas");
     expect(computeModel).not.toContain("snapAlignStore");
     expect(importSpecifiers(storePath)).toContain(
-      "@/modules/creative_canvas/public",
+      "@/modules/creative_canvas/domain/canvasSnapAlignment",
     );
-    expect(
-      existsSync(
-        resolve(
-          SRC_ROOT,
-          "features/canvas/snap-align/computeSnapAlign.ts",
-        ),
-      ),
-    ).toBe(false);
-    expect(
-      existsSync(
-        resolve(SRC_ROOT, "__tests__/features/canvas/snap-align-index.test.ts"),
-      ),
-    ).toBe(false);
+    expect(hookModel).toContain("port.isExcludedNode(node)");
+    for (const retiredSnapAlignmentPath of [
+      "features/canvas/hooks/useCanvasSnapAlignment.ts",
+      "features/canvas/hooks/useCanvasSnapAlignment.test.tsx",
+      "features/canvas/snap-align/snapAlignStore.ts",
+      "features/canvas/snap-align/CanvasSnapAlignButton.tsx",
+      "features/canvas/snap-align/SnapAlignGuides.tsx",
+      "features/canvas/snap-align/computeSnapAlign.ts",
+      "__tests__/features/canvas/snap-align-index.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredSnapAlignmentPath)),
+        retiredSnapAlignmentPath,
+      ).toBe(false);
+    }
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasSnapAlignment");
     expect(graphChangeController).toContain("alignNodeChanges({");

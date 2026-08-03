@@ -21,15 +21,19 @@ import { isCeRuntime } from '@/lib/runtime-config';
 import { edgeTypes as canvasEdgeTypes } from '../edges';
 import { NodeSelectionMenu } from '../NodeSelectionMenu';
 import { createCanvasNodeTypes } from '../nodes';
-import { CanvasSnapAlignButton } from '../snap-align/CanvasSnapAlignButton';
-import { SnapAlignGuides } from '../snap-align/SnapAlignGuides';
 import {
+  CanvasSnapAlignButton,
+  CanvasSnapAlignGuides,
   ImageViewerModal,
   PAN_ACTIVATION_KEY_CODE,
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasContextMenu } from './CanvasContextMenu';
+import {
+  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
+  CANVAS_CONTROL_ICON_BUTTON_CLASS,
+} from './canvasControlStyles';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
 import { CanvasMinimapButton } from './CanvasMinimapButton';
 import { CanvasMinimapBookmarksOverlay } from './CanvasMinimapBookmarksOverlay';
@@ -56,6 +60,10 @@ const CONNECTION_SNAP_RADIUS = 160;
 const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // Left drag is marquee selection and right click opens the context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
+const SNAP_ALIGN_BUTTON_STYLES = {
+  button: CANVAS_CONTROL_ICON_BUTTON_CLASS,
+  activeButton: CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
+};
 
 export type CanvasControlsPlacement = 'bottom-right' | 'top-right';
 
@@ -209,7 +217,7 @@ export function CanvasStageView({
           <MultiSelectionToolbar />
           <MultiSelectionConnectButton {...multiSelectionConnectProps} />
           <NodeSpawnPlusOverlay {...nodeSpawnPlusProps} />
-          <SnapAlignGuides />
+          <CanvasSnapAlignGuides />
         </ReactFlow>
 
         <CanvasTransientOverlays {...transientOverlayProps} />
@@ -223,7 +231,10 @@ export function CanvasStageView({
           placement={controlsPlacement}
         />
 
-        <CanvasSnapAlignButton placement={controlsPlacement} />
+        <CanvasSnapAlignButton
+          placement={controlsPlacement}
+          styles={SNAP_ALIGN_BUTTON_STYLES}
+        />
 
         <CanvasFpsMeter />
 

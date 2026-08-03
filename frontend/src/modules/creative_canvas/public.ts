@@ -324,6 +324,29 @@ export type {
   SnapAlignResult,
 } from "@/modules/creative_canvas/domain/canvasSnapAlignment";
 export {
+  useCanvasSnapAlignment,
+} from "@/modules/creative_canvas/presentation/useCanvasSnapAlignment";
+export type {
+  AlignCanvasNodeChangesParams,
+  CanvasPositionChangeLike,
+  CanvasSnapAlignmentController,
+  CanvasSnapAlignmentNode,
+  CanvasSnapAlignmentPort,
+} from "@/modules/creative_canvas/presentation/useCanvasSnapAlignment";
+export {
+  useSnapAlignStore,
+} from "@/modules/creative_canvas/presentation/snapAlignStore";
+export {
+  CanvasSnapAlignButton,
+} from "@/modules/creative_canvas/presentation/CanvasSnapAlignButton";
+export type {
+  CanvasSnapAlignButtonProps,
+  CanvasSnapAlignButtonStyles,
+} from "@/modules/creative_canvas/presentation/CanvasSnapAlignButton";
+export {
+  CanvasSnapAlignGuides,
+} from "@/modules/creative_canvas/presentation/CanvasSnapAlignGuides";
+export {
   GroupNodeView,
 } from "@/modules/creative_canvas/presentation/GroupNodeView";
 export type {

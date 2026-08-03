@@ -1076,6 +1076,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百四十八批将 Canvas Snap Alignment 的节点边界投影、索引构建、排序、二分最近线、吸附位置和引导线结果及 3 项 parity 测试迁入 Creative Canvas domain；算法改用最小 `CanvasSnapNode` 合同，不导入旧 `CanvasNode`、React Flow、Zustand、Store 或 feature。既有 `useCanvasSnapAlignment`、`GroupNode.tsx` 和 `snapAlignStore` 统一经模块 public 使用唯一算法/类型，旧 `snap-align/computeSnapAlign.ts` 与旧外置 parity 测试直接删除，不保留 facade、旧路径转发或第二套计算。Creative Canvas 由 581 增到 583，Canvas 由 606 降到 605，Freezone 保持 0，残余 ratchet 收紧到 605/0。吸附算法 parity、拖拽 Hook 与 Group Node 回归 Vitest 3 个文件 10 项、Snap Alignment/Group Node 定向模块边界 2 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；旧算法路径精确扫描只剩架构负向门禁文本。Snap Store、按钮、引导线 UI 和 Canvas presentation Hook 仍在旧 Canvas，未虚报为完整 Snap Alignment 上下文迁移。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百四十九批将 Canvas Snap Alignment 的拖拽 Hook、Zustand 状态、吸附按钮、引导线 UI 和 Hook 测试整体迁入 Creative Canvas presentation；模块 Hook 改用最小 `CanvasSnapAlignmentNode` 合同，并通过必需的 `isExcludedNode` 端口由旧 Canvas 适配 `Group` 排除规则，不反向导入 `canvasNodes`。按钮通过显式样式合同复用 Canvas 控件类名，模块不复制或反向依赖旧 UI 样式；Canvas Stage、Viewport Surface 与 Group Node 统一经 Creative Canvas public 使用唯一 Hook/Store/UI，5 个旧实现和空 `snap-align` 目录直接删除，不保留 facade、re-export 或第二套状态。Creative Canvas 由 583 增到 588，Canvas 由 605 降到 600，Freezone 保持 0，残余 ratchet 收紧到 600/0。领域/presentation/Canvas 适配与残余/颜色门禁 Vitest 8 个文件 30 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；运行时旧路径扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

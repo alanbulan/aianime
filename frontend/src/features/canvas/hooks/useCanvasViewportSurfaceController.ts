@@ -2,9 +2,18 @@
 import { useCallback } from 'react';
 
 import type { CanvasViewportPort } from '../application/bookmarkActions';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
-import { useSnapAlignStore } from '../snap-align/snapAlignStore';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+} from '../domain/canvasNodes';
 import { useTrackpadPanStore } from '../trackpad-pan/trackpadPanStore';
+import {
+  useCanvasSnapAlignment,
+  useSnapAlignStore,
+  type CanvasSnapAlignmentController,
+  type CanvasSnapAlignmentPort,
+} from '@/modules/creative_canvas/public';
 import {
   useCanvasAutoLayoutController,
   type CanvasAutoLayoutController,
@@ -26,18 +35,14 @@ import {
   type CanvasNodeFocusRuntimePort,
 } from './useCanvasNodeFocusController';
 import {
-  useCanvasSnapAlignment,
-  type CanvasSnapAlignmentController,
-  type CanvasSnapAlignmentPort,
-} from './useCanvasSnapAlignment';
-import {
   useCanvasViewportRuntimeController,
   type CanvasViewportRuntimeController,
   type CanvasViewportRuntimeControllerOptions,
 } from './useCanvasViewportRuntimeController';
 
-const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
+const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
+  isExcludedNode: (node) => node.type === CANVAS_NODE_TYPES.group,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
   clearGuides: () => useSnapAlignStore.getState().clearGuides(),
 };
@@ -66,7 +71,7 @@ export interface CanvasViewportSurfaceControllerOptions {
 export interface CanvasViewportSurfaceController
   extends CanvasViewportRuntimeController,
     CanvasMinimapVisibilityController,
-    CanvasSnapAlignmentController {
+    CanvasSnapAlignmentController<CanvasNode> {
   trackpadPanEnabled: boolean;
   centerNodeViewport: CanvasNodeFocusController['centerViewport'];
   organizeCanvas: CanvasAutoLayoutController['organizeCanvas'];

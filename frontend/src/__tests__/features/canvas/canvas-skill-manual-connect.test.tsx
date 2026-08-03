@@ -187,6 +187,8 @@ vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  CanvasSnapAlignButton: () => null,
+  CanvasSnapAlignGuides: () => null,
   ImageViewerModal: () => null,
   VideoViewerModal: () => null,
 }));
@@ -205,14 +207,6 @@ vi.mock("@/features/canvas/ui/CanvasMinimapButton", () => ({
 
 vi.mock("@/features/canvas/ui/CanvasFpsMeter", () => ({
   CanvasFpsMeter: () => null,
-}));
-
-vi.mock("@/features/canvas/snap-align/CanvasSnapAlignButton", () => ({
-  CanvasSnapAlignButton: () => null,
-}));
-
-vi.mock("@/features/canvas/snap-align/SnapAlignGuides", () => ({
-  SnapAlignGuides: () => null,
 }));
 
 describe("Canvas manual skill connections", () => {

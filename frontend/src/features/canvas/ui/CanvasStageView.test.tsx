@@ -58,6 +58,8 @@ vi.mock('@/components/credits/credit-visual', () => ({
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
+  CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
+  CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
@@ -73,12 +75,6 @@ vi.mock('../nodes', () => ({
 vi.mock('../edges', () => ({ edgeTypes: stageMocks.edgeTypes }));
 vi.mock('../NodeSelectionMenu', () => ({
   NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
-}));
-vi.mock('../snap-align/CanvasSnapAlignButton', () => ({
-  CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
-}));
-vi.mock('../snap-align/SnapAlignGuides', () => ({
-  SnapAlignGuides: () => <div data-testid="snap-align-guides" />,
 }));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,

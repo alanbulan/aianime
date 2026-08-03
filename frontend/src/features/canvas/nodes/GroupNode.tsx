@@ -14,7 +14,6 @@ import {
   type GroupNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
 import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,
@@ -26,6 +25,7 @@ import {
   GroupNodeView,
   computeSnapAlign,
   getStoryboardCellPreview,
+  useSnapAlignStore,
   useGroupNodeController,
   type GroupNodeControllerPorts,
   type GroupNodeViewBindings,
