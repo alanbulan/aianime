@@ -312,6 +312,18 @@ export type {
   StoryboardCellPreviewTypeCatalog,
 } from "@/modules/creative_canvas/domain/storyboardCellPreview";
 export {
+  SNAP_ALIGN_FLOW_THRESHOLD,
+  buildSnapAlignIndex,
+  computeSnapAlign,
+  computeSnapAlignFromIndex,
+} from "@/modules/creative_canvas/domain/canvasSnapAlignment";
+export type {
+  CanvasSnapNode,
+  SnapAlignGuides,
+  SnapAlignIndex,
+  SnapAlignResult,
+} from "@/modules/creative_canvas/domain/canvasSnapAlignment";
+export {
   GroupNodeView,
 } from "@/modules/creative_canvas/presentation/GroupNodeView";
 export type {

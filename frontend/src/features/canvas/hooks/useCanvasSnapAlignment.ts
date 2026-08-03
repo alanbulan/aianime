@@ -10,7 +10,7 @@ import {
   computeSnapAlignFromIndex,
   type SnapAlignGuides,
   type SnapAlignIndex,
-} from '../snap-align/computeSnapAlign';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasPositionChangeLike {
   id?: string;

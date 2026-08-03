@@ -1,14 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   computeSnapAlign,
   SNAP_ALIGN_FLOW_THRESHOLD,
-} from '@/features/canvas/snap-align/computeSnapAlign';
+  type CanvasSnapNode,
+} from './canvasSnapAlignment';
 
 // 暴力参考实现(等价于重构前的 O(n²) 版本),用来与索引版做 parity 对比。
-function bbox(node: CanvasNode) {
+function bbox(node: CanvasSnapNode) {
   const w = (node.measured?.width ?? node.width ?? 200) as number;
   const h = (node.measured?.height ?? node.height ?? 100) as number;
   return {
@@ -22,9 +22,9 @@ function bbox(node: CanvasNode) {
 }
 
 function brute(
-  dragged: CanvasNode,
+  dragged: CanvasSnapNode,
   proposed: { x: number; y: number },
-  others: CanvasNode[],
+  others: CanvasSnapNode[],
   threshold = SNAP_ALIGN_FLOW_THRESHOLD,
 ): { x: number; y: number } {
   if (others.length === 0) return proposed;
@@ -54,8 +54,14 @@ function brute(
   return { x: proposed.x + (bestDx ?? 0), y: proposed.y + (bestDy ?? 0) };
 }
 
-function makeNode(id: string, x: number, y: number, w = 200, h = 100): CanvasNode {
-  return { id, position: { x, y }, width: w, height: h, data: {}, type: 'image' } as unknown as CanvasNode;
+function makeNode(
+  _id: string,
+  x: number,
+  y: number,
+  w = 200,
+  h = 100,
+): CanvasSnapNode {
+  return { position: { x, y }, width: w, height: h };
 }
 
 // 简单可重复的伪随机数(避免 Math.random 不可重复)。
@@ -72,7 +78,7 @@ describe('computeSnapAlign (index-based) parity', () => {
     const rng = makeRng(42);
     for (let trial = 0; trial < 200; trial += 1) {
       const count = 1 + Math.floor(rng() * 30);
-      const others: CanvasNode[] = [];
+      const others: CanvasSnapNode[] = [];
       for (let i = 0; i < count; i += 1) {
         others.push(makeNode(`n${i}`, Math.floor(rng() * 1000), Math.floor(rng() * 1000)));
       }

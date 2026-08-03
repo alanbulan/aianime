@@ -1,5 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
+export interface CanvasSnapNode {
+  position: { x: number; y: number };
+  measured?: { width?: number; height?: number };
+  width?: number;
+  height?: number;
+}
 
 export interface SnapAlignGuides {
   vertical: number[];
@@ -22,7 +27,7 @@ export const SNAP_ALIGN_FLOW_THRESHOLD = 6;
 /** 收集匹配引导线时的判等容差，用于过滤浮点误差。 */
 const MATCH_EPSILON = 0.5;
 
-function bboxAt(node: CanvasNode, pos: { x: number; y: number }): Bbox {
+function bboxAt(node: CanvasSnapNode, pos: { x: number; y: number }): Bbox {
   const w =
     typeof node.measured?.width === 'number'
       ? node.measured.width
@@ -45,7 +50,7 @@ function bboxAt(node: CanvasNode, pos: { x: number; y: number }): Bbox {
   };
 }
 
-function nodeBbox(node: CanvasNode): Bbox {
+function nodeBbox(node: CanvasSnapNode): Bbox {
   return bboxAt(node, node.position);
 }
 
@@ -65,7 +70,9 @@ export interface SnapAlignIndex {
   ys: number[];
 }
 
-export function buildSnapAlignIndex(otherNodes: CanvasNode[]): SnapAlignIndex {
+export function buildSnapAlignIndex(
+  otherNodes: readonly CanvasSnapNode[],
+): SnapAlignIndex {
   const xs: number[] = [];
   const ys: number[] = [];
   for (const node of otherNodes) {
@@ -125,7 +132,7 @@ function collectWithin(sorted: number[], target: number, eps: number, out: Set<n
  * 基于预建索引的吸附计算：与 computeSnapAlign 等价，但每帧只做二分查找而非 O(n) 全扫。
  */
 export function computeSnapAlignFromIndex(
-  draggedNode: CanvasNode,
+  draggedNode: CanvasSnapNode,
   proposedPosition: { x: number; y: number },
   index: SnapAlignIndex,
   threshold: number = SNAP_ALIGN_FLOW_THRESHOLD,
@@ -186,9 +193,9 @@ export function computeSnapAlignFromIndex(
  * - X / Y 两个轴各自独立挑最近的一条，所以可以同时吸到一条竖线 + 一条横线。
  */
 export function computeSnapAlign(
-  draggedNode: CanvasNode,
+  draggedNode: CanvasSnapNode,
   proposedPosition: { x: number; y: number },
-  otherNodes: CanvasNode[],
+  otherNodes: readonly CanvasSnapNode[],
   threshold: number = SNAP_ALIGN_FLOW_THRESHOLD,
 ): SnapAlignResult {
   if (otherNodes.length === 0) {

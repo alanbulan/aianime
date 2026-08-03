@@ -1074,6 +1074,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百四十七批将 Storyboard Cell Preview 的媒体分类、首帧选择、统一图片解析回退、宽字段回退和占位 kind 规则及 3 项测试迁入 Creative Canvas domain；领域函数通过节点类型目录和 `resolveSourceImageUrl` 端口接收旧 Canvas 节点合同，不导入旧 `canvasNodes` 或 feature。唯一 `GroupNode.tsx` 适配器绑定既有 `CANVAS_NODE_TYPES/resolveNodeSourceImageUrl` 后调用模块规则，模块 controller/View 统一改用领域预览类型；旧 domain 文件和旧 `__tests__/features/canvas` 测试直接删除，不保留 facade、旧路径转发或第二套分类。Creative Canvas 由 579 增到 581，Canvas 由 607 降到 606，Freezone 保持 0，残余 ratchet 收紧到 606/0。预览领域与 Group Node 回归 Vitest 3 个文件 10 项、Group Node 定向模块边界 1 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；旧预览路径精确扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百四十八批将 Canvas Snap Alignment 的节点边界投影、索引构建、排序、二分最近线、吸附位置和引导线结果及 3 项 parity 测试迁入 Creative Canvas domain；算法改用最小 `CanvasSnapNode` 合同，不导入旧 `CanvasNode`、React Flow、Zustand、Store 或 feature。既有 `useCanvasSnapAlignment`、`GroupNode.tsx` 和 `snapAlignStore` 统一经模块 public 使用唯一算法/类型，旧 `snap-align/computeSnapAlign.ts` 与旧外置 parity 测试直接删除，不保留 facade、旧路径转发或第二套计算。Creative Canvas 由 581 增到 583，Canvas 由 606 降到 605，Freezone 保持 0，残余 ratchet 收紧到 605/0。吸附算法 parity、拖拽 Hook 与 Group Node 回归 Vitest 3 个文件 10 项、Snap Alignment/Group Node 定向模块边界 2 项、应用初始化/残余边界 2 个文件 13 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；旧算法路径精确扫描只剩架构负向门禁文本。Snap Store、按钮、引导线 UI 和 Canvas presentation Hook 仍在旧 Canvas，未虚报为完整 Snap Alignment 上下文迁移。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

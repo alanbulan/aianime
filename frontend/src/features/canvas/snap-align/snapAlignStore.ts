@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
-import type { SnapAlignGuides } from './computeSnapAlign';
+import type { SnapAlignGuides } from '@/modules/creative_canvas/public';
 
 // 吸附对齐：节点拖动时显示蓝色虚线，指示当前位置与其它节点的边/中线对齐。
 // 状态独立成一个轻量 store，避免和 canvas 内容 store 混在一起，订阅它的

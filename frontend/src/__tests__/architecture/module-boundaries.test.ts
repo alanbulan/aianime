@@ -1009,7 +1009,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/domain/nodeDisplay",
-        "@/features/canvas/snap-align/computeSnapAlign",
         "@/features/canvas/snap-align/snapAlignStore",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/features/canvas/ui/NodeHeader",
@@ -9391,7 +9390,7 @@ describe("frontend architecture boundaries", () => {
     );
     const computePath = resolve(
       SRC_ROOT,
-      "features/canvas/snap-align/computeSnapAlign.ts",
+      "modules/creative_canvas/domain/canvasSnapAlignment.ts",
     );
     const storePath = resolve(
       SRC_ROOT,
@@ -9399,7 +9398,6 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const computeModel = readFileSync(computePath, "utf8");
-    const storeModel = readFileSync(storePath, "utf8");
     const graphChangeController = readFileSync(
       resolve(
         SRC_ROOT,
@@ -9427,8 +9425,25 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("snapAlignIndexRef");
     expect(hookModel).toContain("computeSnapAlignFromIndex(");
     expect(computeModel).toContain("export interface SnapAlignGuides");
-    expect(computeModel).not.toContain("./snapAlignStore");
-    expect(storeModel).toContain("from './computeSnapAlign'");
+    expect(importSpecifiers(computePath)).toEqual([]);
+    expect(computeModel).not.toContain("@/features/canvas");
+    expect(computeModel).not.toContain("snapAlignStore");
+    expect(importSpecifiers(storePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/snap-align/computeSnapAlign.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "__tests__/features/canvas/snap-align-index.test.ts"),
+      ),
+    ).toBe(false);
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasSnapAlignment");
     expect(graphChangeController).toContain("alignNodeChanges({");

@@ -201,6 +201,8 @@ describe("round 2 residual architecture boundaries", () => {
       "groupColors.ts",
       "storyboardCellPreview.ts",
       "storyboardCellPreview.test.ts",
+      "canvasSnapAlignment.ts",
+      "canvasSnapAlignment.test.ts",
     ];
     const canvasGroupApplicationFiles = [
       "canvasGroupCreation.ts",
@@ -742,6 +744,15 @@ describe("round 2 residual architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
+    for (const retiredSnapAlignmentPath of [
+      "features/canvas/snap-align/computeSnapAlign.ts",
+      "__tests__/features/canvas/snap-align-index.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredSnapAlignmentPath)),
+        retiredSnapAlignmentPath,
+      ).toBe(false);
+    }
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
     }
@@ -1974,7 +1985,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 606],
+      ["features/canvas", 605],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
