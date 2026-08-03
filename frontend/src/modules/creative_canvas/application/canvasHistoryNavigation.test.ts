@@ -2,31 +2,40 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  NODE_TOOL_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   navigateCanvasHistory,
   type CanvasHistoryNavigationState,
 } from './canvasHistoryNavigation';
 
-function node(id: string): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x: 0, y: 0 },
-    data: {},
-  } as CanvasNode;
+interface TestNode {
+  id: string;
 }
 
-function state(nodes: CanvasNode[]): CanvasHistoryNavigationState {
+interface TestEdge {
+  id: string;
+}
+
+interface TestDialog {
+  nodeId: string;
+  toolType: 'crop';
+}
+
+type TestNavigationState = CanvasHistoryNavigationState<
+  TestNode,
+  TestEdge,
+  TestDialog
+>;
+
+function node(id: string): TestNode {
+  return { id };
+}
+
+function state(nodes: TestNode[]): TestNavigationState {
   return {
     nodes,
     edges: [],
     selectedNodeId: nodes[0]?.id ?? null,
     activeToolDialog: nodes[0]
-      ? { nodeId: nodes[0].id, toolType: NODE_TOOL_TYPES.crop }
+      ? { nodeId: nodes[0].id, toolType: 'crop' }
       : null,
     history: { past: [], future: [] },
     dragHistorySnapshot: null,

@@ -1,48 +1,61 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
-  isDeleteToEmpty,
   redoHistory,
-  resolveActiveToolDialog,
-  resolveSelectedNodeId,
-  trackEdit,
   undoHistory,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
+} from '../domain/canvasHistory';
+import {
+  isDeleteToEmpty,
+  trackEdit,
   type CanvasMutationState,
-} from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+} from '../domain/canvasMutation';
+import {
+  resolveActiveToolDialog,
+  resolveSelectedNodeId,
+  type CanvasSelectionDialogTarget,
+  type CanvasSelectionNode,
+} from '../domain/canvasSelection';
 
 export type CanvasHistoryDirection = 'undo' | 'redo';
 
-export interface CanvasHistoryNavigationState extends CanvasMutationState {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+export interface CanvasHistoryNavigationState<
+  TNode extends CanvasSelectionNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+> extends CanvasMutationState {
+  nodes: TNode[];
+  edges: TEdge[];
   selectedNodeId: string | null;
-  activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
-  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
+  activeToolDialog: TDialog | null;
+  history: CanvasHistoryState<TNode, TEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<TNode, TEdge> | null;
 }
 
-export interface CanvasHistoryNavigationResult {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+export interface CanvasHistoryNavigationResult<
+  TNode extends CanvasSelectionNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+> {
+  nodes: TNode[];
+  edges: TEdge[];
   selectedNodeId: string | null;
-  activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  activeToolDialog: TDialog | null;
+  history: CanvasHistoryState<TNode, TEdge>;
   dragHistorySnapshot: null;
   userEditsSinceHydrate: number;
   lastMutationSource: CanvasMutationState['lastMutationSource'];
 }
 
-export function navigateCanvasHistory(
-  state: CanvasHistoryNavigationState,
+export function navigateCanvasHistory<
+  TNode extends CanvasSelectionNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+>(
+  state: CanvasHistoryNavigationState<TNode, TEdge, TDialog>,
   direction: CanvasHistoryDirection,
-): CanvasHistoryNavigationResult | null {
+): CanvasHistoryNavigationResult<TNode, TEdge, TDialog> | null {
   const current = createSnapshot(state.nodes, state.edges);
   const transition = direction === 'undo'
     ? undoHistory(state.history, current)

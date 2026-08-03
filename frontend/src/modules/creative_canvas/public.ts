@@ -509,6 +509,12 @@ export type {
   CanvasInteractionHistoryResult,
   CanvasInteractionHistoryState,
 } from "@/modules/creative_canvas/domain/canvasHistory";
+export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
+export type {
+  CanvasHistoryDirection,
+  CanvasHistoryNavigationResult,
+  CanvasHistoryNavigationState,
+} from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

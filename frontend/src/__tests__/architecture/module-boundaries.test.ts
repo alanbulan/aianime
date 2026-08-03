@@ -6639,8 +6639,12 @@ describe("frontend architecture boundaries", () => {
     );
     const navigationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasHistoryNavigation.ts",
+      "modules/creative_canvas/application/canvasHistoryNavigation.ts",
     );
+    const legacyNavigationPaths = [
+      "features/canvas/application/canvasHistoryNavigation.ts",
+      "features/canvas/application/canvasHistoryNavigation.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const historySlicePath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
@@ -6687,8 +6691,8 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const historyContractDeclaration = [
       "export interface",
@@ -6702,7 +6706,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const navigationDeclaration = [
       "export function",
-      "navigateCanvasHistory(",
+      "navigateCanvasHistory<",
     ].join(" ");
     const navigationOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -6714,11 +6718,17 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenHistoryImports).toEqual([]);
     expect(forbiddenNavigationImports).toEqual([]);
     expect(existsSync(legacyHistoryPath)).toBe(false);
+    for (const legacyNavigationPath of legacyNavigationPaths) {
+      expect(
+        existsSync(legacyNavigationPath),
+        relativeSource(legacyNavigationPath),
+      ).toBe(false);
+    }
     expect(historyContractOwners).toEqual([
       "modules/creative_canvas/domain/canvasHistory.ts",
     ]);
     expect(navigationOwners).toEqual([
-      "features/canvas/application/canvasHistoryNavigation.ts",
+      "modules/creative_canvas/application/canvasHistoryNavigation.ts",
     ]);
     expect(historyModel).toContain("export function undoHistory<");
     expect(historyModel).toContain("export function redoHistory<");
@@ -6734,7 +6744,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function redoHistory(");
     expect(canvasStore).not.toContain("undoHistory(");
     expect(canvasStore).not.toContain("redoHistory(");
-    expect(historySlice).toContain("../application/canvasHistoryNavigation");
+    expect(historySlice).not.toContain("../application/canvasHistoryNavigation");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasHistoryNavigation",
     );
@@ -14575,8 +14585,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasNodeChangeEffects.ts",
     );
     const historyNavigationPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasHistoryNavigation.ts",
+      moduleRoot,
+      "application/canvasHistoryNavigation.ts",
     );
     const selectionModel = readFileSync(selectionPath, "utf8");
     const viewportModel = readFileSync(viewportPath, "utf8");
@@ -14687,8 +14697,9 @@ describe("frontend architecture boundaries", () => {
     expect(nodeEffectsModel).toContain(
       "from '@/modules/creative_canvas/public'",
     );
-    expect(historyNavigationModel).toContain(
-      "from '@/modules/creative_canvas/public'",
+    expect(historyNavigationModel).toContain("../domain/canvasSelection");
+    expect(historyNavigationModel).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasSelection",
@@ -25682,7 +25693,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../application/canvasDataNormalization",
-      "../application/canvasHistoryNavigation",
       "../application/ports",
       "../domain/canvasNodes",
     ]));

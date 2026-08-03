@@ -1,17 +1,19 @@
 // Copyright (c) 2026 AI anime
 import {
+  navigateCanvasHistory,
   normalizeHistory,
+  type CanvasHistoryDirection,
+  type CanvasHistoryNavigationState,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '@/modules/creative_canvas/public';
 import { normalizeCanvasData } from '../application/canvasDataNormalization';
-import {
-  navigateCanvasHistory,
-  type CanvasHistoryDirection,
-  type CanvasHistoryNavigationState,
-} from '../application/canvasHistoryNavigation';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import type {
+  ActiveToolDialog,
+  CanvasEdge,
+  CanvasNode,
+} from '../domain/canvasNodes';
 
 export interface CanvasHistorySlice {
   history: CanvasHistoryState<CanvasNode, CanvasEdge>;
@@ -26,8 +28,18 @@ export interface CanvasHistorySlice {
 
 interface CanvasHistorySliceStore {
   nodeDefaultDataGateway: CanvasNodeDefaultDataGateway;
-  getState: () => CanvasHistoryNavigationState;
-  setState: (patch: Partial<CanvasHistoryNavigationState>) => void;
+  getState: () => CanvasHistoryNavigationState<
+    CanvasNode,
+    CanvasEdge,
+    ActiveToolDialog
+  >;
+  setState: (
+    patch: Partial<CanvasHistoryNavigationState<
+      CanvasNode,
+      CanvasEdge,
+      ActiveToolDialog
+    >>,
+  ) => void;
 }
 
 export function createZustandCanvasHistorySlice(

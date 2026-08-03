@@ -2212,7 +2212,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 522],
+      ["features/canvas", 520],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
