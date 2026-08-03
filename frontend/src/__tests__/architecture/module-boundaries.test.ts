@@ -3198,10 +3198,17 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
     );
-    const assetGateway = readFileSync(
+    const assetTransferComposition = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/freezoneAssetGateway.ts",
+        "modules/creative_canvas/assetTransferComposition.ts",
+      ),
+      "utf8",
+    );
+    const assetSourceGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/infrastructure/browserAssetSourceGateway.ts",
       ),
       "utf8",
     );
@@ -3430,9 +3437,8 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain(
       "export { showErrorDialog } from './infrastructure/globalErrorDialog';",
     );
-    expect(composition).toContain("freezoneAssetGateway");
-    expect(composition).toContain("migrateCanvasClipboardAssetsUseCase(");
-    expect(composition).toContain("currentOrigin: window.location.origin");
+    expect(composition).toContain("platformCanvasAssetGateway");
+    expect(composition).not.toContain("migrateCanvasClipboardAssets");
     expect(composition).toContain("uploadLocalImageToBackendUseCase(");
     expect(composition).toContain(
       "uploadAndAutoCommitSelectedBackgroundCandidateUseCase(",
@@ -3448,12 +3454,13 @@ describe("frontend architecture boundaries", () => {
     expect(composition).not.toContain("freezoneRedrawTaskGateway");
     expect(composition).toContain("resumeNodeGenerationUseCase(");
     expect(composition).toContain("freezoneGenerationTaskGateway");
-    expect(assetGateway).toContain("uploadFreezoneAsset(");
-    expect(assetGateway).toContain("@/modules/creative_canvas/public");
-    expect(assetGateway).not.toContain("@/api/ops");
-    expect(assetGateway).toContain("async read(source, options)");
-    expect(assetGateway).toContain("dataUrlToBlob(source)");
-    expect(assetGateway).toContain("credentials: 'include'");
+    expect(assetTransferComposition).toContain("uploadFreezoneAsset(");
+    expect(assetTransferComposition).toContain(
+      "export const platformCanvasAssetGateway",
+    );
+    expect(assetSourceGateway).not.toContain("@/api/ops");
+    expect(assetSourceGateway).toContain("dataUrlToBlob(source)");
+    expect(assetSourceGateway).toContain("credentials: 'include'");
     expect(graphGateway).toContain("useCanvasStore.getState()");
     expect(selectedBackgroundSlot).toContain(
       "graphGateway: CanvasGraphGateway",
@@ -5210,9 +5217,9 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/public.ts",
     );
-    const canvasGatewayPath = resolve(
+    const browserAssetSourceGatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAssetGateway.ts",
+      "modules/creative_canvas/infrastructure/browserAssetSourceGateway.ts",
     );
     const aiGatewayPath = resolve(
       SRC_ROOT,
@@ -5235,7 +5242,10 @@ describe("frontend architecture boundaries", () => {
       creativeCanvasPublicPath,
       "utf8",
     );
-    const canvasGatewaySource = readFileSync(canvasGatewayPath, "utf8");
+    const browserAssetSourceGatewaySource = readFileSync(
+      browserAssetSourceGatewayPath,
+      "utf8",
+    );
     const propGatewaySource = readFileSync(propGatewayPath, "utf8");
     const uploadEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -5280,6 +5290,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(compositionSource).toContain("uploadFreezoneAssetUseCase(");
     expect(compositionSource).toContain("httpFreezoneAssetUploadGateway");
+    expect(compositionSource).toContain(
+      "export const platformCanvasAssetGateway",
+    );
     expect(creativeCanvasPublicSource).toContain(
       "FreezoneAssetUploadResult,",
     );
@@ -5302,14 +5315,18 @@ describe("frontend architecture boundaries", () => {
       "./infrastructure/httpFreezoneAssetUploadGateway",
     );
     expect(creativeCanvasPublicSource).toContain("prepareCanvasImageSource,");
-    expect(importSpecifiers(canvasGatewayPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(importSpecifiers(canvasGatewayPath)).toContain(
+    expect(importSpecifiers(browserAssetSourceGatewayPath)).toEqual([
       "@/shared/media/data-url",
-    );
-    expect(importSpecifiers(canvasGatewayPath)).not.toContain("@/api/ops");
-    expect(canvasGatewaySource).toContain("uploadFreezoneAsset(");
+    ]);
+    expect(browserAssetSourceGatewaySource).toContain("dataUrlToBlob(source)");
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneAssetGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(importSpecifiers(propGatewayPath)).toContain(
       "@/modules/creative_canvas/public",
     );
@@ -5318,8 +5335,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(aiGatewayPath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(aiGatewayPath)).not.toContain(
-      "./freezoneAssetGateway",
+    expect(readFileSync(aiGatewayPath, "utf8")).not.toContain(
+      "platformCanvasAssetGateway",
     );
     for (const consumerPath of pipelineConsumerPaths) {
       const source = readFileSync(consumerPath, "utf8");
@@ -7577,7 +7594,7 @@ describe("frontend architecture boundaries", () => {
     const clipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasClipboardController.ts",
+        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -9278,10 +9295,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = [
-      "./useCanvasClipboardController",
-      "./useCanvasGraphInteractionController",
-    ];
+    const childControllers = ["./useCanvasGraphInteractionController"];
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
@@ -9293,6 +9307,18 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
+    expect(controllerSource).toContain(
+      "createCanvasClipboardControllerHook<",
+    );
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/hooks/useCanvasClipboardController.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(controllerSource).toContain("'duplicateNodes'");
     expect(controllerSource).toContain("...clipboard");
     expect(controllerSource).toContain("duplicateNodes,");
@@ -9313,6 +9339,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/createCanvasClipboardSnapshot.test.ts",
       "features/canvas/hooks/useCanvasNodeClipboard.ts",
       "features/canvas/hooks/useCanvasNodeClipboard.test.tsx",
+      "features/canvas/hooks/useCanvasClipboardController.ts",
+      "features/canvas/hooks/useCanvasClipboardController.test.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const hookPath = resolve(
       SRC_ROOT,
@@ -9326,9 +9354,20 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasClipboardController.ts",
+      "modules/creative_canvas/presentation/useCanvasClipboardController.ts",
     );
     const controllerModel = readFileSync(controllerPath, "utf8");
+    const compositionModel = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasClipboardComposition.ts"),
+      "utf8",
+    );
+    const graphControllerModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+      ),
+      "utf8",
+    );
     const builderForbiddenImports = importSpecifiers(builderPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -9351,7 +9390,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public",
     );
     const controllerDeclaration = [
-      "export function",
+      "return function",
       "useCanvasClipboardController(",
     ].join(" ");
     const builderDeclaration = [
@@ -9384,7 +9423,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useCanvasNodeClipboard.ts",
     ]);
     expect(controllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasClipboardController.ts",
+      "modules/creative_canvas/presentation/useCanvasClipboardController.ts",
     ]);
     for (const legacySnapshotPath of legacySnapshotPaths) {
       expect(
@@ -9398,11 +9437,17 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("session.read()");
     expect(hookModel).toContain("session.write(snapshot)");
     expect(hookModel).toContain("queueSnapshotPaste(() =>");
-    expect(controllerModel).not.toContain("./useCanvasNodeClipboard");
-    expect(controllerModel).toContain("session: canvasNodeClipboardSession");
+    expect(controllerModel).toContain("./useCanvasNodeClipboard");
+    expect(controllerModel).toContain("session: dependencies.session");
     expect(controllerModel).toContain("createCanvasClipboardSnapshot({");
-    expect(controllerModel).toContain("data: cloneCanvasNodeData(node.data)");
-    expect(controllerModel).toContain("@/modules/creative_canvas/public");
+    expect(controllerModel).not.toContain("@/features/");
+    expect(compositionModel).toContain(
+      "createCanvasClipboardSession<TNode, TEdge>()",
+    );
+    expect(graphControllerModel).toContain(
+      "data: cloneCanvasNodeData(node.data)",
+    );
+    expect(graphControllerModel).toContain("@/modules/creative_canvas/public");
     expect(canvasView).toContain(
       "./hooks/useCanvasGraphEditingSurfaceController",
     );
@@ -9439,7 +9484,7 @@ describe("frontend architecture boundaries", () => {
     const controllerModel = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasClipboardController.ts",
+        "modules/creative_canvas/presentation/useCanvasClipboardController.ts",
       ),
       "utf8",
     );
@@ -9500,14 +9545,16 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("planCanvasClipboardDuplication({");
     expect(hookModel).toContain("commitNodeSelection(");
     expect(hookModel).toContain("void migrateAssets({");
-    expect(controllerModel).toContain("useCanvasClipboardDuplicationController,");
+    expect(controllerModel).toContain("useCanvasClipboardDuplicationController({");
     expect(controllerModel).toContain(
-      "duplicationPorts: canvasClipboardDuplicationPorts",
+      "duplicationPorts: ports.duplication",
     );
-    expect(controllerModel).not.toContain("./useCanvasClipboardDuplicationController");
-    expect(controllerModel).toContain("migrateAssets: migratePastedNodeAssets");
+    expect(controllerModel).toContain("./useCanvasClipboardDuplicationController");
+    expect(controllerModel).toContain(
+      "migrateAssets: dependencies.migrateAssets",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasClipboardDuplicationController");
-    expect(canvasView).not.toContain("migrateAssets: migratePastedNodeAssets");
+    expect(canvasView).not.toContain("migrateAssets:");
     expect(canvasView).not.toContain("interface DuplicateOptions");
     expect(canvasView).not.toContain("const duplicateNodes = useCallback");
     expect(canvasView).not.toContain("pasteIterationRef");
@@ -9521,7 +9568,7 @@ describe("frontend architecture boundaries", () => {
     );
     const migrationModel = readFileSync(migrationPath, "utf8");
     const compositionModel = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasClipboardComposition.ts"),
       "utf8",
     );
     const publicModel = readFileSync(
@@ -9531,6 +9578,7 @@ describe("frontend architecture boundaries", () => {
     const legacyPaths = [
       "features/canvas/application/crossProjectAssets.ts",
       "__tests__/features/canvas/cross-project-assets.test.ts",
+      "features/canvas/infrastructure/freezoneAssetGateway.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(migrationPath).filter(
       (specifier) =>
@@ -9567,13 +9615,14 @@ describe("frontend architecture boundaries", () => {
     expect(migrationModel).not.toContain("apiKey");
     expect(migrationModel).not.toContain("baseUrl");
     expect(compositionModel).toContain(
-      "migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase",
-    );
-    expect(compositionModel).toContain(
-      "migrateCanvasClipboardAssetsUseCase(\n    freezoneAssetGateway,",
+      "migrateCanvasClipboardAssets(\n      platformCanvasAssetGateway,",
     );
     expect(compositionModel).toContain("currentOrigin: window.location.origin");
+    expect(compositionModel).not.toContain("@/features/");
     expect(publicModel).toContain(
+      "creative_canvas/canvasClipboardComposition",
+    );
+    expect(publicModel).not.toContain(
       "application/canvasClipboardAssetMigration",
     );
   });
@@ -15777,7 +15826,7 @@ describe("frontend architecture boundaries", () => {
     const clipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasClipboardController.ts",
+        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -21733,9 +21782,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "./freezoneGenerationTaskGateway",
     );
-    expect(importSpecifiers(legacyGatewayPath)).not.toContain(
-      "./freezoneAssetGateway",
-    );
+    expect(legacyGatewaySource).not.toContain("platformCanvasAssetGateway");
     expect(importSpecifiers(legacyGatewayPath)).toContain(
       "@/modules/creative_canvas/public",
     );
@@ -26469,11 +26516,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas system clipboard access in one browser adapter", () => {
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserClipboardGateway.ts",
+      "modules/creative_canvas/infrastructure/browserClipboardGateway.ts",
     );
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasClipboardComposition.ts"),
       "utf8",
     );
     const canvasSource = readFileSync(
@@ -26490,7 +26537,7 @@ describe("frontend architecture boundaries", () => {
     const canvasClipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasClipboardController.ts",
+        "modules/creative_canvas/presentation/useCanvasClipboardController.ts",
       ),
       "utf8",
     );
@@ -26504,13 +26551,23 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(implementationOwners).toEqual([
-      "features/canvas/infrastructure/browserClipboardGateway.ts",
+      "modules/creative_canvas/infrastructure/browserClipboardGateway.ts",
     ]);
     expect(adapterSource).toContain("runtime?.clipboard?.writeText('')");
-    expect(compositionSource).toContain("export { clearBrowserClipboard };");
-    expect(canvasClipboardController).toContain(
+    expect(compositionSource).toContain(
       "clearSystemClipboard: clearBrowserClipboard",
     );
+    expect(canvasClipboardController).toContain(
+      "clearSystemClipboard: dependencies.clearSystemClipboard",
+    );
+    for (const legacyPath of [
+      "features/canvas/infrastructure/browserClipboardGateway.ts",
+      "features/canvas/infrastructure/browserClipboardGateway.test.ts",
+      "features/canvas/hooks/useCanvasClipboardController.ts",
+      "features/canvas/hooks/useCanvasClipboardController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
     expect(canvasSource).not.toContain("clearSystemClipboard: clearBrowserClipboard");
     expect(canvasSource).not.toContain("navigator.clipboard");
     expect(clipboardController).toContain(
@@ -29970,7 +30027,7 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAssetGateway.ts",
+      "modules/creative_canvas/assetTransferComposition.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -30033,9 +30090,17 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/uploadCanvasAsset.ts",
     ]);
     expect(adapterSource).toContain("uploadFreezoneAsset(");
-    expect(adapterSource).toContain("options");
+    expect(adapterSource).toContain("platformCanvasAssetGateway");
     expect(compositionSource).toContain("uploadCanvasAssetUseCase(");
-    expect(compositionSource).toContain("freezoneAssetGateway");
+    expect(compositionSource).toContain("platformCanvasAssetGateway");
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneAssetGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(importSpecifiers(coverEditorPath)).toContain(
       "../assetTransferComposition",
     );

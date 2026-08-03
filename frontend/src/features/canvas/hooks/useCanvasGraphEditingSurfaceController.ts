@@ -1,27 +1,65 @@
 // Copyright (c) 2026 AI anime
 import {
-  useCanvasClipboardController,
+  cloneCanvasNodeData,
+  createCanvasClipboardControllerHook,
+  getNodeSize,
+  hasRectCollision,
   type CanvasClipboardController,
   type CanvasClipboardControllerOptions,
-} from './useCanvasClipboardController';
+} from '@/modules/creative_canvas/public';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+} from '../domain/canvasNodes';
 import {
   useCanvasGraphInteractionController,
   type CanvasGraphInteractionController,
   type CanvasGraphInteractionControllerOptions,
 } from './useCanvasGraphInteractionController';
 
+type ClipboardControllerOptions = CanvasClipboardControllerOptions<
+  CanvasNode,
+  CanvasEdge,
+  CanvasNodeType,
+  CanvasNodeData
+>;
+
+const noIgnoredCanvasNodeIds = new Set<string>();
+const useCanvasClipboardController = createCanvasClipboardControllerHook<
+  CanvasNode,
+  CanvasEdge,
+  CanvasNodeType,
+  CanvasNodeData
+>({
+  duplication: {
+    resolveNodeType: (node) => node.type as CanvasNodeType,
+    cloneNodeData: cloneCanvasNodeData,
+    getNodeSize,
+    hasRectCollision: (candidateRect, nodes) =>
+      hasRectCollision(candidateRect, nodes, noIgnoredCanvasNodeIds),
+  },
+  cloneSnapshotNode: (node, state) => ({
+    ...node,
+    ...state,
+    data: cloneCanvasNodeData(node.data),
+  }),
+  cloneSnapshotEdge: (edge) => ({ ...edge }),
+});
+
 export interface CanvasGraphEditingSurfaceControllerOptions {
-  nodes: CanvasClipboardControllerOptions['nodes'];
-  edges: CanvasClipboardControllerOptions['edges'];
-  selectedNodeIds: CanvasClipboardControllerOptions['selectedNodeIds'];
-  currentProject: CanvasClipboardControllerOptions['currentProject'];
-  getGraph: CanvasClipboardControllerOptions['getGraph'];
-  createNode: CanvasClipboardControllerOptions['createNode'];
-  applyNodeChanges: CanvasClipboardControllerOptions['applyNodeChanges'];
-  connectNodes: CanvasClipboardControllerOptions['connectNodes'];
-  selectNode: CanvasClipboardControllerOptions['selectNode'];
-  updateNodeData: CanvasClipboardControllerOptions['updateNodeData'];
-  queueSnapshotPaste: CanvasClipboardControllerOptions['queueSnapshotPaste'];
+  nodes: ClipboardControllerOptions['nodes'];
+  edges: ClipboardControllerOptions['edges'];
+  selectedNodeIds: ClipboardControllerOptions['selectedNodeIds'];
+  currentProject: ClipboardControllerOptions['currentProject'];
+  getGraph: ClipboardControllerOptions['getGraph'];
+  createNode: ClipboardControllerOptions['createNode'];
+  applyNodeChanges: CanvasGraphInteractionControllerOptions['applyNodeChanges'];
+  connectNodes: ClipboardControllerOptions['connectNodes'];
+  selectNode: ClipboardControllerOptions['selectNode'];
+  updateNodeData: ClipboardControllerOptions['updateNodeData'];
+  queueSnapshotPaste: ClipboardControllerOptions['queueSnapshotPaste'];
   elevateNodes: CanvasGraphInteractionControllerOptions['elevateNodes'];
   fitGroupToChildren:
     CanvasGraphInteractionControllerOptions['fitGroupToChildren'];
@@ -35,7 +73,7 @@ export interface CanvasGraphEditingSurfaceControllerOptions {
 }
 
 export type CanvasGraphEditingSurfaceController = Omit<
-  CanvasClipboardController,
+  CanvasClipboardController<CanvasNode, CanvasEdge>,
   'duplicateNodes'
 > & CanvasGraphInteractionController;
 

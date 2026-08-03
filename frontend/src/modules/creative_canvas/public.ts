@@ -708,15 +708,6 @@ export type {
   StoryboardFrameLike,
   StoryboardFrameNodeProjection,
 } from "@/modules/creative_canvas/domain/storyboardFrames";
-export { createCanvasClipboardSnapshot } from "@/modules/creative_canvas/application/createCanvasClipboardSnapshot";
-export type {
-  CanvasClipboardSnapshotEdge,
-  CanvasClipboardSnapshotNode,
-  CreateCanvasClipboardSnapshotParams,
-} from "@/modules/creative_canvas/application/createCanvasClipboardSnapshot";
-export type { CanvasClipboardSnapshot } from "@/modules/creative_canvas/domain/canvasClipboard";
-export { createCanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
-export type { CanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
 export {
   cloneCanvasNodeData,
   updateCanvasNodeData,
@@ -1002,42 +993,14 @@ export type {
   ImageNodeMinSize,
   ImageNodeSize,
 } from "@/modules/creative_canvas/domain/imageNodeSizing";
-export { planCanvasClipboardDuplication } from "@/modules/creative_canvas/application/canvasClipboardDuplication";
+export { createCanvasClipboardControllerHook } from "@/modules/creative_canvas/canvasClipboardComposition";
 export type {
-  CanvasClipboardDuplicationConnectionPlan,
-  CanvasClipboardDuplicationNodePlan,
-  CanvasClipboardDuplicationOptions,
-  CanvasClipboardDuplicationPlan,
-  CanvasClipboardDuplicationPorts,
-  CanvasClipboardDuplicationSelection,
-  CanvasClipboardDuplicationSourceEdge,
-  CanvasClipboardDuplicationSourceNode,
-  CanvasClipboardNodeSize,
-  CanvasClipboardRect,
-  PlanCanvasClipboardDuplicationParams,
-} from "@/modules/creative_canvas/application/canvasClipboardDuplication";
-export { migrateCanvasClipboardAssets } from "@/modules/creative_canvas/application/canvasClipboardAssetMigration";
-export type {
-  CanvasClipboardAssetMigrationNode,
-  CanvasClipboardAssetMigrationRequest,
-  CanvasClipboardAssetMigrationSummary,
-  CanvasClipboardAssetStorageGateway,
-  MigrateCanvasClipboardAssetsParams,
-} from "@/modules/creative_canvas/application/canvasClipboardAssetMigration";
-export { useCanvasClipboardDuplicationController } from "@/modules/creative_canvas/presentation/useCanvasClipboardDuplicationController";
-export type {
-  CanvasClipboardDuplicationController,
-  CanvasClipboardDuplicationControllerOptions,
-  CanvasClipboardDuplicationResult,
-  CanvasClipboardNodeDimensionCommit,
-  CanvasClipboardNodeSelectionCommit,
-  CanvasClipboardSelectableNode,
-} from "@/modules/creative_canvas/presentation/useCanvasClipboardDuplicationController";
-export { useCanvasNodeClipboard } from "@/modules/creative_canvas/presentation/useCanvasNodeClipboard";
-export type {
-  CanvasNodeClipboardController,
-  CanvasNodeClipboardOptions,
-} from "@/modules/creative_canvas/presentation/useCanvasNodeClipboard";
+  CanvasClipboardController,
+  CanvasClipboardControllerEdge,
+  CanvasClipboardControllerOptions,
+  CanvasClipboardControllerPorts,
+  CanvasClipboardNodeChange,
+} from "@/modules/creative_canvas/presentation/useCanvasClipboardController";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
@@ -1602,6 +1565,7 @@ export type {
 export {
   commitFreezoneAsset,
   getFreezoneAssetImpact,
+  platformCanvasAssetGateway,
   uploadFreezoneAsset,
 } from "@/modules/creative_canvas/assetTransferComposition";
 export { SKILL_SCHEMA_VERSION } from "@/modules/creative_canvas/domain/skillContract";

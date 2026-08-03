@@ -1,49 +1,50 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const uploadFreezoneAsset = vi.hoisted(() => vi.fn());
+const upload = vi.hoisted(() => vi.fn());
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  uploadFreezoneAsset,
+vi.mock('./infrastructure/httpFreezoneAssetUploadGateway', () => ({
+  httpFreezoneAssetUploadGateway: { upload },
 }));
 
-import {
-  freezoneAssetGateway,
-} from '@/features/canvas/infrastructure/freezoneAssetGateway';
+import { platformCanvasAssetGateway } from './assetTransferComposition';
 
-describe('freezone asset source gateway', () => {
+describe('platformCanvasAssetGateway', () => {
   afterEach(() => {
-    uploadFreezoneAsset.mockReset();
+    upload.mockReset();
     vi.unstubAllGlobals();
   });
 
-  it('returns complete upload metadata and maps the disabled timeout option', async () => {
+  it('uploads through the platform object-storage endpoint', async () => {
     const uploaded = {
       url: '/static/upload.png',
       filename: 'sanitized-upload.png',
       size: 42,
     };
     const blob = new Blob(['asset'], { type: 'image/png' });
-    uploadFreezoneAsset.mockResolvedValue(uploaded);
+    upload.mockResolvedValue(uploaded);
 
     await expect(
-      freezoneAssetGateway.upload('project-1', blob, '../upload.png', {
-        disableTimeout: true,
-      }),
+      platformCanvasAssetGateway.upload(
+        'project-1',
+        blob,
+        '../upload.png',
+        { disableTimeout: true },
+      ),
     ).resolves.toEqual(uploaded);
-    expect(uploadFreezoneAsset).toHaveBeenCalledWith(
-      'project-1',
-      blob,
-      '../upload.png',
-      { disableTimeout: true },
-    );
+    expect(upload).toHaveBeenCalledWith({
+      projectId: 'project-1',
+      file: blob,
+      filename: '../upload.png',
+      options: { disableTimeout: true },
+    });
   });
 
   it('decodes data URLs without using fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const blob = await freezoneAssetGateway.read(
+    const blob = await platformCanvasAssetGateway.read(
       'data:image/png;base64,eA==',
     );
 
@@ -62,7 +63,7 @@ describe('freezone asset source gateway', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      freezoneAssetGateway.read('/static/source.png', {
+      platformCanvasAssetGateway.read('/static/source.png', {
         includeCredentials: true,
       }),
     ).resolves.toBe(blob);
@@ -81,7 +82,7 @@ describe('freezone asset source gateway', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      freezoneAssetGateway.read('/local/output.png'),
+      platformCanvasAssetGateway.read('/local/output.png'),
     ).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith('/local/output.png', undefined);
   });

@@ -2,7 +2,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasClipboardControllerOptions } from './useCanvasClipboardController';
 import type { CanvasGraphInteractionControllerOptions } from './useCanvasGraphInteractionController';
 import {
   useCanvasGraphEditingSurfaceController,
@@ -27,20 +26,23 @@ const controllerMocks = vi.hoisted(() => {
     handleSelectionDragStart: vi.fn(),
     handleSelectionDragStop: vi.fn(),
   };
+  const useClipboard = vi.fn(() => clipboard);
   return {
     clipboard,
     graphInteraction,
-    useClipboard: vi.fn(
-      (_options: CanvasClipboardControllerOptions) => clipboard,
-    ),
+    useClipboard,
+    createClipboardHook: vi.fn(() => useClipboard),
     useGraphInteraction: vi.fn(
       (_options: CanvasGraphInteractionControllerOptions) => graphInteraction,
     ),
   };
 });
 
-vi.mock('./useCanvasClipboardController', () => ({
-  useCanvasClipboardController: controllerMocks.useClipboard,
+vi.mock('@/modules/creative_canvas/public', () => ({
+  cloneCanvasNodeData: (data: unknown) => data,
+  createCanvasClipboardControllerHook: controllerMocks.createClipboardHook,
+  getNodeSize: () => ({ width: 320, height: 200 }),
+  hasRectCollision: () => false,
 }));
 vi.mock('./useCanvasGraphInteractionController', () => ({
   useCanvasGraphInteractionController: controllerMocks.useGraphInteraction,

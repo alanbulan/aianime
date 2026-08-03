@@ -28,8 +28,8 @@ import {
   getFreezoneCanvasMetadata,
   getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
   getStoryboardReferenceFrameHeight,
-  migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
   nodeNeedsGenerationResume,
+  platformCanvasAssetGateway,
   prepareNodeImage as prepareNodeImageUseCase,
   prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
   packStoryboardFrames as packStoryboardFramesUseCase,
@@ -44,7 +44,6 @@ import {
   freezoneSceneAssetsGateway,
   type CanvasAssetDragPayload,
   type CanvasBeatDirectorManifestGateway,
-  type CanvasClipboardAssetMigrationRequest,
   type ExportStoryboardGridCommand,
   type GetCanvasBeatDirectorManifestParams,
   type GetCanvasDirectorStagePaletteParams,
@@ -80,10 +79,8 @@ import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
-import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
-import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
@@ -190,7 +187,6 @@ function resumePendingGenerationNode({
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { rememberLastVideoModel } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
-export { clearBrowserClipboard };
 export {
   captureVideoFrameBlob,
   ensureWebSafeVideo,
@@ -254,26 +250,14 @@ export function hydrateAssetDragPayload(payload: CanvasAssetDragPayload) {
   );
 }
 
-export function migratePastedNodeAssets<TNodeData extends object>(
-  params: CanvasClipboardAssetMigrationRequest<TNodeData>,
-) {
-  return migrateCanvasClipboardAssetsUseCase(
-    freezoneAssetGateway,
-    {
-      ...params,
-      currentOrigin: window.location.origin,
-    },
-  );
-}
-
 export function uploadLocalImageToBackend(
   projectId: string,
   localImageUrl: string,
   filename: string,
 ) {
   return uploadLocalImageToBackendUseCase(
-    freezoneAssetGateway,
-    freezoneAssetGateway,
+    platformCanvasAssetGateway,
+    platformCanvasAssetGateway,
     projectId,
     localImageUrl,
     filename,
@@ -318,7 +302,7 @@ export function uploadCanvasAsset(
 ) {
   return uploadCanvasAssetUseCase(
     { projectId, file, filename, options },
-    freezoneAssetGateway,
+    platformCanvasAssetGateway,
   );
 }
 
@@ -330,7 +314,7 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
   options: UploadSelectedBackgroundCandidateOptions,
 ) {
   return uploadAndAutoCommitSelectedBackgroundCandidateUseCase(
-    freezoneAssetGateway,
+    platformCanvasAssetGateway,
     zustandCanvasGraphGateway,
     publishCanvasCommitRequested,
     projectId,

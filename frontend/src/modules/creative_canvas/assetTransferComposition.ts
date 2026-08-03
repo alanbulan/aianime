@@ -10,6 +10,7 @@ import type {
 import type { FreezoneAssetUploadOptions } from "@/modules/creative_canvas/domain/assetUpload";
 import { httpFreezoneAssetCommitGateway } from "@/modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway";
 import { httpFreezoneAssetUploadGateway } from "@/modules/creative_canvas/infrastructure/httpFreezoneAssetUploadGateway";
+import { browserAssetSourceGateway } from "@/modules/creative_canvas/infrastructure/browserAssetSourceGateway";
 
 export function uploadFreezoneAsset(
   projectId: string,
@@ -22,6 +23,11 @@ export function uploadFreezoneAsset(
     httpFreezoneAssetUploadGateway,
   );
 }
+
+export const platformCanvasAssetGateway = {
+  read: browserAssetSourceGateway.read,
+  upload: uploadFreezoneAsset,
+};
 
 export function commitFreezoneAsset(
   projectId: string,
