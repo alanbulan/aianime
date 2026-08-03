@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { VideoNodeData } from "../domain/canvasNodes";
 
-export type VideoMetadataFields = Pick<
-  VideoNodeData,
-  "widthPx" | "heightPx" | "durationMs"
->;
+export interface VideoMetadataFields {
+  widthPx?: number | null;
+  heightPx?: number | null;
+  durationMs?: number | null;
+}
 
 export interface LoadedVideoMetadata {
   readonly widthPx: number;

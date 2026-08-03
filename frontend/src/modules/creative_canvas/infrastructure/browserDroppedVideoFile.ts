@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { isVideoFile } from "@/modules/creative_canvas/public";
+import { isVideoFile } from "../domain/videoFileTypes";
 
 export interface DroppedVideoFileItem {
   readonly kind: string;
@@ -11,7 +11,7 @@ export interface DroppedVideoDataTransfer {
   readonly items?: ArrayLike<DroppedVideoFileItem> | null;
 }
 
-export function resolveDroppedVideoFile(
+export function resolveBrowserDroppedVideoFile(
   dataTransfer: DroppedVideoDataTransfer,
 ): File | null {
   const directFile = dataTransfer.files?.[0];

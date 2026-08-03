@@ -41,9 +41,7 @@ import {
   extractUpstreamContent,
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
-import { resolveDroppedVideoFile } from '@/features/canvas/application/resolveDroppedVideoFile';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,
@@ -90,6 +88,7 @@ import {
   CAMERA_MOVEMENT_PRESETS,
   DEFAULT_VIDEO_DURATION_SEC,
   VIDEO_FILE_ACCEPT,
+  buildVideoMetadataPatch,
   captureBrowserVideoFrameStrip,
   clampVideoDuration,
   classifyVideoReferenceItems,
@@ -104,6 +103,7 @@ import {
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
+  resolveBrowserDroppedVideoFile,
   qualityToResolution,
   resolveAudioReferenceDisplayName,
   resolveImageDisplayUrl,
@@ -793,7 +793,7 @@ export function useVideoNodeController({
     async (event: DragEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      const file = resolveDroppedVideoFile(event.dataTransfer);
+      const file = resolveBrowserDroppedVideoFile(event.dataTransfer);
       if (file) await processFile(file);
     },
     [processFile],

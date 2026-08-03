@@ -742,6 +742,16 @@ export type {
   CanvasNodeSizeUpdateOptions,
   CanvasNodeSizeUpdateResult,
 } from "@/modules/creative_canvas/application/canvasNodeSize";
+export { buildVideoMetadataPatch } from "@/modules/creative_canvas/domain/videoMetadataPatch";
+export type {
+  LoadedVideoMetadata,
+  VideoMetadataFields,
+} from "@/modules/creative_canvas/domain/videoMetadataPatch";
+export { resolveBrowserDroppedVideoFile } from "@/modules/creative_canvas/infrastructure/browserDroppedVideoFile";
+export type {
+  DroppedVideoDataTransfer,
+  DroppedVideoFileItem,
+} from "@/modules/creative_canvas/infrastructure/browserDroppedVideoFile";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,

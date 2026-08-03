@@ -26924,10 +26924,10 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("新视频生成中…");
   });
 
-  it("keeps video metadata persistence projection in one application module", () => {
+  it("keeps video metadata persistence projection in Creative Canvas domain", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoMetadataPatch.ts",
+      "modules/creative_canvas/domain/videoMetadataPatch.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
@@ -26943,25 +26943,31 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(applicationPath)).toEqual([
-      "../domain/canvasNodes",
-    ]);
+    expect(importSpecifiers(applicationPath)).toEqual([]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("window");
     expect(applicationSource).not.toContain("document");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/videoMetadataPatch.ts",
+      "modules/creative_canvas/domain/videoMetadataPatch.ts",
     ]);
     expect(applicationSource).not.toContain("aspectRatio");
     expect(videoNode).toContain(
-      "@/features/canvas/application/videoMetadataPatch",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("buildVideoMetadataPatch(");
     expect(videoNode).not.toContain(
       "if (data.widthPx !== el.videoWidth)",
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoMetadataPatch.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoMetadataPatch.test.ts",
+    ))).toBe(false);
   });
 
   it("keeps VideoNode primary video element in one presentation view", () => {
@@ -30030,10 +30036,10 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function submittableImageUrl(");
   });
 
-  it("keeps dropped video file selection in one application module", () => {
+  it("keeps dropped video file selection in one browser adapter", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/resolveDroppedVideoFile.ts",
+      "modules/creative_canvas/infrastructure/browserDroppedVideoFile.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const videoNode = readFileSync(
@@ -30042,7 +30048,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "resolveDroppedVideoFile(",
+      "resolveBrowserDroppedVideoFile(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -30050,21 +30056,29 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(importSpecifiers(applicationPath)).toEqual([
-      "@/modules/creative_canvas/public",
+      "../domain/videoFileTypes",
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/stores/");
     expect(applicationSource).not.toContain("@/api/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/resolveDroppedVideoFile.ts",
+      "modules/creative_canvas/infrastructure/browserDroppedVideoFile.ts",
     ]);
     expect(videoNode).toContain(
-      "@/features/canvas/application/resolveDroppedVideoFile",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain(
-      "resolveDroppedVideoFile(event.dataTransfer)",
+      "resolveBrowserDroppedVideoFile(event.dataTransfer)",
     );
-    expect(videoNode).not.toContain("function resolveDroppedVideoFile(");
+    expect(videoNode).not.toContain("function resolveBrowserDroppedVideoFile(");
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/resolveDroppedVideoFile.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/resolveDroppedVideoFile.test.ts",
+    ))).toBe(false);
   });
 
   it("keeps reference audio duration validation in application", () => {
