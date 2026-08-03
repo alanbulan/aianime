@@ -2,7 +2,6 @@
 import { useCallback, useMemo } from 'react';
 
 import { hydrateAssetDragPayload } from '@/features/canvas/composition';
-import type { CanvasEventBus } from '@/features/canvas/application/ports';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   spawnCanvasAssetNode,
@@ -11,6 +10,7 @@ import {
   type CanvasAssetDragPayload,
   type CanvasHistoryAssetController,
   type CanvasHistoryAssetControllerOptions,
+  type CanvasEventBus,
   type CanvasAssetNodeSpawnPort,
   type CanvasMediaPasteEventPort,
   type CanvasMediaTransferController,

@@ -6,14 +6,11 @@ import {
   type CanvasHistoryNavigationState,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
 import { normalizeCanvasData } from '../application/canvasDataNormalization';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasHistorySlice {
   history: CanvasHistoryState<CanvasNode, CanvasEdge>;

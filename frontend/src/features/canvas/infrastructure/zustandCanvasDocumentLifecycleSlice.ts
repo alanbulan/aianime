@@ -8,9 +8,9 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
 import type {
-  ActiveToolDialog,
   CanvasEdge,
   CanvasNode,
 } from '../domain/canvasNodes';

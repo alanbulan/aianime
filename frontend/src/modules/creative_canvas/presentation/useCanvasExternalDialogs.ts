@@ -1,21 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState } from 'react';
 
-export interface CanvasExternalDialogEventMap<TToolDialog> {
-  'tool-dialog/open': TToolDialog;
-  'tool-dialog/close': undefined;
-  'video-viewer/open': {
-    videoUrl: string;
-    title?: string;
-  };
-}
+import type { CanvasEventBus } from '../application/canvasEventBus';
+import type { CanvasToolDialogRequest } from '../domain/canvasNodeTool';
 
-export interface CanvasExternalDialogEventPort<TToolDialog> {
-  subscribe<TType extends keyof CanvasExternalDialogEventMap<TToolDialog>>(
-    type: TType,
-    handler: (payload: CanvasExternalDialogEventMap<TToolDialog>[TType]) => void,
-  ): () => void;
-}
+export type CanvasExternalDialogEventPort = Pick<CanvasEventBus, 'subscribe'>;
 
 export interface CanvasVideoViewerState {
   isOpen: boolean;
@@ -23,9 +12,9 @@ export interface CanvasVideoViewerState {
   title?: string;
 }
 
-export interface CanvasExternalDialogsOptions<TToolDialog> {
-  eventPort: CanvasExternalDialogEventPort<TToolDialog>;
-  openToolDialog: (dialog: TToolDialog) => void;
+export interface CanvasExternalDialogsOptions {
+  eventPort: CanvasExternalDialogEventPort;
+  openToolDialog: (dialog: CanvasToolDialogRequest) => void;
   closeToolDialog: () => void;
 }
 
@@ -34,11 +23,11 @@ export interface CanvasExternalDialogsController {
   closeVideoViewer: () => void;
 }
 
-export function useCanvasExternalDialogs<TToolDialog>({
+export function useCanvasExternalDialogs({
   eventPort,
   openToolDialog,
   closeToolDialog,
-}: CanvasExternalDialogsOptions<TToolDialog>): CanvasExternalDialogsController {
+}: CanvasExternalDialogsOptions): CanvasExternalDialogsController {
   const [videoViewer, setVideoViewer] = useState<CanvasVideoViewerState>({
     isOpen: false,
     videoUrl: '',

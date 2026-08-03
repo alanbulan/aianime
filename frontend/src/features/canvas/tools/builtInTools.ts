@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import {
-  NODE_TOOL_TYPES,
   isExportImageNode,
   isImageEditNode,
   isImageGenNode,
@@ -8,6 +7,7 @@ import {
   resolveNodeSourceImageUrl,
   type CanvasNode,
 } from '../domain/canvasNodes';
+import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
 import { stringifyAnnotationItems } from './annotation';
 import type { CanvasToolPlugin } from './types';
 

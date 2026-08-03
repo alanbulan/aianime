@@ -595,19 +595,6 @@ export interface StoryboardNodeCreationDto {
   frames: StoryboardFrameItem[];
 }
 
-export const NODE_TOOL_TYPES = {
-  crop: 'crop',
-  annotate: 'annotate',
-  splitStoryboard: 'split-storyboard',
-} as const;
-
-export type NodeToolType = (typeof NODE_TOOL_TYPES)[keyof typeof NODE_TOOL_TYPES];
-
-export interface ActiveToolDialog {
-  nodeId: string;
-  toolType: NodeToolType;
-}
-
 export function isUploadNode(
   node: CanvasNode | null | undefined
 ): node is Node<UploadImageNodeData, typeof CANVAS_NODE_TYPES.upload> {

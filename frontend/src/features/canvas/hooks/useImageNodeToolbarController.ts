@@ -2,17 +2,17 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import {
-  NODE_TOOL_TYPES,
   isImageEditNode,
   resolveNodeSourceImageUrl,
   type CanvasNode,
-  type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
 import {
+  canvasEventBus,
+  NODE_TOOL_TYPES,
   projectImageNodeToolbar,
   type GridActionRequest,
+  type NodeToolType,
 } from "@/modules/creative_canvas/public";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 

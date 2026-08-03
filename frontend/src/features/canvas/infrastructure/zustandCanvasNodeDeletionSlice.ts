@@ -10,12 +10,9 @@ import {
   type CanvasHistoryState,
   type CanvasMutationSource,
   type CanvasMutationState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasNodeDeletionSlice {
   deleteNode: (nodeId: string) => void;

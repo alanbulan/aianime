@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import {
   NODE_TOOL_TYPES,
-  type NodeToolType,
-} from '../domain/canvasNodes';
-import {
   resolveMaxAllowedLineThickness,
+  type NodeToolType,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import type {

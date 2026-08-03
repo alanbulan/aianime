@@ -2598,3 +2598,15 @@ export {
   CanvasLoadingScreen,
   FreezoneToast,
 } from "@/modules/creative_canvas/presentation/FreezoneCanvasFeedback";
+export {
+  NODE_TOOL_TYPES,
+} from "@/modules/creative_canvas/domain/canvasNodeTool";
+export type {
+  CanvasToolDialogRequest,
+  NodeToolType,
+} from "@/modules/creative_canvas/domain/canvasNodeTool";
+export type {
+  CanvasEventBus,
+  CanvasEventMap,
+} from "@/modules/creative_canvas/application/canvasEventBus";
+export { canvasEventBus } from "@/modules/creative_canvas/canvasEventComposition";

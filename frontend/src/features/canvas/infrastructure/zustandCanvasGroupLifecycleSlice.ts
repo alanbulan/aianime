@@ -15,13 +15,13 @@ import {
   type CanvasGroupCreationOptions,
   type CanvasGroupArrangementMode,
   type CanvasMutationState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   isGroupNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
-  type ActiveToolDialog,
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';

@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   CANVAS_NODE_TYPES,
-  NODE_TOOL_TYPES,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
+import {
+  NODE_TOOL_TYPES,
+  type StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 function sourceNode(): CanvasNode {

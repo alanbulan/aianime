@@ -24,7 +24,6 @@ import {
   resolveUploadNodeTitle,
   sceneSnapshotFromDirectorControlBundle,
 } from '@/features/canvas/application/uploadNodeModel';
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   getCanvasBeatDirectorManifest,
@@ -34,6 +33,7 @@ import {
 } from '@/features/canvas/composition';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
+  canvasEventBus,
   collectCandidateBindingsForNode,
   directorCaptureBlobToDataUrl,
   hasMainlineContexts,

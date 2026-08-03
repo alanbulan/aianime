@@ -4,14 +4,16 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type AudioNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+import {
+  canvasEventBus,
+  resolveNodeDisplayName,
+} from '@/modules/creative_canvas/public';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {

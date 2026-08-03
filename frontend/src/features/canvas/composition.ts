@@ -15,6 +15,7 @@ import {
   applyStoryboardTextOverlay,
   browserGenerationRuntimeGateway,
   browserImageRuntimeGateway,
+  canvasEventBus,
   composeCapability,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
@@ -52,7 +53,6 @@ import {
   type RegenerateExportImageNodeParams,
   type ResumeNodeGenerationParams,
 } from '@/modules/creative_canvas/public';
-import { canvasEventBus } from './application/canvasServices';
 import { useCanvasStore } from './canvasStore';
 import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,

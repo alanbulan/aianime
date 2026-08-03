@@ -21,12 +21,9 @@ import {
   trackEdit,
   type CanvasDataEdgeCreationOptions,
   type CanvasNodeChangeEffectState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasGraphMutationSlice {
   nodes: CanvasNode[];

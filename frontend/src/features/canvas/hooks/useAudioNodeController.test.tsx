@@ -61,23 +61,24 @@ vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
     mocks.useAudioGeneration(...args),
 }));
 
-vi.mock('@/features/canvas/application/canvasServices', () => ({
-  canvasEventBus: {
-    subscribe: (type: string, handler: unknown) =>
-      mocks.subscribe(type, handler),
-  },
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (project: string, file: File, filename: string) =>
     mocks.uploadCanvasAsset(project, file, filename),
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  canvasEventBus: {
+    subscribe: (type: string, handler: unknown) =>
+      mocks.subscribe(type, handler),
+  },
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
   isAudioFile: (file: File) => mocks.isAudioFile(file),
   loadCanvasAudioReferences: (project: string) =>
     mocks.loadCanvasAudioReferences(project),
+  resolveNodeDisplayName: (
+    _nodeType: string,
+    data: { displayName?: string },
+  ) => data.displayName ?? '音频节点',
   resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
   useNodeGenerationTaskState: () => mocks.taskState,
 }));

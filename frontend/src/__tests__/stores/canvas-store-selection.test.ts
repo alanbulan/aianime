@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { NODE_TOOL_TYPES } from '@/features/canvas/domain/canvasNodes';
+import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 describe('canvasStore selection state', () => {

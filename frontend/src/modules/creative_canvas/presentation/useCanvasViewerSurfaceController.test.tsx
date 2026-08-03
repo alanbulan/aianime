@@ -11,11 +11,6 @@ import {
   type CanvasViewerSurfaceStoreHook,
 } from './useCanvasViewerSurfaceController';
 
-interface ToolDialogRequest {
-  nodeId: string;
-  toolType: 'crop' | 'annotate';
-}
-
 const controllerMocks = vi.hoisted(() => {
   const closeImageViewer = vi.fn();
   const navigateImageViewer = vi.fn();
@@ -51,8 +46,7 @@ const controllerMocks = vi.hoisted(() => {
     viewerStore,
     externalDialogs,
     useExternalDialogs: vi.fn(
-      (_options: CanvasExternalDialogsOptions<ToolDialogRequest>) =>
-        externalDialogs,
+      (_options: CanvasExternalDialogsOptions) => externalDialogs,
     ),
   };
 });
@@ -63,11 +57,11 @@ vi.mock('./useCanvasExternalDialogs', () => ({
 
 const eventPort = {
   subscribe: vi.fn(() => vi.fn()),
-} as unknown as CanvasExternalDialogEventPort<ToolDialogRequest>;
-const useStore: CanvasViewerSurfaceStoreHook<ToolDialogRequest> = (selector) =>
+} as unknown as CanvasExternalDialogEventPort;
+const useStore: CanvasViewerSurfaceStoreHook = (selector) =>
   selector(controllerMocks.viewerStore);
 const useCanvasViewerSurfaceController =
-  createUseCanvasViewerSurfaceController<ToolDialogRequest>({
+  createUseCanvasViewerSurfaceController({
     eventPort,
     useStore,
   });

@@ -7,7 +7,7 @@ import type {
   ImageSplitGateway,
 } from '@/features/canvas/application/ports';
 import { CanvasToolProcessor } from '@/features/canvas/application/toolProcessor';
-import { NODE_TOOL_TYPES } from '@/features/canvas/domain/canvasNodes';
+import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
 
 const annotateImage = vi.fn();
 const cropImage = vi.fn();

@@ -8,10 +8,10 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type CanvasToolDialogRequest as ActiveToolDialog,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import type {
-  ActiveToolDialog,
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,

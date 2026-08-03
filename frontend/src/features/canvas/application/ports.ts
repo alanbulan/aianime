@@ -5,11 +5,11 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
   CanvasPosition,
-  NodeToolType,
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
   CanvasImageDimensions,
+  NodeToolType,
   StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 
@@ -171,52 +171,4 @@ export interface ToolProcessor {
     sourceImageUrl: string,
     options: Record<string, unknown>
   ) => Promise<ToolProcessorResult>;
-}
-
-export interface CanvasEventMap {
-  'tool-dialog/open': {
-    nodeId: string;
-    toolType: NodeToolType;
-  };
-  'tool-dialog/close': undefined;
-  'upload-node/reupload': {
-    nodeId: string;
-  };
-  'upload-node/paste-image': {
-    nodeId: string;
-    file: File;
-  };
-  /** 「上传资源」菜单等外部入口注入 File 给 upload 节点（仅图片）。 */
-  'upload-node/external-file': {
-    nodeId: string;
-    file: File;
-  };
-  'video-node/reupload': {
-    nodeId: string;
-  };
-  /** 「上传资源」菜单等外部入口注入 File 给 video 节点（仅视频）。 */
-  'video-node/external-file': {
-    nodeId: string;
-    file: File;
-  };
-  /** 「上传资源」菜单等外部入口注入 File 给 audio 节点（仅音频）。 */
-  'audio-node/external-file': {
-    nodeId: string;
-    file: File;
-  };
-  'video-viewer/open': {
-    videoUrl: string;
-    title?: string;
-  };
-}
-
-export interface CanvasEventBus {
-  publish: <TType extends keyof CanvasEventMap>(
-    type: TType,
-    payload: CanvasEventMap[TType]
-  ) => void;
-  subscribe: <TType extends keyof CanvasEventMap>(
-    type: TType,
-    handler: (payload: CanvasEventMap[TType]) => void
-  ) => () => void;
 }

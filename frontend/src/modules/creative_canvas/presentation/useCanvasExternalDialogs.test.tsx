@@ -4,35 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   useCanvasExternalDialogs,
-  type CanvasExternalDialogEventMap,
   type CanvasExternalDialogEventPort,
 } from './useCanvasExternalDialogs';
-
-interface ToolDialogRequest {
-  nodeId: string;
-  toolType: 'crop' | 'annotate';
-}
+import type { CanvasEventMap } from '../application/canvasEventBus';
 
 class ExternalDialogEventPortMock
-  implements CanvasExternalDialogEventPort<ToolDialogRequest> {
+  implements CanvasExternalDialogEventPort {
   private readonly listeners = new Map<
-    keyof CanvasExternalDialogEventMap<ToolDialogRequest>,
+    keyof CanvasEventMap,
     (payload: never) => void
   >();
 
-  subscribe<TType extends keyof CanvasExternalDialogEventMap<ToolDialogRequest>>(
+  subscribe<TType extends keyof CanvasEventMap>(
     type: TType,
-    handler: (
-      payload: CanvasExternalDialogEventMap<ToolDialogRequest>[TType]
-    ) => void,
+    handler: (payload: CanvasEventMap[TType]) => void,
   ): () => void {
     this.listeners.set(type, handler as (payload: never) => void);
     return () => this.listeners.delete(type);
   }
 
-  emit<TType extends keyof CanvasExternalDialogEventMap<ToolDialogRequest>>(
+  emit<TType extends keyof CanvasEventMap>(
     type: TType,
-    payload: CanvasExternalDialogEventMap<ToolDialogRequest>[TType],
+    payload: CanvasEventMap[TType],
   ): void {
     this.listeners.get(type)?.(payload as never);
   }

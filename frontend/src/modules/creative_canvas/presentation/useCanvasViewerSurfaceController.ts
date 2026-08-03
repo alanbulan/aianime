@@ -3,6 +3,7 @@ import type {
   CanvasImageViewerDirection,
   CanvasImageViewerState,
 } from '../domain/canvasImageViewer';
+import type { CanvasToolDialogRequest } from '../domain/canvasNodeTool';
 
 import type { ImageViewerModalProps } from './ImageViewerModal';
 import type { VideoViewerModalProps } from './VideoViewerModal';
@@ -11,21 +12,21 @@ import {
   type CanvasExternalDialogEventPort,
 } from './useCanvasExternalDialogs';
 
-export interface CanvasViewerSurfaceStore<TToolDialog> {
+export interface CanvasViewerSurfaceStore {
   imageViewer: CanvasImageViewerState;
   closeImageViewer: ImageViewerModalProps['onClose'];
   navigateImageViewer: (direction: CanvasImageViewerDirection) => void;
-  openToolDialog: (dialog: TToolDialog) => void;
+  openToolDialog: (dialog: CanvasToolDialogRequest) => void;
   closeToolDialog: () => void;
 }
 
-export type CanvasViewerSurfaceStoreHook<TToolDialog> = <TSelected>(
-  selector: (state: CanvasViewerSurfaceStore<TToolDialog>) => TSelected,
+export type CanvasViewerSurfaceStoreHook = <TSelected>(
+  selector: (state: CanvasViewerSurfaceStore) => TSelected,
 ) => TSelected;
 
-export interface CanvasViewerSurfaceControllerDependencies<TToolDialog> {
-  eventPort: CanvasExternalDialogEventPort<TToolDialog>;
-  useStore: CanvasViewerSurfaceStoreHook<TToolDialog>;
+export interface CanvasViewerSurfaceControllerDependencies {
+  eventPort: CanvasExternalDialogEventPort;
+  useStore: CanvasViewerSurfaceStoreHook;
 }
 
 export interface CanvasViewerSurfaceController {
@@ -34,10 +35,10 @@ export interface CanvasViewerSurfaceController {
   videoViewerProps: VideoViewerModalProps;
 }
 
-export function createUseCanvasViewerSurfaceController<TToolDialog>({
+export function createUseCanvasViewerSurfaceController({
   eventPort,
   useStore,
-}: CanvasViewerSurfaceControllerDependencies<TToolDialog>) {
+}: CanvasViewerSurfaceControllerDependencies) {
   return function useCanvasViewerSurfaceController(): CanvasViewerSurfaceController {
     const imageViewer = useStore((state) => state.imageViewer);
     const closeImageViewer = useStore((state) => state.closeImageViewer);

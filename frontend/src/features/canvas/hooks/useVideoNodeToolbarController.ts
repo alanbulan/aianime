@@ -2,13 +2,13 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   analyzeCanvasVideoStory,
   buildSeparatedVideoNodeData,
   buildVideoAnalysisStoryNodeData,
   buildVideoUpscaleNodeData,
+  canvasEventBus,
   projectVideoNodeToolbar,
   separateCanvasAudioVideo,
   type VideoSubtitleEraseMode,

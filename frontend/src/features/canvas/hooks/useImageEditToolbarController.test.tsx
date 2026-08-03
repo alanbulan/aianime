@@ -20,7 +20,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/application/canvasServices", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   canvasEventBus: { publish: mocks.publish },
 }));
 

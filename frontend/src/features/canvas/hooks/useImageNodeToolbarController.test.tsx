@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CANVAS_NODE_TYPES,
-  NODE_TOOL_TYPES,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
+import { NODE_TOOL_TYPES } from "@/modules/creative_canvas/public";
 
 import { useImageNodeToolbarController } from "./useImageNodeToolbarController";
 
@@ -22,7 +22,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/application/canvasServices", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   canvasEventBus: { publish: mocks.publish },
 }));
 

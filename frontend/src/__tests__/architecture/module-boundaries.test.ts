@@ -3212,10 +3212,6 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const services = readFileSync(
-      resolve(applicationRoot, "canvasServices.ts"),
-      "utf8",
-    );
     const regenerateExportNode = readFileSync(
       resolve(
         SRC_ROOT,
@@ -3459,7 +3455,6 @@ describe("frontend architecture boundaries", () => {
     expect(assetGateway).toContain("dataUrlToBlob(source)");
     expect(assetGateway).toContain("credentials: 'include'");
     expect(graphGateway).toContain("useCanvasStore.getState()");
-    expect(services).not.toContain("infrastructure/");
     expect(selectedBackgroundSlot).toContain(
       "graphGateway: CanvasGraphGateway",
     );
@@ -9181,7 +9176,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/composition",
-        "@/features/canvas/application/ports",
         "@/features/viewer-kit/useViewerImmersiveBody",
         "@/modules/creative_canvas/public",
         "../domain/canvasNodes",
@@ -10977,7 +10971,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "createUseCanvasViewerSurfaceController<",
+      "createUseCanvasViewerSurfaceController(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -11040,7 +11034,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasExternalDialogs<",
+      "useCanvasExternalDialogs(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
@@ -11054,7 +11048,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("eventPort.subscribe('tool-dialog/open'");
     expect(hookModel).toContain("const unsubscribeVideoOpen = eventPort.subscribe(");
     expect(hookModel).toContain("'video-viewer/open'");
-    expect(hookModel).toContain("CanvasExternalDialogEventMap<TToolDialog>");
+    expect(hookModel).toContain("Pick<CanvasEventBus, 'subscribe'>");
     expect(canvasView).toContain("from './composition'");
     expect(canvasView).not.toContain("./hooks/useCanvasViewerSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
@@ -23373,7 +23367,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/canvasServices",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
@@ -24057,7 +24050,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/canvasServices",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useHoverMenuController",
         "@/features/canvas/hooks/useImageMatteController",
@@ -24358,7 +24350,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/canvasServices",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
         "@/features/canvas/tools",
@@ -26381,6 +26372,100 @@ describe("frontend architecture boundaries", () => {
     ))).toContain("@/modules/creative_canvas/domain/canvasNodeLayering");
   });
 
+  it("owns Canvas node tools and interaction events in Creative Canvas", () => {
+    const nodeToolPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasNodeTool.ts",
+    );
+    const eventPortPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasEventBus.ts",
+    );
+    const eventAdapterPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/inMemoryCanvasEventBus.ts",
+    );
+    const eventCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasEventComposition.ts",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
+    const canvasNodesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodes.ts",
+    );
+    const legacyPortsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/ports.ts",
+    );
+    const nodeToolDeclaration = [
+      "export const",
+      "NODE_TOOL_TYPES =",
+    ].join(" ");
+    const eventBusDeclaration = [
+      "export const",
+      "canvasEventBus =",
+    ].join(" ");
+    const nodeToolOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(nodeToolDeclaration))
+      .map(relativeSource)
+      .sort();
+    const eventBusOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(eventBusDeclaration))
+      .map(relativeSource)
+      .sort();
+    const productionEventConsumers = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    )
+      .filter((path) => !/\.test\.(ts|tsx)$/.test(path))
+      .filter((path) => readFileSync(path, "utf8").includes("canvasEventBus"));
+
+    expect(importSpecifiers(nodeToolPath)).toEqual([]);
+    expect(importSpecifiers(eventPortPath)).toEqual([
+      "../domain/canvasNodeTool",
+    ]);
+    expect(importSpecifiers(eventAdapterPath)).toEqual([
+      "../application/canvasEventBus",
+    ]);
+    expect(importSpecifiers(eventCompositionPath)).toEqual([
+      "./infrastructure/inMemoryCanvasEventBus",
+    ]);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/canvasNodeTool",
+        "@/modules/creative_canvas/application/canvasEventBus",
+        "@/modules/creative_canvas/canvasEventComposition",
+      ]),
+    );
+    expect(nodeToolOwners).toEqual([
+      "modules/creative_canvas/domain/canvasNodeTool.ts",
+    ]);
+    expect(eventBusOwners).toEqual([
+      "modules/creative_canvas/canvasEventComposition.ts",
+    ]);
+    expect(productionEventConsumers.every((path) =>
+      importSpecifiers(path).includes("@/modules/creative_canvas/public")
+    )).toBe(true);
+    expect(readFileSync(canvasNodesPath, "utf8")).not.toContain(
+      "NODE_TOOL_TYPES",
+    );
+    expect(readFileSync(canvasNodesPath, "utf8")).not.toContain(
+      "ActiveToolDialog",
+    );
+    expect(readFileSync(legacyPortsPath, "utf8")).not.toContain(
+      "interface CanvasEventBus",
+    );
+    for (const legacyPath of [
+      "features/canvas/application/eventBus.ts",
+      "features/canvas/application/canvasServices.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
+  });
+
   it("keeps Canvas system clipboard access in one browser adapter", () => {
     const adapterPath = resolve(
       SRC_ROOT,
@@ -27065,7 +27150,7 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(importSpecifiers(slicePath)).toEqual([
-      "../domain/canvasNodes",
+      "@/modules/creative_canvas/public",
     ]);
     expect(canvasStateHeader).toContain("CanvasSelectionSlice");
     expect(canvasStore).toContain(

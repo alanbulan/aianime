@@ -2,12 +2,10 @@
 import { create } from 'zustand';
 
 import {
-  type ActiveToolDialog,
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
-  type NodeToolType,
 } from '@/features/canvas/domain/canvasNodes';
 import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 import {
@@ -60,12 +58,10 @@ import {
 } from '@/features/canvas/infrastructure/zustandCanvasSelectionSlice';
 
 export type {
-  ActiveToolDialog,
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
   CanvasNodeType,
-  NodeToolType,
   StoryboardFrameItem,
 };
 

@@ -5,12 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
 import {
-  NODE_TOOL_TYPES,
   resolveNodeSourceImageUrl,
-  type NodeToolType,
 } from '@/features/canvas/domain/canvasNodes';
-import { EXPORT_RESULT_DISPLAY_NAME } from '@/modules/creative_canvas/public';
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
+import {
+  canvasEventBus,
+  EXPORT_RESULT_DISPLAY_NAME,
+  NODE_TOOL_TYPES,
+  type NodeToolType,
+} from '@/modules/creative_canvas/public';
 import {
   canvasToolProcessor,
   prepareNodeImage,

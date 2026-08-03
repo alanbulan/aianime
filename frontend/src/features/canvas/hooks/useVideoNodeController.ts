@@ -34,7 +34,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   extractUpstreamContent,
   joinUpstreamText,
@@ -53,7 +52,10 @@ import {
   type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+import {
+  canvasEventBus,
+  resolveNodeDisplayName,
+} from '@/modules/creative_canvas/public';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {

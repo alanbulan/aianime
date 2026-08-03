@@ -72,6 +72,19 @@ vi.mock('@/modules/creative_canvas/public', async () => {
   );
   return {
     ...actual,
+    canvasEventBus: {
+      subscribe: (topic: string, subscriber: (payload: unknown) => void) => {
+        const subscribers = mocks.subscribers.get(topic) ?? new Set();
+        subscribers.add(subscriber);
+        mocks.subscribers.set(topic, subscribers);
+        return () => subscribers.delete(subscriber);
+      },
+      publish: vi.fn((topic: string, payload: unknown) => {
+        for (const subscriber of mocks.subscribers.get(topic) ?? []) {
+          subscriber(payload);
+        }
+      }),
+    },
     hasMainlineContexts: (value: unknown) => Array.isArray(value) && value.length > 0,
   };
 });
@@ -92,22 +105,6 @@ vi.mock('@/features/canvas/composition', () => ({
   ) => mocks.uploadLocalImageToBackend(projectId, dataUrl, filename),
   getCanvasBeatDirectorManifest: (command: unknown) =>
     mocks.getCanvasBeatDirectorManifest(command),
-}));
-
-vi.mock('@/features/canvas/application/canvasServices', () => ({
-  canvasEventBus: {
-    subscribe: (topic: string, subscriber: (payload: unknown) => void) => {
-      const subscribers = mocks.subscribers.get(topic) ?? new Set();
-      subscribers.add(subscriber);
-      mocks.subscribers.set(topic, subscribers);
-      return () => subscribers.delete(subscriber);
-    },
-    publish: vi.fn((topic: string, payload: unknown) => {
-      for (const subscriber of mocks.subscribers.get(topic) ?? []) {
-        subscriber(payload);
-      }
-    }),
-  },
 }));
 
 function data(

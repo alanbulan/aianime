@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   CANVAS_NODE_TYPES,
-  NODE_TOOL_TYPES,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
+import { NODE_TOOL_TYPES } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 function sourceNode(): CanvasNode {

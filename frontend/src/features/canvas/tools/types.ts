@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode, NodeToolType } from '../domain/canvasNodes';
+import type { CanvasNode } from '../domain/canvasNodes';
+import type { NodeToolType } from '@/modules/creative_canvas/public';
 import type { ToolProcessorResult } from '../application/ports';
 
 export type ToolOptionPrimitive = string | number | boolean;
