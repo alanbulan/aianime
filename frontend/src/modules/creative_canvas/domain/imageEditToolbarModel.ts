@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-
 export type ImageEditToolbarActionKey =
   | "repaint"
   | "erase"

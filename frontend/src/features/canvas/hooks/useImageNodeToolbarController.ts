@@ -3,13 +3,17 @@ import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
-import { projectImageNodeToolbar } from "@/features/canvas/application/imageNodeToolbarModel";
 import {
   NODE_TOOL_TYPES,
+  isImageEditNode,
+  resolveNodeSourceImageUrl,
   type CanvasNode,
   type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/modules/creative_canvas/public";
+import {
+  projectImageNodeToolbar,
+  type GridActionRequest,
+} from "@/modules/creative_canvas/public";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 
 export interface ImageNodeToolbarControllerOptions {
@@ -43,7 +47,12 @@ export function useImageNodeToolbarController({
 }: ImageNodeToolbarControllerOptions) {
   const { t, i18n } = useTranslation();
   const projection = useMemo(
-    () => projectImageNodeToolbar(node, isPresetLocked),
+    () =>
+      projectImageNodeToolbar(
+        resolveNodeSourceImageUrl(node),
+        isImageEditNode(node),
+        isPresetLocked,
+      ),
     [isPresetLocked, node],
   );
   const plugins = useMemo(() => getNodeToolPlugins(node), [node]);

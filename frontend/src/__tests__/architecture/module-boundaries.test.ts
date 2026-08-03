@@ -23324,11 +23324,11 @@ describe("frontend architecture boundaries", () => {
   it("separates image grid toolbar requests, interaction, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageGridToolbarModel.ts",
+      "modules/creative_canvas/domain/imageGridToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageGridToolbarModel.test.ts",
+      "modules/creative_canvas/domain/imageGridToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -23375,9 +23375,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(modelPath)).toEqual([
-      "@/modules/creative_canvas/public",
-    ]);
+    expect(importSpecifiers(modelPath)).toEqual(["./gridAction"]);
     for (const forbiddenDependency of [
       "react",
       "window",
@@ -23395,7 +23393,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/imageGridToolbarModel",
         "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useHoverMenuController",
       ]),
@@ -23446,7 +23443,7 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/imageGridToolbarModel.ts"],
+      ["modules/creative_canvas/domain/imageGridToolbarModel.ts"],
       ["features/canvas/hooks/useImageGridToolbarController.ts"],
       ["features/canvas/ui/ImageGridToolbarActionsView.tsx"],
     ]);
@@ -23456,16 +23453,24 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageGridToolbarController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGridToolbarModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageGridToolbarModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates image edit toolbar rules, interaction, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageEditToolbarModel.ts",
+      "modules/creative_canvas/domain/imageEditToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageEditToolbarModel.test.ts",
+      "modules/creative_canvas/domain/imageEditToolbarModel.test.ts",
     );
     const hoverControllerPath = resolve(
       SRC_ROOT,
@@ -23547,11 +23552,11 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/imageEditToolbarModel",
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useHoverMenuController",
         "@/features/canvas/hooks/useImageMatteController",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).toContain("useHoverMenuController()");
@@ -23612,7 +23617,7 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/imageEditToolbarModel.ts"],
+      ["modules/creative_canvas/domain/imageEditToolbarModel.ts"],
       ["features/canvas/hooks/useHoverMenuController.ts"],
       ["features/canvas/hooks/useImageEditToolbarController.ts"],
       ["features/canvas/ui/ImageEditToolbarActionsView.tsx"],
@@ -23623,16 +23628,24 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageEditToolbarController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditToolbarModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditToolbarModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates image matting projections from browser orchestration", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageMatteNodeModel.ts",
+      "modules/creative_canvas/domain/imageMatteNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageMatteNodeModel.test.ts",
+      "modules/creative_canvas/domain/imageMatteNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -23673,12 +23686,9 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(new Set(importSpecifiers(modelPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-      ]),
-    );
+    expect(importSpecifiers(modelPath)).toEqual(["./inheritMainlineFields"]);
+    expect(modelSource).not.toContain("@/features/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
     for (const forbiddenDependency of [
       "react",
       "window",
@@ -23697,11 +23707,11 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/imageMatteNodeModel",
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/infrastructure/matteClient",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -23734,10 +23744,10 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/imageMatteNodeModel.ts"],
-      ["features/canvas/application/imageMatteNodeModel.ts"],
-      ["features/canvas/application/imageMatteNodeModel.ts"],
-      ["features/canvas/application/imageMatteNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
       ["features/canvas/hooks/useImageMatteController.ts"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
@@ -23746,16 +23756,24 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageMatteController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageMatteNodeModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageMatteNodeModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates image node toolbar projection, commands, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageNodeToolbarModel.ts",
+      "modules/creative_canvas/domain/imageNodeToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageNodeToolbarModel.test.ts",
+      "modules/creative_canvas/domain/imageNodeToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -23815,9 +23833,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(modelPath)).toEqual([
-      "@/features/canvas/domain/canvasNodes",
-    ]);
+    expect(importSpecifiers(modelPath)).toEqual([]);
     for (const forbiddenDependency of [
       "react",
       "window",
@@ -23838,7 +23854,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/application/canvasServices",
-        "@/features/canvas/application/imageNodeToolbarModel",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
         "@/features/canvas/tools",
@@ -23930,7 +23945,7 @@ describe("frontend architecture boundaries", () => {
     expect(toolDialogSource).toContain("t(activePlugin.labelKey)");
     expect(toolDialogSource).not.toContain("resolveToolLabel");
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/imageNodeToolbarModel.ts"],
+      ["modules/creative_canvas/domain/imageNodeToolbarModel.ts"],
       ["features/canvas/hooks/useImageNodeToolbarController.ts"],
       ["features/canvas/ui/ImageNodeToolbarActionsView.tsx"],
       ["features/canvas/ui/NodeToolbarIconChip.tsx"],
@@ -23941,6 +23956,14 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageNodeToolbarController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeToolbarModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeToolbarModel.test.ts",
+    ))).toBe(false);
   });
 
   it("does not retain commented-out node actions as production dead code", () => {

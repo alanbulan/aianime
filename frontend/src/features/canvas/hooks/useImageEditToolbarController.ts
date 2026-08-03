@@ -2,10 +2,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  projectImageEditToolbar,
-  type ImageEditToolbarActionKey,
-} from "@/features/canvas/application/imageEditToolbarModel";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import {
   NODE_TOOL_TYPES,
@@ -13,6 +9,10 @@ import {
 } from "@/features/canvas/domain/canvasNodes";
 import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 import { useImageMatteController } from "@/features/canvas/hooks/useImageMatteController";
+import {
+  projectImageEditToolbar,
+  type ImageEditToolbarActionKey,
+} from "@/modules/creative_canvas/public";
 
 export interface ImageEditToolbarControllerOptions {
   projectId: string;

@@ -1,12 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect } from "react";
 
-import {
-  buildImageMatteFailurePatch,
-  buildImageMatteInitialData,
-  buildImageMatteSuccessPatch,
-  resolveImageMatteUploadFilename,
-} from "@/features/canvas/application/imageMatteNodeModel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
@@ -19,6 +13,12 @@ import {
   matteInWorker,
   preloadMatteWorker,
 } from "@/features/canvas/infrastructure/matteClient";
+import {
+  buildImageMatteFailurePatch,
+  buildImageMatteInitialData,
+  buildImageMatteSuccessPatch,
+  resolveImageMatteUploadFilename,
+} from "@/modules/creative_canvas/public";
 
 export interface ImageMatteControllerOptions {
   projectId: string;

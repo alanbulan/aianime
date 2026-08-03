@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+
 import { describe, expect, it } from "vitest";
 
 import { projectImageGridToolbarActions } from "./imageGridToolbarModel";

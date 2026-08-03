@@ -1,30 +1,40 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasNodeData,
-  ExportImageNodeData,
-} from "@/features/canvas/domain/canvasNodes";
 import {
   inheritMainlineFields,
   type MainlineFieldsSource,
-} from "@/modules/creative_canvas/public";
+} from "./inheritMainlineFields";
+
+type ImageMatteSourceData = Omit<
+  MainlineFieldsSource,
+  "committed_slot_url"
+> & {
+  aspectRatio?: unknown;
+  committed_slot_url?: string | null;
+};
+
+export interface ImageMatteNodePatch extends Record<string, unknown> {
+  displayName?: string;
+  imageUrl?: string | null;
+  previewImageUrl?: string | null;
+  aspectRatio?: string;
+  resultKind?: "matte";
+  isGenerating?: boolean;
+  generationStartedAt?: number | null;
+  generationError?: string | null;
+  generationErrorDetails?: string | null;
+}
 
 export function buildImageMatteInitialData(
-  sourceData: CanvasNodeData,
+  sourceData: object,
   displayName: string,
   generationStartedAt: number,
-): Partial<ExportImageNodeData> {
+) {
+  const source = sourceData as ImageMatteSourceData;
   const aspectRatio =
-    typeof (sourceData as { aspectRatio?: unknown }).aspectRatio === "string"
-      ? ((sourceData as { aspectRatio: string }).aspectRatio || "1:1")
+    typeof source.aspectRatio === "string"
+      ? source.aspectRatio || "1:1"
       : "1:1";
-
-  const source = sourceData as {
-    mainline_context?: MainlineFieldsSource["mainline_context"];
-    slot_target?: MainlineFieldsSource["slot_target"];
-    committed_slot_url?: string | null;
-    projection_key?: string;
-  };
-  const childPatch: Partial<ExportImageNodeData> = {
+  const childPatch: ImageMatteNodePatch = {
     displayName,
     imageUrl: null,
     previewImageUrl: null,
@@ -49,7 +59,7 @@ export function buildImageMatteInitialData(
 
 export function buildImageMatteSuccessPatch(
   imageUrl: string,
-): Partial<ExportImageNodeData> {
+): ImageMatteNodePatch {
   return {
     imageUrl,
     previewImageUrl: imageUrl,
@@ -62,7 +72,7 @@ export function buildImageMatteSuccessPatch(
 
 export function buildImageMatteFailurePatch(
   message: string,
-): Partial<ExportImageNodeData> {
+): ImageMatteNodePatch {
   return {
     isGenerating: false,
     generationStartedAt: null,

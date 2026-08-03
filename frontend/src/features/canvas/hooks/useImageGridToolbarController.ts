@@ -6,10 +6,10 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 
-import { projectImageGridToolbarActions } from "@/features/canvas/application/imageGridToolbarModel";
-import type {
-  GridActionKey,
-  GridActionRequest,
+import {
+  projectImageGridToolbarActions,
+  type GridActionKey,
+  type GridActionRequest,
 } from "@/modules/creative_canvas/public";
 import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 

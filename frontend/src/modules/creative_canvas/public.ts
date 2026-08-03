@@ -696,6 +696,22 @@ export type {
   ImageEditPromptSegment,
   ImageEditSourceMeta,
 } from "@/modules/creative_canvas/domain/imageEditNodeModel";
+export { projectImageEditToolbar } from "@/modules/creative_canvas/domain/imageEditToolbarModel";
+export type {
+  ImageEditToolbarActionKey,
+  ImageEditToolbarActionProjection,
+  ImageEditToolbarProjection,
+} from "@/modules/creative_canvas/domain/imageEditToolbarModel";
+export { projectImageGridToolbarActions } from "@/modules/creative_canvas/domain/imageGridToolbarModel";
+export { projectImageNodeToolbar } from "@/modules/creative_canvas/domain/imageNodeToolbarModel";
+export type { ImageNodeToolbarProjection } from "@/modules/creative_canvas/domain/imageNodeToolbarModel";
+export {
+  buildImageMatteFailurePatch,
+  buildImageMatteInitialData,
+  buildImageMatteSuccessPatch,
+  resolveImageMatteUploadFilename,
+} from "@/modules/creative_canvas/domain/imageMatteNodeModel";
+export type { ImageMatteNodePatch } from "@/modules/creative_canvas/domain/imageMatteNodeModel";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,

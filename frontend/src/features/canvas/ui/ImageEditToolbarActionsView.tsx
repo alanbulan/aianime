@@ -16,8 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
-import type { ImageEditToolbarActionKey } from "@/features/canvas/application/imageEditToolbarModel";
 import type { ImageEditToolbarController } from "@/features/canvas/hooks/useImageEditToolbarController";
+import type { ImageEditToolbarActionKey } from "@/modules/creative_canvas/public";
 
 import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

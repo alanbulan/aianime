@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { CanvasNodeData } from "@/features/canvas/domain/canvasNodes";
-
 import {
   buildImageMatteFailurePatch,
   buildImageMatteInitialData,
@@ -21,7 +19,7 @@ describe("imageMatteNodeModel", () => {
         projection_key: "projection-a",
         mainline_context: mainlineContext,
         committed_slot_url: "/canonical.png",
-      } as CanvasNodeData,
+      },
       "抠图",
       1234,
     );
@@ -46,7 +44,7 @@ describe("imageMatteNodeModel", () => {
   it("falls back the source aspect and projects terminal patches", () => {
     expect(
       buildImageMatteInitialData(
-        { imageUrl: "/source.png" } as CanvasNodeData,
+        { imageUrl: "/source.png" },
         "抠图",
         1,
       ),
