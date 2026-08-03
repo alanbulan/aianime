@@ -13272,7 +13272,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas group graph rules out of the Zustand store", () => {
     const deletionPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/groupSelectionDelete.ts",
+      "modules/creative_canvas/domain/canvasNodeDeletion.ts",
     );
     const storyboardPath = resolve(
       SRC_ROOT,
@@ -13303,6 +13303,18 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const multiSelectionToolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/MultiSelectionToolbar.tsx",
+    );
+    const multiSelectionToolbar = readFileSync(
+      multiSelectionToolbarPath,
+      "utf8",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const forbiddenImports = [
       deletionPath,
       storyboardPath,
@@ -13317,7 +13329,7 @@ describe("frontend architecture boundaries", () => {
     );
     const deletionDeclaration = [
       "export function",
-      "deleteCanvasNodes(",
+      "deleteCanvasNodes<",
     ].join(" ");
     const deletionOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -13338,22 +13350,42 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(deletionOwners).toEqual([
-      "features/canvas/domain/groupSelectionDelete.ts",
+      "modules/creative_canvas/domain/canvasNodeDeletion.ts",
     ]);
     expect(removalOwners).toEqual([
       "features/canvas/domain/canvasGroupRemoval.ts",
     ]);
     expect(deletionModel).toContain(
-      "export function collectNodeIdsWithDescendants(",
+      "export function collectNodeIdsWithDescendants<",
     );
     expect(deletionModel).toContain(deletionDeclaration);
+    expect(importSpecifiers(deletionPath)).toEqual(["./mainlineNodeFlags"]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/canvasNodeDeletion",
+    );
     expect(storyboardModel).toContain(
       "export function restoreStoryboardEdges(",
     );
     expect(removalModel).toContain(removalDeclaration);
     expect(nodeDeletionSlice).toContain(
-      "../domain/groupSelectionDelete",
+      "@/modules/creative_canvas/public",
     );
+    expect(nodeDeletionSlice).toContain("../domain/canvasGeometry");
+    expect(multiSelectionToolbar).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(multiSelectionToolbar).not.toContain(
+      "@/features/canvas/domain/groupSelectionDelete",
+    );
+    for (const retiredDeletionPath of [
+      "features/canvas/domain/groupSelectionDelete.ts",
+      "__tests__/features/canvas/group-selection-delete.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredDeletionPath)),
+        retiredDeletionPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/groupSelectionDelete",
     );
@@ -25049,7 +25081,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../domain/groupSelectionDelete",
+      "../domain/canvasGeometry",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeDeletionSlice");
     expect(canvasStore).toContain(

@@ -6,6 +6,7 @@ import {
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
 import {
+  deleteCanvasNodes,
   isDeleteToEmpty,
   trackEdit,
   type CanvasMutationSource,
@@ -16,7 +17,7 @@ import type {
   CanvasEdge,
   CanvasNode,
 } from '../domain/canvasNodes';
-import { deleteCanvasNodes } from '../domain/groupSelectionDelete';
+import { resolveAbsolutePosition } from '../domain/canvasGeometry';
 
 export interface CanvasNodeDeletionSlice {
   deleteNode: (nodeId: string) => void;
@@ -42,7 +43,12 @@ export function createZustandCanvasNodeDeletionSlice(
 ): CanvasNodeDeletionSlice {
   const commitDeletion = (nodeIds: string[]): void => {
     const state = dependencies.getState();
-    const result = deleteCanvasNodes(state.nodes, state.edges, nodeIds);
+    const result = deleteCanvasNodes(
+      state.nodes,
+      state.edges,
+      nodeIds,
+      resolveAbsolutePosition,
+    );
     if (!result) {
       return;
     }

@@ -25,7 +25,7 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { computeAutoLayout } from '@/features/canvas/application/autoLayout';
-import { collectBatchDeletableIds } from '@/features/canvas/domain/groupSelectionDelete';
+import { collectBatchDeletableIds } from '@/modules/creative_canvas/public';
 
 // 合并分镜组只接受图片类节点。
 const STORYBOARD_IMAGE_NODE_TYPES = new Set<string>([
@@ -50,6 +50,10 @@ const MULTI_TOOLBAR_MENU_ITEM_CLASS =
   'flex h-11 w-full items-center gap-2.5 rounded-[10px] px-3 text-left text-sm text-foreground transition-colors hover:bg-muted';
 
 type ArrangeMode = 'graph' | 'horizontal' | 'vertical';
+
+function isCanvasGroupNode(node: CanvasNode): boolean {
+  return node.type === CANVAS_NODE_TYPES.group;
+}
 
 function getNodeSize(node: CanvasNode): { width: number; height: number } {
   return {
@@ -116,7 +120,7 @@ export const MultiSelectionToolbar = memo(() => {
   // double-move them), so we also re-include any group whose every child is
   // selected — otherwise a batch delete empties the group but leaves its frame.
   const deletableIds = useMemo(
-    () => collectBatchDeletableIds(nodes, selectedIds),
+    () => collectBatchDeletableIds(nodes, selectedIds, isCanvasGroupNode),
     [nodes, selectedIds]
   );
 

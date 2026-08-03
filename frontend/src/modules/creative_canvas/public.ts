@@ -146,6 +146,17 @@ export type {
   CanvasEdgeDeletionLike,
 } from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
 export {
+  collectBatchDeletableIds,
+  collectNodeIdsWithDescendants,
+  deleteCanvasNodes,
+} from "@/modules/creative_canvas/domain/canvasNodeDeletion";
+export type {
+  CanvasNodeDeletionEdge,
+  CanvasNodeDeletionNode,
+  CanvasNodeDeletionResult,
+  ResolveCanvasNodeAbsolutePosition,
+} from "@/modules/creative_canvas/domain/canvasNodeDeletion";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";

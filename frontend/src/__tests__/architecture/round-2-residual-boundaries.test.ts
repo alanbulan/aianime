@@ -177,6 +177,8 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasSelection.test.ts",
       "canvasSelectionDeletion.ts",
       "canvasSelectionDeletion.test.ts",
+      "canvasNodeDeletion.ts",
+      "canvasNodeDeletion.test.ts",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -1886,7 +1888,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 638],
+      ["features/canvas", 637],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
