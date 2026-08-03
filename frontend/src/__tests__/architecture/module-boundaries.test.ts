@@ -8840,10 +8840,12 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasClipboard.ts",
       "features/canvas/application/createCanvasClipboardSnapshot.ts",
       "features/canvas/application/createCanvasClipboardSnapshot.test.ts",
+      "features/canvas/hooks/useCanvasNodeClipboard.ts",
+      "features/canvas/hooks/useCanvasNodeClipboard.test.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeClipboard.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeClipboard.ts",
     );
     const builderModel = readFileSync(builderPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
@@ -8874,9 +8876,8 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const controllerDeclaration = [
       "export function",
@@ -8886,6 +8887,10 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "createCanvasClipboardSnapshot<",
     ].join(" ");
+    const hookDeclaration = [
+      "export function",
+      "useCanvasNodeClipboard<",
+    ].join(" ");
     const builderOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(builderDeclaration))
       .map(relativeSource)
@@ -8894,11 +8899,18 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(controllerDeclaration))
       .map(relativeSource)
       .sort();
+    const hookOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
 
     expect(builderForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
     expect(builderOwners).toEqual([
       "modules/creative_canvas/application/createCanvasClipboardSnapshot.ts",
+    ]);
+    expect(hookOwners).toEqual([
+      "modules/creative_canvas/presentation/useCanvasNodeClipboard.ts",
     ]);
     expect(controllerOwners).toEqual([
       "features/canvas/hooks/useCanvasClipboardController.ts",
@@ -8912,9 +8924,11 @@ describe("frontend architecture boundaries", () => {
     expect(builderModel).toContain(
       "cloneNode(node, { selected: false, dragging: false })",
     );
-    expect(hookModel).toContain("sharedCanvasNodeClipboard");
+    expect(hookModel).toContain("session.read()");
+    expect(hookModel).toContain("session.write(snapshot)");
     expect(hookModel).toContain("queueSnapshotPaste(() =>");
-    expect(controllerModel).toContain("./useCanvasNodeClipboard");
+    expect(controllerModel).not.toContain("./useCanvasNodeClipboard");
+    expect(controllerModel).toContain("session: canvasNodeClipboardSession");
     expect(controllerModel).toContain("createCanvasClipboardSnapshot({");
     expect(controllerModel).toContain("data: cloneCanvasNodeData(node.data)");
     expect(controllerModel).toContain("@/modules/creative_canvas/public");
@@ -25481,7 +25495,7 @@ describe("frontend architecture boundaries", () => {
     const clipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasNodeClipboard.ts",
+        "modules/creative_canvas/presentation/useCanvasNodeClipboard.ts",
       ),
       "utf8",
     );

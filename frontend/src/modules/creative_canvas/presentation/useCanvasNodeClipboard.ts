@@ -1,17 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import type { CanvasClipboardSession } from '../application/canvasClipboardSession';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 
-type CanvasNodeClipboardSnapshot = CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
-
-let sharedCanvasNodeClipboard: CanvasNodeClipboardSnapshot | null = null;
-
-export interface CanvasNodeClipboardOptions {
-  createSnapshot: () => CanvasNodeClipboardSnapshot | null;
+export interface CanvasNodeClipboardOptions<TNode, TEdge> {
+  session: CanvasClipboardSession<TNode, TEdge>;
+  createSnapshot: () => CanvasClipboardSnapshot<TNode, TEdge> | null;
   pasteSnapshot: (
-    snapshot: CanvasNodeClipboardSnapshot,
+    snapshot: CanvasClipboardSnapshot<TNode, TEdge>,
     targetPosition?: { x: number; y: number },
   ) => void;
   queueSnapshotPaste: (pasteSnapshot: () => void) => void;
@@ -26,15 +23,16 @@ export interface CanvasNodeClipboardController {
   pasteAt: (position: { x: number; y: number }) => void;
 }
 
-export function useCanvasNodeClipboard({
+export function useCanvasNodeClipboard<TNode, TEdge>({
+  session,
   createSnapshot,
   pasteSnapshot,
   queueSnapshotPaste,
   resetPasteIteration,
   clearSystemClipboard,
-}: CanvasNodeClipboardOptions): CanvasNodeClipboardController {
-  const snapshotRef = useRef<CanvasNodeClipboardSnapshot | null>(
-    sharedCanvasNodeClipboard,
+}: CanvasNodeClipboardOptions<TNode, TEdge>): CanvasNodeClipboardController {
+  const snapshotRef = useRef<CanvasClipboardSnapshot<TNode, TEdge> | null>(
+    session.read(),
   );
 
   const hasCopiedNodes = useCallback(
@@ -47,10 +45,10 @@ export function useCanvasNodeClipboard({
       return;
     }
     snapshotRef.current = snapshot;
-    sharedCanvasNodeClipboard = snapshot;
+    session.write(snapshot);
     resetPasteIteration();
     void clearSystemClipboard().catch(() => undefined);
-  }, [clearSystemClipboard, createSnapshot, resetPasteIteration]);
+  }, [clearSystemClipboard, createSnapshot, resetPasteIteration, session]);
   const pasteSelection = useCallback(() => {
     queueSnapshotPaste(() => {
       const snapshot = snapshotRef.current;

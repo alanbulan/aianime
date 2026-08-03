@@ -544,6 +544,13 @@ export type {
   CreateCanvasClipboardSnapshotParams,
 } from "@/modules/creative_canvas/application/createCanvasClipboardSnapshot";
 export type { CanvasClipboardSnapshot } from "@/modules/creative_canvas/domain/canvasClipboard";
+export { createCanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
+export type { CanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
+export { useCanvasNodeClipboard } from "@/modules/creative_canvas/presentation/useCanvasNodeClipboard";
+export type {
+  CanvasNodeClipboardController,
+  CanvasNodeClipboardOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeClipboard";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

@@ -8,7 +8,12 @@ import {
   clearBrowserClipboard,
   migratePastedNodeAssets,
 } from '@/features/canvas/composition';
-import { createCanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+import {
+  createCanvasClipboardSession,
+  createCanvasClipboardSnapshot,
+  useCanvasNodeClipboard,
+  type CanvasNodeClipboardController,
+} from '@/modules/creative_canvas/public';
 import { cloneCanvasNodeData } from '../application/canvasNodeData';
 import type {
   CanvasEdge,
@@ -22,10 +27,11 @@ import {
   type CanvasClipboardNodeDimensionCommit,
   type CanvasClipboardNodeSelectionCommit,
 } from './useCanvasClipboardDuplicationController';
-import {
-  useCanvasNodeClipboard,
-  type CanvasNodeClipboardController,
-} from './useCanvasNodeClipboard';
+
+const canvasNodeClipboardSession = createCanvasClipboardSession<
+  CanvasNode,
+  CanvasEdge
+>();
 
 function reportCanvasClipboardMigrationError(error: unknown): void {
   console.warn('[canvas] cross-project asset migration failed', error);
@@ -141,6 +147,7 @@ export function useCanvasClipboardController({
     [currentProject, edges, nodes, selectedNodeIds],
   );
   const nodeClipboard = useCanvasNodeClipboard({
+    session: canvasNodeClipboardSession,
     createSnapshot,
     pasteSnapshot: pasteFromClipboard,
     queueSnapshotPaste,

@@ -2,37 +2,39 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import { createCanvasClipboardSession } from '../application/canvasClipboardSession';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 import {
   useCanvasNodeClipboard,
   type CanvasNodeClipboardOptions,
 } from './useCanvasNodeClipboard';
 
-type TestClipboardSnapshot = CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
+interface TestNode {
+  id: string;
+}
 
-function snapshot(id: string): TestClipboardSnapshot {
+interface TestEdge {
+  source: string;
+  target: string;
+}
+
+type TestSnapshot = CanvasClipboardSnapshot<TestNode, TestEdge>;
+type TestOptions = CanvasNodeClipboardOptions<TestNode, TestEdge>;
+
+function snapshot(id: string): TestSnapshot {
   return {
-    nodes: [{
-      id,
-      type: CANVAS_NODE_TYPES.textAnnotation,
-      position: { x: 0, y: 0 },
-      data: { content: '' },
-    } as CanvasNode],
+    nodes: [{ id }],
     edges: [],
     sourceProject: 'project-1',
   };
 }
 
 function createOptions(
-  currentSnapshot: TestClipboardSnapshot,
-  overrides: Partial<CanvasNodeClipboardOptions> = {},
-): CanvasNodeClipboardOptions {
+  currentSnapshot: TestSnapshot,
+  overrides: Partial<TestOptions> = {},
+): TestOptions {
   return {
+    session: createCanvasClipboardSession(),
     createSnapshot: vi.fn(() => currentSnapshot),
     pasteSnapshot: vi.fn(),
     queueSnapshotPaste: vi.fn((paste) => paste()),
@@ -51,6 +53,7 @@ describe('useCanvasNodeClipboard', () => {
     act(() => result.current.copySelection());
 
     expect(result.current.hasCopiedNodes()).toBe(true);
+    expect(options.session.read()).toBe(currentSnapshot);
     expect(options.resetPasteIteration).toHaveBeenCalledOnce();
     expect(options.clearSystemClipboard).toHaveBeenCalledOnce();
   });
@@ -77,12 +80,13 @@ describe('useCanvasNodeClipboard', () => {
 
   it('restores the shared snapshot when a new canvas mounts', () => {
     const currentSnapshot = snapshot('node-3');
-    const firstOptions = createOptions(currentSnapshot);
+    const session = createCanvasClipboardSession<TestNode, TestEdge>();
+    const firstOptions = createOptions(currentSnapshot, { session });
     const first = renderHook(() => useCanvasNodeClipboard(firstOptions));
     act(() => first.result.current.copySelection());
     first.unmount();
 
-    const secondOptions = createOptions(snapshot('unused'));
+    const secondOptions = createOptions(snapshot('unused'), { session });
     const second = renderHook(() => useCanvasNodeClipboard(secondOptions));
 
     expect(second.result.current.hasCopiedNodes()).toBe(true);
