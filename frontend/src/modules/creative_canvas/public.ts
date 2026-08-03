@@ -300,9 +300,17 @@ export type {
   GroupNodeScopedNode,
   GroupNodeSnapGuides,
   GroupNodeSnapNode,
+} from "@/modules/creative_canvas/presentation/useGroupNodeController";
+export {
+  getStoryboardCellPreview,
+} from "@/modules/creative_canvas/domain/storyboardCellPreview";
+export type {
   StoryboardCellKind,
   StoryboardCellPreview,
-} from "@/modules/creative_canvas/presentation/useGroupNodeController";
+  StoryboardCellPreviewNode,
+  StoryboardCellPreviewPorts,
+  StoryboardCellPreviewTypeCatalog,
+} from "@/modules/creative_canvas/domain/storyboardCellPreview";
 export {
   GroupNodeView,
 } from "@/modules/creative_canvas/presentation/GroupNodeView";

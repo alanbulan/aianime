@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CanvasAsset } from '@/modules/creative_canvas/domain/canvasAsset';
+import type { StoryboardCellPreview } from '@/modules/creative_canvas/domain/storyboardCellPreview';
 import {
   STORYBOARD_CELL_GAP,
   STORYBOARD_HEADER_PADDING,
@@ -48,20 +49,6 @@ export interface GroupNodeScopedNode extends GroupNodeSnapNode {
   parentId?: string;
   type?: string;
   data?: unknown;
-}
-
-export type StoryboardCellKind =
-  | 'image'
-  | 'video'
-  | 'audio'
-  | 'script'
-  | 'empty';
-
-export interface StoryboardCellPreview {
-  nodeId: string;
-  kind: StoryboardCellKind;
-  imageUrl: string | null;
-  label: string;
 }
 
 export interface GroupNodeSnapGuides {

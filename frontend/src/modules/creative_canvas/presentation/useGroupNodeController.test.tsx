@@ -3,13 +3,13 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CanvasAsset } from '@/modules/creative_canvas/domain/canvasAsset';
+import type { StoryboardCellPreview } from '@/modules/creative_canvas/domain/storyboardCellPreview';
 
 import {
   useGroupNodeController,
   type GroupNodeControllerPorts,
   type GroupNodePresentationData,
   type GroupNodeScopedNode,
-  type StoryboardCellPreview,
 } from './useGroupNodeController';
 
 const projectionMocks = vi.hoisted(() => ({

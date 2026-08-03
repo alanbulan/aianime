@@ -1,10 +1,4 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  resolveNodeSourceImageUrl,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-
 export type StoryboardCellKind = 'image' | 'video' | 'audio' | 'script' | 'empty';
 
 export interface StoryboardCellPreview {
@@ -13,6 +7,27 @@ export interface StoryboardCellPreview {
   /** Resolved thumbnail URL (image, or a video poster). Null → render a placeholder. */
   imageUrl: string | null;
   label: string;
+}
+
+export interface StoryboardCellPreviewNode {
+  id: string;
+  type?: string;
+  data?: unknown;
+}
+
+export interface StoryboardCellPreviewTypeCatalog {
+  video: readonly string[];
+  storyboard: readonly string[];
+  audio: readonly string[];
+  script: readonly string[];
+  image: readonly string[];
+}
+
+export interface StoryboardCellPreviewPorts<
+  TNode extends StoryboardCellPreviewNode,
+> {
+  types: StoryboardCellPreviewTypeCatalog;
+  resolveSourceImageUrl: (node: TNode) => string | null;
 }
 
 function str(value: unknown): string | null {
@@ -41,50 +56,54 @@ function displayUrl(raw: string | null): string | null {
  * Mirrors the media fields used by `extractCanvasAssets`; non-media nodes fall
  * back to a kind placeholder so empty cells read like the libtv reference.
  */
-export function getStoryboardCellPreview(node: CanvasNode): StoryboardCellPreview {
-  const data = node.data as Record<string, unknown>;
+export function getStoryboardCellPreview<
+  TNode extends StoryboardCellPreviewNode,
+>(
+  node: TNode,
+  ports: StoryboardCellPreviewPorts<TNode>,
+): StoryboardCellPreview {
+  const data =
+    node.data && typeof node.data === 'object'
+      ? (node.data as Record<string, unknown>)
+      : {};
   const label =
     firstStr((data as { displayName?: unknown }).displayName, (data as { label?: unknown }).label) ??
     '';
 
   // Type-specific kinds first (so video keeps its play badge, etc.).
-  switch (node.type) {
-    case CANVAS_NODE_TYPES.video:
-    case CANVAS_NODE_TYPES.videoStory:
-    case CANVAS_NODE_TYPES.videoCompose:
-      return {
-        nodeId: node.id,
-        kind: 'video',
-        imageUrl: displayUrl(str(data.previewImageUrl)),
-        label,
-      };
-    case CANVAS_NODE_TYPES.storyboardSplit:
-    case CANVAS_NODE_TYPES.storyboardGen: {
-      const frames = Array.isArray(data.frames) ? data.frames : [];
-      const firstFrame = frames.length > 0 ? (frames[0] as Record<string, unknown>) : null;
-      return {
-        nodeId: node.id,
-        kind: 'image',
-        imageUrl: firstFrame
-          ? displayUrl(firstStr(firstFrame.imageUrl, firstFrame.previewImageUrl))
-          : null,
-        label,
-      };
-    }
-    case CANVAS_NODE_TYPES.audio:
-      return { nodeId: node.id, kind: 'audio', imageUrl: null, label };
-    case CANVAS_NODE_TYPES.script:
-    case CANVAS_NODE_TYPES.textAnnotation:
-      return { nodeId: node.id, kind: 'script', imageUrl: null, label };
-    default:
-      break;
+  if (node.type && ports.types.video.includes(node.type)) {
+    return {
+      nodeId: node.id,
+      kind: 'video',
+      imageUrl: displayUrl(str(data.previewImageUrl)),
+      label,
+    };
+  }
+  if (node.type && ports.types.storyboard.includes(node.type)) {
+    const frames = Array.isArray(data.frames) ? data.frames : [];
+    const firstFrame =
+      frames.length > 0 ? (frames[0] as Record<string, unknown>) : null;
+    return {
+      nodeId: node.id,
+      kind: 'image',
+      imageUrl: firstFrame
+        ? displayUrl(firstStr(firstFrame.imageUrl, firstFrame.previewImageUrl))
+        : null,
+      label,
+    };
+  }
+  if (node.type && ports.types.audio.includes(node.type)) {
+    return { nodeId: node.id, kind: 'audio', imageUrl: null, label };
+  }
+  if (node.type && ports.types.script.includes(node.type)) {
+    return { nodeId: node.id, kind: 'script', imageUrl: null, label };
   }
 
   // Everything else: resolve the node's current image. Prefer the unified
   // resolver (upload / imageEdit / exportImage / imageGen incl. referenceImageUrl),
   // then a broad field sweep so any image-bearing node still renders a thumbnail.
   const sourceImage =
-    resolveNodeSourceImageUrl(node) ??
+    ports.resolveSourceImageUrl(node) ??
     firstStr(
       data.imageUrl,
       data.previewImageUrl,
@@ -97,10 +116,8 @@ export function getStoryboardCellPreview(node: CanvasNode): StoryboardCellPrevie
   }
 
   // Image-kind node with nothing resolvable yet → image placeholder; else empty.
-  const isImageKind =
-    node.type === CANVAS_NODE_TYPES.upload ||
-    node.type === CANVAS_NODE_TYPES.imageEdit ||
-    node.type === CANVAS_NODE_TYPES.imageGen ||
-    node.type === CANVAS_NODE_TYPES.exportImage;
+  const isImageKind = Boolean(
+    node.type && ports.types.image.includes(node.type),
+  );
   return { nodeId: node.id, kind: isImageKind ? 'image' : 'empty', imageUrl: null, label };
 }

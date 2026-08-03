@@ -18,9 +18,9 @@ import {
   groupColorBackground,
   groupColorBorder,
 } from '@/modules/creative_canvas/domain/groupColors';
+import type { StoryboardCellKind } from '@/modules/creative_canvas/domain/storyboardCellPreview';
 import type {
   GroupNodeController,
-  StoryboardCellKind,
 } from '@/modules/creative_canvas/presentation/useGroupNodeController';
 
 const CELL_PLACEHOLDER_ICON: Record<StoryboardCellKind, typeof ImageIcon> = {

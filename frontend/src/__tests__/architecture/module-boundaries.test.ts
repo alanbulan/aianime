@@ -1009,7 +1009,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/domain/nodeDisplay",
-        "@/features/canvas/domain/storyboardCellPreview",
         "@/features/canvas/snap-align/computeSnapAlign",
         "@/features/canvas/snap-align/snapAlignStore",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
@@ -1039,6 +1038,8 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).toContain("useReactFlow()");
     expect(entrySource).toContain("computeSnapAlign(");
     expect(entrySource).toContain("useSnapAlignStore(");
+    expect(entrySource).toContain("STORYBOARD_CELL_PREVIEW_PORTS");
+    expect(entrySource).toContain("getStoryboardCellPreview(");
     expect(controllerSource).toContain("ports.computeSnapAlign(");
     expect(controllerSource).toContain("ports.fitGroupToChildren(id)");
     expect(controllerSource).toContain(
@@ -1048,6 +1049,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/modules/creative_canvas/domain/canvasAsset",
+        "@/modules/creative_canvas/domain/storyboardCellPreview",
         "@/modules/creative_canvas/domain/storyboardGroup",
         "@/modules/creative_canvas/presentation/useCanvasProjectionStatus",
       ]),
@@ -1074,6 +1076,7 @@ describe("frontend architecture boundaries", () => {
         "@xyflow/react",
         "lucide-react",
         "@/modules/creative_canvas/domain/groupColors",
+        "@/modules/creative_canvas/domain/storyboardCellPreview",
         "@/modules/creative_canvas/presentation/useGroupNodeController",
       ]),
     );
@@ -1107,6 +1110,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useGroupNodeController.test.tsx",
       "features/canvas/nodes/GroupNodeView.tsx",
       "features/canvas/nodes/GroupNodeView.test.tsx",
+      "features/canvas/domain/storyboardCellPreview.ts",
+      "__tests__/features/canvas/storyboard-cell-preview.test.ts",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredControllerPath)),

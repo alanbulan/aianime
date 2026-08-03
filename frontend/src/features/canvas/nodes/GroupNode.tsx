@@ -9,11 +9,11 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
+  resolveNodeSourceImageUrl,
   type CanvasNode,
   type GroupNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
 import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
 import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
 import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
@@ -25,10 +25,38 @@ import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import {
   GroupNodeView,
+  getStoryboardCellPreview,
   useGroupNodeController,
   type GroupNodeControllerPorts,
   type GroupNodeViewBindings,
+  type StoryboardCellPreviewPorts,
 } from '@/modules/creative_canvas/public';
+
+const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
+  types: {
+    video: [
+      CANVAS_NODE_TYPES.video,
+      CANVAS_NODE_TYPES.videoStory,
+      CANVAS_NODE_TYPES.videoCompose,
+    ],
+    storyboard: [
+      CANVAS_NODE_TYPES.storyboardSplit,
+      CANVAS_NODE_TYPES.storyboardGen,
+    ],
+    audio: [CANVAS_NODE_TYPES.audio],
+    script: [
+      CANVAS_NODE_TYPES.script,
+      CANVAS_NODE_TYPES.textAnnotation,
+    ],
+    image: [
+      CANVAS_NODE_TYPES.upload,
+      CANVAS_NODE_TYPES.imageEdit,
+      CANVAS_NODE_TYPES.imageGen,
+      CANVAS_NODE_TYPES.exportImage,
+    ],
+  },
+  resolveSourceImageUrl: resolveNodeSourceImageUrl,
+};
 
 type GroupNodeProps = NodeProps & {
   id: string;
@@ -85,7 +113,10 @@ export const GroupNode = memo((props: GroupNodeProps) => {
           groupData as GroupNodeData,
         ),
       resolveStoryboardCellPreview: (node) =>
-        getStoryboardCellPreview(node as CanvasNode),
+        getStoryboardCellPreview(
+          node as CanvasNode,
+          STORYBOARD_CELL_PREVIEW_PORTS,
+        ),
       computeSnapAlign: (draggedNode, proposedPosition, otherNodes) =>
         computeSnapAlign(
           draggedNode as CanvasNode,

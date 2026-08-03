@@ -199,6 +199,8 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasStoryboardGroupMembers.test.ts",
       "canvasGrouping.ts",
       "groupColors.ts",
+      "storyboardCellPreview.ts",
+      "storyboardCellPreview.test.ts",
     ];
     const canvasGroupApplicationFiles = [
       "canvasGroupCreation.ts",
@@ -732,6 +734,14 @@ describe("round 2 residual architecture boundaries", () => {
         retiredGroupPresentationPath,
       ).toBe(false);
     }
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "__tests__/features/canvas/storyboard-cell-preview.test.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
     }
@@ -1964,7 +1974,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 607],
+      ["features/canvas", 606],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
