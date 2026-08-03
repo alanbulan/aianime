@@ -742,12 +742,24 @@ describe("frontend architecture boundaries", () => {
     );
     const sizingPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageNodeSizing.ts",
+      "modules/creative_canvas/domain/imageNodeSizing.ts",
     );
     const sizingTestPath = resolve(
       SRC_ROOT,
-      "__tests__/features/canvas/image-node-resize-min.test.ts",
+      "modules/creative_canvas/domain/imageNodeSizing.test.ts",
     );
+    const aspectRatioPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/aspectRatio.ts",
+    );
+    const imageDataPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageData.ts",
+    );
+    const legacySizingPaths = [
+      "features/canvas/application/imageNodeSizing.ts",
+      "__tests__/features/canvas/image-node-resize-min.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const controllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useImageNodeController.ts",
@@ -771,6 +783,8 @@ describe("frontend architecture boundaries", () => {
     const entrySource = readFileSync(entryPath, "utf8");
     const sizingSource = readFileSync(sizingPath, "utf8");
     const sizingTestSource = readFileSync(sizingTestPath, "utf8");
+    const aspectRatioSource = readFileSync(aspectRatioPath, "utf8");
+    const imageDataSource = readFileSync(imageDataPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -779,6 +793,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "ImageNode", "=", "memo("].join(" "),
       ["export function", "resolveImageNodeDimension("].join(" "),
+      ["export function", "parseAspectRatio("].join(" "),
       ["export function", "useImageNodeController("].join(" "),
       ["export function", "ImageNodeView("].join(" "),
     ];
@@ -800,7 +815,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageNode.tsx"],
-      ["features/canvas/application/imageNodeSizing.ts"],
+      ["modules/creative_canvas/domain/imageNodeSizing.ts"],
+      ["modules/creative_canvas/domain/aspectRatio.ts"],
       ["features/canvas/hooks/useImageNodeController.ts"],
       ["features/canvas/nodes/ImageNodeView.tsx"],
     ]);
@@ -818,6 +834,14 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("className=");
     expect(sizingSource).not.toContain("react");
     expect(sizingSource).not.toContain("useCanvasStore");
+    expect(importSpecifiers(sizingPath)).toEqual(["./aspectRatio"]);
+    expect(importSpecifiers(aspectRatioPath)).toEqual([]);
+    expect(aspectRatioSource).toContain(declarations[2]);
+    expect(imageDataSource).not.toContain(declarations[2]);
+    expect(imageDataSource).toContain("@/modules/creative_canvas/public");
+    for (const legacyPath of legacySizingPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(sizingTestSource).toContain("resolveImageNodeDimension");
     expect(controllerSource).toContain("useUpdateNodeInternals()");
     expect(controllerSource).toContain("useStore((state)");

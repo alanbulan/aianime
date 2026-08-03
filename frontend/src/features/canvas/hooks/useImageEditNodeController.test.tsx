@@ -148,7 +148,8 @@ vi.mock('@/features/canvas/pricing', () => ({
   resolveModelPriceDisplay: () => null,
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   coercePushTarget: (value: unknown) =>
     value && typeof value === 'object' && 'kind' in value ? value : null,
   defaultCapabilityParams: () => ({ strength: 50 }),

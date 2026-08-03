@@ -555,6 +555,21 @@ export type {
   CanvasNodeDataUpdatePorts,
   CanvasNodeDataUpdateResult,
 } from "@/modules/creative_canvas/application/canvasNodeData";
+export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
+export {
+  aspectRatioFromImageDimensions,
+  ensureAtLeastOneMinEdge,
+  resolveAspectRatioValue,
+  resolveImageNodeDimension,
+  resolveMinEdgeFittedSize,
+  resolveResizeMinConstraintsByAspect,
+  resolveSizeInsideTargetBox,
+  shouldForceNaturalImageSize,
+} from "@/modules/creative_canvas/domain/imageNodeSizing";
+export type {
+  ImageNodeMinSize,
+  ImageNodeSize,
+} from "@/modules/creative_canvas/domain/imageNodeSizing";
 export { planCanvasClipboardDuplication } from "@/modules/creative_canvas/application/canvasClipboardDuplication";
 export type {
   CanvasClipboardDuplicationConnectionPlan,

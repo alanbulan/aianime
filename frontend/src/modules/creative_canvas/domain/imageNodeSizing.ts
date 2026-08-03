@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { parseAspectRatio } from './imageData';
+import { parseAspectRatio } from './aspectRatio';
 
 export interface ImageNodeSize {
   width: number;

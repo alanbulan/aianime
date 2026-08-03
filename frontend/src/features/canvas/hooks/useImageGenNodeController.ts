@@ -33,11 +33,6 @@ import {
 } from '@/features/canvas/application/imageGenNodeModel';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
-  aspectRatioFromImageDimensions,
-  resolveMinEdgeFittedSize,
-  shouldForceNaturalImageSize,
-} from '@/features/canvas/application/imageNodeSizing';
-import {
   buildImageGenerationSuccessPatch,
   isStaleGenerationTask,
   shouldWriteGenerationError,
@@ -55,6 +50,7 @@ import {
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  aspectRatioFromImageDimensions,
   collectCandidateBindingsForNode,
   filterCanvasImageModels,
   generateCanvasImage,
@@ -65,6 +61,8 @@ import {
   nodeMainlineFlags,
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
+  resolveMinEdgeFittedSize,
+  shouldForceNaturalImageSize,
   translateCanvasText,
   useCanvasCameraOptions,
   useCanvasImageModels,

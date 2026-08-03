@@ -36,7 +36,6 @@ import {
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
 import {
-  parseAspectRatio,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
 } from '@/features/canvas/application/imageData';
@@ -87,6 +86,7 @@ import {
   defaultCapabilityParams,
   getCapability,
   listCapabilities,
+  parseAspectRatio,
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,

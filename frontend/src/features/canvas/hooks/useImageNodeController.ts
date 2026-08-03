@@ -13,13 +13,6 @@ import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
 } from '@/features/canvas/application/imageData';
-import {
-  aspectRatioFromImageDimensions,
-  resolveImageNodeDimension,
-  resolveMinEdgeFittedSize,
-  resolveResizeMinConstraintsByAspect,
-  shouldForceNaturalImageSize,
-} from '@/features/canvas/application/imageNodeSizing';
 import { canRegenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
@@ -36,8 +29,13 @@ import {
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
+  aspectRatioFromImageDimensions,
   collectCandidateBindingsForNode,
   hasMainlineContexts,
+  resolveImageNodeDimension,
+  resolveMinEdgeFittedSize,
+  resolveResizeMinConstraintsByAspect,
+  shouldForceNaturalImageSize,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 

@@ -6,9 +6,9 @@ import {
   type StoryboardRatioControlMode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
-  parseAspectRatio,
   pickClosestAspectRatio,
 } from '@/features/canvas/application/imageData';
+import { parseAspectRatio } from '@/modules/creative_canvas/public';
 import { findReferenceTokens } from '@/features/canvas/application/referenceTokenEditing';
 import {
   sanitizeStoryboardPromptText,

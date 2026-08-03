@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveImageNodeDimension,
   resolveResizeMinConstraintsByAspect,
-} from "@/features/canvas/application/imageNodeSizing";
+} from "./imageNodeSizing";
 
 describe("resolveImageNodeDimension", () => {
   it("rounds a valid persisted dimension", () => {

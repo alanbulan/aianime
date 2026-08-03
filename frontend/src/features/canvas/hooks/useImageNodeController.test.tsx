@@ -62,10 +62,6 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
 vi.mock('@/features/canvas/application/imageData', () => ({
   resolveImageDisplayUrl: (url: string) => `display:${url}`,
   shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
-  parseAspectRatio: (value: string) => {
-    const [width, height] = value.split(':').map(Number);
-    return width / height;
-  },
 }));
 
 vi.mock('@/shared/media/image-cache', () => ({
@@ -84,7 +80,8 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.regenerateExportImageNode(params),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),

@@ -5,11 +5,11 @@ import {
 } from '@/commands/image';
 
 import {
-  parseAspectRatio,
   reduceAspectRatio,
 } from '../application/imageData';
 import type { CanvasToolImageGateway } from '../application/ports';
 import {
+  parseAspectRatio,
   resolveMaxAllowedLineThickness,
   splitIntoSegments,
 } from '@/modules/creative_canvas/public';

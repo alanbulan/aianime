@@ -7,11 +7,11 @@ import {
   type UploadImageNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  isVideoFile,
+  resolveImageNodeDimension,
   resolveMinEdgeFittedSize,
   resolveResizeMinConstraintsByAspect,
-  resolveImageNodeDimension,
-} from '@/features/canvas/application/imageNodeSizing';
-import { isVideoFile } from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/public';
 import {
   isNodeUsingDefaultDisplayName,
   resolveNodeDisplayName,

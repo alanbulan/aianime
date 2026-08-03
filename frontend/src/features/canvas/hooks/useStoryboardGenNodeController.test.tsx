@@ -95,7 +95,8 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamImages: () => mocks.upstreamImages,
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 

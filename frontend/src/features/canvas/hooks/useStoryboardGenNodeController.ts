@@ -34,7 +34,6 @@ import {
   type GenerationDebugContext,
 } from '@/features/canvas/application/generationErrorReport';
 import {
-  parseAspectRatio,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
 } from '@/features/canvas/application/imageData';
@@ -65,7 +64,10 @@ import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
 } from '@/features/canvas/domain/nodeDisplay';
-import { useCanvasImageModels } from '@/modules/creative_canvas/public';
+import {
+  parseAspectRatio,
+  useCanvasImageModels,
+} from '@/modules/creative_canvas/public';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateStoryboardGridImageDataUrl,

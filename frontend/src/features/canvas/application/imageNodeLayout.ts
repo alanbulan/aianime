@@ -15,7 +15,7 @@ import {
   ensureAtLeastOneMinEdge,
   resolveMinEdgeFittedSize,
   resolveSizeInsideTargetBox,
-} from './imageNodeSizing';
+} from '@/modules/creative_canvas/public';
 
 const IMAGE_NODE_VISUAL_MIN_EDGE = 300;
 
