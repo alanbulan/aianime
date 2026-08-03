@@ -2058,11 +2058,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageEditNodeModel.ts",
+      "modules/creative_canvas/domain/imageEditNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageEditNodeModel.test.ts",
+      "modules/creative_canvas/domain/imageEditNodeModel.test.ts",
     );
     const runtimePath = resolve(
       SRC_ROOT,
@@ -2124,13 +2124,23 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageEditNode.tsx"],
-      ["features/canvas/application/imageEditNodeModel.ts"],
+      ["modules/creative_canvas/domain/imageEditNodeModel.ts"],
       ["modules/creative_canvas/infrastructure/browserImageEditRuntime.ts"],
       ["features/canvas/hooks/useImageEditNodeController.ts"],
       ["features/canvas/nodes/ImageEditNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
+    expect(modelSource).not.toContain("@/features/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
+    expect(new Set(importSpecifiers(modelPath))).toEqual(
+      new Set([
+        "./assetLibrary",
+        "./capabilities/contracts",
+        "./pushTarget",
+        "./referenceTokenEditing",
+      ]),
+    );
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
     expect(runtimeSource).toContain("measureTextareaCaretOffset(");
@@ -2192,6 +2202,14 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/browserImageEditRuntime.test.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditNodeModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageEditNodeModel.test.ts",
     ))).toBe(false);
   });
 
@@ -4323,13 +4341,18 @@ describe("frontend architecture boundaries", () => {
     ].map((name) =>
       resolve(SRC_ROOT, "features/freezone", name),
     );
-    const canvasConsumerPaths = [
+    const gatewayPath = resolve(
+      SRC_ROOT,
       "features/canvas/infrastructure/freezoneAiGateway.ts",
-      "features/canvas/application/imageEditNodeModel.ts",
+    );
+    const moduleInternalConsumerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/imageEditNodeModel.ts",
+    );
+    const modulePublicConsumerPaths = [
       "features/canvas/hooks/useImageEditNodeController.ts",
       "features/canvas/nodes/ImageEditNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
-    const [gatewayPath, ...modulePublicConsumerPaths] = canvasConsumerPaths;
 
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     expect(importSpecifiers(contractsPath)).toEqual([]);
@@ -4352,6 +4375,12 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(gatewayPath, "utf8")).toContain(
       "readonly composeCapability:",
+    );
+    expect(importSpecifiers(moduleInternalConsumerPath)).toContain(
+      "./capabilities/contracts",
+    );
+    expect(importSpecifiers(moduleInternalConsumerPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     for (const consumerPath of modulePublicConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
@@ -6660,8 +6689,9 @@ describe("frontend architecture boundaries", () => {
     const internalConsumerPaths = [
       "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     ];
+    const internalDomainConsumerPath =
+      "modules/creative_canvas/domain/imageEditNodeModel.ts";
     const domainConsumerPaths = [
-      "features/canvas/application/imageEditNodeModel.ts",
       "features/canvas/hooks/useImageEditNodeController.ts",
     ];
     const applicationPublicConsumerPath =
@@ -6729,6 +6759,9 @@ describe("frontend architecture boundaries", () => {
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
+    expect(
+      importSpecifiers(resolve(SRC_ROOT, internalDomainConsumerPath)),
+    ).toContain("./pushTarget");
     expect(
       importSpecifiers(resolve(SRC_ROOT, applicationPublicConsumerPath)),
     ).toContain("@/modules/creative_canvas/public");
@@ -29483,7 +29516,7 @@ describe("frontend architecture boundaries", () => {
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const imageEditModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageEditNodeModel.ts",
+      "modules/creative_canvas/domain/imageEditNodeModel.ts",
     );
     const imageEditControllerPath = resolve(
       SRC_ROOT,
@@ -29704,7 +29737,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(videoNodeViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
-    expect(importSpecifiers(imageEditModelPath)).toContain(
+    expect(importSpecifiers(imageEditModelPath)).toContain("./assetLibrary");
+    expect(importSpecifiers(imageEditModelPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageEditControllerPath)).toContain(

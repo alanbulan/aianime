@@ -675,6 +675,28 @@ export {
 } from "@/modules/creative_canvas/infrastructure/browserImageEditRuntime";
 export type { ImageEditPickerAnchor } from "@/modules/creative_canvas/infrastructure/browserImageEditRuntime";
 export {
+  IMAGE_EDIT_NODE_SIZE_LIMITS,
+  buildImageEditGenerationPrompt,
+  buildImageEditResultNodeTitle,
+  collectImageEditInputSlotTarget,
+  collectImageEditInputSourceMeta,
+  mergeImageEditCandidateSourceMeta,
+  mergeImageEditReferenceUrls,
+  planImageEditAssetReferences,
+  projectImageEditGenerationModeChoices,
+  projectImageEditPromptSegments,
+  resolveImageEditGenerationMode,
+  resolveImageEditNodeSize,
+} from "@/modules/creative_canvas/domain/imageEditNodeModel";
+export type {
+  ImageEditAspectRatioChoice,
+  ImageEditAssetReferencePlan,
+  ImageEditGenerationMode,
+  ImageEditGenerationModeChoice,
+  ImageEditPromptSegment,
+  ImageEditSourceMeta,
+} from "@/modules/creative_canvas/domain/imageEditNodeModel";
+export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,
   extractBase64Payload,

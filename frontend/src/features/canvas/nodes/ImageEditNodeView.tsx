@@ -2,10 +2,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { ImageIcon, Maximize2, Sparkles, UploadCloud } from 'lucide-react';
 
-import {
-  IMAGE_EDIT_NODE_SIZE_LIMITS,
-  projectImageEditPromptSegments,
-} from '@/features/canvas/application/imageEditNodeModel';
 import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
@@ -30,6 +26,8 @@ import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceD
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
   AssetLibraryModal,
+  IMAGE_EDIT_NODE_SIZE_LIMITS,
+  projectImageEditPromptSegments,
   stringifyParamValue,
   type CapabilityParamDefinition,
   resolveImageDisplayUrl,

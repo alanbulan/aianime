@@ -1,11 +1,14 @@
 // Copyright (c) 2026 AI anime
-import type { ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  coercePushTarget,
-  findReferenceTokens,
-  type CanvasAssetLibrarySelection,
-  type GenerationCapability,
-} from '@/modules/creative_canvas/public';
+import type { CanvasAssetLibrarySelection } from './assetLibrary';
+import type { GenerationCapability } from './capabilities/contracts';
+import { coercePushTarget } from './pushTarget';
+import { findReferenceTokens } from './referenceTokenEditing';
+
+export type ImageEditGenerationMode =
+  | 'text_to_image'
+  | 'image_to_image'
+  | 'all_reference'
+  | 'image_reference';
 
 export interface ImageEditAspectRatioChoice {
   value: string;
@@ -78,9 +81,9 @@ export function resolveImageEditNodeSize(
 }
 
 export function resolveImageEditGenerationMode(
-  generationMode: ImageEditNodeData['generationMode'],
+  generationMode: ImageEditGenerationMode | undefined,
   referenceImageCount: number,
-): NonNullable<ImageEditNodeData['generationMode']> {
+): ImageEditGenerationMode {
   return generationMode ??
     (referenceImageCount > 0 ? 'all_reference' : 'text_to_image');
 }

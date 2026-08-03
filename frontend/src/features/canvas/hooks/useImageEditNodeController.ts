@@ -11,19 +11,6 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  buildImageEditGenerationPrompt,
-  buildImageEditResultNodeTitle,
-  collectImageEditInputSlotTarget,
-  collectImageEditInputSourceMeta,
-  mergeImageEditCandidateSourceMeta,
-  mergeImageEditReferenceUrls,
-  planImageEditAssetReferences,
-  projectImageEditGenerationModeChoices,
-  resolveImageEditGenerationMode,
-  resolveImageEditNodeSize,
-  type ImageEditAspectRatioChoice,
-} from '@/features/canvas/application/imageEditNodeModel';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import {
   buildGenerationErrorReport,
@@ -67,20 +54,31 @@ import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+  buildImageEditGenerationPrompt,
+  buildImageEditResultNodeTitle,
+  collectImageEditInputSlotTarget,
+  collectImageEditInputSourceMeta,
   coercePushTarget,
   defaultCapabilityParams,
   findReferenceTokenAtSelection,
   getCapability,
   insertReferenceToken,
   listCapabilities,
+  mergeImageEditCandidateSourceMeta,
+  mergeImageEditReferenceUrls,
   parseAspectRatio,
+  planImageEditAssetReferences,
   removeTextRange,
   replaceReferenceToken,
+  projectImageEditGenerationModeChoices,
+  resolveImageEditGenerationMode,
+  resolveImageEditNodeSize,
   resolveImageEditPickerAnchor,
   resolveReferenceAwareDeleteRange,
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,
+  type ImageEditAspectRatioChoice,
   type ImageEditPickerAnchor,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
