@@ -10,7 +10,10 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasRelight } from '@/modules/creative_canvas/public';
+import {
+  generateCanvasRelight,
+  inheritMainlineFields,
+} from '@/modules/creative_canvas/public';
 import {
   LightEditorPanel,
   type LightEditorSubmitPayload,
@@ -18,7 +21,6 @@ import {
   type LightSmartModeDescriptor,
 } from '@/features/canvas/ui/LightEditorPanel';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 

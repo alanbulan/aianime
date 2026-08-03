@@ -131,6 +131,30 @@ export type {
   MainlineNodeVisualState,
 } from "@/modules/creative_canvas/domain/mainlineNodeFlags";
 export {
+  inheritMainlineFields,
+} from "@/modules/creative_canvas/domain/inheritMainlineFields";
+export type {
+  InheritedMainlineFields,
+  InheritMainlineFieldsOptions,
+  MainlineFieldsSource,
+} from "@/modules/creative_canvas/domain/inheritMainlineFields";
+export {
+  canDeleteCanvasEdge,
+  deleteCanvasEdge,
+} from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
+export type {
+  CanvasEdgeDeletionLike,
+} from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
+export {
+  filterPresetManagedEdgeChanges,
+  filterPresetManagedNodeChanges,
+} from "@/modules/creative_canvas/application/canvasManagedChangeGuard";
+export type {
+  CanvasChangeLike,
+  CanvasManagedEdgeLike,
+  CanvasManagedNodeLike,
+} from "@/modules/creative_canvas/application/canvasManagedChangeGuard";
+export {
   currentBeatContextToMainlineContext,
   getCurrentBeatContextFromNode,
   parseBeatContextVisualMarkers,

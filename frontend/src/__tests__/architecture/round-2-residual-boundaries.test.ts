@@ -181,6 +181,14 @@ describe("round 2 residual architecture boundaries", () => {
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
+      "inheritMainlineFields.ts",
+      "inheritMainlineFields.test.ts",
+      "canvasEdgeDeletion.ts",
+      "canvasEdgeDeletion.test.ts",
+    ];
+    const canvasMainlineApplicationFiles = [
+      "canvasManagedChangeGuard.ts",
+      "canvasManagedChangeGuard.test.ts",
     ];
     const canvasSelectionPresentationFiles = [
       "useCanvasSelectionSurfaceController.ts",
@@ -649,19 +657,24 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
     }
-    expect(
-      existsSync(
-        resolve(SRC_ROOT, "features/canvas/domain/mainlineNodeFlags.ts"),
-      ),
-    ).toBe(false);
-    expect(
-      existsSync(
-        resolve(
-          SRC_ROOT,
-          "__tests__/features/canvas/system-managed-node-data.test.ts",
-        ),
-      ),
-    ).toBe(false);
+    for (const file of canvasMainlineApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+    }
+    for (const retiredMainlinePath of [
+      "features/canvas/domain/mainlineNodeFlags.ts",
+      "__tests__/features/canvas/system-managed-node-data.test.ts",
+      "features/canvas/domain/mainlineNodeTypes.ts",
+      "features/canvas/domain/inheritMainlineFields.ts",
+      "__tests__/features/canvas/inherit-mainline-fields.test.ts",
+      "features/canvas/domain/canvasEdgeDeletion.ts",
+      "features/canvas/domain/canvasEdgeDeletion.test.ts",
+      "features/canvas/application/canvasManagedChangeGuard.ts",
+      "features/canvas/application/canvasManagedChangeGuard.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredMainlinePath))).toBe(false);
+    }
     for (const file of canvasSelectionPresentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
         true,
@@ -1873,7 +1886,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 644],
+      ["features/canvas", 638],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

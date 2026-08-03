@@ -6,7 +6,7 @@ import type {
 import {
   inheritMainlineFields,
   type MainlineFieldsSource,
-} from "@/features/canvas/domain/inheritMainlineFields";
+} from "@/modules/creative_canvas/public";
 
 export function buildImageMatteInitialData(
   sourceData: CanvasNodeData,

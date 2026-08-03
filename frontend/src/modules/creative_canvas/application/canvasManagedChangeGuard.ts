@@ -1,17 +1,26 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
-} from '@/modules/creative_canvas/public';
+  type MainlineEdgeLike,
+  type MainlineNodeLike,
+} from "../domain/mainlineNodeFlags";
 
 export interface CanvasChangeLike {
   type: string;
   id?: string;
 }
 
+export interface CanvasManagedNodeLike extends MainlineNodeLike {
+  id: string;
+}
+
+export interface CanvasManagedEdgeLike extends MainlineEdgeLike {
+  id: string;
+}
+
 export function filterPresetManagedNodeChanges<TChange extends CanvasChangeLike>(
-  nodes: readonly CanvasNode[],
+  nodes: readonly CanvasManagedNodeLike[],
   changes: readonly TChange[],
 ): TChange[] {
   const lockedNodeIds = new Set(
@@ -19,14 +28,14 @@ export function filterPresetManagedNodeChanges<TChange extends CanvasChangeLike>
   );
   return changes.filter(
     (change) =>
-      !change.id
-      || !lockedNodeIds.has(change.id)
-      || change.type !== 'remove',
+      !change.id ||
+      !lockedNodeIds.has(change.id) ||
+      change.type !== "remove",
   );
 }
 
 export function filterPresetManagedEdgeChanges<TChange extends CanvasChangeLike>(
-  edges: readonly CanvasEdge[],
+  edges: readonly CanvasManagedEdgeLike[],
   changes: readonly TChange[],
 ): TChange[] {
   const lockedEdgeIds = new Set(
@@ -34,8 +43,8 @@ export function filterPresetManagedEdgeChanges<TChange extends CanvasChangeLike>
   );
   return changes.filter(
     (change) =>
-      !change.id
-      || !lockedEdgeIds.has(change.id)
-      || change.type === 'select',
+      !change.id ||
+      !lockedEdgeIds.has(change.id) ||
+      change.type === "select",
   );
 }

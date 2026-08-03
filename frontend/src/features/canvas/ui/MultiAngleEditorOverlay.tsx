@@ -14,9 +14,11 @@ import {
   MultiAngleEditorPanel,
   type MultiAngleSubmitPayload,
 } from '@/features/canvas/ui/MultiAngleEditorPanel';
-import { generateCanvasMultiAngle } from '@/modules/creative_canvas/public';
+import {
+  generateCanvasMultiAngle,
+  inheritMainlineFields,
+} from '@/modules/creative_canvas/public';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 

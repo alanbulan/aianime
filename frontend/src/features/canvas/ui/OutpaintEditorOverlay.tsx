@@ -35,10 +35,12 @@ import {
   type CanvasOutpaintNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasOutpaint } from '@/modules/creative_canvas/public';
+import {
+  generateCanvasOutpaint,
+  inheritMainlineFields,
+} from '@/modules/creative_canvas/public';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';

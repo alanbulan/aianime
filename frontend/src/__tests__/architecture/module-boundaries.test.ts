@@ -6277,6 +6277,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/domain/mainlineNodeFlags.ts",
     );
+    const mainlineInheritancePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/inheritMainlineFields.ts",
+    );
     const legacyFreezonePushTargetPath = resolve(
       SRC_ROOT,
       "features/freezone/domain/pushTarget.ts",
@@ -6301,6 +6305,10 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const pushTargetSource = readFileSync(pushTargetPath, "utf8");
     const mainlineFlagsSource = readFileSync(mainlineFlagsPath, "utf8");
+    const mainlineInheritanceSource = readFileSync(
+      mainlineInheritancePath,
+      "utf8",
+    );
     const modulePublicSource = readFileSync(modulePublicPath, "utf8");
     const directLegacyConsumers = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -6346,7 +6354,6 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useFreezoneShellController.ts",
     ];
     const domainConsumerPaths = [
-      "features/canvas/domain/mainlineNodeTypes.ts",
       "features/canvas/application/imageEditNodeModel.ts",
       "features/canvas/hooks/useImageEditNodeController.ts",
     ];
@@ -6367,6 +6374,13 @@ describe("frontend architecture boundaries", () => {
     expect(pushTargetSource).not.toContain("@/features/");
     expect(importSpecifiers(mainlineFlagsPath)).toEqual(["./pushTarget"]);
     expect(mainlineFlagsSource).not.toContain("@/features/");
+    expect(new Set(importSpecifiers(mainlineInheritancePath))).toEqual(
+      new Set(["./assetCommit", "./mainlineContext"]),
+    );
+    expect(mainlineInheritanceSource).not.toContain("@/features/");
+    expect(mainlineInheritanceSource).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(importSpecifiers(modulePublicPath)).toContain(
       "@/modules/creative_canvas/domain/assetCommit",
     );
@@ -6375,6 +6389,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(modulePublicSource).toContain("isCanonicalPushTarget,");
     expect(modulePublicSource).toContain("PushTargetKind,");
+    expect(modulePublicSource).toContain("inheritMainlineFields,");
     expect(importSpecifiers(applicationPath)).toEqual([
       "@/modules/creative_canvas/domain/assetCommit",
     ]);
@@ -9174,8 +9189,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const idsToDelete");
   });
 
-  it("keeps preset-managed Canvas change guards in the application layer", () => {
+  it("keeps preset-managed Canvas change guards in Creative Canvas application", () => {
     const guardPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasManagedChangeGuard.ts",
+    );
+    const legacyGuardPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasManagedChangeGuard.ts",
     );
@@ -9204,10 +9223,29 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const declarations = [
+      ["export function", "filterPresetManagedNodeChanges<"].join(" "),
+      ["export function", "filterPresetManagedEdgeChanges<"].join(" "),
+    ];
+    const owners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
 
+    expect(existsSync(legacyGuardPath)).toBe(false);
     expect(forbiddenImports).toEqual([]);
+    expect(importSpecifiers(guardPath)).toEqual(["../domain/mainlineNodeFlags"]);
+    expect(owners).toEqual([
+      ["modules/creative_canvas/application/canvasManagedChangeGuard.ts"],
+      ["modules/creative_canvas/application/canvasManagedChangeGuard.ts"],
+    ]);
     expect(guardModel).toContain("filterPresetManagedNodeChanges");
     expect(guardModel).toContain("filterPresetManagedEdgeChanges");
+    expect(
+      readFileSync(resolve(SRC_ROOT, "modules/creative_canvas/public.ts"), "utf8"),
+    ).toContain("filterPresetManagedNodeChanges,");
     expect(graphChangeController).toContain(
       "filterPresetManagedNodeChanges(nodes, changes)",
     );
@@ -15161,6 +15199,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas edge deletion in the domain model", () => {
     const deletionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/canvasEdgeDeletion.ts",
+    );
+    const legacyDeletionPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/canvasEdgeDeletion.ts",
     );
     const deletionModel = readFileSync(deletionPath, "utf8");
@@ -15203,11 +15245,11 @@ describe("frontend architecture boundaries", () => {
     );
     const deletionDeclaration = [
       "export function",
-      "deleteCanvasEdge(",
+      "deleteCanvasEdge<",
     ].join(" ");
     const eligibilityDeclaration = [
       "export function",
-      "canDeleteCanvasEdge(",
+      "canDeleteCanvasEdge<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -15222,19 +15264,24 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
+    expect(existsSync(legacyDeletionPath)).toBe(false);
     expect(forbiddenImports).toEqual([]);
+    expect(importSpecifiers(deletionPath)).toEqual(["./mainlineNodeFlags"]);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasEdgeDeletion.ts",
+      "modules/creative_canvas/domain/canvasEdgeDeletion.ts",
     ]);
     expect(eligibilityOwners).toEqual([
-      "features/canvas/domain/canvasEdgeDeletion.ts",
+      "modules/creative_canvas/domain/canvasEdgeDeletion.ts",
     ]);
     expect(deletionModel).toContain(deletionDeclaration);
     expect(deletionModel).toContain(eligibilityDeclaration);
     expect(deletionModel).toContain("canDeleteCanvasEdge(edge)");
-    expect(graphMutationSlice).toContain(
-      "../domain/canvasEdgeDeletion",
-    );
+    expect(
+      readFileSync(resolve(SRC_ROOT, "modules/creative_canvas/public.ts"), "utf8"),
+    ).toContain("deleteCanvasEdge,");
+    expect(graphMutationSlice).toContain("deleteCanvasEdge,");
+    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(graphMutationSlice).not.toContain("../domain/canvasEdgeDeletion");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasEdgeDeletion",
     );
@@ -22382,7 +22429,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(modelPath))).toEqual(
       new Set([
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/inheritMainlineFields",
+        "@/modules/creative_canvas/public",
       ]),
     );
     for (const forbiddenDependency of [
@@ -24774,7 +24821,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
       "../domain/canvasHistory",
-      "../domain/canvasEdgeDeletion",
       "../domain/canvasEdgeNormalization",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",

@@ -35,6 +35,7 @@ import {
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
   generateCanvasRedraw,
+  inheritMainlineFields,
   useCanvasImageModels,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
@@ -47,7 +48,6 @@ import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_CREDIT_PILL_FLAT_CLASS } from './nodeControlStyles';

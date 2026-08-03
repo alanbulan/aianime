@@ -6,10 +6,10 @@ import {
 import type { EdgeChange, NodeChange } from '@xyflow/react';
 
 import {
+  canDeleteCanvasEdge,
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
-} from '../application/canvasManagedChangeGuard';
-import { canDeleteCanvasEdge } from '../domain/canvasEdgeDeletion';
+} from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasGraphChangeControllerOptions {
