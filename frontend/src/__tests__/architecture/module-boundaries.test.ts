@@ -12920,6 +12920,8 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const legacyPaths = [
+      "features/canvas/domain/canvasSelection.ts",
+      "features/canvas/domain/canvasSelection.test.ts",
       "features/canvas/hooks/useCanvasMarqueeSelection.ts",
       "features/canvas/hooks/useCanvasMarqueeSelection.test.tsx",
       "features/canvas/hooks/useCanvasSpacePan.ts",
@@ -12943,6 +12945,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const privateModuleImports = new Set([
+      "@/modules/creative_canvas/domain/canvasSelection",
       "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection",
       "@/modules/creative_canvas/presentation/useCanvasSpacePan",
     ]);
@@ -12972,8 +12975,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(selectionSurfacePath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(selectionSurface).toContain("../domain/canvasSelection");
+    expect(selectionSurface).not.toContain("../domain/canvasSelection");
     expect(selectionSurface).toContain("collectCanvasNodeIdsInRect,");
+    expect(selectionSurface).toContain("canvasNodeIntersectsSelectionRect");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("marqueeSelectionRef");
@@ -13813,10 +13817,16 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const selectionPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/canvasSelection.ts",
+      moduleRoot,
+      "domain/canvasSelection.ts",
     );
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const legacySelectionPaths = [
+      "features/canvas/domain/canvasSelection.ts",
+      "features/canvas/domain/canvasSelection.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const viewportPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/viewportBookmarks.ts",
@@ -13893,7 +13903,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const rectSelectionDeclaration = [
       "export function",
-      "collectCanvasNodeIdsInRect(",
+      "collectCanvasNodeIdsInRect<",
     ].join(" ");
     const rectSelectionOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -13907,18 +13917,27 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/viewportBookmarks.ts",
     ]);
     expect(rectSelectionOwners).toEqual([
-      "features/canvas/domain/canvasSelection.ts",
+      "modules/creative_canvas/domain/canvasSelection.ts",
     ]);
+    for (const legacySelectionPath of legacySelectionPaths) {
+      expect(
+        existsSync(legacySelectionPath),
+        relativeSource(legacySelectionPath),
+      ).toBe(false);
+    }
     expect(selectionModel).toContain(rectSelectionDeclaration);
-    expect(selectionModel).toContain("export function resolveSelectedNodeId(");
-    expect(selectionModel).toContain("export function resolveActiveToolDialog(");
+    expect(selectionModel).toContain("export function resolveSelectedNodeId<");
+    expect(selectionModel).toContain("export function resolveActiveToolDialog<");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/canvasSelection",
+    );
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
     expect(viewportModel).toContain(originViewportDeclaration);
     expect(nodeEffectsModel).toContain(
-      "from '../domain/canvasSelection'",
+      "from '@/modules/creative_canvas/public'",
     );
     expect(historyNavigationModel).toContain(
-      "from '../domain/canvasSelection'",
+      "from '@/modules/creative_canvas/public'",
     );
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasSelection",
@@ -13930,7 +13949,8 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleView).toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).not.toContain("../domain/canvasSelection");
-    expect(selectionSurface).toContain("../domain/canvasSelection");
+    expect(selectionSurface).not.toContain("../domain/canvasSelection");
+    expect(selectionSurface).toContain("canvasNodeIntersectsSelectionRect");
     expect(canvasView).not.toContain(
       "from '@/features/canvas/domain/canvasSelection'",
     );

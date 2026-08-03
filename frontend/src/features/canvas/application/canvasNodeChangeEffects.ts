@@ -7,6 +7,8 @@ import {
 } from '../domain/canvasHistory';
 import {
   isDeleteToEmpty,
+  resolveActiveToolDialog,
+  resolveSelectedNodeId,
   trackEdit,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
@@ -15,10 +17,6 @@ import type {
   CanvasEdge,
   CanvasNode,
 } from '../domain/canvasNodes';
-import {
-  resolveActiveToolDialog,
-  resolveSelectedNodeId,
-} from '../domain/canvasSelection';
 import {
   classifyCanvasNodeChanges,
   type CanvasNodeChangeLike,

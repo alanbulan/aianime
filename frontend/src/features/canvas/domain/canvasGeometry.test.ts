@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import {
+  canvasNodeIntersectsSelectionRect,
   canvasViewportOverlapsRect,
   findAvailableNodePosition,
   getDerivedNodePosition,
@@ -76,6 +77,35 @@ describe('Canvas geometry', () => {
     expect(rectsIntersect(anchor, { x: 59, y: 20, width: 20, height: 20 })).toBe(true);
     expect(rectsIntersect(anchor, { x: 60, y: 20, width: 20, height: 20 })).toBe(false);
     expect(rectsIntersect(anchor, { x: 20, y: 50, width: 20, height: 20 })).toBe(false);
+  });
+
+  it('projects nested Canvas node geometry for marquee hit testing', () => {
+    const group = node('group', { x: 100, y: 100 }, {
+      measured: { width: 240, height: 180 },
+    });
+    const child = node('child', { x: 30, y: 40 }, {
+      parentId: group.id,
+      measured: { width: 80, height: 60 },
+    });
+    const nodeMap = new Map([
+      [group.id, group],
+      [child.id, child],
+    ]);
+
+    expect(
+      canvasNodeIntersectsSelectionRect(
+        child,
+        { x: 120, y: 130, width: 100, height: 90 },
+        nodeMap,
+      ),
+    ).toBe(true);
+    expect(
+      canvasNodeIntersectsSelectionRect(
+        child,
+        { x: 300, y: 300, width: 20, height: 20 },
+        nodeMap,
+      ),
+    ).toBe(false);
   });
 
   it('builds top-level canvas bounds and ignores parent-relative children', () => {

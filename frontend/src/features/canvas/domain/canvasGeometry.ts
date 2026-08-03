@@ -81,6 +81,21 @@ export function rectsIntersect(left: CanvasRect, right: CanvasRect): boolean {
   );
 }
 
+export function canvasNodeIntersectsSelectionRect(
+  node: CanvasNode,
+  selectionRect: CanvasRect,
+  nodeMap: ReadonlyMap<string, CanvasNode>,
+): boolean {
+  const size = getNodeSize(node);
+  const absolute = resolveAbsolutePosition(node, nodeMap);
+  return rectsIntersect(selectionRect, {
+    x: absolute.x,
+    y: absolute.y,
+    width: size.width,
+    height: size.height,
+  });
+}
+
 export function getTopLevelCanvasBounds(
   nodes: readonly CanvasNode[],
 ): CanvasRect | null {

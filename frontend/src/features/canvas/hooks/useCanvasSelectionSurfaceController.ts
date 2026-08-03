@@ -3,9 +3,11 @@ import { useCallback } from 'react';
 
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
+  collectCanvasNodeIdsInRect,
   useCanvasMarqueeSelection,
   useCanvasSelectionCommandController,
   useCanvasSelectionSync,
+  type CanvasMarqueeFlowRect,
   type CanvasMarqueeSelectionController,
   type CanvasMarqueeSelectionOptions,
   type CanvasSelectionCommandController,
@@ -17,7 +19,7 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
+import { canvasNodeIntersectsSelectionRect } from '../domain/canvasGeometry';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
@@ -38,6 +40,17 @@ type CanvasSelectionCommandOptions = CanvasSelectionCommandControllerOptions<
 
 function isCanvasUploadNode(node: CanvasNode): boolean {
   return node.type === CANVAS_NODE_TYPES.upload;
+}
+
+function collectCanvasSelectionNodeIds(
+  nodes: readonly CanvasNode[],
+  selectionRect: CanvasMarqueeFlowRect,
+): Set<string> {
+  return collectCanvasNodeIdsInRect(
+    nodes,
+    selectionRect,
+    canvasNodeIntersectsSelectionRect,
+  );
 }
 
 export interface CanvasSelectionSurfaceControllerOptions {
@@ -90,7 +103,7 @@ export function useCanvasSelectionSurfaceController({
     disabled,
     nodes,
     coordinatePort,
-    collectCanvasNodeIdsInRect,
+    collectCanvasNodeIdsInRect: collectCanvasSelectionNodeIds,
     isImmersiveViewerActive,
     applyNodeSelectionChanges,
     setNativeSelectionActive,

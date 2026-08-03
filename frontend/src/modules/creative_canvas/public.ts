@@ -701,6 +701,17 @@ export type {
   CanvasSpacePanController,
   CanvasSpacePanOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasSpacePan";
+export {
+  collectCanvasNodeIdsInRect,
+  resolveActiveToolDialog,
+  resolveSelectedNodeId,
+} from "@/modules/creative_canvas/domain/canvasSelection";
+export type {
+  CanvasSelectionDialogTarget,
+  CanvasSelectionNode,
+  CanvasSelectionNodeIntersectsRect,
+  CanvasSelectionRect,
+} from "@/modules/creative_canvas/domain/canvasSelection";
 export { useCanvasMarqueeSelection } from "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection";
 export type {
   CanvasMarqueeCoordinatePort,
