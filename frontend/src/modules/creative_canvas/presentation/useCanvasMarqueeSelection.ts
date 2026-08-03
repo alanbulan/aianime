@@ -5,35 +5,45 @@ import {
   useRef,
   useState,
   type RefObject,
-} from 'react';
+} from "react";
 
-import type { CanvasNode } from '../domain/canvasNodes';
-import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
-import { isCanvasPaneTarget } from '@/modules/creative_canvas/public';
-import { useCanvasSpacePan } from './useCanvasSpacePan';
+import { isCanvasPaneTarget } from "./canvasInteractionTargets";
+import { useCanvasSpacePan } from "./useCanvasSpacePan";
 
 const MARQUEE_SELECTION_MIN_DISTANCE_PX = 6;
 
-interface CanvasPoint {
+export interface CanvasMarqueePoint {
   x: number;
   y: number;
 }
 
-interface CanvasCoordinatePort {
-  screenToFlowPosition: (position: CanvasPoint) => CanvasPoint;
+export interface CanvasMarqueeFlowRect extends CanvasMarqueePoint {
+  width: number;
+  height: number;
 }
 
-interface CanvasNodeSelectionChange {
+export interface CanvasMarqueeNode {
   id: string;
-  type: 'select';
+  selected?: boolean;
+}
+
+export interface CanvasMarqueeCoordinatePort {
+  screenToFlowPosition: (
+    position: CanvasMarqueePoint,
+  ) => CanvasMarqueePoint;
+}
+
+export interface CanvasNodeSelectionChange {
+  id: string;
+  type: "select";
   selected: boolean;
 }
 
 interface MarqueeGesture {
   active: boolean;
   pointerId: number;
-  startClient: CanvasPoint;
-  startLocal: CanvasPoint;
+  startClient: CanvasMarqueePoint;
+  startLocal: CanvasMarqueePoint;
 }
 
 export interface CanvasMarqueeSelectionRect {
@@ -43,11 +53,18 @@ export interface CanvasMarqueeSelectionRect {
   height: number;
 }
 
-export interface CanvasMarqueeSelectionOptions {
+export interface CanvasMarqueeSelectionOptions<
+  TNode extends CanvasMarqueeNode = CanvasMarqueeNode,
+> {
   wrapperRef: RefObject<HTMLDivElement | null>;
   disabled: boolean;
-  nodes: readonly CanvasNode[];
-  coordinatePort: CanvasCoordinatePort;
+  nodes: readonly TNode[];
+  coordinatePort: CanvasMarqueeCoordinatePort;
+  collectCanvasNodeIdsInRect: (
+    nodes: readonly TNode[],
+    selectionRect: CanvasMarqueeFlowRect,
+  ) => Set<string>;
+  isImmersiveViewerActive: () => boolean;
   applyNodeSelectionChanges: (changes: CanvasNodeSelectionChange[]) => void;
   setNativeSelectionActive: (active: boolean) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
@@ -58,16 +75,20 @@ export interface CanvasMarqueeSelectionController {
   marqueeSelectionRect: CanvasMarqueeSelectionRect | null;
 }
 
-export function useCanvasMarqueeSelection({
+export function useCanvasMarqueeSelection<
+  TNode extends CanvasMarqueeNode,
+>({
   wrapperRef,
   disabled,
   nodes,
   coordinatePort,
+  collectCanvasNodeIdsInRect,
+  isImmersiveViewerActive,
   applyNodeSelectionChanges,
   setNativeSelectionActive,
   setSelectedNodeId,
   onMarqueeStart,
-}: CanvasMarqueeSelectionOptions): CanvasMarqueeSelectionController {
+}: CanvasMarqueeSelectionOptions<TNode>): CanvasMarqueeSelectionController {
   const gestureRef = useRef<MarqueeGesture | null>(null);
   const swallowTrailingClickRef = useRef(false);
   const [marqueeSelectionRect, setMarqueeSelectionRect] =
@@ -77,7 +98,10 @@ export function useCanvasMarqueeSelection({
     gestureRef.current = null;
     setMarqueeSelectionRect(null);
   }, []);
-  const { isSpacePanActive } = useCanvasSpacePan(clearMarqueeSelection);
+  const { isSpacePanActive } = useCanvasSpacePan({
+    clearMarqueeSelection,
+    isImmersiveViewerActive,
+  });
 
   useEffect(() => {
     const wrapperElement = wrapperRef.current;
@@ -186,7 +210,7 @@ export function useCanvasMarqueeSelection({
         .filter((node) => Boolean(node.selected) !== selectedIds.has(node.id))
         .map((node) => ({
           id: node.id,
-          type: 'select' as const,
+          type: "select" as const,
           selected: selectedIds.has(node.id),
         }));
       if (changes.length > 0) {
@@ -215,21 +239,22 @@ export function useCanvasMarqueeSelection({
       }
     };
 
-    wrapperElement.addEventListener('pointerdown', handlePointerDown, true);
-    wrapperElement.addEventListener('click', handleClickCapture, true);
-    window.addEventListener('pointermove', handlePointerMove, true);
-    window.addEventListener('pointerup', handlePointerUp, true);
-    window.addEventListener('pointercancel', handlePointerCancel, true);
+    wrapperElement.addEventListener("pointerdown", handlePointerDown, true);
+    wrapperElement.addEventListener("click", handleClickCapture, true);
+    window.addEventListener("pointermove", handlePointerMove, true);
+    window.addEventListener("pointerup", handlePointerUp, true);
+    window.addEventListener("pointercancel", handlePointerCancel, true);
     return () => {
-      wrapperElement.removeEventListener('pointerdown', handlePointerDown, true);
-      wrapperElement.removeEventListener('click', handleClickCapture, true);
-      window.removeEventListener('pointermove', handlePointerMove, true);
-      window.removeEventListener('pointerup', handlePointerUp, true);
-      window.removeEventListener('pointercancel', handlePointerCancel, true);
+      wrapperElement.removeEventListener("pointerdown", handlePointerDown, true);
+      wrapperElement.removeEventListener("click", handleClickCapture, true);
+      window.removeEventListener("pointermove", handlePointerMove, true);
+      window.removeEventListener("pointerup", handlePointerUp, true);
+      window.removeEventListener("pointercancel", handlePointerCancel, true);
     };
   }, [
     applyNodeSelectionChanges,
     clearMarqueeSelection,
+    collectCanvasNodeIdsInRect,
     coordinatePort,
     disabled,
     isSpacePanActive,

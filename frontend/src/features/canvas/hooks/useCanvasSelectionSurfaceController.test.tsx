@@ -2,8 +2,8 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { CanvasMarqueeSelectionOptions } from '@/modules/creative_canvas/public';
 import type { CanvasEdge } from '../domain/canvasNodes';
-import type { CanvasMarqueeSelectionOptions } from './useCanvasMarqueeSelection';
 import type {
   CanvasSelectionCommandControllerOptions,
 } from './useCanvasSelectionCommandController';
@@ -39,7 +39,8 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('./useCanvasMarqueeSelection', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   useCanvasMarqueeSelection: controllerMocks.useMarqueeSelection,
 }));
 vi.mock('./useCanvasSelectionCommandController', () => ({
@@ -91,6 +92,8 @@ describe('useCanvasSelectionSurfaceController', () => {
         disabled: false,
         nodes: options.nodes,
         coordinatePort: options.coordinatePort,
+        collectCanvasNodeIdsInRect: expect.any(Function),
+        isImmersiveViewerActive: expect.any(Function),
         applyNodeSelectionChanges: options.applyNodeSelectionChanges,
         setSelectedNodeId: options.setSelectedNodeId,
         onMarqueeStart: options.onMarqueeStart,

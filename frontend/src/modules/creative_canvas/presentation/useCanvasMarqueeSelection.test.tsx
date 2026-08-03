@@ -1,9 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CanvasNode } from '../domain/canvasNodes';
-import { useCanvasMarqueeSelection } from './useCanvasMarqueeSelection';
+import {
+  useCanvasMarqueeSelection,
+  type CanvasMarqueeNode,
+} from "./useCanvasMarqueeSelection";
 
 function pointerEvent(
   type: string,
@@ -21,34 +23,25 @@ function pointerEvent(
     clientX: options.clientX ?? 0,
     clientY: options.clientY ?? 0,
   });
-  Object.defineProperty(event, 'pointerId', { value: options.pointerId });
+  Object.defineProperty(event, "pointerId", { value: options.pointerId });
   return event as PointerEvent;
 }
 
-function canvasNode(
-  id: string,
-  position: { x: number; y: number },
-  selected = false,
-): CanvasNode {
-  return {
-    id,
-    position,
-    selected,
-    measured: { width: 20, height: 20 },
-  } as CanvasNode;
+function canvasNode(id: string, selected = false): CanvasMarqueeNode {
+  return { id, selected };
 }
 
-describe('useCanvasMarqueeSelection', () => {
+describe("useCanvasMarqueeSelection", () => {
   let wrapperElement: HTMLDivElement;
   let paneElement: HTMLDivElement;
 
   beforeEach(() => {
-    wrapperElement = document.createElement('div');
-    paneElement = document.createElement('div');
-    paneElement.className = 'react-flow__pane';
+    wrapperElement = document.createElement("div");
+    paneElement = document.createElement("div");
+    paneElement.className = "react-flow__pane";
     wrapperElement.append(paneElement);
     document.body.append(wrapperElement);
-    vi.spyOn(wrapperElement, 'getBoundingClientRect').mockReturnValue({
+    vi.spyOn(wrapperElement, "getBoundingClientRect").mockReturnValue({
       left: 10,
       top: 20,
       right: 410,
@@ -66,7 +59,9 @@ describe('useCanvasMarqueeSelection', () => {
     wrapperElement.remove();
   });
 
-  it('shows the drag rect, applies selection, and swallows one trailing click', () => {
+  it("shows the drag rect, applies selection, and swallows one trailing click", () => {
+    const nodes = [canvasNode("inside")];
+    const collectCanvasNodeIdsInRect = vi.fn(() => new Set(["inside"]));
     const applyNodeSelectionChanges = vi.fn();
     const setNativeSelectionActive = vi.fn();
     const setSelectedNodeId = vi.fn();
@@ -75,8 +70,10 @@ describe('useCanvasMarqueeSelection', () => {
       useCanvasMarqueeSelection({
         wrapperRef: { current: wrapperElement },
         disabled: false,
-        nodes: [canvasNode('inside', { x: 110, y: 110 })],
+        nodes,
         coordinatePort: { screenToFlowPosition: (position) => position },
+        collectCanvasNodeIdsInRect,
+        isImmersiveViewerActive: () => false,
         applyNodeSelectionChanges,
         setNativeSelectionActive,
         setSelectedNodeId,
@@ -85,12 +82,12 @@ describe('useCanvasMarqueeSelection', () => {
     );
 
     act(() => {
-      paneElement.dispatchEvent(pointerEvent('pointerdown', {
+      paneElement.dispatchEvent(pointerEvent("pointerdown", {
         pointerId: 1,
         clientX: 100,
         clientY: 100,
       }));
-      window.dispatchEvent(pointerEvent('pointermove', {
+      window.dispatchEvent(pointerEvent("pointermove", {
         pointerId: 1,
         clientX: 120,
         clientY: 130,
@@ -106,25 +103,31 @@ describe('useCanvasMarqueeSelection', () => {
     expect(setSelectedNodeId).toHaveBeenLastCalledWith(null);
     expect(setNativeSelectionActive).toHaveBeenLastCalledWith(false);
 
-    act(() => window.dispatchEvent(pointerEvent('pointerup', {
+    act(() => window.dispatchEvent(pointerEvent("pointerup", {
       pointerId: 1,
       clientX: 150,
       clientY: 150,
     })));
+    expect(collectCanvasNodeIdsInRect).toHaveBeenCalledWith(nodes, {
+      x: 100,
+      y: 100,
+      width: 50,
+      height: 50,
+    });
     expect(applyNodeSelectionChanges).toHaveBeenCalledWith([
-      { id: 'inside', type: 'select', selected: true },
+      { id: "inside", type: "select", selected: true },
     ]);
     expect(setNativeSelectionActive).toHaveBeenLastCalledWith(true);
-    expect(setSelectedNodeId).toHaveBeenLastCalledWith('inside');
+    expect(setSelectedNodeId).toHaveBeenLastCalledWith("inside");
     expect(result.current.marqueeSelectionRect).toBeNull();
 
-    const trailingClick = new MouseEvent('click', {
+    const trailingClick = new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
     });
     act(() => paneElement.dispatchEvent(trailingClick));
     expect(trailingClick.defaultPrevented).toBe(true);
-    const nextClick = new MouseEvent('click', {
+    const nextClick = new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
     });
@@ -132,7 +135,7 @@ describe('useCanvasMarqueeSelection', () => {
     expect(nextClick.defaultPrevented).toBe(false);
   });
 
-  it('selects a fast flick without requiring an intermediate move event', () => {
+  it("selects a fast flick without requiring an intermediate move event", () => {
     const applyNodeSelectionChanges = vi.fn();
     const setNativeSelectionActive = vi.fn();
     const setSelectedNodeId = vi.fn();
@@ -141,8 +144,10 @@ describe('useCanvasMarqueeSelection', () => {
       useCanvasMarqueeSelection({
         wrapperRef: { current: wrapperElement },
         disabled: false,
-        nodes: [canvasNode('inside', { x: 20, y: 20 })],
+        nodes: [canvasNode("inside")],
         coordinatePort: { screenToFlowPosition: (position) => position },
+        collectCanvasNodeIdsInRect: () => new Set(["inside"]),
+        isImmersiveViewerActive: () => false,
         applyNodeSelectionChanges,
         setNativeSelectionActive,
         setSelectedNodeId,
@@ -151,30 +156,35 @@ describe('useCanvasMarqueeSelection', () => {
     );
 
     act(() => {
-      paneElement.dispatchEvent(pointerEvent('pointerdown', {
+      paneElement.dispatchEvent(pointerEvent("pointerdown", {
         pointerId: 2,
         clientX: 10,
         clientY: 10,
       }));
-      window.dispatchEvent(pointerEvent('pointerup', {
+      window.dispatchEvent(pointerEvent("pointerup", {
         pointerId: 2,
         clientX: 50,
         clientY: 50,
       }));
     });
     expect(applyNodeSelectionChanges).toHaveBeenCalledOnce();
-    expect(setSelectedNodeId).toHaveBeenLastCalledWith('inside');
+    expect(setSelectedNodeId).toHaveBeenLastCalledWith("inside");
     expect(onMarqueeStart).not.toHaveBeenCalled();
     expect(result.current.marqueeSelectionRect).toBeNull();
   });
 
-  it('ignores disabled, interactive, short, and space-pan gestures', () => {
+  it("ignores disabled, interactive, short, and space-pan gestures", () => {
+    const collectCanvasNodeIdsInRect = vi.fn(() => new Set(["inside"]));
     const applyNodeSelectionChanges = vi.fn();
     const onMarqueeStart = vi.fn();
     const options = {
       wrapperRef: { current: wrapperElement },
-      nodes: [canvasNode('inside', { x: 20, y: 20 })],
-      coordinatePort: { screenToFlowPosition: (position: { x: number; y: number }) => position },
+      nodes: [canvasNode("inside")],
+      coordinatePort: {
+        screenToFlowPosition: (position: { x: number; y: number }) => position,
+      },
+      collectCanvasNodeIdsInRect,
+      isImmersiveViewerActive: () => false,
       applyNodeSelectionChanges,
       setNativeSelectionActive: vi.fn(),
       setSelectedNodeId: vi.fn(),
@@ -186,12 +196,12 @@ describe('useCanvasMarqueeSelection', () => {
     );
 
     act(() => {
-      paneElement.dispatchEvent(pointerEvent('pointerdown', {
+      paneElement.dispatchEvent(pointerEvent("pointerdown", {
         pointerId: 3,
         clientX: 10,
         clientY: 10,
       }));
-      window.dispatchEvent(pointerEvent('pointerup', {
+      window.dispatchEvent(pointerEvent("pointerup", {
         pointerId: 3,
         clientX: 50,
         clientY: 50,
@@ -199,40 +209,41 @@ describe('useCanvasMarqueeSelection', () => {
     });
     rerender({ disabled: false });
 
-    const button = document.createElement('button');
+    const button = document.createElement("button");
     paneElement.append(button);
     act(() => {
-      button.dispatchEvent(pointerEvent('pointerdown', { pointerId: 4 }));
-      paneElement.dispatchEvent(pointerEvent('pointerdown', {
+      button.dispatchEvent(pointerEvent("pointerdown", { pointerId: 4 }));
+      paneElement.dispatchEvent(pointerEvent("pointerdown", {
         pointerId: 5,
         clientX: 10,
         clientY: 10,
       }));
-      window.dispatchEvent(pointerEvent('pointerup', {
+      window.dispatchEvent(pointerEvent("pointerup", {
         pointerId: 5,
         clientX: 14,
         clientY: 13,
       }));
-      window.dispatchEvent(new KeyboardEvent('keydown', {
-        code: 'Space',
-        key: ' ',
+      window.dispatchEvent(new KeyboardEvent("keydown", {
+        code: "Space",
+        key: " ",
       }));
-      paneElement.dispatchEvent(pointerEvent('pointerdown', {
+      paneElement.dispatchEvent(pointerEvent("pointerdown", {
         pointerId: 6,
         clientX: 10,
         clientY: 10,
       }));
-      window.dispatchEvent(pointerEvent('pointermove', {
+      window.dispatchEvent(pointerEvent("pointermove", {
         pointerId: 6,
         clientX: 50,
         clientY: 50,
       }));
-      window.dispatchEvent(new KeyboardEvent('keyup', {
-        code: 'Space',
-        key: ' ',
+      window.dispatchEvent(new KeyboardEvent("keyup", {
+        code: "Space",
+        key: " ",
       }));
     });
 
+    expect(collectCanvasNodeIdsInRect).not.toHaveBeenCalled();
     expect(applyNodeSelectionChanges).not.toHaveBeenCalled();
     expect(onMarqueeStart).not.toHaveBeenCalled();
     expect(result.current.marqueeSelectionRect).toBeNull();

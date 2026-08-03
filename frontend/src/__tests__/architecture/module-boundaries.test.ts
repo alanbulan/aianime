@@ -8148,19 +8148,25 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas space-pan keyboard state in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSpacePan.ts",
+      moduleRoot,
+      "presentation/useCanvasSpacePan.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
     const marqueeView = readFileSync(
+      resolve(moduleRoot, "presentation/useCanvasMarqueeSelection.ts"),
+      "utf8",
+    );
+    const selectionSurface = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+        "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8171,9 +8177,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -8186,12 +8190,19 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasSpacePan.ts",
+      "modules/creative_canvas/presentation/useCanvasSpacePan.ts",
     ]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasSpacePan",
+    );
     expect(hookModel).toContain("isSpacePanKey");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
     expect(marqueeView).toContain("./useCanvasSpacePan");
+    expect(selectionSurface).toContain(
+      "@/features/viewer-kit/useViewerImmersiveBody",
+    );
+    expect(selectionSurface).toContain("isImmersiveViewerActive,");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("./hooks/useCanvasSpacePan");
@@ -9455,7 +9466,6 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const childControllers = [
-      "./useCanvasMarqueeSelection",
       "./useCanvasSelectionSync",
       "./useCanvasSelectionCommandController",
     ];
@@ -9470,6 +9480,13 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(controllerSource).toContain("useCanvasMarqueeSelection");
+    expect(controllerSource).not.toContain("./useCanvasMarqueeSelection");
+    expect(controllerSource).toContain("collectCanvasNodeIdsInRect,");
+    expect(controllerSource).toContain("isImmersiveViewerActive,");
     expect(controllerSource).toContain("nativeSelectionStore.setState({");
     expect(controllerSource).toContain("() => getGraph().edges");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
@@ -12811,15 +12828,28 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas marquee gestures in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      moduleRoot,
+      "presentation/useCanvasMarqueeSelection.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const selectionSurfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+    );
+    const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const legacyPaths = [
+      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      "features/canvas/hooks/useCanvasMarqueeSelection.test.tsx",
+      "features/canvas/hooks/useCanvasSpacePan.ts",
+      "features/canvas/hooks/useCanvasSpacePan.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -12827,26 +12857,48 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasMarqueeSelection(",
+      "useCanvasMarqueeSelection<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const privateModuleImports = new Set([
+      "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection",
+      "@/modules/creative_canvas/presentation/useCanvasSpacePan",
+    ]);
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => privateModuleImports.has(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      "modules/creative_canvas/presentation/useCanvasMarqueeSelection.ts",
     ]);
+    expect(directPrivateConsumers).toEqual([]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection",
+    );
     expect(hookModel).toContain("MARQUEE_SELECTION_MIN_DISTANCE_PX = 6");
     expect(hookModel).toContain("collectCanvasNodeIdsInRect");
     expect(hookModel).toContain("useCanvasSpacePan");
+    expect(hookModel).not.toContain("@/features/");
+    expect(importSpecifiers(selectionSurfacePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(selectionSurface).toContain("../domain/canvasSelection");
+    expect(selectionSurface).toContain("collectCanvasNodeIdsInRect,");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("marqueeSelectionRef");
@@ -13724,7 +13776,14 @@ describe("frontend architecture boundaries", () => {
     const marqueeView = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+        "modules/creative_canvas/presentation/useCanvasMarqueeSelection.ts",
+      ),
+      "utf8",
+    );
+    const selectionSurface = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
       ),
       "utf8",
     );
@@ -13795,7 +13854,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("replaceViewportBookmark(");
     expect(lifecycleView).toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
-    expect(marqueeView).toContain("../domain/canvasSelection");
+    expect(marqueeView).not.toContain("../domain/canvasSelection");
+    expect(selectionSurface).toContain("../domain/canvasSelection");
     expect(canvasView).not.toContain(
       "from '@/features/canvas/domain/canvasSelection'",
     );

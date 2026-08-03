@@ -1,12 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   useCanvasMarqueeSelection,
   type CanvasMarqueeSelectionController,
   type CanvasMarqueeSelectionOptions,
-} from './useCanvasMarqueeSelection';
+} from '@/modules/creative_canvas/public';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
 import {
   useCanvasSelectionCommandController,
   type CanvasSelectionCommandController,
@@ -75,6 +77,8 @@ export function useCanvasSelectionSurfaceController({
     disabled,
     nodes,
     coordinatePort,
+    collectCanvasNodeIdsInRect,
+    isImmersiveViewerActive,
     applyNodeSelectionChanges,
     setNativeSelectionActive,
     setSelectedNodeId,

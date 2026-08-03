@@ -483,6 +483,10 @@ describe("round 2 residual architecture boundaries", () => {
       "NodeReplaceDragPreview.tsx",
       "canvasInteractionTargets.ts",
       "canvasInteractionTargets.test.ts",
+      "useCanvasSpacePan.ts",
+      "useCanvasSpacePan.test.tsx",
+      "useCanvasMarqueeSelection.ts",
+      "useCanvasMarqueeSelection.test.tsx",
       "canvasMediaTransfer.ts",
       "canvasMediaTransfer.test.ts",
       "useCanvasDropIndicator.ts",
@@ -1008,6 +1012,10 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/application/videoFileTypes.test.ts",
       "features/canvas/ui/canvasInteractionTargets.ts",
       "features/canvas/ui/canvasInteractionTargets.test.ts",
+      "features/canvas/hooks/useCanvasSpacePan.ts",
+      "features/canvas/hooks/useCanvasSpacePan.test.tsx",
+      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      "features/canvas/hooks/useCanvasMarqueeSelection.test.tsx",
       "features/canvas/ui/canvasMediaTransfer.ts",
       "features/canvas/ui/canvasMediaTransfer.test.ts",
       "features/canvas/hooks/useCanvasDropIndicator.ts",
@@ -1815,7 +1823,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 659],
+      ["features/canvas", 655],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -1,17 +1,21 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from "react";
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { isSpacePanKey, isTypingTarget } from "./canvasInteractionTargets";
 
-import { isSpacePanKey, isTypingTarget } from '@/modules/creative_canvas/public';
+export interface CanvasSpacePanOptions {
+  clearMarqueeSelection: () => void;
+  isImmersiveViewerActive: () => boolean;
+}
 
 export interface CanvasSpacePanController {
   isSpacePanActive: () => boolean;
 }
 
-export function useCanvasSpacePan(
-  clearMarqueeSelection: () => void,
-): CanvasSpacePanController {
+export function useCanvasSpacePan({
+  clearMarqueeSelection,
+  isImmersiveViewerActive,
+}: CanvasSpacePanOptions): CanvasSpacePanController {
   const spacePanActiveRef = useRef(false);
 
   const isSpacePanActive = useCallback(() => spacePanActiveRef.current, []);
@@ -40,15 +44,15 @@ export function useCanvasSpacePan(
       clearMarqueeSelection();
     };
 
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keyup', handleKeyUp, true);
-    window.addEventListener('blur', handleBlur);
+    window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("keyup", handleKeyUp, true);
+    window.addEventListener("blur", handleBlur);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keyup', handleKeyUp, true);
-      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("keyup", handleKeyUp, true);
+      window.removeEventListener("blur", handleBlur);
     };
-  }, [clearMarqueeSelection]);
+  }, [clearMarqueeSelection, isImmersiveViewerActive]);
 
   return { isSpacePanActive };
 }

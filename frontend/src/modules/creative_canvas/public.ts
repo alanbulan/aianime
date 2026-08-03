@@ -696,6 +696,22 @@ export {
   isTypingTarget,
   PAN_ACTIVATION_KEY_CODE,
 } from "@/modules/creative_canvas/presentation/canvasInteractionTargets";
+export { useCanvasSpacePan } from "@/modules/creative_canvas/presentation/useCanvasSpacePan";
+export type {
+  CanvasSpacePanController,
+  CanvasSpacePanOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasSpacePan";
+export { useCanvasMarqueeSelection } from "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection";
+export type {
+  CanvasMarqueeCoordinatePort,
+  CanvasMarqueeFlowRect,
+  CanvasMarqueeNode,
+  CanvasMarqueePoint,
+  CanvasMarqueeSelectionController,
+  CanvasMarqueeSelectionOptions,
+  CanvasMarqueeSelectionRect,
+  CanvasNodeSelectionChange,
+} from "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection";
 export { useCanvasMediaTransferController } from "@/modules/creative_canvas/presentation/useCanvasMediaTransferController";
 export type {
   CanvasMediaTransferController,
