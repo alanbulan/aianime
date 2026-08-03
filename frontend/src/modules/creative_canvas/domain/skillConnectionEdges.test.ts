@@ -1,9 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { applySkillRoleBindingConnection } from "@/features/canvas/domain/skillConnectionEdges";
-import type { CanvasEdge, CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { SkillDefinition } from "@/modules/creative_canvas/public";
+import {
+  applySkillRoleBindingConnection,
+  type CanvasSkillConnectionEdge as CanvasEdge,
+  type CanvasSkillConnectionNode as CanvasNode,
+} from "./skillConnectionEdges";
+import type { SkillDefinition } from "./skillContract";
 
 const skill: SkillDefinition = {
   id: "freezone.sketch_from_context",

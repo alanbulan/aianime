@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
-import { canConnectCanvasNodesManually } from './canvasConnection';
 import { getNodeSize } from './canvasGeometry';
 import type { CanvasNode, CanvasNodeType } from './canvasNodes';
 import {
+  canConnectCanvasNodesManually,
   getDownstreamSpawnTypes,
   nodeHasSourceHandle,
   nodeHasTargetHandle,
-} from './nodeRegistry';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasBatchConnectContext {
   sourceIds: string[];

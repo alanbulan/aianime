@@ -4025,14 +4025,15 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/context/inferSkillConnectionRole.ts",
       "features/freezone/domain/inferSkillConnectionRole.ts",
       "features/freezone/domain/inferSkillConnectionRole.test.ts",
+      "features/canvas/domain/skillConnectionEdges.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const domainPath = resolve(moduleRoot, "domain/inferSkillConnectionRole.ts");
     const testPath = resolve(moduleRoot, "domain/inferSkillConnectionRole.test.ts");
     const publicPath = resolve(moduleRoot, "public.ts");
     const canvasConsumerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/skillConnectionEdges.ts",
+      moduleRoot,
+      "domain/skillConnectionEdges.ts",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const declaration = [
@@ -4058,7 +4059,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(publicPath)).toContain(
       "@/modules/creative_canvas/domain/inferSkillConnectionRole",
     );
-    expect(canvasImports).toContain("@/modules/creative_canvas/public");
+    expect(canvasImports).toContain("./inferSkillConnectionRole");
+    expect(canvasImports).not.toContain("@/modules/creative_canvas/public");
     expect(canvasImports).not.toContain("@/features/freezone/public");
     expect(canvasImports).not.toContain(
       "../../freezone/context/inferSkillConnectionRole.ts",
@@ -14265,7 +14267,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas edge hydration rules in the domain model", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const normalizationPath = resolve(
+      moduleRoot,
+      "domain/canvasEdgeNormalization.ts",
+    );
+    const legacyNormalizationPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasEdgeNormalization.ts",
     );
@@ -14285,6 +14292,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
     );
@@ -14297,11 +14305,15 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyNormalizationPath)).toBe(false);
     expect(normalizationModel).toContain(
-      "export function normalizeEdgesWithNodes(",
+      "export function normalizeEdgesWithNodes<",
     );
     expect(normalizationModel).toContain("export function normalizeHandleId(");
-    expect(graphMutationSlice).toContain("../domain/canvasEdgeNormalization");
+    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/canvasEdgeNormalization",
+    );
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasEdgeNormalization",
     );
@@ -16012,13 +16024,18 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas connection eligibility in the domain model", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const connectionPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/canvasConnection.ts",
+      moduleRoot,
+      "domain/canvasConnection.ts",
     );
     const edgeCreationPath = resolve(
+      moduleRoot,
+      "application/canvasEdgeCreation.ts",
+    );
+    const legacyConnectionPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasEdgeCreation.ts",
+      "features/canvas/domain/canvasConnection.ts",
     );
     const connectionModel = readFileSync(connectionPath, "utf8");
     const edgeCreationModel = readFileSync(edgeCreationPath, "utf8");
@@ -16027,6 +16044,10 @@ describe("frontend architecture boundaries", () => {
         SRC_ROOT,
         "features/canvas/ui/canvasConnectionInteraction.ts",
       ),
+      "utf8",
+    );
+    const nodeRegistryModel = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/domain/nodeRegistry.ts"),
       "utf8",
     );
     const canvasStore = readFileSync(
@@ -16046,6 +16067,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16087,8 +16109,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyConnectionPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasConnection.ts",
+      "modules/creative_canvas/domain/canvasConnection.ts",
     ]);
     expect(connectionModel).toContain(validationDeclaration);
     expect(connectionModel).toContain(menuDeclaration);
@@ -16098,7 +16121,14 @@ describe("frontend architecture boundaries", () => {
     expect(edgeCreationModel).toContain(
       "from '../domain/canvasConnection'",
     );
-    expect(interactionModel).toContain("../domain/canvasConnection");
+    expect(interactionModel).toContain("@/modules/creative_canvas/public");
+    expect(nodeRegistryModel).not.toContain("connectivity:");
+    expect(nodeRegistryModel).not.toContain(
+      "export function nodeHasSourceHandle(",
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/canvasConnection",
+    );
     expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasConnection",
     );
@@ -16286,7 +16316,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas edge creation in the application layer", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const creationPath = resolve(
+      moduleRoot,
+      "application/canvasEdgeCreation.ts",
+    );
+    const legacyCreationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasEdgeCreation.ts",
     );
@@ -16311,6 +16346,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition" ||
         specifier === "@/features/canvas/nodeFactoryComposition",
@@ -16332,8 +16368,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyCreationPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasEdgeCreation.ts",
+      "modules/creative_canvas/application/canvasEdgeCreation.ts",
     ]);
     for (const declaration of declarations) {
       expect(creationModel).toContain(declaration);
@@ -16342,9 +16379,7 @@ describe("frontend architecture boundaries", () => {
     expect(creationModel).toContain("applySkillRoleBindingConnection({");
     expect(creationModel).toContain("validatePropagatingEdgeCandidate(");
     expect(creationModel).toContain("validateCandidateBindingRoleCandidate(");
-    expect(graphMutationSlice).toContain(
-      "../application/canvasEdgeCreation",
-    );
+    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasEdgeCreation",
     );
@@ -26526,10 +26561,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
-      "../domain/canvasEdgeNormalization",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasEdgeCreation",
     ]));
     expect(canvasStateHeader).toContain("CanvasGraphMutationSlice");
     expect(canvasStore).toContain(

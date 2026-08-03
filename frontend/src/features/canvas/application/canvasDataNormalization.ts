@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import {
+  normalizeEdgesWithNodes,
   scopeProjectionGraphIds,
   type CanvasHistorySnapshot,
 } from '@/modules/creative_canvas/public';
 
-import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import { normalizeCanvasNodes } from './canvasNodeHydration';
 import type { CanvasNodeDefaultDataGateway } from './ports';

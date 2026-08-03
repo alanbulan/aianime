@@ -3,11 +3,9 @@ import {
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   resolveAllowedNodeTypes,
-} from '../domain/canvasConnection';
-import type {
-  CanvasHandleType,
-  CanvasPendingConnectionStart,
-  PreviewConnectionLine,
+  type CanvasHandleType,
+  type CanvasPendingConnectionStart,
+  type PreviewConnectionLine,
 } from '@/modules/creative_canvas/public';
 
 import {

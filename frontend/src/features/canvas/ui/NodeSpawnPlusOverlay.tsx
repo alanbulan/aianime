@@ -13,10 +13,9 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   getDownstreamSpawnTypes,
-  getNodeDefinition,
   nodeHasSourceHandle,
   nodeHasTargetHandle,
-} from '@/features/canvas/domain/nodeRegistry';
+} from '@/modules/creative_canvas/public';
 
 type SpawnDirection = 'right' | 'left';
 
@@ -378,12 +377,9 @@ export const NodeSpawnPlusOverlay = memo(({
   const leftAllowedTypes = useMemo<CanvasNodeType[]>(() => {
     return [
         CANVAS_NODE_TYPES.textAnnotation,
-        CANVAS_NODE_TYPES.imageGen,
-        CANVAS_NODE_TYPES.audio,
-      ].filter((type) => {
-        const def = getNodeDefinition(type);
-        return def?.connectivity.sourceHandle;
-      });
+      CANVAS_NODE_TYPES.imageGen,
+      CANVAS_NODE_TYPES.audio,
+      ].filter(nodeHasSourceHandle);
   }, []);
 
   if (!selectedNode) {

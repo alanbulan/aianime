@@ -146,6 +146,45 @@ export type {
   CanvasEdgeDeletionLike,
 } from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
 export {
+  canConnectCanvasNodesManually,
+  canNodeBeManualConnectionSource,
+  canNodeTypeBeManualConnectionSource,
+  getAllowedUpstreamSourceTypes,
+  getConnectMenuNodeTypes,
+  getDownstreamSpawnTypes,
+  isUpstreamConnectionAllowed,
+  nodeHasSourceHandle,
+  nodeHasTargetHandle,
+  resolveAllowedNodeTypes,
+  validateCanvasConnection,
+} from "@/modules/creative_canvas/domain/canvasConnection";
+export type {
+  CanvasConnectionEdgeLike,
+  CanvasConnectionMode,
+  CanvasConnectionNodeLike,
+  CanvasConnectionNodeType,
+  CanvasConnectionRejectionReason,
+  CanvasConnectionValidation,
+} from "@/modules/creative_canvas/domain/canvasConnection";
+export {
+  normalizeEdgesWithNodes,
+  normalizeHandleId,
+} from "@/modules/creative_canvas/domain/canvasEdgeNormalization";
+export type {
+  CanvasEdgeNormalizationEdgeLike,
+  CanvasEdgeNormalizationNodeLike,
+} from "@/modules/creative_canvas/domain/canvasEdgeNormalization";
+export {
+  applySkillRoleBindingConnection,
+  isSkillRoleConnection,
+} from "@/modules/creative_canvas/domain/skillConnectionEdges";
+export type {
+  CanvasSkillConnection,
+  CanvasSkillConnectionEdge,
+  CanvasSkillConnectionNode,
+  SkillRoleBindingEdgeData,
+} from "@/modules/creative_canvas/domain/skillConnectionEdges";
+export {
   collectBatchDeletableIds,
   collectNodeIdsWithDescendants,
   deleteCanvasNodes,
@@ -532,6 +571,25 @@ export type {
   CanvasNodeChangeEffectResult,
   CanvasNodeChangeEffectState,
 } from "@/modules/creative_canvas/application/canvasNodeChangeEffects";
+export {
+  createCanvasDataEdge,
+  createCanvasProgrammaticEdge,
+  planCanvasGraphConnection,
+  planCanvasSpawnConnections,
+  planSingleBeatContextBinding,
+  prepareCanvasReactFlowConnection,
+} from "@/modules/creative_canvas/application/canvasEdgeCreation";
+export type {
+  CanvasDataEdgeCreationOptions,
+  CanvasDataEdgeCreationOutcome,
+  CanvasEdgeCreationEdge,
+  CanvasEdgeCreationNode,
+  CanvasEdgeCreationResult,
+  CanvasGraphConnection,
+  CanvasGraphConnectionPlan,
+  CanvasPreparedConnection,
+  CanvasSpawnConnectionOrigin,
+} from "@/modules/creative_canvas/application/canvasEdgeCreation";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

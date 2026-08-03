@@ -1,23 +1,34 @@
 // Copyright (c) 2026 AI anime
-import {
-  type SkillDefinition,
-} from '@/modules/creative_canvas/public';
+import type { SkillDefinition } from '../domain/skillContract';
 import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
-} from '@/modules/creative_canvas/public';
+} from '../domain/mainlineContext';
 
 import {
   validateCanvasConnection,
+  type CanvasConnectionNodeLike,
   type CanvasConnectionRejectionReason,
 } from '../domain/canvasConnection';
 import { normalizeHandleId } from '../domain/canvasEdgeNormalization';
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import { applySkillRoleBindingConnection } from '../domain/skillConnectionEdges';
+  applySkillRoleBindingConnection,
+  type CanvasSkillConnectionEdge,
+} from '../domain/skillConnectionEdges';
+
+export interface CanvasEdgeCreationNode extends CanvasConnectionNodeLike {
+  data: Record<string, unknown>;
+}
+
+export type CanvasEdgeCreationEdge = CanvasSkillConnectionEdge;
+
+type CanvasNode = CanvasEdgeCreationNode;
+type CanvasEdge = CanvasEdgeCreationEdge;
+
+const NODE_TYPE = {
+  beatContext: 'beatContextNode',
+  skill: 'skillNode',
+} as const;
 
 export interface CanvasEdgeCreationResult {
   edgeId: string;
@@ -95,9 +106,9 @@ export function planCanvasGraphConnection({
   const targetNode = nodes.find((node) => node.id === connection.target);
   const sourceNode = nodes.find((node) => node.id === connection.source);
   const skillNode =
-    targetNode?.type === CANVAS_NODE_TYPES.skill
+    targetNode?.type === NODE_TYPE.skill
       ? targetNode
-      : sourceNode?.type === CANVAS_NODE_TYPES.skill
+      : sourceNode?.type === NODE_TYPE.skill
         ? sourceNode
         : null;
   if (!skillNode) {
@@ -115,8 +126,8 @@ export function planCanvasGraphConnection({
   }
 
   if (
-    sourceNode?.type === CANVAS_NODE_TYPES.skill
-    && targetNode?.type !== CANVAS_NODE_TYPES.skill
+    sourceNode?.type === NODE_TYPE.skill
+    && targetNode?.type !== NODE_TYPE.skill
   ) {
     const sourceRole = normalizeHandleId(connection.sourceHandle)?.split(':', 1)[0] ?? '';
     if (!sourceRole || !skillSpec.inputs.some((input) => input.role === sourceRole)) {
@@ -144,7 +155,7 @@ export function planSingleBeatContextBinding(
     return null;
   }
   const beatContextNodes = nodes.filter(
-    (node) => node.type === CANVAS_NODE_TYPES.beatContext,
+    (node) => node.type === NODE_TYPE.beatContext,
   );
   if (beatContextNodes.length !== 1) {
     return null;

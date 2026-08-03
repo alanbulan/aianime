@@ -39,22 +39,12 @@ export interface CanvasNodeCapabilities {
   promptInput: boolean;
 }
 
-export interface CanvasNodeConnectivity {
-  sourceHandle: boolean;
-  targetHandle: boolean;
-  connectMenu: {
-    fromSource: boolean;
-    fromTarget: boolean;
-  };
-}
-
 export interface CanvasNodeDefinition<TData extends CanvasNodeData = CanvasNodeData> {
   type: CanvasNodeType;
   menuLabelKey: string;
   menuIcon: MenuIconKey;
   visibleInMenu: boolean;
   capabilities: CanvasNodeCapabilities;
-  connectivity: CanvasNodeConnectivity;
   createDefaultData: () => TData;
 }
 
@@ -66,14 +56,6 @@ const uploadNodeDefinition: CanvasNodeDefinition<UploadImageNodeData> = {
   capabilities: {
     toolbar: true,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: false,
-    connectMenu: {
-      fromSource: false,
-      fromTarget: true,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.upload],
@@ -93,14 +75,6 @@ const imageEditNodeDefinition: CanvasNodeDefinition<ImageEditNodeData> = {
   capabilities: {
     toolbar: true,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.imageEdit],
@@ -128,14 +102,6 @@ const imageGenNodeDefinition: CanvasNodeDefinition<ImageGenNodeData> = {
   capabilities: {
     toolbar: false,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.imageGen],
@@ -168,14 +134,6 @@ const exportImageNodeDefinition: CanvasNodeDefinition<ExportImageNodeData> = {
     toolbar: true,
     promptInput: false,
   },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: false,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.exportImage],
     imageUrl: null,
@@ -194,14 +152,6 @@ const beatContextNodeDefinition: CanvasNodeDefinition<BeatContextNodeData> = {
   capabilities: {
     toolbar: true,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: false,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.beatContext],
@@ -243,14 +193,6 @@ const groupNodeDefinition: CanvasNodeDefinition<GroupNodeData> = {
     toolbar: false,
     promptInput: false,
   },
-  connectivity: {
-    sourceHandle: false,
-    targetHandle: false,
-    connectMenu: {
-      fromSource: false,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.group],
     label: '组',
@@ -265,14 +207,6 @@ const textAnnotationNodeDefinition: CanvasNodeDefinition<TextAnnotationNodeData>
   capabilities: {
     toolbar: true,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.textAnnotation],
@@ -291,14 +225,6 @@ const storyboardSplitDefinition: CanvasNodeDefinition<StoryboardSplitNodeData> =
   capabilities: {
     toolbar: false,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: false,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.storyboardSplit],
@@ -331,14 +257,6 @@ const storyboardGenNodeDefinition: CanvasNodeDefinition<StoryboardGenNodeData> =
     toolbar: true,
     promptInput: false,
   },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.storyboardGen],
     gridRows: 2,
@@ -366,14 +284,6 @@ const videoNodeDefinition: CanvasNodeDefinition<VideoNodeData> = {
   capabilities: {
     toolbar: true,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.video],
@@ -412,14 +322,6 @@ const audioNodeDefinition: CanvasNodeDefinition<AudioNodeData> = {
     toolbar: true,
     promptInput: false,
   },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: true,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.audio],
     audioUrl: null,
@@ -448,14 +350,6 @@ const videoStoryNodeDefinition: CanvasNodeDefinition<VideoStoryNodeData> = {
     toolbar: false,
     promptInput: false,
   },
-  connectivity: {
-    sourceHandle: false,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: false,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.videoStory],
     sourceVideoUrl: null,
@@ -475,15 +369,6 @@ const videoComposeNodeDefinition: CanvasNodeDefinition<VideoComposeNodeData> = {
     toolbar: true,
     promptInput: false,
   },
-  connectivity: {
-    // 接收 ≥2 个上游视频（可选音频）节点；合成结果可继续向下游输出。
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.videoCompose],
     resultVideoUrl: null,
@@ -500,14 +385,6 @@ const scriptNodeDefinition: CanvasNodeDefinition<ScriptNodeData> = {
   capabilities: {
     toolbar: false,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: true,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.script],
@@ -530,16 +407,6 @@ const pano360ViewerNodeDefinition: CanvasNodeDefinition<Pano360ViewerNodeData> =
     toolbar: false,
     promptInput: false,
   },
-  connectivity: {
-    // 全景查看器既接收上游贴图，也能向下游输出截图节点（截当前 / 2×2 / 4×3），
-    // 所以两端都要有 handle——否则截图连线在画布重新水合时会被过滤掉。
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: false,
-    },
-  },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.pano360Viewer],
     imageUrl: null,
@@ -560,14 +427,6 @@ const threeDWorldNodeDefinition: CanvasNodeDefinition<ThreeDWorldNodeData> = {
   capabilities: {
     toolbar: false,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: true,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.threeDWorld],
@@ -592,14 +451,6 @@ const skillNodeDefinition: CanvasNodeDefinition<SkillNodeData> = {
   capabilities: {
     toolbar: false,
     promptInput: false,
-  },
-  connectivity: {
-    sourceHandle: true,
-    targetHandle: true,
-    connectMenu: {
-      fromSource: true,
-      fromTarget: true,
-    },
   },
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.skill],
@@ -634,114 +485,4 @@ export function getNodeDefinition(type: CanvasNodeType): CanvasNodeDefinition {
 
 export function getMenuNodeDefinitions(): CanvasNodeDefinition[] {
   return Object.values(canvasNodeDefinitions).filter((definition) => definition.visibleInMenu);
-}
-
-export function nodeHasSourceHandle(type: CanvasNodeType): boolean {
-  return canvasNodeDefinitions[type].connectivity.sourceHandle;
-}
-
-export function nodeHasTargetHandle(type: CanvasNodeType): boolean {
-  return canvasNodeDefinitions[type].connectivity.targetHandle;
-}
-
-// 「目标节点类型」→ 允许的上游（源）节点类型白名单。这是建边规则的单一事实
-// 来源：UI 层（连线菜单 / 手动拖线 / isValidConnection）与 store 建边收口
-// （onConnect / addEdge / addEdgeWithData / 加载规范化）都查这张表，避免任何
-// 一条建边路径绕过规则。不在表中的目标类型表示「不额外限制类型」，仅受 handle
-// 级默认规则约束。
-const UPSTREAM_SOURCE_WHITELIST: Partial<Record<CanvasNodeType, readonly CanvasNodeType[]>> = {
-  // 音频节点的上游只能是文本节点。
-  [CANVAS_NODE_TYPES.audio]: [CANVAS_NODE_TYPES.textAnnotation],
-};
-
-// 返回某目标类型允许的上游源类型；返回 null 表示该类型不施加额外类型限制。
-export function getAllowedUpstreamSourceTypes(
-  targetType: CanvasNodeType,
-): readonly CanvasNodeType[] | null {
-  return UPSTREAM_SOURCE_WHITELIST[targetType] ?? null;
-}
-
-// 判断从 sourceType 连向 targetType 的上游连接是否合法。
-export function isUpstreamConnectionAllowed(
-  sourceType: CanvasNodeType,
-  targetType: CanvasNodeType,
-): boolean {
-  const allowed = UPSTREAM_SOURCE_WHITELIST[targetType];
-  return allowed ? allowed.includes(sourceType) : true;
-}
-
-export function getConnectMenuNodeTypes(handleType: 'source' | 'target'): CanvasNodeType[] {
-  const fromSource = handleType === 'source';
-  return Object.values(canvasNodeDefinitions)
-    .filter((definition) => (fromSource
-      ? definition.connectivity.connectMenu.fromSource
-      : definition.connectivity.connectMenu.fromTarget))
-    .filter((definition) => (fromSource
-      ? definition.connectivity.targetHandle
-      : definition.connectivity.sourceHandle))
-    .map((definition) => definition.type);
-}
-
-// 给定起源节点类型，返回「从右侧 source handle 出发能创建的下游节点类型集」。
-// 这是 + 菜单（NodeSpawnPlusOverlay）和拖线落空菜单（Canvas.handleConnectEnd）
-// 共用的产品级白名单，必须保持单一事实来源。
-//
-// - 视频：仅允许 文本 / 视频 / 脚本 —— 图片/音频/多版本不该作为视频下游。
-// - 图片类（upload/imageEdit/imageGen/exportImage）：允许 文本 / 图片 / 视频 /
-//   脚本 / 360° / 3D 世界，排除 多版本 与 音频。
-// - 其他：回落到注册表中 connectMenu.fromSource 默认列表。
-export function getDownstreamSpawnTypes(
-  originType: CanvasNodeType | undefined,
-): CanvasNodeType[] {
-  const base = getConnectMenuNodeTypes('source');
-  if (!originType) return base;
-
-  if (originType === CANVAS_NODE_TYPES.video) {
-    const allowed = new Set<CanvasNodeType>([
-      CANVAS_NODE_TYPES.textAnnotation,
-      CANVAS_NODE_TYPES.video,
-      CANVAS_NODE_TYPES.videoCompose,
-      CANVAS_NODE_TYPES.script,
-    ]);
-    return base.filter((type) => allowed.has(type));
-  }
-
-  // 音频节点：下游允许视频（作为声轨素材）与视频合成（音频轨）。
-  if (originType === CANVAS_NODE_TYPES.audio) {
-    const allowed = new Set<CanvasNodeType>([
-      CANVAS_NODE_TYPES.video,
-      CANVAS_NODE_TYPES.videoCompose,
-    ]);
-    return base.filter((type) => allowed.has(type));
-  }
-
-  // 360° 全景查看器：下游只能是图片节点（截图都是图片，手动连线也只接图片）。
-  if (originType === CANVAS_NODE_TYPES.pano360Viewer) {
-    const allowed = new Set<CanvasNodeType>([
-      CANVAS_NODE_TYPES.imageGen,
-      CANVAS_NODE_TYPES.imageEdit,
-      CANVAS_NODE_TYPES.exportImage,
-      CANVAS_NODE_TYPES.upload,
-    ]);
-    return base.filter((type) => allowed.has(type));
-  }
-
-  if (
-    originType === CANVAS_NODE_TYPES.upload ||
-    originType === CANVAS_NODE_TYPES.imageEdit ||
-    originType === CANVAS_NODE_TYPES.imageGen ||
-    originType === CANVAS_NODE_TYPES.exportImage
-  ) {
-    const allowed = new Set<CanvasNodeType>([
-      CANVAS_NODE_TYPES.textAnnotation,
-      CANVAS_NODE_TYPES.imageGen,
-      CANVAS_NODE_TYPES.video,
-      CANVAS_NODE_TYPES.script,
-      CANVAS_NODE_TYPES.pano360Viewer,
-      CANVAS_NODE_TYPES.threeDWorld,
-    ]);
-    return base.filter((type) => allowed.has(type));
-  }
-
-  return base;
 }

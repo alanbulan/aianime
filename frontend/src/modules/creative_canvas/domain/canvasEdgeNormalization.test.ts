@@ -4,19 +4,26 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeEdgesWithNodes,
   normalizeHandleId,
+  type CanvasEdgeNormalizationEdgeLike,
+  type CanvasEdgeNormalizationNodeLike,
 } from './canvasEdgeNormalization';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from './canvasNodes';
+
+const CANVAS_NODE_TYPES = {
+  upload: 'uploadNode',
+  imageEdit: 'imageNode',
+  skill: 'skillNode',
+  threeDWorld: 'threeDWorldNode',
+} as const;
+
+type CanvasEdge = CanvasEdgeNormalizationEdgeLike;
+type CanvasNode = CanvasEdgeNormalizationNodeLike;
 
 function node(
   id: string,
   type: CanvasNode['type'],
   data: Record<string, unknown> = {},
 ): CanvasNode {
-  return { id, type, position: { x: 0, y: 0 }, data } as CanvasNode;
+  return { id, type, data };
 }
 
 describe('Canvas edge normalization', () => {

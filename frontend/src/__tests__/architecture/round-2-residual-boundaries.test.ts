@@ -313,6 +313,16 @@ describe("round 2 residual architecture boundaries", () => {
     const canvasConnectionPreviewDomainFiles = [
       "canvasConnectionPreview.ts",
       "canvasConnectionPreview.test.ts",
+      "canvasConnection.ts",
+      "canvasConnection.test.ts",
+      "canvasEdgeNormalization.ts",
+      "canvasEdgeNormalization.test.ts",
+      "skillConnectionEdges.ts",
+      "skillConnectionEdges.test.ts",
+    ];
+    const canvasConnectionApplicationFiles = [
+      "canvasEdgeCreation.ts",
+      "canvasEdgeCreation.test.ts",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -887,6 +897,23 @@ describe("round 2 residual architecture boundaries", () => {
     }
     for (const file of canvasConnectionPreviewDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+    }
+    for (const file of canvasConnectionApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+    }
+    for (const retiredConnectionPath of [
+      "features/canvas/domain/canvasConnection.ts",
+      "features/canvas/domain/canvasConnection.test.ts",
+      "features/canvas/domain/canvasEdgeNormalization.ts",
+      "features/canvas/domain/canvasEdgeNormalization.test.ts",
+      "features/canvas/domain/skillConnectionEdges.ts",
+      "features/canvas/application/canvasEdgeCreation.ts",
+      "features/canvas/application/canvasEdgeCreation.test.ts",
+      "__tests__/features/canvas/skill-connection-edges.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredConnectionPath))).toBe(false);
     }
     for (const retiredViewportPath of [
       "features/canvas/domain/viewportBookmarks.ts",
@@ -2212,7 +2239,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 427],
+      ["features/canvas", 420],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

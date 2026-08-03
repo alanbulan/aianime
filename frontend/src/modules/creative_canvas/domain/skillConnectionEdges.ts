@@ -1,15 +1,37 @@
 // Copyright (c) 2026 AI anime
-import type { Connection } from '@xyflow/react';
+import { getCurrentBeatContextFromNode } from './currentBeatContext';
+import { inferSkillConnectionRole } from './inferSkillConnectionRole';
+import { isPresetManagedEdge } from './mainlineNodeFlags';
+import type { SkillDefinition, SkillInputRole } from './skillContract';
+import { inputAcceptsNode } from './skillInputResolution';
 
-import type { CanvasEdge, CanvasNode } from './canvasNodes';
-import {
-  getCurrentBeatContextFromNode,
-  inferSkillConnectionRole,
-  inputAcceptsNode,
-  isPresetManagedEdge,
-  type SkillDefinition,
-  type SkillInputRole,
-} from '@/modules/creative_canvas/public';
+export interface CanvasSkillConnection {
+  source: string | null;
+  target: string | null;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+export interface CanvasSkillConnectionNode {
+  id: string;
+  type?: string | null;
+  data?: Record<string, unknown>;
+  position?: { x: number; y: number };
+}
+
+export interface CanvasSkillConnectionEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  type?: string;
+  data?: Record<string, unknown>;
+}
+
+type Connection = CanvasSkillConnection;
+type CanvasNode = CanvasSkillConnectionNode;
+type CanvasEdge = CanvasSkillConnectionEdge;
 
 export interface SkillRoleBindingEdgeData {
   edgeKind: 'role_binding';

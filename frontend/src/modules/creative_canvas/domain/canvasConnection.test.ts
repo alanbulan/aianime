@@ -2,26 +2,36 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeType,
-} from './canvasNodes';
-import {
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   canNodeTypeBeManualConnectionSource,
   resolveAllowedNodeTypes,
   validateCanvasConnection,
+  type CanvasConnectionEdgeLike,
+  type CanvasConnectionNodeLike,
+  type CanvasConnectionNodeType,
 } from './canvasConnection';
 
+const CANVAS_NODE_TYPES = {
+  upload: 'uploadNode',
+  imageGen: 'imageGenNode',
+  exportImage: 'exportImageNode',
+  textAnnotation: 'textAnnotationNode',
+  group: 'groupNode',
+  video: 'videoNode',
+  audio: 'audioNode',
+  videoCompose: 'videoComposeNode',
+  script: 'scriptNode',
+  pano360Viewer: 'pano360ViewerNode',
+  threeDWorld: 'threeDWorldNode',
+} as const;
+
+type CanvasNodeType = CanvasConnectionNodeType;
+type CanvasNode = CanvasConnectionNodeLike;
+type CanvasEdge = CanvasConnectionEdgeLike & { id: string };
+
 function node(id: string, type: CanvasNodeType): CanvasNode {
-  return {
-    id,
-    type,
-    position: { x: 0, y: 0 },
-    data: {},
-  } as CanvasNode;
+  return { id, type };
 }
 
 describe('Canvas connection rules', () => {

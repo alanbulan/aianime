@@ -2,18 +2,15 @@
 import { useCallback } from 'react';
 import type { Connection, Edge } from '@xyflow/react';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
 import {
+  canNodeBeManualConnectionSource,
   planCanvasGraphConnection,
   planCanvasSpawnConnections,
   planSingleBeatContextBinding,
-  type CanvasSpawnConnectionOrigin,
-} from '../application/canvasEdgeCreation';
-import {
-  canNodeBeManualConnectionSource,
   validateCanvasConnection,
-} from '../domain/canvasConnection';
+  type CanvasSpawnConnectionOrigin,
+  type SkillDefinition,
+} from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasGraphSnapshot {

@@ -1,13 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import type { SkillDefinition } from '../domain/skillContract';
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
@@ -15,10 +9,23 @@ import {
   planCanvasSpawnConnections,
   planSingleBeatContextBinding,
   prepareCanvasReactFlowConnection,
+  type CanvasEdgeCreationEdge,
+  type CanvasEdgeCreationNode,
 } from './canvasEdgeCreation';
 
+const CANVAS_NODE_TYPES = {
+  upload: 'uploadNode',
+  imageGen: 'imageGenNode',
+  beatContext: 'beatContextNode',
+  threeDWorld: 'threeDWorldNode',
+  skill: 'skillNode',
+} as const;
+
+type CanvasEdge = CanvasEdgeCreationEdge;
+type CanvasNode = CanvasEdgeCreationNode;
+
 function node(id: string, type: CanvasNode['type']): CanvasNode {
-  return { id, type, position: { x: 0, y: 0 }, data: {} } as CanvasNode;
+  return { id, type, data: {} };
 }
 
 function skill(id = 'skill-1', includeBeatContext = true): SkillDefinition {
