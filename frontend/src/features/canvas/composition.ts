@@ -10,6 +10,7 @@ import {
 } from '@/modules/asset_world/public';
 import {
   composeCapability,
+  createUseCanvasViewerSurfaceController,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
   publishCanvasCommitRequested,
@@ -18,6 +19,8 @@ import {
   submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
 } from '@/modules/creative_canvas/public';
+import { canvasEventBus } from './application/canvasServices';
+import { useCanvasStore } from './canvasStore';
 import {
   getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
   type CanvasBeatDirectorManifestGateway,
@@ -138,6 +141,11 @@ export const canvasToolProcessor = new CanvasToolProcessor(
 export const canvasAiGateway = freezoneAiGateway;
 export const CURRENT_RUNTIME_SESSION_ID =
   browserGenerationRuntimeGateway.runtimeSessionId;
+export const useCanvasViewerSurfaceController =
+  createUseCanvasViewerSurfaceController({
+    eventPort: canvasEventBus,
+    useStore: useCanvasStore,
+  });
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();

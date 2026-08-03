@@ -525,6 +525,13 @@ export { ImageViewerModal } from "@/modules/creative_canvas/presentation/ImageVi
 export type { ImageViewerModalProps } from "@/modules/creative_canvas/presentation/ImageViewerModal";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
+export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";
+export type {
+  CanvasViewerSurfaceController,
+  CanvasViewerSurfaceControllerDependencies,
+  CanvasViewerSurfaceStore,
+  CanvasViewerSurfaceStoreHook,
+} from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";
 export {
   useCanvasGenerationHistory,
 } from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";

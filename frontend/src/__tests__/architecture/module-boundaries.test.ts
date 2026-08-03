@@ -9615,12 +9615,21 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new Map(skillRegistry.map");
   });
 
-  it("keeps Canvas viewer assembly in one presentation controller", () => {
+  it("keeps Canvas viewer assembly in the Creative Canvas presentation boundary", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasViewerSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -9629,14 +9638,15 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "@xyflow/react" ||
         specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/") ||
+        specifier.startsWith("@/stores/"),
     );
     const declaration = [
       "export function",
-      "useCanvasViewerSurfaceController(",
+      "createUseCanvasViewerSurfaceController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9645,22 +9655,42 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasViewerSurfaceController.ts",
     ]);
-    expect(controllerSource).toContain("@/features/canvas/canvasStore");
+    expect(controllerSource).toContain("useStore((state) => state.imageViewer)");
     expect(controllerSource).toContain("./useCanvasExternalDialogs");
     expect(controllerSource).toContain("imageViewerProps:");
     expect(controllerSource).toContain("videoViewerProps:");
-    expect(canvasView).toContain("./hooks/useCanvasViewerSurfaceController");
+    expect(controllerSource).not.toContain("@/features/");
+    expect(compositionSource).toContain(
+      "createUseCanvasViewerSurfaceController({",
+    );
+    expect(importSpecifiers(compositionPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController",
+    );
+    expect(compositionSource).toContain("eventPort: canvasEventBus");
+    expect(compositionSource).toContain("useStore: useCanvasStore");
+    expect(canvasView).toContain("from './composition'");
+    expect(canvasView).toContain("useCanvasViewerSurfaceController()");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewerSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
     expect(canvasView).not.toContain("state.imageViewer");
     expect(canvasView).not.toContain("videoViewer.isOpen");
+    for (const legacyPath of [
+      "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
+      "features/canvas/hooks/useCanvasViewerSurfaceController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
   });
 
-  it("keeps Canvas external dialog subscriptions in one presentation hook", () => {
+  it("keeps Canvas external dialog subscriptions inside Creative Canvas", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasExternalDialogs.ts",
+      "modules/creative_canvas/presentation/useCanvasExternalDialogs.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -9675,13 +9705,11 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasExternalDialogs(",
+      "useCanvasExternalDialogs<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
@@ -9690,15 +9718,23 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasExternalDialogs.ts",
+      "modules/creative_canvas/presentation/useCanvasExternalDialogs.ts",
     ]);
     expect(hookModel).toContain("eventPort.subscribe('tool-dialog/open'");
     expect(hookModel).toContain("const unsubscribeVideoOpen = eventPort.subscribe(");
     expect(hookModel).toContain("'video-viewer/open'");
-    expect(canvasView).toContain("./hooks/useCanvasViewerSurfaceController");
+    expect(hookModel).toContain("CanvasExternalDialogEventMap<TToolDialog>");
+    expect(canvasView).toContain("from './composition'");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewerSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
     expect(canvasView).not.toContain("setVideoViewer");
     expect(canvasView).not.toContain("canvasEventBus.subscribe('tool-dialog/open'");
+    for (const legacyPath of [
+      "features/canvas/hooks/useCanvasExternalDialogs.ts",
+      "features/canvas/hooks/useCanvasExternalDialogs.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
   });
 
   it("keeps Canvas pending-node focus in one presentation hook", () => {

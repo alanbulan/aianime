@@ -2,11 +2,19 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasExternalDialogsOptions } from './useCanvasExternalDialogs';
+import type {
+  CanvasExternalDialogEventPort,
+  CanvasExternalDialogsOptions,
+} from './useCanvasExternalDialogs';
 import {
-  useCanvasViewerSurfaceController,
-  type CanvasViewerSurfaceControllerOptions,
+  createUseCanvasViewerSurfaceController,
+  type CanvasViewerSurfaceStoreHook,
 } from './useCanvasViewerSurfaceController';
+
+interface ToolDialogRequest {
+  nodeId: string;
+  toolType: 'crop' | 'annotate';
+}
 
 const controllerMocks = vi.hoisted(() => {
   const closeImageViewer = vi.fn();
@@ -42,30 +50,27 @@ const controllerMocks = vi.hoisted(() => {
     closeVideoViewer,
     viewerStore,
     externalDialogs,
-    useStore: vi.fn(
-      (selector: (state: typeof viewerStore) => unknown) =>
-        selector(viewerStore),
-    ),
     useExternalDialogs: vi.fn(
-      (_options: CanvasExternalDialogsOptions) => externalDialogs,
+      (_options: CanvasExternalDialogsOptions<ToolDialogRequest>) =>
+        externalDialogs,
     ),
   };
 });
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: controllerMocks.useStore,
-}));
 vi.mock('./useCanvasExternalDialogs', () => ({
   useCanvasExternalDialogs: controllerMocks.useExternalDialogs,
 }));
 
-function createOptions(): CanvasViewerSurfaceControllerOptions {
-  return {
-    eventPort: {
-      subscribe: vi.fn(() => vi.fn()),
-    },
-  };
-}
+const eventPort = {
+  subscribe: vi.fn(() => vi.fn()),
+} as unknown as CanvasExternalDialogEventPort<ToolDialogRequest>;
+const useStore: CanvasViewerSurfaceStoreHook<ToolDialogRequest> = (selector) =>
+  selector(controllerMocks.viewerStore);
+const useCanvasViewerSurfaceController =
+  createUseCanvasViewerSurfaceController<ToolDialogRequest>({
+    eventPort,
+    useStore,
+  });
 
 describe('useCanvasViewerSurfaceController', () => {
   beforeEach(() => {
@@ -76,13 +81,10 @@ describe('useCanvasViewerSurfaceController', () => {
   });
 
   it('maps image and video state to stage viewer props', () => {
-    const options = createOptions();
-    const { result } = renderHook(() =>
-      useCanvasViewerSurfaceController(options),
-    );
+    const { result } = renderHook(() => useCanvasViewerSurfaceController());
 
     expect(controllerMocks.useExternalDialogs).toHaveBeenCalledWith({
-      eventPort: options.eventPort,
+      eventPort,
       openToolDialog: controllerMocks.openToolDialog,
       closeToolDialog: controllerMocks.closeToolDialog,
     });
@@ -108,9 +110,7 @@ describe('useCanvasViewerSurfaceController', () => {
   it('normalizes an empty image selection for the modal contract', () => {
     controllerMocks.viewerStore.imageViewer.isOpen = false;
     controllerMocks.viewerStore.imageViewer.currentImageUrl = null;
-    const { result } = renderHook(() =>
-      useCanvasViewerSurfaceController(createOptions()),
-    );
+    const { result } = renderHook(() => useCanvasViewerSurfaceController());
 
     expect(result.current.imageViewerProps.open).toBe(false);
     expect(result.current.imageViewerProps.imageUrl).toBe('');

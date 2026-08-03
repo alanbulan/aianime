@@ -21,8 +21,8 @@ import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfa
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
-import { useCanvasViewerSurfaceController } from './hooks/useCanvasViewerSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
+import { useCanvasViewerSurfaceController } from './composition';
 
 interface CanvasProps {
   projectId: string;
@@ -83,9 +83,7 @@ export function Canvas({
     closeImageViewer,
     imageViewerProps,
     videoViewerProps,
-  } = useCanvasViewerSurfaceController({
-    eventPort: canvasEventBus,
-  });
+  } = useCanvasViewerSurfaceController();
   const isCanvasEmpty = useCallback(
     () => useCanvasStore.getState().nodes.length === 0,
     [],
