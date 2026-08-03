@@ -131,6 +131,11 @@ export type {
   CanvasProjectContextController,
   CanvasProjectContextControllerOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasProjectContextController";
+export { createUseCanvasGenerationRecoveryController } from "@/modules/creative_canvas/presentation/useCanvasGenerationRecoveryController";
+export type {
+  CanvasGenerationRecoveryControllerDependencies,
+  CanvasGenerationRecoveryControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasGenerationRecoveryController";
 export {
   canvasIdForFreezoneEntry,
   personalCanvasIdForUsername,

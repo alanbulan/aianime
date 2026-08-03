@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { useShallow } from 'zustand/react/shallow';
+
 import {
   embedStoryboardImageMetadata,
   mergeStoryboardImages,
@@ -10,6 +12,7 @@ import {
 } from '@/modules/asset_world/public';
 import {
   composeCapability,
+  createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
@@ -58,9 +61,11 @@ import {
   type RegenerateExportImageNodeParams,
 } from './application/regenerateExportNode';
 import {
+  nodeNeedsGenerationResume,
   resumeNodeGeneration as resumeNodeGenerationUseCase,
   type ResumeNodeGenerationParams,
 } from './application/resumeGeneration';
+import { CANVAS_NODE_TYPES } from './domain/canvasNodes';
 import {
   stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
@@ -124,6 +129,83 @@ const freezoneAiGateway = createFreezoneAiGateway({
     submitCanvasImageGeneration({ projectId, ...command }),
 });
 
+type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
+
+function selectPendingExportImageNodeIds(state: CanvasStoreState): string[] {
+  return state.nodes
+    .filter((node) => {
+      if (node.type !== CANVAS_NODE_TYPES.exportImage) return false;
+      const data = node.data as Record<string, unknown>;
+      return (
+        data.isGenerating === true &&
+        typeof data.generationJobId === 'string' &&
+        data.generationJobId.length > 0
+      );
+    })
+    .map((node) => node.id);
+}
+
+function selectPendingGenerationResumeNodeIds(
+  state: CanvasStoreState,
+): string[] {
+  return state.nodes.filter(nodeNeedsGenerationResume).map((node) => node.id);
+}
+
+function usePendingExportImageNodeIds(): readonly string[] {
+  return useCanvasStore(useShallow(selectPendingExportImageNodeIds));
+}
+
+function usePendingGenerationResumeNodeIds(): readonly string[] {
+  return useCanvasStore(useShallow(selectPendingGenerationResumeNodeIds));
+}
+
+function readCanvasNodeData(nodeId: string): Record<string, unknown> | null {
+  return (useCanvasStore
+    .getState()
+    .nodes
+    .find((node) => node.id === nodeId)?.data ?? null) as Record<
+    string,
+    unknown
+  > | null;
+}
+
+function pollExportImageNode({
+  projectId,
+  nodeId,
+  errorTitle,
+}: {
+  projectId: string;
+  nodeId: string;
+  errorTitle: string;
+}): Promise<void> {
+  return pollExportImageGeneration(projectId, {
+    nodeId,
+    errorTitle,
+    getNodeData: readCanvasNodeData,
+    updateNodeData: useCanvasStore.getState().updateNodeData,
+  });
+}
+
+function resumePendingGenerationNode({
+  projectId,
+  nodeId,
+}: {
+  projectId: string;
+  nodeId: string;
+}): Promise<void> {
+  const state = useCanvasStore.getState();
+  const node = state.nodes.find((item) => item.id === nodeId);
+  if (!node || !nodeNeedsGenerationResume(node)) {
+    return Promise.resolve();
+  }
+  return resumeNodeGeneration({
+    node,
+    projectId,
+    updateNodeData: state.updateNodeData,
+    getNodeData: readCanvasNodeData,
+  });
+}
+
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { rememberLastVideoModel } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
@@ -145,6 +227,13 @@ export const useCanvasViewerSurfaceController =
   createUseCanvasViewerSurfaceController({
     eventPort: canvasEventBus,
     useStore: useCanvasStore,
+  });
+export const useCanvasGenerationRecoveryController =
+  createUseCanvasGenerationRecoveryController({
+    usePendingExportImageNodeIds,
+    usePendingGenerationResumeNodeIds,
+    pollExportImageNode,
+    resumePendingGenerationNode,
   });
 
 export function getRuntimeDiagnostics() {

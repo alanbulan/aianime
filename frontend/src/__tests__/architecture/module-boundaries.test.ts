@@ -8852,7 +8852,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
     ]);
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
-    expect(controllerSource).toContain("./useCanvasGenerationRecoveryController");
+    expect(importSpecifiers(controllerPath)).toContain("../composition");
+    expect(controllerSource).not.toContain(
+      "./useCanvasGenerationRecoveryController",
+    );
     expect(controllerSource).toContain("projectContext.projectId");
     expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
     expect(canvasView).not.toContain(
@@ -12613,20 +12616,43 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas asynchronous node task concurrency in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
+      moduleRoot,
+      "presentation/useCanvasAsyncNodeTasks.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const composition = readFileSync(compositionPath, "utf8");
+    const compositionTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.generationRecovery.test.tsx",
+    );
+    const compositionTest = readFileSync(compositionTestPath, "utf8");
+    const surfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+    );
+    const surface = readFileSync(surfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
     const recoveryControllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+      moduleRoot,
+      "presentation/useCanvasGenerationRecoveryController.ts",
     );
     const recoveryController = readFileSync(recoveryControllerPath, "utf8");
+    const legacyPaths = [
+      "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
+      "features/canvas/hooks/useCanvasAsyncNodeTasks.test.tsx",
+      "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+      "features/canvas/hooks/useCanvasGenerationRecoveryController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -12635,9 +12661,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/"),
     );
     const forbiddenRecoveryControllerImports = importSpecifiers(
       recoveryControllerPath,
@@ -12645,8 +12669,11 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "@xyflow/react" ||
         specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/"),
+        specifier.startsWith("@/features/canvas/"),
     );
     const hookDeclaration = [
       "export function",
@@ -12656,29 +12683,65 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
-    const recoveryControllerDeclaration = [
+    const recoveryControllerFactoryDeclaration = [
       "export function",
-      "useCanvasGenerationRecoveryController(",
+      "createUseCanvasGenerationRecoveryController(",
     ].join(" ");
-    const recoveryControllerOwners = sourceFiles(SRC_ROOT)
+    const recoveryControllerFactoryOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
-        readFileSync(path, "utf8").includes(recoveryControllerDeclaration),
+        readFileSync(path, "utf8").includes(
+          recoveryControllerFactoryDeclaration,
+        ),
       )
       .map(relativeSource)
       .sort();
+    const privateModuleImports = new Set([
+      "@/modules/creative_canvas/presentation/useCanvasAsyncNodeTasks",
+      "@/modules/creative_canvas/presentation/useCanvasGenerationRecoveryController",
+    ]);
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => privateModuleImports.has(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(forbiddenImports).toEqual([]);
     expect(forbiddenRecoveryControllerImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
+      "modules/creative_canvas/presentation/useCanvasAsyncNodeTasks.ts",
     ]);
-    expect(recoveryControllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+    expect(recoveryControllerFactoryOwners).toEqual([
+      "modules/creative_canvas/presentation/useCanvasGenerationRecoveryController.ts",
     ]);
+    expect(directPrivateConsumers).toEqual([]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasGenerationRecoveryController",
+    );
     expect(hookModel).toContain("activeNodeIdsRef");
     expect(hookModel).toContain("runNode(nodeId).finally");
     expect(recoveryController).toContain("./useCanvasAsyncNodeTasks");
     expect(recoveryController.match(/useCanvasAsyncNodeTasks\(\{/g)).toHaveLength(2);
+    expect(recoveryController).toContain("pollExportImageNode({");
+    expect(recoveryController).toContain("resumePendingGenerationNode({");
+    expect(composition).toContain(
+      "createUseCanvasGenerationRecoveryController({",
+    );
+    expect(composition).toContain("useShallow(selectPendingExportImageNodeIds)");
+    expect(composition).toContain(
+      "useShallow(selectPendingGenerationResumeNodeIds)",
+    );
+    expect(composition).toContain("nodeNeedsGenerationResume(node)");
+    expect(compositionTest).toContain("useCanvasStore.getState().setCanvasData(");
+    expect(compositionTest).toContain(
+      "keeps pending ID selections stable across unrelated node updates",
+    );
+    expect(importSpecifiers(surfacePath)).toContain("../composition");
+    expect(surface).not.toContain("./useCanvasGenerationRecoveryController");
     expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGenerationRecoveryController",
@@ -12704,13 +12767,6 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
-      "utf8",
-    );
-    const recoveryController = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
-      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(useCasePath).filter(
@@ -12744,7 +12800,7 @@ describe("frontend architecture boundaries", () => {
     expect(useCaseModel).toContain("buildGenerationErrorReport({");
     expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
     expect(composition).toContain("pollExportImageGenerationUseCase(");
-    expect(recoveryController).toContain(
+    expect(composition).toContain(
       "pollExportImageGeneration(projectId, {",
     );
     expect(canvasView).not.toContain("pollExportImageGeneration({");

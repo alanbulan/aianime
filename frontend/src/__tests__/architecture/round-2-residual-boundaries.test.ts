@@ -167,6 +167,10 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasBeatContextPrefetch.test.tsx",
       "useCanvasProjectContextController.ts",
       "useCanvasProjectContextController.test.tsx",
+      "useCanvasAsyncNodeTasks.ts",
+      "useCanvasAsyncNodeTasks.test.tsx",
+      "useCanvasGenerationRecoveryController.ts",
+      "useCanvasGenerationRecoveryController.test.tsx",
     ];
     const skillDomainFiles = [
       "skillContract.ts",
@@ -1811,7 +1815,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 662],
+      ["features/canvas", 659],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

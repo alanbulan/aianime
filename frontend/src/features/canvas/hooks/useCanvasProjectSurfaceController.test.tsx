@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasGenerationRecoveryControllerOptions,
-} from './useCanvasGenerationRecoveryController';
-import type {
   CanvasProjectContextControllerOptions,
 } from '@/modules/creative_canvas/public';
 import {
@@ -32,7 +30,7 @@ const controllerMocks = vi.hoisted(() => {
 vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasProjectContextController: controllerMocks.useProjectContext,
 }));
-vi.mock('./useCanvasGenerationRecoveryController', () => ({
+vi.mock('../composition', () => ({
   useCanvasGenerationRecoveryController: controllerMocks.useGenerationRecovery,
 }));
 

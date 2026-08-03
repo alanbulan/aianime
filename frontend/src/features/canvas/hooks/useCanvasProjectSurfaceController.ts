@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import {
-  useCanvasGenerationRecoveryController,
-  type CanvasGenerationRecoveryControllerOptions,
-} from './useCanvasGenerationRecoveryController';
-import {
   useCanvasProjectContextController,
+  type CanvasGenerationRecoveryControllerOptions,
   type CanvasProjectContextController,
   type CanvasProjectContextControllerOptions,
 } from '@/modules/creative_canvas/public';
+import { useCanvasGenerationRecoveryController } from '../composition';
 
 export interface CanvasProjectSurfaceControllerOptions {
   projectId: CanvasProjectContextControllerOptions['projectId'];

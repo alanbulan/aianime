@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 export interface CanvasAsyncNodeTasksOptions {
   enabled?: boolean;
