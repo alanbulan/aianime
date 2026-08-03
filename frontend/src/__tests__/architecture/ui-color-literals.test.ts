@@ -19,7 +19,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/production/presentation/SketchPoseEditorDialogView.tsx": 9,
   "modules/project_workspace/presentation/components/project-folder.module.css": 3,
   "modules/project_workspace/presentation/components/project-folder.tsx": 3,
-  "features/canvas/application/storyboardNodeModel.ts": 2,
+  "modules/creative_canvas/domain/storyboardNodeModel.ts": 2,
   "features/canvas/application/toolProcessor.ts": 2,
   "features/canvas/application/uploadNodeModel.ts": 1,
   "features/canvas/Canvas.tsx": 1,
@@ -66,7 +66,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
 
 const DOMAIN_COLOR_DATA = new Set([
   "commands/image.ts",
-  "features/canvas/application/storyboardNodeModel.ts",
+  "modules/creative_canvas/domain/storyboardNodeModel.ts",
   "features/canvas/application/toolProcessor.ts",
   "features/canvas/application/uploadNodeModel.ts",
   "features/canvas/canvasStore.ts",

@@ -8,7 +8,12 @@ import {
   type CanvasNodeData,
   type ExportImageNodeResultKind,
 } from '../domain/canvasNodes';
-import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
+import {
+  createDefaultStoryboardExportOptions,
+  resolveDerivedAspectRatio,
+  resolveStoryboardSplitNodeDimensions,
+  type StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import {
   findAvailableNodePosition,
   getDerivedNodePosition,
@@ -21,11 +26,6 @@ import {
   resolveGeneratedImageNodeDimensions,
 } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
-import {
-  createDefaultStoryboardExportOptions,
-  resolveDerivedAspectRatio,
-  resolveStoryboardSplitNodeDimensions,
-} from './storyboardNodeModel';
 
 export interface CanvasDerivedExportNodeOptions {
   defaultTitle?: string;
@@ -71,7 +71,11 @@ export function createCanvasDerivedUploadNode(
   nodeFactory: NodeFactory,
 ): CanvasNode {
   const sourceNode = nodes.find((node) => node.id === sourceNodeId);
-  const resolvedAspectRatio = resolveDerivedAspectRatio(sourceNode, aspectRatio);
+  const resolvedAspectRatio = resolveDerivedAspectRatio(
+    sourceNode,
+    aspectRatio,
+    CANVAS_NODE_TYPES,
+  );
   const node = nodeFactory.createNode(
     CANVAS_NODE_TYPES.upload,
     getDerivedNodePosition(nodes, sourceNodeId),
@@ -144,8 +148,17 @@ export function createCanvasDerivedExportNode(
   const sourceNode = input.nodes.find((node) => node.id === input.sourceNodeId);
   const aspectRatioStrategy = input.options?.aspectRatioStrategy ?? 'provided';
   const resolvedAspectRatio = aspectRatioStrategy === 'derivedFromSource'
-    ? resolveDerivedAspectRatio(sourceNode, input.aspectRatio)
-    : (input.aspectRatio || resolveDerivedAspectRatio(sourceNode, DEFAULT_ASPECT_RATIO));
+    ? resolveDerivedAspectRatio(
+        sourceNode,
+        input.aspectRatio,
+        CANVAS_NODE_TYPES,
+      )
+    : (input.aspectRatio ||
+      resolveDerivedAspectRatio(
+        sourceNode,
+        DEFAULT_ASPECT_RATIO,
+        CANVAS_NODE_TYPES,
+      ));
   const size = resolveExportNodeSize(
     sourceNode,
     resolvedAspectRatio,

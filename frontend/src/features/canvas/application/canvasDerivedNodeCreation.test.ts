@@ -6,7 +6,11 @@ import {
   type CanvasNode,
   type CanvasNodeData,
 } from '../domain/canvasNodes';
-import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
+import {
+  createDefaultStoryboardExportOptions,
+  resolveStoryboardSplitNodeDimensions,
+  type StoryboardFrameItem,
+} from '@/modules/creative_canvas/public';
 import {
   createCanvasDerivedExportNode,
   createCanvasDerivedUploadNode,
@@ -14,10 +18,6 @@ import {
 } from './canvasDerivedNodeCreation';
 import { resolveGeneratedImageNodeDimensions } from './imageNodeLayout';
 import type { NodeFactory } from './ports';
-import {
-  createDefaultStoryboardExportOptions,
-  resolveStoryboardSplitNodeDimensions,
-} from './storyboardNodeModel';
 
 function node(
   id: string,

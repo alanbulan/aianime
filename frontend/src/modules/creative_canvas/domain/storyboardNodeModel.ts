@@ -1,17 +1,8 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
-  isExportImageNode,
-  isImageEditNode,
-  isUploadNode,
-  type CanvasNode,
-  type StoryboardSplitNodeData,
-} from '@/features/canvas/domain/canvasNodes';
 import type {
   StoryboardExportOptions,
   StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
+} from "./storyboard";
 
 export const STORYBOARD_NODE_SIZE_LIMITS = {
   minWidth: 440,
@@ -33,6 +24,14 @@ export interface StoryboardIncomingImage {
   label: string;
 }
 
+export interface StoryboardNodeData {
+  frameAspectRatio?: string;
+  gridRows: number;
+  gridCols: number;
+  frames: readonly StoryboardFrameItem[];
+  exportOptions?: Partial<StoryboardExportOptions>;
+}
+
 export interface StoryboardNodeProjection {
   orderedFrames: StoryboardFrameItem[];
   frameAspectRatio: string;
@@ -44,14 +43,34 @@ export interface StoryboardNodeProjection {
   exportOptions: StoryboardExportOptions;
 }
 
+export interface StoryboardSourceNode {
+  type?: string;
+  data: Record<string, unknown>;
+}
+
+export interface StoryboardNodeTypeCatalog {
+  upload: string;
+  imageEdit: string;
+  exportImage: string;
+  storyboardSplit: string;
+  storyboardGen: string;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function readString(
+  source: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = source[key];
+  return typeof value === "string" ? value : undefined;
+}
+
 function parseAspectRatioValue(aspectRatio: string | undefined): number {
-  const [rawWidth = '1', rawHeight = '1'] = (
-    aspectRatio || DEFAULT_ASPECT_RATIO
-  ).split(':');
+  if (!aspectRatio) return 1;
+  const [rawWidth = "1", rawHeight = "1"] = aspectRatio.split(":");
   const width = Number(rawWidth);
   const height = Number(rawHeight);
   if (
@@ -87,15 +106,12 @@ function calculateStoryboardDimensions(
   const contentWidth = Math.max(1, width - 16);
   const frameWidth = Math.max(
     1,
-    (contentWidth - (safeCols - 1) * STORYBOARD_GRID_GAP_PX) /
-      safeCols,
+    (contentWidth - (safeCols - 1) * STORYBOARD_GRID_GAP_PX) / safeCols,
   );
-  const frameImageHeight =
-    frameWidth / parseAspectRatioValue(frameAspectRatio);
+  const frameImageHeight = frameWidth / parseAspectRatioValue(frameAspectRatio);
   const frameHeight = frameImageHeight + STORYBOARD_FRAME_NOTE_HEIGHT;
   const gridHeight =
-    safeRows * frameHeight +
-    (safeRows - 1) * STORYBOARD_GRID_GAP_PX;
+    safeRows * frameHeight + (safeRows - 1) * STORYBOARD_GRID_GAP_PX;
   const height = Math.round(
     Math.max(
       STORYBOARD_NODE_SIZE_LIMITS.minHeight,
@@ -147,62 +163,48 @@ export function resolveStoryboardNodeSize(
 }
 
 export function resolveDerivedAspectRatio(
-  sourceNode: CanvasNode | undefined,
+  sourceNode: StoryboardSourceNode | undefined,
   fallbackAspectRatio: string,
+  nodeTypes: StoryboardNodeTypeCatalog,
 ): string {
   if (!sourceNode) return fallbackAspectRatio;
-  if (sourceNode.type === CANVAS_NODE_TYPES.storyboardGen) {
-    const data = sourceNode.data as {
-      requestAspectRatio?: string;
-      aspectRatio?: string;
-    };
+  const { data, type } = sourceNode;
+  if (type === nodeTypes.storyboardGen || type === nodeTypes.imageEdit) {
+    const requestAspectRatio = readString(data, "requestAspectRatio");
+    const aspectRatio = readString(data, "aspectRatio");
     const preferred =
-      data.requestAspectRatio && data.requestAspectRatio !== 'auto'
-        ? data.requestAspectRatio
-        : data.aspectRatio;
+      requestAspectRatio && requestAspectRatio !== "auto"
+        ? requestAspectRatio
+        : aspectRatio;
     return preferred || fallbackAspectRatio;
   }
-  if (sourceNode.type === CANVAS_NODE_TYPES.storyboardSplit) {
-    const data = sourceNode.data as {
-      frameAspectRatio?: string;
-      aspectRatio?: string;
-    };
-    return data.frameAspectRatio || data.aspectRatio || fallbackAspectRatio;
+  if (type === nodeTypes.storyboardSplit) {
+    return (
+      readString(data, "frameAspectRatio") ||
+      readString(data, "aspectRatio") ||
+      fallbackAspectRatio
+    );
   }
-  if (sourceNode.type === CANVAS_NODE_TYPES.imageEdit) {
-    const data = sourceNode.data as {
-      requestAspectRatio?: string;
-      aspectRatio?: string;
-    };
-    const preferred =
-      data.requestAspectRatio && data.requestAspectRatio !== 'auto'
-        ? data.requestAspectRatio
-        : data.aspectRatio;
-    return preferred || fallbackAspectRatio;
-  }
-  return (
-    (sourceNode.data as { aspectRatio?: string }).aspectRatio ||
-    fallbackAspectRatio
-  );
+  return readString(data, "aspectRatio") || fallbackAspectRatio;
 }
 
 export function createDefaultStoryboardExportOptions(): StoryboardExportOptions {
   return {
     showFrameIndex: false,
     showFrameNote: false,
-    notePlacement: 'overlay',
-    imageFit: 'cover',
-    frameIndexPrefix: 'S',
+    notePlacement: "overlay",
+    imageFit: "cover",
+    frameIndexPrefix: "S",
     cellGap: 8,
     outerPadding: 0,
     fontSize: 4,
-    backgroundColor: '#0f1115',
-    textColor: '#f8fafc',
+    backgroundColor: "#0f1115",
+    textColor: "#f8fafc",
   };
 }
 
 export function resolveStoryboardExportOptions(
-  options: StoryboardSplitNodeData['exportOptions'],
+  options: Partial<StoryboardExportOptions> | undefined,
 ): StoryboardExportOptions {
   const merged = {
     ...createDefaultStoryboardExportOptions(),
@@ -218,7 +220,7 @@ export function resolveStoryboardExportOptions(
 }
 
 export function storyboardAspectRatioCss(aspectRatio: string): string {
-  const [rawWidth = '1', rawHeight = '1'] = aspectRatio.split(':');
+  const [rawWidth = "1", rawHeight = "1"] = aspectRatio.split(":");
   const width = Number(rawWidth);
   const height = Number(rawHeight);
   if (
@@ -227,13 +229,14 @@ export function storyboardAspectRatioCss(aspectRatio: string): string {
     width <= 0 ||
     height <= 0
   ) {
-    return '1 / 1';
+    return "1 / 1";
   }
   return `${width} / ${height}`;
 }
 
 export function resolveStoryboardNodeProjection(
-  data: StoryboardSplitNodeData,
+  data: StoryboardNodeData,
+  fallbackAspectRatio: string,
   width?: number,
   height?: number,
 ): StoryboardNodeProjection {
@@ -242,9 +245,9 @@ export function resolveStoryboardNodeProjection(
   );
   const frameAspectRatio =
     data.frameAspectRatio ??
-    orderedFrames.find((frame) => typeof frame.aspectRatio === 'string')
+    orderedFrames.find((frame) => typeof frame.aspectRatio === "string")
       ?.aspectRatio ??
-    DEFAULT_ASPECT_RATIO;
+    fallbackAspectRatio;
   const gridCols = Math.max(1, data.gridCols);
   const gridRows = Math.max(1, data.gridRows);
   return {
@@ -266,21 +269,25 @@ export function resolveStoryboardNodeProjection(
 }
 
 export function resolveStoryboardIncomingImages(
-  upstreamNodes: readonly CanvasNode[],
+  upstreamNodes: readonly StoryboardSourceNode[],
+  nodeTypes: StoryboardNodeTypeCatalog,
 ): StoryboardIncomingImage[] {
+  const supportedNodeTypes = new Set([
+    nodeTypes.upload,
+    nodeTypes.imageEdit,
+    nodeTypes.exportImage,
+  ]);
   const deduped = new Map<
     string,
     { imageUrl: string; previewImageUrl: string | null }
   >();
   for (const node of upstreamNodes) {
-    if (!isUploadNode(node) && !isImageEditNode(node) && !isExportImageNode(node)) {
-      continue;
-    }
-    const imageUrl = node.data.imageUrl;
+    if (!node.type || !supportedNodeTypes.has(node.type)) continue;
+    const imageUrl = readString(node.data, "imageUrl");
     if (!imageUrl || deduped.has(imageUrl)) continue;
     deduped.set(imageUrl, {
       imageUrl,
-      previewImageUrl: node.data.previewImageUrl ?? null,
+      previewImageUrl: readString(node.data, "previewImageUrl") ?? null,
     });
   }
   return Array.from(deduped.values()).map((item, index) => ({

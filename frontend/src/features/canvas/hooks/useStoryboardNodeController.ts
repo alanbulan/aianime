@@ -9,19 +9,18 @@ import {
 import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 
 import {
+  resolveImageDisplayUrl,
   resolveStoryboardIncomingImages,
   resolveStoryboardNodeProjection,
-  type StoryboardIncomingImage,
-} from '@/features/canvas/application/storyboardNodeModel';
-import {
-  resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
+  type StoryboardIncomingImage,
   type StoryboardExportOptions,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
+  DEFAULT_ASPECT_RATIO,
   type StoryboardSplitNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -96,7 +95,13 @@ export function useStoryboardNodeController({
   const [isExportPanelOpen, setIsExportPanelOpen] = useState(false);
 
   const projection = useMemo(
-    () => resolveStoryboardNodeProjection(data, width, height),
+    () =>
+      resolveStoryboardNodeProjection(
+        data,
+        DEFAULT_ASPECT_RATIO,
+        width,
+        height,
+      ),
     [data, height, width],
   );
   const title = useMemo(
@@ -105,13 +110,15 @@ export function useStoryboardNodeController({
   );
   const incomingImageItems = useMemo<StoryboardIncomingImageItem[]>(
     () =>
-      resolveStoryboardIncomingImages(upstreamNodes).map((item) => ({
-        ...item,
-        displayUrl: resolveImageDisplayUrl(
-          item.previewImageUrl || item.imageUrl,
-        ),
-        viewerUrl: resolveImageDisplayUrl(item.imageUrl),
-      })),
+      resolveStoryboardIncomingImages(upstreamNodes, CANVAS_NODE_TYPES).map(
+        (item) => ({
+          ...item,
+          displayUrl: resolveImageDisplayUrl(
+            item.previewImageUrl || item.imageUrl,
+          ),
+          viewerUrl: resolveImageDisplayUrl(item.imageUrl),
+        }),
+      ),
     [upstreamNodes],
   );
   const frameViewerImageList = useMemo(

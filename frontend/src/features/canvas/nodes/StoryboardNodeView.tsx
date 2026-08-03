@@ -13,8 +13,6 @@ import {
 import {
   STORYBOARD_GRID_GAP_PX,
   STORYBOARD_NODE_SIZE_LIMITS,
-} from '@/features/canvas/application/storyboardNodeModel';
-import {
   resolveImageDisplayUrl,
   type StoryboardExportOptions,
   type StoryboardFrameItem,

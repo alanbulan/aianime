@@ -592,6 +592,25 @@ export type {
   StoryboardExportOptions,
   StoryboardFrameItem,
 } from "@/modules/creative_canvas/domain/storyboard";
+export {
+  STORYBOARD_GRID_GAP_PX,
+  STORYBOARD_NODE_SIZE_LIMITS,
+  createDefaultStoryboardExportOptions,
+  resolveDerivedAspectRatio,
+  resolveStoryboardExportOptions,
+  resolveStoryboardIncomingImages,
+  resolveStoryboardNodeProjection,
+  resolveStoryboardNodeSize,
+  resolveStoryboardSplitNodeDimensions,
+  storyboardAspectRatioCss,
+} from "@/modules/creative_canvas/domain/storyboardNodeModel";
+export type {
+  StoryboardIncomingImage,
+  StoryboardNodeData,
+  StoryboardNodeProjection,
+  StoryboardNodeTypeCatalog,
+  StoryboardSourceNode,
+} from "@/modules/creative_canvas/domain/storyboardNodeModel";
 export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,

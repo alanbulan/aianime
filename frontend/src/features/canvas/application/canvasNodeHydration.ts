@@ -6,14 +6,14 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from '../domain/canvasNodes';
-import type {
-  StoryboardExportOptions,
-  StoryboardFrameItem,
+import {
+  createDefaultStoryboardExportOptions,
+  type StoryboardExportOptions,
+  type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import { nodeCatalog } from './nodeCatalog';
 import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import type { CanvasNodeDefaultDataGateway } from './ports';
-import { createDefaultStoryboardExportOptions } from './storyboardNodeModel';
 
 export const SKILL_NODE_DEFAULT_MEASURED = { width: 380, height: 520 };
 export const BEAT_CONTEXT_NODE_DEFAULT_MEASURED = { width: 420, height: 560 };

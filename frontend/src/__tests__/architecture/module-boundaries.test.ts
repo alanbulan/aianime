@@ -1642,11 +1642,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardNodeModel.ts",
+      "modules/creative_canvas/domain/storyboardNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardNodeModel.test.ts",
+      "modules/creative_canvas/domain/storyboardNodeModel.test.ts",
     );
     const exportPath = resolve(
       SRC_ROOT,
@@ -1690,7 +1690,6 @@ describe("frontend architecture boundaries", () => {
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
-    const modelTestSource = readFileSync(modelTestPath, "utf8");
     const exportSource = readFileSync(exportPath, "utf8");
     const exportTestSource = readFileSync(exportTestPath, "utf8");
     const runtimeSource = readFileSync(runtimePath, "utf8");
@@ -1705,7 +1704,9 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/domain/canvasNodes.ts"),
       "utf8",
     );
-    const legacyExportPaths = [
+    const legacyStoryboardPaths = [
+      "features/canvas/application/storyboardNodeModel.ts",
+      "features/canvas/application/storyboardNodeModel.test.ts",
       "features/canvas/application/storyboardExport.ts",
       "features/canvas/application/storyboardExport.test.ts",
       "features/canvas/infrastructure/browserStoryboardExportRuntime.ts",
@@ -1746,7 +1747,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/StoryboardNode.tsx"],
-      ["features/canvas/application/storyboardNodeModel.ts"],
+      ["modules/creative_canvas/domain/storyboardNodeModel.ts"],
       ["modules/creative_canvas/application/storyboardExport.ts"],
       ["modules/creative_canvas/infrastructure/browserStoryboardExportRuntime.ts"],
       ["features/canvas/hooks/useStoryboardNodeController.ts"],
@@ -1760,6 +1761,8 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("className=");
+    expect(importSpecifiers(modelPath)).toEqual(["./storyboard"]);
+    expect(modelSource).not.toContain("@/features/");
     expect(exportSource).not.toContain("document.");
     expect(exportSource).not.toContain("useCanvasStore");
     expect(exportSource).not.toContain("className=");
@@ -1815,14 +1818,14 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(compositionPath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    for (const legacyPath of legacyExportPaths) {
+    for (const legacyPath of legacyStoryboardPaths) {
       expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
     }
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/storyboardNodeLayout.ts",
     ))).toBe(false);
-    expect(modelTestSource).toContain("from './storyboardNodeModel'");
+    expect(importSpecifiers(modelTestPath)).toContain("./storyboardNodeModel");
     expect(exportTestSource).toContain("from './storyboardExport'");
     expect(controllerTestSource).toContain(
       "from './useStoryboardNodeController'",
@@ -13988,7 +13991,7 @@ describe("frontend architecture boundaries", () => {
     );
     const storyboardModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardNodeModel.ts",
+      "modules/creative_canvas/domain/storyboardNodeModel.ts",
     );
     const hydrationModel = readFileSync(hydrationPath, "utf8");
     const normalizationModel = readFileSync(normalizationPath, "utf8");
@@ -14051,7 +14054,9 @@ describe("frontend architecture boundaries", () => {
     expect(storyboardModel).toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
-    expect(hydrationModel).toContain("from './storyboardNodeModel'");
+    expect(importSpecifiers(hydrationPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(hydrationModel).not.toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
@@ -14709,10 +14714,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("cursorX += item.size.width + GAP");
   });
 
-  it("keeps Canvas storyboard node model out of the Zustand store", () => {
+  it("keeps the Creative Canvas storyboard node model out of the Zustand store", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/storyboardNodeModel.ts",
+      "modules/creative_canvas/domain/storyboardNodeModel.ts",
     );
     const derivedCreationPath = resolve(
       SRC_ROOT,
@@ -14731,6 +14736,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
@@ -14743,11 +14749,20 @@ describe("frontend architecture boundaries", () => {
       "export function resolveDerivedAspectRatio(",
     );
     expect(derivedCreationModel).toContain(
-      "from './storyboardNodeModel'",
+      "@/modules/creative_canvas/public",
     );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/storyboardNodeModel",
     );
+    expect(importSpecifiers(modelPath)).toEqual(["./storyboard"]);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeModel.test.ts",
+    ))).toBe(false);
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/storyboardNodeLayout.ts",
