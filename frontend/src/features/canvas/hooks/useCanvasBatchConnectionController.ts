@@ -1,15 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo, useRef, type RefObject } from 'react';
 
+import type { CanvasConnectionPreviewRequest } from '@/modules/creative_canvas/public';
+
 import {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
 } from '../domain/canvasBatchConnection';
 import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
-import type {
-  CanvasConnectionPreviewRequest,
-  CanvasManualConnectionRequest,
-} from '../ui/canvasConnectionInteraction';
+import type { CanvasManualConnectionRequest } from '../ui/canvasConnectionInteraction';
 
 const BATCH_CONNECT_SPAWN_GAP = 140;
 const BATCH_CONNECT_SPAWN_VERTICAL_OFFSET = 160;

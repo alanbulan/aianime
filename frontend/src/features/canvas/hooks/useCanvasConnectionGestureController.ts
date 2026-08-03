@@ -1,13 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
 import type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
-  CanvasManualConnectionRequest,
   CanvasPendingConnectionStart,
-} from '../ui/canvasConnectionInteraction';
+} from '@/modules/creative_canvas/public';
+
+import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
+import type { CanvasManualConnectionRequest } from '../ui/canvasConnectionInteraction';
 import {
   useCanvasBatchConnectionController,
   type CanvasBatchConnectionController,
@@ -43,7 +44,7 @@ export interface CanvasConnectionGestureControllerOptions {
     preview: CanvasConnectionPreviewRequest | null,
   ) => void;
   openConnectionMenuState: (
-    request: CanvasConnectionMenuRequest,
+    request: CanvasConnectionMenuRequest<CanvasNodeType>,
     spawnFlowPosition: CanvasPosition,
   ) => void;
   openBatchConnectionMenuState: (
@@ -75,7 +76,7 @@ export function useCanvasConnectionGestureController({
   connectNodes,
 }: CanvasConnectionGestureControllerOptions): CanvasConnectionGestureController {
   const openConnectionMenu = useCallback(
-    (request: CanvasConnectionMenuRequest) => {
+    (request: CanvasConnectionMenuRequest<CanvasNodeType>) => {
       openConnectionMenuState(
         request,
         screenToFlowPosition(request.clientPosition),

@@ -5,13 +5,16 @@ import type {
   OnConnectStartParams,
 } from '@xyflow/react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
+import type {
+  CanvasConnectionMenuRequest,
+  CanvasPendingConnectionStart,
+} from '@/modules/creative_canvas/public';
+
+import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
 import {
   resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
-  type CanvasConnectionMenuRequest,
   type CanvasManualConnectionRequest,
-  type CanvasPendingConnectionStart,
 } from '../ui/canvasConnectionInteraction';
 
 export interface CanvasReactFlowConnectionControllerOptions {
@@ -22,7 +25,9 @@ export interface CanvasReactFlowConnectionControllerOptions {
     pending: CanvasPendingConnectionStart | null,
   ) => void;
   clearConnection: () => void;
-  openConnectionMenu: (request: CanvasConnectionMenuRequest) => void;
+  openConnectionMenu: (
+    request: CanvasConnectionMenuRequest<CanvasNodeType>,
+  ) => void;
   connectNodes: (connection: CanvasManualConnectionRequest) => void;
 }
 

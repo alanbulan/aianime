@@ -7,15 +7,18 @@ import {
   type RefObject,
 } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
+import type {
+  CanvasConnectionMenuRequest,
+  CanvasConnectionPreviewRequest,
+  CanvasPendingConnectionStart,
+} from '@/modules/creative_canvas/public';
+
+import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
 import {
   resolveCanvasPlusConnectionEnd,
   resolveCanvasPlusConnectionStart,
   resolveManualDropTargetElement,
-  type CanvasConnectionMenuRequest,
-  type CanvasConnectionPreviewRequest,
   type CanvasManualConnectionRequest,
-  type CanvasPendingConnectionStart,
   type CanvasPlusConnectionParams,
 } from '../ui/canvasConnectionInteraction';
 
@@ -31,7 +34,9 @@ export interface CanvasPlusConnectionControllerOptions {
   updateConnectionPreview: (
     preview: CanvasConnectionPreviewRequest | null,
   ) => void;
-  openConnectionMenu: (request: CanvasConnectionMenuRequest) => void;
+  openConnectionMenu: (
+    request: CanvasConnectionMenuRequest<CanvasNodeType>,
+  ) => void;
   connectNodes: (connection: CanvasManualConnectionRequest) => void;
 }
 

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 import {
-  createPreviewPath,
   cssEscape,
   getClientPosition,
   resolveCanvasConnectionEnd,
@@ -75,19 +74,6 @@ describe('Canvas connection interaction', () => {
     expect(
       getClientPosition({ changedTouches: [], touches: [] } as unknown as TouchEvent),
     ).toBeNull();
-  });
-
-  it('builds stable forward and reverse preview curves', () => {
-    expect(createPreviewPath({
-      start: { x: 0, y: 0 },
-      end: { x: 100, y: 50 },
-      handleType: 'source',
-    })).toBe('M 0 0 C 40 0, 60 50, 100 50');
-    expect(createPreviewPath({
-      start: { x: 0, y: 0 },
-      end: { x: -100, y: 50 },
-      handleType: 'source',
-    })).toBe('M 0 0 C -40 0, -60 50, -100 50');
   });
 
   it('rejects incomplete and missing-node manual connection starts', () => {

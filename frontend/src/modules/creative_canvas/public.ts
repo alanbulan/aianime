@@ -467,6 +467,25 @@ export type {
   CanvasSpawnedNodeConnectionRequest,
 } from "@/modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController";
 export {
+  createPreviewPath,
+} from "@/modules/creative_canvas/domain/canvasConnectionPreview";
+export type {
+  CanvasConnectionMenuRequest,
+  CanvasConnectionPreviewRequest,
+  CanvasHandleType,
+  CanvasPendingConnectionStart,
+  PreviewConnectionLine,
+} from "@/modules/creative_canvas/domain/canvasConnectionPreview";
+export {
+  useCanvasNodeMenuStateController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeMenuStateController";
+export type {
+  CanvasBatchNodeMenuRequest,
+  CanvasConnectionPreviewVisual,
+  CanvasNodeMenuStateController,
+  CanvasPlainNodeMenuRequest,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeMenuStateController";
+export {
   useCanvasQuickAddController,
 } from "@/modules/creative_canvas/presentation/useCanvasQuickAddController";
 export type {

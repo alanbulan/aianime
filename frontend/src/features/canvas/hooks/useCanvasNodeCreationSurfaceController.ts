@@ -1,5 +1,11 @@
 // Copyright (c) 2026 AI anime
 import {
+  useCanvasNodeMenuStateController,
+  type CanvasNodeMenuStateController,
+} from '@/modules/creative_canvas/public';
+
+import type { CanvasNodeType } from '../domain/canvasNodes';
+import {
   useCanvasConnectionController,
   type CanvasConnectionController,
   type CanvasConnectionControllerOptions,
@@ -14,10 +20,6 @@ import {
   type CanvasNodeInteractionController,
   type CanvasNodeInteractionControllerOptions,
 } from './useCanvasNodeInteractionController';
-import {
-  useCanvasNodeMenuStateController,
-  type CanvasNodeMenuStateController,
-} from './useCanvasNodeMenuStateController';
 
 export interface CanvasNodeCreationSurfaceControllerOptions {
   translate: CanvasNodeCatalogControllerOptions['translate'];
@@ -38,7 +40,7 @@ export interface CanvasNodeCreationSurfaceControllerOptions {
 }
 
 type CanvasNodeCreationMenuController = Pick<
-  CanvasNodeMenuStateController,
+  CanvasNodeMenuStateController<CanvasNodeType>,
   | 'showNodeMenu'
   | 'menuPosition'
   | 'menuAllowedTypes'
@@ -104,7 +106,7 @@ export function useCanvasNodeCreationSurfaceController({
   connectRegular,
   replaceEdges,
 }: CanvasNodeCreationSurfaceControllerOptions): CanvasNodeCreationSurfaceController {
-  const nodeMenu = useCanvasNodeMenuStateController();
+  const nodeMenu = useCanvasNodeMenuStateController<CanvasNodeType>();
   const nodeCatalog = useCanvasNodeCatalogController({ translate });
   const connection = useCanvasConnectionController({
     getGraph,

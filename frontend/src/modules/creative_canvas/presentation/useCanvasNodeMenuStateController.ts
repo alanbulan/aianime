@@ -1,13 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useState } from 'react';
 
-import type { CanvasNodeType } from '../domain/canvasNodes';
 import {
   createPreviewPath,
   type CanvasConnectionMenuRequest,
   type CanvasConnectionPreviewRequest,
   type CanvasPendingConnectionStart,
-} from '../ui/canvasConnectionInteraction';
+} from '@/modules/creative_canvas/domain/canvasConnectionPreview';
 
 const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
 
@@ -22,9 +21,11 @@ export interface CanvasConnectionPreviewVisual {
   height: number;
 }
 
-export interface CanvasBatchNodeMenuRequest {
+export interface CanvasBatchNodeMenuRequest<
+  TNodeType extends string = string,
+> {
   sourceIds: string[];
-  allowedTypes: CanvasNodeType[];
+  allowedTypes: TNodeType[];
   spawnFlowPosition: { x: number; y: number };
   menuPosition: { x: number; y: number };
 }
@@ -34,11 +35,13 @@ export interface CanvasPlainNodeMenuRequest {
   menuPosition: { x: number; y: number };
 }
 
-export interface CanvasNodeMenuStateController {
+export interface CanvasNodeMenuStateController<
+  TNodeType extends string = string,
+> {
   showNodeMenu: boolean;
   menuPosition: { x: number; y: number };
   flowPosition: { x: number; y: number };
-  menuAllowedTypes: CanvasNodeType[] | undefined;
+  menuAllowedTypes: TNodeType[] | undefined;
   pendingConnectStart: CanvasPendingConnectionStart | null;
   pendingBatchConnectIds: string[] | null;
   previewConnectionVisual: CanvasConnectionPreviewVisual | null;
@@ -53,21 +56,25 @@ export interface CanvasNodeMenuStateController {
   ) => void;
   clearConnection: () => void;
   openConnectionMenu: (
-    request: CanvasConnectionMenuRequest,
+    request: CanvasConnectionMenuRequest<TNodeType>,
     spawnFlowPosition: { x: number; y: number },
   ) => void;
-  openBatchConnectionMenu: (request: CanvasBatchNodeMenuRequest) => void;
+  openBatchConnectionMenu: (
+    request: CanvasBatchNodeMenuRequest<TNodeType>,
+  ) => void;
   openPlainNodeMenu: (request: CanvasPlainNodeMenuRequest) => void;
   closeNodeMenu: () => void;
   hideNodeMenuForPlacement: () => void;
 }
 
-export function useCanvasNodeMenuStateController(): CanvasNodeMenuStateController {
+export function useCanvasNodeMenuStateController<
+  TNodeType extends string,
+>(): CanvasNodeMenuStateController<TNodeType> {
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [flowPosition, setFlowPosition] = useState({ x: 0, y: 0 });
   const [menuAllowedTypes, setMenuAllowedTypes] = useState<
-    CanvasNodeType[] | undefined
+    TNodeType[] | undefined
   >(undefined);
   const [pendingConnectStart, setPendingConnectStart] =
     useState<CanvasPendingConnectionStart | null>(null);
@@ -120,7 +127,7 @@ export function useCanvasNodeMenuStateController(): CanvasNodeMenuStateControlle
 
   const openConnectionMenu = useCallback(
     (
-      request: CanvasConnectionMenuRequest,
+      request: CanvasConnectionMenuRequest<TNodeType>,
       spawnFlowPosition: { x: number; y: number },
     ) => {
       setPendingConnectStart(request.pending);
@@ -134,7 +141,7 @@ export function useCanvasNodeMenuStateController(): CanvasNodeMenuStateControlle
   );
 
   const openBatchConnectionMenu = useCallback(
-    (request: CanvasBatchNodeMenuRequest) => {
+    (request: CanvasBatchNodeMenuRequest<TNodeType>) => {
       setPendingConnectStart(null);
       setPendingBatchConnectIds(request.sourceIds);
       setFlowPosition(request.spawnFlowPosition);

@@ -2,11 +2,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
-import type { CanvasConnectionMenuRequest } from '../ui/canvasConnectionInteraction';
+import type { CanvasConnectionMenuRequest } from '@/modules/creative_canvas/domain/canvasConnectionPreview';
+
 import { useCanvasNodeMenuStateController } from './useCanvasNodeMenuStateController';
 
-const connectionRequest: CanvasConnectionMenuRequest = {
+type TestNodeType = 'video' | 'image-gen';
+
+const connectionRequest: CanvasConnectionMenuRequest<TestNodeType> = {
   pending: {
     nodeId: 'source',
     handleType: 'source',
@@ -14,7 +16,7 @@ const connectionRequest: CanvasConnectionMenuRequest = {
   },
   clientPosition: { x: 300, y: 400 },
   menuPosition: { x: 280, y: 360 },
-  allowedTypes: [CANVAS_NODE_TYPES.video],
+  allowedTypes: ['video'],
   preview: {
     line: {
       start: { x: 10, y: 20 },
@@ -27,7 +29,8 @@ const connectionRequest: CanvasConnectionMenuRequest = {
 
 describe('useCanvasNodeMenuStateController', () => {
   it('opens a connection menu with its flow position and preview visual', () => {
-    const { result } = renderHook(() => useCanvasNodeMenuStateController());
+    const { result } = renderHook(() =>
+      useCanvasNodeMenuStateController<TestNodeType>());
 
     act(() => result.current.openConnectionMenu(
       connectionRequest,
@@ -38,7 +41,7 @@ describe('useCanvasNodeMenuStateController', () => {
     expect(result.current.pendingConnectStart).toBe(connectionRequest.pending);
     expect(result.current.flowPosition).toEqual({ x: 120, y: 180 });
     expect(result.current.menuPosition).toEqual({ x: 280, y: 360 });
-    expect(result.current.menuAllowedTypes).toEqual([CANVAS_NODE_TYPES.video]);
+    expect(result.current.menuAllowedTypes).toEqual(['video']);
     expect(result.current.previewConnectionVisual).toMatchObject({
       d: expect.stringContaining('M 10 20 C'),
       width: 800,
@@ -48,7 +51,8 @@ describe('useCanvasNodeMenuStateController', () => {
   });
 
   it('shares one reset transition across marquee, batch-drag and pane clicks', () => {
-    const { result } = renderHook(() => useCanvasNodeMenuStateController());
+    const { result } = renderHook(() =>
+      useCanvasNodeMenuStateController<TestNodeType>());
 
     for (const reset of [
       () => result.current.handleMarqueeStart(),
@@ -69,11 +73,12 @@ describe('useCanvasNodeMenuStateController', () => {
   });
 
   it('preserves batch context while hiding for placement and clears it on close', () => {
-    const { result } = renderHook(() => useCanvasNodeMenuStateController());
+    const { result } = renderHook(() =>
+      useCanvasNodeMenuStateController<TestNodeType>());
 
     act(() => result.current.openBatchConnectionMenu({
       sourceIds: ['source-a', 'source-b'],
-      allowedTypes: [CANVAS_NODE_TYPES.imageGen],
+      allowedTypes: ['image-gen'],
       spawnFlowPosition: { x: 50, y: 60 },
       menuPosition: { x: 70, y: 80 },
     }));
@@ -91,7 +96,8 @@ describe('useCanvasNodeMenuStateController', () => {
   });
 
   it('opens a plain menu and dismisses connection state without batch cleanup', () => {
-    const { result } = renderHook(() => useCanvasNodeMenuStateController());
+    const { result } = renderHook(() =>
+      useCanvasNodeMenuStateController<TestNodeType>());
 
     act(() => result.current.openPlainNodeMenu({
       flowPosition: { x: 15, y: 25 },

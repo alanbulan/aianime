@@ -13,6 +13,7 @@ import {
   type CanvasNodeMenuSelectionController,
   type CanvasNodeMenuSelectionControllerOptions,
   type CanvasNodeMenuShortcutController,
+  type CanvasNodeMenuStateController,
   type CanvasNodeMenuTypes,
   type CanvasNodePlacement,
   type CanvasNodePlacementController,
@@ -29,9 +30,6 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from '../domain/canvasNodes';
-import type {
-  CanvasNodeMenuStateController,
-} from './useCanvasNodeMenuStateController';
 
 interface CanvasPosition {
   x: number;
@@ -60,9 +58,10 @@ export interface CanvasNodeInteractionControllerOptions {
   resolvePlacementLabel: (
     placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
   ) => string;
-  openPlainNodeMenu: CanvasNodeMenuStateController['openPlainNodeMenu'];
+  openPlainNodeMenu:
+    CanvasNodeMenuStateController<CanvasNodeType>['openPlainNodeMenu'];
   dismissNodeMenu:
-    CanvasNodeMenuStateController['dismissNodeMenuForPaneClick'];
+    CanvasNodeMenuStateController<CanvasNodeType>['dismissNodeMenuForPaneClick'];
   onBlankPaneClick?: () => void;
   centerViewport: CanvasNodeClickControllerOptions<CanvasNode>['centerViewport'];
   flowPosition: CanvasPosition;
@@ -84,8 +83,9 @@ export interface CanvasNodeInteractionControllerOptions {
       CanvasNode
     >['connectSpawnedNode'];
   hideMenuForPlacement:
-    CanvasNodeMenuStateController['hideNodeMenuForPlacement'];
-  closeNodeMenu: CanvasNodeMenuStateController['closeNodeMenu'];
+    CanvasNodeMenuStateController<CanvasNodeType>['hideNodeMenuForPlacement'];
+  closeNodeMenu:
+    CanvasNodeMenuStateController<CanvasNodeType>['closeNodeMenu'];
 }
 
 export interface CanvasNodeInteractionController
