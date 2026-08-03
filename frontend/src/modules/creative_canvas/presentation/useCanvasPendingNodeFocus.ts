@@ -1,12 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { useEffect } from 'react';
 
-import { getNodeSize } from '../domain/canvasGeometry';
-import type { CanvasNode } from '../domain/canvasNodes';
-
 export interface CanvasFocusPoint {
   x: number;
   y: number;
+}
+
+export interface CanvasFocusableNode {
+  id: string;
+  position: CanvasFocusPoint;
+}
+
+export interface CanvasFocusNodeSize {
+  width: number;
+  height: number;
 }
 
 export interface CanvasNodeFocusViewportPort {
@@ -18,19 +25,25 @@ export interface CanvasNodeFocusViewportPort {
   ) => void;
 }
 
-export interface CanvasPendingNodeFocusOptions {
+export interface CanvasPendingNodeFocusOptions<
+  TNode extends CanvasFocusableNode = CanvasFocusableNode,
+> {
   pendingNodeId: string | null;
-  nodes: readonly CanvasNode[];
+  nodes: readonly TNode[];
   viewportPort: CanvasNodeFocusViewportPort;
+  resolveNodeSize: (node: TNode) => CanvasFocusNodeSize;
   clearPendingFocus: () => void;
 }
 
-export function useCanvasPendingNodeFocus({
+export function useCanvasPendingNodeFocus<
+  TNode extends CanvasFocusableNode,
+>({
   pendingNodeId,
   nodes,
   viewportPort,
+  resolveNodeSize,
   clearPendingFocus,
-}: CanvasPendingNodeFocusOptions): void {
+}: CanvasPendingNodeFocusOptions<TNode>): void {
   useEffect(() => {
     if (!pendingNodeId) {
       return;
@@ -42,7 +55,7 @@ export function useCanvasPendingNodeFocus({
       return;
     }
 
-    const size = getNodeSize(target);
+    const size = resolveNodeSize(target);
     const position = viewportPort.getNodeAbsolutePosition(pendingNodeId)
       ?? target.position;
     viewportPort.centerAt(
@@ -56,5 +69,5 @@ export function useCanvasPendingNodeFocus({
       },
     );
     clearPendingFocus();
-  }, [clearPendingFocus, nodes, pendingNodeId, viewportPort]);
+  }, [clearPendingFocus, nodes, pendingNodeId, resolveNodeSize, viewportPort]);
 }

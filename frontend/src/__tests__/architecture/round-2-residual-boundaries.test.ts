@@ -231,15 +231,17 @@ describe("round 2 residual architecture boundaries", () => {
       "CanvasSnapAlignButton.tsx",
       "CanvasSnapAlignGuides.tsx",
     ];
-    const canvasViewportBookmarkDomainFiles = [
+    const canvasViewportDomainFiles = [
       "viewportBookmarks.ts",
       "viewportBookmarks.test.ts",
+      "canvasAutoLayout.ts",
+      "canvasAutoLayout.test.ts",
     ];
-    const canvasViewportBookmarkApplicationFiles = [
+    const canvasViewportApplicationFiles = [
       "bookmarkActions.ts",
       "bookmarkActions.test.ts",
     ];
-    const canvasViewportBookmarkPresentationFiles = [
+    const canvasViewportPresentationFiles = [
       "useCanvasViewportBookmarkShortcuts.ts",
       "useCanvasViewportBookmarkShortcuts.test.tsx",
       "useCanvasViewportCommit.ts",
@@ -252,6 +254,12 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasEdgePan.test.tsx",
       "useCanvasViewportRuntimeController.ts",
       "useCanvasViewportRuntimeController.test.tsx",
+      "useCanvasAutoLayoutController.ts",
+      "useCanvasAutoLayoutController.test.tsx",
+      "useCanvasPendingNodeFocus.ts",
+      "useCanvasPendingNodeFocus.test.tsx",
+      "useCanvasNodeFocusController.ts",
+      "useCanvasNodeFocusController.test.tsx",
       "useCanvasMinimapVisibility.ts",
       "useCanvasMinimapVisibility.test.tsx",
       "trackpadPanStore.ts",
@@ -807,21 +815,21 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(true);
     }
-    for (const file of canvasViewportBookmarkDomainFiles) {
+    for (const file of canvasViewportDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
     }
-    for (const file of canvasViewportBookmarkApplicationFiles) {
+    for (const file of canvasViewportApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
       );
     }
-    for (const file of canvasViewportBookmarkPresentationFiles) {
+    for (const file of canvasViewportPresentationFiles) {
       expect(
         existsSync(resolve(moduleRoot, "presentation", file)),
         file,
       ).toBe(true);
     }
-    for (const retiredViewportBookmarkPath of [
+    for (const retiredViewportPath of [
       "features/canvas/domain/viewportBookmarks.ts",
       "__tests__/features/canvas/viewport-bookmarks-domain.test.ts",
       "features/canvas/application/bookmarkActions.ts",
@@ -837,6 +845,14 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/hooks/useCanvasEdgePan.test.tsx",
       "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
       "features/canvas/hooks/useCanvasViewportRuntimeController.test.tsx",
+      "features/canvas/application/autoLayout.ts",
+      "__tests__/features/canvas/auto-layout.test.ts",
+      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+      "features/canvas/hooks/useCanvasAutoLayoutController.test.tsx",
+      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+      "features/canvas/hooks/useCanvasPendingNodeFocus.test.tsx",
+      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+      "features/canvas/hooks/useCanvasNodeFocusController.test.tsx",
       "features/canvas/hooks/useCanvasMinimapVisibility.ts",
       "features/canvas/hooks/useCanvasMinimapVisibility.test.tsx",
       "features/canvas/trackpad-pan/trackpadPanStore.ts",
@@ -850,8 +866,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/CanvasZoomControl.tsx",
     ]) {
       expect(
-        existsSync(resolve(SRC_ROOT, retiredViewportBookmarkPath)),
-        retiredViewportBookmarkPath,
+        existsSync(resolve(SRC_ROOT, retiredViewportPath)),
+        retiredViewportPath,
       ).toBe(false);
     }
     expect(
@@ -2094,7 +2110,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 578],
+      ["features/canvas", 571],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

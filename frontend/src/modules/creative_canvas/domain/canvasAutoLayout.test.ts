@@ -1,24 +1,25 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { computeAutoLayout } from '@/features/canvas/application/autoLayout';
-import type { CanvasEdge, CanvasNode } from '@/features/canvas/domain/canvasNodes';
+import {
+  computeAutoLayout,
+  type CanvasAutoLayoutEdge,
+  type CanvasAutoLayoutNode,
+} from './canvasAutoLayout';
 
 const NODE_W = 320;
 const NODE_H = 200;
 
-function node(id: string, x: number, y: number): CanvasNode {
+function node(id: string, x: number, y: number): CanvasAutoLayoutNode {
   return {
     id,
-    type: 'image_gen',
     position: { x, y },
-    data: {},
     measured: { width: NODE_W, height: NODE_H },
-  } as unknown as CanvasNode;
+  };
 }
 
-function edge(source: string, target: string): CanvasEdge {
-  return { id: `${source}->${target}`, source, target } as CanvasEdge;
+function edge(source: string, target: string): CanvasAutoLayoutEdge {
+  return { source, target };
 }
 
 function centerY(pos: { x: number; y: number }): number {

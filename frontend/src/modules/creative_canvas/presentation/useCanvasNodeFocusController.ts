@@ -1,10 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
 import {
   useCanvasPendingNodeFocus,
+  type CanvasFocusableNode,
   type CanvasFocusPoint,
+  type CanvasPendingNodeFocusOptions,
   type CanvasNodeFocusViewportPort,
 } from './useCanvasPendingNodeFocus';
 
@@ -20,10 +21,13 @@ export interface CanvasNodeFocusRuntimePort {
   ) => unknown;
 }
 
-export interface CanvasNodeFocusControllerOptions {
+export interface CanvasNodeFocusControllerOptions<
+  TNode extends CanvasFocusableNode = CanvasFocusableNode,
+> {
   pendingNodeId: string | null;
-  nodes: readonly CanvasNode[];
+  nodes: readonly TNode[];
   runtimePort: CanvasNodeFocusRuntimePort;
+  resolveNodeSize: CanvasPendingNodeFocusOptions<TNode>['resolveNodeSize'];
   clearPendingFocus: () => void;
 }
 
@@ -31,12 +35,15 @@ export interface CanvasNodeFocusController {
   centerViewport: CanvasNodeFocusViewportPort['centerAt'];
 }
 
-export function useCanvasNodeFocusController({
+export function useCanvasNodeFocusController<
+  TNode extends CanvasFocusableNode,
+>({
   pendingNodeId,
   nodes,
   runtimePort,
+  resolveNodeSize,
   clearPendingFocus,
-}: CanvasNodeFocusControllerOptions): CanvasNodeFocusController {
+}: CanvasNodeFocusControllerOptions<TNode>): CanvasNodeFocusController {
   const viewportPort = useMemo<CanvasNodeFocusViewportPort>(
     () => ({
       getNodeAbsolutePosition: (nodeId) =>
@@ -52,6 +59,7 @@ export function useCanvasNodeFocusController({
     pendingNodeId,
     nodes,
     viewportPort,
+    resolveNodeSize,
     clearPendingFocus,
   });
 

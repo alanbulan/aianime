@@ -3,24 +3,19 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasPendingNodeFocus,
+  type CanvasFocusableNode,
   type CanvasNodeFocusViewportPort,
 } from './useCanvasPendingNodeFocus';
 
-function canvasNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
+function canvasNode(
+  overrides: Partial<CanvasFocusableNode> = {},
+): CanvasFocusableNode {
   return {
     id: 'node-1',
-    type: CANVAS_NODE_TYPES.imageEdit,
     position: { x: 10, y: 20 },
-    width: 300,
-    height: 200,
-    data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 function viewportPort(
@@ -36,7 +31,7 @@ function viewportPort(
 
 describe('useCanvasPendingNodeFocus', () => {
   it('centers a grouped node from its absolute position and clears the request', () => {
-    const target = canvasNode({ measured: { width: 400, height: 240 } });
+    const target = canvasNode();
     const port = viewportPort({ x: 100, y: 200 }, 0.4);
     const clearPendingFocus = vi.fn();
 
@@ -45,6 +40,7 @@ describe('useCanvasPendingNodeFocus', () => {
         pendingNodeId: target.id,
         nodes: [target],
         viewportPort: port,
+        resolveNodeSize: () => ({ width: 400, height: 240 }),
         clearPendingFocus,
       }),
     );
@@ -57,11 +53,7 @@ describe('useCanvasPendingNodeFocus', () => {
   });
 
   it('falls back to the node position and shared domain size', () => {
-    const target = canvasNode({
-      type: CANVAS_NODE_TYPES.upload,
-      width: undefined,
-      height: undefined,
-    });
+    const target = canvasNode();
     const port = viewportPort(null, 1.25);
 
     renderHook(() =>
@@ -69,6 +61,7 @@ describe('useCanvasPendingNodeFocus', () => {
         pendingNodeId: target.id,
         nodes: [target],
         viewportPort: port,
+        resolveNodeSize: () => ({ width: 320, height: 350 }),
         clearPendingFocus: vi.fn(),
       }),
     );
@@ -88,6 +81,7 @@ describe('useCanvasPendingNodeFocus', () => {
         pendingNodeId: 'missing-node',
         nodes: [],
         viewportPort: port,
+        resolveNodeSize: vi.fn(),
         clearPendingFocus,
       }),
     );
@@ -105,6 +99,7 @@ describe('useCanvasPendingNodeFocus', () => {
         pendingNodeId: null,
         nodes: [canvasNode()],
         viewportPort: port,
+        resolveNodeSize: vi.fn(),
         clearPendingFocus,
       }),
     );

@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { DEFAULT_NODE_WIDTH, type CanvasEdge, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
+
+const DEFAULT_NODE_WIDTH = 320;
 
 const DEFAULT_NODE_HEIGHT = 200;
 const COLUMN_GAP = 80;
@@ -22,7 +23,21 @@ interface NodeSize {
   height: number;
 }
 
-function getNodeSize(node: CanvasNode): NodeSize {
+export interface CanvasAutoLayoutNode {
+  id: string;
+  parentId?: string | null;
+  position: { x: number; y: number };
+  measured?: { width?: number; height?: number };
+  width?: number | null;
+  height?: number | null;
+}
+
+export interface CanvasAutoLayoutEdge {
+  source: string;
+  target: string;
+}
+
+function getNodeSize(node: CanvasAutoLayoutNode): NodeSize {
   const width = node.measured?.width
     ?? (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
   const height = node.measured?.height
@@ -31,9 +46,9 @@ function getNodeSize(node: CanvasNode): NodeSize {
 }
 
 function computeComponents(
-  nodes: CanvasNode[],
-  edgePairs: Array<[string, string]>
-): CanvasNode[][] {
+  nodes: readonly CanvasAutoLayoutNode[],
+  edgePairs: ReadonlyArray<readonly [string, string]>,
+): CanvasAutoLayoutNode[][] {
   const idMap = new Map(nodes.map((node) => [node.id, node] as const));
   const adjacency = new Map<string, Set<string>>();
   for (const node of nodes) {
@@ -45,13 +60,13 @@ function computeComponents(
   }
 
   const visited = new Set<string>();
-  const components: CanvasNode[][] = [];
+  const components: CanvasAutoLayoutNode[][] = [];
   for (const node of nodes) {
     if (visited.has(node.id)) {
       continue;
     }
     const stack = [node.id];
-    const component: CanvasNode[] = [];
+    const component: CanvasAutoLayoutNode[] = [];
     while (stack.length > 0) {
       const id = stack.pop()!;
       if (visited.has(id)) {
@@ -211,8 +226,8 @@ function compactVerticalBands(
 }
 
 function layoutComponent(
-  componentNodes: CanvasNode[],
-  edgePairs: Array<[string, string]>
+  componentNodes: CanvasAutoLayoutNode[],
+  edgePairs: ReadonlyArray<readonly [string, string]>,
 ): LayoutComponentResult {
   const ids = componentNodes.map((node) => node.id);
   const idSet = new Set(ids);
@@ -375,8 +390,8 @@ export interface AutoLayoutResult {
 }
 
 export function computeAutoLayout(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[]
+  nodes: readonly CanvasAutoLayoutNode[],
+  edges: readonly CanvasAutoLayoutEdge[],
 ): AutoLayoutResult {
   const topLevelNodes = nodes.filter((node) => !node.parentId);
   if (topLevelNodes.length === 0) {

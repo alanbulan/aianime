@@ -7473,25 +7473,17 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = [
-      "./useCanvasNodeFocusController",
-      "./useCanvasAutoLayoutController",
-    ];
     const moduleControllers = [
       "useCanvasViewportRuntimeController",
       "useCanvasLifecycle",
+      "useCanvasNodeFocusController",
+      "useCanvasAutoLayoutController",
     ];
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
     ]);
-    for (const childController of childControllers) {
-      expect(controllerSource).toContain(childController);
-      expect(canvasView).not.toContain(
-        childController.replace("./", "./hooks/"),
-      );
-    }
     for (const moduleController of moduleControllers) {
       expect(controllerSource).toContain(moduleController);
       expect(canvasView).not.toContain(moduleController);
@@ -7512,6 +7504,8 @@ describe("frontend architecture boundaries", () => {
       expect.arrayContaining([
         "@/modules/creative_canvas/presentation/useCanvasLifecycle",
         "@/modules/creative_canvas/presentation/useCanvasViewportRuntimeController",
+        "@/modules/creative_canvas/presentation/useCanvasNodeFocusController",
+        "@/modules/creative_canvas/presentation/useCanvasAutoLayoutController",
       ]),
     );
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
@@ -7957,13 +7951,20 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas auto-layout orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+      moduleRoot,
+      "presentation/useCanvasAutoLayoutController.ts",
     );
+    const layoutPath = resolve(moduleRoot, "domain/canvasAutoLayout.ts");
     const hookModel = readFileSync(hookPath, "utf8");
+    const layoutModel = readFileSync(layoutPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const multiSelectionToolbar = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/MultiSelectionToolbar.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -7973,10 +7974,21 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier.startsWith("@/features/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/api/"),
+    );
+    const forbiddenLayoutImports = importSpecifiers(layoutPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/"),
     );
     const declaration = [
       "export function",
@@ -7986,11 +7998,25 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const layoutDeclaration = [
+      "export function",
+      "computeAutoLayout(",
+    ].join(" ");
+    const layoutOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(layoutDeclaration))
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(forbiddenLayoutImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+      "modules/creative_canvas/presentation/useCanvasAutoLayoutController.ts",
     ]);
+    expect(layoutOwners).toEqual([
+      "modules/creative_canvas/domain/canvasAutoLayout.ts",
+    ]);
+    expect(layoutModel).toContain("export interface CanvasAutoLayoutNode");
+    expect(layoutModel).toContain("export interface CanvasAutoLayoutEdge");
     expect(hookModel).toContain("computeAutoLayout(nodes, edges)");
     expect(hookModel).toContain("changedCount > 0");
     expect(hookModel).toContain("scheduleAfterLayout(");
@@ -8003,6 +8029,24 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("Object.keys(positions)");
     expect(canvasView).not.toContain("requestAnimationFrame");
     expect(canvasView).not.toContain("duration: 240");
+    expect(multiSelectionToolbar).toContain("@/modules/creative_canvas/public");
+    expect(multiSelectionToolbar).not.toContain(
+      "@/features/canvas/application/autoLayout",
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/canvasAutoLayout",
+        "@/modules/creative_canvas/presentation/useCanvasAutoLayoutController",
+      ]),
+    );
+    for (const retiredPath of [
+      "features/canvas/application/autoLayout.ts",
+      "__tests__/features/canvas/auto-layout.test.ts",
+      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+      "features/canvas/hooks/useCanvasAutoLayoutController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas history-asset planning and orchestration outside the view", () => {
@@ -10172,9 +10216,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas pending-node focus in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+      moduleRoot,
+      "presentation/useCanvasPendingNodeFocus.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -10182,8 +10227,15 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+      moduleRoot,
+      "presentation/useCanvasNodeFocusController.ts",
+    );
+    const surfaceController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+      ),
+      "utf8",
     );
     const controllerModel = readFileSync(controllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -10194,13 +10246,11 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasPendingNodeFocus(",
+      "useCanvasPendingNodeFocus<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
@@ -10208,7 +10258,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const controllerDeclaration = [
       "export function",
-      "useCanvasNodeFocusController(",
+      "useCanvasNodeFocusController<",
     ].join(" ");
     const controllerOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(controllerDeclaration))
@@ -10220,30 +10270,41 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
 
     expect(forbiddenImports).toEqual([]);
     expect(forbiddenControllerImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+      "modules/creative_canvas/presentation/useCanvasPendingNodeFocus.ts",
     ]);
     expect(controllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeFocusController.ts",
     ]);
-    expect(hookModel).toContain("getNodeSize(target)");
+    expect(hookModel).toContain("resolveNodeSize(target)");
     expect(hookModel).toContain("viewportPort.getNodeAbsolutePosition");
     expect(controllerModel).toContain("./useCanvasPendingNodeFocus");
     expect(controllerModel).toContain("runtimePort.getInternalNode(nodeId)");
     expect(controllerModel).toContain("runtimePort.setCenter(");
+    expect(surfaceController).toContain("resolveNodeSize: getNodeSize");
+    expect(surfaceController).toContain("@/modules/creative_canvas/public");
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasNodeFocusController");
     expect(canvasView).not.toContain("./hooks/useCanvasPendingNodeFocus");
     expect(canvasView).not.toContain("nodeFocusViewportPort");
     expect(canvasView).not.toContain("getInternalNode(");
     expect(canvasView).not.toContain("Math.max(currentZoom, 0.6)");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodeFocusController",
+    );
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+      "features/canvas/hooks/useCanvasPendingNodeFocus.test.tsx",
+      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+      "features/canvas/hooks/useCanvasNodeFocusController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas persistence triggered by useCanvasSync", () => {

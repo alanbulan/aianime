@@ -3,11 +3,12 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
+  CanvasAutoLayoutControllerOptions,
+  CanvasNodeFocusControllerOptions,
   CanvasSnapAlignmentPort,
   CanvasViewportRuntimeControllerOptions,
 } from '@/modules/creative_canvas/public';
 
-import type { CanvasAutoLayoutControllerOptions } from './useCanvasAutoLayoutController';
 import {
   useCanvasViewportSurfaceController,
   type CanvasViewportSurfaceControllerOptions,
@@ -66,7 +67,9 @@ const controllerMocks = vi.hoisted(() => {
       (_port: CanvasSnapAlignmentPort<CanvasViewportSurfaceControllerOptions['nodes'][number]>) =>
         snapAlignmentController,
     ),
-    useNodeFocus: vi.fn(() => focusController),
+    useNodeFocus: vi.fn(
+      (_options: CanvasNodeFocusControllerOptions) => focusController,
+    ),
     useAutoLayout: vi.fn(
       (_options: CanvasAutoLayoutControllerOptions) => autoLayoutController,
     ),
@@ -74,8 +77,10 @@ const controllerMocks = vi.hoisted(() => {
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
   useCanvasLifecycle: controllerMocks.useLifecycle,
   useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,
+  useCanvasNodeFocusController: controllerMocks.useNodeFocus,
   useSnapAlignStore: {
     getState: () => controllerMocks.snapState,
   },
@@ -93,13 +98,6 @@ vi.mock('@/features/canvas/canvasStore', () => ({
 vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
   isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
 }));
-vi.mock('./useCanvasAutoLayoutController', () => ({
-  useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
-}));
-vi.mock('./useCanvasNodeFocusController', () => ({
-  useCanvasNodeFocusController: controllerMocks.useNodeFocus,
-}));
-
 function createOptions(): CanvasViewportSurfaceControllerOptions {
   return {
     wrapperRef: { current: null },
@@ -155,6 +153,7 @@ describe('useCanvasViewportSurfaceController', () => {
       pendingNodeId: options.pendingNodeId,
       nodes: options.nodes,
       runtimePort: options.viewportPort,
+      resolveNodeSize: expect.any(Function),
       clearPendingFocus: options.clearPendingFocus,
     });
     expect(controllerMocks.useAutoLayout).toHaveBeenCalledWith({

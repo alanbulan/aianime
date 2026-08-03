@@ -3,22 +3,16 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasNodeFocusController,
   type CanvasNodeFocusRuntimePort,
 } from './useCanvasNodeFocusController';
+import type { CanvasFocusableNode } from './useCanvasPendingNodeFocus';
 
-function canvasNode(): CanvasNode {
+function canvasNode(): CanvasFocusableNode {
   return {
     id: 'node-1',
-    type: CANVAS_NODE_TYPES.imageEdit,
     position: { x: 10, y: 20 },
-    measured: { width: 400, height: 240 },
-    data: {},
-  } as CanvasNode;
+  };
 }
 
 describe('useCanvasNodeFocusController', () => {
@@ -37,6 +31,7 @@ describe('useCanvasNodeFocusController', () => {
         pendingNodeId: 'node-1',
         nodes: [canvasNode()],
         runtimePort,
+        resolveNodeSize: () => ({ width: 400, height: 240 }),
         clearPendingFocus,
       }),
     );

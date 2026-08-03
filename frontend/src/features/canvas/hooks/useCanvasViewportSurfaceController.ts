@@ -6,17 +6,26 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
+import { getNodeSize } from '../domain/canvasGeometry';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   useCanvasMinimapVisibility,
   useCanvasLifecycle,
+  useCanvasAutoLayoutController,
+  useCanvasNodeFocusController,
   useCanvasSnapAlignment,
   useCanvasViewportRuntimeController,
   useSnapAlignStore,
   useTrackpadPanStore,
+  type CanvasAutoLayoutController,
+  type CanvasAutoLayoutControllerOptions,
+  type CanvasAutoLayoutViewportOptions,
   type CanvasLifecycleOptions,
   type CanvasMinimapVisibilityController,
+  type CanvasNodeFocusController,
+  type CanvasNodeFocusControllerOptions,
+  type CanvasNodeFocusRuntimePort,
   type CanvasSnapAlignmentController,
   type CanvasSnapAlignmentPort,
   type CanvasViewportBookmarkStorePort,
@@ -24,18 +33,6 @@ import {
   type CanvasViewportRuntimeController,
   type CanvasViewportRuntimeControllerOptions,
 } from '@/modules/creative_canvas/public';
-import {
-  useCanvasAutoLayoutController,
-  type CanvasAutoLayoutController,
-  type CanvasAutoLayoutControllerOptions,
-  type CanvasAutoLayoutViewportOptions,
-} from './useCanvasAutoLayoutController';
-import {
-  useCanvasNodeFocusController,
-  type CanvasNodeFocusController,
-  type CanvasNodeFocusControllerOptions,
-  type CanvasNodeFocusRuntimePort,
-} from './useCanvasNodeFocusController';
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   isExcludedNode: (node) => node.type === CANVAS_NODE_TYPES.group,
@@ -66,8 +63,8 @@ export interface CanvasViewportSurfaceControllerOptions {
   setViewportSize: CanvasViewportRuntimeControllerOptions['setViewportSize'];
   nodes: CanvasNode[];
   edges: CanvasEdge[];
-  pendingNodeId: CanvasNodeFocusControllerOptions['pendingNodeId'];
-  clearPendingFocus: CanvasNodeFocusControllerOptions['clearPendingFocus'];
+  pendingNodeId: CanvasNodeFocusControllerOptions<CanvasNode>['pendingNodeId'];
+  clearPendingFocus: CanvasNodeFocusControllerOptions<CanvasNode>['clearPendingFocus'];
   setNodePositions: CanvasAutoLayoutControllerOptions['setNodePositions'];
   isCanvasEmpty: CanvasLifecycleOptions['isCanvasEmpty'];
   closeImageViewer: CanvasLifecycleOptions['closeImageViewer'];
@@ -118,6 +115,7 @@ export function useCanvasViewportSurfaceController({
     pendingNodeId,
     nodes,
     runtimePort: viewportPort,
+    resolveNodeSize: getNodeSize,
     clearPendingFocus,
   });
   const fitAutoLayoutViewport = useCallback(

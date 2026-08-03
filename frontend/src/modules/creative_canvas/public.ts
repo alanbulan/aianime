@@ -391,6 +391,30 @@ export type {
   CanvasLifecycleOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasLifecycle";
 export {
+  computeAutoLayout,
+} from "@/modules/creative_canvas/domain/canvasAutoLayout";
+export type {
+  AutoLayoutResult,
+  CanvasAutoLayoutEdge,
+  CanvasAutoLayoutNode,
+} from "@/modules/creative_canvas/domain/canvasAutoLayout";
+export {
+  useCanvasAutoLayoutController,
+} from "@/modules/creative_canvas/presentation/useCanvasAutoLayoutController";
+export type {
+  CanvasAutoLayoutController,
+  CanvasAutoLayoutControllerOptions,
+  CanvasAutoLayoutViewportOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasAutoLayoutController";
+export {
+  useCanvasNodeFocusController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeFocusController";
+export type {
+  CanvasNodeFocusController,
+  CanvasNodeFocusControllerOptions,
+  CanvasNodeFocusRuntimePort,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeFocusController";
+export {
   useCanvasMinimapVisibility,
 } from "@/modules/creative_canvas/presentation/useCanvasMinimapVisibility";
 export type {

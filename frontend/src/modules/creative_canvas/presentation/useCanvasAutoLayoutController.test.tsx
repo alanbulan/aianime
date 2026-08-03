@@ -2,24 +2,25 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import type {
+  CanvasAutoLayoutEdge,
+  CanvasAutoLayoutNode,
+} from '@/modules/creative_canvas/domain/canvasAutoLayout';
 import {
   useCanvasAutoLayoutController,
   type CanvasAutoLayoutControllerOptions,
 } from './useCanvasAutoLayoutController';
 
-function node(id: string, x: number, y: number): CanvasNode {
+function node(id: string, x: number, y: number): CanvasAutoLayoutNode {
   return {
     id,
-    type: 'image_gen',
     position: { x, y },
-    data: {},
     measured: { width: 320, height: 200 },
-  } as unknown as CanvasNode;
+  };
 }
 
-function edge(source: string, target: string): CanvasEdge {
-  return { id: `${source}->${target}`, source, target } as CanvasEdge;
+function edge(source: string, target: string): CanvasAutoLayoutEdge {
+  return { source, target };
 }
 
 function createOptions(

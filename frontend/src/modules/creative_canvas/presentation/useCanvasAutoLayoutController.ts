@@ -1,8 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import { computeAutoLayout } from '../application/autoLayout';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import {
+  computeAutoLayout,
+  type CanvasAutoLayoutEdge,
+  type CanvasAutoLayoutNode,
+} from '@/modules/creative_canvas/domain/canvasAutoLayout';
 
 const AUTO_LAYOUT_VIEWPORT_OPTIONS = {
   duration: 240,
@@ -15,8 +18,8 @@ export interface CanvasAutoLayoutViewportOptions {
 }
 
 export interface CanvasAutoLayoutControllerOptions {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+  nodes: readonly CanvasAutoLayoutNode[];
+  edges: readonly CanvasAutoLayoutEdge[];
   setNodePositions: (
     positions: Record<string, { x: number; y: number }>,
   ) => void;

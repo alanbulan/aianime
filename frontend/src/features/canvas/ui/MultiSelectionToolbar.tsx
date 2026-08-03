@@ -24,7 +24,7 @@ import {
   DEFAULT_NODE_WIDTH,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { computeAutoLayout } from '@/features/canvas/application/autoLayout';
+import { computeAutoLayout } from '@/modules/creative_canvas/public';
 import { collectBatchDeletableIds } from '@/modules/creative_canvas/public';
 
 // 合并分镜组只接受图片类节点。
