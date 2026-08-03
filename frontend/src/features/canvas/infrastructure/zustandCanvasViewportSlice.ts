@@ -3,20 +3,18 @@ import type { Viewport } from '@xyflow/react';
 
 import {
   createClosedCanvasImageViewer,
+  createEmptyBookmarks,
   navigateCanvasImageViewer,
+  normalizeBookmarks,
   openCanvasImageViewer,
+  replaceViewportBookmark,
   type CanvasImageViewerDirection,
   type CanvasImageViewerState,
+  type ViewportBookmark,
+  type ViewportBookmarks,
 } from '@/modules/creative_canvas/public';
 import { findAvailableNodePosition } from '../domain/canvasGeometry';
 import type { CanvasNode } from '../domain/canvasNodes';
-import {
-  createEmptyBookmarks,
-  normalizeBookmarks,
-  replaceViewportBookmark,
-  type ViewportBookmark,
-  type ViewportBookmarks,
-} from '../domain/viewportBookmarks';
 
 export interface CanvasViewportSlice {
   currentViewport: Viewport;

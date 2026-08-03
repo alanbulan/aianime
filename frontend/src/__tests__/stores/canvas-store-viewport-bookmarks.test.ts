@@ -5,7 +5,7 @@ import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   BOOKMARK_SLOT_COUNT,
   createEmptyBookmarks,
-} from "@/features/canvas/domain/viewportBookmarks";
+} from "@/modules/creative_canvas/public";
 
 describe("canvasStore viewport bookmarks", () => {
   beforeEach(() => {

@@ -4,18 +4,17 @@ import { useMemo, useRef, type RefObject } from 'react';
 import {
   captureCurrentViewport,
   jumpToBookmark,
+  useCanvasViewportBookmarkShortcuts,
+  type CanvasViewportBookmarkCommands,
   type CanvasViewportPort,
-} from '@/features/canvas/application/bookmarkActions';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
 import {
   useCanvasEdgePan,
   type CanvasEdgePanController,
 } from './useCanvasEdgePan';
-import {
-  useCanvasViewportBookmarkShortcuts,
-  type CanvasViewportBookmarkCommands,
-} from './useCanvasViewportBookmarkShortcuts';
 import {
   useCanvasViewportCommit,
   type CanvasViewportCommitController,
@@ -76,7 +75,10 @@ export function useCanvasViewportRuntimeController({
     }),
     [viewportPort],
   );
-  useCanvasViewportBookmarkShortcuts(viewportBookmarkCommands);
+  useCanvasViewportBookmarkShortcuts({
+    ...viewportBookmarkCommands,
+    isImmersiveViewerActive,
+  });
 
   // Hydration completes before Canvas mounts, so React Flow must receive the restored camera once.
   const initialViewportRef = useRef(useCanvasStore.getState().currentViewport);

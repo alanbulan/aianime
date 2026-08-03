@@ -8142,7 +8142,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas viewport bookmark shortcuts in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -8158,14 +8158,10 @@ describe("frontend architecture boundaries", () => {
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -8178,18 +8174,28 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts.ts",
     ]);
     expect(hookModel).toContain("digitToBookmarkIndex");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(viewportController).toContain("./useCanvasViewportBookmarkShortcuts");
+    expect(viewportController).toContain("@/modules/creative_canvas/public");
+    expect(viewportController).not.toContain("./useCanvasViewportBookmarkShortcuts");
     expect(viewportController).toContain("captureCurrentViewport(viewportPort)");
     expect(viewportController).toContain("jumpToBookmark(viewportPort, bookmark)");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportBookmarkShortcuts");
     expect(canvasView).not.toContain("captureCurrentViewport");
     expect(canvasView).not.toContain("handleBookmarkKeys");
     expect(canvasView).not.toContain("digitToBookmarkIndex");
+    for (const retiredBookmarkPath of [
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredBookmarkPath)),
+        retiredBookmarkPath,
+      ).toBe(false);
+    }
   });
 
   it("keeps Canvas edge-pan gestures in one presentation hook", () => {
@@ -14135,9 +14141,14 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasSelection.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const viewportPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/viewportBookmarks.ts",
+      moduleRoot,
+      "domain/viewportBookmarks.ts",
     );
+    const legacyViewportPaths = [
+      "features/canvas/domain/viewportBookmarks.ts",
+      "__tests__/features/canvas/viewport-bookmarks-domain.test.ts",
+      "features/canvas/application/bookmarkActions.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const nodeEffectsPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasNodeChangeEffects.ts",
@@ -14221,7 +14232,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(originViewportOwners).toEqual([
-      "features/canvas/domain/viewportBookmarks.ts",
+      "modules/creative_canvas/domain/viewportBookmarks.ts",
     ]);
     expect(rectSelectionOwners).toEqual([
       "modules/creative_canvas/domain/canvasSelection.ts",
@@ -14232,11 +14243,20 @@ describe("frontend architecture boundaries", () => {
         relativeSource(legacySelectionPath),
       ).toBe(false);
     }
+    for (const legacyViewportPath of legacyViewportPaths) {
+      expect(
+        existsSync(legacyViewportPath),
+        relativeSource(legacyViewportPath),
+      ).toBe(false);
+    }
     expect(selectionModel).toContain(rectSelectionDeclaration);
     expect(selectionModel).toContain("export function resolveSelectedNodeId<");
     expect(selectionModel).toContain("export function resolveActiveToolDialog<");
     expect(importSpecifiers(publicPath)).toContain(
       "@/modules/creative_canvas/domain/canvasSelection",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/domain/viewportBookmarks",
     );
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
     expect(viewportModel).toContain(originViewportDeclaration);
@@ -14253,7 +14273,8 @@ describe("frontend architecture boundaries", () => {
       "replaceViewportBookmark(current, index, bookmark)",
     );
     expect(canvasStore).not.toContain("replaceViewportBookmark(");
-    expect(lifecycleView).toContain("../domain/viewportBookmarks");
+    expect(lifecycleView).toContain("@/modules/creative_canvas/public");
+    expect(lifecycleView).not.toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).not.toContain("../domain/canvasSelection");
     expect(selectionSurface).toContain("../domain/canvasSelection");
@@ -25035,7 +25056,6 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
       "../domain/canvasGeometry",
       "../domain/canvasNodes",
-      "../domain/viewportBookmarks",
     ]);
     expect(canvasStore).toMatch(
       /interface CanvasState[\s\S]*?CanvasViewportSlice/,

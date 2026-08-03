@@ -2,8 +2,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { useViewerImmersiveBody } from '@/features/viewer-kit/useViewerImmersiveBody';
-
 import { useCanvasViewportBookmarkShortcuts } from './useCanvasViewportBookmarkShortcuts';
 
 function keyboardEvent(
@@ -17,38 +15,39 @@ function keyboardEvent(
   });
 }
 
+function createOptions(isImmersiveViewerActive = vi.fn(() => false)) {
+  return {
+    clearBookmarks: vi.fn(),
+    captureBookmark: vi.fn(),
+    jumpToBookmarkSlot: vi.fn(),
+    isImmersiveViewerActive,
+  };
+}
+
 describe('useCanvasViewportBookmarkShortcuts', () => {
   it('routes clear, capture, and jump shortcuts to injected commands', () => {
-    const commands = {
-      clearBookmarks: vi.fn(),
-      captureBookmark: vi.fn(),
-      jumpToBookmarkSlot: vi.fn(),
-    };
-    renderHook(() => useCanvasViewportBookmarkShortcuts(commands));
+    const options = createOptions();
+    renderHook(() => useCanvasViewportBookmarkShortcuts(options));
 
     const clearEvent = keyboardEvent('E', { ctrlKey: true, shiftKey: true });
     act(() => window.dispatchEvent(clearEvent));
     expect(clearEvent.defaultPrevented).toBe(true);
-    expect(commands.clearBookmarks).toHaveBeenCalledOnce();
+    expect(options.clearBookmarks).toHaveBeenCalledOnce();
 
     const captureEvent = keyboardEvent('3', { metaKey: true });
     act(() => window.dispatchEvent(captureEvent));
     expect(captureEvent.defaultPrevented).toBe(true);
-    expect(commands.captureBookmark).toHaveBeenCalledWith(2);
+    expect(options.captureBookmark).toHaveBeenCalledWith(2);
 
     const jumpEvent = keyboardEvent('0');
     act(() => window.dispatchEvent(jumpEvent));
     expect(jumpEvent.defaultPrevented).toBe(true);
-    expect(commands.jumpToBookmarkSlot).toHaveBeenCalledWith(9);
+    expect(options.jumpToBookmarkSlot).toHaveBeenCalledWith(9);
   });
 
   it('ignores modified digits, typing targets, and immersive viewers', () => {
-    const commands = {
-      clearBookmarks: vi.fn(),
-      captureBookmark: vi.fn(),
-      jumpToBookmarkSlot: vi.fn(),
-    };
-    renderHook(() => useCanvasViewportBookmarkShortcuts(commands));
+    const options = createOptions();
+    renderHook(() => useCanvasViewportBookmarkShortcuts(options));
 
     act(() => {
       window.dispatchEvent(keyboardEvent('1', { shiftKey: true }));
@@ -63,13 +62,12 @@ describe('useCanvasViewportBookmarkShortcuts', () => {
       key: '1',
     })));
 
-    const immersiveViewer = renderHook(() => useViewerImmersiveBody(true));
+    options.isImmersiveViewerActive.mockReturnValue(true);
     act(() => window.dispatchEvent(keyboardEvent('1')));
-    immersiveViewer.unmount();
     input.remove();
 
-    expect(commands.clearBookmarks).not.toHaveBeenCalled();
-    expect(commands.captureBookmark).not.toHaveBeenCalled();
-    expect(commands.jumpToBookmarkSlot).not.toHaveBeenCalled();
+    expect(options.clearBookmarks).not.toHaveBeenCalled();
+    expect(options.captureBookmark).not.toHaveBeenCalled();
+    expect(options.jumpToBookmarkSlot).not.toHaveBeenCalled();
   });
 });

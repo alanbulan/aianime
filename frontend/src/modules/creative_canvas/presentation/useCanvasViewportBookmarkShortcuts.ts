@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { useEffect } from 'react';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
-import { digitToBookmarkIndex } from '../domain/viewportBookmarks';
-import { isTypingTarget } from '@/modules/creative_canvas/public';
+import { digitToBookmarkIndex } from '@/modules/creative_canvas/domain/viewportBookmarks';
+import { isTypingTarget } from './canvasInteractionTargets';
 
 export interface CanvasViewportBookmarkCommands {
   clearBookmarks: () => void;
@@ -12,11 +10,17 @@ export interface CanvasViewportBookmarkCommands {
   jumpToBookmarkSlot: (index: number) => void;
 }
 
+export interface CanvasViewportBookmarkShortcutOptions
+  extends CanvasViewportBookmarkCommands {
+  isImmersiveViewerActive: () => boolean;
+}
+
 export function useCanvasViewportBookmarkShortcuts({
   clearBookmarks,
   captureBookmark,
   jumpToBookmarkSlot,
-}: CanvasViewportBookmarkCommands): void {
+  isImmersiveViewerActive,
+}: CanvasViewportBookmarkShortcutOptions): void {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target) || isImmersiveViewerActive()) {
@@ -47,5 +51,10 @@ export function useCanvasViewportBookmarkShortcuts({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [captureBookmark, clearBookmarks, jumpToBookmarkSlot]);
+  }, [
+    captureBookmark,
+    clearBookmarks,
+    isImmersiveViewerActive,
+    jumpToBookmarkSlot,
+  ]);
 }

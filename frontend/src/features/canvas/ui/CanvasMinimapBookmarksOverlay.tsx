@@ -3,13 +3,14 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
 import { CanvasViewportBookmarks } from "./CanvasViewportBookmarks";
-import { captureCurrentViewport, jumpToBookmark } from "@/features/canvas/application/bookmarkActions";
 import {
+  captureCurrentViewport,
+  jumpToBookmark,
   type MinimapViewBox,
   bookmarkCenterInFlow,
   bookmarkIndexToDigit,
   projectToMinimap,
-} from "@/features/canvas/domain/viewportBookmarks";
+} from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 interface MinimapMetrics {

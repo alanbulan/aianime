@@ -4,7 +4,7 @@ import { useEffect, type RefObject } from 'react';
 import {
   resolveCanvasOriginViewport,
   type ViewportBookmark,
-} from '../domain/viewportBookmarks';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasLifecycleOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;

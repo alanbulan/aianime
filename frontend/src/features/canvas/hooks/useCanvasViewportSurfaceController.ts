@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import type { CanvasViewportPort } from '../application/bookmarkActions';
 import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
@@ -13,6 +12,7 @@ import {
   useSnapAlignStore,
   type CanvasSnapAlignmentController,
   type CanvasSnapAlignmentPort,
+  type CanvasViewportPort,
 } from '@/modules/creative_canvas/public';
 import {
   useCanvasAutoLayoutController,

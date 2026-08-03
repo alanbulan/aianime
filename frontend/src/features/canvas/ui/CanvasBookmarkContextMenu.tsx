@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { bookmarkIndexToDigit } from "@/features/canvas/domain/viewportBookmarks";
+import { bookmarkIndexToDigit } from "@/modules/creative_canvas/public";
 import { MOD_KEY_LABEL as CMD } from "@/lib/platform";
 
 interface CanvasBookmarkContextMenuProps {

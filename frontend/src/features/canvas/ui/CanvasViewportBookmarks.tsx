@@ -7,7 +7,7 @@ import {
   type ViewportBookmarks,
   bookmarkIndexToDigit,
   createEmptyBookmarks,
-} from "@/features/canvas/domain/viewportBookmarks";
+} from "@/modules/creative_canvas/public";
 
 interface CanvasViewportBookmarksProps {
   bookmarks: ViewportBookmarks;

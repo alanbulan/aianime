@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 
-import type { CanvasViewportPort } from '../application/bookmarkActions';
+import type { CanvasViewportPort } from '@/modules/creative_canvas/public';
 import type { CanvasViewportSnapshot } from './useCanvasViewportCommit';
 
 const EDGE_PAN_DRAG_THRESHOLD_PX = 4;

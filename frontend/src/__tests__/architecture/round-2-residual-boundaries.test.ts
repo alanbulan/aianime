@@ -231,6 +231,18 @@ describe("round 2 residual architecture boundaries", () => {
       "CanvasSnapAlignButton.tsx",
       "CanvasSnapAlignGuides.tsx",
     ];
+    const canvasViewportBookmarkDomainFiles = [
+      "viewportBookmarks.ts",
+      "viewportBookmarks.test.ts",
+    ];
+    const canvasViewportBookmarkApplicationFiles = [
+      "bookmarkActions.ts",
+      "bookmarkActions.test.ts",
+    ];
+    const canvasViewportBookmarkPresentationFiles = [
+      "useCanvasViewportBookmarkShortcuts.ts",
+      "useCanvasViewportBookmarkShortcuts.test.tsx",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -770,6 +782,32 @@ describe("round 2 residual architecture boundaries", () => {
         existsSync(resolve(moduleRoot, "presentation", file)),
         file,
       ).toBe(true);
+    }
+    for (const file of canvasViewportBookmarkDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+    }
+    for (const file of canvasViewportBookmarkApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+    }
+    for (const file of canvasViewportBookmarkPresentationFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "presentation", file)),
+        file,
+      ).toBe(true);
+    }
+    for (const retiredViewportBookmarkPath of [
+      "features/canvas/domain/viewportBookmarks.ts",
+      "__tests__/features/canvas/viewport-bookmarks-domain.test.ts",
+      "features/canvas/application/bookmarkActions.ts",
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredViewportBookmarkPath)),
+        retiredViewportBookmarkPath,
+      ).toBe(false);
     }
     for (const file of canvasMainlineDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
@@ -2003,7 +2041,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 600],
+      ["features/canvas", 596],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { CanvasViewportBookmarks } from "@/features/canvas/ui/CanvasViewportBookmarks";
-import { createEmptyBookmarks } from "@/features/canvas/domain/viewportBookmarks";
+import { createEmptyBookmarks } from "@/modules/creative_canvas/public";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),

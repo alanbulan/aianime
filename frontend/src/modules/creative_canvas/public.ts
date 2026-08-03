@@ -324,6 +324,37 @@ export type {
   SnapAlignResult,
 } from "@/modules/creative_canvas/domain/canvasSnapAlignment";
 export {
+  BOOKMARK_SLOT_COUNT,
+  bookmarkCenterInFlow,
+  bookmarkIndexToDigit,
+  createEmptyBookmarks,
+  digitToBookmarkIndex,
+  isViewportBookmark,
+  normalizeBookmarks,
+  projectToMinimap,
+  replaceViewportBookmark,
+  resolveCanvasOriginViewport,
+} from "@/modules/creative_canvas/domain/viewportBookmarks";
+export type {
+  MinimapViewBox,
+  ViewportBookmark,
+  ViewportBookmarks,
+} from "@/modules/creative_canvas/domain/viewportBookmarks";
+export {
+  captureCurrentViewport,
+  jumpToBookmark,
+} from "@/modules/creative_canvas/application/bookmarkActions";
+export type {
+  CanvasViewportPort,
+} from "@/modules/creative_canvas/application/bookmarkActions";
+export {
+  useCanvasViewportBookmarkShortcuts,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts";
+export type {
+  CanvasViewportBookmarkCommands,
+  CanvasViewportBookmarkShortcutOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts";
+export {
   useCanvasSnapAlignment,
 } from "@/modules/creative_canvas/presentation/useCanvasSnapAlignment";
 export type {
