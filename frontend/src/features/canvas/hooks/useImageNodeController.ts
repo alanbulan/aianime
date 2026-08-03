@@ -22,7 +22,6 @@ import {
   type ImageEditNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   DEFAULT_ASPECT_RATIO,
   aspectRatioFromImageDimensions,
@@ -34,6 +33,7 @@ import {
   shouldForceNaturalImageSize,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
+  useNodeGenerationTaskState,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 

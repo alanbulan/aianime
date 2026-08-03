@@ -35,8 +35,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
-import { resolveGenerationErrorDiagnostics } from '@/features/canvas/application/generationErrorReport';
 import {
   extractUpstreamContent,
   joinUpstreamText,
@@ -63,7 +61,6 @@ import {
   submittableImageUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,
@@ -104,6 +101,8 @@ import {
   normalizeSceneOptimize,
   normalizeVideoQuality,
   resolveBrowserDroppedVideoFile,
+  resolveErrorContent,
+  resolveGenerationErrorDiagnostics,
   qualityToResolution,
   resolveAudioReferenceDisplayName,
   resolveImageDisplayUrl,
@@ -114,6 +113,7 @@ import {
   useCanvasVideoCameraTemplates,
   useCanvasVideoModels,
   useNodeGenerationHistory,
+  useNodeGenerationTaskState,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
   videoModelUsesTypedReferenceModes,

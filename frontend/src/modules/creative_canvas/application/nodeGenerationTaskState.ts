@@ -1,15 +1,16 @@
 // Copyright (c) 2026 AI anime
+
 export interface CanvasNodeGenerationTask {
   status: string;
   error?: string | null;
 }
 
 const ACTIVE_TASK_STATUSES = new Set([
-  'submitting',
-  'queued',
-  'pending',
-  'starting',
-  'running',
+  "submitting",
+  "queued",
+  "pending",
+  "starting",
+  "running",
 ]);
 
 function isActiveTask(task: CanvasNodeGenerationTask): boolean {
@@ -33,22 +34,19 @@ export interface ResolveNodeGenerationTaskStateParams {
   taskKey?: string;
 }
 
-// A submitted task reaches task-center after one API/SSE round trip. Keep the
-// local generating state during that short gap, but do not trust stale local
-// state indefinitely after a refresh.
 const RECENTLY_STARTED_GRACE_MS = 10_000;
 
 function nodeGenerationRecord(data: unknown): Record<string, unknown> {
-  return data && typeof data === 'object'
+  return data && typeof data === "object"
     ? data as Record<string, unknown>
     : {};
 }
 
 export function readNodeGenerationTaskKey(data: unknown): string {
   const record = nodeGenerationRecord(data);
-  return typeof record.generationTaskKey === 'string'
+  return typeof record.generationTaskKey === "string"
     ? record.generationTaskKey.trim()
-    : '';
+    : "";
 }
 
 export function resolveNodeGenerationTaskState({
@@ -62,16 +60,16 @@ export function resolveNodeGenerationTaskState({
   const taskIsActive = task ? isActiveTask(task) : false;
   const localGenerating = record.isGenerating === true;
   const startedAt =
-    typeof record.generationStartedAt === 'number'
+    typeof record.generationStartedAt === "number"
       ? record.generationStartedAt
       : null;
   const recentlyStarted =
     startedAt != null && now - startedAt < RECENTLY_STARTED_GRACE_MS;
   const waitingForTaskRecord =
-    localGenerating
-    && taskKey.length > 0
-    && !task
-    && (!taskCenterHydrated || recentlyStarted);
+    localGenerating &&
+    taskKey.length > 0 &&
+    !task &&
+    (!taskCenterHydrated || recentlyStarted);
   const optimisticOnly = localGenerating && taskKey.length === 0;
 
   return {

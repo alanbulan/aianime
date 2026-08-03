@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { resolveErrorContent } from './errorDialog';
-import { extractRequestId } from './generationErrorReport';
 import {
+  extractRequestId,
+  resolveErrorContent,
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
   type CanvasGenerationTaskRef,

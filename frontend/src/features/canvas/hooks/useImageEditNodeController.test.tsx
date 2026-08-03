@@ -151,12 +151,20 @@ vi.mock('@/features/canvas/pricing', () => ({
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
+  buildGenerationErrorReport: () => '错误报告',
   coercePushTarget: (value: unknown) =>
     value && typeof value === 'object' && 'kind' in value ? value : null,
+  createReferenceImagePlaceholders: (count: number) =>
+    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
   defaultCapabilityParams: () => ({ strength: 50 }),
   getCapability: (id: string | undefined) =>
     id === mocks.capability.id ? mocks.capability : null,
   listCapabilities: () => [mocks.capability],
+  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
+  resolveGenerationErrorDiagnostics: () => ({
+    details: '诊断详情',
+    requestId: 'request-a',
+  }),
   resolveImageEditPickerAnchor: (...args: unknown[]) =>
     mocks.resolvePickerAnchor(...args),
   useCanvasImageModels: (...args: unknown[]) =>
@@ -172,20 +180,6 @@ vi.mock('@/features/canvas/composition', () => ({
   detectAspectRatio: (...args: unknown[]) => mocks.detectAspectRatio(...args),
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
-}));
-
-vi.mock('@/features/canvas/application/errorDialog', () => ({
-  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
-}));
-
-vi.mock('@/features/canvas/application/generationErrorReport', () => ({
-  createReferenceImagePlaceholders: (count: number) =>
-    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
-  resolveGenerationErrorDiagnostics: () => ({
-    details: '诊断详情',
-    requestId: 'request-a',
-  }),
-  buildGenerationErrorReport: () => '错误报告',
 }));
 
 vi.mock('@/shared/api/errors', () => ({

@@ -57,12 +57,6 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
-  useNodeGenerationTaskState: () => ({
-    isGenerating: mocks.isGenerating,
-  }),
-}));
-
 vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: (kind: string) => {
     mocks.generationCreditCost(kind);
@@ -80,6 +74,9 @@ vi.mock('@/modules/creative_canvas/public', async () => {
       records: mocks.historyRecords,
       isLoading: false,
       refresh: mocks.refreshHistory,
+    }),
+    useNodeGenerationTaskState: () => ({
+      isGenerating: mocks.isGenerating,
     }),
     generateCanvasStoryScript: (
       command: unknown,

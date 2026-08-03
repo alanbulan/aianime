@@ -10,18 +10,16 @@
 
 import type { CanvasNode, CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
-import { resolveGenerationOutputUrl } from '@/modules/creative_canvas/public';
-import { providerErrorMessage } from '@/shared/api/errors';
-import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import {
+  extractRequestId,
   isStaleGenerationTask,
+  resolveErrorContent,
+  resolveGenerationOutputUrl,
   shouldWriteGenerationError,
-} from '@/features/canvas/application/generationTaskArbitration';
-import type {
-  CanvasGenerationTaskCompletion,
-  CanvasGenerationTaskRef,
+  type CanvasGenerationTaskCompletion,
+  type CanvasGenerationTaskRef,
 } from '@/modules/creative_canvas/public';
+import { providerErrorMessage } from '@/shared/api/errors';
 import type { CanvasGenerationTaskGateway } from '@/features/canvas/application/ports';
 
 type FreezoneTaskType = CanvasGenerationTaskRef['task_type'];

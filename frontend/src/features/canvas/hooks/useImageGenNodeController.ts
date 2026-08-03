@@ -31,12 +31,6 @@ import {
   resolveImageGenReferencePreviewPosition,
   snapImageGenAspectRatio,
 } from '@/features/canvas/application/imageGenNodeModel';
-import {
-  buildImageGenerationSuccessPatch,
-  isStaleGenerationTask,
-  shouldWriteGenerationError,
-} from '@/features/canvas/application/generationTaskArbitration';
-import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
@@ -50,22 +44,27 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   aspectRatioFromImageDimensions,
+  buildImageGenerationSuccessPatch,
   collectCandidateBindingsForNode,
   filterCanvasImageModels,
+  extractRequestId,
   generateCanvasImage,
   getFreezoneCanvasMetadata,
   historyRecordOutputUrl,
   isSystemManagedNodeData,
+  isStaleGenerationTask,
   mainlineNodeVisualState,
   nodeMainlineFlags,
   publishCanvasAssetsUpdated,
   publishCanvasCommitRequested,
   resolveMinEdgeFittedSize,
   shouldForceNaturalImageSize,
+  shouldWriteGenerationError,
   translateCanvasText,
   useCanvasCameraOptions,
   useCanvasImageModels,
   useNodeGenerationHistory,
+  useNodeGenerationTaskState,
   useCanvasStyleTemplates,
   type CanvasAssetLibrarySelection,
   type CanvasGenerationHistoryRecord,
@@ -80,7 +79,6 @@ import {
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,

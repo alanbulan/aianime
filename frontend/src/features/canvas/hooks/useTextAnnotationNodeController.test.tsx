@@ -91,9 +91,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   resolveImageDisplayUrl: (url: string) => `display:${url}`,
   useCanvasVideoModels: () => ({ models: mocks.videoModels }),
   isSystemManagedNodeData: () => mocks.systemManaged,
-}));
-
-vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
   useNodeGenerationTaskState: () => ({
     isGenerating: mocks.isGenerating,
   }),

@@ -56,10 +56,6 @@ vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
   useIsBoxSelecting: () => mocks.isBoxSelecting,
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
-  useNodeGenerationTaskState: () => mocks.taskState,
-}));
-
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
   useAudioGeneration: (...args: unknown[]) =>
     mocks.useAudioGeneration(...args),
@@ -83,6 +79,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   loadCanvasAudioReferences: (project: string) =>
     mocks.loadCanvasAudioReferences(project),
   resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
+  useNodeGenerationTaskState: () => mocks.taskState,
 }));
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {

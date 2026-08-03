@@ -13,7 +13,6 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {
   hasMainlineContexts,
@@ -22,6 +21,7 @@ import {
   type AudioVoiceRef,
   type CanvasAudioReference,
   resolveImageDisplayUrl,
+  useNodeGenerationTaskState,
 } from '@/modules/creative_canvas/public';
 
 const DEFAULT_WIDTH = 480;

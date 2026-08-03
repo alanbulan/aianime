@@ -43,7 +43,6 @@ import {
 } from '@/features/canvas/domain/directorWorldSources';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,
@@ -53,6 +52,7 @@ import {
   setDirectorWorldSceneSaveHandler,
   uploadDirectorCaptureBundle,
   useNodeGenerationHistory,
+  useNodeGenerationTaskState,
   validMainlineContexts,
   type CanvasGenerationHistoryRecord,
   type DirectorCaptureAssetUploader,

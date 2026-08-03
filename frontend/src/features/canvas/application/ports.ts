@@ -77,19 +77,6 @@ export interface CanvasGraphGateway {
   ) => void;
 }
 
-export interface GenerationRuntimeDiagnostics {
-  appVersion: string;
-  osName: string;
-  osVersion: string;
-  osBuild: string;
-  userAgent: string;
-}
-
-export interface GenerationRuntimeGateway {
-  runtimeSessionId: string;
-  getRuntimeDiagnostics: () => Promise<GenerationRuntimeDiagnostics>;
-}
-
 export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
   hasTask: (projectId: string, taskKey: string) => Promise<boolean>;
   fetchReversePrompt: (

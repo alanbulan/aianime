@@ -1234,6 +1234,46 @@ export {
   directorCaptureBlobToDataUrl,
   readDirectorCaptureImageSize,
 } from "@/modules/creative_canvas/infrastructure/browserDirectorCaptureRuntime";
+export { resolveErrorContent } from "@/modules/creative_canvas/application/errorDialog";
+export type { ResolvedErrorContent } from "@/modules/creative_canvas/application/errorDialog";
+export {
+  buildGenerationErrorReport,
+  createReferenceImagePlaceholders,
+  extractRequestId,
+  resolveGenerationErrorDiagnostics,
+  resolveGenerationOsInfo,
+} from "@/modules/creative_canvas/application/generationErrorReport";
+export type {
+  BuildGenerationErrorReportInput,
+  GenerationDebugContext,
+  GenerationErrorDiagnostics,
+} from "@/modules/creative_canvas/application/generationErrorReport";
+export type {
+  GenerationRuntimeDiagnostics,
+  GenerationRuntimeGateway,
+} from "@/modules/creative_canvas/application/generationRuntime";
+export {
+  browserGenerationRuntimeGateway,
+} from "@/modules/creative_canvas/infrastructure/browserGenerationRuntimeGateway";
+export {
+  buildImageGenerationSuccessPatch,
+  hasGeneratedMedia,
+  isStaleGenerationTask,
+  isTaskCancelledError,
+  shouldWriteGenerationError,
+} from "@/modules/creative_canvas/application/generationTaskArbitration";
+export {
+  readNodeGenerationTaskKey,
+  resolveNodeGenerationTaskState,
+} from "@/modules/creative_canvas/application/nodeGenerationTaskState";
+export type {
+  CanvasNodeGenerationTask,
+  NodeGenerationTaskState,
+  ResolveNodeGenerationTaskStateParams,
+} from "@/modules/creative_canvas/application/nodeGenerationTaskState";
+export {
+  useNodeGenerationTaskState,
+} from "@/modules/creative_canvas/presentation/useNodeGenerationTaskState";
 export type {
   FreezoneProjectionBuildResponse,
   FreezoneProjectionPresetRequest,

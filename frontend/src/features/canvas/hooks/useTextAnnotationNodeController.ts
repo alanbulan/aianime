@@ -15,7 +15,6 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
   DEFAULT_SHARED_MODEL_ID,
@@ -34,6 +33,7 @@ import {
   submitVideoGeneration,
   translateCanvasText,
   useCanvasVideoModels,
+  useNodeGenerationTaskState,
   type TextNodeMode,
   type VideoGenerationAspectRatio,
   type VideoGenQuality,

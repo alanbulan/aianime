@@ -85,12 +85,6 @@ vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
-  useNodeGenerationTaskState: () => ({
-    isGenerating: mocks.isGenerating,
-  }),
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
     mocks.getBeatManifest(...args),
@@ -109,6 +103,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     records: mocks.historyRecords,
     isLoading: false,
     refresh: mocks.refreshHistory,
+  }),
+  useNodeGenerationTaskState: () => ({
+    isGenerating: mocks.isGenerating,
   }),
   generateCanvasImageTo3d: (...args: unknown[]) =>
     mocks.generateImageTo3d(...args),

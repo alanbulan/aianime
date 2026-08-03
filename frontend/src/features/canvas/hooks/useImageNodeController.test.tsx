@@ -53,12 +53,6 @@ vi.mock('@/features/canvas/canvasStore', () => ({
     }),
 }));
 
-vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
-  useNodeGenerationTaskState: () => ({
-    isGenerating: mocks.isGenerating,
-  }),
-}));
-
 vi.mock('@/shared/media/image-cache', () => ({
   withImageCacheBust: (
     url: string,
@@ -82,6 +76,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
   resolveImageDisplayUrl: (url: string) => `display:${url}`,
   shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
+  useNodeGenerationTaskState: () => ({
+    isGenerating: mocks.isGenerating,
+  }),
 }));
 
 function data(patch: Partial<ImageEditNodeData> = {}): ImageEditNodeData {

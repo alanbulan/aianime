@@ -98,8 +98,16 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
+  buildGenerationErrorReport: () => '错误报告',
+  createReferenceImagePlaceholders: (count: number) =>
+    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
   generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
     mocks.generateGridImage(...args),
+  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
+  resolveGenerationErrorDiagnostics: () => ({
+    details: '诊断详情',
+    requestId: 'request-a',
+  }),
   resolveStoryboardPointerAnchor: (...args: unknown[]) =>
     mocks.resolvePointerAnchor(...args),
   resolveStoryboardPickerAnchor: (...args: unknown[]) =>
@@ -129,20 +137,6 @@ vi.mock('@/features/canvas/composition', () => ({
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
-}));
-
-vi.mock('@/features/canvas/application/errorDialog', () => ({
-  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
-}));
-
-vi.mock('@/features/canvas/application/generationErrorReport', () => ({
-  createReferenceImagePlaceholders: (count: number) =>
-    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
-  resolveGenerationErrorDiagnostics: () => ({
-    details: '诊断详情',
-    requestId: 'request-a',
-  }),
-  buildGenerationErrorReport: () => '错误报告',
 }));
 
 vi.mock('@/shared/api/errors', () => ({

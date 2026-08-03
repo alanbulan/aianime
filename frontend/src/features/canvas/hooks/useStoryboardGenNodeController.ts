@@ -10,13 +10,6 @@ import {
 import { useUpdateNodeInternals, useViewport } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
-import {
-  buildGenerationErrorReport,
-  createReferenceImagePlaceholders,
-  resolveGenerationErrorDiagnostics,
-  type GenerationDebugContext,
-} from '@/features/canvas/application/generationErrorReport';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   canvasAiGateway,
@@ -42,8 +35,10 @@ import {
   STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
   STORYBOARD_PICKER_FALLBACK_ANCHOR,
   areStoryboardFrameDraftsEqual,
+  buildGenerationErrorReport,
   buildStoryboardFrameDescriptionDrafts,
   buildStoryboardGenerationPrompt,
+  createReferenceImagePlaceholders,
   generateStoryboardGridImageDataUrl,
   insertReferenceToken,
   parseAspectRatio,
@@ -51,6 +46,8 @@ import {
   removeTextRange,
   resizeStoryboardGenFrames,
   resolveAutoStoryboardRequestAspectRatio,
+  resolveErrorContent,
+  resolveGenerationErrorDiagnostics,
   resolveImageDisplayUrl,
   resolveReferenceAwareDeleteRange,
   resolveStoryboardPickerAnchor,
@@ -64,6 +61,7 @@ import {
   updateStoryboardGenFrameDescription,
   useCanvasImageModels,
   type StoryboardAspectRatioChoice,
+  type GenerationDebugContext,
   type StoryboardPickerAnchor,
   type StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';

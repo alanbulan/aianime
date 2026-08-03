@@ -3163,15 +3163,28 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/hooks/useUpstreamGraph.ts"),
       "utf8",
     );
+    const nodeGenerationTaskStatePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/nodeGenerationTaskState.ts",
+    );
     const nodeGenerationTaskState = readFileSync(
-      resolve(applicationRoot, "nodeGenerationTaskState.ts"),
+      nodeGenerationTaskStatePath,
       "utf8",
     );
+    const nodeGenerationTaskStateHookPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useNodeGenerationTaskState.ts",
+    );
     const nodeGenerationTaskStateHook = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useNodeGenerationTaskState.ts",
-      ),
+      nodeGenerationTaskStateHookPath,
+      "utf8",
+    );
+    const generationTaskArbitrationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/generationTaskArbitration.ts",
+    );
+    const generationTaskArbitration = readFileSync(
+      generationTaskArbitrationPath,
       "utf8",
     );
     const crossProjectAssets = readFileSync(
@@ -3182,15 +3195,26 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const generationErrorReport = readFileSync(
-      resolve(applicationRoot, "generationErrorReport.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/generationErrorReport.ts",
+      ),
       "utf8",
+    );
+    const generationErrorReportPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/generationErrorReport.ts",
     );
     const generationRuntimeGateway = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/browserGenerationRuntimeGateway.ts",
+        "modules/creative_canvas/infrastructure/browserGenerationRuntimeGateway.ts",
       ),
       "utf8",
+    );
+    const generationRuntimeGatewayPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserGenerationRuntimeGateway.ts",
     );
     const matteClient = readFileSync(
       resolve(
@@ -3259,8 +3283,15 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/infrastructure/browserImageRuntime.ts",
     );
     const errorDialog = readFileSync(
-      resolve(applicationRoot, "errorDialog.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/errorDialog.ts",
+      ),
       "utf8",
+    );
+    const errorDialogPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/errorDialog.ts",
     );
     const globalErrorDialog = readFileSync(
       resolve(
@@ -3369,17 +3400,57 @@ describe("frontend architecture boundaries", () => {
     expect(nodeGenerationTaskState).toContain(
       "export interface CanvasNodeGenerationTask",
     );
+    expect(importSpecifiers(nodeGenerationTaskStatePath)).toEqual([]);
     expect(nodeGenerationTaskStateHook).toContain("useTaskCenterStore(");
     expect(nodeGenerationTaskStateHook).toContain(
       "resolveNodeGenerationTaskState({",
     );
+    expect(new Set(importSpecifiers(nodeGenerationTaskStateHookPath))).toEqual(
+      new Set([
+        "@/modules/task_execution/public",
+        "../application/nodeGenerationTaskState",
+      ]),
+    );
+    expect(generationTaskArbitration).toContain(
+      "export function shouldWriteGenerationError(",
+    );
+    expect(importSpecifiers(generationTaskArbitrationPath)).toEqual([]);
+    for (const legacyPath of [
+      "features/canvas/application/generationTaskArbitration.ts",
+      "features/canvas/application/nodeGenerationTaskState.ts",
+      "features/canvas/hooks/useNodeGenerationTaskState.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
     expect(crossProjectAssets).toContain("currentOrigin: string");
     expect(crossProjectAssets).toContain("assetStorageGateway.read(fetchUrl");
     expect(generationErrorReport).toContain(
       "export function resolveGenerationOsInfo(",
     );
+    expect(importSpecifiers(generationErrorReportPath)).toEqual([
+      "./generationRuntime",
+    ]);
     expect(generationRuntimeGateway).toContain("navigator.userAgent");
     expect(generationRuntimeGateway).toContain("runtimeSessionId:");
+    expect(new Set(importSpecifiers(generationRuntimeGatewayPath))).toEqual(
+      new Set([
+        "../application/generationErrorReport",
+        "../application/generationRuntime",
+      ]),
+    );
+    expect(
+      existsSync(
+        resolve(applicationRoot, "generationErrorReport.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/browserGenerationRuntimeGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(matteClient).toContain('new URL("./matteWorker.ts"');
     expect(imageMatteController).toContain(
       "@/features/canvas/infrastructure/matteClient",
@@ -3416,6 +3487,8 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasImageDimensions",
       "export interface CanvasImagePreviewData",
       "export interface CanvasImageRuntimeGateway",
+      "export interface GenerationRuntimeDiagnostics",
+      "export interface GenerationRuntimeGateway",
     ]) {
       expect(canvasApplicationPorts).not.toContain(legacyDeclaration);
     }
@@ -3435,6 +3508,8 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyImageRuntimePath)).toBe(false);
     expect(errorDialog).toContain("export function resolveErrorContent(");
     expect(errorDialog).not.toContain("openGlobalErrorDialog");
+    expect(importSpecifiers(errorDialogPath)).toEqual([]);
+    expect(existsSync(resolve(applicationRoot, "errorDialog.ts"))).toBe(false);
     expect(globalErrorDialog).toContain("openGlobalErrorDialog({");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
@@ -22357,7 +22432,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
-        "./generationErrorReport",
       ]),
     );
     for (const forbiddenDependency of [

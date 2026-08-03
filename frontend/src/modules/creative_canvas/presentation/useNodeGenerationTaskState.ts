@@ -1,10 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { useTaskCenterStore } from '@/modules/task_execution/public';
+import { useTaskCenterStore } from "@/modules/task_execution/public";
+
 import {
   readNodeGenerationTaskKey,
   resolveNodeGenerationTaskState,
   type NodeGenerationTaskState,
-} from '../application/nodeGenerationTaskState';
+} from "../application/nodeGenerationTaskState";
 
 export function useNodeGenerationTaskState(
   data: unknown,

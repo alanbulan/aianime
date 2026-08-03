@@ -3,14 +3,16 @@
 type NodeGenerationData = Record<string, unknown>;
 
 const GENERATED_MEDIA_FIELDS = [
-  'imageUrl',
-  'previewImageUrl',
-  'videoUrl',
-  'resultVideoUrl',
-  'audioUrl',
+  "imageUrl",
+  "previewImageUrl",
+  "videoUrl",
+  "resultVideoUrl",
+  "audioUrl",
 ] as const;
 
-export function buildImageGenerationSuccessPatch(url: string): Record<string, unknown> {
+export function buildImageGenerationSuccessPatch(
+  url: string,
+): Record<string, unknown> {
   return {
     imageUrl: url,
     previewImageUrl: url,
@@ -24,26 +26,22 @@ export function buildImageGenerationSuccessPatch(url: string): Record<string, un
 
 export function isTaskCancelledError(error: unknown): boolean {
   return (
-    error instanceof Error
-    && 'status' in error
-    && error.status === 'cancelled'
+    error instanceof Error &&
+    "status" in error &&
+    error.status === "cancelled"
   );
 }
 
-function nodeHasGeneratedMedia(nodeData: NodeGenerationData): boolean {
+export function hasGeneratedMedia(nodeData: NodeGenerationData): boolean {
   return GENERATED_MEDIA_FIELDS.some((field) => {
     const value = nodeData[field];
-    return typeof value === 'string' && value.length > 0;
+    return typeof value === "string" && value.length > 0;
   });
-}
-
-export function hasGeneratedMedia(nodeData: NodeGenerationData): boolean {
-  return nodeHasGeneratedMedia(nodeData);
 }
 
 function registeredTaskKey(nodeData: NodeGenerationData): string {
   const value = nodeData.generationTaskKey;
-  return typeof value === 'string' ? value : '';
+  return typeof value === "string" ? value : "";
 }
 
 export function isStaleGenerationTask({
@@ -70,7 +68,7 @@ export function shouldWriteGenerationError({
     return false;
   }
 
-  if (isTaskCancelledError(error) && nodeHasGeneratedMedia(nodeData)) {
+  if (isTaskCancelledError(error) && hasGeneratedMedia(nodeData)) {
     return false;
   }
 

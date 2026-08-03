@@ -2,7 +2,7 @@
 import {
   buildGenerationErrorReport,
   extractRequestId,
-} from './generationErrorReport';
+} from '@/modules/creative_canvas/public';
 import type { AiGateway } from './ports';
 
 export const EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS = 1400;

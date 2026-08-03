@@ -13,6 +13,7 @@ import {
 } from '@/modules/asset_world/public';
 import {
   applyStoryboardTextOverlay,
+  browserGenerationRuntimeGateway,
   browserImageRuntimeGateway,
   composeCapability,
   createUseCanvasGenerationRecoveryController,
@@ -85,7 +86,6 @@ import {
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
-import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';

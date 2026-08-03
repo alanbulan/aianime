@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { resolveGenerationOsInfo } from '../application/generationErrorReport';
-import type { GenerationRuntimeGateway } from '../application/ports';
+import { resolveGenerationOsInfo } from "../application/generationErrorReport";
+import type { GenerationRuntimeGateway } from "../application/generationRuntime";
 
 let runtimeDiagnosticsPromise: ReturnType<
-  GenerationRuntimeGateway['getRuntimeDiagnostics']
+  GenerationRuntimeGateway["getRuntimeDiagnostics"]
 > | null = null;
 
 export const browserGenerationRuntimeGateway: GenerationRuntimeGateway = {
@@ -13,19 +13,19 @@ export const browserGenerationRuntimeGateway: GenerationRuntimeGateway = {
     if (!runtimeDiagnosticsPromise) {
       runtimeDiagnosticsPromise = Promise.resolve().then(() => {
         const userAgent =
-          typeof navigator !== 'undefined'
-            ? navigator.userAgent || ''
-            : '';
+          typeof navigator !== "undefined"
+            ? navigator.userAgent || ""
+            : "";
         const osInfo = resolveGenerationOsInfo(userAgent);
 
         return {
           appVersion:
-            typeof __APP_VERSION__ === 'string'
+            typeof __APP_VERSION__ === "string"
               ? __APP_VERSION__
-              : 'unknown',
+              : "unknown",
           osName: osInfo.osName,
           osVersion: osInfo.osVersion,
-          osBuild: 'unknown',
+          osBuild: "unknown",
           userAgent,
         };
       });

@@ -22,12 +22,12 @@ import {
   STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
   translateCanvasText,
   useNodeGenerationHistory,
+  useNodeGenerationTaskState,
   type CanvasGenerationHistoryRecord,
   type CanvasStoryScriptReference,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

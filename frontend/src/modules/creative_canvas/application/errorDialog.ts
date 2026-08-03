@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+
 export interface ResolvedErrorContent {
   message: string;
   details?: string;
@@ -13,11 +14,11 @@ function stringifyUnknown(value: unknown): string | undefined {
     return undefined;
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value;
   }
 
-  if (typeof value === 'number' || typeof value === 'boolean') {
+  if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
 
@@ -28,7 +29,10 @@ function stringifyUnknown(value: unknown): string | undefined {
   }
 }
 
-export function resolveErrorContent(error: unknown, fallbackMessage: string): ResolvedErrorContent {
+export function resolveErrorContent(
+  error: unknown,
+  fallbackMessage: string,
+): ResolvedErrorContent {
   if (error instanceof Error) {
     const errorWithDetails = error as ErrorWithDetails;
     const details = stringifyUnknown(errorWithDetails.details);
@@ -38,7 +42,7 @@ export function resolveErrorContent(error: unknown, fallbackMessage: string): Re
     };
   }
 
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     const content = error.trim();
     return {
       message: content || fallbackMessage,
@@ -46,14 +50,14 @@ export function resolveErrorContent(error: unknown, fallbackMessage: string): Re
     };
   }
 
-  if (error && typeof error === 'object') {
+  if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
     const candidate =
-      (typeof record.message === 'string' && record.message) ||
-      (typeof record.error === 'string' && record.error) ||
-      (typeof record.details === 'string' && record.details) ||
-      (typeof record.msg === 'string' && record.msg) ||
-      '';
+      (typeof record.message === "string" && record.message) ||
+      (typeof record.error === "string" && record.error) ||
+      (typeof record.details === "string" && record.details) ||
+      (typeof record.msg === "string" && record.msg) ||
+      "";
     const details = stringifyUnknown(record);
     return {
       message: candidate.trim() || fallbackMessage,
