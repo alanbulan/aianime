@@ -304,6 +304,15 @@ export type {
   StoryboardCellPreview,
 } from "@/modules/creative_canvas/presentation/useGroupNodeController";
 export {
+  GroupNodeView,
+} from "@/modules/creative_canvas/presentation/GroupNodeView";
+export type {
+  GroupNodeHeaderRenderOptions,
+  GroupNodeResizeHandleRenderOptions,
+  GroupNodeViewBindings,
+  GroupNodeViewProps,
+} from "@/modules/creative_canvas/presentation/GroupNodeView";
+export {
   useStoryboardGroupToolbarController,
 } from "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController";
 export type {

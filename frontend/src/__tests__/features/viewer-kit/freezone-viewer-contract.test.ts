@@ -586,7 +586,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/presentation/useGroupNodeController.ts",
     );
     const groupNodeView = read(
-      "src/features/canvas/nodes/GroupNodeView.tsx",
+      "src/modules/creative_canvas/presentation/GroupNodeView.tsx",
     );
 
     expect(toolbar).toContain("<NodeManagementToolbarActions node={node} />");

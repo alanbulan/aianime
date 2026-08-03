@@ -524,6 +524,7 @@ export function useGroupNodeController({
   const projectionIsStale = projectionStatus?.stale === true;
 
   return {
+    t: ports.translate,
     id,
     projectId,
     data,

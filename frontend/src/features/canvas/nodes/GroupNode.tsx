@@ -16,12 +16,19 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
 import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
 import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
+import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
 import {
+  NodeHeader,
+  NODE_HEADER_FLOATING_POSITION_CLASS,
+} from '@/features/canvas/ui/NodeHeader';
+import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
+import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
+import {
+  GroupNodeView,
   useGroupNodeController,
   type GroupNodeControllerPorts,
+  type GroupNodeViewBindings,
 } from '@/modules/creative_canvas/public';
-
-import { GroupNodeView } from './GroupNodeView';
 
 type GroupNodeProps = NodeProps & {
   id: string;
@@ -111,7 +118,25 @@ export const GroupNode = memo((props: GroupNodeProps) => {
     snapEnabled,
     ports,
   });
-  return createElement(GroupNodeView, { controller });
+  const bindings: GroupNodeViewBindings = {
+    nodeFrameClass: canvasNodeFrameClass({ selected }),
+    headerPositionClass: NODE_HEADER_FLOATING_POSITION_CLASS,
+    historyModal: controller.historyOpen
+      ? createElement(CanvasHistoryAssetsModalAdapter, {
+          projectId: controller.projectId,
+          canvasId: null,
+          imageOnly: true,
+          assetSource: 'live-canvas',
+          onClose: controller.closeHistory,
+          onUseAsset: controller.pickHistoryAsset,
+          onDeleteNode: controller.deleteHistoryNode,
+        })
+      : null,
+    renderHeader: (options) => createElement(NodeHeader, options),
+    renderResizeHandle: (options) =>
+      createElement(NodeResizeHandle, options),
+  };
+  return createElement(GroupNodeView, { controller, bindings });
 });
 
 GroupNode.displayName = 'GroupNode';

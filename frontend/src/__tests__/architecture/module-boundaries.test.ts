@@ -970,11 +970,11 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/GroupNodeView.tsx",
+      "modules/creative_canvas/presentation/GroupNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/GroupNodeView.test.tsx",
+      "modules/creative_canvas/presentation/GroupNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -1012,21 +1012,24 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/storyboardCellPreview",
         "@/features/canvas/snap-align/computeSnapAlign",
         "@/features/canvas/snap-align/snapAlignStore",
+        "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
+        "@/features/canvas/ui/NodeHeader",
+        "@/features/canvas/ui/NodeResizeHandle",
+        "@/features/canvas/ui/nodeFrameStyles",
         "@/modules/creative_canvas/public",
-        "./GroupNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/GroupNode.tsx"],
       ["modules/creative_canvas/presentation/useGroupNodeController.ts"],
-      ["features/canvas/nodes/GroupNodeView.tsx"],
+      ["modules/creative_canvas/presentation/GroupNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
     expect(registrySource).toContain("groupNode: BoundGroupNode");
     expect(entrySource).toContain("useGroupNodeController({");
     expect(entrySource).toContain("projectId: string");
     expect(entrySource).toContain(
-      "createElement(GroupNodeView, { controller })",
+      "createElement(GroupNodeView, { controller, bindings })",
     );
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
@@ -1065,10 +1068,27 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/lib/url-params");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<Handle");
-    expect(viewSource).toContain("<CanvasHistoryAssetsModal");
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "lucide-react",
+        "@/modules/creative_canvas/domain/groupColors",
+        "@/modules/creative_canvas/presentation/useGroupNodeController",
+      ]),
+    );
+    expect(entrySource).toContain(
+      "createElement(CanvasHistoryAssetsModalAdapter",
+    );
+    expect(entrySource).toContain("createElement(NodeHeader, options)");
+    expect(entrySource).toContain(
+      "createElement(NodeResizeHandle, options)",
+    );
+    expect(viewSource).toContain("bindings.historyModal");
+    expect(viewSource).toContain("bindings.renderHeader({");
     expect(viewSource).toContain("projection-stale-frame");
     expect(viewSource).toContain("projection-stale-banner");
-    expect(viewSource).toContain("<NodeResizeHandle");
+    expect(viewSource).toContain("bindings.renderResizeHandle({");
     expect(viewSource).toContain("<Handle");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
@@ -1076,6 +1096,8 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("uploadCanvasAsset(");
     expect(viewSource).not.toContain("useCanvasProjectionStatus(");
     expect(viewSource).not.toContain("storyboardSlotRect(");
+    expect(viewSource).not.toContain("@/features/canvas");
+    expect(viewSource).not.toContain("useTranslation");
     expect(controllerTestSource).toContain(
       "from './useGroupNodeController'",
     );
@@ -1083,6 +1105,8 @@ describe("frontend architecture boundaries", () => {
     for (const retiredControllerPath of [
       "features/canvas/hooks/useGroupNodeController.ts",
       "features/canvas/hooks/useGroupNodeController.test.tsx",
+      "features/canvas/nodes/GroupNodeView.tsx",
+      "features/canvas/nodes/GroupNodeView.test.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredControllerPath)),

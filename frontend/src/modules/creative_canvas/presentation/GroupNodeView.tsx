@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import type { ReactNode } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import {
   FileText,
@@ -12,21 +13,15 @@ import {
   RefreshCw,
   Upload,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 import {
   groupColorBackground,
   groupColorBorder,
-  type GroupNodeController,
-  type StoryboardCellKind,
-} from '@/modules/creative_canvas/public';
-import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
+} from '@/modules/creative_canvas/domain/groupColors';
+import type {
+  GroupNodeController,
+  StoryboardCellKind,
+} from '@/modules/creative_canvas/presentation/useGroupNodeController';
 
 const CELL_PLACEHOLDER_ICON: Record<StoryboardCellKind, typeof ImageIcon> = {
   image: ImageIcon,
@@ -36,16 +31,44 @@ const CELL_PLACEHOLDER_ICON: Record<StoryboardCellKind, typeof ImageIcon> = {
   empty: ImageIcon,
 };
 
+export interface GroupNodeHeaderRenderOptions {
+  className: string;
+  icon: ReactNode;
+  titleText: string;
+  editable: boolean;
+  onTitleChange: (value: string) => void;
+}
+
+export interface GroupNodeResizeHandleRenderOptions {
+  minWidth: number;
+  minHeight: number;
+  maxWidth: number;
+  maxHeight: number;
+  visible: boolean;
+}
+
+export interface GroupNodeViewBindings {
+  nodeFrameClass: string;
+  headerPositionClass: string;
+  historyModal: ReactNode;
+  renderHeader: (options: GroupNodeHeaderRenderOptions) => ReactNode;
+  renderResizeHandle: (
+    options: GroupNodeResizeHandleRenderOptions,
+  ) => ReactNode;
+}
+
+export interface GroupNodeViewProps {
+  controller: GroupNodeController;
+  bindings: GroupNodeViewBindings;
+}
+
 export function GroupNodeView({
   controller,
-}: {
-  controller: GroupNodeController;
-}) {
-  const { t } = useTranslation();
-
+  bindings,
+}: GroupNodeViewProps) {
   return (
     <div
-      className={`group relative h-full w-full overflow-visible rounded-[18px] border ${canvasNodeFrameClass({ selected: controller.selected })} ${
+      className={`group relative h-full w-full overflow-visible rounded-[18px] border ${bindings.nodeFrameClass} ${
         controller.projectionIsStale ? 'projection-stale-frame' : ''
       }`}
       style={{
@@ -59,15 +82,15 @@ export function GroupNodeView({
             : undefined,
       }}
     >
-      <NodeHeader
-        className={`${NODE_HEADER_FLOATING_POSITION_CLASS}${
+      {bindings.renderHeader({
+        className: `${bindings.headerPositionClass}${
           controller.isStoryboard ? ' storyboard-group-drag-handle' : ''
-        }`}
-        icon={<LayoutGrid className="h-4 w-4" />}
-        titleText={controller.headerTitle}
-        editable={!controller.isStoryboard}
-        onTitleChange={controller.rename}
-      />
+        }`,
+        icon: <LayoutGrid className="h-4 w-4" />,
+        titleText: controller.headerTitle,
+        editable: !controller.isStoryboard,
+        onTitleChange: controller.rename,
+      })}
 
       {controller.isStoryboard
         ? controller.emptyCells.map((rect, index) => (
@@ -121,7 +144,7 @@ export function GroupNodeView({
             }}
           >
             <Upload className="h-4 w-4 text-text-muted" />
-            <span>{t('canvas.storyboardGroup.localUpload')}</span>
+            <span>{controller.t('canvas.storyboardGroup.localUpload')}</span>
           </button>
           <button
             type="button"
@@ -132,7 +155,7 @@ export function GroupNodeView({
             }}
           >
             <History className="h-4 w-4 text-text-muted" />
-            <span>{t('canvas.storyboardGroup.fromHistory')}</span>
+            <span>{controller.t('canvas.storyboardGroup.fromHistory')}</span>
           </button>
         </div>
       ) : null}
@@ -151,17 +174,7 @@ export function GroupNodeView({
         />
       ) : null}
 
-      {controller.historyOpen ? (
-        <CanvasHistoryAssetsModalAdapter
-          projectId={controller.projectId}
-          canvasId={null}
-          imageOnly
-          assetSource="live-canvas"
-          onClose={controller.closeHistory}
-          onUseAsset={controller.pickHistoryAsset}
-          onDeleteNode={controller.deleteHistoryNode}
-        />
-      ) : null}
+      {bindings.historyModal}
 
       {controller.isStoryboard
         ? controller.storyboardCells.map(({ index, slot, preview, rect }) => {
@@ -248,7 +261,7 @@ export function GroupNodeView({
         <div className="projection-stale-banner pointer-events-none absolute left-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg border border-warning/45 bg-popover/95 px-3 py-1.5 text-xs font-semibold text-warning shadow-lg backdrop-blur-md">
           <RefreshCw className="h-3.5 w-3.5 shrink-0 text-warning" />
           <span className="truncate">
-            {t('freezone.projections.staleBadge')}
+            {controller.t('freezone.projections.staleBadge')}
           </span>
         </div>
       ) : null}
@@ -271,13 +284,13 @@ export function GroupNodeView({
       ) : null}
 
       {!controller.isStoryboard ? (
-        <NodeResizeHandle
-          minWidth={220}
-          minHeight={140}
-          maxWidth={2200}
-          maxHeight={1600}
-          visible={Boolean(controller.selected)}
-        />
+        bindings.renderResizeHandle({
+          minWidth: 220,
+          minHeight: 140,
+          maxWidth: 2200,
+          maxHeight: 1600,
+          visible: Boolean(controller.selected),
+        })
       ) : null}
     </div>
   );

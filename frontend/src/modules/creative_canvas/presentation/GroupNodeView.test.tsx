@@ -3,82 +3,22 @@ import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type {
-  CanvasAsset,
-  GroupNodeController,
-} from '@/modules/creative_canvas/public';
+import type { CanvasAsset } from '@/modules/creative_canvas/domain/canvasAsset';
+import type { GroupNodeController } from './useGroupNodeController';
 
-import { GroupNodeView } from './GroupNodeView';
+import {
+  GroupNodeView,
+  type GroupNodeViewBindings,
+} from './GroupNodeView';
 
 vi.mock('@xyflow/react', () => ({
   Handle: ({ id }: { id: string }) => <div>handle:{id}</div>,
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
-}));
-
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
-  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
-  NodeHeader: ({
-    titleText,
-    editable,
-    onTitleChange,
-  }: {
-    titleText: string;
-    editable: boolean;
-    onTitleChange(value: string): void;
-  }) => (
-    <button type="button" onClick={() => onTitleChange('新标题')}>
-      title:{titleText}:{String(editable)}
-    </button>
-  ),
-}));
-
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: ({ visible }: { visible: boolean }) => (
-    <div>resize:{String(visible)}</div>
-  ),
-}));
-
-vi.mock('@/features/canvas/ui/CanvasHistoryAssetsModalAdapter', () => ({
-  CanvasHistoryAssetsModalAdapter: ({
-    onClose,
-    onUseAsset,
-    onDeleteNode,
-  }: {
-    onClose(): void;
-    onUseAsset(asset: CanvasAsset): void;
-    onDeleteNode(nodeId: string): void;
-  }) => (
-    <div>
-      <button type="button" onClick={onClose}>history-close</button>
-      <button
-        type="button"
-        onClick={() =>
-          onUseAsset({
-            id: 'asset-a',
-            kind: 'image',
-            url: '/history.png',
-            previewUrl: null,
-            nodeId: 'history-node',
-            label: null,
-            timestamp: null,
-          })
-        }
-      >
-        history-use
-      </button>
-      <button type="button" onClick={() => onDeleteNode('history-node')}>
-        history-delete
-      </button>
-    </div>
-  ),
-}));
-
 function createController(): GroupNodeController {
   return {
+    t: (key: string) => key,
     id: 'group-a',
     projectId: 'project-a',
     data: {
@@ -126,10 +66,61 @@ function createController(): GroupNodeController {
   } as GroupNodeController;
 }
 
+function createBindings(
+  controller: GroupNodeController,
+): GroupNodeViewBindings {
+  return {
+    nodeFrameClass: 'node-frame',
+    headerPositionClass: 'floating',
+    historyModal: controller.historyOpen ? (
+      <div>
+        <button type="button" onClick={controller.closeHistory}>
+          history-close
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            controller.pickHistoryAsset({
+              id: 'asset-a',
+              kind: 'image',
+              url: '/history.png',
+              previewUrl: null,
+              nodeId: 'history-node',
+              label: null,
+              timestamp: null,
+            } satisfies CanvasAsset)
+          }
+        >
+          history-use
+        </button>
+        <button
+          type="button"
+          onClick={() => controller.deleteHistoryNode('history-node')}
+        >
+          history-delete
+        </button>
+      </div>
+    ) : null,
+    renderHeader: ({ titleText, editable, onTitleChange }) => (
+      <button type="button" onClick={() => onTitleChange('新标题')}>
+        title:{titleText}:{String(editable)}
+      </button>
+    ),
+    renderResizeHandle: ({ visible }) => (
+      <div>resize:{String(visible)}</div>
+    ),
+  };
+}
+
 describe('GroupNodeView', () => {
   it('renders storyboard cells, stale state, handles, and forwards gestures', () => {
     const controller = createController();
-    const { container } = render(<GroupNodeView controller={controller} />);
+    const { container } = render(
+      <GroupNodeView
+        controller={controller}
+        bindings={createBindings(controller)}
+      />,
+    );
 
     expect(screen.getByText('handle:target')).toBeInTheDocument();
     expect(screen.getByText('handle:source')).toBeInTheDocument();
@@ -170,7 +161,12 @@ describe('GroupNodeView', () => {
     controller.addMenuOpen = true;
     controller.addMenuAnchor = { cx: 200, cy: 120 };
     controller.historyOpen = true;
-    const { container } = render(<GroupNodeView controller={controller} />);
+    const { container } = render(
+      <GroupNodeView
+        controller={controller}
+        bindings={createBindings(controller)}
+      />,
+    );
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -209,7 +205,12 @@ describe('GroupNodeView', () => {
     controller.storyboardCells = [];
     controller.emptyCells = [];
     controller.projectionIsStale = false;
-    render(<GroupNodeView controller={controller} />);
+    render(
+      <GroupNodeView
+        controller={controller}
+        bindings={createBindings(controller)}
+      />,
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'title:3 个分镜:true' }),
