@@ -10,9 +10,9 @@ import {
   Volume2,
 } from 'lucide-react';
 
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
+import type { CanvasAsset } from '../domain/canvasAsset';
 
-interface CanvasHistoryAssetCardProps {
+export interface CanvasHistoryAssetCardProps {
   asset: CanvasAsset;
   sizePx: number;
   selectionMode: boolean;

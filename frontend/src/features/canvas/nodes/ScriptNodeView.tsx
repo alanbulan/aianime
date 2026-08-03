@@ -23,13 +23,13 @@ import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNod
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
 import {
   hasCompletedHistoryRecords,
+  NodeGenerationHistory,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptRow,
 } from '@/modules/creative_canvas/public';
 import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
-import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -568,6 +568,7 @@ function ScriptOperationsPanel({
             onRestore={controller.restoreHistory}
             onRefresh={() => void controller.refreshHistory()}
             isActive={controller.isHistoryRecordActive}
+            resolveMediaUrl={resolveImageDisplayUrl}
           />
         </div>
       ) : null}

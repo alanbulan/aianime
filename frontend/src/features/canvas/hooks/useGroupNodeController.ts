@@ -7,7 +7,6 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
@@ -25,7 +24,10 @@ import {
 import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
 import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
 import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
-import { useCanvasProjectionStatus } from '@/modules/creative_canvas/public';
+import {
+  useCanvasProjectionStatus,
+  type CanvasAsset,
+} from '@/modules/creative_canvas/public';
 
 interface Point {
   x: number;

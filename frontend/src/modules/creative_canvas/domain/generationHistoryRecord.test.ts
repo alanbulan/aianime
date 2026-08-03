@@ -43,6 +43,7 @@ describe('generationHistoryRecord', () => {
   });
 
   it('recognizes only completed and succeeded records as visible history', () => {
+    expect(hasCompletedHistoryRecords([])).toBe(false);
     expect(
       hasCompletedHistoryRecords([
         { status: 'failed' },

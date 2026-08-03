@@ -458,6 +458,31 @@ export type {
   CanvasGenerationHistoryRecord,
   GenerationHistoryRecordProjection,
 } from "@/modules/creative_canvas/domain/generationHistoryRecord";
+export type {
+  CanvasAsset,
+  CanvasAssetBuckets,
+  CanvasAssetDateGroup,
+  CanvasAssetKind,
+  CanvasMediaUrlResolver,
+} from "@/modules/creative_canvas/domain/canvasAsset";
+export {
+  recordsToAssetBuckets,
+} from "@/modules/creative_canvas/application/generationHistoryAssets";
+export type {
+  HistoryNodeMeta,
+} from "@/modules/creative_canvas/application/generationHistoryAssets";
+export {
+  NodeGenerationHistory,
+} from "@/modules/creative_canvas/presentation/NodeGenerationHistory";
+export type {
+  NodeGenerationHistoryProps,
+} from "@/modules/creative_canvas/presentation/NodeGenerationHistory";
+export {
+  CanvasHistoryAssetCard,
+} from "@/modules/creative_canvas/presentation/CanvasHistoryAssetCard";
+export type {
+  CanvasHistoryAssetCardProps,
+} from "@/modules/creative_canvas/presentation/CanvasHistoryAssetCard";
 export {
   useCanvasGenerationHistory,
 } from "@/modules/creative_canvas/presentation/useCanvasGenerationHistory";

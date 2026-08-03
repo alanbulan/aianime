@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import type {
+  CanvasAsset,
+  SkillDefinition,
+} from '@/modules/creative_canvas/public';
 
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';

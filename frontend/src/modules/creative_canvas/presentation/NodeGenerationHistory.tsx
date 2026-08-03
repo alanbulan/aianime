@@ -19,8 +19,7 @@ import {
   historyRecordPrompt,
   isCompletedHistoryRecord,
   type CanvasGenerationHistoryRecord,
-} from '@/modules/creative_canvas/public';
-import { resolveMediaUrl } from '@/lib/media-url';
+} from '../domain/generationHistoryRecord';
 
 function formatRelativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -48,13 +47,14 @@ function MediaFallbackIcon({ mediaType }: { mediaType: string }) {
   return <ImageIcon className={className} />;
 }
 
-interface NodeGenerationHistoryProps {
+export interface NodeGenerationHistoryProps {
   records: CanvasGenerationHistoryRecord[];
   isLoading?: boolean;
   onRestore: (record: CanvasGenerationHistoryRecord) => void;
   onRefresh?: () => void;
   isActive?: (record: CanvasGenerationHistoryRecord) => boolean;
   fallbackThumbnailUrl?: string | null;
+  resolveMediaUrl: (url: string) => string;
   className?: string;
 }
 
@@ -65,6 +65,7 @@ export function NodeGenerationHistory({
   onRefresh,
   isActive,
   fallbackThumbnailUrl,
+  resolveMediaUrl,
   className,
 }: NodeGenerationHistoryProps) {
   const sorted = useMemo(
@@ -108,19 +109,18 @@ export function NodeGenerationHistory({
       </div>
       <div className="nodrag nowheel flex gap-1.5 overflow-x-auto pb-1">
         {sorted.map((record) => {
-          const url = resolveMediaUrl(historyRecordOutputUrl(record));
+          const outputUrl = historyRecordOutputUrl(record);
+          const url = outputUrl ? resolveMediaUrl(outputUrl) : null;
           const completed = isCompletedHistoryRecord(record);
           const isImage =
             completed && Boolean(url) && record.media_type === 'image';
           const isVideo =
             completed && Boolean(url) && record.media_type === 'video';
+          const previewUrl =
+            historyRecordPreviewImageUrl(record) ?? fallbackThumbnailUrl;
           const previewImage =
-            completed && !isImage && !isVideo
-              ? resolveMediaUrl(
-                  historyRecordPreviewImageUrl(record) ??
-                    fallbackThumbnailUrl ??
-                    null,
-                )
+            completed && !isImage && !isVideo && previewUrl
+              ? resolveMediaUrl(previewUrl)
               : null;
           const restorable = completed && (url || historyRecordPrompt(record));
           const active = completed && Boolean(isActive?.(record));

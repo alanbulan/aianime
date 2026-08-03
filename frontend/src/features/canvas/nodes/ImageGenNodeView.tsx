@@ -31,6 +31,7 @@ import {
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
+  NodeGenerationHistory,
 } from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
@@ -46,7 +47,6 @@ import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
-import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -869,6 +869,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
             isLoading={historyLoading}
             onRestore={handleRestoreHistory}
             onRefresh={() => void refreshHistory()}
+            resolveMediaUrl={resolveImageDisplayUrl}
             isActive={(record) => {
               const url = historyRecordOutputUrl(record);
               if (!url) return false;

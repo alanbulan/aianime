@@ -171,10 +171,13 @@ describe("round 2 residual architecture boundaries", () => {
     const generationHistoryDomainFiles = [
       "generationHistoryRecord.ts",
       "generationHistoryRecord.test.ts",
+      "canvasAsset.ts",
     ];
     const generationHistoryApplicationFiles = [
       "generationHistory.ts",
       "generationHistory.test.ts",
+      "generationHistoryAssets.ts",
+      "generationHistoryAssets.test.ts",
     ];
     const generationHistoryInfrastructureFiles = [
       "freezoneGenerationHistoryGateway.ts",
@@ -185,6 +188,10 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasGenerationHistory.test.ts",
       "useNodeGenerationHistory.ts",
       "useNodeGenerationHistory.test.tsx",
+      "NodeGenerationHistory.tsx",
+      "NodeGenerationHistory.test.tsx",
+      "CanvasHistoryAssetCard.tsx",
+      "CanvasHistoryAssetCard.test.tsx",
     ];
     const generationHistoryCompositionFiles = [
       "generationHistoryComposition.ts",
@@ -613,6 +620,11 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/hooks/useNodeGenerationHistory.ts",
       "__tests__/features/canvas/use-canvas-generation-history.test.ts",
       "__tests__/features/canvas/use-node-generation-history.test.tsx",
+      "__tests__/features/canvas/history-assets-buckets.test.ts",
+      "__tests__/features/canvas/node-generation-history.test.ts",
+      "features/canvas/ui/NodeGenerationHistory.tsx",
+      "features/canvas/ui/CanvasHistoryAssetCard.tsx",
+      "features/canvas/ui/CanvasHistoryAssetCard.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, file)), file).toBe(false);
     }
@@ -1146,8 +1158,12 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/skillInputResolution",
         "@/modules/creative_canvas/domain/inferSkillConnectionRole",
         "@/modules/creative_canvas/domain/generationHistoryRecord",
+        "@/modules/creative_canvas/domain/canvasAsset",
+        "@/modules/creative_canvas/application/generationHistoryAssets",
         "@/modules/creative_canvas/presentation/useCanvasGenerationHistory",
         "@/modules/creative_canvas/presentation/useNodeGenerationHistory",
+        "@/modules/creative_canvas/presentation/NodeGenerationHistory",
+        "@/modules/creative_canvas/presentation/CanvasHistoryAssetCard",
         "@/modules/creative_canvas/domain/beatContext",
         "@/modules/creative_canvas/domain/assetLibraryModel",
         "@/modules/creative_canvas/domain/assetLibrary",
@@ -1746,7 +1762,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 689],
+      ["features/canvas", 685],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

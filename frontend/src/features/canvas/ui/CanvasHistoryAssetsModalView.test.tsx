@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
+import type { CanvasAsset } from '@/modules/creative_canvas/public';
 import type { CanvasHistoryAssetsModalController } from '@/features/canvas/hooks/useCanvasHistoryAssetsModalController';
 
 import { CanvasHistoryAssetsModalView } from './CanvasHistoryAssetsModalView';
@@ -14,7 +14,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('./CanvasHistoryAssetCard', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasHistoryAssetCard: ({
     asset,
     onToggleSelect,

@@ -1,13 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { recordsToAssetBuckets } from "@/features/canvas/application/generationHistoryAssets";
+import { recordsToAssetBuckets } from "./generationHistoryAssets";
 import {
   historyRecordInputImageUrl,
   historyRecordPreviewImageUrl,
   historyRecordStrictWorldUrl,
   type CanvasGenerationHistoryRecord,
-} from "@/modules/creative_canvas/public";
+} from "../domain/generationHistoryRecord";
 
 function record(
   partial: Partial<CanvasGenerationHistoryRecord>,

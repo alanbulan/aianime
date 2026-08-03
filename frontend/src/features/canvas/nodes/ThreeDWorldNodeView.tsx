@@ -17,7 +17,6 @@ import type {
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';
-import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
@@ -29,7 +28,10 @@ import {
   CANVAS_NODE_OPS_PANEL_CLASS,
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { NodeContextBadges } from '@/modules/creative_canvas/public';
+import {
+  NodeContextBadges,
+  NodeGenerationHistory,
+} from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;
@@ -213,6 +215,7 @@ function HistoryPanel({
         isLoading={isLoading}
         onRestore={onRestore}
         onRefresh={onRefresh}
+        resolveMediaUrl={resolveImageDisplayUrl}
         isActive={(record) => {
           const plyUrl = pickThreeDWorldPlyUrl(record.result);
           return Boolean(plyUrl) && plyUrl === currentPlyUrl;

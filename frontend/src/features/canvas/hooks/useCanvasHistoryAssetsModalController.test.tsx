@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   CanvasAsset,
   CanvasAssetBuckets,
-} from '@/features/canvas/domain/canvasAssets';
+} from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 
 import { useCanvasHistoryAssetsModalController } from './useCanvasHistoryAssetsModalController';
@@ -47,17 +47,11 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       refresh: vi.fn(),
     };
   },
+  recordsToAssetBuckets: (...args: unknown[]) => {
+    mocks.projectHistory(...args);
+    return mocks.historyBuckets;
+  },
 }));
-
-vi.mock(
-  '@/features/canvas/application/generationHistoryAssets',
-  () => ({
-    recordsToAssetBuckets: (...args: unknown[]) => {
-      mocks.projectHistory(...args);
-      return mocks.historyBuckets;
-    },
-  }),
-);
 
 vi.mock(
   '@/features/canvas/domain/canvasAssets',

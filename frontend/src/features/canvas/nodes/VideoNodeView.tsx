@@ -641,6 +641,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
         }
         topOffsetPx={VIDEO_NODE_OPERATIONS_PANEL_GAP * 2 + panelHeight}
         horizontalOverhangPx={panelOverhang}
+        resolveMediaUrl={resolveImageDisplayUrl}
         onRestore={handleRestoreHistory}
         onRefresh={() => void refreshHistory()}
       />

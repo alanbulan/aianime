@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
+import type { CanvasAsset } from '../domain/canvasAsset';
 
 import { CanvasHistoryAssetCard } from './CanvasHistoryAssetCard';
 

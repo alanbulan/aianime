@@ -3,15 +3,17 @@ import type {
   CanvasAssetBuckets,
   CanvasAssetKind,
   CanvasMediaUrlResolver,
-} from '@/features/canvas/domain/canvasAssets';
+} from '../domain/canvasAsset';
 import {
   historyRecordOutputUrl,
   historyRecordPreviewImageUrl,
   historyRecordPrompt,
   historyRecordStrictWorldUrl,
   historyRecordWorldUrl,
-  type CanvasGenerationHistoryRecord,
-} from '@/modules/creative_canvas/public';
+} from '../domain/generationHistoryRecord';
+import type {
+  CanvasGenerationHistoryRecord,
+} from '../domain/generationHistoryRecord';
 
 export interface HistoryNodeMeta {
   cover: string | null;

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasAsset } from '../domain/canvasAssets';
+import type { CanvasAsset } from '@/modules/creative_canvas/public';
 import {
   createCanvasHistoryAssetPayload,
   resolveCanvasHistoryAssetPosition,

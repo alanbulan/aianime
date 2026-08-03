@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
+import type { CanvasAsset } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNode,

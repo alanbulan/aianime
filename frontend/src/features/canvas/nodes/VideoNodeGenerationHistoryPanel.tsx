@@ -4,8 +4,8 @@ import type { ComponentProps } from "react";
 import {
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
+  NodeGenerationHistory,
 } from "@/modules/creative_canvas/public";
-import { NodeGenerationHistory } from "@/features/canvas/ui/NodeGenerationHistory";
 import { NODE_OPS_PANEL_ENTER_CLASS } from "@/features/canvas/ui/OperationPanelShell";
 import { CANVAS_NODE_OPS_PANEL_CLASS } from "@/features/canvas/ui/nodeFrameStyles";
 
@@ -18,6 +18,7 @@ export interface VideoNodeGenerationHistoryPanelProps {
   activeOutputUrl: string | null;
   topOffsetPx: number;
   horizontalOverhangPx: number;
+  resolveMediaUrl: (url: string) => string;
   onRestore: GenerationHistoryProps["onRestore"];
   onRefresh: () => void;
 }
@@ -29,6 +30,7 @@ export function VideoNodeGenerationHistoryPanel({
   activeOutputUrl,
   topOffsetPx,
   horizontalOverhangPx,
+  resolveMediaUrl,
   onRestore,
   onRefresh,
 }: VideoNodeGenerationHistoryPanelProps) {
@@ -49,6 +51,7 @@ export function VideoNodeGenerationHistoryPanel({
         isLoading={isLoading}
         onRestore={onRestore}
         onRefresh={onRefresh}
+        resolveMediaUrl={resolveMediaUrl}
         isActive={(record) => {
           const url = historyRecordOutputUrl(record);
           return url !== null && url === activeOutputUrl;

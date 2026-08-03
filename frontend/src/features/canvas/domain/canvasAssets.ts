@@ -1,46 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
-
-export type CanvasAssetKind = 'image' | 'video' | 'audio' | 'model';
-
-export interface CanvasAsset {
-  /** Stable key, unique per (node, media url). */
-  id: string;
-  kind: CanvasAssetKind;
-  /** Resolved, render-safe media url. */
-  url: string;
-  /** Poster / thumbnail for video & audio cards (resolved); null when none. */
-  previewUrl: string | null;
-  nodeId: string;
-  /** Display name from the node, falls back to a kind label upstream. */
-  label: string | null;
-  /**
-   * Generation prompt recorded on this asset. Only populated in the
-   * generation-history source (where each record carries the exact prompt that
-   * produced it); left undefined for live-canvas assets whose `label` is a node
-   * display name, not a prompt. Used to seed a new node's prompt box on 使用.
-   */
-  prompt?: string | null;
-  /** 原始生成的注册表模型 id（还原用）。旧记录为 undefined。 */
-  model?: string | null;
-  /** 原始生成模式（还原用）。旧记录为 undefined。 */
-  genMode?: string | null;
-  /** Best-effort creation time in ms epoch; null when the node carries none. */
-  timestamp: number | null;
-}
-
-export interface CanvasAssetBuckets {
-  image: CanvasAsset[];
-  video: CanvasAsset[];
-  audio: CanvasAsset[];
-  /** Director-world (3GS / 360 pano) assets. `url` is the .sog/.ply package or
-   *  pano image; `previewUrl` is the cover used as a card thumbnail. */
-  model: CanvasAsset[];
-}
-
-export type CanvasMediaUrlResolver = (
-  rawUrl: string | null | undefined,
-) => string | null;
+import type {
+  CanvasAsset,
+  CanvasAssetBuckets,
+  CanvasAssetDateGroup,
+  CanvasAssetKind,
+  CanvasMediaUrlResolver,
+} from '@/modules/creative_canvas/public';
 
 function asRecord(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
@@ -195,12 +161,6 @@ export function extractCanvasAssets(
   }
 
   return buckets;
-}
-
-export interface CanvasAssetDateGroup {
-  /** `YYYY-MM-DD`, or null for assets without a usable timestamp. */
-  date: string | null;
-  assets: CanvasAsset[];
 }
 
 function dateKey(timestamp: number | null): string | null {

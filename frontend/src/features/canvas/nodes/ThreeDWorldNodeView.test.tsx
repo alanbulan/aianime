@@ -54,7 +54,8 @@ vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
 }));
 
-vi.mock('@/features/canvas/ui/NodeGenerationHistory', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeGenerationHistory: ({
     records,
     onRestore,

@@ -83,7 +83,8 @@ vi.mock('@/features/canvas/ui/PanelExpandButton', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeGenerationHistory', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeGenerationHistory: ({
     onRestore,
     records,

@@ -6,8 +6,10 @@ import {
   resolveCanvasHistoryAssetPosition,
   type CanvasHistoryAssetPlacement,
 } from '../application/canvasHistoryAssetSpawn';
-import type { CanvasAssetDragPayload } from '@/modules/creative_canvas/public';
-import type { CanvasAsset } from '../domain/canvasAssets';
+import type {
+  CanvasAsset,
+  CanvasAssetDragPayload,
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasHistoryAssetControllerOptions {
   getViewportCenter: () => { x: number; y: number };

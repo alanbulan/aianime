@@ -2,19 +2,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import {
-  recordsToAssetBuckets,
-  type HistoryNodeMeta,
-} from '@/features/canvas/application/generationHistoryAssets';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   extractCanvasAssets,
   groupAssetsByDate,
-  type CanvasAsset,
-  type CanvasAssetKind,
 } from '@/features/canvas/domain/canvasAssets';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasGenerationHistory } from '@/modules/creative_canvas/public';
+import {
+  recordsToAssetBuckets,
+  useCanvasGenerationHistory,
+  type CanvasAsset,
+  type CanvasAssetKind,
+  type HistoryNodeMeta,
+} from '@/modules/creative_canvas/public';
 import {
   buildStandaloneWorldManifest,
   type DirectorStageManifest,

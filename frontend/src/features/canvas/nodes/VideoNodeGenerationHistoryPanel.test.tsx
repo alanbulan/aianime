@@ -33,6 +33,7 @@ const baseProps: VideoNodeGenerationHistoryPanelProps = {
   activeOutputUrl: "history.mp4",
   topOffsetPx: 304,
   horizontalOverhangPx: 120,
+  resolveMediaUrl: (url) => url,
   onRestore: vi.fn(),
   onRefresh: vi.fn(),
 };

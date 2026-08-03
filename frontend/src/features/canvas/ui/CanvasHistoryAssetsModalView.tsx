@@ -10,11 +10,13 @@ import {
   X,
 } from 'lucide-react';
 
-import type { CanvasAssetKind } from '@/features/canvas/domain/canvasAssets';
 import type { CanvasHistoryAssetsModalController } from '@/features/canvas/hooks/useCanvasHistoryAssetsModalController';
+import {
+  CanvasHistoryAssetCard,
+  type CanvasAssetKind,
+} from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
-import { CanvasHistoryAssetCard } from './CanvasHistoryAssetCard';
 import { ImageViewerModal } from './ImageViewerModal';
 import { VideoViewerModal } from './VideoViewerModal';
 
