@@ -20,7 +20,7 @@ import {
   type CanvasNodeSize,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
-import { EXPORT_RESULT_DISPLAY_NAME } from '../domain/nodeDisplay';
+import { EXPORT_RESULT_DISPLAY_NAME } from '@/modules/creative_canvas/public';
 import type { NodeFactory } from './ports';
 
 export interface CanvasDerivedExportNodeOptions {

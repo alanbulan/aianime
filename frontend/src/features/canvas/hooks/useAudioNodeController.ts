@@ -11,7 +11,7 @@ import {
   CANVAS_NODE_TYPES,
   type AudioNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {

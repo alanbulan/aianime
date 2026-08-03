@@ -22,7 +22,7 @@ import {
   type VideoNodeData,
   type VideoStoryNodeData,
 } from './canvasNodes';
-import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
+import { DEFAULT_NODE_DISPLAY_NAME } from '@/modules/creative_canvas/public';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   DEFAULT_ASPECT_RATIO,

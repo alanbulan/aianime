@@ -26,7 +26,7 @@ import {
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
-} from '@/features/canvas/domain/nodeDisplay';
+} from '@/modules/creative_canvas/public';
 import {
   exportStoryboardGrid,
   packStoryboardFrames,

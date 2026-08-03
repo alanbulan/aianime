@@ -201,6 +201,17 @@ export type {
   BeatContextRoleBindingNode,
 } from "@/modules/creative_canvas/domain/beatContextRoleBindings";
 export {
+  DEFAULT_NODE_DISPLAY_NAME,
+  EXPORT_RESULT_DISPLAY_NAME,
+  getDefaultNodeDisplayName,
+  isNodeUsingDefaultDisplayName,
+  resolveNodeDisplayName,
+} from "@/modules/creative_canvas/domain/nodeDisplay";
+export type {
+  CanvasExportResultKind,
+  CanvasNodeDisplayData,
+} from "@/modules/creative_canvas/domain/nodeDisplay";
+export {
   normalizeEdgesWithNodes,
   normalizeHandleId,
 } from "@/modules/creative_canvas/domain/canvasEdgeNormalization";

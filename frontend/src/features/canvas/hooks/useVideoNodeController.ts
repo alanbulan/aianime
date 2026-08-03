@@ -53,7 +53,7 @@ import {
   type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {

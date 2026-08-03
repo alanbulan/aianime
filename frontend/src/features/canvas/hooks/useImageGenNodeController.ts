@@ -70,7 +70,7 @@ import {
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,

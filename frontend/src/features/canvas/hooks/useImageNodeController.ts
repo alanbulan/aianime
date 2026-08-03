@@ -17,7 +17,7 @@ import {
   type ExportImageNodeData,
   type ImageEditNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_MIN_HEIGHT,

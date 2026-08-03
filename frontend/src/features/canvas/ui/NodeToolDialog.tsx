@@ -9,7 +9,7 @@ import {
   resolveNodeSourceImageUrl,
   type NodeToolType,
 } from '@/features/canvas/domain/canvasNodes';
-import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
+import { EXPORT_RESULT_DISPLAY_NAME } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   canvasToolProcessor,

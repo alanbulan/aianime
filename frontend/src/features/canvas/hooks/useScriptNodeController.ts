@@ -27,7 +27,7 @@ import {
   type CanvasStoryScriptReference,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

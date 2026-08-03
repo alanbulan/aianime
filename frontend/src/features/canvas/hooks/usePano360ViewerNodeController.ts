@@ -27,7 +27,7 @@ import {
   CANVAS_NODE_TYPES,
   type Pano360ViewerNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadLocalImageToBackend,

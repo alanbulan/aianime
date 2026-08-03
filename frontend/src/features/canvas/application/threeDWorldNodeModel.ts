@@ -14,7 +14,7 @@ import {
   directorPanoSourceFromCanvasNode,
   isPanoImageCanvasNode,
 } from '@/features/canvas/domain/directorWorldSources';
-import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   hasMainlineContexts,
   type CanvasImageTo3dVisibleSourceKind,

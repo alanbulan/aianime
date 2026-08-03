@@ -15,7 +15,7 @@ import {
 import {
   isNodeUsingDefaultDisplayName,
   resolveNodeDisplayName,
-} from '@/features/canvas/domain/nodeDisplay';
+} from '@/modules/creative_canvas/public';
 import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
 import type { DirectorControlFrameBundle } from '@/features/viewer-kit/three-d/directorManifest';
 

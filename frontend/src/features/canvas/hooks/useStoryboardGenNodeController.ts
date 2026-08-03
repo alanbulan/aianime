@@ -27,7 +27,7 @@ import {
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
-} from '@/features/canvas/domain/nodeDisplay';
+} from '@/modules/creative_canvas/public';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,

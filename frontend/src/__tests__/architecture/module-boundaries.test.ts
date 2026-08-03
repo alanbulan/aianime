@@ -1034,7 +1034,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/domain/nodeDisplay",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/features/canvas/ui/NodeHeader",
         "@/features/canvas/ui/NodeResizeHandle",
@@ -1142,6 +1141,54 @@ describe("frontend architecture boundaries", () => {
         retiredControllerPath,
       ).toBe(false);
     }
+  });
+
+  it("keeps Canvas node display naming in the Creative Canvas domain", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const domainPath = resolve(moduleRoot, "domain/nodeDisplay.ts");
+    const legacyDomainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/nodeDisplay.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const declarations = [
+      "getDefaultNodeDisplayName(",
+      "resolveNodeDisplayName(",
+      "isNodeUsingDefaultDisplayName(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const legacyConsumers = sourceFiles(SRC_ROOT)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) =>
+            specifier === "@/features/canvas/domain/nodeDisplay" ||
+            specifier === "../domain/nodeDisplay" ||
+            specifier === "./nodeDisplay"
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .filter((entry) => !entry.startsWith(
+        "modules/creative_canvas/domain/nodeDisplay.test.ts:",
+      ));
+
+    expect(existsSync(legacyDomainPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasConnection"]);
+    expect(domainSource).not.toContain("@/features/");
+    expect(domainSource).not.toContain("@/modules/creative_canvas/public");
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "modules/creative_canvas/domain/nodeDisplay.ts",
+      ]),
+    );
+    expect(legacyConsumers).toEqual([]);
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/nodeDisplay",
+    );
   });
 
   it("separates the Canvas text-annotation model, controller, and view", () => {
