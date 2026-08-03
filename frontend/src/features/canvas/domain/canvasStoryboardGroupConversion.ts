@@ -6,7 +6,7 @@ import {
   type GroupNodeData,
 } from './canvasNodes';
 import { getNodeSize } from './canvasGeometry';
-import { restoreStoryboardEdges } from './storyboardGroup';
+import { restoreStoryboardEdges } from '@/modules/creative_canvas/public';
 
 export interface CanvasStoryboardGroupConversionResult {
   nodes: CanvasNode[];

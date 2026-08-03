@@ -2,23 +2,79 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from './canvasNodes';
-import { ungroupCanvasNode } from './canvasGroupRemoval';
+  ungroupCanvasNode as applyCanvasGroupRemoval,
+} from './canvasGroupRemoval';
+
+const CANVAS_NODE_TYPES = {
+  group: 'group',
+  upload: 'upload',
+} as const;
+
+interface TestNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  parentId?: string;
+  extent?: string;
+  hidden?: boolean;
+  selected?: boolean;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  data?: Record<string, unknown>;
+  hidden?: boolean;
+}
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
     type: CANVAS_NODE_TYPES.upload,
     position: { x: 0, y: 0 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
+}
+
+function resolveAbsolutePosition(
+  node: TestNode,
+  nodeMap: ReadonlyMap<string, TestNode>,
+): { x: number; y: number } {
+  let x = node.position.x;
+  let y = node.position.y;
+  let parentId = node.parentId;
+  const visited = new Set<string>();
+
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = nodeMap.get(parentId);
+    if (!parent) break;
+    x += parent.position.x;
+    y += parent.position.y;
+    parentId = parent.parentId;
+  }
+  return { x, y };
+}
+
+function ungroupCanvasNode(
+  nodes: readonly TestNode[],
+  edges: readonly TestEdge[],
+  groupNodeId: string,
+) {
+  return applyCanvasGroupRemoval(nodes, edges, groupNodeId, {
+    isGroupNode: (candidate) => candidate.type === CANVAS_NODE_TYPES.group,
+    isProtectedGroupNode: (candidate) =>
+      candidate.data.user_spawned !== true &&
+      typeof candidate.data.projection_key === 'string' &&
+      candidate.data.projection_key.trim().length > 0,
+    resolveAbsolutePosition,
+  });
 }
 
 describe('Canvas group removal', () => {
@@ -69,7 +125,7 @@ describe('Canvas group removal', () => {
       position: { x: 1, y: 2 },
     });
     const outside = node('outside');
-    const edges: CanvasEdge[] = [
+    const edges: TestEdge[] = [
       { id: 'kept', source: child.id, target: outside.id },
       { id: 'outgoing-group', source: group.id, target: outside.id },
       { id: 'incoming-group', source: outside.id, target: group.id },
@@ -106,7 +162,7 @@ describe('Canvas group removal', () => {
     const first = node('first', { parentId: group.id, hidden: true });
     const second = node('second', { parentId: group.id, hidden: true });
     const outside = node('outside');
-    const edges: CanvasEdge[] = [
+    const edges: TestEdge[] = [
       {
         id: 'outgoing',
         source: group.id,

@@ -5,18 +5,24 @@ import {
   type CanvasGroupArrangementMode,
 } from '../domain/canvasGroupArrangement';
 import { fitCanvasGroupToChildren } from '../domain/canvasGroupFit';
-import { ungroupCanvasNode } from '../domain/canvasGroupRemoval';
+import { resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   createSnapshot,
   pushSnapshot,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '../domain/canvasHistory';
-import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
+import {
+  trackEdit,
+  ungroupCanvasNode,
+  type CanvasMutationState,
+} from '@/modules/creative_canvas/public';
+import {
+  isGroupNode,
+  isProtectedProjectionGroupNode,
+  type ActiveToolDialog,
+  type CanvasEdge,
+  type CanvasNode,
 } from '../domain/canvasNodes';
 import {
   createCanvasNodeGroup,
@@ -182,6 +188,11 @@ export function createZustandCanvasGroupLifecycleSlice(
         state.nodes,
         state.edges,
         groupNodeId,
+        {
+          isGroupNode,
+          isProtectedGroupNode: isProtectedProjectionGroupNode,
+          resolveAbsolutePosition,
+        },
       );
       if (!result) {
         return false;

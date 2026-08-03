@@ -60,12 +60,17 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.uploadCanvasAsset(project, file, displayName),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  useCanvasProjectionStatus: (projectionKey: string | null) => {
-    mocks.useCanvasProjectionStatus(projectionKey);
-    return mocks.projectionStatus;
-  },
-}));
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/modules/creative_canvas/public')>();
+  return {
+    ...actual,
+    useCanvasProjectionStatus: (projectionKey: string | null) => {
+      mocks.useCanvasProjectionStatus(projectionKey);
+      return mocks.projectionStatus;
+    },
+  };
+});
 
 vi.mock('@/features/canvas/canvasStore', () => ({
   useCanvasStore: (

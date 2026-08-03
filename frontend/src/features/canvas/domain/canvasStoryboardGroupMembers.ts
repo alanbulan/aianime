@@ -12,7 +12,7 @@ import {
   computeStoryboardGridLayout,
   resolveStoryboardCols,
   type StoryboardGridLayout,
-} from './storyboardGroup';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasStoryboardMemberLayoutOptions {
   baseWidth?: number;

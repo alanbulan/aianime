@@ -13276,11 +13276,11 @@ describe("frontend architecture boundaries", () => {
     );
     const storyboardPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/storyboardGroup.ts",
+      "modules/creative_canvas/domain/storyboardGroup.ts",
     );
     const removalPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasGroupRemoval.ts",
+      "modules/creative_canvas/domain/canvasGroupRemoval.ts",
     );
     const deletionModel = readFileSync(deletionPath, "utf8");
     const storyboardModel = readFileSync(storyboardPath, "utf8");
@@ -13323,7 +13323,10 @@ describe("frontend architecture boundaries", () => {
       importSpecifiers(path)
         .filter(
           (specifier) =>
-            specifier === "zustand" || specifier.startsWith("@/stores/"),
+            specifier === "react" ||
+            specifier === "zustand" ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/"),
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -13339,7 +13342,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const removalDeclaration = [
       "export function",
-      "ungroupCanvasNode(",
+      "ungroupCanvasNode<",
     ].join(" ");
     const removalOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -13353,7 +13356,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/domain/canvasNodeDeletion.ts",
     ]);
     expect(removalOwners).toEqual([
-      "features/canvas/domain/canvasGroupRemoval.ts",
+      "modules/creative_canvas/domain/canvasGroupRemoval.ts",
     ]);
     expect(deletionModel).toContain(
       "export function collectNodeIdsWithDescendants<",
@@ -13364,9 +13367,17 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/domain/canvasNodeDeletion",
     );
     expect(storyboardModel).toContain(
-      "export function restoreStoryboardEdges(",
+      "export function restoreStoryboardEdges<",
     );
     expect(removalModel).toContain(removalDeclaration);
+    expect(importSpecifiers(storyboardPath)).toEqual([]);
+    expect(importSpecifiers(removalPath)).toEqual(["./storyboardGroup"]);
+    expect(importSpecifiers(publicPath)).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/domain/storyboardGroup",
+        "@/modules/creative_canvas/domain/canvasGroupRemoval",
+      ]),
+    );
     expect(nodeDeletionSlice).toContain(
       "@/modules/creative_canvas/public",
     );
@@ -13390,8 +13401,19 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/domain/groupSelectionDelete",
     );
     expect(groupLifecycleSlice).toContain(
-      "../domain/canvasGroupRemoval",
+      "@/modules/creative_canvas/public",
     );
+    expect(groupLifecycleSlice).toContain("../domain/canvasGeometry");
+    for (const retiredGroupPath of [
+      "features/canvas/domain/storyboardGroup.ts",
+      "features/canvas/domain/canvasGroupRemoval.ts",
+      "features/canvas/domain/canvasGroupRemoval.test.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredGroupPath)),
+        retiredGroupPath,
+      ).toBe(false);
+    }
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGroupRemoval",
     );
@@ -25127,7 +25149,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasAutoGrouping",
       "../domain/canvasGroupArrangement",
       "../domain/canvasGroupFit",
-      "../domain/canvasGroupRemoval",
+      "../domain/canvasGeometry",
       "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",

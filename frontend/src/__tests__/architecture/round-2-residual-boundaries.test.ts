@@ -180,6 +180,12 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasNodeDeletion.ts",
       "canvasNodeDeletion.test.ts",
     ];
+    const canvasGroupDomainFiles = [
+      "storyboardGroup.ts",
+      "storyboardGroup.test.ts",
+      "canvasGroupRemoval.ts",
+      "canvasGroupRemoval.test.ts",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -650,6 +656,13 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(false);
     }
     for (const file of canvasSelectionDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of canvasGroupDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
@@ -1888,7 +1901,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 637],
+      ["features/canvas", 634],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

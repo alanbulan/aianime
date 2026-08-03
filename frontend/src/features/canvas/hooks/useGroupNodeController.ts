@@ -13,6 +13,9 @@ import {
   type GroupNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
+import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
+import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
 import {
   STORYBOARD_CELL_GAP,
   STORYBOARD_HEADER_PADDING,
@@ -20,11 +23,6 @@ import {
   computeStoryboardBoardLayout,
   resolveStoryboardCols,
   storyboardSlotRect,
-} from '@/features/canvas/domain/storyboardGroup';
-import { getStoryboardCellPreview } from '@/features/canvas/domain/storyboardCellPreview';
-import { computeSnapAlign } from '@/features/canvas/snap-align/computeSnapAlign';
-import { useSnapAlignStore } from '@/features/canvas/snap-align/snapAlignStore';
-import {
   useCanvasProjectionStatus,
   type CanvasAsset,
 } from '@/modules/creative_canvas/public';

@@ -4,14 +4,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   CANVAS_NODE_TYPES,
   isStoryboardGroupNode,
-  type CanvasEdge,
 } from "@/features/canvas/domain/canvasNodes";
-import {
-  computeStoryboardCell,
-  computeStoryboardGridLayout,
-  resolveStoryboardCols,
-  restoreStoryboardEdges,
-} from "@/features/canvas/domain/storyboardGroup";
+import { resolveStoryboardCols } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 function seedImageNodes(count: number) {
@@ -26,80 +20,6 @@ function seedImageNodes(count: number) {
   useCanvasStore.getState().setCanvasData(nodes, []);
   return nodes.map((node) => node.id);
 }
-
-describe("storyboard grid layout", () => {
-  it("packs 5 cells into a near-square grid (3×2) in reading order", () => {
-    const layout = computeStoryboardGridLayout({
-      count: 5,
-      cellWidth: 320,
-      cellHeight: 180,
-    });
-    expect(layout.cols).toBe(3);
-    expect(layout.rows).toBe(2);
-    expect(layout.cells).toHaveLength(5);
-    // Cell 3 starts the second row at the left padding.
-    expect(layout.cells[3].x).toBe(layout.cells[0].x);
-    expect(layout.cells[3].y).toBeGreaterThan(layout.cells[0].y);
-  });
-
-  it("sizes a cell to contain the content at the target aspect", () => {
-    // Content wider than 16:9 (640/300 ≈ 2.13) → width-bound.
-    const wide = computeStoryboardCell(640, 300, "16:9");
-    expect(wide.cellWidth).toBe(640);
-    expect(wide.cellHeight).toBe(Math.round(640 / (16 / 9)));
-    expect(wide.cellHeight).toBeGreaterThanOrEqual(300);
-    // Portrait content, 16:9 → height-bound, never smaller than the content.
-    const tall = computeStoryboardCell(300, 520, "16:9");
-    expect(tall.cellHeight).toBe(520);
-    expect(tall.cellWidth).toBeGreaterThanOrEqual(300);
-  });
-
-  it("honours an explicit column count", () => {
-    expect(resolveStoryboardCols(5, 2)).toBe(2);
-    expect(resolveStoryboardCols(5)).toBe(3);
-    // Clamped to the member count.
-    expect(resolveStoryboardCols(3, 9)).toBe(3);
-  });
-});
-
-describe("restoreStoryboardEdges", () => {
-  it("restores member endpoints and reveals hidden member edges", () => {
-    const edges = [
-      {
-        id: "outgoing",
-        source: "group",
-        target: "outside",
-        data: { __sbOrigSource: "child", role: "output" },
-      },
-      {
-        id: "incoming",
-        source: "outside",
-        target: "group",
-        data: { __sbOrigTarget: "child", role: "input" },
-      },
-      {
-        id: "internal",
-        source: "child",
-        target: "sibling",
-        hidden: true,
-      },
-    ] as CanvasEdge[];
-
-    expect(restoreStoryboardEdges(edges, "group", new Set(["child", "sibling"]))).toEqual([
-      expect.objectContaining({
-        id: "outgoing",
-        source: "child",
-        data: { role: "output" },
-      }),
-      expect.objectContaining({
-        id: "incoming",
-        target: "child",
-        data: { role: "input" },
-      }),
-      expect.objectContaining({ id: "internal", hidden: false }),
-    ]);
-  });
-});
 
 describe("canvasStore mergeStoryboardGroup", () => {
   beforeEach(() => {

@@ -8,7 +8,7 @@ import {
   DEFAULT_STORYBOARD_ASPECT,
   computeStoryboardBoardLayout,
   resolveStoryboardCols,
-} from './storyboardGroup';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasStoryboardGroupConfig {
   aspectKey?: string;

@@ -157,6 +157,35 @@ export type {
   ResolveCanvasNodeAbsolutePosition,
 } from "@/modules/creative_canvas/domain/canvasNodeDeletion";
 export {
+  computeStoryboardBoardLayout,
+  computeStoryboardCell,
+  computeStoryboardGridLayout,
+  DEFAULT_STORYBOARD_ASPECT,
+  resolveStoryboardAspectRatio,
+  resolveStoryboardCols,
+  restoreStoryboardEdges,
+  STORYBOARD_ASPECTS,
+  STORYBOARD_CELL_GAP,
+  STORYBOARD_HEADER_PADDING,
+  STORYBOARD_PADDING,
+  STORYBOARD_THUMB_WIDTH,
+  storyboardSlotRect,
+} from "@/modules/creative_canvas/domain/storyboardGroup";
+export type {
+  StoryboardAspectOption,
+  StoryboardCellRect,
+  StoryboardGridInput,
+  StoryboardGridLayout,
+  StoryboardGroupEdge,
+} from "@/modules/creative_canvas/domain/storyboardGroup";
+export { ungroupCanvasNode } from "@/modules/creative_canvas/domain/canvasGroupRemoval";
+export type {
+  CanvasGroupRemovalEdge,
+  CanvasGroupRemovalNode,
+  CanvasGroupRemovalPorts,
+  CanvasGroupRemovalResult,
+} from "@/modules/creative_canvas/domain/canvasGroupRemoval";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";

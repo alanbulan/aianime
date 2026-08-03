@@ -27,7 +27,7 @@ import {
   DEFAULT_STORYBOARD_ASPECT,
   STORYBOARD_ASPECTS,
   resolveStoryboardCols,
-} from '@/features/canvas/domain/storyboardGroup';
+} from '@/modules/creative_canvas/public';
 import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,

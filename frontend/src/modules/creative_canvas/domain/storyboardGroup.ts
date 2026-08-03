@@ -9,8 +9,6 @@
 // render below ~520×420), so cells must never be smaller than the content —
 // otherwise the node clamps to its min and spills out of the cell / group.
 
-import type { CanvasEdge } from './canvasNodes';
-
 export interface StoryboardAspectOption {
   /** Stable key persisted on the group node, e.g. "16:9". */
   key: string;
@@ -39,12 +37,19 @@ export const STORYBOARD_THUMB_WIDTH = 560;
 export const STORYBOARD_HEADER_PADDING = 34;
 
 /** Restore member endpoints and hidden internal edges when a storyboard group is removed. */
-export function restoreStoryboardEdges(
-  edges: readonly CanvasEdge[],
+export interface StoryboardGroupEdge {
+  source: string;
+  target: string;
+  data?: unknown;
+  hidden?: boolean;
+}
+
+export function restoreStoryboardEdges<TEdge extends StoryboardGroupEdge>(
+  edges: readonly TEdge[],
   groupNodeId: string,
   childIds: ReadonlySet<string>,
-): CanvasEdge[] {
-  return edges.map((edge) => {
+): TEdge[] {
+  return edges.map((edge): TEdge => {
     let next = edge;
     const data = next.data as Record<string, unknown> | undefined;
     if (next.source === groupNodeId && typeof data?.__sbOrigSource === 'string') {
