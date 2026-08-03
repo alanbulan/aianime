@@ -7443,6 +7443,7 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas viewport surface assembly in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
@@ -7473,10 +7474,12 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const childControllers = [
-      "./useCanvasViewportRuntimeController",
-      "./useCanvasLifecycle",
       "./useCanvasNodeFocusController",
       "./useCanvasAutoLayoutController",
+    ];
+    const moduleControllers = [
+      "useCanvasViewportRuntimeController",
+      "useCanvasLifecycle",
     ];
 
     expect(forbiddenImports).toEqual([]);
@@ -7489,6 +7492,10 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
+    for (const moduleController of moduleControllers) {
+      expect(controllerSource).toContain(moduleController);
+      expect(canvasView).not.toContain(moduleController);
+    }
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
     expect(controllerSource).toContain("useCanvasMinimapVisibility({");
     expect(controllerSource).toContain("useTrackpadPanStore(");
@@ -7497,6 +7504,16 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("../snap-align/");
     expect(controllerSource).toContain("viewportPort.fitView(options)");
     expect(controllerSource).toContain("useSnapAlignStore.getState()");
+    expect(controllerSource).toContain("CANVAS_VIEWPORT_BOOKMARK_STORE_PORT");
+    expect(controllerSource).toContain("useCanvasStore.getState()");
+    expect(controllerSource).toContain("bookmarkStore:");
+    expect(controllerSource).toContain("isImmersiveViewerActive,");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/presentation/useCanvasLifecycle",
+        "@/modules/creative_canvas/presentation/useCanvasViewportRuntimeController",
+      ]),
+    );
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
     expect(canvasView).not.toContain("useTrackpadPanStore");
     expect(canvasView).not.toContain("useSnapAlignStore");
@@ -8142,9 +8159,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewportCommit.ts",
+      moduleRoot,
+      "presentation/useCanvasViewportCommit.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -8153,8 +8171,8 @@ describe("frontend architecture boundaries", () => {
     );
     const viewportController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+        moduleRoot,
+        "presentation/useCanvasViewportRuntimeController.ts",
       ),
       "utf8",
     );
@@ -8165,9 +8183,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -8180,7 +8196,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewportCommit.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportCommit.ts",
     ]);
     expect(hookModel).toContain("VIEWPORT_COMMIT_INTERVAL_MS = 120");
     expect(viewportController).toContain("./useCanvasViewportCommit");
@@ -8190,6 +8206,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("lastViewportCommitRef");
     expect(canvasView).not.toContain("handleMoveStart");
     expect(canvasView).not.toContain("onMoveStart=");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasViewportCommit.ts",
+      "features/canvas/hooks/useCanvasViewportCommit.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas viewport bookmark shortcuts in one presentation hook", () => {
@@ -8205,7 +8227,7 @@ describe("frontend architecture boundaries", () => {
     const viewportController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+        "modules/creative_canvas/presentation/useCanvasViewportRuntimeController.ts",
       ),
       "utf8",
     );
@@ -8224,16 +8246,31 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const viewportControllerForbiddenImports = importSpecifiers(
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/useCanvasViewportRuntimeController.ts",
+      ),
+    ).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/"),
+    );
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts.ts",
     ]);
+    expect(viewportControllerForbiddenImports).toEqual([]);
     expect(hookModel).toContain("digitToBookmarkIndex");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(viewportController).toContain("@/modules/creative_canvas/public");
-    expect(viewportController).not.toContain("./useCanvasViewportBookmarkShortcuts");
+    expect(viewportController).toContain("./useCanvasViewportBookmarkShortcuts");
+    expect(viewportController).toContain("CanvasViewportBookmarkStorePort");
+    expect(viewportController).not.toContain("useCanvasStore");
+    expect(viewportController).not.toContain("useViewerImmersiveBody");
     expect(viewportController).toContain("captureCurrentViewport(viewportPort)");
     expect(viewportController).toContain("jumpToBookmark(viewportPort, bookmark)");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportBookmarkShortcuts");
@@ -8252,9 +8289,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas edge-pan gestures in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasEdgePan.ts",
+      moduleRoot,
+      "presentation/useCanvasEdgePan.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -8263,8 +8301,8 @@ describe("frontend architecture boundaries", () => {
     );
     const viewportController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+        moduleRoot,
+        "presentation/useCanvasViewportRuntimeController.ts",
       ),
       "utf8",
     );
@@ -8275,9 +8313,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -8290,7 +8326,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasEdgePan.ts",
+      "modules/creative_canvas/presentation/useCanvasEdgePan.ts",
     ]);
     expect(hookModel).toContain("EDGE_PAN_DRAG_THRESHOLD_PX = 4");
     expect(viewportController).toContain("./useCanvasEdgePan");
@@ -8299,6 +8335,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("suppressNextEdgeClickRef");
     expect(canvasView).not.toContain("react-flow__edge-interaction");
     expect(canvasView).not.toContain("react-flow__edgeupdater");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasEdgePan.ts",
+      "features/canvas/hooks/useCanvasEdgePan.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas space-pan keyboard state in one presentation hook", () => {
@@ -9169,9 +9211,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas mount and unmount effects in one lifecycle hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasLifecycle.ts",
+      moduleRoot,
+      "presentation/useCanvasLifecycle.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -9185,9 +9228,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -9200,7 +9241,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasLifecycle.ts",
+      "modules/creative_canvas/presentation/useCanvasLifecycle.ts",
     ]);
     expect(hookModel).toContain("resolveCanvasOriginViewport(");
     expect(hookModel).toContain("return closeImageViewer;");
@@ -9208,6 +9249,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("./hooks/useCanvasLifecycle");
     expect(canvasView).not.toContain("useEffect(");
     expect(canvasView).not.toContain("resolveCanvasOriginViewport(");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasLifecycle",
+    );
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasLifecycle.ts",
+      "features/canvas/hooks/useCanvasLifecycle.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas selection deletion rules in the domain", () => {
@@ -9634,9 +9684,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas viewport metrics in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewportMetrics.ts",
+      moduleRoot,
+      "presentation/useCanvasViewportMetrics.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -9644,8 +9695,8 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const viewportControllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      moduleRoot,
+      "presentation/useCanvasViewportRuntimeController.ts",
     );
     const viewportController = readFileSync(viewportControllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9655,9 +9706,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -9670,7 +9719,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewportMetrics.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportMetrics.ts",
     ]);
     expect(hookModel).toContain("--ai-anime-canvas-zoom");
     expect(hookModel).toContain("new ResizeObserver(updateSize)");
@@ -9684,12 +9733,26 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(controllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportRuntimeController.ts",
     ]);
     expect(viewportController).toContain("./useCanvasViewportMetrics");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportMetrics");
     expect(canvasView).not.toContain("style.setProperty('--ai-anime-canvas-zoom'");
     expect(canvasView).not.toContain("new ResizeObserver(");
+    expect(importSpecifiers(viewportControllerPath)).not.toEqual(
+      expect.arrayContaining([
+        "@/features/canvas/canvasStore",
+        "@/features/viewer-kit/useViewerImmersiveBody",
+      ]),
+    );
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasViewportMetrics.ts",
+      "features/canvas/hooks/useCanvasViewportMetrics.test.tsx",
+      "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      "features/canvas/hooks/useCanvasViewportRuntimeController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas selection surface assembly in one presentation controller", () => {
@@ -14244,7 +14307,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const lifecycleView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/hooks/useCanvasLifecycle.ts"),
+      resolve(
+        moduleRoot,
+        "presentation/useCanvasLifecycle.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = [selectionPath, viewportPath].flatMap((path) =>
@@ -14326,8 +14392,10 @@ describe("frontend architecture boundaries", () => {
       "replaceViewportBookmark(current, index, bookmark)",
     );
     expect(canvasStore).not.toContain("replaceViewportBookmark(");
-    expect(lifecycleView).toContain("@/modules/creative_canvas/public");
-    expect(lifecycleView).not.toContain("../domain/viewportBookmarks");
+    expect(lifecycleView).toContain(
+      "@/modules/creative_canvas/domain/viewportBookmarks",
+    );
+    expect(lifecycleView).not.toContain("@/modules/creative_canvas/public");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).not.toContain("../domain/canvasSelection");
     expect(selectionSurface).toContain("../domain/canvasSelection");

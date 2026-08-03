@@ -2,7 +2,10 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasSnapAlignmentPort } from '@/modules/creative_canvas/public';
+import type {
+  CanvasSnapAlignmentPort,
+  CanvasViewportRuntimeControllerOptions,
+} from '@/modules/creative_canvas/public';
 
 import type { CanvasAutoLayoutControllerOptions } from './useCanvasAutoLayoutController';
 import {
@@ -34,6 +37,14 @@ const controllerMocks = vi.hoisted(() => {
     setGuides: vi.fn(),
     clearGuides: vi.fn(),
   };
+  const canvasState = {
+    currentViewport: { x: 10, y: 20, zoom: 1.25 },
+    viewportBookmarks: Array.from<null | { x: number; y: number; zoom: number }>(
+      { length: 10 },
+    ).fill(null),
+    clearViewportBookmarks: vi.fn(),
+    setViewportBookmark: vi.fn(),
+  };
 
   return {
     minimapController,
@@ -42,9 +53,14 @@ const controllerMocks = vi.hoisted(() => {
     focusController,
     autoLayoutController,
     snapState,
+    canvasState,
     trackpadState: { enabled: true },
+    isImmersiveViewerActive: vi.fn(() => false),
     useMinimapVisibility: vi.fn(() => minimapController),
-    useViewportRuntime: vi.fn(() => viewportRuntimeController),
+    useViewportRuntime: vi.fn(
+      (_options: CanvasViewportRuntimeControllerOptions) =>
+        viewportRuntimeController,
+    ),
     useLifecycle: vi.fn(),
     useSnapAlignment: vi.fn(
       (_port: CanvasSnapAlignmentPort<CanvasViewportSurfaceControllerOptions['nodes'][number]>) =>
@@ -58,26 +74,30 @@ const controllerMocks = vi.hoisted(() => {
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasLifecycle: controllerMocks.useLifecycle,
   useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,
   useSnapAlignStore: {
     getState: () => controllerMocks.snapState,
   },
   useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
+  useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
   useTrackpadPanStore: (
     selector: (state: { enabled: boolean }) => unknown,
   ) => selector(controllerMocks.trackpadState),
 }));
+vi.mock('@/features/canvas/canvasStore', () => ({
+  useCanvasStore: {
+    getState: () => controllerMocks.canvasState,
+  },
+}));
+vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
+  isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
+}));
 vi.mock('./useCanvasAutoLayoutController', () => ({
   useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
 }));
-vi.mock('./useCanvasLifecycle', () => ({
-  useCanvasLifecycle: controllerMocks.useLifecycle,
-}));
 vi.mock('./useCanvasNodeFocusController', () => ({
   useCanvasNodeFocusController: controllerMocks.useNodeFocus,
-}));
-vi.mock('./useCanvasViewportRuntimeController', () => ({
-  useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
 }));
 
 function createOptions(): CanvasViewportSurfaceControllerOptions {
@@ -120,8 +140,10 @@ describe('useCanvasViewportSurfaceController', () => {
       wrapperRef: options.wrapperRef,
       viewportPort: options.viewportPort,
       transformStore: options.transformStore,
+      bookmarkStore: expect.any(Object),
       commitViewport: options.commitViewport,
       setViewportSize: options.setViewportSize,
+      isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
     });
     expect(controllerMocks.useLifecycle).toHaveBeenCalledWith({
       wrapperRef: options.wrapperRef,
@@ -169,5 +191,23 @@ describe('useCanvasViewportSurfaceController', () => {
     snapPort.clearGuides();
     expect(controllerMocks.snapState.setGuides).toHaveBeenCalledWith(guides);
     expect(controllerMocks.snapState.clearGuides).toHaveBeenCalledOnce();
+
+    const bookmarkStore = controllerMocks.useViewportRuntime.mock.calls[0][0]
+      .bookmarkStore;
+    expect(bookmarkStore.getCurrentViewport()).toEqual(
+      controllerMocks.canvasState.currentViewport,
+    );
+    bookmarkStore.clearBookmarks();
+    bookmarkStore.setBookmark(2, { x: 30, y: 40, zoom: 1.5 });
+    controllerMocks.canvasState.viewportBookmarks[2] = {
+      x: 30,
+      y: 40,
+      zoom: 1.5,
+    };
+    expect(bookmarkStore.getBookmark(2)).toEqual({ x: 30, y: 40, zoom: 1.5 });
+    expect(controllerMocks.canvasState.clearViewportBookmarks)
+      .toHaveBeenCalledOnce();
+    expect(controllerMocks.canvasState.setViewportBookmark)
+      .toHaveBeenCalledWith(2, { x: 30, y: 40, zoom: 1.5 });
   });
 });

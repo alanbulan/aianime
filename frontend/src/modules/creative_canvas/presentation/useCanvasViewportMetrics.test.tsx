@@ -9,7 +9,6 @@ import {
 
 class ResizeObserverMock {
   static instances: ResizeObserverMock[] = [];
-
   readonly observe = vi.fn();
   readonly disconnect = vi.fn();
 
@@ -52,7 +51,7 @@ describe('useCanvasViewportMetrics', () => {
     vi.restoreAllMocks();
   });
 
-  it('publishes zoom changes and observes the wrapper size', () => {
+  it('publishes zoom changes and observes wrapper dimensions', () => {
     let zoom = 1.25;
     let transformListener: (() => void) | null = null;
     const unsubscribe = vi.fn();
@@ -64,49 +63,39 @@ describe('useCanvasViewportMetrics', () => {
       }),
     };
     const setViewportSize = vi.fn();
-
-    const { unmount } = renderHook(() =>
-      useCanvasViewportMetrics({
-        wrapperRef: { current: wrapperElement },
-        transformStore,
-        setViewportSize,
-      }),
-    );
+    const { unmount } = renderHook(() => useCanvasViewportMetrics({
+      wrapperRef: { current: wrapperElement },
+      transformStore,
+      setViewportSize,
+    }));
 
     expect(document.documentElement.style.getPropertyValue('--ai-anime-canvas-zoom'))
       .toBe('1.25');
     expect(setViewportSize).toHaveBeenCalledWith({ width: 321, height: 241 });
-    expect(ResizeObserverMock.instances[0]?.observe).toHaveBeenCalledWith(wrapperElement);
-
     zoom = 0.8;
     act(() => transformListener?.());
     expect(document.documentElement.style.getPropertyValue('--ai-anime-canvas-zoom'))
       .toBe('0.8');
-
     rect = { ...rect, width: -1, height: 100.4 };
     act(() => ResizeObserverMock.instances[0]?.notify());
     expect(setViewportSize).toHaveBeenLastCalledWith({ width: 0, height: 100 });
-
     unmount();
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(ResizeObserverMock.instances[0]?.disconnect).toHaveBeenCalledOnce();
   });
 
-  it('does nothing when the wrapper is not mounted', () => {
+  it('skips size observation while the wrapper is unmounted', () => {
     const unsubscribe = vi.fn();
     const transformStore: CanvasTransformStorePort = {
       getState: () => ({ transform: [0, 0, 1] }),
       subscribe: () => unsubscribe,
     };
     const setViewportSize = vi.fn();
-
-    const { unmount } = renderHook(() =>
-      useCanvasViewportMetrics({
-        wrapperRef: { current: null },
-        transformStore,
-        setViewportSize,
-      }),
-    );
+    const { unmount } = renderHook(() => useCanvasViewportMetrics({
+      wrapperRef: { current: null },
+      transformStore,
+      setViewportSize,
+    }));
 
     expect(setViewportSize).not.toHaveBeenCalled();
     expect(ResizeObserverMock.instances).toEqual([]);

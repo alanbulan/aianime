@@ -4,17 +4,17 @@ import { useMemo, useRef, type RefObject } from 'react';
 import {
   captureCurrentViewport,
   jumpToBookmark,
-  useCanvasViewportBookmarkShortcuts,
-  type CanvasViewportBookmarkCommands,
   type CanvasViewportPort,
-} from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
+} from '@/modules/creative_canvas/application/bookmarkActions';
+import type { ViewportBookmark } from '@/modules/creative_canvas/domain/viewportBookmarks';
 import {
   useCanvasEdgePan,
   type CanvasEdgePanController,
 } from './useCanvasEdgePan';
+import {
+  useCanvasViewportBookmarkShortcuts,
+  type CanvasViewportBookmarkCommands,
+} from './useCanvasViewportBookmarkShortcuts';
 import {
   useCanvasViewportCommit,
   type CanvasViewportCommitController,
@@ -26,12 +26,21 @@ import {
   type CanvasViewportSize,
 } from './useCanvasViewportMetrics';
 
+export interface CanvasViewportBookmarkStorePort {
+  getCurrentViewport: () => ViewportBookmark;
+  clearBookmarks: () => void;
+  setBookmark: (index: number, bookmark: ViewportBookmark) => void;
+  getBookmark: (index: number) => ViewportBookmark | null | undefined;
+}
+
 export interface CanvasViewportRuntimeControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
   viewportPort: CanvasViewportPort;
   transformStore: CanvasTransformStorePort;
+  bookmarkStore: CanvasViewportBookmarkStorePort;
   commitViewport: (viewport: CanvasViewportSnapshot) => void;
   setViewportSize: (size: CanvasViewportSize) => void;
+  isImmersiveViewerActive: () => boolean;
 }
 
 export interface CanvasViewportRuntimeController
@@ -44,8 +53,10 @@ export function useCanvasViewportRuntimeController({
   wrapperRef,
   viewportPort,
   transformStore,
+  bookmarkStore,
   commitViewport,
   setViewportSize,
+  isImmersiveViewerActive,
 }: CanvasViewportRuntimeControllerOptions): CanvasViewportRuntimeController {
   useCanvasViewportMetrics({
     wrapperRef,
@@ -60,28 +71,25 @@ export function useCanvasViewportRuntimeController({
   });
   const viewportBookmarkCommands = useMemo<CanvasViewportBookmarkCommands>(
     () => ({
-      clearBookmarks: () => useCanvasStore.getState().clearViewportBookmarks(),
+      clearBookmarks: bookmarkStore.clearBookmarks,
       captureBookmark: (index) => {
-        useCanvasStore
-          .getState()
-          .setViewportBookmark(index, captureCurrentViewport(viewportPort));
+        bookmarkStore.setBookmark(index, captureCurrentViewport(viewportPort));
       },
       jumpToBookmarkSlot: (index) => {
-        const bookmark = useCanvasStore.getState().viewportBookmarks[index];
+        const bookmark = bookmarkStore.getBookmark(index);
         if (bookmark) {
           jumpToBookmark(viewportPort, bookmark);
         }
       },
     }),
-    [viewportPort],
+    [bookmarkStore, viewportPort],
   );
   useCanvasViewportBookmarkShortcuts({
     ...viewportBookmarkCommands,
     isImmersiveViewerActive,
   });
 
-  // Hydration completes before Canvas mounts, so React Flow must receive the restored camera once.
-  const initialViewportRef = useRef(useCanvasStore.getState().currentViewport);
+  const initialViewportRef = useRef(bookmarkStore.getCurrentViewport());
 
   return {
     initialViewport: initialViewportRef.current,

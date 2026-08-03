@@ -355,6 +355,42 @@ export type {
   CanvasViewportBookmarkShortcutOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasViewportBookmarkShortcuts";
 export {
+  useCanvasViewportCommit,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportCommit";
+export type {
+  CanvasViewportCommitController,
+  CanvasViewportSnapshot,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportCommit";
+export {
+  useCanvasViewportMetrics,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportMetrics";
+export type {
+  CanvasTransformStorePort,
+  CanvasViewportMetricsOptions,
+  CanvasViewportSize,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportMetrics";
+export {
+  useCanvasEdgePan,
+} from "@/modules/creative_canvas/presentation/useCanvasEdgePan";
+export type {
+  CanvasEdgePanController,
+  CanvasEdgePanOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasEdgePan";
+export {
+  useCanvasViewportRuntimeController,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportRuntimeController";
+export type {
+  CanvasViewportBookmarkStorePort,
+  CanvasViewportRuntimeController,
+  CanvasViewportRuntimeControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasViewportRuntimeController";
+export {
+  useCanvasLifecycle,
+} from "@/modules/creative_canvas/presentation/useCanvasLifecycle";
+export type {
+  CanvasLifecycleOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasLifecycle";
+export {
   useCanvasMinimapVisibility,
 } from "@/modules/creative_canvas/presentation/useCanvasMinimapVisibility";
 export type {

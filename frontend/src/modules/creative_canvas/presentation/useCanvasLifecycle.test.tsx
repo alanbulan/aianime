@@ -19,9 +19,11 @@ function rect(width: number, height: number): DOMRect {
 }
 
 describe('useCanvasLifecycle', () => {
-  it('centers a genuinely empty canvas and closes the image viewer on unmount', () => {
+  it('centers an empty canvas and closes the viewer on unmount', () => {
     const wrapperElement = document.createElement('div');
-    vi.spyOn(wrapperElement, 'getBoundingClientRect').mockReturnValue(rect(800, 600));
+    vi.spyOn(wrapperElement, 'getBoundingClientRect').mockReturnValue(
+      rect(800, 600),
+    );
     const setViewport = vi.fn();
     const closeImageViewer = vi.fn();
     const { unmount } = renderHook(() => useCanvasLifecycle({
@@ -36,7 +38,7 @@ describe('useCanvasLifecycle', () => {
     expect(closeImageViewer).toHaveBeenCalledOnce();
   });
 
-  it('preserves the restored viewport when the canvas already has nodes', () => {
+  it('preserves a restored viewport when the canvas is not empty', () => {
     const setViewport = vi.fn();
     const closeImageViewer = vi.fn();
     const options = {

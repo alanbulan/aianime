@@ -17,7 +17,6 @@ export interface CanvasViewportCommitController {
 export function useCanvasViewportCommit(
   commitViewport: (viewport: CanvasViewportSnapshot) => void,
 ): CanvasViewportCommitController {
-  // React Flow emits every frame; limit subscriber churn and always flush on move end.
   const lastCommitAtRef = useRef(0);
 
   const handleMoveEnd = useCallback(
@@ -40,8 +39,5 @@ export function useCanvasViewportCommit(
     [commitViewport],
   );
 
-  return {
-    handleMove,
-    handleMoveEnd,
-  };
+  return { handleMove, handleMoveEnd };
 }

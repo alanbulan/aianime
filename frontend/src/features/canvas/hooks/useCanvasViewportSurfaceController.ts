@@ -6,16 +6,23 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   useCanvasMinimapVisibility,
+  useCanvasLifecycle,
   useCanvasSnapAlignment,
+  useCanvasViewportRuntimeController,
   useSnapAlignStore,
   useTrackpadPanStore,
+  type CanvasLifecycleOptions,
   type CanvasMinimapVisibilityController,
   type CanvasSnapAlignmentController,
   type CanvasSnapAlignmentPort,
+  type CanvasViewportBookmarkStorePort,
   type CanvasViewportPort,
+  type CanvasViewportRuntimeController,
+  type CanvasViewportRuntimeControllerOptions,
 } from '@/modules/creative_canvas/public';
 import {
   useCanvasAutoLayoutController,
@@ -24,26 +31,25 @@ import {
   type CanvasAutoLayoutViewportOptions,
 } from './useCanvasAutoLayoutController';
 import {
-  useCanvasLifecycle,
-  type CanvasLifecycleOptions,
-} from './useCanvasLifecycle';
-import {
   useCanvasNodeFocusController,
   type CanvasNodeFocusController,
   type CanvasNodeFocusControllerOptions,
   type CanvasNodeFocusRuntimePort,
 } from './useCanvasNodeFocusController';
-import {
-  useCanvasViewportRuntimeController,
-  type CanvasViewportRuntimeController,
-  type CanvasViewportRuntimeControllerOptions,
-} from './useCanvasViewportRuntimeController';
-
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   isExcludedNode: (node) => node.type === CANVAS_NODE_TYPES.group,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
   clearGuides: () => useSnapAlignStore.getState().clearGuides(),
+};
+
+const CANVAS_VIEWPORT_BOOKMARK_STORE_PORT: CanvasViewportBookmarkStorePort = {
+  getCurrentViewport: () => useCanvasStore.getState().currentViewport,
+  clearBookmarks: () => useCanvasStore.getState().clearViewportBookmarks(),
+  setBookmark: (index, bookmark) => {
+    useCanvasStore.getState().setViewportBookmark(index, bookmark);
+  },
+  getBookmark: (index) => useCanvasStore.getState().viewportBookmarks[index],
 };
 
 export interface CanvasViewportSurfacePort
@@ -96,8 +102,10 @@ export function useCanvasViewportSurfaceController({
     wrapperRef,
     viewportPort,
     transformStore,
+    bookmarkStore: CANVAS_VIEWPORT_BOOKMARK_STORE_PORT,
     commitViewport,
     setViewportSize,
+    isImmersiveViewerActive,
   });
   useCanvasLifecycle({
     wrapperRef,

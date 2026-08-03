@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   useCanvasViewportRuntimeController,
@@ -22,6 +20,8 @@ function keyboardEvent(
 
 function createOptions() {
   let viewport = { x: 40, y: 50, zoom: 1.25 };
+  let currentViewport = { x: 10, y: 20, zoom: 0.8 };
+  const bookmarks = Array.from<null | typeof viewport>({ length: 10 }).fill(null);
   const viewportPort = {
     getViewport: vi.fn(() => viewport),
     setViewport: vi.fn((nextViewport: typeof viewport) => {
@@ -32,6 +32,14 @@ function createOptions() {
   const unsubscribeTransform = vi.fn();
   const commitViewport = vi.fn<CanvasViewportRuntimeControllerOptions['commitViewport']>();
   const setViewportSize = vi.fn<CanvasViewportRuntimeControllerOptions['setViewportSize']>();
+  const bookmarkStore = {
+    getCurrentViewport: vi.fn(() => currentViewport),
+    clearBookmarks: vi.fn(() => bookmarks.fill(null)),
+    setBookmark: vi.fn((index: number, bookmark: typeof viewport) => {
+      bookmarks[index] = bookmark;
+    }),
+    getBookmark: vi.fn((index: number) => bookmarks[index]),
+  };
 
   return {
     wrapperRef: { current: null },
@@ -40,20 +48,19 @@ function createOptions() {
       getState: () => ({ transform: [0, 0, 1.25] as const }),
       subscribe: vi.fn(() => unsubscribeTransform),
     },
+    bookmarkStore,
     commitViewport,
     setViewportSize,
+    isImmersiveViewerActive: vi.fn(() => false),
+    bookmarks,
+    setCurrentViewport: (nextViewport: typeof currentViewport) => {
+      currentViewport = nextViewport;
+    },
     unsubscribeTransform,
   };
 }
 
 describe('useCanvasViewportRuntimeController', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({
-      currentViewport: { x: 10, y: 20, zoom: 0.8 },
-      viewportBookmarks: Array.from({ length: 10 }, () => null),
-    });
-  });
-
   afterEach(() => {
     document.documentElement.style.removeProperty('--ai-anime-canvas-zoom');
   });
@@ -72,7 +79,7 @@ describe('useCanvasViewportRuntimeController', () => {
     });
     expect(options.commitViewport).toHaveBeenCalledWith({ x: 30, y: 40, zoom: 1.1 });
 
-    useCanvasStore.setState({ currentViewport: { x: 100, y: 200, zoom: 2 } });
+    options.setCurrentViewport({ x: 100, y: 200, zoom: 2 });
     rerender();
     expect(result.current.initialViewport).toEqual({ x: 10, y: 20, zoom: 0.8 });
     expect(options.setViewportSize).not.toHaveBeenCalled();
@@ -81,12 +88,12 @@ describe('useCanvasViewportRuntimeController', () => {
     expect(options.unsubscribeTransform).toHaveBeenCalledOnce();
   });
 
-  it('routes bookmark capture, jump, and clear commands through the viewport port', () => {
+  it('routes bookmark capture, jump, and clear commands through injected ports', () => {
     const options = createOptions();
     renderHook(() => useCanvasViewportRuntimeController(options));
 
     act(() => window.dispatchEvent(keyboardEvent('1', { ctrlKey: true })));
-    expect(useCanvasStore.getState().viewportBookmarks[0]).toEqual({
+    expect(options.bookmarkStore.setBookmark).toHaveBeenCalledWith(0, {
       x: 40,
       y: 50,
       zoom: 1.25,
@@ -105,8 +112,7 @@ describe('useCanvasViewportRuntimeController', () => {
       ctrlKey: true,
       shiftKey: true,
     })));
-    expect(useCanvasStore.getState().viewportBookmarks).toEqual(
-      Array.from({ length: 10 }, () => null),
-    );
+    expect(options.bookmarkStore.clearBookmarks).toHaveBeenCalledOnce();
+    expect(options.bookmarks).toEqual(Array.from({ length: 10 }, () => null));
   });
 });

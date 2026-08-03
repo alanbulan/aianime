@@ -1084,6 +1084,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百五十二批将 Canvas Zoom 百分比/预设/键盘缩放/适合屏幕/自动布局与边显隐控件、边可见性持久化 Store 及对应测试迁入 Creative Canvas presentation；模块控件直接复用本域 `canvasInteractionTargets`，通过必需的 `isImmersiveViewerActive` 与 `styles.container` 端口由 Canvas Stage 注入 Viewer Kit 状态和既有玻璃样式，不反向依赖旧 feature 或复制样式。Canvas Render Surface 统一经 Creative Canvas public 订阅同一边可见性 Store；旧 `CanvasZoomControl.tsx` 与 `edgeVisibilityStore.ts` 直接删除，不保留 facade、re-export 或第二套状态。Creative Canvas 由 604 增到 608，Canvas 由 590 降到 588，Freezone 保持 0，残余 ratchet 收紧到 588/0。Zoom/Store/交互规则/Render Surface/Canvas Stage 与残余门禁 Vitest 7 个文件 24 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；运行时旧路径扫描只剩架构负向门禁文本。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百五十三批将 Canvas Viewport 提交节流、缩放/尺寸指标、挂载生命周期、Edge Pan 手势、Runtime Controller 及对应测试整体迁入 Creative Canvas presentation；Runtime 以显式 `CanvasViewportBookmarkStorePort` 接收初始相机、书签读写与清理能力，以函数端口接收沉浸查看器状态，不再反向导入旧 Canvas Zustand Store 或 Viewer Kit。旧 `useCanvasViewportSurfaceController` 保持唯一组合适配职责，统一注入 React Flow、Zustand 与 Viewer 端口；10 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套运行时。Creative Canvas 由 608 增到 618，Canvas 由 588 降到 578，Freezone 保持 0，残余 ratchet 收紧到 578/0。Viewport Runtime 与 Canvas 适配定向 Vitest 6 个文件 12 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；模块边界新增 Runtime 禁止依赖任何 `features/*`、Store 必须经端口注入及旧 10 个路径不得回流的约束。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

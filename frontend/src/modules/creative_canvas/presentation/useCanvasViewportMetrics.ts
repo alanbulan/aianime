@@ -2,9 +2,7 @@
 import { useEffect, type RefObject } from 'react';
 
 export interface CanvasTransformStorePort {
-  getState: () => {
-    transform: readonly [number, number, number];
-  };
+  getState: () => { transform: readonly [number, number, number] };
   subscribe: (listener: () => void) => () => void;
 }
 
@@ -29,9 +27,7 @@ export function useCanvasViewportMetrics({
     let lastZoom = Number.NaN;
     const writeZoom = () => {
       const zoom = transformStore.getState().transform[2];
-      if (zoom === lastZoom) {
-        return;
-      }
+      if (zoom === lastZoom) return;
       lastZoom = zoom;
       root.style.setProperty('--ai-anime-canvas-zoom', String(zoom));
     };
@@ -42,10 +38,7 @@ export function useCanvasViewportMetrics({
 
   useEffect(() => {
     const wrapperElement = wrapperRef.current;
-    if (!wrapperElement) {
-      return;
-    }
-
+    if (!wrapperElement) return;
     const updateSize = () => {
       const rect = wrapperElement.getBoundingClientRect();
       setViewportSize({
