@@ -126,6 +126,11 @@ export type {
   BeatContextVisualMarkers,
   CurrentBeatContext,
 } from "@/modules/creative_canvas/domain/currentBeatContext";
+export { useCanvasProjectContextController } from "@/modules/creative_canvas/presentation/useCanvasProjectContextController";
+export type {
+  CanvasProjectContextController,
+  CanvasProjectContextControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasProjectContextController";
 export {
   canvasIdForFreezoneEntry,
   personalCanvasIdForUsername,

@@ -1,9 +1,8 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  type BeatContextNodeData,
-  type CanvasNode,
-} from './canvasNodes';
+export interface CanvasBeatContextReferenceNodeLike {
+  type?: string | null;
+  data?: unknown;
+}
 
 export interface CanvasBeatContextEpisodeReference {
   projectId: string;
@@ -11,19 +10,21 @@ export interface CanvasBeatContextEpisodeReference {
 }
 
 export function collectCanvasBeatContextEpisodeReferences(
-  nodes: readonly CanvasNode[],
+  nodes: readonly CanvasBeatContextReferenceNodeLike[],
   defaultProjectId: string | null,
 ): CanvasBeatContextEpisodeReference[] {
   const references = new Map<string, CanvasBeatContextEpisodeReference>();
   for (const node of nodes) {
-    if (node.type !== CANVAS_NODE_TYPES.beatContext) {
+    if (node.type !== "beatContextNode") {
       continue;
     }
-    const data = node.data as BeatContextNodeData;
-    const projectId = typeof data.projectId === 'string'
+    const data = node.data && typeof node.data === "object"
+      ? node.data as Record<string, unknown>
+      : undefined;
+    const projectId = typeof data?.projectId === "string"
       ? data.projectId
       : defaultProjectId;
-    const episode = typeof data.episode === 'number'
+    const episode = typeof data?.episode === "number"
       ? data.episode
       : undefined;
     if (!projectId || !episode || episode <= 0) {

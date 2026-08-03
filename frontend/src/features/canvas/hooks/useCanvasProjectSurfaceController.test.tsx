@@ -7,7 +7,7 @@ import type {
 } from './useCanvasGenerationRecoveryController';
 import type {
   CanvasProjectContextControllerOptions,
-} from './useCanvasProjectContextController';
+} from '@/modules/creative_canvas/public';
 import {
   useCanvasProjectSurfaceController,
   type CanvasProjectSurfaceControllerOptions,
@@ -29,7 +29,7 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('./useCanvasProjectContextController', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasProjectContextController: controllerMocks.useProjectContext,
 }));
 vi.mock('./useCanvasGenerationRecoveryController', () => ({

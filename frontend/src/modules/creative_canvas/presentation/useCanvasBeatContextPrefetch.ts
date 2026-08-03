@@ -1,14 +1,14 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 import {
   collectCanvasBeatContextEpisodeReferences,
   type CanvasBeatContextEpisodeReference,
-} from '../domain/canvasBeatContextReferences';
-import type { CanvasNode } from '../domain/canvasNodes';
+  type CanvasBeatContextReferenceNodeLike,
+} from "../domain/canvasBeatContextReferences";
 
 export interface CanvasBeatContextPrefetchOptions {
-  nodes: readonly CanvasNode[];
+  nodes: readonly CanvasBeatContextReferenceNodeLike[];
   defaultProjectId: string | null;
   prefetchEpisode: (reference: CanvasBeatContextEpisodeReference) => void;
 }

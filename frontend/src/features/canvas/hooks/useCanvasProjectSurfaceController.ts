@@ -7,7 +7,7 @@ import {
   useCanvasProjectContextController,
   type CanvasProjectContextController,
   type CanvasProjectContextControllerOptions,
-} from './useCanvasProjectContextController';
+} from '@/modules/creative_canvas/public';
 
 export interface CanvasProjectSurfaceControllerOptions {
   projectId: CanvasProjectContextControllerOptions['projectId'];

@@ -158,6 +158,16 @@ describe("round 2 residual architecture boundaries", () => {
       "currentBeatContext.ts",
       "currentBeatContext.test.ts",
     ];
+    const canvasProjectContextDomainFiles = [
+      "canvasBeatContextReferences.ts",
+      "canvasBeatContextReferences.test.ts",
+    ];
+    const canvasProjectContextPresentationFiles = [
+      "useCanvasBeatContextPrefetch.ts",
+      "useCanvasBeatContextPrefetch.test.tsx",
+      "useCanvasProjectContextController.ts",
+      "useCanvasProjectContextController.test.tsx",
+    ];
     const skillDomainFiles = [
       "skillContract.ts",
       "skillContract.test.ts",
@@ -584,6 +594,22 @@ describe("round 2 residual architecture boundaries", () => {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
         existsSync(resolve(SRC_ROOT, "features/freezone/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of canvasProjectContextDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of canvasProjectContextPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/hooks", file)),
         file,
       ).toBe(false);
     }
@@ -1785,7 +1811,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 668],
+      ["features/canvas", 662],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

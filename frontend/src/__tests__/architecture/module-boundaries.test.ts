@@ -8847,44 +8847,56 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = [
-      "./useCanvasProjectContextController",
-      "./useCanvasGenerationRecoveryController",
-    ];
-
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
     ]);
-    for (const childController of childControllers) {
-      expect(controllerSource).toContain(childController);
-      expect(canvasView).not.toContain(
-        childController.replace("./", "./hooks/"),
-      );
-    }
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("./useCanvasGenerationRecoveryController");
     expect(controllerSource).toContain("projectContext.projectId");
     expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasProjectContextController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGenerationRecoveryController",
+    );
     expect(
       canvasView.match(/useCanvasProjectSurfaceController\(\{/g),
     ).toHaveLength(1);
   });
 
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const domainPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/canvasBeatContextReferences.ts",
+      moduleRoot,
+      "domain/canvasBeatContextReferences.ts",
     );
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasBeatContextPrefetch.ts",
+      moduleRoot,
+      "presentation/useCanvasBeatContextPrefetch.ts",
     );
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasProjectContextController.ts",
+      moduleRoot,
+      "presentation/useCanvasProjectContextController.ts",
     );
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const surfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+    );
+    const legacyPaths = [
+      "features/canvas/domain/canvasBeatContextReferences.ts",
+      "features/canvas/domain/canvasBeatContextReferences.test.ts",
+      "features/canvas/hooks/useCanvasBeatContextPrefetch.ts",
+      "features/canvas/hooks/useCanvasBeatContextPrefetch.test.tsx",
+      "features/canvas/hooks/useCanvasProjectContextController.ts",
+      "features/canvas/hooks/useCanvasProjectContextController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const domainModel = readFileSync(domainPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
+    const surfaceModel = readFileSync(surfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -8897,9 +8909,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/"),
     );
     const hookForbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
@@ -8908,9 +8918,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/"),
     );
     const controllerForbiddenImports = importSpecifiers(controllerPath).filter(
       (specifier) =>
@@ -8920,9 +8928,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/"),
     );
     const controllerDeclaration = [
       "export function",
@@ -8934,14 +8940,40 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const privateModuleImports = new Set([
+      "@/modules/creative_canvas/domain/canvasBeatContextReferences",
+      "@/modules/creative_canvas/presentation/useCanvasBeatContextPrefetch",
+      "@/modules/creative_canvas/presentation/useCanvasProjectContextController",
+    ]);
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => privateModuleImports.has(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(domainForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
     expect(controllerForbiddenImports).toEqual([]);
     expect(controllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasProjectContextController.ts",
+      "modules/creative_canvas/presentation/useCanvasProjectContextController.ts",
     ]);
+    expect(directPrivateConsumers).toEqual([]);
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasProjectContextController",
+    );
+    expect(importSpecifiers(surfacePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(surfaceModel).not.toContain("./useCanvasProjectContextController");
     expect(domainModel).toContain("collectCanvasBeatContextEpisodeReferences");
+    expect(domainModel).toContain("CanvasBeatContextReferenceNodeLike");
+    expect(domainModel).not.toContain("CanvasNode");
+    expect(domainModel).not.toContain("CANVAS_NODE_TYPES");
     expect(hookModel).toContain("stableReferencesRef");
     expect(controllerModel).toContain("./useCanvasBeatContextPrefetch");
     expect(controllerModel).toContain("prefetchEpisodeBeats");
