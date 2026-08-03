@@ -7,7 +7,7 @@ import {
   type CanvasNode,
   type TextAnnotationNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT } from '@/features/canvas/domain/textAnnotationNodeModel';
+import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT } from '@/modules/creative_canvas/public';
 
 import { useTextAnnotationNodeController } from './useTextAnnotationNodeController';
 
@@ -74,7 +74,8 @@ vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
   useIsBoxSelecting: () => mocks.boxSelecting,
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   DEFAULT_SHARED_MODEL_ID: '',
   DEFAULT_VIDEO_MODEL_ID: '',
   generateCanvasReversePrompt: (

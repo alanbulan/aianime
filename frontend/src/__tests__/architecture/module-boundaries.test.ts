@@ -1119,18 +1119,23 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("separates the Canvas text-annotation model, controller, and view", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const entryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/TextAnnotationNode.tsx",
     );
     const modelPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/textAnnotationNodeModel.ts",
+      moduleRoot,
+      "domain/textAnnotationNodeModel.ts",
     );
     const modelTestPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/textAnnotationNodeModel.test.ts",
+      moduleRoot,
+      "domain/textAnnotationNodeModel.test.ts",
     );
+    const legacyModelPaths = [
+      "features/canvas/domain/textAnnotationNodeModel.ts",
+      "features/canvas/domain/textAnnotationNodeModel.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const controllerPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
@@ -1183,13 +1188,18 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/TextAnnotationNode.tsx"],
-      ["features/canvas/domain/textAnnotationNodeModel.ts"],
+      ["modules/creative_canvas/domain/textAnnotationNodeModel.ts"],
       ["features/canvas/hooks/useTextAnnotationNodeController.ts"],
       ["features/canvas/nodes/TextAnnotationNodeView.tsx"],
     ]);
-    expect(importSpecifiers(modelPath)).toEqual(["./canvasNodes"]);
+    expect(importSpecifiers(modelPath)).toEqual([]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
+    for (const legacyModelPath of legacyModelPaths) {
+      expect(existsSync(legacyModelPath), relativeSource(legacyModelPath)).toBe(
+        false,
+      );
+    }
     expect(registrySource).toContain(
       "import { TextAnnotationNode } from './TextAnnotationNode'",
     );
@@ -1212,6 +1222,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("useIsBoxSelecting()");
     expect(controllerSource).not.toContain("readUrl()");
     expect(controllerSource).not.toContain("@/lib/url-params");
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("domain/textAnnotationNodeModel");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ReactMarkdown");
     expect(viewSource).toContain("<ReactMarkdown");
@@ -1223,6 +1235,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("generateCanvasReversePrompt(");
     expect(viewSource).not.toContain("submitVideoGeneration(");
     expect(viewSource).not.toContain("translateCanvasText(");
+    expect(viewSource).toContain("@/modules/creative_canvas/public");
     expect(modelTestSource).toContain(
       "from './textAnnotationNodeModel'",
     );

@@ -1,5 +1,12 @@
 // Copyright (c) 2026 AI anime
-import type { TextNodeMode } from './canvasNodes';
+export type TextNodeMode =
+  | 'writing'
+  | 'textToVideo'
+  | 'imageToPrompt'
+  // Historical name for cloned speech audio.
+  | 'textToMusic'
+  // Text-to-music mode that creates a downstream music audio node.
+  | 'textToMusicGen';
 
 const REAL_TEXT_ANNOTATION_MODES = new Set<TextNodeMode>([
   'writing',
@@ -34,8 +41,8 @@ export const TEXT_ANNOTATION_NODE_SIZE = {
 } as const;
 
 export function resolveTextAnnotationMode(value: unknown): TextNodeMode {
-  return typeof value === 'string' &&
-    REAL_TEXT_ANNOTATION_MODES.has(value as TextNodeMode)
+  return typeof value === 'string'
+    && REAL_TEXT_ANNOTATION_MODES.has(value as TextNodeMode)
     ? (value as TextNodeMode)
     : 'writing';
 }

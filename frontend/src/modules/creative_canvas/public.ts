@@ -515,6 +515,18 @@ export type {
   CanvasHistoryNavigationResult,
   CanvasHistoryNavigationState,
 } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
+export {
+  TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,
+  TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT,
+  TEXT_ANNOTATION_NODE_SIZE,
+  TEXT_ANNOTATION_REVERSE_PROMPT_DURATION_MS,
+  hasTextAnnotationUserContent,
+  isCompactTextAnnotationView,
+  resolveTextAnnotationMode,
+  resolveTextAnnotationNodeSize,
+  resolveTextAnnotationUpstreamImageUrl,
+} from "@/modules/creative_canvas/domain/textAnnotationNodeModel";
+export type { TextNodeMode } from "@/modules/creative_canvas/domain/textAnnotationNodeModel";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

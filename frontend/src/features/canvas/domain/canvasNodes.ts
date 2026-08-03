@@ -13,6 +13,7 @@ import type {
   VideoStoryRow,
   VideoSubtitleEraseBox,
   VideoSubtitleEraseMode,
+  TextNodeMode,
 } from '@/modules/creative_canvas/public';
 
 export const CANVAS_NODE_TYPES = {
@@ -221,15 +222,6 @@ export interface GroupNodeData extends NodeDisplayData {
   storyboardBaseHeight?: number;
   [key: string]: unknown;
 }
-
-export type TextNodeMode =
-  | 'writing'
-  | 'textToVideo'
-  | 'imageToPrompt'
-  // textToMusic: 历史命名,实为「克隆音频」(语音克隆 TTS),派生语音音频节点。
-  | 'textToMusic'
-  // textToMusicGen: 「文字生成音乐」,派生 audioKind='music' 的音频节点(走 /freezone/audio/music)。
-  | 'textToMusicGen';
 
 export interface TextAnnotationNodeData extends NodeDisplayData {
   content: string;

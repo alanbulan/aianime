@@ -10,34 +10,32 @@ import { awaitCanvasGenerationTaskCompletion } from '@/features/canvas/compositi
 import {
   CANVAS_NODE_TYPES,
   type TextAnnotationNodeData,
-  type TextNodeMode,
   type UploadImageNodeData,
   type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
-import {
-  TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,
-  TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT,
-  TEXT_ANNOTATION_NODE_SIZE,
-  TEXT_ANNOTATION_REVERSE_PROMPT_DURATION_MS,
-  hasTextAnnotationUserContent,
-  isCompactTextAnnotationView,
-  resolveTextAnnotationMode,
-  resolveTextAnnotationNodeSize,
-  resolveTextAnnotationUpstreamImageUrl,
-} from '@/features/canvas/domain/textAnnotationNodeModel';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   generateCanvasReversePrompt,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
+  TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,
+  TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT,
+  TEXT_ANNOTATION_NODE_SIZE,
+  TEXT_ANNOTATION_REVERSE_PROMPT_DURATION_MS,
+  hasTextAnnotationUserContent,
+  isCompactTextAnnotationView,
   isSystemManagedNodeData,
+  resolveTextAnnotationMode,
+  resolveTextAnnotationNodeSize,
+  resolveTextAnnotationUpstreamImageUrl,
   resolveGenerationOutputUrl,
   submitVideoGeneration,
   translateCanvasText,
   useCanvasVideoModels,
+  type TextNodeMode,
   type VideoGenerationAspectRatio,
   type VideoGenQuality,
 } from '@/modules/creative_canvas/public';

@@ -18,8 +18,8 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import type { TextNodeMode } from '@/features/canvas/domain/canvasNodes';
 import type { TextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
+import type { TextNodeMode } from '@/modules/creative_canvas/public';
 import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,

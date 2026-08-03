@@ -1110,6 +1110,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十五批将 Canvas History Navigation 应用编排及测试整体迁入 Creative Canvas application；新 `CanvasHistoryNavigationState<TNode, TEdge, TDialog>` 和结果合同通过最小 Selection Node/Dialog 约束保留调用方真实 `CanvasNode`、`CanvasEdge` 与 `ActiveToolDialog`，模块内直接依赖本域 History、Mutation、Selection，不经 public 自回绕，也不导入旧 Canvas、Store 或 React Flow。Zustand History Slice 只经 Creative Canvas public 使用唯一 Navigation，并显式完成旧类型适配；两个旧 application 生产/测试所有者直接删除，不保留 facade、re-export 或第二套 undo/redo 编排。Creative Canvas 由 677 增到 679，Canvas 由 522 降到 520，Freezone 保持 0，残余 ratchet 收紧到 520/0。History 领域/应用行为 Vitest 4 个文件 13 项、定向架构 3 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百六十六批将 Text Annotation 的持久化模式合同、默认提示内容、节点尺寸投影、上游图片 URL 优先级和用户内容判定及测试整体迁入 Creative Canvas domain；`TextNodeMode` 从旧 `canvasNodes.ts` 抽离为模块唯一类型所有者，旧节点数据合同只经 Creative Canvas public 消费，不再重复声明。Text Annotation Controller、View 与 Controller 测试统一经模块 public 使用唯一规则，两个旧领域生产/测试所有者直接删除，不保留 facade、re-export 或第二套常量。Creative Canvas 由 679 增到 681，Canvas 由 520 降到 518，Freezone 保持 0，残余 ratchet 收紧到 518/0。领域、Controller 与 View Vitest 3 个文件 13 项、定向架构 1 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
