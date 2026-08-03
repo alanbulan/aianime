@@ -1,19 +1,29 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasEdge } from '../domain/canvasNodes';
 import {
   applyCanvasEdgeChangeEffects,
   type CanvasEdgeChangeEffectState,
 } from './canvasEdgeChangeEffects';
 
-const edge: CanvasEdge = {
+interface TestNode {
+  readonly id: string;
+}
+
+interface TestEdge {
+  readonly id: string;
+  readonly source: string;
+  readonly target: string;
+  readonly selected?: boolean;
+}
+
+const edge: TestEdge = {
   id: 'edge',
   source: 'source',
   target: 'target',
 };
 
-function state(): CanvasEdgeChangeEffectState {
+function state(): CanvasEdgeChangeEffectState<TestNode, TestEdge> {
   return {
     nodes: [],
     edges: [edge],

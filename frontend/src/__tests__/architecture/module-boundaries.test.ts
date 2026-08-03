@@ -7134,17 +7134,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas graph change intent outside the Zustand store", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const changeIntentPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasChangeIntent.ts",
+      moduleRoot,
+      "domain/canvasChangeIntent.ts",
     );
     const changeEffectsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasNodeChangeEffects.ts",
+      moduleRoot,
+      "application/canvasNodeChangeEffects.ts",
     );
     const edgeEffectsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasEdgeChangeEffects.ts",
+      moduleRoot,
+      "application/canvasEdgeChangeEffects.ts",
     );
     const historyPath = resolve(
       SRC_ROOT,
@@ -7169,6 +7171,26 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const legacyPaths = [
+      "features/canvas/application/canvasChangeIntent.ts",
+      "features/canvas/application/canvasChangeIntent.test.ts",
+      "features/canvas/application/canvasNodeChangeEffects.ts",
+      "features/canvas/application/canvasNodeChangeEffects.test.ts",
+      "features/canvas/application/canvasEdgeChangeEffects.ts",
+      "features/canvas/application/canvasEdgeChangeEffects.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const ownedSpecifiers = [
+      "@/modules/creative_canvas/domain/canvasChangeIntent",
+      "@/modules/creative_canvas/application/canvasNodeChangeEffects",
+      "@/modules/creative_canvas/application/canvasEdgeChangeEffects",
+    ];
+    const privateBypasses = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => ownedSpecifiers.includes(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
     const forbiddenIntentImports = [
       changeIntentPath,
       changeEffectsPath,
@@ -7181,8 +7203,8 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("react/") ||
             specifier === "@xyflow/react" ||
             specifier.startsWith("@/stores/") ||
-            specifier.startsWith("@/features/canvas/infrastructure/") ||
-            specifier === "@/features/canvas/composition",
+            specifier.startsWith("@/features/") ||
+            specifier === "@/modules/creative_canvas/public",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -7198,7 +7220,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const changeEffectsDeclaration = [
       "export function",
-      "applyCanvasNodeChangeEffects(",
+      "applyCanvasNodeChangeEffects<",
     ].join(" ");
     const changeEffectsOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -7208,7 +7230,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const edgeEffectsDeclaration = [
       "export function",
-      "applyCanvasEdgeChangeEffects(",
+      "applyCanvasEdgeChangeEffects<",
     ].join(" ");
     const edgeEffectsOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -7218,14 +7240,19 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenIntentImports).toEqual([]);
+    expect(privateBypasses).toEqual([]);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    for (const specifier of ownedSpecifiers) {
+      expect(importSpecifiers(publicPath)).toContain(specifier);
+    }
     expect(interactionHistoryOwners).toEqual([
       "modules/creative_canvas/domain/canvasHistory.ts",
     ]);
     expect(changeEffectsOwners).toEqual([
-      "features/canvas/application/canvasNodeChangeEffects.ts",
+      "modules/creative_canvas/application/canvasNodeChangeEffects.ts",
     ]);
     expect(edgeEffectsOwners).toEqual([
-      "features/canvas/application/canvasEdgeChangeEffects.ts",
+      "modules/creative_canvas/application/canvasEdgeChangeEffects.ts",
     ]);
     expect(changeIntent).toContain("export function classifyCanvasNodeChanges(");
     expect(changeIntent).toContain(
@@ -7240,14 +7267,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
-    expect(changeEffects).toContain("from './canvasChangeIntent';");
+    expect(changeEffects).toContain("from '../domain/canvasChangeIntent';");
     expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
-    expect(graphMutationSlice).toContain(
+    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(graphMutationSlice).not.toContain(
       "../application/canvasNodeChangeEffects",
     );
-    expect(graphMutationSlice).toContain(
+    expect(graphMutationSlice).not.toContain(
       "../application/canvasEdgeChangeEffects",
     );
     expect(canvasStore).not.toContain(
@@ -15166,8 +15194,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/bookmarkActions.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const nodeEffectsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasNodeChangeEffects.ts",
+      moduleRoot,
+      "application/canvasNodeChangeEffects.ts",
     );
     const historyNavigationPath = resolve(
       moduleRoot,
@@ -15182,7 +15210,6 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const nodeEffectsModel = readFileSync(nodeEffectsPath, "utf8");
     const historyNavigationModel = readFileSync(historyNavigationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
@@ -15279,8 +15306,11 @@ describe("frontend architecture boundaries", () => {
     );
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
     expect(viewportModel).toContain(originViewportDeclaration);
-    expect(nodeEffectsModel).toContain(
-      "from '@/modules/creative_canvas/public'",
+    expect(importSpecifiers(nodeEffectsPath)).toContain(
+      "../domain/canvasSelection",
+    );
+    expect(importSpecifiers(nodeEffectsPath)).not.toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(historyNavigationModel).toContain("../domain/canvasSelection");
     expect(historyNavigationModel).not.toContain(
@@ -15324,10 +15354,9 @@ describe("frontend architecture boundaries", () => {
       "domain/imageNodeLayout.ts",
     );
     const changeEffectsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/canvasNodeChangeEffects.ts",
+      moduleRoot,
+      "application/canvasNodeChangeEffects.ts",
     );
-    const changeEffectsModel = readFileSync(changeEffectsPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
       "utf8",
@@ -15342,7 +15371,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/imageNodeLayout.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const layoutConsumers = [
-      changeEffectsPath,
       resolve(SRC_ROOT, "features/canvas/application/canvasNodeCreation.ts"),
       resolve(SRC_ROOT, "features/canvas/application/canvasDerivedNodeCreation.ts"),
       resolve(SRC_ROOT, "features/canvas/application/panoCaptureNodes.ts"),
@@ -15378,7 +15406,12 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/domain/imageNodeLayout",
     );
     expect(legacyLayoutPaths.every((path) => !existsSync(path))).toBe(true);
-    expect(changeEffectsModel).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(changeEffectsPath)).toContain(
+      "../domain/imageNodeLayout",
+    );
+    expect(importSpecifiers(changeEffectsPath)).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/imageNodeLayout",
     );
@@ -26496,9 +26529,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasEdgeNormalization",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasEdgeChangeEffects",
       "../application/canvasEdgeCreation",
-      "../application/canvasNodeChangeEffects",
     ]));
     expect(canvasStateHeader).toContain("CanvasGraphMutationSlice");
     expect(canvasStore).toContain(

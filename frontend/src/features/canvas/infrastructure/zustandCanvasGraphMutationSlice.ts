@@ -10,23 +10,25 @@ import {
 
 import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
 import {
+  applyCanvasEdgeChangeEffects,
+  applyCanvasNodeChangeEffects,
   createSnapshot,
   deleteCanvasEdge,
   pushSnapshot,
   trackEdit,
+  type CanvasNodeChangeEffectState,
 } from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
-import { applyCanvasEdgeChangeEffects } from '../application/canvasEdgeChangeEffects';
+import type {
+  ActiveToolDialog,
+  CanvasEdge,
+  CanvasNode,
+} from '../domain/canvasNodes';
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
   prepareCanvasReactFlowConnection,
   type CanvasDataEdgeCreationOptions,
 } from '../application/canvasEdgeCreation';
-import {
-  applyCanvasNodeChangeEffects,
-  type CanvasNodeChangeEffectState,
-} from '../application/canvasNodeChangeEffects';
 
 export interface CanvasGraphMutationSlice {
   nodes: CanvasNode[];
@@ -45,13 +47,19 @@ export interface CanvasGraphMutationSlice {
   deleteEdge: (edgeId: string) => void;
 }
 
+type CanvasGraphMutationState = CanvasNodeChangeEffectState<
+  CanvasNode,
+  CanvasEdge,
+  ActiveToolDialog
+>;
+
 interface CanvasGraphMutationSliceStore {
-  getState: () => CanvasNodeChangeEffectState;
-  setState: (patch: Partial<CanvasNodeChangeEffectState>) => void;
+  getState: () => CanvasGraphMutationState;
+  setState: (patch: Partial<CanvasGraphMutationState>) => void;
   updateState: (
     update: (
-      state: CanvasNodeChangeEffectState,
-    ) => Partial<CanvasNodeChangeEffectState>,
+      state: CanvasGraphMutationState,
+    ) => Partial<CanvasGraphMutationState>,
   ) => void;
 }
 

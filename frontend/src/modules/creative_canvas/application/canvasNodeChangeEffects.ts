@@ -1,51 +1,70 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
-  isDeleteToEmpty,
-  isImageAutoResizableType,
   recordCanvasInteractionHistory,
-  resolveActiveToolDialog,
-  resolveSelectedNodeId,
-  trackEdit,
-  withManualSizeLock,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
+} from '../domain/canvasHistory';
+import {
+  isDeleteToEmpty,
+  trackEdit,
   type CanvasMutationState,
-} from '@/modules/creative_canvas/public';
-import type {
-  ActiveToolDialog,
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
+} from '../domain/canvasMutation';
 import {
   classifyCanvasNodeChanges,
   type CanvasNodeChangeLike,
-} from './canvasChangeIntent';
+} from '../domain/canvasChangeIntent';
+import {
+  resolveActiveToolDialog,
+  resolveSelectedNodeId,
+  type CanvasSelectionDialogTarget,
+} from '../domain/canvasSelection';
+import {
+  isImageAutoResizableType,
+  withManualSizeLock,
+  type CanvasImageLayoutNode,
+} from '../domain/imageNodeLayout';
 
-export interface CanvasNodeChangeEffectState extends CanvasMutationState {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  selectedNodeId: string | null;
-  activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
-  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
+export interface CanvasNodeChangeEffectNode extends CanvasImageLayoutNode {
+  readonly id: string;
 }
 
-export interface CanvasNodeChangeEffectResult {
-  nodes: CanvasNode[];
+export interface CanvasNodeChangeEffectState<
+  TNode extends CanvasNodeChangeEffectNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+> extends CanvasMutationState {
+  nodes: TNode[];
+  edges: TEdge[];
   selectedNodeId: string | null;
-  activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
-  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
+  activeToolDialog: TDialog | null;
+  history: CanvasHistoryState<TNode, TEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<TNode, TEdge> | null;
+}
+
+export interface CanvasNodeChangeEffectResult<
+  TNode extends CanvasNodeChangeEffectNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+> {
+  nodes: TNode[];
+  selectedNodeId: string | null;
+  activeToolDialog: TDialog | null;
+  history: CanvasHistoryState<TNode, TEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<TNode, TEdge> | null;
   userEditsSinceHydrate?: number;
   lastMutationSource?: CanvasMutationState['lastMutationSource'];
 }
 
-export function applyCanvasNodeChangeEffects(
-  state: CanvasNodeChangeEffectState,
-  changedNodes: CanvasNode[],
+export function applyCanvasNodeChangeEffects<
+  TNode extends CanvasNodeChangeEffectNode,
+  TEdge,
+  TDialog extends CanvasSelectionDialogTarget,
+>(
+  state: CanvasNodeChangeEffectState<TNode, TEdge, TDialog>,
+  changedNodes: TNode[],
   changes: readonly CanvasNodeChangeLike[],
-): CanvasNodeChangeEffectResult {
+): CanvasNodeChangeEffectResult<TNode, TEdge, TDialog> {
   const intent = classifyCanvasNodeChanges(changes);
   const nodes = intent.resizedNodeIds.size === 0
     ? changedNodes

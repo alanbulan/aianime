@@ -509,6 +509,29 @@ export type {
   CanvasInteractionHistoryResult,
   CanvasInteractionHistoryState,
 } from "@/modules/creative_canvas/domain/canvasHistory";
+export {
+  classifyCanvasNodeChanges,
+  hasMeaningfulCanvasEdgeChange,
+} from "@/modules/creative_canvas/domain/canvasChangeIntent";
+export type {
+  CanvasNodeChangeIntent,
+  CanvasNodeChangeLike,
+} from "@/modules/creative_canvas/domain/canvasChangeIntent";
+export {
+  applyCanvasEdgeChangeEffects,
+} from "@/modules/creative_canvas/application/canvasEdgeChangeEffects";
+export type {
+  CanvasEdgeChangeEffectResult,
+  CanvasEdgeChangeEffectState,
+} from "@/modules/creative_canvas/application/canvasEdgeChangeEffects";
+export {
+  applyCanvasNodeChangeEffects,
+} from "@/modules/creative_canvas/application/canvasNodeChangeEffects";
+export type {
+  CanvasNodeChangeEffectNode,
+  CanvasNodeChangeEffectResult,
+  CanvasNodeChangeEffectState,
+} from "@/modules/creative_canvas/application/canvasNodeChangeEffects";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

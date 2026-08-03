@@ -2,36 +2,52 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  NODE_TOOL_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   applyCanvasNodeChangeEffects,
+  type CanvasNodeChangeEffectNode,
   type CanvasNodeChangeEffectState,
 } from './canvasNodeChangeEffects';
 
+interface TestCanvasNode extends CanvasNodeChangeEffectNode {
+  readonly position: { x: number; y: number };
+  readonly measured?: { width?: number; height?: number };
+}
+
+interface TestCanvasEdge {
+  readonly id: string;
+}
+
+interface TestActiveToolDialog {
+  readonly nodeId: string;
+  readonly toolType: 'crop';
+}
+
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestCanvasNode> = {},
+): TestCanvasNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.exportImage,
+    type: 'exportImageNode',
     position: { x: 0, y: 0 },
     data: { imageUrl: '/image.png', aspectRatio: '2:1' },
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function state(currentNode: CanvasNode): CanvasNodeChangeEffectState {
+function state(
+  currentNode: TestCanvasNode,
+): CanvasNodeChangeEffectState<
+  TestCanvasNode,
+  TestCanvasEdge,
+  TestActiveToolDialog
+> {
   return {
     nodes: [currentNode],
     edges: [],
     selectedNodeId: currentNode.id,
     activeToolDialog: {
       nodeId: currentNode.id,
-      toolType: NODE_TOOL_TYPES.crop,
+      toolType: 'crop',
     },
     history: { past: [], future: [] },
     dragHistorySnapshot: null,
