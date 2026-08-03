@@ -7188,6 +7188,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas capture partner rules in the domain model", () => {
     const partnersPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/domain/canvasCapturePartners.ts",
+    );
+    const legacyPartnersPath = resolve(
+      SRC_ROOT,
       "features/canvas/domain/canvasCapturePartners.ts",
     );
     const partnersModel = readFileSync(partnersPath, "utf8");
@@ -7209,13 +7213,11 @@ describe("frontend architecture boundaries", () => {
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const ruleDeclaration = [
       "export function",
-      "findLinkedCapturePartnerIds(",
+      "findLinkedCapturePartnerIds<",
     ].join(" ");
     const ruleOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(ruleDeclaration))
@@ -7223,16 +7225,24 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyPartnersPath)).toBe(false);
     expect(ruleOwners).toEqual([
-      "features/canvas/domain/canvasCapturePartners.ts",
+      "modules/creative_canvas/domain/canvasCapturePartners.ts",
     ]);
     expect(partnersModel).toContain(ruleDeclaration);
-    expect(linkedDragController).toContain("../domain/canvasCapturePartners");
+    expect(linkedDragController).toContain("@/modules/creative_canvas/public");
     expect(linkedDragController).toContain("findLinkedCapturePartnerIds(");
+    expect(linkedDragController).toContain("CANVAS_NODE_TYPES.group");
     expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasCapturePartners",
     );
     expect(canvasView).not.toContain(ruleDeclaration);
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain(
+      "@/modules/creative_canvas/domain/canvasCapturePartners",
+    );
   });
 
   it("keeps Canvas DOM interaction rules in Creative Canvas presentation", () => {

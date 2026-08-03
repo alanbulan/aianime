@@ -1,21 +1,36 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from './canvasNodes';
+export interface CanvasCapturePartnerNode<TNodeType = string> {
+  id: string;
+  type: TNodeType;
+  parentId?: string;
+  data?: unknown;
+}
 
-function isCaptureChild(node: CanvasNode | undefined): boolean {
+export interface CanvasCapturePartnerEdge {
+  source: string;
+  target: string;
+}
+
+function hasCaptureMetadata(data: unknown): boolean {
   return Boolean(
-    node?.parentId
-    && (node.data as { captureMetadata?: unknown } | undefined)?.captureMetadata,
+    data
+    && typeof data === 'object'
+    && 'captureMetadata' in data
+    && (data as { captureMetadata?: unknown }).captureMetadata,
   );
 }
 
-export function findLinkedCapturePartnerIds(
+function isCaptureChild<TNodeType>(
+  node: CanvasCapturePartnerNode<TNodeType> | undefined,
+): boolean {
+  return Boolean(node?.parentId && hasCaptureMetadata(node.data));
+}
+
+export function findLinkedCapturePartnerIds<TNodeType>(
   draggedId: string,
-  nodes: readonly CanvasNode[],
-  edges: readonly CanvasEdge[],
+  nodes: readonly CanvasCapturePartnerNode<TNodeType>[],
+  edges: readonly CanvasCapturePartnerEdge[],
+  groupNodeType: TNodeType,
 ): string[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
   const dragged = nodeById.get(draggedId);
@@ -24,7 +39,7 @@ export function findLinkedCapturePartnerIds(
   }
 
   const partners = new Set<string>();
-  if (dragged.type === CANVAS_NODE_TYPES.group) {
+  if (dragged.type === groupNodeType) {
     const childIds = new Set(
       nodes
         .filter((node) => node.parentId === draggedId && isCaptureChild(node))
@@ -54,7 +69,7 @@ export function findLinkedCapturePartnerIds(
       continue;
     }
     const group = nodeById.get(target.parentId);
-    if (group?.type === CANVAS_NODE_TYPES.group && !group.parentId) {
+    if (group?.type === groupNodeType && !group.parentId) {
       partners.add(group.id);
     }
   }

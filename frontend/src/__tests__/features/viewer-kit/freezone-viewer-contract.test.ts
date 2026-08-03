@@ -636,7 +636,7 @@ describe("freezone viewer contracts", () => {
   it("keeps viewer purpose and capture metadata as explicit shared contracts", () => {
     const purpose = read("src/features/viewer-kit/viewerPurpose.ts");
     const capturePartners = read(
-      "src/features/canvas/domain/canvasCapturePartners.ts",
+      "src/modules/creative_canvas/domain/canvasCapturePartners.ts",
     );
     const captureCreation = read(
       "src/features/canvas/application/panoCaptureNodes.ts",

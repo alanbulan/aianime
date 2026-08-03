@@ -1,8 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import { findLinkedCapturePartnerIds } from '../domain/canvasCapturePartners';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import { findLinkedCapturePartnerIds } from '@/modules/creative_canvas/public';
+
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+} from '../domain/canvasNodes';
 
 interface CanvasLinkedCaptureDragState {
   partnerStarts: Map<string, { x: number; y: number }>;
@@ -53,6 +58,7 @@ export function useCanvasLinkedCaptureDragController({
         draggedNodeId,
         nodes,
         edges,
+        CANVAS_NODE_TYPES.group,
       );
       if (partnerIds.length === 0) {
         return;

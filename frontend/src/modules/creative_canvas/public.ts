@@ -469,6 +469,13 @@ export type {
 export {
   createPreviewPath,
 } from "@/modules/creative_canvas/domain/canvasConnectionPreview";
+export {
+  findLinkedCapturePartnerIds,
+} from "@/modules/creative_canvas/domain/canvasCapturePartners";
+export type {
+  CanvasCapturePartnerEdge,
+  CanvasCapturePartnerNode,
+} from "@/modules/creative_canvas/domain/canvasCapturePartners";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
