@@ -1090,6 +1090,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百五十五批将 Canvas 编辑键盘映射、Pane 右键菜单状态、菜单命令投影、Command Surface、菜单 View 及测试整体迁入 Creative Canvas presentation；键盘 Hook 以必需函数端口读取沉浸查看器状态，Command Surface 通过 `CanvasCommandHistoryPort`、上传节点类型和现有命令端口读取历史、剪贴板及节点创建能力，不再导入旧 Canvas Store、Viewer Kit 或节点类型。Canvas 保留唯一历史 Store/上传类型组合适配，Canvas Stage 经 Creative Canvas public 渲染菜单；9 个旧生产/测试/View 路径直接删除，不保留 facade、re-export 或第二套菜单。Creative Canvas 由 626 增到 635，Canvas 由 571 降到 562，Freezone 保持 0，残余 ratchet 收紧到 562/0。命令/菜单与消费方定向 Vitest 6 个文件 13 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；模块内部旧 feature/Store/Viewer/节点常量引用为 0。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百五十六批将 Canvas Node Hover 延迟清理、Placement Confirm 确认窗口、Node Placement 状态/预览/提交及测试迁入 Creative Canvas presentation；Placement Controller 以 `TNodeType/TNodeData` 泛型贯穿真实 `CanvasNodeType/CanvasNodeData`，Skill 直接依赖模块自有领域合同，不导入旧 Canvas、Store 或 Viewer。Node Interaction、Menu Selection、Catalog、Render Surface 和 Connection Gesture Surface 五类消费者统一经 Creative Canvas public 使用唯一实现；6 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套瞬态状态。Creative Canvas 由 635 增到 641，Canvas 由 562 降到 556，Freezone 保持 0，残余 ratchet 收紧到 556/0。瞬态/放置与消费方定向 Vitest 8 个文件 18 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；完整架构首次复跑的 2 项失败均为门禁仍断言旧相对导入，更新为模块 public 的真实所有者后定向 2 项与完整门禁复跑全绿。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

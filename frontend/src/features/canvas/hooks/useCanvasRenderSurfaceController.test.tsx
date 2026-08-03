@@ -44,10 +44,8 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('./useCanvasNodePlacementConfirm', () => ({
-  useCanvasNodePlacementConfirm: controllerMocks.usePlacementConfirm,
-}));
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasNodePlacementConfirm: controllerMocks.usePlacementConfirm,
   useEdgeVisibilityStore: controllerMocks.useEdgeVisibility,
 }));
 vi.mock('../ui/canvasRenderProjection', () => ({

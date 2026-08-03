@@ -286,6 +286,14 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasCommandSurfaceController.test.tsx",
       "CanvasContextMenu.tsx",
     ];
+    const canvasNodeInteractionPresentationFiles = [
+      "useCanvasNodeHover.ts",
+      "useCanvasNodeHover.test.tsx",
+      "useCanvasNodePlacementConfirm.ts",
+      "useCanvasNodePlacementConfirm.test.tsx",
+      "useCanvasNodePlacementController.ts",
+      "useCanvasNodePlacementController.test.tsx",
+    ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
       "mainlineNodeFlags.test.ts",
@@ -846,6 +854,12 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(true);
     }
+    for (const file of canvasNodeInteractionPresentationFiles) {
+      expect(
+        existsSync(resolve(moduleRoot, "presentation", file)),
+        file,
+      ).toBe(true);
+    }
     for (const retiredViewportPath of [
       "features/canvas/domain/viewportBookmarks.ts",
       "__tests__/features/canvas/viewport-bookmarks-domain.test.ts",
@@ -901,6 +915,19 @@ describe("round 2 residual architecture boundaries", () => {
       expect(
         existsSync(resolve(SRC_ROOT, retiredCommandPath)),
         retiredCommandPath,
+      ).toBe(false);
+    }
+    for (const retiredInteractionPath of [
+      "features/canvas/hooks/useCanvasNodeHover.ts",
+      "features/canvas/hooks/useCanvasNodeHover.test.tsx",
+      "features/canvas/hooks/useCanvasNodePlacementConfirm.ts",
+      "features/canvas/hooks/useCanvasNodePlacementConfirm.test.tsx",
+      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+      "features/canvas/hooks/useCanvasNodePlacementController.test.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredInteractionPath)),
+        retiredInteractionPath,
       ).toBe(false);
     }
     expect(
@@ -2143,7 +2170,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 562],
+      ["features/canvas", 556],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

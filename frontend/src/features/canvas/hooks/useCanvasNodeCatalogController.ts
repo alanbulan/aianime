@@ -3,10 +3,13 @@ import { useCallback } from 'react';
 import type { TFunction } from 'i18next';
 
 import { loadCanvasSkillRegistry } from '@/features/canvas/skillCatalogComposition';
-import { translateSkillName } from '@/modules/creative_canvas/public';
+import {
+  translateSkillName,
+  type CanvasNodePlacement,
+} from '@/modules/creative_canvas/public';
 
 import { nodeCatalog } from '../application/nodeCatalog';
-import type { CanvasNodePlacement } from './useCanvasNodePlacementController';
+import type { CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
 import {
   useCanvasSkillRegistry,
   type CanvasSkillRegistryResult,
@@ -17,7 +20,9 @@ export interface CanvasNodeCatalogControllerOptions {
 }
 
 export interface CanvasNodeCatalogController extends CanvasSkillRegistryResult {
-  resolvePlacementLabel: (placement: CanvasNodePlacement) => string;
+  resolvePlacementLabel: (
+    placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+  ) => string;
 }
 
 export function useCanvasNodeCatalogController({
@@ -25,7 +30,9 @@ export function useCanvasNodeCatalogController({
 }: CanvasNodeCatalogControllerOptions): CanvasNodeCatalogController {
   const registry = useCanvasSkillRegistry(loadCanvasSkillRegistry);
   const resolvePlacementLabel = useCallback(
-    (placement: CanvasNodePlacement): string => {
+    (
+      placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+    ): string => {
       const definition = nodeCatalog.getDefinition(placement.type);
       return placement.skill
         ? translateSkillName(placement.skill, translate)

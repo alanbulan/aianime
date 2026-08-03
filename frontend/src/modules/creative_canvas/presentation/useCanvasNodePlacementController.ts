@@ -6,19 +6,17 @@ import {
   type RefObject,
 } from 'react';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
-import type {
-  CanvasNodeData,
-  CanvasNodeType,
-} from '../domain/canvasNodes';
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
 const NODE_PLACEMENT_PREVIEW_WIDTH = 320;
 const NODE_PLACEMENT_PREVIEW_HEIGHT = 200;
 
-export interface CanvasNodePlacement {
-  type: CanvasNodeType;
-  initialData?: Partial<CanvasNodeData>;
+export interface CanvasNodePlacement<
+  TNodeType = string,
+  TNodeData extends object = Record<string, unknown>,
+> {
+  type: TNodeType;
+  initialData?: Partial<TNodeData>;
   skill?: SkillDefinition;
 }
 
@@ -30,27 +28,35 @@ export interface CanvasNodePlacementPreview {
   label: string;
 }
 
-export interface CanvasNodePlacementControllerOptions {
+export interface CanvasNodePlacementControllerOptions<
+  TNodeType = string,
+  TNodeData extends object = Record<string, unknown>,
+> {
   wrapperRef: RefObject<HTMLDivElement | null>;
   screenToFlowPosition: (
     clientPosition: { x: number; y: number },
   ) => { x: number; y: number };
   createNode: (
-    type: CanvasNodeType,
+    type: TNodeType,
     position: { x: number; y: number },
-    initialData?: Partial<CanvasNodeData>,
+    initialData?: Partial<TNodeData>,
   ) => string;
   selectNode: (nodeId: string) => void;
   bindSkill: (nodeId: string, skill: SkillDefinition) => void;
   confirmPlacement: (nodeId: string) => void;
-  resolvePlacementLabel: (placement: CanvasNodePlacement) => string;
+  resolvePlacementLabel: (
+    placement: CanvasNodePlacement<TNodeType, TNodeData>,
+  ) => string;
 }
 
-export interface CanvasNodePlacementController {
+export interface CanvasNodePlacementController<
+  TNodeType = string,
+  TNodeData extends object = Record<string, unknown>,
+> {
   placementActive: boolean;
   placementPreview: CanvasNodePlacementPreview | null;
   beginNodePlacement: (
-    placement: CanvasNodePlacement,
+    placement: CanvasNodePlacement<TNodeType, TNodeData>,
     clientPosition: { x: number; y: number } | null,
   ) => void;
   updateNodePlacementClientPosition: (
@@ -62,7 +68,10 @@ export interface CanvasNodePlacementController {
   ) => boolean;
 }
 
-export function useCanvasNodePlacementController({
+export function useCanvasNodePlacementController<
+  TNodeType,
+  TNodeData extends object,
+>({
   wrapperRef,
   screenToFlowPosition,
   createNode,
@@ -70,15 +79,18 @@ export function useCanvasNodePlacementController({
   bindSkill,
   confirmPlacement,
   resolvePlacementLabel,
-}: CanvasNodePlacementControllerOptions): CanvasNodePlacementController {
+}: CanvasNodePlacementControllerOptions<
+  TNodeType,
+  TNodeData
+>): CanvasNodePlacementController<TNodeType, TNodeData> {
   const [pendingPlacement, setPendingPlacement] =
-    useState<CanvasNodePlacement | null>(null);
+    useState<CanvasNodePlacement<TNodeType, TNodeData> | null>(null);
   const [placementClientPosition, setPlacementClientPosition] =
     useState<{ x: number; y: number } | null>(null);
 
   const beginNodePlacement = useCallback(
     (
-      placement: CanvasNodePlacement,
+      placement: CanvasNodePlacement<TNodeType, TNodeData>,
       clientPosition: { x: number; y: number } | null,
     ) => {
       setPendingPlacement(placement);

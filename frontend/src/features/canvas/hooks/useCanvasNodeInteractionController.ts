@@ -1,7 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import {
+  useCanvasNodePlacementController,
+  type CanvasNodePlacement,
+  type CanvasNodePlacementController,
+  type SkillDefinition,
+} from '@/modules/creative_canvas/public';
 
 import type {
   CanvasNode,
@@ -25,11 +30,6 @@ import {
   useCanvasNodeMenuShortcut,
   type CanvasNodeMenuShortcutController,
 } from './useCanvasNodeMenuShortcut';
-import {
-  useCanvasNodePlacementController,
-  type CanvasNodePlacement,
-  type CanvasNodePlacementController,
-} from './useCanvasNodePlacementController';
 import {
   useCanvasPaneClickController,
   type CanvasPaneClickController,
@@ -56,7 +56,9 @@ export interface CanvasNodeInteractionControllerOptions {
   selectNode: (nodeId: string | null) => void;
   bindSkill: (nodeId: string, skill: SkillDefinition) => void;
   confirmPlacement: (nodeId: string) => void;
-  resolvePlacementLabel: (placement: CanvasNodePlacement) => string;
+  resolvePlacementLabel: (
+    placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+  ) => string;
   openPlainNodeMenu: CanvasNodeMenuStateController['openPlainNodeMenu'];
   dismissNodeMenu:
     CanvasNodeMenuStateController['dismissNodeMenuForPaneClick'];
@@ -77,7 +79,7 @@ export interface CanvasNodeInteractionControllerOptions {
 }
 
 export interface CanvasNodeInteractionController
-  extends CanvasNodePlacementController,
+  extends CanvasNodePlacementController<CanvasNodeType, CanvasNodeData>,
   CanvasPaneClickController,
   CanvasNodeMenuShortcutController,
   CanvasNodeClickController,

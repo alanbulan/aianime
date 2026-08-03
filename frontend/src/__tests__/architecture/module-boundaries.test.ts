@@ -7638,10 +7638,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const childControllers = [
-      "./useCanvasNodeHover",
-      "./useCanvasConnectionGestureController",
-    ];
+    const childControllers = ["./useCanvasConnectionGestureController"];
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
@@ -7653,6 +7650,9 @@ describe("frontend architecture boundaries", () => {
         childController.replace("./", "./hooks/"),
       );
     }
+    expect(controllerSource).toContain("useCanvasNodeHover");
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("./useCanvasNodeHover");
     expect(controllerSource).toContain("@/features/canvas/canvasStore");
     expect(controllerSource).toContain(
       "clearHoveredNodeTimer: hover.clearHoveredNodeTimer",
@@ -7666,13 +7666,14 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas transient node UI timing in presentation hooks", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hoverHookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeHover.ts",
+      moduleRoot,
+      "presentation/useCanvasNodeHover.ts",
     );
     const placementHookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodePlacementConfirm.ts",
+      moduleRoot,
+      "presentation/useCanvasNodePlacementConfirm.ts",
     );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
@@ -7687,9 +7688,7 @@ describe("frontend architecture boundaries", () => {
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
           specifier.startsWith("@/stores/") ||
-          specifier.startsWith("@/features/canvas/application/") ||
-          specifier.startsWith("@/features/canvas/infrastructure/") ||
-          specifier === "@/features/canvas/composition",
+          specifier.startsWith("@/features/"),
       ),
     );
     const declarations = [
@@ -7705,8 +7704,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      ["features/canvas/hooks/useCanvasNodeHover.ts"],
-      ["features/canvas/hooks/useCanvasNodePlacementConfirm.ts"],
+      ["modules/creative_canvas/presentation/useCanvasNodeHover.ts"],
+      ["modules/creative_canvas/presentation/useCanvasNodePlacementConfirm.ts"],
     ]);
     expect(canvasView).toContain(
       "./hooks/useCanvasConnectionGestureSurfaceController",
@@ -7718,12 +7717,27 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("NODE_SPAWN_PLUS_HIDE_DELAY_MS");
     expect(canvasView).not.toContain("placementConfirmTimerRef");
     expect(canvasView).not.toContain("setPlacementConfirmNodeId");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
+      expect.arrayContaining([
+        "@/modules/creative_canvas/presentation/useCanvasNodeHover",
+        "@/modules/creative_canvas/presentation/useCanvasNodePlacementConfirm",
+      ]),
+    );
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodeHover.ts",
+      "features/canvas/hooks/useCanvasNodeHover.test.tsx",
+      "features/canvas/hooks/useCanvasNodePlacementConfirm.ts",
+      "features/canvas/hooks/useCanvasNodePlacementConfirm.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas node placement state in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+      moduleRoot,
+      "presentation/useCanvasNodePlacementController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -7737,16 +7751,14 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/api/"),
     );
     const declaration = [
       "export function",
-      "useCanvasNodePlacementController(",
+      "useCanvasNodePlacementController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -7755,13 +7767,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodePlacementController.ts",
     ]);
     expect(hookModel).toContain("NODE_PLACEMENT_PREVIEW_WIDTH");
     expect(hookModel).toContain("NODE_PLACEMENT_PREVIEW_HEIGHT");
     expect(hookModel).toContain("createNode(");
     expect(hookModel).toContain("bindSkill(");
     expect(hookModel).toContain("confirmPlacement(");
+    expect(hookModel).toContain("CanvasNodePlacement<TNodeType, TNodeData>");
+    expect(hookModel).not.toContain("CanvasNodeType");
+    expect(hookModel).not.toContain("CanvasNodeData");
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -7781,6 +7796,26 @@ describe("frontend architecture boundaries", () => {
       "const commitNodePlacementAtClientPosition = useCallback",
     );
     expect(canvasView).not.toContain("const nodePlacementPreview = useMemo");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodePlacementController",
+    );
+    for (const consumerPath of [
+      "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+      "features/canvas/hooks/useCanvasNodeCatalogController.ts",
+    ]) {
+      const consumer = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
+      expect(consumer, consumerPath).toContain("@/modules/creative_canvas/public");
+      expect(consumer, consumerPath).not.toContain(
+        "./useCanvasNodePlacementController",
+      );
+    }
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+      "features/canvas/hooks/useCanvasNodePlacementController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas node-click orchestration in one presentation controller", () => {
@@ -24662,7 +24697,9 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("paneClickSuppressedRef");
     expect(controllerSource).toContain("event.detail >= 2");
     expect(controllerSource).toContain("commitPlacement({");
-    expect(nodeInteractionSource).toContain(
+    expect(nodeInteractionSource).toContain("@/modules/creative_canvas/public");
+    expect(nodeInteractionSource).toContain("useCanvasNodePlacementController");
+    expect(nodeInteractionSource).not.toContain(
       "./useCanvasNodePlacementController",
     );
     expect(nodeInteractionSource).toContain("./useCanvasPaneClickController");
@@ -24835,10 +24872,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const internalDependencies = [
-      "../ui/canvasRenderProjection",
-      "./useCanvasNodePlacementConfirm",
-    ];
+    const internalDependencies = ["../ui/canvasRenderProjection"];
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
@@ -24848,6 +24882,8 @@ describe("frontend architecture boundaries", () => {
       expect(controllerSource).toContain(dependency);
     }
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("useCanvasNodePlacementConfirm");
+    expect(controllerSource).not.toContain("./useCanvasNodePlacementConfirm");
     expect(controllerSource).not.toContain("../ui/edgeVisibilityStore");
     expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
     expect(canvasSource).not.toContain("./ui/edgeVisibilityStore");

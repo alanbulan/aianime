@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import type {
+  CanvasNodePlacement,
+  SkillDefinition,
+} from '@/modules/creative_canvas/public';
 
 import type { CanvasSpawnConnectionOrigin } from '../application/canvasEdgeCreation';
 import {
@@ -15,7 +18,6 @@ import {
   type CanvasNodeType,
 } from '../domain/canvasNodes';
 import type { CanvasSpawnedNodeConnectionRequest } from './useCanvasConnectionController';
-import type { CanvasNodePlacement } from './useCanvasNodePlacementController';
 
 export interface CanvasNodeMenuSelectionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
@@ -32,7 +34,7 @@ export interface CanvasNodeMenuSelectionControllerOptions {
     data?: Partial<CanvasNodeData>,
   ) => string;
   beginNodePlacement: (
-    placement: CanvasNodePlacement,
+    placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
     clientPosition: { x: number; y: number } | null,
   ) => void;
   connectSpawnedNode: (request: CanvasSpawnedNodeConnectionRequest) => void;
@@ -85,7 +87,7 @@ export function useCanvasNodeMenuSelectionController({
 
   const startPlacement = useCallback(
     (
-      placement: CanvasNodePlacement,
+      placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
       preferredPosition?: { x: number; y: number },
     ) => {
       hideMenuForPlacement();

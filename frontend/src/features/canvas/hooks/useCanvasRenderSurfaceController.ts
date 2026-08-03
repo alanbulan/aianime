@@ -1,15 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from 'react';
 
-import { useEdgeVisibilityStore } from '@/modules/creative_canvas/public';
+import {
+  useCanvasNodePlacementConfirm,
+  useEdgeVisibilityStore,
+  type CanvasNodePlacementConfirmController,
+} from '@/modules/creative_canvas/public';
 import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,
 } from '../ui/canvasRenderProjection';
-import {
-  useCanvasNodePlacementConfirm,
-  type CanvasNodePlacementConfirmController,
-} from './useCanvasNodePlacementConfirm';
 
 export interface CanvasRenderSurfaceControllerOptions {
   nodes: Parameters<typeof projectCanvasNodesForRender>[0];

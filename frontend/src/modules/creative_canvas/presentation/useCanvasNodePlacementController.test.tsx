@@ -2,9 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 import {
   useCanvasNodePlacementController,
   type CanvasNodePlacementControllerOptions,
@@ -45,7 +43,7 @@ describe('useCanvasNodePlacementController', () => {
       useCanvasNodePlacementController(options));
 
     act(() => result.current.beginNodePlacement(
-      { type: CANVAS_NODE_TYPES.video },
+      { type: 'video' },
       { x: 330, y: 220 },
     ));
 
@@ -58,7 +56,7 @@ describe('useCanvasNodePlacementController', () => {
       label: 'Skill label',
     });
     expect(options.resolvePlacementLabel).toHaveBeenCalledWith({
-      type: CANVAS_NODE_TYPES.video,
+      type: 'video',
     });
 
     act(() => result.current.cancelNodePlacement());
@@ -81,7 +79,7 @@ describe('useCanvasNodePlacementController', () => {
       useCanvasNodePlacementController(options));
 
     act(() => result.current.beginNodePlacement(
-      { type: CANVAS_NODE_TYPES.skill, initialData, skill },
+      { type: 'skill', initialData, skill },
       null,
     ));
     let committed = false;
@@ -95,7 +93,7 @@ describe('useCanvasNodePlacementController', () => {
     expect(committed).toBe(true);
     expect(options.screenToFlowPosition).toHaveBeenCalledWith({ x: 240, y: 200 });
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.skill,
+      'skill',
       { x: 120, y: 100 },
       initialData,
     );

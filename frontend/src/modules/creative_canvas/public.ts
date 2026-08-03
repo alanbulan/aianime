@@ -422,6 +422,27 @@ export type {
   CanvasCommandSurfaceControllerOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasCommandSurfaceController";
 export {
+  useCanvasNodeHover,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeHover";
+export type {
+  CanvasNodeHoverController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeHover";
+export {
+  useCanvasNodePlacementConfirm,
+} from "@/modules/creative_canvas/presentation/useCanvasNodePlacementConfirm";
+export type {
+  CanvasNodePlacementConfirmController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodePlacementConfirm";
+export {
+  useCanvasNodePlacementController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodePlacementController";
+export type {
+  CanvasNodePlacement,
+  CanvasNodePlacementController,
+  CanvasNodePlacementControllerOptions,
+  CanvasNodePlacementPreview,
+} from "@/modules/creative_canvas/presentation/useCanvasNodePlacementController";
+export {
   CanvasContextMenu,
 } from "@/modules/creative_canvas/presentation/CanvasContextMenu";
 export type {
