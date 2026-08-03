@@ -492,6 +492,23 @@ export {
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
 } from "@/modules/creative_canvas/domain/modelDefaults";
+export {
+  MAX_HISTORY_STEPS,
+  createSnapshot,
+  normalizeHistory,
+  pushSnapshot,
+  recordCanvasInteractionHistory,
+  redoHistory,
+  undoHistory,
+} from "@/modules/creative_canvas/domain/canvasHistory";
+export type {
+  CanvasHistorySnapshot,
+  CanvasHistoryState,
+  CanvasHistoryTransition,
+  CanvasInteractionHistoryIntent,
+  CanvasInteractionHistoryResult,
+  CanvasInteractionHistoryState,
+} from "@/modules/creative_canvas/domain/canvasHistory";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

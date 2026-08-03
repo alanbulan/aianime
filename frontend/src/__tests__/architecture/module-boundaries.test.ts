@@ -6628,8 +6628,12 @@ describe("frontend architecture boundaries", () => {
     ).toHaveLength(3);
   });
 
-  it("keeps Canvas history rules in the domain model", () => {
+  it("keeps Canvas history rules in the Creative Canvas domain model", () => {
     const historyPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasHistory.ts",
+    );
+    const legacyHistoryPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasHistory.ts",
     );
@@ -6709,20 +6713,19 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenHistoryImports).toEqual([]);
     expect(forbiddenNavigationImports).toEqual([]);
+    expect(existsSync(legacyHistoryPath)).toBe(false);
     expect(historyContractOwners).toEqual([
-      "features/canvas/domain/canvasHistory.ts",
+      "modules/creative_canvas/domain/canvasHistory.ts",
     ]);
     expect(navigationOwners).toEqual([
       "features/canvas/application/canvasHistoryNavigation.ts",
     ]);
-    expect(historyModel).toContain("export function undoHistory(");
-    expect(historyModel).toContain("export function redoHistory(");
+    expect(historyModel).toContain("export function undoHistory<");
+    expect(historyModel).toContain("export function redoHistory<");
     expect(navigationModel).toContain(navigationDeclaration);
     expect(navigationModel).toContain("undoHistory(state.history, current)");
     expect(navigationModel).toContain("redoHistory(state.history, current)");
-    expect(historySlice).toContain(
-      "../domain/canvasHistory",
-    );
+    expect(historySlice).toContain("@/modules/creative_canvas/public");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
@@ -6768,7 +6771,7 @@ describe("frontend architecture boundaries", () => {
     );
     const historyPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasHistory.ts",
+      "modules/creative_canvas/domain/canvasHistory.ts",
     );
     const changeIntent = readFileSync(changeIntentPath, "utf8");
     const changeEffects = readFileSync(changeEffectsPath, "utf8");
@@ -6808,7 +6811,7 @@ describe("frontend architecture boundaries", () => {
     );
     const interactionHistoryDeclaration = [
       "export function",
-      "recordCanvasInteractionHistory(",
+      "recordCanvasInteractionHistory<",
     ].join(" ");
     const interactionHistoryOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -6839,7 +6842,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenIntentImports).toEqual([]);
     expect(interactionHistoryOwners).toEqual([
-      "features/canvas/domain/canvasHistory.ts",
+      "modules/creative_canvas/domain/canvasHistory.ts",
     ]);
     expect(changeEffectsOwners).toEqual([
       "features/canvas/application/canvasNodeChangeEffects.ts",
@@ -25677,10 +25680,11 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasHistory",
+      "@/modules/creative_canvas/public",
       "../application/canvasDataNormalization",
       "../application/canvasHistoryNavigation",
       "../application/ports",
+      "../domain/canvasNodes",
     ]));
     expect(canvasStateHeader).toContain("CanvasHistorySlice");
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
@@ -25738,7 +25742,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
-      "../domain/canvasHistory",
       "../domain/canvasEdgeNormalization",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
@@ -25792,7 +25795,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasDataNormalization",
@@ -25858,7 +25860,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/storyboardFrames",
@@ -25915,7 +25916,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
-      "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasDerivedNodeCreation",
@@ -25962,7 +25962,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../domain/canvasGeometry",
@@ -26009,7 +26008,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "../domain/canvasGeometry",
-      "../domain/canvasHistory",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/ports",
@@ -26056,7 +26054,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasHistory",
       "../domain/canvasGeometry",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",

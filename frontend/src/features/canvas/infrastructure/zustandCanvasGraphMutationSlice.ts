@@ -8,10 +8,11 @@ import {
   type NodeChange,
 } from '@xyflow/react';
 
-import { createSnapshot, pushSnapshot } from '../domain/canvasHistory';
 import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
 import {
+  createSnapshot,
   deleteCanvasEdge,
+  pushSnapshot,
   trackEdit,
 } from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';

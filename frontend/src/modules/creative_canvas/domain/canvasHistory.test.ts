@@ -11,19 +11,28 @@ import {
   undoHistory,
   type CanvasHistorySnapshot,
 } from './canvasHistory';
-import type { CanvasEdge, CanvasNode } from './canvasNodes';
 
-function snapshot(id: string): CanvasHistorySnapshot {
+interface TestNode {
+  id: string;
+}
+
+interface TestEdge {
+  id: string;
+}
+
+type TestSnapshot = CanvasHistorySnapshot<TestNode, TestEdge>;
+
+function snapshot(id: string): TestSnapshot {
   return {
-    nodes: [{ id } as CanvasNode],
+    nodes: [{ id }],
     edges: [],
   };
 }
 
 describe('Canvas history', () => {
   it('keeps one snapshot per graph reference and caps the stack', () => {
-    const nodes = [] as CanvasNode[];
-    const edges = [] as CanvasEdge[];
+    const nodes: TestNode[] = [];
+    const edges: TestEdge[] = [];
     const current = createSnapshot(nodes, edges);
     const history = [current];
     const unchanged = pushSnapshot(history, createSnapshot(nodes, edges));
@@ -78,7 +87,10 @@ describe('Canvas history', () => {
   });
 
   it('returns null when no undo or redo target exists', () => {
-    const empty = { past: [], future: [] };
+    const empty: { past: TestSnapshot[]; future: TestSnapshot[] } = {
+      past: [],
+      future: [],
+    };
     const current = snapshot('current');
 
     expect(undoHistory(empty, current)).toBeNull();

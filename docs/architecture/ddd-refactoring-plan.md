@@ -1106,6 +1106,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十三批将 Canvas 节点层级提升、单点/批量位置更新和 Cloud/BYOK 运行时模型空默认值及测试整体迁入 Creative Canvas domain；层级与位置规则以泛型最小节点合同工作并保留调用方真实 `CanvasNode`，不导入旧 Canvas、Store、React Flow 或 infrastructure，模型默认值继续固定为空字符串，只允许已认证目录提供运行时 SKU。Zustand Node Mutation Slice、节点注册表与文本节点统一经 Creative Canvas public 使用唯一规则；6 个旧生产/测试所有者直接删除，不保留 facade、re-export、第二套 reducer 或硬编码模型 SKU。Creative Canvas 由 669 增到 675，Canvas 由 530 降到 524，Freezone 保持 0，残余 ratchet 收紧到 524/0。领域、Store、节点工厂与文本节点 Vitest 7 个文件 16 项、定向架构 5 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；首轮行为回归 11/16，5 项失败均为文本节点全量 mock 未暴露新增空默认常量，补齐真实 `''` 合同后 16/16 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百六十四批将 Canvas History 快照、栈上限、恢复归一、连续拖拽记账及 undo/redo 领域规则和测试整体迁入 Creative Canvas domain；新合同以 `CanvasHistoryState<TNode, TEdge>`、`CanvasHistorySnapshot<TNode, TEdge>` 泛型保留调用方真实节点/边类型，不导入旧 Canvas、Store、React Flow 或 infrastructure。Canvas 数据归一、节点/边变更效果、History Navigation 与 8 个 Zustand Slice 统一经 Creative Canvas public 使用唯一实现；旧领域文件与测试直接删除，不保留 facade、re-export 或第二套 History 规则，Navigation 本批仍作为旧 Canvas application 适配层。Creative Canvas 由 675 增到 677，Canvas 由 524 降到 522，Freezone 保持 0，残余 ratchet 收紧到 522/0。History 领域与应用行为 Vitest 4 个文件 13 项、定向模块边界 11 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过；定向架构首次 10/11，唯一失败是 History Slice 的精确导入集合漏记用于绑定泛型的节点/边类型，补齐真实依赖后复跑全绿。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

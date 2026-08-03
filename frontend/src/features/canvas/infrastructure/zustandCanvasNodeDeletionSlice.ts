@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
-  pushSnapshot,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import {
   deleteCanvasNodes,
   isDeleteToEmpty,
+  pushSnapshot,
   trackEdit,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
   type CanvasMutationSource,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
@@ -29,8 +27,8 @@ interface CanvasNodeDeletionState extends CanvasMutationState {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasNodeDeletionSliceDependencies {

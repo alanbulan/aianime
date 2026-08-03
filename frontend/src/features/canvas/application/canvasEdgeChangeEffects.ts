@@ -2,11 +2,9 @@
 import {
   createSnapshot,
   pushSnapshot,
+  trackEdit,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import {
-  trackEdit,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
@@ -15,14 +13,14 @@ import { hasMeaningfulCanvasEdgeChange } from './canvasChangeIntent';
 export interface CanvasEdgeChangeEffectState extends CanvasMutationState {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 export interface CanvasEdgeChangeEffectResult {
   edges: CanvasEdge[];
-  history?: CanvasHistoryState;
-  dragHistorySnapshot?: CanvasHistorySnapshot | null;
+  history?: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot?: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
   userEditsSinceHydrate?: number;
   lastMutationSource?: CanvasMutationState['lastMutationSource'];
 }

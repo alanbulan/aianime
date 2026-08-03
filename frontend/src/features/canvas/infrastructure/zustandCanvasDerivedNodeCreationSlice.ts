@@ -4,10 +4,11 @@ import type { Viewport } from '@xyflow/react';
 import {
   createSnapshot,
   pushSnapshot,
+  trackEdit,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import { trackEdit, type CanvasMutationState } from '@/modules/creative_canvas/public';
+  type CanvasMutationState,
+} from '@/modules/creative_canvas/public';
 import type {
   ActiveToolDialog,
   CanvasEdge,
@@ -79,8 +80,8 @@ interface CanvasDerivedNodeCreationState extends CanvasMutationState {
   activeToolDialog: ActiveToolDialog | null;
   currentViewport: Viewport;
   canvasViewportSize: { width: number; height: number };
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasDerivedNodeCreationSliceDependencies {

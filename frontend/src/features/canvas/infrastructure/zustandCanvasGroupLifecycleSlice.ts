@@ -1,22 +1,20 @@
 // Copyright (c) 2026 AI anime
-import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
-import {
-  createSnapshot,
-  pushSnapshot,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-} from '../domain/canvasHistory';
 import {
   arrangeCanvasGroupChildren,
+  createSnapshot,
   createCanvasNodeGroup,
   fitCanvasGroupToChildren,
   planCanvasAutoGroupSpawn,
+  pushSnapshot,
   trackEdit,
   ungroupCanvasNode,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
   type CanvasGroupCreationOptions,
   type CanvasGroupArrangementMode,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
+import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   CANVAS_NODE_TYPES,
   isGroupNode,
@@ -64,8 +62,8 @@ interface CanvasGroupLifecycleState extends CanvasMutationState {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasGroupLifecycleSliceDependencies {

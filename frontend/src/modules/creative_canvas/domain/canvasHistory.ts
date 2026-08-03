@@ -1,24 +1,22 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasEdge, CanvasNode } from './canvasNodes';
-
-export interface CanvasHistorySnapshot {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+export interface CanvasHistorySnapshot<TNode, TEdge> {
+  nodes: TNode[];
+  edges: TEdge[];
 }
 
-export interface CanvasHistoryState {
-  past: CanvasHistorySnapshot[];
-  future: CanvasHistorySnapshot[];
+export interface CanvasHistoryState<TNode, TEdge> {
+  past: CanvasHistorySnapshot<TNode, TEdge>[];
+  future: CanvasHistorySnapshot<TNode, TEdge>[];
 }
 
-export interface CanvasHistoryTransition {
-  target: CanvasHistorySnapshot;
-  history: CanvasHistoryState;
+export interface CanvasHistoryTransition<TNode, TEdge> {
+  target: CanvasHistorySnapshot<TNode, TEdge>;
+  history: CanvasHistoryState<TNode, TEdge>;
 }
 
-export interface CanvasInteractionHistoryState {
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+export interface CanvasInteractionHistoryState<TNode, TEdge> {
+  history: CanvasHistoryState<TNode, TEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<TNode, TEdge> | null;
 }
 
 export interface CanvasInteractionHistoryIntent {
@@ -27,23 +25,24 @@ export interface CanvasInteractionHistoryIntent {
   hasInteractionEnd: boolean;
 }
 
-export interface CanvasInteractionHistoryResult extends CanvasInteractionHistoryState {
+export interface CanvasInteractionHistoryResult<TNode, TEdge>
+  extends CanvasInteractionHistoryState<TNode, TEdge> {
   editPushed: boolean;
 }
 
 export const MAX_HISTORY_STEPS = 50;
 
-export function createSnapshot(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
-): CanvasHistorySnapshot {
+export function createSnapshot<TNode, TEdge>(
+  nodes: TNode[],
+  edges: TEdge[],
+): CanvasHistorySnapshot<TNode, TEdge> {
   return { nodes, edges };
 }
 
-export function pushSnapshot(
-  snapshots: CanvasHistorySnapshot[],
-  snapshot: CanvasHistorySnapshot,
-): CanvasHistorySnapshot[] {
+export function pushSnapshot<TNode, TEdge>(
+  snapshots: CanvasHistorySnapshot<TNode, TEdge>[],
+  snapshot: CanvasHistorySnapshot<TNode, TEdge>,
+): CanvasHistorySnapshot<TNode, TEdge>[] {
   const last = snapshots[snapshots.length - 1];
   if (last && last.nodes === snapshot.nodes && last.edges === snapshot.edges) {
     return snapshots;
@@ -53,13 +52,13 @@ export function pushSnapshot(
   return next.length > MAX_HISTORY_STEPS ? next.slice(-MAX_HISTORY_STEPS) : next;
 }
 
-export function normalizeHistory(
-  history: CanvasHistoryState | undefined,
+export function normalizeHistory<TNode, TEdge>(
+  history: CanvasHistoryState<TNode, TEdge> | undefined,
   normalizeSnapshot: (
-    nodes: CanvasNode[],
-    edges: CanvasEdge[],
-  ) => CanvasHistorySnapshot,
-): CanvasHistoryState {
+    nodes: TNode[],
+    edges: TEdge[],
+  ) => CanvasHistorySnapshot<TNode, TEdge>,
+): CanvasHistoryState<TNode, TEdge> {
   if (!history) {
     return { past: [], future: [] };
   }
@@ -74,11 +73,11 @@ export function normalizeHistory(
   };
 }
 
-export function recordCanvasInteractionHistory(
-  state: CanvasInteractionHistoryState,
-  current: CanvasHistorySnapshot,
+export function recordCanvasInteractionHistory<TNode, TEdge>(
+  state: CanvasInteractionHistoryState<TNode, TEdge>,
+  current: CanvasHistorySnapshot<TNode, TEdge>,
   intent: CanvasInteractionHistoryIntent,
-): CanvasInteractionHistoryResult {
+): CanvasInteractionHistoryResult<TNode, TEdge> {
   let nextHistory = state.history;
   let nextDragHistorySnapshot = state.dragHistorySnapshot;
   let editPushed = false;
@@ -111,10 +110,10 @@ export function recordCanvasInteractionHistory(
   };
 }
 
-export function undoHistory(
-  history: CanvasHistoryState,
-  current: CanvasHistorySnapshot,
-): CanvasHistoryTransition | null {
+export function undoHistory<TNode, TEdge>(
+  history: CanvasHistoryState<TNode, TEdge>,
+  current: CanvasHistorySnapshot<TNode, TEdge>,
+): CanvasHistoryTransition<TNode, TEdge> | null {
   const target = history.past[history.past.length - 1];
   if (!target) {
     return null;
@@ -129,10 +128,10 @@ export function undoHistory(
   };
 }
 
-export function redoHistory(
-  history: CanvasHistoryState,
-  current: CanvasHistorySnapshot,
-): CanvasHistoryTransition | null {
+export function redoHistory<TNode, TEdge>(
+  history: CanvasHistoryState<TNode, TEdge>,
+  current: CanvasHistorySnapshot<TNode, TEdge>,
+): CanvasHistoryTransition<TNode, TEdge> | null {
   const target = history.future[history.future.length - 1];
   if (!target) {
     return null;

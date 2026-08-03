@@ -1,15 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
-  pushSnapshot,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import {
   elevateCanvasNodes,
+  pushSnapshot,
   setCanvasNodePositions,
   trackEdit,
   updateCanvasNodePosition,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import type {
@@ -75,8 +73,8 @@ export interface CanvasNodeMutationSlice {
 interface CanvasNodeMutationState extends CanvasMutationState {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasNodeMutationSliceDependencies {

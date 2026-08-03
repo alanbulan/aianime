@@ -1,22 +1,20 @@
 // Copyright (c) 2026 AI anime
 import {
-  createSnapshot,
-  pushSnapshot,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
-import {
   addCanvasStoryboardGroupMembers,
   configureCanvasStoryboardGroup,
   convertCanvasStoryboardGroupToPlain,
+  createSnapshot,
   createCanvasStoryboardGroup,
+  pushSnapshot,
   reorderCanvasStoryboardGroupMember,
   trackEdit,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
   type CanvasStoryboardMemberImage,
   type CanvasMutationState,
   type CanvasStoryboardGroupConfig,
 } from '@/modules/creative_canvas/public';
+import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_NODE_WIDTH,
@@ -61,8 +59,8 @@ interface CanvasStoryboardGroupState extends CanvasMutationState {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasStoryboardGroupSliceDependencies {

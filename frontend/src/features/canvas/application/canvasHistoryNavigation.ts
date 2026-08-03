@@ -1,16 +1,14 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
-  redoHistory,
-  undoHistory,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import {
   isDeleteToEmpty,
+  redoHistory,
   resolveActiveToolDialog,
   resolveSelectedNodeId,
   trackEdit,
+  undoHistory,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import type {
@@ -26,8 +24,8 @@ export interface CanvasHistoryNavigationState extends CanvasMutationState {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 export interface CanvasHistoryNavigationResult {
@@ -35,7 +33,7 @@ export interface CanvasHistoryNavigationResult {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
   dragHistorySnapshot: null;
   userEditsSinceHydrate: number;
   lastMutationSource: CanvasMutationState['lastMutationSource'];

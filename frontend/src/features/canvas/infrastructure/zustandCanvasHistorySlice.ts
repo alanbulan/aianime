@@ -3,7 +3,7 @@ import {
   normalizeHistory,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
-} from '../domain/canvasHistory';
+} from '@/modules/creative_canvas/public';
 import { normalizeCanvasData } from '../application/canvasDataNormalization';
 import {
   navigateCanvasHistory,
@@ -11,14 +11,17 @@ import {
   type CanvasHistoryNavigationState,
 } from '../application/canvasHistoryNavigation';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasHistorySlice {
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
   undo: () => boolean;
   redo: () => boolean;
   /** Replace persisted history without changing the current graph. */
-  restoreHistory: (history: CanvasHistoryState) => void;
+  restoreHistory: (
+    history: CanvasHistoryState<CanvasNode, CanvasEdge>,
+  ) => void;
 }
 
 interface CanvasHistorySliceStore {

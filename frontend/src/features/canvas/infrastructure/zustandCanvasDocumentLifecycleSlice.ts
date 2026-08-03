@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import {
   createSnapshot,
+  isDeleteToEmpty,
   normalizeHistory,
   pushSnapshot,
+  trackEdit,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
-} from '../domain/canvasHistory';
-import {
-  isDeleteToEmpty,
-  trackEdit,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
 import type {
@@ -22,7 +20,7 @@ import type { CanvasNodeDefaultDataGateway } from '../application/ports';
 export interface CanvasDraftHydration {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
-  history?: CanvasHistoryState | null;
+  history?: CanvasHistoryState<CanvasNode, CanvasEdge> | null;
   mutation: CanvasMutationState;
 }
 
@@ -30,7 +28,7 @@ export interface CanvasDocumentLifecycleSlice extends CanvasMutationState {
   setCanvasData: (
     nodes: CanvasNode[],
     edges: CanvasEdge[],
-    history?: CanvasHistoryState,
+    history?: CanvasHistoryState<CanvasNode, CanvasEdge>,
   ) => void;
   applyCanvasDataEdit: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
   hydrateCanvasDraft: (draft: CanvasDraftHydration) => void;
@@ -43,8 +41,8 @@ interface CanvasDocumentLifecycleState extends CanvasMutationState {
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
+  history: CanvasHistoryState<CanvasNode, CanvasEdge>;
+  dragHistorySnapshot: CanvasHistorySnapshot<CanvasNode, CanvasEdge> | null;
 }
 
 interface CanvasDocumentLifecycleSliceStore {
