@@ -1,9 +1,27 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from "./canvasNodes";
+  CANVAS_CONNECTION_NODE_TYPES,
+  type CanvasConnectionNodeType,
+} from "./canvasConnection";
+
+export interface BeatContextRoleBindingNode {
+  id: string;
+  type: CanvasConnectionNodeType;
+  data?: unknown;
+}
+
+export interface BeatContextRoleBindingEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  type?: string;
+  data?: Record<string, unknown>;
+}
+
+type CanvasNode = BeatContextRoleBindingNode;
+type CanvasEdge = BeatContextRoleBindingEdge;
 
 const NO_CHARACTER_MARKER = "__NO_CHARACTER__";
 const NO_PROP_MARKER = "__NO_PROP__";
@@ -136,7 +154,7 @@ function createReferenceEdge(
 
 function isFrameFromContextNode(node: CanvasNode): boolean {
   return (
-    node.type === CANVAS_NODE_TYPES.skill &&
+    node.type === CANVAS_CONNECTION_NODE_TYPES.skill &&
     dataRecord(node.data).skill_id === "freezone.frame_from_context"
   );
 }
@@ -172,13 +190,13 @@ export function syncBeatContextMainlineEdges(
   identities: readonly string[],
   props: readonly string[],
   nodes: readonly CanvasNode[],
-  edges: readonly CanvasEdge[],
+  edges: CanvasEdge[],
 ): CanvasEdge[] {
   const selectedIdentityIds = identities.filter((id) => id && id !== NO_CHARACTER_MARKER);
   const selectedPropIds = props.filter((id) => id && id !== NO_PROP_MARKER);
   const frameSkillIds = resolveFrameSkillIds(beatContextNodeId, nodes, edges);
   if (frameSkillIds.size === 0) {
-    return edges as CanvasEdge[];
+    return edges;
   }
 
   const identityBindings = selectedIdentityIds.flatMap((identityId) =>
@@ -241,5 +259,5 @@ export function syncBeatContextMainlineEdges(
     }
   }
 
-  return changed ? nextEdges : edges as CanvasEdge[];
+  return changed ? nextEdges : edges;
 }

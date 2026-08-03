@@ -35,7 +35,6 @@ import {
 } from '@/features/canvas/application/beatContextNodeModel';
 import { buildBeatContextNodeRefreshPatch } from '@/features/canvas/application/beatContextRefreshProjection';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { syncBeatContextMainlineEdges } from '@/features/canvas/domain/beatContextRoleBindings';
 import type {
   BeatContextNodeData,
   CanvasEdge,
@@ -52,6 +51,7 @@ import {
   openPresetProjectionInMyCanvas,
   parseBeatContextVisualMarkers,
   presetRequestFromMetadata,
+  syncBeatContextMainlineEdges,
 } from '@/modules/creative_canvas/public';
 import {
   updateBeat,

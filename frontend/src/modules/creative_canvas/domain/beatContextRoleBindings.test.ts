@@ -1,26 +1,26 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { syncBeatContextMainlineEdges } from "./beatContextRoleBindings";
-import type { CanvasEdge, CanvasNode } from "./canvasNodes";
+import {
+  syncBeatContextMainlineEdges,
+  type BeatContextRoleBindingEdge as CanvasEdge,
+  type BeatContextRoleBindingNode as CanvasNode,
+} from "./beatContextRoleBindings";
 
 const nodes = [
   {
     id: "context_beat",
     type: "beatContextNode",
-    position: { x: 0, y: 0 },
     data: {},
   },
   {
     id: "skill_frame_from_context",
     type: "skillNode",
-    position: { x: 0, y: 0 },
     data: { skill_id: "freezone.frame_from_context" },
   },
   {
     id: "ref_identity_keep",
     type: "imageGenNode",
-    position: { x: 0, y: 0 },
     data: {
       __freezone_source: {
         kind: "identity",
@@ -32,7 +32,6 @@ const nodes = [
   {
     id: "ref_identity_new",
     type: "imageGenNode",
-    position: { x: 0, y: 0 },
     data: {
       __freezone_source: {
         kind: "identity",
@@ -44,7 +43,6 @@ const nodes = [
   {
     id: "ref_identity_removed",
     type: "imageGenNode",
-    position: { x: 0, y: 0 },
     data: {
       __freezone_source: {
         kind: "identity",
@@ -56,7 +54,6 @@ const nodes = [
   {
     id: "ref_prop_removed",
     type: "imageGenNode",
-    position: { x: 0, y: 0 },
     data: {
       __freezone_source: {
         kind: "prop",

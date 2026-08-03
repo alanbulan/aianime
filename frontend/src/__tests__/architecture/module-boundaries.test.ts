@@ -3917,15 +3917,24 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("owns Beat Context role bindings in the Canvas domain", () => {
-    const legacyPath = resolve(
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const legacyFreezonePath = resolve(
       SRC_ROOT,
       "features/freezone/context/beatContextProjection.ts",
     );
     const domainPath = resolve(
+      moduleRoot,
+      "domain/beatContextRoleBindings.ts",
+    );
+    const legacyDomainPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/beatContextRoleBindings.ts",
     );
     const testPath = resolve(
+      moduleRoot,
+      "domain/beatContextRoleBindings.test.ts",
+    );
+    const legacyTestPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/beatContextRoleBindings.test.ts",
     );
@@ -3949,16 +3958,24 @@ describe("frontend architecture boundaries", () => {
       )
       .sort();
 
-    expect(existsSync(legacyPath)).toBe(false);
-    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(existsSync(legacyFreezonePath)).toBe(false);
+    expect(existsSync(legacyDomainPath)).toBe(false);
+    expect(existsSync(legacyTestPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasConnection"]);
     expect(declarationOwners).toEqual([
-      "features/canvas/domain/beatContextRoleBindings.ts",
+      "modules/creative_canvas/domain/beatContextRoleBindings.ts",
     ]);
     expect(importSpecifiers(nodePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/features/canvas/domain/beatContextRoleBindings",
     );
-    expect(new Set(importSpecifiers(testPath))).toEqual(
-      new Set(["vitest", "./beatContextRoleBindings", "./canvasNodes"]),
+    expect(importSpecifiers(testPath)).toEqual(
+      ["vitest", "./beatContextRoleBindings"],
+    );
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/beatContextRoleBindings",
     );
     expect(legacyConsumers).toEqual([]);
   });

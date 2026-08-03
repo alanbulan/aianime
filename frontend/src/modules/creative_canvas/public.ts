@@ -195,6 +195,11 @@ export type {
   CanvasBatchConnectTarget,
   CanvasBatchConnectionNode,
 } from "@/modules/creative_canvas/domain/canvasBatchConnection";
+export { syncBeatContextMainlineEdges } from "@/modules/creative_canvas/domain/beatContextRoleBindings";
+export type {
+  BeatContextRoleBindingEdge,
+  BeatContextRoleBindingNode,
+} from "@/modules/creative_canvas/domain/beatContextRoleBindings";
 export {
   normalizeEdgesWithNodes,
   normalizeHandleId,

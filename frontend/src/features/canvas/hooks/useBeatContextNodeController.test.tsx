@@ -72,11 +72,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/domain/beatContextRoleBindings', () => ({
-  syncBeatContextMainlineEdges: (...args: unknown[]) =>
-    mocks.syncMainlineEdges(...args),
-}));
-
 vi.mock('@/modules/creative_canvas/public', () => ({
   applyRemoteFreezoneCanvas: (...args: unknown[]) =>
     mocks.applyRemoteCanvas(...args),
@@ -89,6 +84,10 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   getFreezoneCanvas: (...args: unknown[]) => mocks.getCanvas(...args),
   getFreezoneCanvasMetadata: () => mocks.getMetadata(),
   isCanonicalPushTarget: () => false,
+  isPresetManagedEdge: (edge: { data?: { preset_managed?: unknown } }) =>
+    edge.data?.preset_managed === true,
+  isPresetManagedNode: (node: { data?: { preset_managed?: unknown } }) =>
+    node.data?.preset_managed === true,
   listFreezoneBeatContext: (...args: unknown[]) =>
     mocks.listBeatContext(...args),
   openPresetProjectionInMyCanvas: (...args: unknown[]) =>
@@ -103,6 +102,8 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   }),
   presetRequestFromMetadata: (...args: unknown[]) =>
     mocks.presetRequest(...args),
+  syncBeatContextMainlineEdges: (...args: unknown[]) =>
+    mocks.syncMainlineEdges(...args),
 }));
 
 vi.mock('@/modules/narrative_planning/public', () => ({

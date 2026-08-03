@@ -323,6 +323,8 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasGeometry.test.ts",
       "canvasBatchConnection.ts",
       "canvasBatchConnection.test.ts",
+      "beatContextRoleBindings.ts",
+      "beatContextRoleBindings.test.ts",
     ];
     const canvasConnectionApplicationFiles = [
       "canvasEdgeCreation.ts",
@@ -964,6 +966,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/domain/canvasAssets.test.ts",
       "features/canvas/domain/videoReferenceMedia.ts",
       "features/canvas/domain/videoReferenceMedia.test.ts",
+      "features/canvas/domain/beatContextRoleBindings.ts",
+      "features/canvas/domain/beatContextRoleBindings.test.ts",
       "__tests__/features/canvas/skill-connection-edges.test.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredConnectionPath))).toBe(false);
@@ -2292,7 +2296,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 400],
+      ["features/canvas", 398],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
