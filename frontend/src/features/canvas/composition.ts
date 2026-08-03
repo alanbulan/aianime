@@ -11,6 +11,7 @@ import {
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
 import {
+  browserImageRuntimeGateway,
   composeCapability,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
@@ -88,7 +89,6 @@ import {
 } from './application/uploadCanvasAsset';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
-import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
 import {
   applyStoryboardTextOverlay,
   getStoryboardReferenceFrameHeight,

@@ -3080,12 +3080,14 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/imagePreparation.ts",
       "__tests__/features/canvas/image-preparation.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
-    const imageRuntime = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/infrastructure/browserImageRuntime.ts",
-      ),
-      "utf8",
+    const imageRuntimePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserImageRuntime.ts",
+    );
+    const imageRuntime = readFileSync(imageRuntimePath, "utf8");
+    const legacyImageRuntimePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserImageRuntime.ts",
     );
     const errorDialog = readFileSync(
       resolve(applicationRoot, "errorDialog.ts"),
@@ -3232,7 +3234,7 @@ describe("frontend architecture boundaries", () => {
     expect(toolImageGateway).toContain("@/modules/creative_canvas/public");
     expect(toolImageGateway).not.toContain("../domain/toolImageGeometry");
     expect(toolImageGateway).toContain("cropImageSource");
-    expect(toolImageGateway).toContain("./browserImageRuntime");
+    expect(toolImageGateway).not.toContain("./browserImageRuntime");
     expect(imageData).not.toContain("document.");
     expect(imageData).not.toContain("new Image(");
     expect(imageData).not.toContain("new FileReader(");
@@ -3254,6 +3256,14 @@ describe("frontend architecture boundaries", () => {
     expect(imageRuntime).toContain("document.createElement('canvas')");
     expect(imageRuntime).toContain("new Image()");
     expect(imageRuntime).toContain("new FileReader()");
+    expect(new Set(importSpecifiers(imageRuntimePath))).toEqual(
+      new Set([
+        "../application/imagePreparation",
+        "../domain/imageData",
+        "@/shared/media/cross-origin",
+      ]),
+    );
+    expect(existsSync(legacyImageRuntimePath)).toBe(false);
     expect(errorDialog).toContain("export function resolveErrorContent(");
     expect(errorDialog).not.toContain("openGlobalErrorDialog");
     expect(globalErrorDialog).toContain("openGlobalErrorDialog({");

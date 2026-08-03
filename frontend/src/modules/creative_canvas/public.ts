@@ -566,6 +566,12 @@ export type {
   CanvasImageRuntimeGateway,
   PreparedNodeImage,
 } from "@/modules/creative_canvas/application/imagePreparation";
+export {
+  browserImageRuntimeGateway,
+  canvasToDataUrl,
+  loadImageElement,
+  persistImageLocally,
+} from "@/modules/creative_canvas/infrastructure/browserImageRuntime";
 export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,

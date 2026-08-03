@@ -9,7 +9,7 @@ import type {
 import {
   canvasToDataUrl,
   loadImageElement,
-} from '@/features/canvas/infrastructure/browserImageRuntime';
+} from '@/modules/creative_canvas/public';
 
 function trimTextToWidth(
   context: CanvasRenderingContext2D,

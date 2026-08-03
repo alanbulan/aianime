@@ -2,8 +2,8 @@
 import {
   isLikelyLocalImagePath,
   resolveImageDisplayUrl,
-  type CanvasImageRuntimeGateway,
-} from '@/modules/creative_canvas/public';
+} from '../domain/imageData';
+import type { CanvasImageRuntimeGateway } from '../application/imagePreparation';
 import { mediaNeedsCrossOrigin } from '@/shared/media/cross-origin';
 
 interface ErrorWithDetails extends Error {

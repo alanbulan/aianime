@@ -6,18 +6,16 @@ import {
 
 import type { CanvasToolImageGateway } from '../application/ports';
 import {
+  browserImageRuntimeGateway,
+  canvasToDataUrl,
+  loadImageElement,
   parseAspectRatio,
+  persistImageLocally,
   resolveMaxAllowedLineThickness,
   splitIntoSegments,
   reduceAspectRatio,
 } from '@/modules/creative_canvas/public';
 import { drawAnnotations, parseAnnotationItems } from '../tools/annotation';
-import {
-  browserImageRuntimeGateway,
-  canvasToDataUrl,
-  loadImageElement,
-  persistImageLocally,
-} from './browserImageRuntime';
 
 async function cropImage(
   sourceImage: string,
