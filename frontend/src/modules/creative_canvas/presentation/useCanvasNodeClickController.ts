@@ -5,8 +5,8 @@ import {
 } from 'react';
 
 import type { CanvasFocusableNode } from './useCanvasPendingNodeFocus';
+import { DEFAULT_CANVAS_NODE_WIDTH } from '../domain/canvasGeometry';
 
-const DEFAULT_NODE_WIDTH = 320;
 const DEFAULT_STORYBOARD_GROUP_HEIGHT = 240;
 const STORYBOARD_FOCUS_OPTIONS = { zoom: 1, duration: 320 } as const;
 
@@ -66,7 +66,7 @@ export function useCanvasNodeClickController<
 
       const width = node.measured?.width
         ?? node.width
-        ?? DEFAULT_NODE_WIDTH;
+        ?? DEFAULT_CANVAS_NODE_WIDTH;
       const height = node.measured?.height
         ?? node.height
         ?? DEFAULT_STORYBOARD_GROUP_HEIGHT;

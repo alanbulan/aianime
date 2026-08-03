@@ -12,6 +12,8 @@ import {
   cloneCanvasNodeData,
   createCanvasClipboardSession,
   createCanvasClipboardSnapshot,
+  getNodeSize,
+  hasRectCollision,
   useCanvasClipboardDuplicationController,
   useCanvasNodeClipboard,
   type CanvasClipboardDuplicationController,
@@ -20,7 +22,6 @@ import {
   type CanvasClipboardNodeSelectionCommit,
   type CanvasNodeClipboardController,
 } from '@/modules/creative_canvas/public';
-import { getNodeSize, hasRectCollision } from '../domain/canvasGeometry';
 import type {
   CanvasEdge,
   CanvasNode,

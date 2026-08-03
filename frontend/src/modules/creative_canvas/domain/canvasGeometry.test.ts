@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import {
   canvasNodeIntersectsSelectionRect,
   canvasViewportOverlapsRect,
@@ -13,7 +12,15 @@ import {
   hasRectCollision,
   rectsIntersect,
   resolveAbsolutePosition,
+  type CanvasGeometryNode,
 } from './canvasGeometry';
+
+const CANVAS_NODE_TYPES = {
+  upload: 'uploadNode',
+  video: 'videoNode',
+} as const;
+
+type CanvasNode = CanvasGeometryNode;
 
 function node(
   id: string,
@@ -26,7 +33,7 @@ function node(
     position,
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas geometry', () => {

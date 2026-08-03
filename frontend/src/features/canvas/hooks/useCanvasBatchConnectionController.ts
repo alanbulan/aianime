@@ -1,12 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo, useRef, type RefObject } from 'react';
 
-import type { CanvasConnectionPreviewRequest } from '@/modules/creative_canvas/public';
-
 import {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
-} from '../domain/canvasBatchConnection';
+  type CanvasConnectionPreviewRequest,
+} from '@/modules/creative_canvas/public';
 import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
 import type { CanvasManualConnectionRequest } from '../ui/canvasConnectionInteraction';
 

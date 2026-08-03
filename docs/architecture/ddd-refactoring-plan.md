@@ -448,7 +448,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 5. Narrative Planning | 已完成 | 后端领域/应用/适配器边界与前端 route/controller/view 已收敛到唯一模块 |
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
 | 7. Production | 已完成 | 前后端 Production 边界、合成页、episode presentation 与 Beat 状态读模型均已收敛到唯一 public API |
-| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 798 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 420/0 个；R1-A、R1-B 和 R1-F 已关闭。第 793 批已将节点连接能力表、连接校验、边规范化、技能角色建边和边创建用例收进唯一模块所有者，并删除 `nodeRegistry` 的重复 connectivity 逻辑。App Shell 对旧 Canvas 私有入口保持 4 个；R1-C 至 R1-E 的其余 Canvas 所有权尚未迁完，阶段 8 不标记完成 |
+| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 802 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 416/0 个；R1-A、R1-B 和 R1-F 已关闭。第 794 批已将 Canvas 几何、碰撞、可用位置与批量连接规划收进唯一模块所有者，并统一 320px 默认节点宽度。App Shell 对旧 Canvas 私有入口保持 4 个；R1-C 至 R1-E 的其余 Canvas 所有权尚未迁完，阶段 8 不标记完成 |
 | 9. Supporting Contexts | 已完成 | Model Usage、Platform Release、AI Assistant 与 Task Execution 已形成唯一模块边界；旧 `features/superchat`、旧 `task-center` 和旧 `task_backend` 已删除，跨上下文提交、业务 route 组合和本地 inline 重启恢复均已收口 |
 | 10. 最终收敛 | 第二轮收尾中 | 当前定向门禁可通过，但扫描范围未覆盖全部遗留目录，且尚未在与锁文件一致的干净环境完成最终复验 |
 
@@ -1165,6 +1165,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 第七百九十二批将节点/边变更意图及测试迁入 Creative Canvas domain，将节点/边变更后的历史、选择、工具对话框、编辑来源和媒体尺寸锁定编排及测试迁入 Creative Canvas application；应用规则使用泛型节点、边和对话框合同保留 Canvas 实际类型，模块内部只相对依赖 History、Mutation、Selection、Image Layout 与 Change Intent，不依赖旧 Canvas 或自身 public。Zustand 图变更切片统一经 Creative Canvas public 调用，6 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 784 增到 790，Canvas 由 433 降到 427，Freezone 保持 0，残余 ratchet 收紧到 427/0。行为 Vitest 3 个文件 8 项、定向架构 2 个文件 337 项、完整前端架构目录 6 个文件 384 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
 第七百九十三批将节点连接能力表、上下游白名单、菜单/手动连接判定、连接校验、边 hydration 规范化、技能角色建边及边创建用例与测试迁入 Creative Canvas domain/application；领域合同使用最小图节点/边结构，不依赖 React Flow、旧 Canvas 或模块 public。旧 `nodeRegistry` 删除重复 connectivity 数据和连接函数，只保留节点目录及默认数据；批量连接、拖线交互、连接 controller、数据 hydration、Zustand 图变更和节点加号入口统一经 Creative Canvas public 使用唯一规则。7 个旧 Canvas 生产/测试所有者及 1 个外置测试所有者直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 790 增到 798，Canvas 由 427 降到 420，Freezone 保持 0，残余 ratchet 收紧到 420/0。相邻行为 Vitest 10 个文件 58 项、定向架构 2 个文件 337 项、完整前端架构目录 6 个文件 384 项、前端 TypeScript 和 `git diff --check` 通过；首次类型检查仅暴露迁移测试的窄节点合同未声明可选坐标，补齐最小真实结构后通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第七百九十四批将 Canvas 尺寸解析、矩形碰撞、绝对坐标、可用位置、视口边界与批量连接上下文/目标规划及测试迁入 Creative Canvas domain；几何规则改用最小 `CanvasGeometryNode` 合同，不依赖 React Flow、旧 Canvas 或模块 public。Canvas application、controller、UI、边路由和 Zustand 消费者统一经 Creative Canvas public 使用唯一规则；旧 `canvasNodes.ts` 删除重复 `DEFAULT_NODE_WIDTH`，320px 默认宽度由 `DEFAULT_CANVAS_NODE_WIDTH` 唯一持有，吸附算法独立的 200px 无尺寸回退明确命名为 `DEFAULT_SNAP_NODE_WIDTH`。4 个旧 Canvas 生产/测试所有者直接删除，不保留 facade、re-export 或第二套实现。Creative Canvas 由 798 增到 802，Canvas 由 420 降到 416，Freezone 保持 0，残余 ratchet 收紧到 416/0。相邻行为 Vitest 6 个文件 27 项、定向架构 2 个文件 337 项、完整前端架构目录 6 个文件 384 项、前端 TypeScript 和 `git diff --check` 通过；行为门禁首次运行的 2 项失败仅暴露视口控制器测试桩未声明新 public 的 `getNodeSize`，补齐迁移后的真实模块合同后复跑全绿，生产逻辑未因此改变。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
 任务：
 

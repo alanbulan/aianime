@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   isExportImageNode,
   isImageEditNode,
   isImageGenNode,
@@ -17,6 +16,7 @@ import {
   type CanvasNode,
   type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
+import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -260,7 +260,7 @@ export const SelectedNodeOverlay = memo(({
             ? targetNode.measured.width
             : typeof targetNode.width === 'number'
               ? targetNode.width
-              : DEFAULT_NODE_WIDTH;
+              : DEFAULT_CANVAS_NODE_WIDTH;
         const height =
           typeof targetNode.measured?.height === 'number'
             ? targetNode.measured.height
@@ -484,7 +484,7 @@ export const SelectedNodeOverlay = memo(({
             ? targetNode.measured.width
             : typeof targetNode.width === 'number'
               ? targetNode.width
-              : DEFAULT_NODE_WIDTH;
+              : DEFAULT_CANVAS_NODE_WIDTH;
         const height =
           typeof targetNode.measured?.height === 'number'
             ? targetNode.measured.height

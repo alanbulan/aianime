@@ -16,9 +16,9 @@ import {
 } from "@/features/canvas/composition";
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
 } from "@/features/canvas/domain/canvasNodes";
 import {
+  DEFAULT_CANVAS_NODE_WIDTH,
   createCanvasCommitControllerHook,
   createCanvasSyncHook,
   createUseFreezoneCanvasEntryLifecycle,
@@ -118,7 +118,7 @@ function addAssetToCanvas(asset: LibraryAsset, index: number): void {
   void insertAssetLibraryAsset({
     asset,
     index,
-    nodeWidth: DEFAULT_NODE_WIDTH,
+    nodeWidth: DEFAULT_CANVAS_NODE_WIDTH,
     canvas: {
       canvasViewportSize: canvasState.canvasViewportSize,
       currentViewport: canvasState.currentViewport,

@@ -4,8 +4,10 @@ import {
   createSnapshot,
   createCanvasNodeGroup,
   fitCanvasGroupToChildren,
+  getNodeSize,
   planCanvasAutoGroupSpawn,
   pushSnapshot,
+  resolveAbsolutePosition,
   trackEdit,
   ungroupCanvasNode,
   type CanvasHistorySnapshot,
@@ -14,7 +16,6 @@ import {
   type CanvasGroupArrangementMode,
   type CanvasMutationState,
 } from '@/modules/creative_canvas/public';
-import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   CANVAS_NODE_TYPES,
   isGroupNode,

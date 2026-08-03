@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   getTopLevelCanvasBounds,
   hasVisibleTopLevelCanvasNode,
-} from '@/features/canvas/domain/canvasGeometry';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
 /** 「回到节点」时的固定缩放比例（10%）。 */

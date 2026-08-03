@@ -167,6 +167,34 @@ export type {
   CanvasConnectionValidation,
 } from "@/modules/creative_canvas/domain/canvasConnection";
 export {
+  DEFAULT_CANVAS_NODE_WIDTH,
+  canvasNodeIntersectsSelectionRect,
+  canvasViewportOverlapsRect,
+  findAvailableNodePosition,
+  getDerivedNodePosition,
+  getNodeSize,
+  getTopLevelCanvasBounds,
+  hasRectCollision,
+  hasVisibleTopLevelCanvasNode,
+  rectsIntersect,
+  resolveAbsolutePosition,
+} from "@/modules/creative_canvas/domain/canvasGeometry";
+export type {
+  CanvasGeometryNode,
+  CanvasNodePlacementInput,
+  CanvasNodeSize,
+  CanvasRect,
+} from "@/modules/creative_canvas/domain/canvasGeometry";
+export {
+  planCanvasBatchConnectTarget,
+  resolveCanvasBatchConnectContext,
+} from "@/modules/creative_canvas/domain/canvasBatchConnection";
+export type {
+  CanvasBatchConnectContext,
+  CanvasBatchConnectTarget,
+  CanvasBatchConnectionNode,
+} from "@/modules/creative_canvas/domain/canvasBatchConnection";
+export {
   normalizeEdgesWithNodes,
   normalizeHandleId,
 } from "@/modules/creative_canvas/domain/canvasEdgeNormalization";

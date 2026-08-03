@@ -12,9 +12,9 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import {
-  DEFAULT_NODE_WIDTH,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { loadImageElement } from '@/modules/creative_canvas/public';
@@ -56,7 +56,7 @@ export const RotateEditorOverlay = memo(
         ? node.measured.width
         : typeof node.width === 'number'
           ? node.width
-          : DEFAULT_NODE_WIDTH;
+          : DEFAULT_CANVAS_NODE_WIDTH;
     const nodeHeight =
       typeof node.measured?.height === 'number'
         ? node.measured.height

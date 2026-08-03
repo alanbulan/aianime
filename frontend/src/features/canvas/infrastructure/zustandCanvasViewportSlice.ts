@@ -4,6 +4,7 @@ import type { Viewport } from '@xyflow/react';
 import {
   createClosedCanvasImageViewer,
   createEmptyBookmarks,
+  findAvailableNodePosition,
   navigateCanvasImageViewer,
   normalizeBookmarks,
   openCanvasImageViewer,
@@ -13,7 +14,6 @@ import {
   type ViewportBookmark,
   type ViewportBookmarks,
 } from '@/modules/creative_canvas/public';
-import { findAvailableNodePosition } from '../domain/canvasGeometry';
 import type { CanvasNode } from '../domain/canvasNodes';
 
 export interface CanvasViewportSlice {

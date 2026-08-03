@@ -7,12 +7,10 @@ import {
 import {
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
-  resolveAutoImageNodeDimensions,
-} from '@/modules/creative_canvas/public';
-import {
   getNodeSize,
   resolveAbsolutePosition,
-} from '../domain/canvasGeometry';
+  resolveAutoImageNodeDimensions,
+} from '@/modules/creative_canvas/public';
 import type { NodeFactory } from './ports';
 
 export interface CanvasPanoCapture {

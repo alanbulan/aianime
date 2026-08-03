@@ -10,10 +10,10 @@ import {
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   type BeatContextNodeData,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
+import { DEFAULT_CANVAS_NODE_WIDTH } from "@/modules/creative_canvas/public";
 import {
   extractMainlineContextsFromNode,
   openPresetProjectionInMyCanvas,
@@ -84,7 +84,7 @@ export function useNodeMainlineToolbarController({
 
     const nodeWidth =
       node.measured?.width ??
-      (typeof node.width === "number" ? node.width : DEFAULT_NODE_WIDTH);
+      (typeof node.width === "number" ? node.width : DEFAULT_CANVAS_NODE_WIDTH);
     const contextNodeId = addNode(
       CANVAS_NODE_TYPES.beatContext,
       {

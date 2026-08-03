@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
+  canvasNodeIntersectsSelectionRect,
   isPresetManagedEdge,
   isPresetManagedNode,
   useCanvasCommandSurfaceController,
@@ -20,7 +21,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { canvasNodeIntersectsSelectionRect } from './domain/canvasGeometry';
 import { CANVAS_NODE_TYPES, isUploadNode } from './domain/canvasNodes';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';

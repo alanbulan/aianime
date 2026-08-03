@@ -2,14 +2,24 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from './canvasNodes';
-import {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
+  type CanvasBatchConnectionNode,
 } from './canvasBatchConnection';
+import type { CanvasConnectionNodeType } from './canvasConnection';
+
+const CANVAS_NODE_TYPES = {
+  upload: 'uploadNode',
+  textAnnotation: 'textAnnotationNode',
+  group: 'groupNode',
+  video: 'videoNode',
+  audio: 'audioNode',
+  script: 'scriptNode',
+  pano360Viewer: 'pano360ViewerNode',
+} as const;
+
+type CanvasNode = CanvasBatchConnectionNode;
+type CanvasNodeType = CanvasConnectionNodeType;
 
 function node(
   id: string,
@@ -26,8 +36,7 @@ function node(
     selected: options.selected,
     position: options.position ?? { x: 0, y: 0 },
     measured: options.size,
-    data: {},
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas batch connection', () => {

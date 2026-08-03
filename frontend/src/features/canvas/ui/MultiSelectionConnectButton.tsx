@@ -4,7 +4,7 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { resolveCanvasBatchConnectContext } from '@/features/canvas/domain/canvasBatchConnection';
+import { resolveCanvasBatchConnectContext } from '@/modules/creative_canvas/public';
 
 const DRAG_THRESHOLD_PX = 5;
 

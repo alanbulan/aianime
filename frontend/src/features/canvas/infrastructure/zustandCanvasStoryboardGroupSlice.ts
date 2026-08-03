@@ -2,11 +2,14 @@
 import {
   addCanvasStoryboardGroupMembers,
   configureCanvasStoryboardGroup,
+  DEFAULT_CANVAS_NODE_WIDTH,
   convertCanvasStoryboardGroupToPlain,
   createSnapshot,
   createCanvasStoryboardGroup,
   pushSnapshot,
   reorderCanvasStoryboardGroupMember,
+  getNodeSize,
+  resolveAbsolutePosition,
   trackEdit,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
@@ -14,10 +17,8 @@ import {
   type CanvasMutationState,
   type CanvasStoryboardGroupConfig,
 } from '@/modules/creative_canvas/public';
-import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   isStoryboardGroupNode,
   type ActiveToolDialog,
   type CanvasEdge,
@@ -26,7 +27,7 @@ import {
 import type { NodeFactory } from '../application/ports';
 
 const storyboardGroupPorts = {
-  defaultNodeWidth: DEFAULT_NODE_WIDTH,
+  defaultNodeWidth: DEFAULT_CANVAS_NODE_WIDTH,
   getNodeSize,
   isStoryboardGroupNode,
 };

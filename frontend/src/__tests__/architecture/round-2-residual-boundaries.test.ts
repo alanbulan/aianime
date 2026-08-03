@@ -319,6 +319,10 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasEdgeNormalization.test.ts",
       "skillConnectionEdges.ts",
       "skillConnectionEdges.test.ts",
+      "canvasGeometry.ts",
+      "canvasGeometry.test.ts",
+      "canvasBatchConnection.ts",
+      "canvasBatchConnection.test.ts",
     ];
     const canvasConnectionApplicationFiles = [
       "canvasEdgeCreation.ts",
@@ -909,6 +913,10 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/domain/canvasEdgeNormalization.ts",
       "features/canvas/domain/canvasEdgeNormalization.test.ts",
       "features/canvas/domain/skillConnectionEdges.ts",
+      "features/canvas/domain/canvasGeometry.ts",
+      "features/canvas/domain/canvasGeometry.test.ts",
+      "features/canvas/domain/canvasBatchConnection.ts",
+      "features/canvas/domain/canvasBatchConnection.test.ts",
       "features/canvas/application/canvasEdgeCreation.ts",
       "features/canvas/application/canvasEdgeCreation.test.ts",
       "__tests__/features/canvas/skill-connection-edges.test.ts",
@@ -2239,7 +2247,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 420],
+      ["features/canvas", 416],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

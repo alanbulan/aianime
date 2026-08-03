@@ -1,9 +1,20 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
-  type CanvasNode,
-} from './canvasNodes';
+
+export const DEFAULT_CANVAS_NODE_WIDTH = 320;
+
+export interface CanvasGeometryNode {
+  id: string;
+  type?: string | null;
+  data?: unknown;
+  position: { x: number; y: number };
+  parentId?: string;
+  measured?: { width?: number; height?: number };
+  width?: number;
+  height?: number;
+  style?: { width?: string | number; height?: string | number } | null;
+}
+
+type CanvasNode = CanvasGeometryNode;
 
 export interface CanvasNodeSize {
   width: number;
@@ -25,10 +36,10 @@ export interface CanvasNodePlacementInput {
 }
 
 const FALLBACK_NODE_SIZES: Partial<Record<string, CanvasNodeSize>> = {
-  [CANVAS_NODE_TYPES.video]: { width: 580, height: 380 },
-  [CANVAS_NODE_TYPES.textAnnotation]: { width: 440, height: 320 },
-  [CANVAS_NODE_TYPES.audio]: { width: 480, height: 210 },
-  [CANVAS_NODE_TYPES.upload]: { width: 320, height: 350 },
+  videoNode: { width: 580, height: 380 },
+  textAnnotationNode: { width: 440, height: 320 },
+  audioNode: { width: 480, height: 210 },
+  uploadNode: { width: 320, height: 350 },
 };
 
 /** Resolve layout size before a newly spawned node has necessarily been measured. */
@@ -42,7 +53,7 @@ export function getNodeSize(node: CanvasNode): CanvasNodeSize {
         ? node.measured.width
         : typeof node.width === 'number'
           ? node.width
-          : (styleWidth ?? fallback?.width ?? DEFAULT_NODE_WIDTH),
+          : (styleWidth ?? fallback?.width ?? DEFAULT_CANVAS_NODE_WIDTH),
     height:
       typeof node.measured?.height === 'number'
         ? node.measured.height
@@ -192,7 +203,7 @@ export function getDerivedNodePosition(
   }
 
   return {
-    x: sourceNode.position.x + DEFAULT_NODE_WIDTH + 100,
+    x: sourceNode.position.x + DEFAULT_CANVAS_NODE_WIDTH + 100,
     y: sourceNode.position.y,
   };
 }
@@ -214,7 +225,7 @@ export function findAvailableNodePosition({
   // explicit-size and node-type fallback rules.
   const collides = (x: number, y: number, width: number, height: number) =>
     nodes.some((node) => {
-      const nodeWidth = node.measured?.width ?? DEFAULT_NODE_WIDTH;
+      const nodeWidth = node.measured?.width ?? DEFAULT_CANVAS_NODE_WIDTH;
       const nodeHeight = node.measured?.height ?? 200;
       const margin = 8;
       return (
@@ -225,7 +236,7 @@ export function findAvailableNodePosition({
       );
     });
 
-  const sourceWidth = sourceNode.measured?.width ?? DEFAULT_NODE_WIDTH;
+  const sourceWidth = sourceNode.measured?.width ?? DEFAULT_CANVAS_NODE_WIDTH;
   const sourceHeight = sourceNode.measured?.height ?? 200;
   const anchorX = sourceNode.position.x + sourceWidth + 28;
   const anchorY = sourceNode.position.y;

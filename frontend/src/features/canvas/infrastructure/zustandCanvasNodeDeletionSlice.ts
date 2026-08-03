@@ -4,6 +4,7 @@ import {
   deleteCanvasNodes,
   isDeleteToEmpty,
   pushSnapshot,
+  resolveAbsolutePosition,
   trackEdit,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
@@ -15,7 +16,6 @@ import type {
   CanvasEdge,
   CanvasNode,
 } from '../domain/canvasNodes';
-import { resolveAbsolutePosition } from '../domain/canvasGeometry';
 
 export interface CanvasNodeDeletionSlice {
   deleteNode: (nodeId: string) => void;

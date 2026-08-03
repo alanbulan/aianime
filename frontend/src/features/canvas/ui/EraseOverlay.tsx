@@ -23,10 +23,10 @@ import {
 
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  DEFAULT_CANVAS_NODE_WIDTH,
   CANVAS_REDRAW_IMAGE_SIZES,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -152,7 +152,7 @@ export const EraseOverlay = memo(({
       ? node.measured.width
       : typeof node.width === 'number'
         ? node.width
-        : DEFAULT_NODE_WIDTH;
+        : DEFAULT_CANVAS_NODE_WIDTH;
   const nodeHeight =
     typeof node.measured?.height === 'number'
       ? node.measured.height

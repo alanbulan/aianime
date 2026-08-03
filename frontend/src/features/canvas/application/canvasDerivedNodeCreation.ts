@@ -10,18 +10,16 @@ import {
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
   createDefaultStoryboardExportOptions,
+  findAvailableNodePosition,
+  getDerivedNodePosition,
+  getNodeSize,
   resolveDerivedAspectRatio,
   resolveAutoImageNodeDimensions,
   resolveGeneratedImageNodeDimensions,
   resolveStoryboardSplitNodeDimensions,
+  type CanvasNodeSize,
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
-import {
-  findAvailableNodePosition,
-  getDerivedNodePosition,
-  getNodeSize,
-  type CanvasNodeSize,
-} from '../domain/canvasGeometry';
 import { EXPORT_RESULT_DISPLAY_NAME } from '../domain/nodeDisplay';
 import type { NodeFactory } from './ports';
 

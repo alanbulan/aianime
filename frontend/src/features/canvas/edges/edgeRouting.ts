@@ -1,7 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { Position } from '@xyflow/react';
 
-import { DEFAULT_NODE_WIDTH, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
+import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
 
 interface Point {
   x: number;
@@ -64,7 +65,7 @@ function nodeToRect(node: CanvasNode): Rect {
   const width =
     node.measured?.width ??
     (typeof node.style?.width === 'number' ? node.style.width : null) ??
-    DEFAULT_NODE_WIDTH;
+    DEFAULT_CANVAS_NODE_WIDTH;
   const height =
     node.measured?.height ??
     (typeof node.style?.height === 'number' ? node.style.height : null) ??

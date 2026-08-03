@@ -21,10 +21,12 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  DEFAULT_NODE_WIDTH,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { computeAutoLayout } from '@/modules/creative_canvas/public';
+import {
+  DEFAULT_CANVAS_NODE_WIDTH,
+  computeAutoLayout,
+} from '@/modules/creative_canvas/public';
 import { collectBatchDeletableIds } from '@/modules/creative_canvas/public';
 
 // 合并分镜组只接受图片类节点。
@@ -62,7 +64,7 @@ function getNodeSize(node: CanvasNode): { width: number; height: number } {
         ? node.measured.width
         : typeof node.width === 'number'
           ? node.width
-          : DEFAULT_NODE_WIDTH,
+          : DEFAULT_CANVAS_NODE_WIDTH,
     height:
       typeof node.measured?.height === 'number'
         ? node.measured.height

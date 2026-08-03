@@ -7483,7 +7483,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas graph geometry independent from the Zustand store", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const geometryPath = resolve(
+      moduleRoot,
+      "domain/canvasGeometry.ts",
+    );
+    const legacyGeometryPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasGeometry.ts",
     );
@@ -7525,6 +7530,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
     );
@@ -7573,11 +7579,12 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenGeometryImports).toEqual([]);
+    expect(existsSync(legacyGeometryPath)).toBe(false);
     expect(placementOwners).toEqual([
-      "features/canvas/domain/canvasGeometry.ts",
+      "modules/creative_canvas/domain/canvasGeometry.ts",
     ]);
     expect(rectangleRuleOwners).toEqual([
-      "features/canvas/domain/canvasGeometry.ts",
+      "modules/creative_canvas/domain/canvasGeometry.ts",
     ]);
     expect(geometryModel).toContain("export function getNodeSize(");
     expect(geometryModel).toContain(collisionDeclaration);
@@ -7588,9 +7595,7 @@ describe("frontend architecture boundaries", () => {
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
     expect(geometryModel).toContain(placementDeclaration);
-    expect(viewportSlice).toContain(
-      "../domain/canvasGeometry",
-    );
+    expect(viewportSlice).toContain("@/modules/creative_canvas/public");
     expect(viewportSlice).toContain("return findAvailableNodePosition({");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGeometry",
@@ -7601,7 +7606,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const collides =");
     expect(canvasStore).not.toContain("const overflowAmount =");
     expect(clipboardDuplicationPlanner).not.toContain("canvasGeometry");
-    expect(clipboardController).toContain("../domain/canvasGeometry");
+    expect(clipboardController).toContain("@/modules/creative_canvas/public");
     expect(clipboardController).toContain(
       "hasRectCollision(candidateRect, nodes, noIgnoredCanvasNodeIds)",
     );
@@ -7615,8 +7620,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const overlapsView =");
     expect(canvasView).not.toContain("initialViewportCorrectionPendingRef");
     expect(canvasView).not.toContain("useNodesInitialized");
-    expect(backToNodesView).toContain(
-      "@/features/canvas/domain/canvasGeometry",
+    expect(backToNodesView).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/canvasGeometry",
     );
     expect(backToNodesView).not.toContain("function nodeFallbackSize(");
     expect(backToNodesView).not.toContain("let minX =");
@@ -8350,7 +8356,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useCanvasNodeClickController.ts",
     ]);
     expect(hookModel).toContain("isStoryboardGroupNode(node)");
-    expect(hookModel).toContain("DEFAULT_NODE_WIDTH");
+    expect(hookModel).toContain("DEFAULT_CANVAS_NODE_WIDTH");
     expect(hookModel).toContain("DEFAULT_STORYBOARD_GROUP_HEIGHT = 240");
     expect(hookModel).toContain("zoom: 1");
     expect(hookModel).toContain("duration: 320");
@@ -8368,7 +8374,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("./hooks/useCanvasNodeClickController");
     expect(canvasView).not.toContain("const handleNodeClick = useCallback");
     expect(canvasView).not.toContain("isStoryboardGroupNode(");
-    expect(canvasView).not.toContain("DEFAULT_NODE_WIDTH");
+    expect(canvasView).not.toContain("DEFAULT_CANVAS_NODE_WIDTH");
     expect(canvasView).not.toContain("node.position.x + width / 2");
     for (const retiredPath of [
       "features/canvas/hooks/useCanvasNodeClickController.ts",
@@ -12842,7 +12848,9 @@ describe("frontend architecture boundaries", () => {
     expect(dragContractSource).not.toContain("DataTransfer");
     expect(dragContractSource).not.toContain("@/features/");
     expect(shellAdapterSource).toContain("insertAssetLibraryAsset({");
-    expect(shellAdapterSource).toContain("nodeWidth: DEFAULT_NODE_WIDTH");
+    expect(shellAdapterSource).toContain(
+      "nodeWidth: DEFAULT_CANVAS_NODE_WIDTH",
+    );
     expect(shellAdapterSource).toContain(
       "spawnCanvasAssetNode(assetNodeSpawnPort, payload, position)",
     );
@@ -14525,7 +14533,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeDeletionSlice).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(nodeDeletionSlice).toContain("../domain/canvasGeometry");
+    expect(nodeDeletionSlice).toContain("@/modules/creative_canvas/public");
     expect(multiSelectionToolbar).toContain(
       "@/modules/creative_canvas/public",
     );
@@ -14547,7 +14555,7 @@ describe("frontend architecture boundaries", () => {
     expect(groupLifecycleSlice).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(groupLifecycleSlice).toContain("../domain/canvasGeometry");
+    expect(groupLifecycleSlice).toContain("@/modules/creative_canvas/public");
     for (const retiredGroupPath of [
       "features/canvas/domain/storyboardGroup.ts",
       "features/canvas/domain/canvasGroupRemoval.ts",
@@ -16153,7 +16161,12 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas batch-connection planning in the domain model", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const planningPath = resolve(
+      moduleRoot,
+      "domain/canvasBatchConnection.ts",
+    );
+    const legacyPlanningPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasBatchConnection.ts",
     );
@@ -16185,6 +16198,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16204,8 +16218,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(legacyPlanningPath)).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasBatchConnection.ts",
+      "modules/creative_canvas/domain/canvasBatchConnection.ts",
     ]);
     for (const declaration of declarations) {
       expect(planningModel).toContain(declaration);
@@ -16213,9 +16228,7 @@ describe("frontend architecture boundaries", () => {
     expect(planningModel).toContain("canConnectCanvasNodesManually(");
     expect(planningModel).toContain("getDownstreamSpawnTypes(");
     expect(planningModel).toContain("getNodeSize(");
-    expect(batchConnectionController).toContain(
-      "../domain/canvasBatchConnection",
-    );
+    expect(batchConnectionController).toContain("@/modules/creative_canvas/public");
     expect(batchConnectionController).toContain(
       "resolveCanvasBatchConnectContext(nodes)",
     );
@@ -16231,7 +16244,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const sourceIdSet = new Set(drag.sourceIds)");
     expect(canvasView).not.toContain("let minY = Infinity");
     expect(multiSelectionConnectButton).toContain(
-      "@/features/canvas/domain/canvasBatchConnection",
+      "@/modules/creative_canvas/public",
     );
     expect(multiSelectionConnectButton).toContain(
       "resolveCanvasBatchConnectContext(nodes)",
@@ -16239,6 +16252,9 @@ describe("frontend architecture boundaries", () => {
     expect(multiSelectionConnectButton).not.toContain("getDownstreamSpawnTypes");
     expect(multiSelectionConnectButton).not.toContain("nodeHasSourceHandle");
     expect(multiSelectionConnectButton).not.toContain("new Set(selectedSourceIds)");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/domain/canvasBatchConnection",
+    );
   });
 
   it("keeps Canvas batch-connection orchestration in one presentation controller", () => {
@@ -26416,7 +26432,6 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(slicePath)).toEqual([
       "@xyflow/react",
       "@/modules/creative_canvas/public",
-      "../domain/canvasGeometry",
       "../domain/canvasNodes",
     ]);
     expect(canvasStore).toMatch(
@@ -26776,7 +26791,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../domain/canvasGeometry",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeDeletionSlice");
     expect(canvasStore).toContain(
@@ -26819,7 +26833,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasGeometry",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/ports",
@@ -26866,7 +26879,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "../domain/canvasGeometry",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/ports",

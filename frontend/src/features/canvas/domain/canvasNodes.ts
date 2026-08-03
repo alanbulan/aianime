@@ -42,8 +42,6 @@ export const CANVAS_NODE_TYPES = {
 
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES];
 
-export const DEFAULT_NODE_WIDTH = 320;
-
 export const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
 export const IMAGE_ASPECT_RATIOS = [
   '1:1',

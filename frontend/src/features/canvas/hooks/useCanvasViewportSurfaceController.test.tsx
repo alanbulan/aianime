@@ -73,10 +73,12 @@ const controllerMocks = vi.hoisted(() => {
     useAutoLayout: vi.fn(
       (_options: CanvasAutoLayoutControllerOptions) => autoLayoutController,
     ),
+    getNodeSize: vi.fn(() => ({ width: 320, height: 180 })),
   };
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  getNodeSize: controllerMocks.getNodeSize,
   useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
   useCanvasLifecycle: controllerMocks.useLifecycle,
   useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,

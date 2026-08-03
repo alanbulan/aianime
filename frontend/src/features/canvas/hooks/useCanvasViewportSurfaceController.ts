@@ -6,10 +6,10 @@ import {
   type CanvasEdge,
   type CanvasNode,
 } from '../domain/canvasNodes';
-import { getNodeSize } from '../domain/canvasGeometry';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
+  getNodeSize,
   useCanvasMinimapVisibility,
   useCanvasLifecycle,
   useCanvasAutoLayoutController,

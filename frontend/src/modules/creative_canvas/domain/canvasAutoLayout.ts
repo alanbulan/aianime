@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 
-const DEFAULT_NODE_WIDTH = 320;
+import { DEFAULT_CANVAS_NODE_WIDTH } from './canvasGeometry';
 
 const DEFAULT_NODE_HEIGHT = 200;
 const COLUMN_GAP = 80;
@@ -39,7 +39,7 @@ export interface CanvasAutoLayoutEdge {
 
 function getNodeSize(node: CanvasAutoLayoutNode): NodeSize {
   const width = node.measured?.width
-    ?? (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
+    ?? (typeof node.width === 'number' ? node.width : DEFAULT_CANVAS_NODE_WIDTH);
   const height = node.measured?.height
     ?? (typeof node.height === 'number' ? node.height : DEFAULT_NODE_HEIGHT);
   return { width, height };

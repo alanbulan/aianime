@@ -20,7 +20,7 @@ interface Bbox {
   cy: number;
 }
 
-const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_SNAP_NODE_WIDTH = 200;
 const DEFAULT_NODE_HEIGHT = 100;
 /** 引导线 ↔ 拖动节点边线之间多近才算"对齐"（flow 坐标，未除缩放）。 */
 export const SNAP_ALIGN_FLOW_THRESHOLD = 6;
@@ -33,7 +33,7 @@ function bboxAt(node: CanvasSnapNode, pos: { x: number; y: number }): Bbox {
       ? node.measured.width
       : typeof node.width === 'number'
       ? node.width
-      : DEFAULT_NODE_WIDTH;
+      : DEFAULT_SNAP_NODE_WIDTH;
   const h =
     typeof node.measured?.height === 'number'
       ? node.measured.height
