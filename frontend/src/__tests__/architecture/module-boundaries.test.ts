@@ -7837,7 +7837,6 @@ describe("frontend architecture boundaries", () => {
     );
     for (const consumerPath of [
       "features/canvas/hooks/useCanvasNodeInteractionController.ts",
-      "features/canvas/hooks/useCanvasNodeCatalogController.ts",
     ]) {
       const consumer = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
       expect(consumer, consumerPath).toContain("@/modules/creative_canvas/public");
@@ -7845,6 +7844,12 @@ describe("frontend architecture boundaries", () => {
         "./useCanvasNodePlacementController",
       );
     }
+    expect(importSpecifiers(resolve(
+      moduleRoot,
+      "presentation/useCanvasNodeCatalogController.ts",
+    ))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodePlacementController",
+    );
     for (const retiredPath of [
       "features/canvas/hooks/useCanvasNodePlacementController.ts",
       "features/canvas/hooks/useCanvasNodePlacementController.test.tsx",
@@ -10128,11 +10133,23 @@ describe("frontend architecture boundaries", () => {
     );
     const hookPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasSkillRegistry.ts",
+    );
+    const legacyHookPath = resolve(
+      SRC_ROOT,
       "features/canvas/hooks/useCanvasSkillRegistry.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasNodeCatalogController.ts",
+    );
+    const legacyControllerPath = resolve(
+      SRC_ROOT,
       "features/canvas/hooks/useCanvasNodeCatalogController.ts",
+    );
+    const creationControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
     );
     const skillNodePath = resolve(
       SRC_ROOT,
@@ -10144,6 +10161,10 @@ describe("frontend architecture boundaries", () => {
     const compositionModel = readFileSync(compositionPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
+    const creationControllerModel = readFileSync(
+      creationControllerPath,
+      "utf8",
+    );
     const skillNodeModel = readFileSync(skillNodePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
@@ -10157,9 +10178,15 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
+    );
+    const controllerForbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -10171,7 +10198,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const controllerDeclaration = [
       "export function",
-      "useCanvasNodeCatalogController(",
+      "useCanvasNodeCatalogController<",
     ].join(" ");
     const controllerOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
@@ -10190,6 +10217,9 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(controllerForbiddenImports).toEqual([]);
+    expect(existsSync(legacyHookPath)).toBe(false);
+    expect(existsSync(legacyControllerPath)).toBe(false);
     expect(new Set(importSpecifiers(domainPath))).toEqual(
       new Set(["@/modules/creative_canvas/public"]),
     );
@@ -10210,21 +10240,27 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
     ]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasSkillRegistry.ts",
+      "modules/creative_canvas/presentation/useCanvasSkillRegistry.ts",
     ]);
     expect(controllerOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeCatalogController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeCatalogController.ts",
     ]);
     expect(hookModel).toContain("loadSkillRegistry()");
     expect(hookModel).toContain("cancelled = true");
     expect(compositionModel).toContain("freezoneSkillCatalogGateway.listSkills()");
-    expect(controllerModel).toContain("./useCanvasSkillRegistry");
-    expect(controllerModel).toContain("loadCanvasSkillRegistry");
-    expect(controllerModel).toContain("nodeCatalog.getDefinition");
+    expect(controllerModel).toContain(
+      "useCanvasSkillRegistry(loadSkillRegistry)",
+    );
+    expect(controllerModel).toContain("resolveNodeTypeLabel(placement.type)");
     expect(controllerModel).toContain("translateSkillName");
+    expect(creationControllerModel).toContain(
+      "loadSkillRegistry: loadCanvasSkillRegistry",
+    );
+    expect(creationControllerModel).toContain("nodeCatalog.getDefinition");
     expect(skillNodeModel).toContain(
       "useCanvasSkillRegistry(\n    loadCanvasSkillRegistry,",
     );
+    expect(skillNodeModel).toContain("@/modules/creative_canvas/public");
     expect(skillNodeModel).not.toContain("getSkillRegistry");
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(canvasView).toContain(
@@ -10237,6 +10273,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("translateSkillName");
     expect(canvasView).not.toContain("setSkillRegistry");
     expect(canvasView).not.toContain("new Map(skillRegistry.map");
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodeCatalogController",
+    );
   });
 
   it("keeps Canvas viewer assembly in the Creative Canvas presentation boundary", () => {
@@ -24640,7 +24682,6 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const childControllers = [
-      "./useCanvasNodeCatalogController",
       "./useCanvasConnectionController",
       "./useCanvasNodeInteractionController",
     ];
@@ -24656,13 +24697,15 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("useCanvasNodeCatalogController<");
+    expect(controllerSource).not.toContain("./useCanvasNodeCatalogController");
     expect(controllerSource).toContain(
       "useCanvasNodeMenuStateController<CanvasNodeType>()",
     );
     expect(controllerSource).not.toContain(
       "./useCanvasNodeMenuStateController",
     );
-    expect(controllerSource).toContain("skillById: nodeCatalog.skillById");
+    expect(controllerSource).toContain("skillById: catalog.skillById");
     expect(controllerSource).toContain(
       "bindSkill: connection.bindSingleBeatContextInput",
     );

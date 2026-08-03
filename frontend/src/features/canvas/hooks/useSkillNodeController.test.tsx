@@ -75,14 +75,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/hooks/useCanvasSkillRegistry', () => ({
-  useCanvasSkillRegistry: () => ({
-    skills: mocks.skills,
-    isLoading: false,
-    loadError: null,
-  }),
-}));
-
 vi.mock('@/features/canvas/skillCatalogComposition', () => ({
   loadCanvasSkillRegistry: vi.fn(),
   loadCanvasImageModels: vi.fn().mockResolvedValue([]),
@@ -113,6 +105,11 @@ vi.mock('@/modules/task_execution/public', async (importOriginal) => ({
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   publishCanvasCommitRequested: (...args: unknown[]) => mocks.publish(...args),
+  useCanvasSkillRegistry: () => ({
+    skills: mocks.skills,
+    isLoading: false,
+    loadError: null,
+  }),
 }));
 
 function skill(

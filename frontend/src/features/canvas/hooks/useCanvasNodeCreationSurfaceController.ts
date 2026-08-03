@@ -1,20 +1,22 @@
 // Copyright (c) 2026 AI anime
+import { useCallback } from 'react';
+
 import {
+  useCanvasNodeCatalogController,
   useCanvasNodeMenuStateController,
+  type CanvasNodeCatalogController,
+  type CanvasNodeCatalogControllerOptions,
   type CanvasNodeMenuStateController,
 } from '@/modules/creative_canvas/public';
 
-import type { CanvasNodeType } from '../domain/canvasNodes';
+import { nodeCatalog } from '../application/nodeCatalog';
+import type { CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
+import { loadCanvasSkillRegistry } from '../skillCatalogComposition';
 import {
   useCanvasConnectionController,
   type CanvasConnectionController,
   type CanvasConnectionControllerOptions,
 } from './useCanvasConnectionController';
-import {
-  useCanvasNodeCatalogController,
-  type CanvasNodeCatalogController,
-  type CanvasNodeCatalogControllerOptions,
-} from './useCanvasNodeCatalogController';
 import {
   useCanvasNodeInteractionController,
   type CanvasNodeInteractionController,
@@ -22,7 +24,7 @@ import {
 } from './useCanvasNodeInteractionController';
 
 export interface CanvasNodeCreationSurfaceControllerOptions {
-  translate: CanvasNodeCatalogControllerOptions['translate'];
+  translate: CanvasNodeCatalogControllerOptions<CanvasNodeType>['translate'];
   wrapperRef: CanvasNodeInteractionControllerOptions['wrapperRef'];
   nodes: CanvasNodeInteractionControllerOptions['nodes'];
   screenToFlowPosition:
@@ -57,7 +59,7 @@ type CanvasNodeCreationMenuController = Pick<
 >;
 
 type CanvasNodeCreationCatalogController = Pick<
-  CanvasNodeCatalogController,
+  CanvasNodeCatalogController<CanvasNodeType, CanvasNodeData>,
   'skills'
 >;
 
@@ -106,13 +108,24 @@ export function useCanvasNodeCreationSurfaceController({
   connectRegular,
   replaceEdges,
 }: CanvasNodeCreationSurfaceControllerOptions): CanvasNodeCreationSurfaceController {
+  const resolveNodeTypeLabel = useCallback(
+    (type: CanvasNodeType): string => {
+      const definition = nodeCatalog.getDefinition(type);
+      return definition ? translate(definition.menuLabelKey) : type;
+    },
+    [translate],
+  );
   const nodeMenu = useCanvasNodeMenuStateController<CanvasNodeType>();
-  const nodeCatalog = useCanvasNodeCatalogController({ translate });
+  const catalog = useCanvasNodeCatalogController<CanvasNodeType, CanvasNodeData>({
+    translate,
+    loadSkillRegistry: loadCanvasSkillRegistry,
+    resolveNodeTypeLabel,
+  });
   const connection = useCanvasConnectionController({
     getGraph,
     connectRegular,
     replaceEdges,
-    skillById: nodeCatalog.skillById,
+    skillById: catalog.skillById,
   });
   const nodeInteraction = useCanvasNodeInteractionController({
     wrapperRef,
@@ -122,7 +135,7 @@ export function useCanvasNodeCreationSurfaceController({
     selectNode,
     bindSkill: connection.bindSingleBeatContextInput,
     confirmPlacement,
-    resolvePlacementLabel: nodeCatalog.resolvePlacementLabel,
+    resolvePlacementLabel: catalog.resolvePlacementLabel,
     openPlainNodeMenu: nodeMenu.openPlainNodeMenu,
     dismissNodeMenu: nodeMenu.dismissNodeMenuForPaneClick,
     onBlankPaneClick,
@@ -138,7 +151,7 @@ export function useCanvasNodeCreationSurfaceController({
   });
 
   return {
-    skills: nodeCatalog.skills,
+    skills: catalog.skills,
     showNodeMenu: nodeMenu.showNodeMenu,
     menuPosition: nodeMenu.menuPosition,
     menuAllowedTypes: nodeMenu.menuAllowedTypes,

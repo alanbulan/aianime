@@ -62,7 +62,6 @@ import {
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { useCanvasSkillRegistry } from '@/features/canvas/hooks/useCanvasSkillRegistry';
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
@@ -72,6 +71,7 @@ import {
   skillRunErrorMessage,
   translateSkillDescription,
   translateSkillName,
+  useCanvasSkillRegistry,
   useCanvasImageModels,
   type MainlineContext,
   type SceneAssetsForBeat,

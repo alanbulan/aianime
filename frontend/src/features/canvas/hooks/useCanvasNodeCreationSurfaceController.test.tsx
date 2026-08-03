@@ -74,8 +74,6 @@ const controllerMocks = vi.hoisted(() => {
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasNodeMenuStateController: controllerMocks.useNodeMenu,
-}));
-vi.mock('./useCanvasNodeCatalogController', () => ({
   useCanvasNodeCatalogController: controllerMocks.useNodeCatalog,
 }));
 vi.mock('./useCanvasConnectionController', () => ({
@@ -114,6 +112,8 @@ describe('useCanvasNodeCreationSurfaceController', () => {
 
     expect(controllerMocks.useNodeCatalog).toHaveBeenCalledWith({
       translate: options.translate,
+      loadSkillRegistry: expect.any(Function),
+      resolveNodeTypeLabel: expect.any(Function),
     });
     expect(controllerMocks.useConnection).toHaveBeenCalledWith({
       getGraph: options.getGraph,

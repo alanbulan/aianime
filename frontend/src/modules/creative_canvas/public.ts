@@ -486,6 +486,20 @@ export type {
   CanvasPlainNodeMenuRequest,
 } from "@/modules/creative_canvas/presentation/useCanvasNodeMenuStateController";
 export {
+  useCanvasNodeCatalogController,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeCatalogController";
+export type {
+  CanvasNodeCatalogController,
+  CanvasNodeCatalogControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeCatalogController";
+export {
+  useCanvasSkillRegistry,
+} from "@/modules/creative_canvas/presentation/useCanvasSkillRegistry";
+export type {
+  CanvasSkillRegistryResult,
+  LoadCanvasSkillRegistry,
+} from "@/modules/creative_canvas/presentation/useCanvasSkillRegistry";
+export {
   useCanvasQuickAddController,
 } from "@/modules/creative_canvas/presentation/useCanvasQuickAddController";
 export type {
