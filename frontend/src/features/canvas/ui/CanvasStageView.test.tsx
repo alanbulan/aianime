@@ -61,6 +61,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
+  CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
@@ -94,9 +95,6 @@ vi.mock('./CanvasTransientOverlays', () => ({
   CanvasConnectionPreviewOverlay: () => (
     <div data-testid="canvas-connection-preview" />
   ),
-}));
-vi.mock('./CanvasZoomControl', () => ({
-  CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
 }));
 vi.mock('./MultiSelectionConnectButton', () => ({
   MultiSelectionConnectButton: () => (

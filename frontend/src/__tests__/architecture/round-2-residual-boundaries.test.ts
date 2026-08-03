@@ -252,6 +252,10 @@ describe("round 2 residual architecture boundaries", () => {
       "CanvasViewportBookmarks.tsx",
       "CanvasViewportBookmarks.test.tsx",
       "CanvasMinimapBookmarksOverlay.tsx",
+      "edgeVisibilityStore.ts",
+      "edgeVisibilityStore.test.ts",
+      "CanvasZoomControl.tsx",
+      "CanvasZoomControl.test.tsx",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -822,6 +826,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/CanvasMinimapBookmarksOverlay.tsx",
       "__tests__/features/canvas/canvas-bookmark-context-menu.test.tsx",
       "__tests__/features/canvas/canvas-viewport-bookmarks.test.tsx",
+      "features/canvas/ui/edgeVisibilityStore.ts",
+      "features/canvas/ui/CanvasZoomControl.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredViewportBookmarkPath)),
@@ -2068,7 +2074,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 590],
+      ["features/canvas", 588],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

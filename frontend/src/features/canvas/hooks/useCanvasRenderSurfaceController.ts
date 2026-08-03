@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from 'react';
 
-import { useEdgeVisibilityStore } from '../ui/edgeVisibilityStore';
+import { useEdgeVisibilityStore } from '@/modules/creative_canvas/public';
 import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,

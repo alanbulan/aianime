@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Waypoints, Wand2 } from 'lucide-react';
 import { useReactFlow, useViewport } from '@xyflow/react';
+import { Waypoints, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { MOD_KEY_LABEL } from '@/lib/platform';
-import { CANVAS_CONTROL_GLASS_CLASS } from './canvasControlStyles';
-import { isTypingTarget } from '@/modules/creative_canvas/public';
+import { isTypingTarget } from './canvasInteractionTargets';
 import { useEdgeVisibilityStore } from './edgeVisibilityStore';
 
 const ZOOM_STEP = 1.2;
@@ -15,37 +13,40 @@ const ZOOM_MIN = 0.1;
 const ZOOM_MAX = 8;
 const ZOOM_PRESETS = [50, 100, 800];
 
-interface CanvasZoomControlProps {
+export interface CanvasZoomControlStyles {
+  container: string;
+}
+
+export interface CanvasZoomControlProps {
   onOrganize: () => void;
+  isImmersiveViewerActive: () => boolean;
+  styles: CanvasZoomControlStyles;
   placement?: 'bottom-right' | 'top-right';
 }
 
 export function CanvasZoomControl({
   onOrganize,
+  isImmersiveViewerActive,
+  styles,
   placement = 'bottom-right',
 }: CanvasZoomControlProps) {
   const { zoomTo, getZoom, fitView } = useReactFlow();
   const { zoom } = useViewport();
   const { t } = useTranslation();
-
   const edgesHidden = useEdgeVisibilityStore((state) => state.hidden);
   const toggleEdgesHidden = useEdgeVisibilityStore((state) => state.toggle);
-
   const percent = Math.round(zoom * 100);
-
   const [menuOpen, setMenuOpen] = useState(false);
-  const [draft, setDraft] = useState<string>('');
+  const [draft, setDraft] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleZoomIn = useCallback(() => {
-    const next = getZoom() * ZOOM_STEP;
-    zoomTo(Math.min(next, ZOOM_MAX), { duration: 120 });
+    zoomTo(Math.min(getZoom() * ZOOM_STEP, ZOOM_MAX), { duration: 120 });
   }, [getZoom, zoomTo]);
 
   const handleZoomOut = useCallback(() => {
-    const next = getZoom() / ZOOM_STEP;
-    zoomTo(Math.max(next, ZOOM_MIN), { duration: 120 });
+    zoomTo(Math.max(getZoom() / ZOOM_STEP, ZOOM_MIN), { duration: 120 });
   }, [getZoom, zoomTo]);
 
   const handleFitView = useCallback(() => {
@@ -60,11 +61,17 @@ export function CanvasZoomControl({
     [zoomTo],
   );
 
-  // ⌘/Ctrl + (=) 放大、- 缩小、0 适合屏幕。preventDefault 拦掉浏览器自身的页面缩放。
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
-      if (isTypingTarget(event.target) || isImmersiveViewerActive()) return;
+      if (
+        !(event.metaKey || event.ctrlKey)
+        || event.altKey
+        || event.shiftKey
+        || isTypingTarget(event.target)
+        || isImmersiveViewerActive()
+      ) {
+        return;
+      }
       if (event.key === '=' || event.key === '+') {
         event.preventDefault();
         handleZoomIn();
@@ -78,14 +85,14 @@ export function CanvasZoomControl({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleFitView, handleZoomIn, handleZoomOut]);
+  }, [handleFitView, handleZoomIn, handleZoomOut, isImmersiveViewerActive]);
 
-  // 点击菜单外部关闭。
   useEffect(() => {
     if (!menuOpen) return;
     const handlePointerDown = (event: PointerEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      setMenuOpen(false);
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
     };
     window.addEventListener('pointerdown', handlePointerDown);
     return () => window.removeEventListener('pointerdown', handlePointerDown);
@@ -114,7 +121,6 @@ export function CanvasZoomControl({
     ? t('canvas.toolbar.showEdges')
     : t('canvas.toolbar.hideEdges');
   const isTop = placement === 'top-right';
-
   const menuItemClass =
     'flex w-full items-center justify-between gap-6 rounded-lg px-3 py-1.5 text-left text-[13px] text-popover-foreground transition hover:bg-muted';
 
@@ -127,7 +133,7 @@ export function CanvasZoomControl({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div
-        className={`flex items-center gap-0.5 rounded-full px-1 py-0.5 text-text ${CANVAS_CONTROL_GLASS_CLASS}`}
+        className={`flex items-center gap-0.5 rounded-full px-1 py-0.5 text-text ${styles.container}`}
       >
         <span className="group relative inline-flex">
           <button

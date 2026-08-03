@@ -7250,7 +7250,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const zoomView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasZoomControl.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/CanvasZoomControl.tsx",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(interactionPath).filter(
@@ -7283,7 +7286,7 @@ describe("frontend architecture boundaries", () => {
       expect(interactionModel).toContain(declaration);
     }
     expect(stageView).toContain("@/modules/creative_canvas/public");
-    expect(zoomView).toContain("@/modules/creative_canvas/public");
+    expect(zoomView).toContain("./canvasInteractionTargets");
     expect(canvasView).not.toContain("./ui/canvasInteractionTargets");
     expect(canvasView).not.toContain("function isCanvasPaneTarget(");
     expect(canvasView).not.toContain("function isTypingTarget(");
@@ -24639,7 +24642,6 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const internalDependencies = [
-      "../ui/edgeVisibilityStore",
       "../ui/canvasRenderProjection",
       "./useCanvasNodePlacementConfirm",
     ];
@@ -24651,12 +24653,23 @@ describe("frontend architecture boundaries", () => {
     for (const dependency of internalDependencies) {
       expect(controllerSource).toContain(dependency);
     }
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("../ui/edgeVisibilityStore");
     expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
     expect(canvasSource).not.toContain("./ui/edgeVisibilityStore");
     expect(canvasSource).not.toContain("./ui/canvasRenderProjection");
     expect(canvasSource).not.toContain("./hooks/useCanvasNodePlacementConfirm");
     expect(canvasSource).not.toContain("placementConfirmNodeId");
     expect(canvasSource).not.toContain("edgesHidden");
+    for (const retiredViewportControlPath of [
+      "features/canvas/ui/CanvasZoomControl.tsx",
+      "features/canvas/ui/edgeVisibilityStore.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredViewportControlPath)),
+        retiredViewportControlPath,
+      ).toBe(false);
+    }
   });
 
   it("keeps Canvas render projection in one pure presentation model", () => {

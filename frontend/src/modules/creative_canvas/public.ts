@@ -378,6 +378,16 @@ export type {
   CanvasMinimapBookmarksOverlayProps,
 } from "@/modules/creative_canvas/presentation/CanvasMinimapBookmarksOverlay";
 export {
+  useEdgeVisibilityStore,
+} from "@/modules/creative_canvas/presentation/edgeVisibilityStore";
+export {
+  CanvasZoomControl,
+} from "@/modules/creative_canvas/presentation/CanvasZoomControl";
+export type {
+  CanvasZoomControlProps,
+  CanvasZoomControlStyles,
+} from "@/modules/creative_canvas/presentation/CanvasZoomControl";
+export {
   useCanvasSnapAlignment,
 } from "@/modules/creative_canvas/presentation/useCanvasSnapAlignment";
 export type {

@@ -16,6 +16,7 @@ import type {
   CanvasEdge,
   CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { isCeRuntime } from '@/lib/runtime-config';
 
 import { edgeTypes as canvasEdgeTypes } from '../edges';
@@ -25,6 +26,7 @@ import {
   CanvasMinimapButton,
   CanvasSnapAlignButton,
   CanvasSnapAlignGuides,
+  CanvasZoomControl,
   ImageViewerModal,
   PAN_ACTIVATION_KEY_CODE,
   VideoViewerModal,
@@ -34,6 +36,7 @@ import { CanvasContextMenu } from './CanvasContextMenu';
 import {
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,
+  CANVAS_CONTROL_GLASS_CLASS,
 } from './canvasControlStyles';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
@@ -42,7 +45,6 @@ import {
   CanvasConnectionPreviewOverlay,
   CanvasTransientOverlays,
 } from './CanvasTransientOverlays';
-import { CanvasZoomControl } from './CanvasZoomControl';
 import { MultiSelectionConnectButton } from './MultiSelectionConnectButton';
 import { MultiSelectionToolbar } from './MultiSelectionToolbar';
 import { NodeSpawnPlusOverlay } from './NodeSpawnPlusOverlay';
@@ -63,6 +65,9 @@ const PAN_ON_DRAG_BUTTONS = [1];
 const CANVAS_ICON_BUTTON_STYLES = {
   button: CANVAS_CONTROL_ICON_BUTTON_CLASS,
   activeButton: CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
+};
+const CANVAS_ZOOM_CONTROL_STYLES = {
+  container: CANVAS_CONTROL_GLASS_CLASS,
 };
 
 export type CanvasControlsPlacement = 'bottom-right' | 'top-right';
@@ -123,7 +128,10 @@ export interface CanvasStageViewProps {
   contextMenuProps: ComponentProps<typeof CanvasContextMenu> | null;
   multiSelectionConnectProps: ComponentProps<typeof MultiSelectionConnectButton>;
   nodeSpawnPlusProps: ComponentProps<typeof NodeSpawnPlusOverlay>;
-  zoomControlProps: Omit<ComponentProps<typeof CanvasZoomControl>, 'placement'>;
+  zoomControlProps: Omit<
+    ComponentProps<typeof CanvasZoomControl>,
+    'isImmersiveViewerActive' | 'placement' | 'styles'
+  >;
   quickActionBarProps: Omit<
     ComponentProps<typeof CanvasQuickActionBar>,
     'placement' | 'projectId' | 'canvasId'
@@ -243,7 +251,9 @@ export function CanvasStageView({
 
         <CanvasZoomControl
           {...zoomControlProps}
+          isImmersiveViewerActive={isImmersiveViewerActive}
           placement={controlsPlacement}
+          styles={CANVAS_ZOOM_CONTROL_STYLES}
         />
 
         {quickActionBarProps && (

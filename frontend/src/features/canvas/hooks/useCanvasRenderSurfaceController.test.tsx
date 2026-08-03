@@ -47,7 +47,7 @@ const controllerMocks = vi.hoisted(() => {
 vi.mock('./useCanvasNodePlacementConfirm', () => ({
   useCanvasNodePlacementConfirm: controllerMocks.usePlacementConfirm,
 }));
-vi.mock('../ui/edgeVisibilityStore', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   useEdgeVisibilityStore: controllerMocks.useEdgeVisibility,
 }));
 vi.mock('../ui/canvasRenderProjection', () => ({

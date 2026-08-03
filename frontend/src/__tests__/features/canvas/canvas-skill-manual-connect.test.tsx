@@ -190,12 +190,9 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   CanvasMinimapButton: () => null,
   CanvasSnapAlignButton: () => null,
   CanvasSnapAlignGuides: () => null,
+  CanvasZoomControl: () => null,
   ImageViewerModal: () => null,
   VideoViewerModal: () => null,
-}));
-
-vi.mock("@/features/canvas/ui/CanvasZoomControl", () => ({
-  CanvasZoomControl: () => null,
 }));
 
 vi.mock("@/features/canvas/ui/CanvasQuickActionBar", () => ({
