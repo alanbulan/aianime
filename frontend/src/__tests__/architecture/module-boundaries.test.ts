@@ -10117,20 +10117,26 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas skill-registry loading in one presentation hook", () => {
     const domainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/skillCatalog.ts",
+      "modules/creative_canvas/domain/skillCatalog.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/skillCatalog.ts",
+      "modules/creative_canvas/application/skillCatalog.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneSkillCatalogGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/skillCatalogComposition.ts",
+      "modules/creative_canvas/skillCatalogComposition.ts",
     );
+    const legacyCatalogPaths = [
+      "features/canvas/domain/skillCatalog.ts",
+      "features/canvas/application/skillCatalog.ts",
+      "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
+      "features/canvas/skillCatalogComposition.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const hookPath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/presentation/useCanvasSkillRegistry.ts",
@@ -10210,7 +10216,7 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
         readFileSync(path, "utf8").includes(
-          'apiCall<SkillDefinition[]>("freezone/skills")',
+          "apiCall<SkillDefinition[]>('freezone/skills')",
         ),
       )
       .map(relativeSource)
@@ -10220,24 +10226,27 @@ describe("frontend architecture boundaries", () => {
     expect(controllerForbiddenImports).toEqual([]);
     expect(existsSync(legacyHookPath)).toBe(false);
     expect(existsSync(legacyControllerPath)).toBe(false);
+    for (const legacyPath of legacyCatalogPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(new Set(importSpecifiers(domainPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public"]),
+      new Set(["@/modules/creative_canvas/domain/skillContract"]),
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public"]),
+      new Set(["@/modules/creative_canvas/domain/skillContract"]),
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "@/modules/creative_canvas/public",
-        "../application/skillCatalog",
-        "../domain/skillCatalog",
+        "@/modules/creative_canvas/application/skillCatalog",
+        "@/modules/creative_canvas/domain/skillCatalog",
+        "@/modules/creative_canvas/domain/skillContract",
       ]),
     );
     expect(domainModel).toContain("normalizeCanvasSkillCatalog(");
     expect(adapterModel).toContain("REGISTRY_CACHE_TTL_MS");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneSkillCatalogGateway.ts",
     ]);
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/presentation/useCanvasSkillRegistry.ts",
@@ -10278,6 +10287,12 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/public.ts",
     ))).toContain(
       "@/modules/creative_canvas/presentation/useCanvasNodeCatalogController",
+    );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain(
+      "@/modules/creative_canvas/skillCatalogComposition",
     );
   });
 

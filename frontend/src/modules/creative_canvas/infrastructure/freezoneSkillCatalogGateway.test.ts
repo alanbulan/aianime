@@ -1,31 +1,31 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from "@/modules/creative_canvas/public";
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
-import { createFreezoneSkillCatalogGateway } from "./freezoneSkillCatalogGateway";
+import { createFreezoneSkillCatalogGateway } from './freezoneSkillCatalogGateway';
 
 function scene360Skill(): SkillDefinition {
   return {
-    id: "freezone_scene_360",
-    provider: "freezone_mainline",
-    display_name: "Scene 360",
-    description: "",
+    id: 'freezone_scene_360',
+    provider: 'freezone_mainline',
+    display_name: 'Scene 360',
+    description: '',
     inputs: [
       {
-        role: "scene_reverse_master",
-        label: "Reverse master",
+        role: 'scene_reverse_master',
+        label: 'Reverse master',
         accepts: {},
         required: false,
-        cardinality: "single",
+        cardinality: 'single',
       },
     ],
     outputs: [],
   };
 }
 
-describe("freezoneSkillCatalogGateway", () => {
-  it("normalizes and caches the registry for five minutes", async () => {
+describe('freezoneSkillCatalogGateway', () => {
+  it('normalizes and caches the registry for five minutes', async () => {
     let currentTime = 10;
     const loadRegistry = vi.fn().mockResolvedValue([scene360Skill()]);
     const gateway = createFreezoneSkillCatalogGateway(
@@ -45,7 +45,7 @@ describe("freezoneSkillCatalogGateway", () => {
     expect(loadRegistry).toHaveBeenCalledTimes(2);
   });
 
-  it("shares an in-flight registry request", async () => {
+  it('shares an in-flight registry request', async () => {
     let resolveRegistry!: (skills: SkillDefinition[]) => void;
     const loadRegistry = vi.fn(
       () => new Promise<SkillDefinition[]>((resolve) => {

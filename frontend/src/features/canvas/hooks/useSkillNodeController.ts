@@ -42,7 +42,6 @@ import {
   outputLabel,
   outputText,
 } from '@/features/canvas/application/skillOutputProjection';
-import { loadCanvasSkillRegistry } from '@/features/canvas/skillCatalogComposition';
 import {
   awaitCanvasGenerationTaskCompletion,
   awaitCanvasSkillRunResult,
@@ -66,6 +65,7 @@ import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
   isSystemManagedNodeData,
+  loadCanvasSkillRegistry,
   publishCanvasCommitRequested,
   resolveInputsForSkill,
   skillRunErrorMessage,

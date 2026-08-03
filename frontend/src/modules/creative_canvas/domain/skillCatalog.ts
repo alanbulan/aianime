@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
-import type { SkillDefinition } from "@/modules/creative_canvas/public";
+import type { SkillDefinition } from '@/modules/creative_canvas/domain/skillContract';
 
 const REQUIRED_INPUT_OVERRIDES: Readonly<Record<string, ReadonlySet<string>>> = {
   freezone_scene_360: new Set([
-    "scene",
-    "scene_master",
-    "scene_reverse_master",
+    'scene',
+    'scene_master',
+    'scene_reverse_master',
   ]),
 };
 

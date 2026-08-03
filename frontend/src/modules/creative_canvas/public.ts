@@ -499,6 +499,7 @@ export type {
   CanvasSkillRegistryResult,
   LoadCanvasSkillRegistry,
 } from "@/modules/creative_canvas/presentation/useCanvasSkillRegistry";
+export { loadCanvasSkillRegistry } from "@/modules/creative_canvas/skillCatalogComposition";
 export {
   useCanvasQuickAddController,
 } from "@/modules/creative_canvas/presentation/useCanvasQuickAddController";

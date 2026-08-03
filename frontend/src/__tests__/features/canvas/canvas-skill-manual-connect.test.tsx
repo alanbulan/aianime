@@ -78,7 +78,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/skillCatalogComposition", () => ({
+const skillCatalogMocks = vi.hoisted(() => ({
   loadCanvasSkillRegistry: vi.fn().mockResolvedValue([
     {
       id: "freezone.sketch_from_context",
@@ -183,6 +183,7 @@ vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
   CanvasContextMenu: () => null,
   CanvasMinimapButton: () => null,
   CanvasSnapAlignButton: () => null,

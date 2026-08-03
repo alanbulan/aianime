@@ -1100,6 +1100,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十批将 Canvas Skill Registry 的异步加载、卸载取消、错误状态和 ID 索引投影 Hook/测试，以及节点/Skill placement 标签组合 controller/测试整体迁入 Creative Canvas presentation；Registry 直接依赖本域 Skill 合同，Node Catalog 通过显式 `loadSkillRegistry` 与 `resolveNodeTypeLabel` 端口取得旧技能目录加载和节点标签能力，不导入旧 Canvas、Store、React Flow 或 API。旧 Canvas 创建面成为唯一端口适配点，Skill 节点统一经 Creative Canvas public 使用唯一 Registry Hook，相关测试 mock 同步切换到模块 public；4 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套加载/标签状态。Creative Canvas 由 657 增到 661，Canvas 由 542 降到 538，Freezone 保持 0，残余 ratchet 收紧到 538/0。Registry、Node Catalog 与消费控制器行为 Vitest 4 个文件 9 项、定向架构 3 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；定向架构首次 2/3，唯一失败为组合变量改名后的旧文本断言，按真实组合变量修正后定向与完整复跑全绿。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百六十一批将 Canvas Skill Catalog 的 360 Skill 必填输入规范化、application gateway、五分钟缓存与并发请求共享 HTTP adapter、唯一组合根及测试整体迁入 Creative Canvas domain/application/infrastructure/root composition；新纵向链只依赖本域 Skill 合同与共享 API client，不反向导入旧 Canvas。节点创建与 Skill 节点统一经 Creative Canvas public 加载目录，手工连接集成测试的旧组合根 mock 合并到模块 public partial mock；6 个旧生产/测试所有者直接删除，不保留 facade、re-export、旧 query 路径或第二套缓存。Creative Canvas 由 661 增到 667，Canvas 由 538 降到 532，Freezone 保持 0，残余 ratchet 收紧到 532/0。Skill Catalog 领域/adapter/Registry/Node Catalog/消费控制器与手工连接集成 Vitest 7 个文件 15 项、定向架构 2 项、第二轮残余边界 11 项、完整模块边界 324 项、前端 TypeScript 和 `git diff --check` 通过；定向架构首次 1/2，唯一失败为端点所有者扫描只匹配旧双引号字面量，按模块单引号风格校正后定向与完整复跑全绿。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

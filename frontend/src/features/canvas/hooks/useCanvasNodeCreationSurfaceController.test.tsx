@@ -73,6 +73,7 @@ const controllerMocks = vi.hoisted(() => {
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  loadCanvasSkillRegistry: vi.fn(),
   useCanvasNodeMenuStateController: controllerMocks.useNodeMenu,
   useCanvasNodeCatalogController: controllerMocks.useNodeCatalog,
 }));

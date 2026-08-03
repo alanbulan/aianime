@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import {
   useCanvasNodeCatalogController,
   useCanvasNodeMenuStateController,
+  loadCanvasSkillRegistry,
   type CanvasNodeCatalogController,
   type CanvasNodeCatalogControllerOptions,
   type CanvasNodeMenuStateController,
@@ -11,7 +12,6 @@ import {
 
 import { nodeCatalog } from '../application/nodeCatalog';
 import type { CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
-import { loadCanvasSkillRegistry } from '../skillCatalogComposition';
 import {
   useCanvasConnectionController,
   type CanvasConnectionController,
