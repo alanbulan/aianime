@@ -10,13 +10,13 @@ import {
 } from 'react';
 import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   VIDEO_CLIP_MIN_DURATION_MS,
   constrainVideoClipEndMs,
   constrainVideoClipStartMs,
   resolveVideoClipRange,
   type CaptureVideoFrameStrip,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 

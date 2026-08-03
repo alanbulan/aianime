@@ -4,7 +4,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
@@ -22,6 +21,7 @@ import {
   loadCanvasAudioReferences,
   type AudioVoiceRef,
   type CanvasAudioReference,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 
 const DEFAULT_WIDTH = 480;

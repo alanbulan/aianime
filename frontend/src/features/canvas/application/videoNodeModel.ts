@@ -1,9 +1,5 @@
 // Copyright (c) 2026 AI anime
 import {
-  VIDEO_GENERATION_ASPECT_RATIOS,
-  snapToAllowedAspectRatio,
-} from '@/features/canvas/application/imageData';
-import {
   CANVAS_NODE_TYPES,
   isAudioNode,
   isExportImageNode,
@@ -21,10 +17,12 @@ import {
   referenceImageUrl,
   referenceVideoUrl,
 } from '@/features/canvas/domain/videoReferenceMedia';
-import type {
-  CanvasAssetLibrarySelection,
-  VideoGenerationAspectRatio,
-  VideoReferenceItem,
+import {
+  type CanvasAssetLibrarySelection,
+  type VideoGenerationAspectRatio,
+  type VideoReferenceItem,
+  VIDEO_GENERATION_ASPECT_RATIOS,
+  snapToAllowedAspectRatio,
 } from '@/modules/creative_canvas/public';
 
 export const VIDEO_NODE_DEFAULT_WIDTH = 580;

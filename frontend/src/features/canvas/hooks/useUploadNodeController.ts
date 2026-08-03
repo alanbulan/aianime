@@ -26,10 +26,6 @@ import {
 } from '@/features/canvas/application/uploadNodeModel';
 import { uploadDirectorCaptureBundle } from '@/features/canvas/application/directorCaptureBundle';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import {
-  resolveImageDisplayUrl,
-  shouldUseOriginalImageByZoom,
-} from '@/features/canvas/application/imageData';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   directorCaptureBlobToDataUrl,
@@ -45,6 +41,8 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   collectCandidateBindingsForNode,
   hasMainlineContexts,
+  resolveImageDisplayUrl,
+  shouldUseOriginalImageByZoom,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';

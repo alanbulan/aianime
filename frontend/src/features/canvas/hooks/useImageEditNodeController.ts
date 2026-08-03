@@ -36,10 +36,6 @@ import {
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
 import {
-  pickClosestAspectRatio,
-  resolveImageDisplayUrl,
-} from '@/features/canvas/application/imageData';
-import {
   findReferenceTokenAtSelection,
   insertReferenceToken,
   removeTextRange,
@@ -90,6 +86,8 @@ import {
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,
+  pickClosestAspectRatio,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';

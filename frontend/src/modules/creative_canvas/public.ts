@@ -557,6 +557,18 @@ export type {
 } from "@/modules/creative_canvas/application/canvasNodeData";
 export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
 export {
+  IMAGE_GENERATION_ASPECT_RATIOS,
+  VIDEO_GENERATION_ASPECT_RATIOS,
+  extractBase64Payload,
+  isLikelyLocalImagePath,
+  isRenderableImageSrc,
+  pickClosestAspectRatio,
+  reduceAspectRatio,
+  resolveImageDisplayUrl,
+  shouldUseOriginalImageByZoom,
+  snapToAllowedAspectRatio,
+} from "@/modules/creative_canvas/domain/imageData";
+export {
   aspectRatioFromImageDimensions,
   ensureAtLeastOneMinEdge,
   resolveAspectRatioValue,

@@ -31,7 +31,6 @@ import {
   resolveImageGenReferencePreviewPosition,
   snapImageGenAspectRatio,
 } from '@/features/canvas/application/imageGenNodeModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   buildImageGenerationSuccessPatch,
   isStaleGenerationTask,
@@ -71,6 +70,7 @@ import {
   type CanvasAssetLibrarySelection,
   type CanvasGenerationHistoryRecord,
   type CanvasImageMode,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';

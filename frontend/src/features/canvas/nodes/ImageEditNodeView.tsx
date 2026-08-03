@@ -6,7 +6,6 @@ import {
   IMAGE_EDIT_NODE_SIZE_LIMITS,
   projectImageEditPromptSegments,
 } from '@/features/canvas/application/imageEditNodeModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
@@ -33,6 +32,7 @@ import {
   AssetLibraryModal,
   stringifyParamValue,
   type CapabilityParamDefinition,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { UiButton } from '@/components/ui';
 

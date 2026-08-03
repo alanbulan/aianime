@@ -72,10 +72,6 @@ vi.mock('@/features/canvas/application/canvasServices', () => ({
   },
 }));
 
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (project: string, file: File, filename: string) =>
     mocks.uploadCanvasAsset(project, file, filename),
@@ -86,6 +82,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   isAudioFile: (file: File) => mocks.isAudioFile(file),
   loadCanvasAudioReferences: (project: string) =>
     mocks.loadCanvasAudioReferences(project),
+  resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
 }));
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {

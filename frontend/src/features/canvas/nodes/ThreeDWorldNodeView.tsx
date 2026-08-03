@@ -3,16 +3,18 @@ import { Handle, Position } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Loader2, Orbit } from 'lucide-react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   pickThreeDWorldPlyUrl,
   THREE_D_WORLD_NODE_SIZE_LIMITS,
   type ThreeDWorldReferenceImage,
   type ThreeDWorldReferenceText,
 } from '@/features/canvas/application/threeDWorldNodeModel';
-import type {
-  CanvasGenerationHistoryRecord,
-  CanvasImageTo3dVisibleSourceKind,
+import {
+  type CanvasGenerationHistoryRecord,
+  type CanvasImageTo3dVisibleSourceKind,
+  NodeContextBadges,
+  NodeGenerationHistory,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
@@ -28,10 +30,6 @@ import {
   CANVAS_NODE_OPS_PANEL_CLASS,
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import {
-  NodeContextBadges,
-  NodeGenerationHistory,
-} from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;

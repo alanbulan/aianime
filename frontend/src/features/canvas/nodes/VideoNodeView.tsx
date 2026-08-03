@@ -18,7 +18,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
 } from '@/features/canvas/application/videoNodeModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
 import { CameraMovementChip } from '@/features/canvas/nodes/CameraMovementChip';
@@ -84,6 +83,7 @@ import {
 import {
   AssetLibraryModal,
   NodeContextBadges,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 
 export interface VideoNodeViewProps {

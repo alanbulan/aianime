@@ -5,7 +5,7 @@ import {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,
   snapToAllowedAspectRatio,
-} from "@/features/canvas/application/imageData";
+} from "./imageData";
 
 const IMG = IMAGE_GENERATION_ASPECT_RATIOS;
 const VID = VIDEO_GENERATION_ASPECT_RATIOS;

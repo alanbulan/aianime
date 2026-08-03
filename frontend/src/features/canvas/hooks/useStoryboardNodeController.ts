@@ -16,7 +16,7 @@ import {
 import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
-} from '@/features/canvas/application/imageData';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,

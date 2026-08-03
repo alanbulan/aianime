@@ -41,15 +41,12 @@ vi.mock("@/features/canvas/canvasStore", () => ({
 
 vi.mock("@/modules/creative_canvas/public", () => ({
   analyzeCanvasVideoStory: (...args: unknown[]) => mocks.analyze(...args),
+  resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
   separateCanvasAudioVideo: (...args: unknown[]) => mocks.separate(...args),
 }));
 
 vi.mock("@/features/canvas/application/canvasServices", () => ({
   canvasEventBus: { publish: (...args: unknown[]) => mocks.publish(...args) },
-}));
-
-vi.mock("@/features/canvas/application/imageData", () => ({
-  resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
 }));
 
 vi.mock("@/lib/browserDownload", () => ({

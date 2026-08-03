@@ -31,7 +31,8 @@ vi.mock("@/features/canvas/canvasStore", () => ({
   ) => selector({ updateNodeData: mocks.updateNodeData }),
 }));
 
-vi.mock("@/features/canvas/application/imageData", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
 }));
 

@@ -4,14 +4,12 @@ import {
   readStoryboardImageMetadata,
 } from '@/commands/image';
 
-import {
-  reduceAspectRatio,
-} from '../application/imageData';
 import type { CanvasToolImageGateway } from '../application/ports';
 import {
   parseAspectRatio,
   resolveMaxAllowedLineThickness,
   splitIntoSegments,
+  reduceAspectRatio,
 } from '@/modules/creative_canvas/public';
 import { drawAnnotations, parseAnnotationItems } from '../tools/annotation';
 import {

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
 import { UiInput } from '@/components/ui';
 import type { VisualToolEditorProps } from './types';
 

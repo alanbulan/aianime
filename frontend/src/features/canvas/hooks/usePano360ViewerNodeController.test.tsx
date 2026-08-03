@@ -72,6 +72,7 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   getFreezoneCanvasMetadata: () => mocks.getCanvasMetadata(),
+  resolveImageDisplayUrl: (url: string) => url,
 }));
 
 function data(

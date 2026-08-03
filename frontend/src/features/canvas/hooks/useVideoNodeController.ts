@@ -34,14 +34,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
-import {
-  captureBrowserVideoFrameStrip,
-  isVideoFile,
-  resolveAudioReferenceDisplayName,
-  translateCanvasText,
-  validateVideoReferenceAudioDuration,
-  VIDEO_FILE_ACCEPT,
-} from '@/modules/creative_canvas/public';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import { resolveGenerationErrorDiagnostics } from '@/features/canvas/application/generationErrorReport';
@@ -49,7 +41,6 @@ import {
   extractUpstreamContent,
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { resolveDroppedVideoFile } from '@/features/canvas/application/resolveDroppedVideoFile';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { buildVideoMetadataPatch } from '@/features/canvas/application/videoMetadataPatch';
@@ -98,6 +89,8 @@ import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrim
 import {
   CAMERA_MOVEMENT_PRESETS,
   DEFAULT_VIDEO_DURATION_SEC,
+  VIDEO_FILE_ACCEPT,
+  captureBrowserVideoFrameStrip,
   clampVideoDuration,
   classifyVideoReferenceItems,
   composeVideoClip,
@@ -107,13 +100,17 @@ import {
   findCameraMovementPreset,
   hasMainlineContexts,
   historyRecordOutputUrl,
+  isVideoFile,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
   qualityToResolution,
+  resolveAudioReferenceDisplayName,
+  resolveImageDisplayUrl,
   sceneOptimizeOptionsForModel,
   submitVideoGeneration,
   supportedVideoModesForModel,
+  translateCanvasText,
   useCanvasVideoCameraTemplates,
   useCanvasVideoModels,
   useNodeGenerationHistory,
@@ -122,6 +119,7 @@ import {
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
   videoReferenceCapsForMode,
+  validateVideoReferenceAudioDuration,
   type CanvasAssetLibrarySelection,
   type CanvasGenerationHistoryRecord,
   type CameraMovementPreset,

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { parseAspectRatio } from '@/modules/creative_canvas/public';
+import { parseAspectRatio } from './aspectRatio';
 
 // 从一组候选比例（"w:h" 字符串）里挑数值上最接近 targetRatio 的那个。用比值的
 // 对数距离，横/竖比例对称（2.33 与其倒数 0.43 到 1 的距离一致）。候选为空时回退 '1:1'。

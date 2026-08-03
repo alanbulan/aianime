@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Expand, FileVideo2, X } from 'lucide-react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoStoryNodeController';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
@@ -16,7 +15,10 @@ import {
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import type { VideoStoryRow } from '@/modules/creative_canvas/public';
+import {
+  type VideoStoryRow,
+  resolveImageDisplayUrl,
+} from '@/modules/creative_canvas/public';
 
 interface ColumnDef {
   key: keyof VideoStoryRow;

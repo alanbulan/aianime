@@ -103,6 +103,7 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   stringifyParamValue: (value: unknown) => String(value),
+  resolveImageDisplayUrl: (url: string) => url,
   AssetLibraryModal: ({
     open,
     onClose,

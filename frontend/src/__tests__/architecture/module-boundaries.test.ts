@@ -754,11 +754,13 @@ describe("frontend architecture boundaries", () => {
     );
     const imageDataPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/imageData.ts",
+      "modules/creative_canvas/domain/imageData.ts",
     );
     const legacySizingPaths = [
       "features/canvas/application/imageNodeSizing.ts",
+      "features/canvas/application/imageData.ts",
       "__tests__/features/canvas/image-node-resize-min.test.ts",
+      "__tests__/features/canvas/snap-aspect-ratio.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const controllerPath = resolve(
       SRC_ROOT,
@@ -838,7 +840,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(aspectRatioPath)).toEqual([]);
     expect(aspectRatioSource).toContain(declarations[2]);
     expect(imageDataSource).not.toContain(declarations[2]);
-    expect(imageDataSource).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(imageDataPath)).toEqual(["./aspectRatio"]);
     for (const legacyPath of legacySizingPaths) {
       expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
     }
@@ -3062,7 +3064,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const imageData = readFileSync(
-      resolve(applicationRoot, "imageData.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/imageData.ts"),
       "utf8",
     );
     const imagePreparation = readFileSync(
@@ -11999,6 +12001,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "shared/media/image-cache.ts",
     );
+    const imageDataPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/imageData.ts",
+    );
     const legacyImageDataPath = resolve(
       SRC_ROOT,
       "features/canvas/application/imageData.ts",
@@ -12058,9 +12064,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(cacheBustOwners).toEqual(["shared/media/image-cache.ts"]);
     expect(existsSync(cacheBustPath)).toBe(true);
-    expect(readFileSync(legacyImageDataPath, "utf8")).not.toContain(
+    expect(readFileSync(imageDataPath, "utf8")).not.toContain(
       "withImageCacheBust",
     );
+    expect(existsSync(legacyImageDataPath)).toBe(false);
     expect(existsSync(legacyPanelPath)).toBe(false);
     expect(existsSync(legacyFlatPanelPath)).toBe(false);
     expect(existsSync(legacyViewPath)).toBe(false);
@@ -22316,10 +22323,10 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/imageData",
         "@/features/canvas/application/nodeActionToolbarModel",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
+        "@/modules/creative_canvas/public",
         "@/stores/settingsStore",
       ]),
     );
@@ -22364,7 +22371,6 @@ describe("frontend architecture boundaries", () => {
       "<NodeOutputToolbarActions node={node} />",
     );
     for (const forbiddenParentDependency of [
-      "@/features/canvas/application/imageData",
       "@/features/canvas/application/nodeActionToolbarModel",
       "@/features/canvas/hooks/useNodeOutputToolbarController",
       "@/features/canvas/ui/NodeToolbarIconChip",
@@ -22654,7 +22660,6 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/application/videoNodeToolbarModel",
         "@/features/canvas/application/canvasServices",
-        "@/features/canvas/application/imageData",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
@@ -22798,7 +22803,6 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "sonner",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/application/imageData",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",

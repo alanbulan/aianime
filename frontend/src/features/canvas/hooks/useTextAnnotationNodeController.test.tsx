@@ -88,6 +88,7 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     mocks.submitVideoGeneration(command),
   resolveGenerationOutputUrl: (result: unknown, kind: string) =>
     mocks.outputUrl(result, kind),
+  resolveImageDisplayUrl: (url: string) => `display:${url}`,
   useCanvasVideoModels: () => ({ models: mocks.videoModels }),
   isSystemManagedNodeData: () => mocks.systemManaged,
 }));
@@ -102,10 +103,6 @@ vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: () => ({
     data: { data: { display: '2 credits' } },
   }),
-}));
-
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
 }));
 
 vi.mock('@/features/canvas/application/resumeGeneration', () => ({

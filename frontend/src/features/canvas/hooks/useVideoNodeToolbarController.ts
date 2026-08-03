@@ -9,12 +9,12 @@ import {
   projectVideoNodeToolbar,
 } from "@/features/canvas/application/videoNodeToolbarModel";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
-import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   analyzeCanvasVideoStory,
   separateCanvasAudioVideo,
   type VideoSubtitleEraseMode,
+  resolveImageDisplayUrl,
 } from "@/modules/creative_canvas/public";
 import {
   CANVAS_NODE_TYPES,

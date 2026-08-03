@@ -16,11 +16,13 @@ import {
   prepareNodeImage,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { getToolPlugin, type ToolOptions } from '@/features/canvas/tools';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { inheritMainlineFields } from '@/modules/creative_canvas/public';
+import {
+  inheritMainlineFields,
+  resolveImageDisplayUrl,
+} from '@/modules/creative_canvas/public';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 import { UiButton, UiModal } from '@/components/ui';
 import { UI_DIALOG_TRANSITION_MS } from '@/components/ui/motion';

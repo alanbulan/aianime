@@ -30,7 +30,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/application/imageData", () => ({
+vi.mock("@/modules/creative_canvas/public", () => ({
   resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
 }));
 

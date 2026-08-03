@@ -5,7 +5,7 @@ import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 import { UiButton, UiModal } from '@/components/ui/primitives';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
 
 /**
  * 截图选区对话框 — 用户从 source 图(master/reverse 等)选一块固定比例

@@ -25,13 +25,13 @@ import {
   IMAGE_GEN_OPERATIONS_PANEL_GAP,
   IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
 } from '@/features/canvas/application/imageGenNodeModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   AssetLibraryModal,
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
   NodeGenerationHistory,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';

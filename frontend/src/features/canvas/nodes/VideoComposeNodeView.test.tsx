@@ -28,6 +28,7 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  resolveImageDisplayUrl: (url: string) => url,
   VideoComposeModal: ({
     project,
     canvasId,

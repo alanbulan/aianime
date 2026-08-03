@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { isRenderableImageSrc, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNodeModel';
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -26,6 +25,8 @@ import {
   NodeGenerationHistory,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptRow,
+  isRenderableImageSrc,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
 import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';

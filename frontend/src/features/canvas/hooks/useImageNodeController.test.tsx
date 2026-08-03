@@ -59,11 +59,6 @@ vi.mock('@/features/canvas/hooks/useNodeGenerationTaskState', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/application/imageData', () => ({
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-  shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
-}));
-
 vi.mock('@/shared/media/image-cache', () => ({
   withImageCacheBust: (
     url: string,
@@ -85,6 +80,8 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
+  resolveImageDisplayUrl: (url: string) => `display:${url}`,
+  shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
 }));
 
 function data(patch: Partial<ImageEditNodeData> = {}): ImageEditNodeData {

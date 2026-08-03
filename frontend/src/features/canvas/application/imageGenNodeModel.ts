@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import {
+  parseAspectRatio,
   IMAGE_GENERATION_ASPECT_RATIOS,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
-} from '@/features/canvas/application/imageData';
-import { parseAspectRatio } from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/public';
 import type {
   ImageGenCameraSelection,
   ImageGenCount,

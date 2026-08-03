@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { reduceAspectRatio } from './imageData';
+import { reduceAspectRatio } from '@/modules/creative_canvas/public';
 import type { CanvasImageRuntimeGateway } from './ports';
 
 const DEFAULT_PREVIEW_MAX_DIMENSION = 512;

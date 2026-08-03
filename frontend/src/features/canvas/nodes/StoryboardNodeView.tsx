@@ -14,7 +14,7 @@ import {
   STORYBOARD_GRID_GAP_PX,
   STORYBOARD_NODE_SIZE_LIMITS,
 } from '@/features/canvas/application/storyboardNodeModel';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
 import type {
   StoryboardExportOptions,
   StoryboardFrameItem,

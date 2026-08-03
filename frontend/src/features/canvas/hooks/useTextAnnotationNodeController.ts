@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { awaitCanvasGenerationTaskCompletion } from '@/features/canvas/composition';
@@ -38,6 +37,7 @@ import {
   type TextNodeMode,
   type VideoGenerationAspectRatio,
   type VideoGenQuality,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

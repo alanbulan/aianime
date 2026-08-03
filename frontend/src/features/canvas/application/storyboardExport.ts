@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { reduceAspectRatio } from '@/features/canvas/application/imageData';
+import { reduceAspectRatio } from '@/modules/creative_canvas/public';
 import { resolveStoryboardPackPlan } from '@/features/canvas/application/storyboardNodeModel';
 import type {
   StoryboardExportOptions,

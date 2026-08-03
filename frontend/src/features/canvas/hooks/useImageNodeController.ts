@@ -9,10 +9,6 @@ import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  resolveImageDisplayUrl,
-  shouldUseOriginalImageByZoom,
-} from '@/features/canvas/application/imageData';
 import { canRegenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
@@ -36,6 +32,8 @@ import {
   resolveMinEdgeFittedSize,
   resolveResizeMinConstraintsByAspect,
   shouldForceNaturalImageSize,
+  resolveImageDisplayUrl,
+  shouldUseOriginalImageByZoom,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 

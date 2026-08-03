@@ -2,9 +2,11 @@
 import { Handle, Position } from '@xyflow/react';
 import { Film } from 'lucide-react';
 
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
-import { VideoComposeModal } from '@/modules/creative_canvas/public';
+import {
+  VideoComposeModal,
+  resolveImageDisplayUrl,
+} from '@/modules/creative_canvas/public';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

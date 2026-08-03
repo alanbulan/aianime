@@ -34,10 +34,6 @@ import {
   type GenerationDebugContext,
 } from '@/features/canvas/application/generationErrorReport';
 import {
-  pickClosestAspectRatio,
-  resolveImageDisplayUrl,
-} from '@/features/canvas/application/imageData';
-import {
   insertReferenceToken,
   removeTextRange,
   resolveReferenceAwareDeleteRange,
@@ -67,6 +63,8 @@ import {
 import {
   parseAspectRatio,
   useCanvasImageModels,
+  pickClosestAspectRatio,
+  resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {

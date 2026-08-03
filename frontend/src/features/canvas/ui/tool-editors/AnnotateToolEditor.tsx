@@ -36,7 +36,7 @@ import {
   type AnnotationItem,
   type AnnotationToolType,
 } from '@/features/canvas/tools/annotation';
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
 import type { VisualToolEditorProps } from './types';
 
 const VIEWPORT_PADDING_PX = 16;
