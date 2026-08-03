@@ -15664,7 +15664,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node size updates out of the Zustand store", () => {
     const nodeSizePath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeSize.ts",
+      "modules/creative_canvas/application/canvasNodeSize.ts",
     );
     const nodeSizeModel = readFileSync(nodeSizePath, "utf8");
     const canvasStore = readFileSync(
@@ -15690,7 +15690,7 @@ describe("frontend architecture boundaries", () => {
     );
     const updateDeclaration = [
       "export function",
-      "updateCanvasNodeSize(",
+      "updateCanvasNodeSize<",
     ].join(" ");
     const contractDeclaration = [
       "export interface",
@@ -15711,19 +15711,28 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasNodeSize.ts",
+      "modules/creative_canvas/application/canvasNodeSize.ts",
     ]);
     expect(contractOwners).toEqual([
-      "features/canvas/application/canvasNodeSize.ts",
+      "modules/creative_canvas/application/canvasNodeSize.ts",
     ]);
     expect(nodeSizeModel).toContain(updateDeclaration);
-    expect(nodeMutationSlice).toContain("../application/canvasNodeSize");
+    expect(nodeMutationSlice).toContain("updateCanvasNodeSize,");
+    expect(nodeMutationSlice).not.toContain("../application/canvasNodeSize");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeSize",
     );
     expect(canvasStore).not.toContain("const manualSizePatch =");
     expect(canvasStore).not.toContain("const currentWidth =");
     expect(canvasStore).not.toContain("Math.max(1, Math.round(size.width))");
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeSize.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeSize.test.ts",
+    ))).toBe(false);
   });
 
   it("keeps Canvas connection eligibility in the domain model", () => {
@@ -22359,11 +22368,11 @@ describe("frontend architecture boundaries", () => {
   it("separates node action toolbar shell projection, composition, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionToolbarShellModel.ts",
+      "modules/creative_canvas/domain/nodeActionToolbarShellModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionToolbarShellModel.test.ts",
+      "modules/creative_canvas/domain/nodeActionToolbarShellModel.test.ts",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -22377,7 +22386,7 @@ describe("frontend architecture boundaries", () => {
     const componentSource = readFileSync(componentPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const declarations = [
-      ["export function", "projectNodeActionToolbarShell("].join(" "),
+      ["export function", "projectNodeActionToolbarShell<"].join(" "),
       ["export const", "NodeActionToolbar ="].join(" "),
       ["export function", "NodeActionToolbarView("].join(" "),
     ];
@@ -22391,12 +22400,13 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/nodeActionToolbarShellModel",
+        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "./NodeActionToolbarView",
       ]),
     );
     expect(componentSource).toContain(
-      "projectNodeActionToolbarShell(props.node)",
+      "projectNodeActionToolbarShell({",
     );
     expect(componentSource).toContain(
       "<NodeActionToolbarView {...props} projection={projection} />",
@@ -22407,7 +22417,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@xyflow/react",
         "@/components/ui",
-        "@/features/canvas/application/nodeActionToolbarShellModel",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
         "@/features/canvas/ui/AudioNodeToolbarActions",
@@ -22453,12 +22462,7 @@ describe("frontend architecture boundaries", () => {
     ].map((declaration) => viewSource.indexOf(declaration));
     expect(assemblyOrder.every((index) => index >= 0)).toBe(true);
     expect(assemblyOrder).toEqual([...assemblyOrder].sort((a, b) => a - b));
-    expect(new Set(importSpecifiers(modelPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-      ]),
-    );
+    expect(importSpecifiers(modelPath)).toEqual([]);
     for (const forbiddenModelDependency of [
       "react",
       "window",
@@ -22473,15 +22477,23 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(modelSource).not.toContain(forbiddenModelDependency);
     }
-    expect(modelSource).toContain("projectNodeActionToolbarShell(");
+    expect(modelSource).toContain("projectNodeActionToolbarShell<");
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/nodeActionToolbarShellModel.ts"],
+      ["modules/creative_canvas/domain/nodeActionToolbarShellModel.ts"],
       ["features/canvas/ui/NodeActionToolbar.tsx"],
       ["features/canvas/ui/NodeActionToolbarView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./nodeActionToolbarShellModel"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionToolbarShellModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeActionToolbarShellModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates node output toolbar commands, composition, and view", () => {
@@ -22631,11 +22643,11 @@ describe("frontend architecture boundaries", () => {
   it("separates node management toolbar projection, commands, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeManagementToolbarModel.ts",
+      "modules/creative_canvas/domain/nodeManagementToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeManagementToolbarModel.test.ts",
+      "modules/creative_canvas/domain/nodeManagementToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -22689,12 +22701,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(new Set(importSpecifiers(modelPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-      ]),
-    );
+    expect(importSpecifiers(modelPath)).toEqual([]);
     for (const forbiddenModelDependency of [
       "react",
       "window",
@@ -22715,7 +22722,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/nodeManagementToolbarModel",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
@@ -22789,7 +22795,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useNodeManagementToolbarController.ts",
     ]);
     expect(declarationOwners).toEqual([
-      ["features/canvas/application/nodeManagementToolbarModel.ts"],
+      ["modules/creative_canvas/domain/nodeManagementToolbarModel.ts"],
       ["features/canvas/hooks/useNodeManagementToolbarController.ts"],
       ["features/canvas/ui/NodeManagementToolbarActions.tsx"],
       ["features/canvas/ui/NodeManagementToolbarActionsView.tsx"],
@@ -22800,16 +22806,24 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeManagementToolbarController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeManagementToolbarModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeManagementToolbarModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates video node toolbar model, controller, composition, and view", () => {
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoNodeToolbarModel.ts",
+      "modules/creative_canvas/domain/videoNodeToolbarModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoNodeToolbarModel.test.ts",
+      "modules/creative_canvas/domain/videoNodeToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -22855,9 +22869,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(modelPath)).toEqual([
-      "@/features/canvas/domain/canvasNodes",
-    ]);
+    expect(importSpecifiers(modelPath)).toEqual([]);
     for (const forbiddenDependency of [
       "react",
       "window",
@@ -22875,7 +22887,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/videoNodeToolbarModel",
         "@/features/canvas/application/canvasServices",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
@@ -22932,7 +22943,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(declarationOwners).toEqual([
       ...declarations.slice(0, 4).map(() => [
-        "features/canvas/application/videoNodeToolbarModel.ts",
+        "modules/creative_canvas/domain/videoNodeToolbarModel.ts",
       ]),
       ["features/canvas/hooks/useVideoNodeToolbarController.ts"],
       ["features/canvas/ui/VideoNodeToolbarActionsView.tsx"],
@@ -22943,6 +22954,14 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useVideoNodeToolbarController"',
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeToolbarModel.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoNodeToolbarModel.test.ts",
+    ))).toBe(false);
   });
 
   it("separates audio node toolbar model, browser controller, and view", () => {
@@ -26319,7 +26338,6 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasNodeConversion",
       "../application/canvasNodeCreation",
       "../application/imageNodeLayout",
-      "../application/canvasNodeSize",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");

@@ -6,12 +6,14 @@ import {
   reorderStoryboardFrameInGraph,
   setCanvasNodePositions,
   trackEdit,
+  updateCanvasNodeSize,
   updateCanvasNodeData,
   updateStoryboardFrameInGraph,
   updateCanvasNodePosition,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type CanvasNodeSizeUpdateOptions,
   type CanvasNodeDataUpdatePorts,
   type StoryboardFrameItem,
   type StoryboardFrameGraphPorts,
@@ -26,10 +28,6 @@ import {
 import { convertCanvasNodeType } from '../application/canvasNodeConversion';
 import { createCanvasNode } from '../application/canvasNodeCreation';
 import { maybeApplyImageAutoResize } from '../application/imageNodeLayout';
-import {
-  updateCanvasNodeSize,
-  type CanvasNodeSizeUpdateOptions,
-} from '../application/canvasNodeSize';
 import type {
   CanvasNodeDefaultDataGateway,
   NodeFactory,

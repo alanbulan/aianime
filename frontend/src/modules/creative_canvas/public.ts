@@ -713,6 +713,36 @@ export {
 } from "@/modules/creative_canvas/domain/imageMatteNodeModel";
 export type { ImageMatteNodePatch } from "@/modules/creative_canvas/domain/imageMatteNodeModel";
 export {
+  buildSeparatedVideoNodeData,
+  buildVideoAnalysisStoryNodeData,
+  buildVideoUpscaleNodeData,
+  projectVideoNodeToolbar,
+} from "@/modules/creative_canvas/domain/videoNodeToolbarModel";
+export type {
+  SeparatedVideoNodeData,
+  VideoAnalysisStoryNodeData,
+  VideoNodeToolbarData,
+  VideoNodeToolbarProjection,
+  VideoToolbarNodePatch,
+} from "@/modules/creative_canvas/domain/videoNodeToolbarModel";
+export { projectNodeManagementToolbar } from "@/modules/creative_canvas/domain/nodeManagementToolbarModel";
+export type {
+  NodeManagementToolbarFacts,
+  NodeManagementToolbarProjection,
+  NodeToolbarRemovalTarget,
+} from "@/modules/creative_canvas/domain/nodeManagementToolbarModel";
+export { projectNodeActionToolbarShell } from "@/modules/creative_canvas/domain/nodeActionToolbarShellModel";
+export type {
+  NodeActionToolbarShellFacts,
+  NodeActionToolbarShellProjection,
+} from "@/modules/creative_canvas/domain/nodeActionToolbarShellModel";
+export { updateCanvasNodeSize } from "@/modules/creative_canvas/application/canvasNodeSize";
+export type {
+  CanvasNodeSizeTarget,
+  CanvasNodeSizeUpdateOptions,
+  CanvasNodeSizeUpdateResult,
+} from "@/modules/creative_canvas/application/canvasNodeSize";
+export {
   IMAGE_GENERATION_ASPECT_RATIOS,
   VIDEO_GENERATION_ASPECT_RATIOS,
   extractBase64Payload,

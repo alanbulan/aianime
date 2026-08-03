@@ -1,22 +1,34 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodes';
+
+export interface CanvasNodeSizeTarget {
+  id: string;
+  width?: number | null;
+  height?: number | null;
+  style?: {
+    width?: unknown;
+    height?: unknown;
+  } | null;
+  data: Record<string, unknown>;
+}
 
 export interface CanvasNodeSizeUpdateOptions {
   lockManualSize?: boolean;
-  data?: Partial<CanvasNodeData>;
+  data?: Record<string, unknown>;
 }
 
-export interface CanvasNodeSizeUpdateResult {
-  nodes: CanvasNode[];
+export interface CanvasNodeSizeUpdateResult<TNode> {
+  nodes: TNode[];
   changed: boolean;
 }
 
-export function updateCanvasNodeSize(
-  nodes: CanvasNode[],
+export function updateCanvasNodeSize<
+  TNode extends CanvasNodeSizeTarget,
+>(
+  nodes: TNode[],
   nodeId: string,
   size: { width: number; height: number },
   options?: CanvasNodeSizeUpdateOptions,
-): CanvasNodeSizeUpdateResult {
+): CanvasNodeSizeUpdateResult<TNode> {
   const nextWidth = Math.max(1, Math.round(size.width));
   const nextHeight = Math.max(1, Math.round(size.height));
   let changed = false;
@@ -37,14 +49,14 @@ export function updateCanvasNodeSize(
         : options?.lockManualSize === true
           ? { isSizeManuallyAdjusted: true }
           : {};
-    const dataPatch = {
+    const dataPatch: Record<string, unknown> = {
       ...(options?.data ?? {}),
       ...manualSizePatch,
     };
     const hasDataPatch = Object.keys(dataPatch).some((key) =>
       !Object.is(
-        (node.data as Record<string, unknown>)[key],
-        (dataPatch as Record<string, unknown>)[key],
+        node.data[key],
+        dataPatch[key],
       ),
     );
     if (currentWidth === nextWidth && currentHeight === nextHeight && !hasDataPatch) {
@@ -64,8 +76,8 @@ export function updateCanvasNodeSize(
       data: {
         ...node.data,
         ...dataPatch,
-      } as CanvasNodeData,
-    };
+      },
+    } as TNode;
   });
 
   return {

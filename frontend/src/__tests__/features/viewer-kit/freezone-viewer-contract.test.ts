@@ -561,7 +561,7 @@ describe("freezone viewer contracts", () => {
   it("routes projection group toolbar actions through projection sync and remove events", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbarView.tsx");
     const managementModel = read(
-      "src/features/canvas/application/nodeManagementToolbarModel.ts",
+      "src/modules/creative_canvas/domain/nodeManagementToolbarModel.ts",
     );
     const managementController = read(
       "src/features/canvas/hooks/useNodeManagementToolbarController.ts",
@@ -590,7 +590,10 @@ describe("freezone viewer contracts", () => {
     );
 
     expect(toolbar).toContain("<NodeManagementToolbarActions node={node} />");
-    expect(managementModel).toContain("isProtectedProjectionGroupNode(node)");
+    expect(managementModel).toContain("typeof facts.projectionKey");
+    expect(managementController).toContain(
+      "isProtectedProjectionGroupNode(node)",
+    );
     expect(managementController).toContain(
       "publishCanvasProjectionSyncRequested(projection.projectionKey)",
     );

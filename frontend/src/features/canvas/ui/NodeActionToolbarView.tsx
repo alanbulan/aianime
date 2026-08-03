@@ -2,9 +2,15 @@
 import { NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react";
 
 import { UiPanel } from "@/components/ui";
-import type { NodeActionToolbarShellProjection } from "@/features/canvas/application/nodeActionToolbarShellModel";
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/modules/creative_canvas/public";
+import type {
+  AudioNodeData,
+  CanvasNode,
+  VideoNodeData,
+} from "@/features/canvas/domain/canvasNodes";
+import type {
+  GridActionRequest,
+  NodeActionToolbarShellProjection,
+} from "@/modules/creative_canvas/public";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { CanvasGroupNodeToolbarActionsAdapter } from "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
@@ -25,7 +31,7 @@ import {
 export interface NodeActionToolbarViewProps {
   projectId: string;
   node: CanvasNode;
-  projection: NodeActionToolbarShellProjection;
+  projection: NodeActionToolbarShellProjection<VideoNodeData, AudioNodeData>;
   onOpenMultiAngleEditor: (nodeId: string) => void;
   onOpenLightEditor: (nodeId: string) => void;
   onOpenScene360: (nodeId: string) => void;

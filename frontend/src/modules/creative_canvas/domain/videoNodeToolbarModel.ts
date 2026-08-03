@@ -1,9 +1,37 @@
 // Copyright (c) 2026 AI anime
-import type {
-  AudioNodeData,
-  VideoNodeData,
-  VideoStoryNodeData,
-} from "@/features/canvas/domain/canvasNodes";
+
+export interface VideoNodeToolbarData extends Record<string, unknown> {
+  videoUrl?: string | null;
+  sourceFileName?: string | null;
+  displayName?: string;
+  isAnalyzing?: boolean;
+  isSeparatingAv?: boolean;
+  previewImageUrl?: string | null;
+  aspectRatio?: string;
+}
+
+export interface VideoAnalysisStoryNodeData extends Record<string, unknown> {
+  sourceVideoUrl: string;
+  rows: unknown[];
+  rawResult: null;
+  isAnalyzing: true;
+  analysisStartedAt: number;
+  analysisError: null;
+}
+
+export interface VideoToolbarNodePatch extends Record<string, unknown> {
+  displayName?: string;
+  videoUrl?: string | null;
+  audioUrl?: string | null;
+  sourceFileName?: string | null;
+  previewImageUrl?: string | null;
+  aspectRatio?: string;
+  isUpscaleNode?: boolean;
+  upscaleSourceUrl?: string;
+  upscaleResolution?: "1080p";
+  upscaleDenoise?: "1x";
+  isGenerating?: boolean;
+}
 
 export interface VideoNodeToolbarProjection {
   videoUrl: string | null;
@@ -15,8 +43,8 @@ export interface VideoNodeToolbarProjection {
 }
 
 export interface SeparatedVideoNodeData {
-  audio: Partial<AudioNodeData>;
-  silentVideo: Partial<VideoNodeData>;
+  audio: VideoToolbarNodePatch;
+  silentVideo: VideoToolbarNodePatch;
 }
 
 function isNonBlankString(value: unknown): value is string {
@@ -25,7 +53,7 @@ function isNonBlankString(value: unknown): value is string {
 
 export function projectVideoNodeToolbar(
   nodeId: string,
-  data: VideoNodeData,
+  data: VideoNodeToolbarData,
 ): VideoNodeToolbarProjection {
   const videoUrl = typeof data.videoUrl === "string" ? data.videoUrl : null;
   const downloadFilename = isNonBlankString(data.sourceFileName)
@@ -48,7 +76,7 @@ export function projectVideoNodeToolbar(
 export function buildVideoAnalysisStoryNodeData(
   sourceVideoUrl: string,
   analysisStartedAt: number,
-): VideoStoryNodeData {
+): VideoAnalysisStoryNodeData {
   return {
     sourceVideoUrl,
     rows: [],
@@ -60,10 +88,10 @@ export function buildVideoAnalysisStoryNodeData(
 }
 
 export function buildVideoUpscaleNodeData(
-  source: VideoNodeData,
+  source: VideoNodeToolbarData,
   sourceVideoUrl: string,
   displayName: string,
-): Partial<VideoNodeData> {
+): VideoToolbarNodePatch {
   return {
     displayName,
     videoUrl: null,
@@ -82,7 +110,7 @@ export function buildVideoUpscaleNodeData(
 }
 
 export function buildSeparatedVideoNodeData(
-  source: VideoNodeData,
+  source: VideoNodeToolbarData,
   audioUrl: string,
   silentVideoUrl: string,
 ): SeparatedVideoNodeData {

@@ -1,16 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { VideoNodeData } from "@/features/canvas/domain/canvasNodes";
-
 import {
   buildSeparatedVideoNodeData,
   buildVideoAnalysisStoryNodeData,
   buildVideoUpscaleNodeData,
   projectVideoNodeToolbar,
+  type VideoNodeToolbarData,
 } from "./videoNodeToolbarModel";
 
-function data(patch: Partial<VideoNodeData> = {}): VideoNodeData {
+function data(
+  patch: Partial<VideoNodeToolbarData> = {},
+): VideoNodeToolbarData {
   return {
     videoUrl: "/source.mp4",
     aspectRatio: "16:9",

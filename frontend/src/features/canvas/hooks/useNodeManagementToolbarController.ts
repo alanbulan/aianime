@@ -2,10 +2,17 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { projectNodeManagementToolbar } from "@/features/canvas/application/nodeManagementToolbarModel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
+  isAudioNode,
+  isImageGenNode,
+  isProtectedProjectionGroupNode,
+  isVideoNode,
+  type CanvasNode,
+} from "@/features/canvas/domain/canvasNodes";
+import {
+  deriveNodeDropInfo,
+  projectNodeManagementToolbar,
   publishCanvasCommitRequested,
   publishCanvasProjectionRemovalRequested,
   publishCanvasProjectionSyncRequested,
@@ -22,7 +29,15 @@ export function useNodeManagementToolbarController({
   const { t } = useTranslation();
   const deleteNode = useCanvasStore((state) => state.deleteNode);
   const projection = useMemo(
-    () => projectNodeManagementToolbar(node),
+    () =>
+      projectNodeManagementToolbar({
+        projectionKey: isProtectedProjectionGroupNode(node)
+          ? node.data.projection_key
+          : null,
+        canRemove:
+          !isImageGenNode(node) && !isVideoNode(node) && !isAudioNode(node),
+        sourceUrl: deriveNodeDropInfo(node)?.sourceUrl ?? null,
+      }),
     [node],
   );
   const projectionStatus = useCanvasProjectionStatus(
