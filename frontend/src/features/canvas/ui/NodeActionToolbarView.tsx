@@ -11,7 +11,7 @@ import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarAc
 import { NodeMainlineToolbarActions } from "@/features/canvas/ui/NodeMainlineToolbarActions";
 import { NodeManagementToolbarActions } from "@/features/canvas/ui/NodeManagementToolbarActions";
 import { NodeOutputToolbarActions } from "@/features/canvas/ui/NodeOutputToolbarActions";
-import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
+import { CanvasStoryboardGroupToolbarAdapter } from "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
 import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
 
@@ -52,7 +52,7 @@ export function NodeActionToolbarView({
   onOpenRotate,
 }: NodeActionToolbarViewProps) {
   if (projection.isStoryboardGroup) {
-    return <StoryboardGroupToolbar node={node} />;
+    return <CanvasStoryboardGroupToolbarAdapter node={node} />;
   }
 
   return (

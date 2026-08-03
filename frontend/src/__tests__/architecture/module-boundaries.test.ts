@@ -21422,7 +21422,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/ui/NodeMainlineToolbarActions",
         "@/features/canvas/ui/NodeManagementToolbarActions",
         "@/features/canvas/ui/NodeOutputToolbarActions",
-        "@/features/canvas/ui/StoryboardGroupToolbar",
+        "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter",
         "@/features/canvas/ui/VideoNodeToolbarActions",
         "@/features/canvas/ui/ZoomScaledToolbar",
         "./nodeToolbarConfig",
@@ -21445,7 +21445,9 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(viewSource).not.toContain(forbiddenViewLogic);
     }
-    expect(viewSource).toContain("<StoryboardGroupToolbar node={node} />");
+    expect(viewSource).toContain(
+      "<CanvasStoryboardGroupToolbarAdapter node={node} />",
+    );
     const assemblyOrder = [
       "<NodeMainlineToolbarActions",
       "<ImageNodeToolbarActions",
@@ -22205,6 +22207,127 @@ describe("frontend architecture boundaries", () => {
         retiredGroupToolbarPath,
       ).toBe(false);
     }
+  });
+
+  it("separates storyboard group toolbar commands from its view", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useStoryboardGroupToolbarController.ts",
+    );
+    const controllerTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useStoryboardGroupToolbarController.test.tsx",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasStoryboardGroupToolbarAdapter.tsx",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/StoryboardGroupToolbarView.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbarView.tsx",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const declarations = [
+      ["export function", "useStoryboardGroupToolbarController("].join(" "),
+      ["export function", "StoryboardGroupToolbarView("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(
+      new Set([
+        "react",
+        "@/modules/creative_canvas/domain/canvasStoryboardGroupConfig",
+        "@/modules/creative_canvas/domain/storyboardGroup",
+      ]),
+    );
+    expect(controllerSource).not.toContain("@/features/canvas");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("className=");
+    expect(controllerSource).toContain(
+      "configureGroup(groupNodeId, { showIndex: !showIndex })",
+    );
+    expect(new Set(importSpecifiers(viewPath))).toEqual(
+      new Set([
+        "lucide-react",
+        "@/components/shadcn/dropdown-menu",
+        "@/components/ui",
+        "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController",
+      ]),
+    );
+    for (const forbiddenViewDependency of [
+      "@/features/canvas",
+      "useCanvasStore",
+      "useTranslation",
+      "toast(",
+      "ReactFlowNodeToolbar",
+      "ZoomScaledToolbar",
+      "useMemo",
+    ]) {
+      expect(viewSource).not.toContain(forbiddenViewDependency);
+    }
+    expect(viewSource).toContain("controller.setAspect(option.key)");
+    expect(viewSource).toContain("controller.toggleIndex");
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "react",
+        "@xyflow/react",
+        "react-i18next",
+        "sonner",
+        "@/features/canvas/canvasStore",
+        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
+        "./nodeToolbarConfig",
+        "./ZoomScaledToolbar",
+      ]),
+    );
+    expect(adapterSource).toContain(
+      "useStoryboardGroupToolbarController({",
+    );
+    expect(adapterSource).toContain("<StoryboardGroupToolbarView");
+    expect(adapterSource).toContain("styles={toolbarStyles}");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter",
+    );
+    expect(toolbarSource).toContain(
+      "<CanvasStoryboardGroupToolbarAdapter node={node} />",
+    );
+    for (const legacyToolbarLogic of [
+      "STORYBOARD_ASPECTS",
+      "resolveStoryboardCols",
+      "setStoryboardGroupConfig",
+      "convertStoryboardGroupToPlain",
+      "stitchComingSoon",
+    ]) {
+      expect(toolbarSource).not.toContain(legacyToolbarLogic);
+    }
+    expect(declarationOwners).toEqual([
+      [
+        "modules/creative_canvas/presentation/useStoryboardGroupToolbarController.ts",
+      ],
+      [
+        "modules/creative_canvas/presentation/StoryboardGroupToolbarView.tsx",
+      ],
+    ]);
+    expect(readFileSync(controllerTestPath, "utf8")).toContain(
+      "from './useStoryboardGroupToolbarController'",
+    );
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/ui/StoryboardGroupToolbar.tsx"),
+      ),
+    ).toBe(false);
   });
 
   it("separates image grid toolbar requests, interaction, and view", () => {

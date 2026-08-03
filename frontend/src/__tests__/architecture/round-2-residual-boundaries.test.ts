@@ -212,6 +212,9 @@ describe("round 2 residual architecture boundaries", () => {
       "useGroupNodeToolbarController.ts",
       "useGroupNodeToolbarController.test.tsx",
       "GroupNodeToolbarActionsView.tsx",
+      "useStoryboardGroupToolbarController.ts",
+      "useStoryboardGroupToolbarController.test.tsx",
+      "StoryboardGroupToolbarView.tsx",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -714,6 +717,7 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/hooks/useGroupNodeToolbarController.ts",
       "features/canvas/hooks/useGroupNodeToolbarController.test.tsx",
       "features/canvas/ui/GroupNodeToolbarActionsView.tsx",
+      "features/canvas/ui/StoryboardGroupToolbar.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredGroupPresentationPath)),

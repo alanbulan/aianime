@@ -289,6 +289,21 @@ export type {
   GroupNodeToolbarStyleClasses,
 } from "@/modules/creative_canvas/presentation/GroupNodeToolbarActionsView";
 export {
+  useStoryboardGroupToolbarController,
+} from "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController";
+export type {
+  StoryboardGroupToolbarCommandPorts,
+  StoryboardGroupToolbarController,
+  StoryboardGroupToolbarControllerOptions,
+} from "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController";
+export {
+  StoryboardGroupToolbarView,
+} from "@/modules/creative_canvas/presentation/StoryboardGroupToolbarView";
+export type {
+  StoryboardGroupToolbarStyleClasses,
+  StoryboardGroupToolbarViewProps,
+} from "@/modules/creative_canvas/presentation/StoryboardGroupToolbarView";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";
