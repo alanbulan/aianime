@@ -1,17 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
-import {
-  getNodeSize,
-  hasRectCollision,
-  type CanvasNodeSize,
-} from '../domain/canvasGeometry';
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
-} from '../domain/canvasNodes';
-import { cloneCanvasNodeData } from './canvasNodeData';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 
 const DUPLICATION_BASE_OFFSETS = [
   { x: 44, y: 30 },
@@ -22,21 +10,61 @@ const DUPLICATION_BASE_OFFSETS = [
 const DUPLICATION_FALLBACK_MAX_STEP = 16;
 const PASTE_ITERATION_OFFSET = { x: 8, y: 6 } as const;
 
-export interface CanvasClipboardDuplicationOptions {
+export interface CanvasClipboardDuplicationSourceNode<TNodeData extends object> {
+  id: string;
+  position: { x: number; y: number };
+  data: TNodeData;
+}
+
+export interface CanvasClipboardDuplicationSourceEdge {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+export interface CanvasClipboardNodeSize {
+  width: number;
+  height: number;
+}
+
+export interface CanvasClipboardRect extends CanvasClipboardNodeSize {
+  x: number;
+  y: number;
+}
+
+export interface CanvasClipboardDuplicationPorts<
+  TNode,
+  TNodeType,
+  TNodeData extends object,
+> {
+  resolveNodeType: (node: TNode) => TNodeType;
+  cloneNodeData: (data: TNodeData) => TNodeData;
+  getNodeSize: (node: TNode) => CanvasClipboardNodeSize;
+  hasRectCollision: (
+    candidateRect: CanvasClipboardRect,
+    nodes: readonly TNode[],
+  ) => boolean;
+}
+
+export interface CanvasClipboardDuplicationOptions<TNode, TEdge> {
   explicitOffset?: { x: number; y: number };
   disableOffsetIteration?: boolean;
   suppressSelect?: boolean;
-  sourceSnapshot?: CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
+  sourceSnapshot?: CanvasClipboardSnapshot<TNode, TEdge>;
   targetFlowPosition?: { x: number; y: number };
   selectAll?: boolean;
 }
 
-export interface CanvasClipboardDuplicationNodePlan {
+export interface CanvasClipboardDuplicationNodePlan<
+  TNodeType,
+  TNodeData extends object,
+> {
   sourceNodeId: string;
-  type: CanvasNodeType;
+  type: TNodeType;
   position: { x: number; y: number };
-  data: CanvasNodeData;
-  size: CanvasNodeSize;
+  data: TNodeData;
+  size: CanvasClipboardNodeSize;
 }
 
 export interface CanvasClipboardDuplicationConnectionPlan {
@@ -48,51 +76,73 @@ export interface CanvasClipboardDuplicationConnectionPlan {
 
 export type CanvasClipboardDuplicationSelection = 'none' | 'first' | 'all';
 
-export interface CanvasClipboardDuplicationPlan {
-  nodes: CanvasClipboardDuplicationNodePlan[];
+export interface CanvasClipboardDuplicationPlan<
+  TNodeType,
+  TNodeData extends object,
+> {
+  nodes: CanvasClipboardDuplicationNodePlan<TNodeType, TNodeData>[];
   connections: CanvasClipboardDuplicationConnectionPlan[];
   selection: CanvasClipboardDuplicationSelection;
   advancePasteIteration: boolean;
   sourceProject: string | null;
 }
 
-export interface PlanCanvasClipboardDuplicationParams {
-  nodes: readonly CanvasNode[];
-  edges: readonly CanvasEdge[];
+export interface PlanCanvasClipboardDuplicationParams<
+  TNode extends CanvasClipboardDuplicationSourceNode<TNodeData>,
+  TEdge extends CanvasClipboardDuplicationSourceEdge,
+  TNodeType,
+  TNodeData extends object,
+> {
+  nodes: readonly TNode[];
+  edges: readonly TEdge[];
   sourceNodeIds: readonly string[];
   pasteIteration: number;
-  options?: CanvasClipboardDuplicationOptions;
+  ports: CanvasClipboardDuplicationPorts<TNode, TNodeType, TNodeData>;
+  options?: CanvasClipboardDuplicationOptions<TNode, TEdge>;
 }
 
-function cloneDataWithoutGenerationState(data: CanvasNodeData): CanvasNodeData {
-  const cloned = cloneCanvasNodeData(data);
-  const record = cloned as Record<string, unknown>;
+function cloneDataWithoutGenerationState<TNodeData extends object>(
+  data: TNodeData,
+  cloneNodeData: (data: TNodeData) => TNodeData,
+): TNodeData {
+  const cloned = cloneNodeData(data);
+  const clearedValues = [
+    ['isGenerating', false],
+    ['generationStartedAt', null],
+    ['generationJobId', null],
+    ['generationProviderId', null],
+    ['generationClientSessionId', null],
+    ['generationStoryboardMetadata', undefined],
+    ['generationError', null],
+    ['generationErrorDetails', null],
+    ['generationDebugContext', undefined],
+  ] as const;
 
-  if ('isGenerating' in record) record.isGenerating = false;
-  if ('generationStartedAt' in record) record.generationStartedAt = null;
-  if ('generationJobId' in record) record.generationJobId = null;
-  if ('generationProviderId' in record) record.generationProviderId = null;
-  if ('generationClientSessionId' in record) record.generationClientSessionId = null;
-  if ('generationStoryboardMetadata' in record) record.generationStoryboardMetadata = undefined;
-  if ('generationError' in record) record.generationError = null;
-  if ('generationErrorDetails' in record) record.generationErrorDetails = null;
-  if ('generationDebugContext' in record) record.generationDebugContext = undefined;
-
+  for (const [key, value] of clearedValues) {
+    if (Reflect.has(cloned, key)) {
+      Reflect.set(cloned, key, value);
+    }
+  }
   return cloned;
 }
 
-function resolveSelection(
-  options: CanvasClipboardDuplicationOptions,
+function resolveSelection<TNode, TEdge>(
+  options: CanvasClipboardDuplicationOptions<TNode, TEdge>,
 ): CanvasClipboardDuplicationSelection {
   if (options.suppressSelect) return 'none';
   return options.selectAll ? 'all' : 'first';
 }
 
-function resolveOffset(
-  sourceNodes: readonly CanvasNode[],
-  existingNodes: readonly CanvasNode[],
+function resolveOffset<
+  TNode extends CanvasClipboardDuplicationSourceNode<TNodeData>,
+  TNodeType,
+  TNodeData extends object,
+>(
+  sourceNodes: readonly TNode[],
+  existingNodes: readonly TNode[],
   pasteIteration: number,
-  options: CanvasClipboardDuplicationOptions,
+  options: CanvasClipboardDuplicationOptions<TNode, unknown>,
+  ports: CanvasClipboardDuplicationPorts<TNode, TNodeType, TNodeData>,
 ): { x: number; y: number } {
   if (options.explicitOffset) {
     return options.explicitOffset;
@@ -101,8 +151,8 @@ function resolveOffset(
   const offsetStep = options.disableOffsetIteration ? 0 : pasteIteration;
   const isAvailable = (offset: { x: number; y: number }) =>
     sourceNodes.every((node) => {
-      const size = getNodeSize(node);
-      return !hasRectCollision(
+      const size = ports.getNodeSize(node);
+      return !ports.hasRectCollision(
         {
           x: node.position.x + offset.x + offsetStep * PASTE_ITERATION_OFFSET.x,
           y: node.position.y + offset.y + offsetStep * PASTE_ITERATION_OFFSET.y,
@@ -110,7 +160,6 @@ function resolveOffset(
           height: size.height,
         },
         existingNodes,
-        new Set<string>(),
       );
     });
 
@@ -129,13 +178,24 @@ function resolveOffset(
   return DUPLICATION_BASE_OFFSETS[0];
 }
 
-export function planCanvasClipboardDuplication({
+export function planCanvasClipboardDuplication<
+  TNode extends CanvasClipboardDuplicationSourceNode<TNodeData>,
+  TEdge extends CanvasClipboardDuplicationSourceEdge,
+  TNodeType,
+  TNodeData extends object,
+>({
   nodes,
   edges,
   sourceNodeIds,
   pasteIteration,
+  ports,
   options = {},
-}: PlanCanvasClipboardDuplicationParams): CanvasClipboardDuplicationPlan | null {
+}: PlanCanvasClipboardDuplicationParams<
+  TNode,
+  TEdge,
+  TNodeType,
+  TNodeData
+>): CanvasClipboardDuplicationPlan<TNodeType, TNodeData> | null {
   const snapshot = options.sourceSnapshot;
   const sourceNodes = snapshot
     ? snapshot.nodes
@@ -159,12 +219,12 @@ export function planCanvasClipboardDuplication({
   const offsetStep = options.disableOffsetIteration ? 0 : pasteIteration;
   const offset = targetPosition
     ? { x: 0, y: 0 }
-    : resolveOffset(sourceNodes, nodes, pasteIteration, options);
+    : resolveOffset(sourceNodes, nodes, pasteIteration, options, ports);
 
   return {
     nodes: sourceNodes.map((sourceNode) => ({
       sourceNodeId: sourceNode.id,
-      type: sourceNode.type as CanvasNodeType,
+      type: ports.resolveNodeType(sourceNode),
       position: targetPosition
         ? {
             x: targetPosition.x + sourceNode.position.x - groupMinX,
@@ -180,8 +240,11 @@ export function planCanvasClipboardDuplication({
               + offset.y
               + offsetStep * PASTE_ITERATION_OFFSET.y,
           },
-      data: cloneDataWithoutGenerationState(sourceNode.data),
-      size: getNodeSize(sourceNode),
+      data: cloneDataWithoutGenerationState(
+        sourceNode.data,
+        ports.cloneNodeData,
+      ),
+      size: ports.getNodeSize(sourceNode),
     })),
     connections: internalEdges.map((edge) => ({
       sourceNodeId: edge.source,

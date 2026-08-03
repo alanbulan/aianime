@@ -2,54 +2,95 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeData,
-} from '../domain/canvasNodes';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
+import type { CanvasClipboardDuplicationPorts } from '../application/canvasClipboardDuplication';
 import {
   useCanvasClipboardDuplicationController,
   type CanvasClipboardDuplicationControllerOptions,
 } from './useCanvasClipboardDuplicationController';
 
+type TestNodeData = Record<string, unknown>;
+
+interface TestNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  selected?: boolean;
+  data: TestNodeData;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+type TestControllerOptions = CanvasClipboardDuplicationControllerOptions<
+  TestNode,
+  TestEdge,
+  string,
+  TestNodeData
+>;
+
+const duplicationPorts: CanvasClipboardDuplicationPorts<
+  TestNode,
+  string,
+  TestNodeData
+> = {
+  resolveNodeType: (node) => node.type,
+  cloneNodeData: (data) => structuredClone(data),
+  getNodeSize: (node) => node.measured,
+  hasRectCollision: (candidate, nodes) => nodes.some((node) => {
+    const margin = 18;
+    return (
+      candidate.x < node.position.x + node.measured.width + margin
+      && candidate.x + candidate.width + margin > node.position.x
+      && candidate.y < node.position.y + node.measured.height + margin
+      && candidate.y + candidate.height + margin > node.position.y
+    );
+  }),
+};
+
 function node(
   id: string,
   position = { x: 0, y: 0 },
   selected = false,
-): CanvasNode {
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'textAnnotation',
     position,
     measured: { width: 10, height: 20 },
     selected,
-    data: { content: id } as CanvasNodeData,
-  } as CanvasNode;
+    data: { content: id },
+  };
 }
 
 function snapshot(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[] = [],
+  nodes: TestNode[],
+  edges: TestEdge[] = [],
   sourceProject: string | null = 'project-1',
-): CanvasClipboardSnapshot<CanvasNode, CanvasEdge> {
+): CanvasClipboardSnapshot<TestNode, TestEdge> {
   return { nodes, edges, sourceProject };
 }
 
 function createHarness(params: {
-  initialNodes?: CanvasNode[];
+  initialNodes?: TestNode[];
   currentProject?: string | null;
   migrationSummary?: { migrated: number; failed: number };
   persistCreatedNodes?: boolean;
 } = {}) {
   const graph = {
     nodes: [...(params.initialNodes ?? [])],
-    edges: [] as CanvasEdge[],
+    edges: [] as TestEdge[],
   };
   let nextNode = 0;
-  const options: CanvasClipboardDuplicationControllerOptions = {
+  const options: TestControllerOptions = {
     getGraph: vi.fn(() => graph),
+    duplicationPorts,
     createNode: vi.fn((type, position, data = {}) => {
       nextNode += 1;
       const id = `copy-${nextNode}`;
@@ -58,9 +99,10 @@ function createHarness(params: {
           id,
           type,
           position,
+          measured: { width: 10, height: 20 },
           selected: false,
-          data: data as CanvasNodeData,
-        } as CanvasNode);
+          data,
+        });
       }
       return id;
     }),
@@ -95,7 +137,7 @@ describe('useCanvasClipboardDuplicationController', () => {
         target: 'source-b',
         sourceHandle: null,
         targetHandle: null,
-      }] as CanvasEdge[],
+      }],
     );
     const { result } = renderHook(() =>
       useCanvasClipboardDuplicationController(options),
@@ -109,13 +151,13 @@ describe('useCanvasClipboardDuplicationController', () => {
     expect(firstNodeId).toBe('copy-1');
     expect(options.createNode).toHaveBeenNthCalledWith(
       1,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 44, y: 30 },
       { content: 'source-a' },
     );
     expect(options.createNode).toHaveBeenNthCalledWith(
       2,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 74, y: 70 },
       { content: 'source-b' },
     );
@@ -172,25 +214,25 @@ describe('useCanvasClipboardDuplicationController', () => {
 
     expect(options.createNode).toHaveBeenNthCalledWith(
       1,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 44, y: 30 },
       { content: 'source' },
     );
     expect(options.createNode).toHaveBeenNthCalledWith(
       2,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 52, y: 36 },
       { content: 'source' },
     );
     expect(options.createNode).toHaveBeenNthCalledWith(
       3,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 44, y: 30 },
       { content: 'source' },
     );
     expect(options.createNode).toHaveBeenNthCalledWith(
       4,
-      CANVAS_NODE_TYPES.textAnnotation,
+      'textAnnotation',
       { x: 0, y: 0 },
       { content: 'source' },
     );

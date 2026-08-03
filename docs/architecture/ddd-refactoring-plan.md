@@ -1118,6 +1118,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十九批将 Canvas Clipboard 跨挂载共享 Session、复制/键盘粘贴/定点粘贴 Hook 与测试迁入 Creative Canvas application/presentation；新 `CanvasClipboardSession<TNode, TEdge>` 在闭包内保存强类型快照，Hook 通过显式 session 端口读写，不使用模块级 `unknown` 状态、类型断言，也不导入旧 Canvas、Store、React Flow 或 infrastructure。旧 Clipboard Controller 在模块级只实例化一次绑定真实 `CanvasNode/CanvasEdge` 的 session，并经 Creative Canvas public 使用唯一 Hook；两个旧 Hook/test 所有者直接删除，不保留 facade、re-export 或第二套共享状态。Creative Canvas 由 686 增到 689，Canvas 由 513 降到 511，Freezone 保持 0，残余 ratchet 收紧到 511/0。Session/Hook、总 Clipboard Controller 与浏览器 clipboard adapter Vitest 3 个文件 7 项、定向架构 2 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百七十批将 Canvas Clipboard 复制偏移、碰撞回退、运行时生成状态清理、内部连线投影、选择策略、粘贴轮次及跨项目资产迁移编排连同测试整体迁入 Creative Canvas application/presentation。Planner 以泛型最小节点/边合同工作，并显式注入节点类型解析、数据深克隆、尺寸解析和矩形碰撞端口；Duplication Controller 只依赖泛型图、节点创建/选择命令和资产迁移端口，不导入旧 `CanvasNode`、Geometry、React Flow、Store、infrastructure 或 `crossProjectAssets`。旧总 Clipboard Controller 作为唯一真实适配层注入 `CanvasNodeType` 转换、`cloneCanvasNodeData`、`getNodeSize`、`hasRectCollision` 与既有平台对象存储迁移用例，4 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套 Planner/Controller。Creative Canvas 由 689 增到 693，Canvas 由 511 降到 507，Freezone 保持 0，残余 ratchet 收紧到 507/0。Clipboard 行为 Vitest 4 个文件 15 项、定向架构 3 项、第二轮残余边界 11 项、完整前端架构目录 6 个文件 382 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

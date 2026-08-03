@@ -546,6 +546,31 @@ export type {
 export type { CanvasClipboardSnapshot } from "@/modules/creative_canvas/domain/canvasClipboard";
 export { createCanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
 export type { CanvasClipboardSession } from "@/modules/creative_canvas/application/canvasClipboardSession";
+export { planCanvasClipboardDuplication } from "@/modules/creative_canvas/application/canvasClipboardDuplication";
+export type {
+  CanvasClipboardDuplicationConnectionPlan,
+  CanvasClipboardDuplicationNodePlan,
+  CanvasClipboardDuplicationOptions,
+  CanvasClipboardDuplicationPlan,
+  CanvasClipboardDuplicationPorts,
+  CanvasClipboardDuplicationSelection,
+  CanvasClipboardDuplicationSourceEdge,
+  CanvasClipboardDuplicationSourceNode,
+  CanvasClipboardNodeSize,
+  CanvasClipboardRect,
+  PlanCanvasClipboardDuplicationParams,
+} from "@/modules/creative_canvas/application/canvasClipboardDuplication";
+export { useCanvasClipboardDuplicationController } from "@/modules/creative_canvas/presentation/useCanvasClipboardDuplicationController";
+export type {
+  CanvasClipboardAssetMigrationParams,
+  CanvasClipboardAssetMigrationSummary,
+  CanvasClipboardDuplicationController,
+  CanvasClipboardDuplicationControllerOptions,
+  CanvasClipboardDuplicationResult,
+  CanvasClipboardNodeDimensionCommit,
+  CanvasClipboardNodeSelectionCommit,
+  CanvasClipboardSelectableNode,
+} from "@/modules/creative_canvas/presentation/useCanvasClipboardDuplicationController";
 export { useCanvasNodeClipboard } from "@/modules/creative_canvas/presentation/useCanvasNodeClipboard";
 export type {
   CanvasNodeClipboardController,

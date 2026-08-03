@@ -1,22 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
-
-import type {
-  AssetMigrationSummary,
-  MigratePastedNodeAssetsParams,
-} from '../application/crossProjectAssets';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 import {
   planCanvasClipboardDuplication,
   type CanvasClipboardDuplicationOptions,
+  type CanvasClipboardDuplicationPorts,
+  type CanvasClipboardDuplicationSourceEdge,
+  type CanvasClipboardDuplicationSourceNode,
 } from '../application/canvasClipboardDuplication';
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
-} from '../domain/canvasNodes';
+
+export interface CanvasClipboardSelectableNode<TNodeData extends object>
+  extends CanvasClipboardDuplicationSourceNode<TNodeData> {
+  selected?: boolean;
+}
 
 export interface CanvasClipboardNodeDimensionCommit {
   nodeId: string;
@@ -34,15 +31,39 @@ export interface CanvasClipboardDuplicationResult {
   idMap: Map<string, string>;
 }
 
-export interface CanvasClipboardDuplicationControllerOptions {
+export interface CanvasClipboardAssetMigrationSummary {
+  migrated: number;
+  failed: number;
+}
+
+export interface CanvasClipboardAssetMigrationParams<
+  TNodeData extends object,
+> {
+  nodes: Array<{ id: string; data: TNodeData }>;
+  targetProject: string;
+  getLiveNodeData: (nodeId: string) => TNodeData | null;
+  updateNodeData: (nodeId: string, patch: Partial<TNodeData>) => void;
+}
+
+export interface CanvasClipboardDuplicationControllerOptions<
+  TNode extends CanvasClipboardSelectableNode<TNodeData>,
+  TEdge extends CanvasClipboardDuplicationSourceEdge,
+  TNodeType,
+  TNodeData extends object,
+> {
   getGraph: () => {
-    nodes: readonly CanvasNode[];
-    edges: readonly CanvasEdge[];
+    nodes: readonly TNode[];
+    edges: readonly TEdge[];
   };
+  duplicationPorts: CanvasClipboardDuplicationPorts<
+    TNode,
+    TNodeType,
+    TNodeData
+  >;
   createNode: (
-    type: CanvasNodeType,
+    type: TNodeType,
     position: { x: number; y: number },
-    data?: Partial<CanvasNodeData>,
+    data?: Partial<TNodeData>,
   ) => string;
   commitNodeDimensions: (
     updates: CanvasClipboardNodeDimensionCommit[],
@@ -59,31 +80,40 @@ export interface CanvasClipboardDuplicationControllerOptions {
   selectNode: (nodeId: string | null) => void;
   currentProject: string | null;
   migrateAssets: (
-    params: Omit<MigratePastedNodeAssetsParams, 'currentOrigin'>,
-  ) => Promise<AssetMigrationSummary>;
+    params: CanvasClipboardAssetMigrationParams<TNodeData>,
+  ) => Promise<CanvasClipboardAssetMigrationSummary>;
   updateNodeData: (
     nodeId: string,
-    patch: Partial<CanvasNodeData>,
+    patch: Partial<TNodeData>,
   ) => void;
   notifyMigrationSuccess: (count: number) => void;
   notifyMigrationPartialFailure: (count: number) => void;
   reportMigrationError: (error: unknown) => void;
 }
 
-export interface CanvasClipboardDuplicationController {
+export interface CanvasClipboardDuplicationController<
+  TNode,
+  TEdge,
+> {
   duplicateNodes: (
     sourceNodeIds: string[],
-    options?: CanvasClipboardDuplicationOptions,
+    options?: CanvasClipboardDuplicationOptions<TNode, TEdge>,
   ) => CanvasClipboardDuplicationResult | null;
   pasteFromClipboard: (
-    snapshot: CanvasClipboardSnapshot<CanvasNode, CanvasEdge> | null,
+    snapshot: CanvasClipboardSnapshot<TNode, TEdge> | null,
     targetFlow?: { x: number; y: number },
   ) => string | null;
   resetPasteIteration: () => void;
 }
 
-export function useCanvasClipboardDuplicationController({
+export function useCanvasClipboardDuplicationController<
+  TNode extends CanvasClipboardSelectableNode<TNodeData>,
+  TEdge extends CanvasClipboardDuplicationSourceEdge,
+  TNodeType,
+  TNodeData extends object,
+>({
   getGraph,
+  duplicationPorts,
   createNode,
   commitNodeDimensions,
   connectNodes,
@@ -95,19 +125,25 @@ export function useCanvasClipboardDuplicationController({
   notifyMigrationSuccess,
   notifyMigrationPartialFailure,
   reportMigrationError,
-}: CanvasClipboardDuplicationControllerOptions): CanvasClipboardDuplicationController {
+}: CanvasClipboardDuplicationControllerOptions<
+  TNode,
+  TEdge,
+  TNodeType,
+  TNodeData
+>): CanvasClipboardDuplicationController<TNode, TEdge> {
   const pasteIterationRef = useRef(0);
 
   const duplicateNodes = useCallback(
     (
       sourceNodeIds: string[],
-      options: CanvasClipboardDuplicationOptions = {},
+      options: CanvasClipboardDuplicationOptions<TNode, TEdge> = {},
     ): CanvasClipboardDuplicationResult | null => {
       const graph = getGraph();
       const plan = planCanvasClipboardDuplication({
         ...graph,
         sourceNodeIds,
         pasteIteration: pasteIterationRef.current,
+        ports: duplicationPorts,
         options,
       });
       if (!plan) {
@@ -115,7 +151,7 @@ export function useCanvasClipboardDuplicationController({
       }
 
       const idMap = new Map<string, string>();
-      const pastedForMigration: Array<{ id: string; data: CanvasNodeData }> = [];
+      const pastedForMigration: Array<{ id: string; data: TNodeData }> = [];
       const dimensionUpdates: CanvasClipboardNodeDimensionCommit[] = [];
       for (const plannedNode of plan.nodes) {
         const nodeId = createNode(
@@ -200,6 +236,7 @@ export function useCanvasClipboardDuplicationController({
       connectNodes,
       createNode,
       currentProject,
+      duplicationPorts,
       getGraph,
       migrateAssets,
       notifyMigrationPartialFailure,
@@ -212,7 +249,7 @@ export function useCanvasClipboardDuplicationController({
 
   const pasteFromClipboard = useCallback(
     (
-      snapshot: CanvasClipboardSnapshot<CanvasNode, CanvasEdge> | null,
+      snapshot: CanvasClipboardSnapshot<TNode, TEdge> | null,
       targetFlow?: { x: number; y: number },
     ): string | null => {
       if (!snapshot || snapshot.nodes.length === 0) {

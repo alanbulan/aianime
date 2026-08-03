@@ -7122,7 +7122,14 @@ describe("frontend architecture boundaries", () => {
     const clipboardDuplicationPlanner = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/application/canvasClipboardDuplication.ts",
+        "modules/creative_canvas/application/canvasClipboardDuplication.ts",
+      ),
+      "utf8",
+    );
+    const clipboardController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasClipboardController.ts",
       ),
       "utf8",
     );
@@ -7209,7 +7216,11 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function getDerivedNodePosition(");
     expect(canvasStore).not.toContain("const collides =");
     expect(canvasStore).not.toContain("const overflowAmount =");
-    expect(clipboardDuplicationPlanner).toContain("../domain/canvasGeometry");
+    expect(clipboardDuplicationPlanner).not.toContain("canvasGeometry");
+    expect(clipboardController).toContain("../domain/canvasGeometry");
+    expect(clipboardController).toContain(
+      "hasRectCollision(candidateRect, nodes, noIgnoredCanvasNodeIds)",
+    );
     expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasGeometry",
     );
@@ -8947,12 +8958,18 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas clipboard duplication planning and orchestration outside the view", () => {
     const plannerPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasClipboardDuplication.ts",
+      "modules/creative_canvas/application/canvasClipboardDuplication.ts",
     );
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasClipboardDuplicationController.ts",
+      "modules/creative_canvas/presentation/useCanvasClipboardDuplicationController.ts",
     );
+    const legacyPaths = [
+      "features/canvas/application/canvasClipboardDuplication.ts",
+      "features/canvas/application/canvasClipboardDuplication.test.ts",
+      "features/canvas/hooks/useCanvasClipboardDuplicationController.ts",
+      "features/canvas/hooks/useCanvasClipboardDuplicationController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const plannerModel = readFileSync(plannerPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -8974,9 +8991,8 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const hookForbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
@@ -8986,17 +9002,16 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const plannerDeclaration = [
       "export function",
-      "planCanvasClipboardDuplication(",
+      "planCanvasClipboardDuplication<",
     ].join(" ");
     const hookDeclaration = [
       "export function",
-      "useCanvasClipboardDuplicationController(",
+      "useCanvasClipboardDuplicationController<",
     ].join(" ");
     const implementationOwners = [plannerDeclaration, hookDeclaration].map(
       (declaration) =>
@@ -9009,18 +9024,27 @@ describe("frontend architecture boundaries", () => {
     expect(plannerForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      ["features/canvas/application/canvasClipboardDuplication.ts"],
-      ["features/canvas/hooks/useCanvasClipboardDuplicationController.ts"],
+      ["modules/creative_canvas/application/canvasClipboardDuplication.ts"],
+      ["modules/creative_canvas/presentation/useCanvasClipboardDuplicationController.ts"],
     ]);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(plannerModel).toContain("DUPLICATION_FALLBACK_MAX_STEP = 16");
     expect(plannerModel).toContain("PASTE_ITERATION_OFFSET = { x: 8, y: 6 }");
-    expect(plannerModel).toContain("generationClientSessionId = null");
+    expect(plannerModel).toContain("['generationClientSessionId', null]");
     expect(plannerModel).toContain("sourceHandle: edge.sourceHandle ?? 'source'");
+    expect(plannerModel).toContain("ports.resolveNodeType(sourceNode)");
+    expect(plannerModel).toContain("ports.hasRectCollision(");
     expect(hookModel).toContain("const pasteIterationRef = useRef(0)");
     expect(hookModel).toContain("planCanvasClipboardDuplication({");
     expect(hookModel).toContain("commitNodeSelection(");
     expect(hookModel).toContain("void migrateAssets({");
-    expect(controllerModel).toContain("./useCanvasClipboardDuplicationController");
+    expect(controllerModel).toContain("useCanvasClipboardDuplicationController,");
+    expect(controllerModel).toContain(
+      "duplicationPorts: canvasClipboardDuplicationPorts",
+    );
+    expect(controllerModel).not.toContain("./useCanvasClipboardDuplicationController");
     expect(controllerModel).toContain("migrateAssets: migratePastedNodeAssets");
     expect(canvasView).not.toContain("./hooks/useCanvasClipboardDuplicationController");
     expect(canvasView).not.toContain("migrateAssets: migratePastedNodeAssets");
@@ -15061,7 +15085,14 @@ describe("frontend architecture boundaries", () => {
     const clipboardDuplicationPlanner = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/application/canvasClipboardDuplication.ts",
+        "modules/creative_canvas/application/canvasClipboardDuplication.ts",
+      ),
+      "utf8",
+    );
+    const clipboardController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasClipboardController.ts",
       ),
       "utf8",
     );
@@ -15104,7 +15135,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
-    expect(clipboardDuplicationPlanner).toContain("./canvasNodeData");
+    expect(clipboardDuplicationPlanner).not.toContain("canvasNodeData");
+    expect(clipboardController).toContain("../application/canvasNodeData");
+    expect(clipboardController).toContain("cloneNodeData: cloneCanvasNodeData");
     expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasNodeData",
     );

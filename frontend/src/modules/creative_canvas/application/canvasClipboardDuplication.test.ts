@@ -1,14 +1,49 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeData,
-} from '../domain/canvasNodes';
-import { planCanvasClipboardDuplication } from './canvasClipboardDuplication';
+  planCanvasClipboardDuplication,
+  type CanvasClipboardDuplicationPorts,
+} from './canvasClipboardDuplication';
+
+type TestNodeData = Record<string, unknown>;
+
+interface TestNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  measured: { width: number; height: number };
+  selected?: boolean;
+  data: TestNodeData;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+const ports: CanvasClipboardDuplicationPorts<
+  TestNode,
+  string,
+  TestNodeData
+> = {
+  resolveNodeType: (node) => node.type,
+  cloneNodeData: (data) => structuredClone(data),
+  getNodeSize: (node) => node.measured,
+  hasRectCollision: (candidate, nodes) => nodes.some((node) => {
+    const margin = 18;
+    return (
+      candidate.x < node.position.x + node.measured.width + margin
+      && candidate.x + candidate.width + margin > node.position.x
+      && candidate.y < node.position.y + node.measured.height + margin
+      && candidate.y + candidate.height + margin > node.position.y
+    );
+  }),
+};
 
 function node(
   id: string,
@@ -16,13 +51,13 @@ function node(
   options: {
     width?: number;
     height?: number;
-    data?: Record<string, unknown>;
+    data?: TestNodeData;
     selected?: boolean;
   } = {},
-): CanvasNode {
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'textAnnotation',
     position,
     measured: {
       width: options.width ?? 10,
@@ -32,15 +67,15 @@ function node(
     data: {
       content: id,
       ...options.data,
-    } as CanvasNodeData,
-  } as CanvasNode;
+    },
+  };
 }
 
 function snapshot(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[] = [],
+  nodes: TestNode[],
+  edges: TestEdge[] = [],
   sourceProject = 'source-project',
-): CanvasClipboardSnapshot<CanvasNode, CanvasEdge> {
+): CanvasClipboardSnapshot<TestNode, TestEdge> {
   return { nodes, edges, sourceProject };
 }
 
@@ -55,6 +90,7 @@ describe('planCanvasClipboardDuplication', () => {
       edges: [],
       sourceNodeIds: [],
       pasteIteration: 0,
+      ports,
       options: {
         sourceSnapshot: snapshot(sourceNodes, [
           {
@@ -65,7 +101,7 @@ describe('planCanvasClipboardDuplication', () => {
             targetHandle: null,
           },
           { id: 'external', source: 'source-a', target: 'missing' },
-        ] as CanvasEdge[]),
+        ]),
         selectAll: true,
       },
     });
@@ -111,6 +147,7 @@ describe('planCanvasClipboardDuplication', () => {
       edges: [],
       sourceNodeIds: [],
       pasteIteration: 5,
+      ports,
       options: {
         sourceSnapshot: snapshot(sourceNodes),
         targetFlowPosition: { x: 100, y: 200 },
@@ -133,7 +170,7 @@ describe('planCanvasClipboardDuplication', () => {
     expect(plan?.nodes[0].data.generationStoryboardMetadata).toBeUndefined();
     expect(plan?.nodes[0].data.generationDebugContext).toBeUndefined();
     expect(plan?.nodes[0].data).not.toBe(sourceNodes[0].data);
-    expect((plan?.nodes[0].data as typeof sourceData).nested).not.toBe(sourceData.nested);
+    expect(plan?.nodes[0].data.nested).not.toBe(sourceData.nested);
     expect(sourceData.isGenerating).toBe(true);
     expect(plan?.selection).toBe('first');
     expect(plan?.advancePasteIteration).toBe(false);
@@ -150,9 +187,10 @@ describe('planCanvasClipboardDuplication', () => {
       edges: [
         { id: 'internal', source: 'source-b', target: 'source-a' },
         { id: 'external', source: 'source-b', target: 'other' },
-      ] as CanvasEdge[],
+      ],
       sourceNodeIds: ['source-b', 'source-a'],
       pasteIteration: 9,
+      ports,
       options: {
         explicitOffset: { x: 0, y: 0 },
         disableOffsetIteration: true,
@@ -180,6 +218,7 @@ describe('planCanvasClipboardDuplication', () => {
       edges: [],
       sourceNodeIds: [],
       pasteIteration: 0,
+      ports,
       options: {
         sourceSnapshot: snapshot([node('source')]),
       },
@@ -194,6 +233,7 @@ describe('planCanvasClipboardDuplication', () => {
       edges: [],
       sourceNodeIds: ['missing'],
       pasteIteration: 0,
+      ports,
     })).toBeNull();
   });
 });

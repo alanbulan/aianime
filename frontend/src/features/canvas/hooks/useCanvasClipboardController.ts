@@ -11,27 +11,39 @@ import {
 import {
   createCanvasClipboardSession,
   createCanvasClipboardSnapshot,
+  useCanvasClipboardDuplicationController,
   useCanvasNodeClipboard,
+  type CanvasClipboardDuplicationController,
+  type CanvasClipboardDuplicationPorts,
+  type CanvasClipboardNodeDimensionCommit,
+  type CanvasClipboardNodeSelectionCommit,
   type CanvasNodeClipboardController,
 } from '@/modules/creative_canvas/public';
 import { cloneCanvasNodeData } from '../application/canvasNodeData';
+import { getNodeSize, hasRectCollision } from '../domain/canvasGeometry';
 import type {
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
   CanvasNodeType,
 } from '../domain/canvasNodes';
-import {
-  useCanvasClipboardDuplicationController,
-  type CanvasClipboardDuplicationController,
-  type CanvasClipboardNodeDimensionCommit,
-  type CanvasClipboardNodeSelectionCommit,
-} from './useCanvasClipboardDuplicationController';
 
 const canvasNodeClipboardSession = createCanvasClipboardSession<
   CanvasNode,
   CanvasEdge
 >();
+const noIgnoredCanvasNodeIds = new Set<string>();
+const canvasClipboardDuplicationPorts: CanvasClipboardDuplicationPorts<
+  CanvasNode,
+  CanvasNodeType,
+  CanvasNodeData
+> = {
+  resolveNodeType: (node) => node.type as CanvasNodeType,
+  cloneNodeData: cloneCanvasNodeData,
+  getNodeSize,
+  hasRectCollision: (candidateRect, nodes) =>
+    hasRectCollision(candidateRect, nodes, noIgnoredCanvasNodeIds),
+};
 
 function reportCanvasClipboardMigrationError(error: unknown): void {
   console.warn('[canvas] cross-project asset migration failed', error);
@@ -62,7 +74,10 @@ export interface CanvasClipboardControllerOptions {
 }
 
 export interface CanvasClipboardController extends CanvasNodeClipboardController {
-  duplicateNodes: CanvasClipboardDuplicationController['duplicateNodes'];
+  duplicateNodes: CanvasClipboardDuplicationController<
+    CanvasNode,
+    CanvasEdge
+  >['duplicateNodes'];
 }
 
 export function useCanvasClipboardController({
@@ -119,6 +134,7 @@ export function useCanvasClipboardController({
     resetPasteIteration,
   } = useCanvasClipboardDuplicationController({
     getGraph,
+    duplicationPorts: canvasClipboardDuplicationPorts,
     createNode,
     commitNodeDimensions,
     connectNodes,
