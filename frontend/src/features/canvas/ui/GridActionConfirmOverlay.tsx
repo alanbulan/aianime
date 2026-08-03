@@ -12,6 +12,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   DEFAULT_ASPECT_RATIO,
+  generationTaskDescriptor,
   generateCanvasGridAction,
   useCanvasImageModels,
   type GridActionKey,
@@ -19,7 +20,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';

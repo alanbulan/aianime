@@ -13,11 +13,11 @@ import {
   scriptPromptHasContent,
   updateScriptResultCell,
 } from '@/features/canvas/application/scriptNodeModel';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   buildCanvasStoryScriptCommand,
   generateCanvasStoryScript,
+  generationTaskDescriptor,
   isCanvasStoryScriptResult,
   STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
   translateCanvasText,

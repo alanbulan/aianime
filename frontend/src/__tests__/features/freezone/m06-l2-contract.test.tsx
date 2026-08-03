@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
-import { freezoneGenerationTaskGateway } from "@/features/canvas/infrastructure/freezoneGenerationTaskGateway";
+import { freezoneGenerationTaskGateway } from "@/modules/creative_canvas/public";
 import { httpFreezoneAssetCommitGateway } from "@/modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway";
 import {
   getFreezoneCanvas,

@@ -1,20 +1,22 @@
 // Copyright (c) 2026 AI anime
+import { extractRequestId } from "./generationErrorReport";
+import { resolveErrorContent } from "./errorDialog";
+import type {
+  CanvasImageJobGateway,
+  CanvasImageJobPayload,
+} from "./canvasImageJob";
+import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
+import type {
+  GenerateCanvasRedrawParams,
+  GenerateCanvasRedrawResult,
+} from "./generateCanvasRedraw";
+import { generationTaskDescriptor } from "./resumeGeneration";
 import {
-  extractRequestId,
-  resolveErrorContent,
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
-  type CanvasGenerationTaskRef,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
-  type GenerateCanvasRedrawParams,
-  type GenerateCanvasRedrawResult,
-} from '@/modules/creative_canvas/public';
-import type {
-  AiGateway,
-  GenerateImagePayload,
-} from './ports';
-import { generationTaskDescriptor } from './resumeGeneration';
+} from "../domain/redraw";
 
 /**
  * Params persisted on an export node created by the 擦除 / 重绘 flow, so a failed
@@ -41,7 +43,7 @@ export interface RegenerateExportImageNodeParams {
 }
 
 export interface RegenerateExportImageNodeDependencies {
-  readonly aiGateway: AiGateway;
+  readonly aiGateway: CanvasImageJobGateway;
   readonly generateRedraw: (
     params: GenerateCanvasRedrawParams,
     onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
@@ -54,9 +56,9 @@ function readFreezoneRedrawRequest(
   const req = data.freezoneRedrawRequest as Partial<FreezoneRedrawRequest> | undefined;
   if (
     !req
-    || typeof req.sourceUrl !== 'string'
-    || typeof req.maskUrl !== 'string'
-    || typeof req.model !== 'string'
+    || typeof req.sourceUrl !== "string"
+    || typeof req.maskUrl !== "string"
+    || typeof req.model !== "string"
     || !req.model.trim()
   ) {
     return undefined;
@@ -74,7 +76,7 @@ function readFreezoneRedrawRequest(
 async function regenerateFreezoneRedrawNode(
   params: RegenerateExportImageNodeParams,
   request: FreezoneRedrawRequest,
-  generateRedraw: RegenerateExportImageNodeDependencies['generateRedraw'],
+  generateRedraw: RegenerateExportImageNodeDependencies["generateRedraw"],
 ): Promise<void> {
   const { nodeId, projectId, updateNodeData } = params;
   updateNodeData(nodeId, {
@@ -109,7 +111,7 @@ async function regenerateFreezoneRedrawNode(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[regenerate] freezone redraw failed', error);
+    console.error("[regenerate] freezone redraw failed", error);
     updateNodeData(nodeId, {
       isGenerating: false,
       generationStartedAt: null,
@@ -156,9 +158,14 @@ export async function regenerateExportImageNode(
     return;
   }
 
-  const payload = nodeData.generationRequestPayload as GenerateImagePayload | undefined;
+  const payload = nodeData.generationRequestPayload as
+    | CanvasImageJobPayload
+    | undefined;
   if (!payload) {
-    console.warn('[regenerate] export node has no stored payload, cannot retry', nodeId);
+    console.warn(
+      "[regenerate] export node has no stored payload, cannot retry",
+      nodeId,
+    );
     return;
   }
 
@@ -181,7 +188,7 @@ export async function regenerateExportImageNode(
       generationClientSessionId: runtimeSessionId,
     });
   } catch (error) {
-    const resolved = resolveErrorContent(error, '图像生成失败');
+    const resolved = resolveErrorContent(error, "图像生成失败");
     updateNodeData(nodeId, {
       isGenerating: false,
       generationStartedAt: null,
@@ -195,6 +202,11 @@ export async function regenerateExportImageNode(
 }
 
 /** Whether an export node has enough stored state to be regenerated. */
-export function canRegenerateExportImageNode(data: Record<string, unknown>): boolean {
-  return Boolean(data.generationRequestPayload) || Boolean(readFreezoneRedrawRequest(data));
+export function canRegenerateExportImageNode(
+  data: Record<string, unknown>,
+): boolean {
+  return (
+    Boolean(data.generationRequestPayload)
+    || Boolean(readFreezoneRedrawRequest(data))
+  );
 }

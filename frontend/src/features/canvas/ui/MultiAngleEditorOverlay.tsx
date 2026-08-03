@@ -15,10 +15,10 @@ import {
 } from '@/features/canvas/ui/MultiAngleEditorPanel';
 import {
   DEFAULT_ASPECT_RATIO,
+  generationTaskDescriptor,
   generateCanvasMultiAngle,
   inheritMainlineFields,
 } from '@/modules/creative_canvas/public';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 

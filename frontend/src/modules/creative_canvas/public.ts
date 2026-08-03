@@ -1252,6 +1252,42 @@ export type {
   GenerationRuntimeDiagnostics,
   GenerationRuntimeGateway,
 } from "@/modules/creative_canvas/application/generationRuntime";
+export type {
+  CanvasImageJobGateway,
+  CanvasImageJobPayload,
+  CanvasImageJobScope,
+  CanvasImageJobStatus,
+} from "@/modules/creative_canvas/application/canvasImageJob";
+export {
+  EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS,
+  pollExportImageGeneration,
+} from "@/modules/creative_canvas/application/pollExportImageGeneration";
+export type {
+  PollExportImageGenerationDependencies,
+  PollExportImageGenerationParams,
+} from "@/modules/creative_canvas/application/pollExportImageGeneration";
+export {
+  canRegenerateExportImageNode,
+  regenerateExportImageNode,
+} from "@/modules/creative_canvas/application/regenerateExportNode";
+export type {
+  RegenerateExportImageNodeDependencies,
+  RegenerateExportImageNodeParams,
+} from "@/modules/creative_canvas/application/regenerateExportNode";
+export {
+  generationTaskDescriptor,
+  nodeNeedsGenerationResume,
+  resumeNodeGeneration,
+} from "@/modules/creative_canvas/application/resumeGeneration";
+export type {
+  CanvasGenerationRecoveryNode,
+  CanvasGenerationTaskGateway,
+  GenerationTaskDescriptor,
+  ResumeNodeGenerationParams,
+} from "@/modules/creative_canvas/application/resumeGeneration";
+export {
+  freezoneGenerationTaskGateway,
+} from "@/modules/creative_canvas/infrastructure/freezoneGenerationTaskGateway";
 export {
   browserGenerationRuntimeGateway,
 } from "@/modules/creative_canvas/infrastructure/browserGenerationRuntimeGateway";

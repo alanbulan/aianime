@@ -3144,11 +3144,17 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const regenerateExportNode = readFileSync(
-      resolve(applicationRoot, "regenerateExportNode.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/regenerateExportNode.ts",
+      ),
       "utf8",
     );
     const resumeGeneration = readFileSync(
-      resolve(applicationRoot, "resumeGeneration.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/resumeGeneration.ts",
+      ),
       "utf8",
     );
     const selectedBackgroundSlot = readFileSync(
@@ -3511,7 +3517,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(errorDialogPath)).toEqual([]);
     expect(existsSync(resolve(applicationRoot, "errorDialog.ts"))).toBe(false);
     expect(globalErrorDialog).toContain("openGlobalErrorDialog({");
-    expect(regenerateExportNode).toContain("aiGateway: AiGateway");
+    expect(regenerateExportNode).toContain(
+      "aiGateway: CanvasImageJobGateway",
+    );
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",
     );
@@ -13930,7 +13938,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps export-image job polling in one application use case", () => {
     const useCasePath = resolve(
       SRC_ROOT,
-      "features/canvas/application/pollExportImageGeneration.ts",
+      "modules/creative_canvas/application/pollExportImageGeneration.ts",
     );
     const useCaseModel = readFileSync(useCasePath, "utf8");
     const composition = readFileSync(
@@ -13966,8 +13974,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/pollExportImageGeneration.ts",
+      "modules/creative_canvas/application/pollExportImageGeneration.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/pollExportImageGeneration.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(useCaseModel).toContain("EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS = 1400");
     expect(useCaseModel).toContain("buildGenerationErrorReport({");
     expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
@@ -13980,6 +13996,60 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("GENERATION_JOB_POLL_INTERVAL_MS");
     expect(canvasView).not.toContain("buildGenerationErrorReport");
     expect(canvasView).not.toContain("embedStoryboardImageMetadata");
+  });
+
+  it("owns generation recovery contracts and adapters in Creative Canvas", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const publicImports = importSpecifiers(publicPath);
+    const ownedSpecifiers = [
+      "@/modules/creative_canvas/application/canvasImageJob",
+      "@/modules/creative_canvas/application/pollExportImageGeneration",
+      "@/modules/creative_canvas/application/regenerateExportNode",
+      "@/modules/creative_canvas/application/resumeGeneration",
+      "@/modules/creative_canvas/infrastructure/freezoneGenerationTaskGateway",
+    ];
+    const legacyPaths = [
+      "features/canvas/application/pollExportImageGeneration.ts",
+      "features/canvas/application/pollExportImageGeneration.test.ts",
+      "features/canvas/application/regenerateExportNode.ts",
+      "features/canvas/application/resumeGeneration.ts",
+      "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+      "features/canvas/infrastructure/freezoneGenerationTaskGateway.test.ts",
+      "__tests__/features/canvas/regenerate-export-node.test.ts",
+      "__tests__/features/canvas/resume-generation.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const privateBypasses = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => ownedSpecifiers.includes(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+    const portsSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/application/ports.ts"),
+      "utf8",
+    );
+    const resumeSource = readFileSync(
+      resolve(moduleRoot, "application/resumeGeneration.ts"),
+      "utf8",
+    );
+
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    expect(privateBypasses).toEqual([]);
+    for (const specifier of ownedSpecifiers) {
+      expect(publicImports).toContain(specifier);
+    }
+    for (const legacyDeclaration of [
+      "export interface AiGateway",
+      "export interface CanvasGenerationScope",
+      "export interface CanvasGenerationTaskGateway",
+      "export interface GenerateImagePayload",
+    ]) {
+      expect(portsSource).not.toContain(legacyDeclaration);
+    }
+    expect(resumeSource).not.toContain("@/features/canvas/");
+    expect(resumeSource.match(/isCurrentGenerationTask\(/g)?.length).toBe(5);
   });
 
   it("keeps Canvas marquee gestures in one presentation hook", () => {
@@ -21370,7 +21440,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "./freezoneImageGenerationGateway",
     );
-    expect(importSpecifiers(legacyGatewayPath)).toContain(
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "./freezoneGenerationTaskGateway",
     );
     expect(importSpecifiers(legacyGatewayPath)).not.toContain(
@@ -21463,7 +21533,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas generation result queries behind one shared gateway", () => {
     const gatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneGenerationTaskGateway.ts",
     );
     const resultGatewayPath = resolve(
       SRC_ROOT,
@@ -21493,9 +21563,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(gatewayPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
         "@/modules/task_execution/public",
-        "../application/ports",
+        "./freezoneGenerationResultGateway",
+        "../application/generateCanvasStoryScript",
+        "../application/resumeGeneration",
       ]),
     );
     expect(gatewaySource).toContain(
@@ -21519,6 +21590,14 @@ describe("frontend architecture boundaries", () => {
     expect(endpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneGenerationResultGateway.ts",
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+        ),
+      ),
+    ).toBe(false);
     for (const legacySymbol of [
       "FreezoneJobResult",
       "fetchFreezoneJobResult",
@@ -24629,7 +24708,7 @@ describe("frontend architecture boundaries", () => {
     );
     const retryPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/regenerateExportNode.ts",
+      "modules/creative_canvas/application/regenerateExportNode.ts",
     );
     const portsPath = resolve(
       SRC_ROOT,
@@ -24641,6 +24720,7 @@ describe("frontend architecture boundaries", () => {
       "app/creative-canvas-shell-composition.tsx",
     );
     const legacyPaths = [
+      "features/canvas/application/regenerateExportNode.ts",
       "features/canvas/application/generateCanvasRedraw.ts",
       "features/canvas/application/generateCanvasRedraw.test.ts",
       "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
@@ -30448,7 +30528,6 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const consumerPaths = [
-      "features/canvas/application/resumeGeneration.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
     ];
     const consumerSources = Object.fromEntries(
@@ -30464,6 +30543,11 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const resumePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/resumeGeneration.ts",
+    );
+    const resumeSource = readFileSync(resumePath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
@@ -30497,6 +30581,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/creative_canvas/public",
       );
     }
+    expect(importSpecifiers(resumePath)).toContain("./generationOutputUrl");
     expect(completionSource).toContain('./generationOutputUrl');
     expect(
       existsSync(
@@ -30516,8 +30601,7 @@ describe("frontend architecture boundaries", () => {
       ],
     ).not.toContain("function resolveVideoOutputUrl(");
     expect(videoNode).not.toContain("function resolveOutputUrl(");
-    expect(consumerSources["features/canvas/application/resumeGeneration.ts"])
-      .not.toContain("function resolveUrlFromResult(");
+    expect(resumeSource).not.toContain("function resolveUrlFromResult(");
   });
 
   it("keeps audio reference display-name projection in one application module", () => {

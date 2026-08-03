@@ -9,7 +9,6 @@ import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { canRegenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
 import {
@@ -25,6 +24,7 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
   DEFAULT_ASPECT_RATIO,
   aspectRatioFromImageDimensions,
+  canRegenerateExportImageNode,
   collectCandidateBindingsForNode,
   hasMainlineContexts,
   resolveImageNodeDimension,

@@ -20,6 +20,7 @@ import {
   createUseCanvasViewerSurfaceController,
   detectAspectRatio as detectAspectRatioUseCase,
   exportStoryboardGrid as exportStoryboardGridUseCase,
+  freezoneGenerationTaskGateway,
   generateCanvasRedraw,
   getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
   getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
@@ -27,12 +28,16 @@ import {
   getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
   getStoryboardReferenceFrameHeight,
   migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
+  nodeNeedsGenerationResume,
   prepareNodeImage as prepareNodeImageUseCase,
   prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
   packStoryboardFrames as packStoryboardFramesUseCase,
+  pollExportImageGeneration as pollExportImageGenerationUseCase,
   publishCanvasCommitRequested,
+  regenerateExportImageNode as regenerateExportImageNodeUseCase,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
+  resumeNodeGeneration as resumeNodeGenerationUseCase,
   submitCanvasImageGeneration,
   freezoneDirectorStagePaletteGateway,
   freezoneSceneAssetsGateway,
@@ -43,6 +48,9 @@ import {
   type GetCanvasBeatDirectorManifestParams,
   type GetCanvasDirectorStagePaletteParams,
   type GetCanvasSceneAssetsForBeatParams,
+  type PollExportImageGenerationParams,
+  type RegenerateExportImageNodeParams,
+  type ResumeNodeGenerationParams,
 } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from './application/canvasServices';
 import { useCanvasStore } from './canvasStore';
@@ -50,20 +58,7 @@ import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
-import {
-  pollExportImageGeneration as pollExportImageGenerationUseCase,
-  type PollExportImageGenerationParams,
-} from './application/pollExportImageGeneration';
 import { CanvasToolProcessor } from './application/toolProcessor';
-import {
-  regenerateExportImageNode as regenerateExportImageNodeUseCase,
-  type RegenerateExportImageNodeParams,
-} from './application/regenerateExportNode';
-import {
-  nodeNeedsGenerationResume,
-  resumeNodeGeneration as resumeNodeGenerationUseCase,
-  type ResumeNodeGenerationParams,
-} from './application/resumeGeneration';
 import { CANVAS_NODE_TYPES } from './domain/canvasNodes';
 import {
   stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
@@ -90,7 +85,6 @@ import { browserToolImageGateway } from './infrastructure/browserToolImageGatewa
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
-import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';

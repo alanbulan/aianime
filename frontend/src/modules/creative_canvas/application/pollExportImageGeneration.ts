@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
+import type { CanvasImageJobGateway } from "./canvasImageJob";
 import {
   buildGenerationErrorReport,
   extractRequestId,
-} from '@/modules/creative_canvas/public';
-import type { AiGateway } from './ports';
+} from "./generationErrorReport";
 
 export const EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS = 1400;
 
@@ -22,7 +22,7 @@ export interface PollExportImageGenerationParams {
 }
 
 export interface PollExportImageGenerationDependencies {
-  getGenerateImageJob: AiGateway['getGenerateImageJob'];
+  getGenerateImageJob: CanvasImageJobGateway["getGenerateImageJob"];
   prepareNodeImage: (imageUrl: string) => Promise<{
     imageUrl: string;
     aspectRatio: string;
@@ -58,6 +58,15 @@ function readStoryboardMetadata(
   return metadata;
 }
 
+function isCurrentGenerationJob(
+  nodeData: Record<string, unknown> | null,
+  jobId: string,
+): nodeData is Record<string, unknown> {
+  return (
+    nodeData?.isGenerating === true && nodeData.generationJobId === jobId
+  );
+}
+
 export async function pollExportImageGeneration(
   params: PollExportImageGenerationParams,
   dependencies: PollExportImageGenerationDependencies,
@@ -68,18 +77,20 @@ export async function pollExportImageGeneration(
       return;
     }
 
-    const jobId = typeof currentData.generationJobId === 'string'
+    const jobId = typeof currentData.generationJobId === "string"
       ? currentData.generationJobId
-      : '';
+      : "";
     if (!jobId || currentData.isGenerating !== true) {
       return;
     }
 
-    let status: Awaited<ReturnType<AiGateway['getGenerateImageJob']>>;
+    let status: Awaited<
+      ReturnType<CanvasImageJobGateway["getGenerateImageJob"]>
+    >;
     try {
       status = await dependencies.getGenerateImageJob(jobId);
     } catch (error) {
-      dependencies.warn('[GenerationJob] poll failed', {
+      dependencies.warn("[GenerationJob] poll failed", {
         nodeId: params.nodeId,
         jobId,
         error,
@@ -88,20 +99,25 @@ export async function pollExportImageGeneration(
       continue;
     }
 
-    if (status.status === 'queued' || status.status === 'running') {
+    if (status.status === "queued" || status.status === "running") {
       await dependencies.sleep(EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS);
       continue;
     }
 
+    const latestData = params.getNodeData(params.nodeId);
+    if (!isCurrentGenerationJob(latestData, jobId)) {
+      return;
+    }
+
     if (
-      status.status === 'succeeded'
-      && typeof status.result === 'string'
+      status.status === "succeeded"
+      && typeof status.result === "string"
       && status.result.trim()
     ) {
       const resultUrl = status.result.trim();
       const prepared = await dependencies.prepareNodeImage(resultUrl);
       const storyboardMetadata = readStoryboardMetadata(
-        currentData.generationStoryboardMetadata,
+        latestData.generationStoryboardMetadata,
       );
       let imageUrl = resultUrl;
       if (storyboardMetadata) {
@@ -113,7 +129,7 @@ export async function pollExportImageGeneration(
             frameNotes: storyboardMetadata.frameNotes,
           },
         ).catch((error) => {
-          dependencies.warn('[GenerationJob] embed storyboard metadata failed', {
+          dependencies.warn("[GenerationJob] embed storyboard metadata failed", {
             nodeId: params.nodeId,
             error,
           });
@@ -123,6 +139,10 @@ export async function pollExportImageGeneration(
           imageWithMetadata,
           `storyboard-gen-${params.nodeId}-${dependencies.now()}.png`,
         );
+      }
+
+      if (!isCurrentGenerationJob(params.getNodeData(params.nodeId), jobId)) {
+        return;
       }
 
       params.updateNodeData(params.nodeId, {
@@ -143,18 +163,18 @@ export async function pollExportImageGeneration(
     }
 
     const errorMessage = status.error
-      ?? (status.status === 'not_found'
-        ? 'generation job not found'
-        : 'generation failed');
+      ?? (status.status === "not_found"
+        ? "generation job not found"
+        : "generation failed");
     const generationClientSessionId =
-      typeof currentData.generationClientSessionId === 'string'
-        ? currentData.generationClientSessionId
-        : '';
+      typeof latestData.generationClientSessionId === "string"
+        ? latestData.generationClientSessionId
+        : "";
     if (generationClientSessionId === params.runtimeSessionId) {
       const reportText = buildGenerationErrorReport({
         errorMessage,
         errorDetails: status.error ?? undefined,
-        context: currentData.generationDebugContext,
+        context: latestData.generationDebugContext,
       });
       void dependencies.showErrorDialog(
         errorMessage,

@@ -11,6 +11,7 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   DEFAULT_ASPECT_RATIO,
+  generationTaskDescriptor,
   generateCanvasRelight,
   inheritMainlineFields,
 } from '@/modules/creative_canvas/public';
@@ -20,7 +21,6 @@ import {
   type LightMainLightDescriptor,
   type LightSmartModeDescriptor,
 } from '@/features/canvas/ui/LightEditorPanel';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 

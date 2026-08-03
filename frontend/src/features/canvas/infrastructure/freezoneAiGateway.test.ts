@@ -13,15 +13,12 @@ const submitImageGeneration = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 vi.mock("@/modules/creative_canvas/public", () => ({
+  freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
   prepareCanvasImageSource: vi.fn(),
   prepareCanvasImageSources: vi.fn(),
   readEmbeddedCanvasGenerationOutputUrl: (result: { output_url?: string } | null) =>
     result?.output_url ?? null,
 }));
-vi.mock("./freezoneGenerationTaskGateway", () => ({
-  freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
-}));
-
 import { createFreezoneAiGateway } from "./freezoneAiGateway";
 
 function gateway() {

@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { awaitCanvasGenerationTaskCompletion } from '@/features/canvas/composition';
 import {
@@ -17,6 +16,7 @@ import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import {
   generateCanvasReversePrompt,
+  generationTaskDescriptor,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
   TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,

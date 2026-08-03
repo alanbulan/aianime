@@ -138,6 +138,31 @@ describe('pollExportImageGeneration', () => {
     );
   });
 
+  it('does not apply a completed result when image preparation starts a newer job', async () => {
+    let nodeData: Record<string, unknown> = {
+      isGenerating: true,
+      generationJobId: 'job-1',
+    };
+    const prepareNodeImage = vi.fn().mockImplementation(async () => {
+      nodeData = {
+        isGenerating: true,
+        generationJobId: 'job-2',
+      };
+      return {
+        imageUrl: 'data:image/png;base64,prepared',
+        aspectRatio: '16:9',
+      };
+    });
+    const dependencies = createDependencies({ prepareNodeImage });
+    const params = createParams(nodeData);
+    vi.mocked(params.getNodeData).mockImplementation(() => nodeData);
+
+    await pollExportImageGeneration(params, dependencies);
+
+    expect(params.updateNodeData).not.toHaveBeenCalled();
+    expect(dependencies.prepareNodeImage).toHaveBeenCalledOnce();
+  });
+
   it('retries polling errors and reports a terminal failure for this session', async () => {
     const pollError = new Error('network unavailable');
     const getGenerateImageJob = vi.fn()

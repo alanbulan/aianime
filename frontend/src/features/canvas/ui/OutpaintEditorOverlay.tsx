@@ -29,17 +29,15 @@ import {
   DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
   DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
   calculateCanvasOutpaintFrame,
+  generateCanvasOutpaint,
+  generationTaskDescriptor,
+  inheritMainlineFields,
   useCanvasImageModels,
   type CanvasOutpaintAspectRatio,
   type CanvasOutpaintImageSize,
   type CanvasOutpaintNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  generateCanvasOutpaint,
-  inheritMainlineFields,
-} from '@/modules/creative_canvas/public';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

@@ -39,7 +39,6 @@ import {
   extractUpstreamContent,
   joinUpstreamText,
 } from '@/features/canvas/application/graphContentResolver';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,
@@ -94,6 +93,7 @@ import {
   defaultSceneOptimizeForModel,
   eraseVideoSubtitles,
   findCameraMovementPreset,
+  generationTaskDescriptor,
   hasMainlineContexts,
   historyRecordOutputUrl,
   isVideoFile,

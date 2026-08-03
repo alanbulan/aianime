@@ -1,19 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
-import type {
-  AiGateway,
-  CanvasGenerationScope,
-  GenerateImagePayload,
-} from "../application/ports";
 import {
+  freezoneGenerationTaskGateway,
   prepareCanvasImageSource,
   prepareCanvasImageSources,
   readEmbeddedCanvasGenerationOutputUrl,
+  type CanvasImageJobGateway,
+  type CanvasImageJobPayload,
+  type CanvasImageJobScope,
   type CanvasImageGenerationCommand,
   type CanvasGenerationTaskRef,
 } from "@/modules/creative_canvas/public";
-import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 
 interface ComposedCapabilityJob {
   readonly prompt: string;
@@ -77,16 +75,16 @@ interface JobRecord {
   error?: string;
 }
 
-function readQuality(payload: GenerateImagePayload): string | null {
+function readQuality(payload: CanvasImageJobPayload): string | null {
   const quality = payload.extraParams?.quality;
   return typeof quality === "string" ? quality : null;
 }
 
-function toAspectRatio(payload: GenerateImagePayload): string {
+function toAspectRatio(payload: CanvasImageJobPayload): string {
   return payload.aspectRatio || "1:1";
 }
 
-function toImageSize(payload: GenerateImagePayload): string {
+function toImageSize(payload: CanvasImageJobPayload): string {
   return (payload.size || "2K").toString();
 }
 
@@ -121,8 +119,8 @@ async function submitImageEdit(
 }
 
 async function submitJob(
-  scope: CanvasGenerationScope,
-  payload: GenerateImagePayload,
+  scope: CanvasImageJobScope,
+  payload: CanvasImageJobPayload,
   dependencies: FreezoneAiGatewayDependencies,
 ): Promise<{ ref: CanvasGenerationTaskRef; projectId: string }> {
   const { projectId, canvasId } = scope;
@@ -206,7 +204,7 @@ async function awaitJobAndFetchUrl(
 
 export function createFreezoneAiGateway(
   dependencies: FreezoneAiGatewayDependencies,
-): AiGateway {
+): CanvasImageJobGateway {
   const jobs = new Map<string, JobRecord>();
 
   return {

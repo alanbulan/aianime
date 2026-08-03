@@ -10,8 +10,6 @@ import type {
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
   CanvasImageDimensions,
-  CanvasStoryScriptResult,
-  CanvasTaskResultGateway,
   StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 
@@ -77,18 +75,6 @@ export interface CanvasGraphGateway {
   ) => void;
 }
 
-export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
-  hasTask: (projectId: string, taskKey: string) => Promise<boolean>;
-  fetchReversePrompt: (
-    projectId: string,
-    jobId: string,
-  ) => Promise<string>;
-  fetchStoryScriptResult: (
-    projectId: string,
-    jobId: string,
-  ) => Promise<CanvasStoryScriptResult>;
-}
-
 export interface NodeCatalog {
   getDefinition: (type: CanvasNodeType) => CanvasNodeDefinition;
   getMenuDefinitions: () => CanvasNodeDefinition[];
@@ -131,54 +117,6 @@ export interface GraphContentResolver {
     nodes: CanvasNode[],
     edges: CanvasEdge[]
   ) => UpstreamContent[];
-}
-
-export interface GenerateImagePayload {
-  prompt: string;
-  model: string;
-  /** 注册表模型 id（还原用），与后端请求模型串区分。 */
-  modelId?: string;
-  /** 生成模式（还原用）。 */
-  generationMode?: string;
-  size: string;
-  aspectRatio: string;
-  referenceImages?: string[];
-  extraParams?: Record<string, unknown>;
-  capabilityId?: string;
-  /** Triggering node id, forwarded so the backend records per-node history. */
-  nodeId?: string;
-  capabilityParams?: Record<string, unknown>;
-  capabilityInputs?: Record<
-    string,
-    {
-      nodeId?: string;
-      role?: string;
-      sourceUrl?: string;
-      assetKind?: string;
-    }
-  >;
-}
-
-export interface CanvasGenerationScope {
-  projectId: string;
-  canvasId: string;
-}
-
-export interface AiGateway {
-  generateImage: (
-    scope: CanvasGenerationScope,
-    payload: GenerateImagePayload,
-  ) => Promise<string>;
-  submitGenerateImageJob: (
-    scope: CanvasGenerationScope,
-    payload: GenerateImagePayload,
-  ) => Promise<string>;
-  getGenerateImageJob: (jobId: string) => Promise<{
-    job_id: string;
-    status: 'queued' | 'running' | 'succeeded' | 'failed' | 'not_found';
-    result?: string | null;
-    error?: string | null;
-  }>;
 }
 
 export interface ImageSplitGateway {

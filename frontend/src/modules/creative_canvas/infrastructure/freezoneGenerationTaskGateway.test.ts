@@ -6,13 +6,13 @@ import type { TaskState } from "@/modules/task_execution/public";
 import {
   fetchCanvasGenerationResult,
   fetchCanvasGenerationResultUrl,
-} from "@/modules/creative_canvas/public";
+} from "./freezoneGenerationResultGateway";
 
 vi.mock("@/modules/task_execution/public", () => ({
   awaitTaskCompletion: vi.fn(),
   listTasks: vi.fn(),
 }));
-vi.mock("@/modules/creative_canvas/public", () => ({
+vi.mock("./freezoneGenerationResultGateway", () => ({
   fetchCanvasGenerationResult: vi.fn(),
   fetchCanvasGenerationResultUrl: vi.fn(),
 }));

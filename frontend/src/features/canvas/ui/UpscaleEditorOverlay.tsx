@@ -8,6 +8,8 @@ import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_UPSCALE_IMAGE_SIZES,
   CANVAS_UPSCALE_SCALE_FACTORS,
+  generateCanvasUpscale,
+  generationTaskDescriptor,
   resolveCanvasUpscaleImageSize,
   resolveCanvasUpscaleScaleFactor,
   useCanvasImageModels,
@@ -15,8 +17,6 @@ import {
   type CanvasUpscaleScaleFactor,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generateCanvasUpscale } from '@/modules/creative_canvas/public';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

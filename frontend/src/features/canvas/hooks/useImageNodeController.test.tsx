@@ -60,10 +60,6 @@ vi.mock('@/shared/media/image-cache', () => ({
   ) => token == null ? url : `${url}?stamp=${token}`,
 }));
 
-vi.mock('@/features/canvas/application/regenerateExportNode', () => ({
-  canRegenerateExportImageNode: () => mocks.canRetry,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   regenerateExportImageNode: (params: unknown) =>
     mocks.regenerateExportImageNode(params),
@@ -71,6 +67,7 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  canRegenerateExportImageNode: () => mocks.canRetry,
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),

@@ -32,7 +32,6 @@ import {
   snapImageGenAspectRatio,
 } from '@/features/canvas/application/imageGenNodeModel';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
@@ -47,6 +46,7 @@ import {
   buildImageGenerationSuccessPatch,
   collectCandidateBindingsForNode,
   filterCanvasImageModels,
+  generationTaskDescriptor,
   extractRequestId,
   generateCanvasImage,
   getFreezoneCanvasMetadata,

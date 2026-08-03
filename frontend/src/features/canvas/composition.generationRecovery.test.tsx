@@ -15,14 +15,11 @@ const generationMocks = vi.hoisted(() => ({
   resumeNodeGeneration: vi.fn(),
 }));
 
-vi.mock("./application/pollExportImageGeneration", async (importOriginal) => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<
-    typeof import("./application/pollExportImageGeneration")
+    typeof import("@/modules/creative_canvas/public")
   >()),
   pollExportImageGeneration: generationMocks.pollExportImageGeneration,
-}));
-vi.mock("./application/resumeGeneration", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./application/resumeGeneration")>()),
   resumeNodeGeneration: generationMocks.resumeNodeGeneration,
 }));
 

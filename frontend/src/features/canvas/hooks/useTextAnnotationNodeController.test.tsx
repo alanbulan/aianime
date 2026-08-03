@@ -78,6 +78,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   DEFAULT_SHARED_MODEL_ID: '',
   DEFAULT_VIDEO_MODEL_ID: '',
+  generationTaskDescriptor: (task: { task_key: string }) => ({
+    generationTaskKey: task.task_key,
+  }),
   generateCanvasReversePrompt: (
     command: unknown,
     onTaskSubmitted: (task: unknown) => void,
@@ -99,12 +102,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
 vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: () => ({
     data: { data: { display: '2 credits' } },
-  }),
-}));
-
-vi.mock('@/features/canvas/application/resumeGeneration', () => ({
-  generationTaskDescriptor: (task: { task_key: string }) => ({
-    generationTaskKey: task.task_key,
   }),
 }));
 

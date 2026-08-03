@@ -10,13 +10,13 @@ import {
   CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
   generateCanvasVideoUpscale,
+  generationTaskDescriptor,
   resolveCanvasVideoUpscaleDenoise,
   resolveCanvasVideoUpscaleResolution,
   type CanvasVideoUpscaleDenoise,
   type CanvasVideoUpscaleResolution,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from './nodeFrameStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';

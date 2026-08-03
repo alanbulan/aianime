@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasGenerationTaskGateway } from '@/features/canvas/application/ports';
-import { resumeNodeGeneration } from '@/features/canvas/application/resumeGeneration';
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from '@/features/canvas/domain/canvasNodes';
+  resumeNodeGeneration,
+  type CanvasGenerationRecoveryNode,
+  type CanvasGenerationTaskGateway,
+} from './resumeGeneration';
 
 const hasTask = vi.fn();
 const awaitCompletion = vi.fn();
@@ -29,9 +27,9 @@ const gateway: CanvasGenerationTaskGateway = {
 };
 
 function generationNode(
-  type: CanvasNodeType,
+  type: string,
   data: Record<string, unknown> = {},
-): CanvasNode {
+): CanvasGenerationRecoveryNode {
   return {
     data: {
       generationTaskJobId: 'job-1',
@@ -41,12 +39,11 @@ function generationNode(
       ...data,
     },
     id: 'node-1',
-    position: { x: 0, y: 0 },
     type,
-  } as CanvasNode;
+  };
 }
 
-async function resume(node: CanvasNode): Promise<void> {
+async function resume(node: CanvasGenerationRecoveryNode): Promise<void> {
   await resumeNodeGeneration(
     {
       node,
@@ -72,7 +69,7 @@ describe('resumeNodeGeneration', () => {
       result: { output_url: '/static/project-1/image.png' },
     });
 
-    await resume(generationNode(CANVAS_NODE_TYPES.imageGen));
+    await resume(generationNode('imageGenNode'));
 
     expect(hasTask).toHaveBeenCalledWith('project-1', 'task-1');
     expect(awaitCompletion).toHaveBeenCalledWith('task-1', 'project-1');
@@ -94,7 +91,7 @@ describe('resumeNodeGeneration', () => {
     awaitCompletion.mockResolvedValue({ result: {} });
     fetchResultUrl.mockResolvedValue('/static/project-1/fallback.png');
 
-    await resume(generationNode(CANVAS_NODE_TYPES.exportImage));
+    await resume(generationNode('exportImageNode'));
 
     expect(fetchResultUrl).toHaveBeenCalledWith(
       'project-1',
@@ -118,7 +115,7 @@ describe('resumeNodeGeneration', () => {
     fetchStoryScriptResult.mockResolvedValue(scriptResult);
 
     await resume(
-      generationNode(CANVAS_NODE_TYPES.script, {
+      generationNode('scriptNode', {
         generationTaskType: 'freezone_story_script',
       }),
     );
@@ -141,7 +138,7 @@ describe('resumeNodeGeneration', () => {
     fetchReversePrompt.mockResolvedValue('逆向提示词');
 
     await resume(
-      generationNode(CANVAS_NODE_TYPES.textAnnotation, {
+      generationNode('textAnnotationNode', {
         generationTaskType: 'freezone_image_reverse_prompt',
       }),
     );
@@ -156,7 +153,7 @@ describe('resumeNodeGeneration', () => {
   it('clears a generation whose persisted task no longer exists', async () => {
     hasTask.mockResolvedValue(false);
 
-    await resume(generationNode(CANVAS_NODE_TYPES.imageEdit));
+    await resume(generationNode('imageNode'));
 
     expect(awaitCompletion).not.toHaveBeenCalled();
     expect(updateNodeData).toHaveBeenLastCalledWith(
@@ -167,5 +164,68 @@ describe('resumeNodeGeneration', () => {
         isGenerating: false,
       }),
     );
+  });
+
+  it('does not clear a task that the node has already cancelled', async () => {
+    hasTask.mockResolvedValue(false);
+    const node = generationNode('audioNode');
+
+    await resumeNodeGeneration(
+      {
+        node,
+        projectId: 'project-1',
+        updateNodeData,
+        getNodeData: () => ({
+          ...(node.data as Record<string, unknown>),
+          generationTaskKey: null,
+          isGenerating: false,
+        }),
+      },
+      gateway,
+    );
+
+    expect(updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does not write a task result after the node has been deleted', async () => {
+    hasTask.mockResolvedValue(false);
+    const node = generationNode('audioNode');
+
+    await resumeNodeGeneration(
+      {
+        node,
+        projectId: 'project-1',
+        updateNodeData,
+        getNodeData: () => null,
+      },
+      gateway,
+    );
+
+    expect(updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does not apply an old completion after the node starts a newer task', async () => {
+    let currentTaskKey = 'task-1';
+    awaitCompletion.mockResolvedValue({ result: {} });
+    fetchResultUrl.mockImplementation(async () => {
+      currentTaskKey = 'task-2';
+      return '/static/project-1/stale.png';
+    });
+    const node = generationNode('imageGenNode');
+
+    await resumeNodeGeneration(
+      {
+        node,
+        projectId: 'project-1',
+        updateNodeData,
+        getNodeData: () => ({
+          ...(node.data as Record<string, unknown>),
+          generationTaskKey: currentTaskKey,
+        }),
+      },
+      gateway,
+    );
+
+    expect(updateNodeData).not.toHaveBeenCalled();
   });
 });

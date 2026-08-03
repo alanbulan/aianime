@@ -1,12 +1,16 @@
 // Copyright (c) 2026 AI anime
-import { awaitTaskCompletion, listTasks } from '@/modules/task_execution/public';
+import { awaitTaskCompletion, listTasks } from "@/modules/task_execution/public";
 import {
   fetchCanvasGenerationResult,
   fetchCanvasGenerationResultUrl,
-  type CanvasStoryScriptResult,
-} from '@/modules/creative_canvas/public';
+} from "./freezoneGenerationResultGateway";
 
-import type { CanvasGenerationTaskGateway } from '../application/ports';
+import type {
+  CanvasStoryScriptResult,
+} from "../application/generateCanvasStoryScript";
+import type {
+  CanvasGenerationTaskGateway,
+} from "../application/resumeGeneration";
 
 interface ReversePromptTransport {
   readonly prompt: string;
@@ -16,7 +20,7 @@ function canvasTaskResult(
   value: unknown,
 ): Record<string, unknown> | null | undefined {
   if (value == null) return value;
-  if (typeof value === 'object' && !Array.isArray(value)) {
+  if (typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
   }
   return null;
@@ -40,7 +44,7 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   async fetchReversePrompt(projectId, jobId) {
     const result = await fetchCanvasGenerationResult<ReversePromptTransport>(
       projectId,
-      'freezone_image_reverse_prompt',
+      "freezone_image_reverse_prompt",
       jobId,
     );
     return result.prompt;
@@ -49,7 +53,7 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   async fetchStoryScriptResult(projectId, jobId) {
     return await fetchCanvasGenerationResult<CanvasStoryScriptResult>(
       projectId,
-      'freezone_story_script',
+      "freezone_story_script",
       jobId,
     );
   },

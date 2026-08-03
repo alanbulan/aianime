@@ -8,21 +8,35 @@
 // node (so the 生成中 overlay re-appears from `generationStartedAt`) and re-attaching
 // to the task API on reload via {@link resumeNodeGeneration}.
 
-import type { CanvasNode, CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import {
-  extractRequestId,
-  isStaleGenerationTask,
-  resolveErrorContent,
-  resolveGenerationOutputUrl,
-  shouldWriteGenerationError,
-  type CanvasGenerationTaskCompletion,
-  type CanvasGenerationTaskRef,
-} from '@/modules/creative_canvas/public';
-import { providerErrorMessage } from '@/shared/api/errors';
-import type { CanvasGenerationTaskGateway } from '@/features/canvas/application/ports';
+import { providerErrorMessage } from "@/shared/api/errors";
 
-type FreezoneTaskType = CanvasGenerationTaskRef['task_type'];
+import type {
+  CanvasGenerationTaskCompletion,
+  CanvasGenerationTaskRef,
+  CanvasTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
+import { resolveErrorContent } from "./errorDialog";
+import type { CanvasStoryScriptResult } from "./generateCanvasStoryScript";
+import { extractRequestId } from "./generationErrorReport";
+import { shouldWriteGenerationError } from "./generationTaskArbitration";
+import { resolveGenerationOutputUrl } from "./generationOutputUrl";
+
+type FreezoneTaskType = CanvasGenerationTaskRef["task_type"];
+
+export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
+  hasTask(projectId: string, taskKey: string): Promise<boolean>;
+  fetchReversePrompt(projectId: string, jobId: string): Promise<string>;
+  fetchStoryScriptResult(
+    projectId: string,
+    jobId: string,
+  ): Promise<CanvasStoryScriptResult>;
+}
+
+export interface CanvasGenerationRecoveryNode {
+  readonly id: string;
+  readonly type?: string;
+  readonly data: unknown;
+}
 
 /**
  * The persisted handle that lets a refreshed page re-attach to a running job.
@@ -64,24 +78,30 @@ export function generationTaskDescriptor(
   };
 }
 
-type ResumeKind = 'image' | 'video' | 'audio' | 'ply' | 'script' | 'reverse-prompt';
+type ResumeKind =
+  | "image"
+  | "video"
+  | "audio"
+  | "ply"
+  | "script"
+  | "reverse-prompt";
 
-function resumeKindForNodeType(type: CanvasNodeType): ResumeKind | null {
+function resumeKindForNodeType(type: string | undefined): ResumeKind | null {
   switch (type) {
-    case CANVAS_NODE_TYPES.imageGen:
-    case CANVAS_NODE_TYPES.imageEdit:
-    case CANVAS_NODE_TYPES.exportImage:
-      return 'image';
-    case CANVAS_NODE_TYPES.video:
-      return 'video';
-    case CANVAS_NODE_TYPES.audio:
-      return 'audio';
-    case CANVAS_NODE_TYPES.threeDWorld:
-      return 'ply';
-    case CANVAS_NODE_TYPES.script:
-      return 'script';
-    case CANVAS_NODE_TYPES.textAnnotation:
-      return 'reverse-prompt';
+    case "imageGenNode":
+    case "imageNode":
+    case "exportImageNode":
+      return "image";
+    case "videoNode":
+      return "video";
+    case "audioNode":
+      return "audio";
+    case "threeDWorldNode":
+      return "ply";
+    case "scriptNode":
+      return "script";
+    case "textAnnotationNode":
+      return "reverse-prompt";
     default:
       return null;
   }
@@ -89,14 +109,17 @@ function resumeKindForNodeType(type: CanvasNodeType): ResumeKind | null {
 
 // Mirror ThreeDWorldNode's pickPlyUrlFromResult so 3D scenes resume the same way.
 function pickPlyUrlFromResult(
-  result: CanvasGenerationTaskCompletion['result'],
+  result: CanvasGenerationTaskCompletion["result"],
 ): string | null {
   if (!result) return null;
   const candidates: string[] = [];
   const visit = (value: unknown, depth: number) => {
     if (depth > 4) return;
-    if (typeof value === 'string') {
-      if (/\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i.test(value) || /scene_3gs|ply_fs|splat/i.test(value)) {
+    if (typeof value === "string") {
+      if (
+        /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i.test(value)
+        || /scene_3gs|ply_fs|splat/i.test(value)
+      ) {
         candidates.push(value);
       }
       return;
@@ -105,14 +128,18 @@ function pickPlyUrlFromResult(
       for (const item of value) visit(item, depth + 1);
       return;
     }
-    if (value && typeof value === 'object') {
-      for (const v of Object.values(value as Record<string, unknown>)) visit(v, depth + 1);
+    if (value && typeof value === "object") {
+      for (const nested of Object.values(value as Record<string, unknown>)) {
+        visit(nested, depth + 1);
+      }
     }
   };
   visit(result, 0);
   const sog = candidates.find((c) => /\.sog(\?|#|$)/i.test(c));
   if (sog) return sog;
-  const packaged = candidates.find((c) => /\.(ksplat|splat|spz)(\?|#|$)/i.test(c));
+  const packaged = candidates.find((candidate) =>
+    /\.(ksplat|splat|spz)(\?|#|$)/i.test(candidate),
+  );
   if (packaged) return packaged;
   const ply = candidates.find((c) => /\.ply(\?|#|$)/i.test(c));
   if (ply) return ply;
@@ -128,6 +155,16 @@ const CLEARED_TASK_FIELDS = {
   generationTaskJobId: null,
 } as const;
 
+function isCurrentGenerationTask(
+  nodeData: Record<string, unknown> | null | undefined,
+  taskKey: string,
+): nodeData is Record<string, unknown> {
+  return (
+    nodeData?.isGenerating === true
+    && nodeData.generationTaskKey === taskKey
+  );
+}
+
 async function buildSuccessPatch(
   kind: ResumeKind,
   completed: CanvasGenerationTaskCompletion,
@@ -137,23 +174,32 @@ async function buildSuccessPatch(
   gateway: CanvasGenerationTaskGateway,
 ): Promise<Record<string, unknown>> {
   switch (kind) {
-    case 'image': {
-      let url = resolveGenerationOutputUrl(completed.result, 'image');
+    case "image": {
+      let url = resolveGenerationOutputUrl(completed.result, "image");
       if (!url && jobId) {
-        url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
+        url = await gateway
+          .fetchResultUrl(projectId, taskType, jobId)
+          .catch(() => null);
       }
       if (!url) {
-        return { ...CLEARED_TASK_FIELDS, generationError: '生成未返回结果' };
+        return { ...CLEARED_TASK_FIELDS, generationError: "生成未返回结果" };
       }
-      return { ...CLEARED_TASK_FIELDS, imageUrl: url, previewImageUrl: url, generationError: null };
+      return {
+        ...CLEARED_TASK_FIELDS,
+        imageUrl: url,
+        previewImageUrl: url,
+        generationError: null,
+      };
     }
-    case 'video': {
-      let url = resolveGenerationOutputUrl(completed.result, 'video');
+    case "video": {
+      let url = resolveGenerationOutputUrl(completed.result, "video");
       if (!url && jobId) {
-        url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
+        url = await gateway
+          .fetchResultUrl(projectId, taskType, jobId)
+          .catch(() => null);
       }
       if (!url) {
-        return { ...CLEARED_TASK_FIELDS, generationError: '视频生成未返回结果' };
+        return { ...CLEARED_TASK_FIELDS, generationError: "视频生成未返回结果" };
       }
       return {
         ...CLEARED_TASK_FIELDS,
@@ -164,28 +210,43 @@ async function buildSuccessPatch(
         generationErrorRequestId: null,
       };
     }
-    case 'audio': {
-      let url = resolveGenerationOutputUrl(completed.result, 'audio');
+    case "audio": {
+      let url = resolveGenerationOutputUrl(completed.result, "audio");
       if (!url && jobId) {
-        url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
+        url = await gateway
+          .fetchResultUrl(projectId, taskType, jobId)
+          .catch(() => null);
       }
       if (!url) {
         return { ...CLEARED_TASK_FIELDS };
       }
       return { ...CLEARED_TASK_FIELDS, audioUrl: url, durationMs: null };
     }
-    case 'ply': {
+    case "ply": {
       const plyUrl = pickPlyUrlFromResult(completed.result);
       if (!plyUrl) {
-        return { ...CLEARED_TASK_FIELDS, taskKey: null, errorMessage: '生成失败: 未能在 task.result 中找到 3D 世界地址' };
+        return {
+          ...CLEARED_TASK_FIELDS,
+          taskKey: null,
+          errorMessage: "生成失败: 未能在 task.result 中找到 3D 世界地址",
+        };
       }
-      return { ...CLEARED_TASK_FIELDS, plyUrl, taskKey: null, errorMessage: null };
+      return {
+        ...CLEARED_TASK_FIELDS,
+        plyUrl,
+        taskKey: null,
+        errorMessage: null,
+      };
     }
-    case 'script': {
+    case "script": {
       const result = await gateway.fetchStoryScriptResult(projectId, jobId);
-      return { ...CLEARED_TASK_FIELDS, scriptResult: result, scriptTitle: result.title ?? null };
+      return {
+        ...CLEARED_TASK_FIELDS,
+        scriptResult: result,
+        scriptTitle: result.title ?? null,
+      };
     }
-    case 'reverse-prompt': {
+    case "reverse-prompt": {
       const prompt = await gateway.fetchReversePrompt(projectId, jobId);
       if (prompt && prompt.trim().length > 0) {
         return { ...CLEARED_TASK_FIELDS, content: prompt };
@@ -197,13 +258,23 @@ async function buildSuccessPatch(
   }
 }
 
-function buildErrorPatch(kind: ResumeKind, error: unknown): Record<string, unknown> {
-  if (kind === 'ply') {
+function buildErrorPatch(
+  kind: ResumeKind,
+  error: unknown,
+): Record<string, unknown> {
+  if (kind === "ply") {
     const message = error instanceof Error ? error.message : String(error);
-    return { ...CLEARED_TASK_FIELDS, taskKey: null, errorMessage: `生成失败: ${message}` };
+    return {
+      ...CLEARED_TASK_FIELDS,
+      taskKey: null,
+      errorMessage: `生成失败: ${message}`,
+    };
   }
-  if (kind === 'image' || kind === 'video') {
-    const resolved = resolveErrorContent(error, kind === 'video' ? '视频生成失败' : '图像生成失败');
+  if (kind === "image" || kind === "video") {
+    const resolved = resolveErrorContent(
+      error,
+      kind === "video" ? "视频生成失败" : "图像生成失败",
+    );
     const rawMessage = resolved.message;
     return {
       ...CLEARED_TASK_FIELDS,
@@ -227,7 +298,7 @@ function buildErrorPatch(kind: ResumeKind, error: unknown): Record<string, unkno
  * once per node; callers should dedupe.
  */
 export interface ResumeNodeGenerationParams {
-  node: CanvasNode;
+  node: CanvasGenerationRecoveryNode;
   projectId: string;
   updateNodeData: (id: string, patch: Record<string, unknown>) => void;
   getNodeData?: (id: string) => Record<string, unknown> | null | undefined;
@@ -239,19 +310,26 @@ export async function resumeNodeGeneration(
 ): Promise<void> {
   const { node, projectId, updateNodeData, getNodeData } = params;
   const data = node.data as Record<string, unknown>;
-  const taskKey = typeof data.generationTaskKey === 'string' ? data.generationTaskKey : '';
+  const taskKey =
+    typeof data.generationTaskKey === "string" ? data.generationTaskKey : "";
   const taskType =
-    typeof data.generationTaskType === 'string' ? (data.generationTaskType as FreezoneTaskType) : null;
-  const jobId = typeof data.generationTaskJobId === 'string' ? data.generationTaskJobId : '';
-  const kind = resumeKindForNodeType(node.type as CanvasNodeType);
+    typeof data.generationTaskType === "string"
+      ? (data.generationTaskType as FreezoneTaskType)
+      : null;
+  const jobId =
+    typeof data.generationTaskJobId === "string"
+      ? data.generationTaskJobId
+      : "";
+  const kind = resumeKindForNodeType(node.type);
 
   if (!taskKey || !taskType || !kind) {
     return;
   }
 
   const readLatestNodeData = () =>
-    getNodeData?.(node.id)
-    ?? (node.data as Record<string, unknown>);
+    getNodeData
+      ? getNodeData(node.id)
+      : (node.data as Record<string, unknown>);
 
   // Quick pre-check: if the task no longer exists server-side (expired/cleaned),
   // avoid hanging on the 20-minute poll timeout — clear the stuck 生成中 state now.
@@ -259,11 +337,14 @@ export async function resumeNodeGeneration(
     const taskExists = await gateway.hasTask(projectId, taskKey);
     if (!taskExists) {
       const latestNodeData = readLatestNodeData();
-      if (isStaleGenerationTask({ nodeData: latestNodeData, taskKey })) {
+      if (!isCurrentGenerationTask(latestNodeData, taskKey)) {
         return;
       }
 
-      updateNodeData(node.id, buildErrorPatch(kind, new Error('生成任务已结束或不存在')));
+      updateNodeData(
+        node.id,
+        buildErrorPatch(kind, new Error("生成任务已结束或不存在")),
+      );
       return;
     }
   } catch {
@@ -273,25 +354,39 @@ export async function resumeNodeGeneration(
 
   try {
     const completed = await gateway.awaitCompletion(taskKey, projectId);
-    updateNodeData(
-      node.id,
-      await buildSuccessPatch(
-        kind,
-        completed,
-        taskType,
-        jobId,
-        projectId,
-        gateway,
-      ),
+    if (!isCurrentGenerationTask(readLatestNodeData(), taskKey)) {
+      return;
+    }
+    const successPatch = await buildSuccessPatch(
+      kind,
+      completed,
+      taskType,
+      jobId,
+      projectId,
+      gateway,
     );
+    if (!isCurrentGenerationTask(readLatestNodeData(), taskKey)) {
+      return;
+    }
+    updateNodeData(node.id, successPatch);
   } catch (error) {
-    console.warn('[resume-generation] task resume failed', { nodeId: node.id, taskKey, error });
-    if (kind === 'image' || kind === 'video') {
-      const latestNodeData = readLatestNodeData();
-      if (isStaleGenerationTask({ nodeData: latestNodeData, taskKey })) {
-        return;
-      }
-      if (!shouldWriteGenerationError({ nodeData: latestNodeData, taskKey, error })) {
+    console.warn("[resume-generation] task resume failed", {
+      nodeId: node.id,
+      taskKey,
+      error,
+    });
+    const latestNodeData = readLatestNodeData();
+    if (!isCurrentGenerationTask(latestNodeData, taskKey)) {
+      return;
+    }
+    if (kind === "image" || kind === "video") {
+      if (
+        !shouldWriteGenerationError({
+          nodeData: latestNodeData,
+          taskKey,
+          error,
+        })
+      ) {
         updateNodeData(node.id, { ...CLEARED_TASK_FIELDS });
         return;
       }
@@ -306,8 +401,15 @@ export async function resumeNodeGeneration(
  * false for tasks already being awaited by an in-session flow (see
  * {@link sessionOwnedTaskKeys}).
  */
-export function nodeNeedsGenerationResume(node: CanvasNode): boolean {
+export function nodeNeedsGenerationResume(
+  node: CanvasGenerationRecoveryNode,
+): boolean {
   const data = node.data as Record<string, unknown>;
-  const taskKey = typeof data.generationTaskKey === 'string' ? data.generationTaskKey : '';
-  return data.isGenerating === true && taskKey.length > 0 && !sessionOwnedTaskKeys.has(taskKey);
+  const taskKey =
+    typeof data.generationTaskKey === "string" ? data.generationTaskKey : "";
+  return (
+    data.isGenerating === true
+    && taskKey.length > 0
+    && !sessionOwnedTaskKeys.has(taskKey)
+  );
 }

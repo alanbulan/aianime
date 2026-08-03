@@ -10,7 +10,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
   buildLocalThreeDWorldDirectorManifest,
   buildThreeDWorldClearScenePatch,
@@ -46,6 +45,7 @@ import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,
+  generationTaskDescriptor,
   directorCaptureBlobToDataUrl,
   readDirectorCaptureImageSize,
   resolveCanvasImageTo3dSourceKind,

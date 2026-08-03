@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { regenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
-import type { AiGateway } from '@/features/canvas/application/ports';
+import type { CanvasImageJobGateway } from './canvasImageJob';
+import { regenerateExportImageNode } from './regenerateExportNode';
 
 const submitImage = vi.fn();
 const updateNodeData = vi.fn();
-const aiGateway: AiGateway = {
+const aiGateway: CanvasImageJobGateway = {
   generateImage: vi.fn(),
   getGenerateImageJob: vi.fn(),
   submitGenerateImageJob: (scope, payload) => submitImage(scope, payload),
