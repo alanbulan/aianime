@@ -1,7 +1,11 @@
 // Copyright (c) 2026 AI anime
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
 
-export type DirectorStagePalette = DirectorStageManifest["palette"];
+export interface DirectorStagePalette {
+  actors: Array<{ identity_id: string; label: string; color: string }>;
+  props: Array<{ prop_id: string; label: string; color: string }>;
+  anonymous_colors: string[];
+  anonymous_prop_colors: string[];
+}
 
 export interface GetCanvasDirectorStagePaletteParams {
   projectId: string;

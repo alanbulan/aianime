@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
-import type { SceneAssetsForBeatResult } from "@/modules/creative_canvas/public";
 
 import type { CanvasSceneAssetsGateway } from "../application/sceneAssets";
 
@@ -9,7 +8,7 @@ export const freezoneSceneAssetsGateway: CanvasSceneAssetsGateway = {
     const query = new URLSearchParams();
     query.set("episode", String(episode));
     query.set("beat", String(beat));
-    return await apiCall<SceneAssetsForBeatResult>(
+    return await apiCall(
       `projects/${encodeURIComponent(projectId)}/freezone/scene-assets-for-beat?${query.toString()}`,
     );
   },

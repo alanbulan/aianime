@@ -1,15 +1,15 @@
 // Copyright (c) 2026 AI anime
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   directorCaptureBlobToDataUrl,
   readDirectorCaptureImageSize,
-} from './browserDirectorCaptureRuntime';
+} from "./browserDirectorCaptureRuntime";
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('browserDirectorCaptureRuntime', () => {
-  it('reads capture blobs as data URLs', async () => {
+describe("browserDirectorCaptureRuntime", () => {
+  it("reads capture blobs as data URLs", async () => {
     class TestFileReader {
       result: string | ArrayBuffer | null = null;
       error: DOMException | null = null;
@@ -17,18 +17,18 @@ describe('browserDirectorCaptureRuntime', () => {
       onerror: (() => void) | null = null;
 
       readAsDataURL(): void {
-        this.result = 'data:image/png;base64,AAAA';
+        this.result = "data:image/png;base64,AAAA";
         this.onload?.();
       }
     }
-    vi.stubGlobal('FileReader', TestFileReader);
+    vi.stubGlobal("FileReader", TestFileReader);
 
     await expect(
-      directorCaptureBlobToDataUrl(new Blob(['capture'])),
-    ).resolves.toBe('data:image/png;base64,AAAA');
+      directorCaptureBlobToDataUrl(new Blob(["capture"])),
+    ).resolves.toBe("data:image/png;base64,AAAA");
   });
 
-  it('reads natural image dimensions with a one-pixel fallback', async () => {
+  it("reads natural image dimensions with a one-pixel fallback", async () => {
     class TestImage {
       naturalWidth = 1920;
       naturalHeight = 1080;
@@ -39,10 +39,10 @@ describe('browserDirectorCaptureRuntime', () => {
         this.onload?.();
       }
     }
-    vi.stubGlobal('Image', TestImage);
+    vi.stubGlobal("Image", TestImage);
 
     await expect(
-      readDirectorCaptureImageSize('data:image/png;base64,A'),
+      readDirectorCaptureImageSize("data:image/png;base64,A"),
     ).resolves.toEqual({ width: 1920, height: 1080 });
   });
 });

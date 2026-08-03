@@ -13,7 +13,12 @@ beforeEach(() => {
 
 describe("freezoneDirectorStagePaletteGateway", () => {
   it("loads the palette with an encoded project identifier", async () => {
-    const palette = { actors: [], props: [] };
+    const palette = {
+      actors: [],
+      props: [],
+      anonymous_colors: [],
+      anonymous_prop_colors: [],
+    };
     apiCall.mockResolvedValue(palette);
 
     await expect(

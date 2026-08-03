@@ -1,12 +1,13 @@
 // Copyright (c) 2026 AI anime
+
 export function directorCaptureBlobToDataUrl(
   blob: Blob,
-  readErrorMessage = '无法读取导演世界截图',
+  readErrorMessage = "无法读取导演世界截图",
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === 'string') resolve(reader.result);
+      if (typeof reader.result === "string") resolve(reader.result);
       else reject(new Error(readErrorMessage));
     };
     reader.onerror = () =>
@@ -17,7 +18,7 @@ export function directorCaptureBlobToDataUrl(
 
 export function readDirectorCaptureImageSize(
   dataUrl: string,
-  parseErrorMessage = '无法解析导演世界截图尺寸',
+  parseErrorMessage = "无法解析导演世界截图尺寸",
 ): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const image = new Image();

@@ -9,6 +9,7 @@ import {
 import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,
+  type DirectorStageManifest,
 } from '@/modules/asset_world/public';
 import {
   applyStoryboardTextOverlay,
@@ -19,7 +20,10 @@ import {
   detectAspectRatio as detectAspectRatioUseCase,
   exportStoryboardGrid as exportStoryboardGridUseCase,
   generateCanvasRedraw,
+  getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
+  getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
   getFreezoneCanvasMetadata,
+  getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
   getStoryboardReferenceFrameHeight,
   migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
   prepareNodeImage as prepareNodeImageUseCase,
@@ -29,21 +33,18 @@ import {
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
   submitCanvasImageGeneration,
+  freezoneDirectorStagePaletteGateway,
+  freezoneSceneAssetsGateway,
   type CanvasAssetDragPayload,
+  type CanvasBeatDirectorManifestGateway,
   type CanvasClipboardAssetMigrationRequest,
   type ExportStoryboardGridCommand,
+  type GetCanvasBeatDirectorManifestParams,
+  type GetCanvasDirectorStagePaletteParams,
+  type GetCanvasSceneAssetsForBeatParams,
 } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from './application/canvasServices';
 import { useCanvasStore } from './canvasStore';
-import {
-  getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
-  type CanvasBeatDirectorManifestGateway,
-  type GetCanvasBeatDirectorManifestParams,
-} from './application/beatDirectorManifest';
-import {
-  getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
-  type GetCanvasDirectorStagePaletteParams,
-} from './application/directorStagePalette';
 import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
@@ -77,10 +78,6 @@ import {
   type StartCanvasSkillRunParams,
 } from './application/skillExecution';
 import {
-  getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
-  type GetCanvasSceneAssetsForBeatParams,
-} from './application/sceneAssets';
-import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import {
@@ -93,9 +90,7 @@ import { browserToolImageGateway } from './infrastructure/browserToolImageGatewa
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
-import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
-import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
@@ -107,7 +102,7 @@ const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
 };
 
-const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway = {
+const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway<DirectorStageManifest> = {
   getBeatManifest: ({ projectId, episode, beat }) =>
     loadBeatDirectorStageManifest(projectId, episode, beat),
 };

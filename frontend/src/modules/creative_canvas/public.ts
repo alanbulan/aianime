@@ -1192,6 +1192,48 @@ export type {
   SceneAssetsForBeat,
   SceneAssetsForBeatResult,
 } from "@/modules/creative_canvas/domain/sceneAssets";
+export {
+  getCanvasSceneAssetsForBeat,
+} from "@/modules/creative_canvas/application/sceneAssets";
+export type {
+  CanvasSceneAssetsGateway,
+  GetCanvasSceneAssetsForBeatParams,
+} from "@/modules/creative_canvas/application/sceneAssets";
+export {
+  getCanvasBeatDirectorManifest,
+} from "@/modules/creative_canvas/application/beatDirectorManifest";
+export type {
+  CanvasBeatDirectorManifestGateway,
+  GetCanvasBeatDirectorManifestParams,
+} from "@/modules/creative_canvas/application/beatDirectorManifest";
+export {
+  getCanvasDirectorStagePalette,
+} from "@/modules/creative_canvas/application/directorStagePalette";
+export type {
+  CanvasDirectorStagePaletteGateway,
+  DirectorStagePalette,
+  GetCanvasDirectorStagePaletteParams,
+} from "@/modules/creative_canvas/application/directorStagePalette";
+export {
+  freezoneSceneAssetsGateway,
+} from "@/modules/creative_canvas/infrastructure/freezoneSceneAssetsGateway";
+export {
+  freezoneDirectorStagePaletteGateway,
+} from "@/modules/creative_canvas/infrastructure/freezoneDirectorStagePaletteGateway";
+export {
+  uploadDirectorCaptureBundle,
+} from "@/modules/creative_canvas/application/directorCaptureBundle";
+export type {
+  DirectorCaptureAssetUploader,
+  DirectorCaptureBundleInput,
+  DirectorCaptureControlFrameBundle,
+  DirectorCaptureFrameMeta,
+  DirectorCaptureUploadOptions,
+} from "@/modules/creative_canvas/application/directorCaptureBundle";
+export {
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
+} from "@/modules/creative_canvas/infrastructure/browserDirectorCaptureRuntime";
 export type {
   FreezoneProjectionBuildResponse,
   FreezoneProjectionPresetRequest,

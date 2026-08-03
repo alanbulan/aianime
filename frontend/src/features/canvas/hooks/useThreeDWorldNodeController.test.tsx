@@ -112,15 +112,12 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   }),
   generateCanvasImageTo3d: (...args: unknown[]) =>
     mocks.generateImageTo3d(...args),
-  setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
-    mocks.registerSaveHandler(...args),
-}));
-
-vi.mock('@/features/canvas/infrastructure/browserDirectorCaptureRuntime', () => ({
   directorCaptureBlobToDataUrl: (...args: unknown[]) =>
     mocks.blobToDataUrl(...args),
   readDirectorCaptureImageSize: (...args: unknown[]) =>
     mocks.readImageSize(...args),
+  setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
+    mocks.registerSaveHandler(...args),
 }));
 
 function uploadNode(

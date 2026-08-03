@@ -10,10 +10,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import {
-  uploadDirectorCaptureBundle,
-  type DirectorCaptureAssetUploader,
-} from '@/features/canvas/application/directorCaptureBundle';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
   buildLocalThreeDWorldDirectorManifest,
@@ -46,20 +42,20 @@ import {
   mergeDirectorWorldSources,
 } from '@/features/canvas/domain/directorWorldSources';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  directorCaptureBlobToDataUrl,
-  readDirectorCaptureImageSize,
-} from '@/features/canvas/infrastructure/browserDirectorCaptureRuntime';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
   resolveCanvasImageTo3dSourceKind,
   setDirectorWorldSceneSaveHandler,
+  uploadDirectorCaptureBundle,
   useNodeGenerationHistory,
   validMainlineContexts,
   type CanvasGenerationHistoryRecord,
+  type DirectorCaptureAssetUploader,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';

@@ -24,13 +24,8 @@ import {
   resolveUploadNodeTitle,
   sceneSnapshotFromDirectorControlBundle,
 } from '@/features/canvas/application/uploadNodeModel';
-import { uploadDirectorCaptureBundle } from '@/features/canvas/application/directorCaptureBundle';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  directorCaptureBlobToDataUrl,
-  readDirectorCaptureImageSize,
-} from '@/features/canvas/infrastructure/browserDirectorCaptureRuntime';
 import {
   getCanvasBeatDirectorManifest,
   prepareNodeImageFromFile,
@@ -40,9 +35,12 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   collectCandidateBindingsForNode,
+  directorCaptureBlobToDataUrl,
   hasMainlineContexts,
+  readDirectorCaptureImageSize,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
+  uploadDirectorCaptureBundle,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
