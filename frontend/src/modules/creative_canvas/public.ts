@@ -527,6 +527,16 @@ export {
   resolveTextAnnotationUpstreamImageUrl,
 } from "@/modules/creative_canvas/domain/textAnnotationNodeModel";
 export type { TextNodeMode } from "@/modules/creative_canvas/domain/textAnnotationNodeModel";
+export {
+  reorderStoryboardFrameInGraph,
+  updateStoryboardFrameInGraph,
+} from "@/modules/creative_canvas/domain/storyboardFrames";
+export type {
+  StoryboardFrameGraphPorts,
+  StoryboardFrameGraphResult,
+  StoryboardFrameLike,
+  StoryboardFrameNodeProjection,
+} from "@/modules/creative_canvas/domain/storyboardFrames";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

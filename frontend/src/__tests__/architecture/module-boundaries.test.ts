@@ -14518,8 +14518,12 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas storyboard frame rules out of the Zustand store", () => {
     const framesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/storyboardFrames.ts",
+      "modules/creative_canvas/domain/storyboardFrames.ts",
     );
+    const legacyFramePaths = [
+      "features/canvas/domain/storyboardFrames.ts",
+      "features/canvas/domain/storyboardFrames.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const framesModel = readFileSync(framesPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
@@ -14544,11 +14548,11 @@ describe("frontend architecture boundaries", () => {
     );
     const updateDeclaration = [
       "export function",
-      "updateStoryboardFrameInGraph(",
+      "updateStoryboardFrameInGraph<",
     ].join(" ");
     const reorderDeclaration = [
       "export function",
-      "reorderStoryboardFrameInGraph(",
+      "reorderStoryboardFrameInGraph<",
     ].join(" ");
     const ruleOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -14560,11 +14564,18 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(ruleOwners).toEqual([
-      "features/canvas/domain/storyboardFrames.ts",
+      "modules/creative_canvas/domain/storyboardFrames.ts",
     ]);
+    expect(importSpecifiers(framesPath)).toEqual([]);
+    for (const legacyFramePath of legacyFramePaths) {
+      expect(existsSync(legacyFramePath), relativeSource(legacyFramePath)).toBe(
+        false,
+      );
+    }
     expect(framesModel).toContain(updateDeclaration);
     expect(framesModel).toContain(reorderDeclaration);
-    expect(nodeMutationSlice).toContain("../domain/storyboardFrames");
+    expect(nodeMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeMutationSlice).not.toContain("../domain/storyboardFrames");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/storyboardFrames",
     );
@@ -25885,7 +25896,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../domain/storyboardFrames",
       "../application/canvasNodeConversion",
       "../application/canvasNodeCreation",
       "../application/canvasNodeData",

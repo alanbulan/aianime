@@ -2,16 +2,41 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type StoryboardFrameItem,
-} from './canvasNodes';
-import {
   reorderStoryboardFrameInGraph,
   updateStoryboardFrameInGraph,
+  type StoryboardFrameGraphPorts,
 } from './storyboardFrames';
 
-function frame(id: string, order: number): StoryboardFrameItem {
+interface TestFrame {
+  id: string;
+  imageUrl: string;
+  note: string;
+  order: number;
+  previewImageUrl?: string;
+}
+
+interface TestNode {
+  id: string;
+  kind: 'storyboard' | 'other';
+  data: { frames: TestFrame[] };
+}
+
+const ports: StoryboardFrameGraphPorts<TestNode, TestFrame> = {
+  projectNode(node) {
+    if (node.kind !== 'storyboard') {
+      return null;
+    }
+    return {
+      frames: node.data.frames,
+      replaceFrames: (frames) => ({
+        ...node,
+        data: { ...node.data, frames },
+      }),
+    };
+  },
+};
+
+function frame(id: string, order: number): TestFrame {
   return {
     id,
     imageUrl: `${id}.png`,
@@ -20,18 +45,12 @@ function frame(id: string, order: number): StoryboardFrameItem {
   };
 }
 
-function storyboardNode(frames: StoryboardFrameItem[]): CanvasNode {
+function storyboardNode(frames: TestFrame[]): TestNode {
   return {
     id: 'storyboard',
-    type: CANVAS_NODE_TYPES.storyboardSplit,
-    position: { x: 0, y: 0 },
-    data: {
-      aspectRatio: '16:9',
-      gridRows: 1,
-      gridCols: frames.length,
-      frames,
-    },
-  } as CanvasNode;
+    kind: 'storyboard',
+    data: { frames },
+  };
 }
 
 describe('Storyboard frame graph rules', () => {
@@ -44,11 +63,12 @@ describe('Storyboard frame graph rules', () => {
       source.id,
       second.id,
       { note: 'updated', previewImageUrl: 'preview.png' },
+      ports,
     );
 
     expect(result.changed).toBe(true);
     expect(result.nodes[0]).not.toBe(source);
-    const nextFrames = result.nodes[0]?.data.frames as StoryboardFrameItem[];
+    const nextFrames = result.nodes[0]?.data.frames ?? [];
     expect(nextFrames[0]).toBe(first);
     expect(nextFrames[1]).toMatchObject({
       id: 'second',
@@ -62,14 +82,22 @@ describe('Storyboard frame graph rules', () => {
     const nodes = [source];
 
     expect(
-      updateStoryboardFrameInGraph(nodes, source.id, 'first', {
-        note: 'first-note',
-      }),
+      updateStoryboardFrameInGraph(
+        nodes,
+        source.id,
+        'first',
+        { note: 'first-note' },
+        ports,
+      ),
     ).toEqual({ nodes, changed: false });
     expect(
-      updateStoryboardFrameInGraph(nodes, source.id, 'missing', {
-        note: 'updated',
-      }),
+      updateStoryboardFrameInGraph(
+        nodes,
+        source.id,
+        'missing',
+        { note: 'updated' },
+        ports,
+      ),
     ).toEqual({ nodes, changed: false });
   });
 
@@ -84,10 +112,11 @@ describe('Storyboard frame graph rules', () => {
       source.id,
       'last',
       'first',
+      ports,
     );
 
     expect(result.changed).toBe(true);
-    const frames = result.nodes[0]?.data.frames as StoryboardFrameItem[];
+    const frames = result.nodes[0]?.data.frames ?? [];
     expect(frames.map((item) => [item.id, item.order])).toEqual([
       ['last', 0],
       ['first', 1],
@@ -100,10 +129,22 @@ describe('Storyboard frame graph rules', () => {
     const nodes = [source];
 
     expect(
-      reorderStoryboardFrameInGraph(nodes, source.id, 'first', 'first'),
+      reorderStoryboardFrameInGraph(
+        nodes,
+        source.id,
+        'first',
+        'first',
+        ports,
+      ),
     ).toEqual({ nodes, changed: false });
     expect(
-      reorderStoryboardFrameInGraph(nodes, source.id, 'first', 'missing'),
+      reorderStoryboardFrameInGraph(
+        nodes,
+        source.id,
+        'first',
+        'missing',
+        ports,
+      ),
     ).toEqual({ nodes, changed: false });
   });
 });

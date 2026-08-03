@@ -3,24 +3,24 @@ import {
   createSnapshot,
   elevateCanvasNodes,
   pushSnapshot,
+  reorderStoryboardFrameInGraph,
   setCanvasNodePositions,
   trackEdit,
+  updateStoryboardFrameInGraph,
   updateCanvasNodePosition,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
   type CanvasMutationState,
+  type StoryboardFrameGraphPorts,
 } from '@/modules/creative_canvas/public';
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
-  StoryboardFrameItem,
-} from '../domain/canvasNodes';
 import {
-  reorderStoryboardFrameInGraph,
-  updateStoryboardFrameInGraph,
-} from '../domain/storyboardFrames';
+  isStoryboardSplitNode,
+  type CanvasEdge,
+  type CanvasNode,
+  type CanvasNodeData,
+  type CanvasNodeType,
+  type StoryboardFrameItem,
+} from '../domain/canvasNodes';
 import { convertCanvasNodeType } from '../application/canvasNodeConversion';
 import { createCanvasNode } from '../application/canvasNodeCreation';
 import { updateCanvasNodeData } from '../application/canvasNodeData';
@@ -32,6 +32,21 @@ import type {
   CanvasNodeDefaultDataGateway,
   NodeFactory,
 } from '../application/ports';
+
+const storyboardFrameGraphPorts = {
+  projectNode(node) {
+    if (!isStoryboardSplitNode(node)) {
+      return null;
+    }
+    return {
+      frames: node.data.frames,
+      replaceFrames: (frames) => ({
+        ...node,
+        data: { ...node.data, frames },
+      }),
+    };
+  },
+} satisfies StoryboardFrameGraphPorts<CanvasNode, StoryboardFrameItem>;
 
 export interface CanvasNodeMutationSlice {
   addNode: (
@@ -226,6 +241,7 @@ export function createZustandCanvasNodeMutationSlice(
           nodeId,
           frameId,
           data,
+          storyboardFrameGraphPorts,
         );
         if (!result.changed) {
           return {};
@@ -252,6 +268,7 @@ export function createZustandCanvasNodeMutationSlice(
           nodeId,
           draggedFrameId,
           targetFrameId,
+          storyboardFrameGraphPorts,
         );
         if (!result.changed) {
           return {};

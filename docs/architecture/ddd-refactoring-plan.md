@@ -1112,6 +1112,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十六批将 Text Annotation 的持久化模式合同、默认提示内容、节点尺寸投影、上游图片 URL 优先级和用户内容判定及测试整体迁入 Creative Canvas domain；`TextNodeMode` 从旧 `canvasNodes.ts` 抽离为模块唯一类型所有者，旧节点数据合同只经 Creative Canvas public 消费，不再重复声明。Text Annotation Controller、View 与 Controller 测试统一经模块 public 使用唯一规则，两个旧领域生产/测试所有者直接删除，不保留 facade、re-export 或第二套常量。Creative Canvas 由 679 增到 681，Canvas 由 520 降到 518，Freezone 保持 0，残余 ratchet 收紧到 518/0。领域、Controller 与 View Vitest 3 个文件 13 项、定向架构 1 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百六十七批将 Storyboard Frame 的局部更新、相等补丁判定、按 order 排序重排和连续序号归一规则及测试整体迁入 Creative Canvas domain；新泛型算法只要求节点 `id` 与 `StoryboardFrameGraphPorts<TNode, TFrame>` 投影端口，不导入旧 Canvas 节点、Store、React Flow 或 infrastructure。Zustand Node Mutation Slice 经 Creative Canvas public 使用唯一规则，并在一个 `projectNode` adapter 中注入真实 Storyboard Split 节点读取/替换能力；两个旧领域生产/测试所有者直接删除，不保留 facade、re-export 或第二套 frame reducer。Creative Canvas 由 681 增到 683，Canvas 由 518 降到 516，Freezone 保持 0，残余 ratchet 收紧到 516/0。领域 Vitest 4 项、定向架构 2 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
