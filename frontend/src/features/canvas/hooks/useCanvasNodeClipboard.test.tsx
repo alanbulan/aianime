@@ -2,14 +2,20 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+} from '../domain/canvasNodes';
 import {
   useCanvasNodeClipboard,
   type CanvasNodeClipboardOptions,
 } from './useCanvasNodeClipboard';
 
-function snapshot(id: string): CanvasClipboardSnapshot {
+type TestClipboardSnapshot = CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
+
+function snapshot(id: string): TestClipboardSnapshot {
   return {
     nodes: [{
       id,
@@ -23,7 +29,7 @@ function snapshot(id: string): CanvasClipboardSnapshot {
 }
 
 function createOptions(
-  currentSnapshot: CanvasClipboardSnapshot,
+  currentSnapshot: TestClipboardSnapshot,
   overrides: Partial<CanvasNodeClipboardOptions> = {},
 ): CanvasNodeClipboardOptions {
   return {

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
@@ -40,7 +40,7 @@ function snapshot(
   nodes: CanvasNode[],
   edges: CanvasEdge[] = [],
   sourceProject = 'source-project',
-): CanvasClipboardSnapshot {
+): CanvasClipboardSnapshot<CanvasNode, CanvasEdge> {
   return { nodes, edges, sourceProject };
 }
 

@@ -1,14 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
-let sharedCanvasNodeClipboard: CanvasClipboardSnapshot | null = null;
+type CanvasNodeClipboardSnapshot = CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
+
+let sharedCanvasNodeClipboard: CanvasNodeClipboardSnapshot | null = null;
 
 export interface CanvasNodeClipboardOptions {
-  createSnapshot: () => CanvasClipboardSnapshot | null;
+  createSnapshot: () => CanvasNodeClipboardSnapshot | null;
   pasteSnapshot: (
-    snapshot: CanvasClipboardSnapshot,
+    snapshot: CanvasNodeClipboardSnapshot,
     targetPosition?: { x: number; y: number },
   ) => void;
   queueSnapshotPaste: (pasteSnapshot: () => void) => void;
@@ -30,7 +33,9 @@ export function useCanvasNodeClipboard({
   resetPasteIteration,
   clearSystemClipboard,
 }: CanvasNodeClipboardOptions): CanvasNodeClipboardController {
-  const snapshotRef = useRef<CanvasClipboardSnapshot | null>(sharedCanvasNodeClipboard);
+  const snapshotRef = useRef<CanvasNodeClipboardSnapshot | null>(
+    sharedCanvasNodeClipboard,
+  );
 
   const hasCopiedNodes = useCallback(
     () => (snapshotRef.current?.nodes.length ?? 0) > 0,

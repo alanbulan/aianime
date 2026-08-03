@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
@@ -33,7 +33,7 @@ function snapshot(
   nodes: CanvasNode[],
   edges: CanvasEdge[] = [],
   sourceProject: string | null = 'project-1',
-): CanvasClipboardSnapshot {
+): CanvasClipboardSnapshot<CanvasNode, CanvasEdge> {
   return { nodes, edges, sourceProject };
 }
 

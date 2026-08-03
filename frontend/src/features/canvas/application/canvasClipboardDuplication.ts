@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
 import {
   getNodeSize,
   hasRectCollision,
@@ -26,7 +26,7 @@ export interface CanvasClipboardDuplicationOptions {
   explicitOffset?: { x: number; y: number };
   disableOffsetIteration?: boolean;
   suppressSelect?: boolean;
-  sourceSnapshot?: CanvasClipboardSnapshot;
+  sourceSnapshot?: CanvasClipboardSnapshot<CanvasNode, CanvasEdge>;
   targetFlowPosition?: { x: number; y: number };
   selectAll?: boolean;
 }

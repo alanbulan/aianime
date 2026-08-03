@@ -1114,6 +1114,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百六十七批将 Storyboard Frame 的局部更新、相等补丁判定、按 order 排序重排和连续序号归一规则及测试整体迁入 Creative Canvas domain；新泛型算法只要求节点 `id` 与 `StoryboardFrameGraphPorts<TNode, TFrame>` 投影端口，不导入旧 Canvas 节点、Store、React Flow 或 infrastructure。Zustand Node Mutation Slice 经 Creative Canvas public 使用唯一规则，并在一个 `projectNode` adapter 中注入真实 Storyboard Split 节点读取/替换能力；两个旧领域生产/测试所有者直接删除，不保留 facade、re-export 或第二套 frame reducer。Creative Canvas 由 681 增到 683，Canvas 由 518 降到 516，Freezone 保持 0，残余 ratchet 收紧到 516/0。领域 Vitest 4 项、定向架构 2 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百六十八批将 Canvas Clipboard 泛型快照合同、选中节点筛选、取消 selected/dragging、节点深克隆端口和内部边筛选/克隆用例及测试迁入 Creative Canvas domain/application；新模块只依赖节点 `id`、边 source/target 与显式 clone ports，不导入旧 Canvas 节点、Geometry、Store、React 或 infrastructure。Clipboard Controller 作为唯一真实节点数据 adapter 注入 `cloneCanvasNodeData` 和边克隆，旧 Duplication Planner、Duplication Controller 与共享 Clipboard Hook 统一经 Creative Canvas public 消费泛型快照合同，三个旧 domain/application/test 所有者直接删除，不保留 facade、re-export 或第二套快照构建；Planner/Hook 其余实现仍留在旧 Canvas，未冒充整链完成。Creative Canvas 由 683 增到 686，Canvas 由 516 降到 513，Freezone 保持 0，残余 ratchet 收紧到 513/0。快照、Planner、两个 Clipboard Controller、共享 Hook 与浏览器 adapter 联合 Vitest 6 个文件 19 项、定向架构 3 项、第二轮残余边界 11 项、完整前端架构 335 项、前端 TypeScript 和 `git diff --check` 通过；首次 TypeScript 失败仅为新测试空边数组推断成 `never[]`，显式绑定 `TestEdge[]` 后类型检查和用例复跑通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

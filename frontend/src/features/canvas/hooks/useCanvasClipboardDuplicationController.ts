@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
+import type { CanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+
 import type {
   AssetMigrationSummary,
   MigratePastedNodeAssetsParams,
@@ -9,7 +11,6 @@ import {
   planCanvasClipboardDuplication,
   type CanvasClipboardDuplicationOptions,
 } from '../application/canvasClipboardDuplication';
-import type { CanvasClipboardSnapshot } from '../domain/canvasClipboard';
 import type {
   CanvasEdge,
   CanvasNode,
@@ -75,7 +76,7 @@ export interface CanvasClipboardDuplicationController {
     options?: CanvasClipboardDuplicationOptions,
   ) => CanvasClipboardDuplicationResult | null;
   pasteFromClipboard: (
-    snapshot: CanvasClipboardSnapshot | null,
+    snapshot: CanvasClipboardSnapshot<CanvasNode, CanvasEdge> | null,
     targetFlow?: { x: number; y: number },
   ) => string | null;
   resetPasteIteration: () => void;
@@ -211,7 +212,7 @@ export function useCanvasClipboardDuplicationController({
 
   const pasteFromClipboard = useCallback(
     (
-      snapshot: CanvasClipboardSnapshot | null,
+      snapshot: CanvasClipboardSnapshot<CanvasNode, CanvasEdge> | null,
       targetFlow?: { x: number; y: number },
     ): string | null => {
       if (!snapshot || snapshot.nodes.length === 0) {

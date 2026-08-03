@@ -8,8 +8,8 @@ import {
   clearBrowserClipboard,
   migratePastedNodeAssets,
 } from '@/features/canvas/composition';
-
-import { createCanvasClipboardSnapshot } from '../application/createCanvasClipboardSnapshot';
+import { createCanvasClipboardSnapshot } from '@/modules/creative_canvas/public';
+import { cloneCanvasNodeData } from '../application/canvasNodeData';
 import type {
   CanvasEdge,
   CanvasNode,
@@ -131,6 +131,12 @@ export function useCanvasClipboardController({
       edges,
       selectedNodeIds,
       sourceProject: currentProject,
+      cloneNode: (node, state) => ({
+        ...node,
+        ...state,
+        data: cloneCanvasNodeData(node.data),
+      }),
+      cloneEdge: (edge) => ({ ...edge }),
     }),
     [currentProject, edges, nodes, selectedNodeIds],
   );

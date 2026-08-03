@@ -537,6 +537,13 @@ export type {
   StoryboardFrameLike,
   StoryboardFrameNodeProjection,
 } from "@/modules/creative_canvas/domain/storyboardFrames";
+export { createCanvasClipboardSnapshot } from "@/modules/creative_canvas/application/createCanvasClipboardSnapshot";
+export type {
+  CanvasClipboardSnapshotEdge,
+  CanvasClipboardSnapshotNode,
+  CreateCanvasClipboardSnapshotParams,
+} from "@/modules/creative_canvas/application/createCanvasClipboardSnapshot";
+export type { CanvasClipboardSnapshot } from "@/modules/creative_canvas/domain/canvasClipboard";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,
