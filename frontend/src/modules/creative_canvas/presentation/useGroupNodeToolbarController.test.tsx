@@ -2,37 +2,28 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GROUP_COLOR_PRESETS } from "@/features/canvas/domain/groupColors";
+import { GROUP_COLOR_PRESETS } from "@/modules/creative_canvas/domain/groupColors";
 
 import { useGroupNodeToolbarController } from "./useGroupNodeToolbarController";
 
-const mocks = vi.hoisted(() => ({
+const mocks = {
   arrangeGroupChildren: vi.fn(),
   ungroupNode: vi.fn(),
-  updateNodeData: vi.fn(),
+  updateNodeBackgroundColor: vi.fn(),
   t: vi.fn((key: string) => key),
-}));
+};
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: mocks.t }),
-}));
-
-vi.mock("@/features/canvas/canvasStore", () => ({
-  useCanvasStore: (
-    selector: (state: Record<string, unknown>) => unknown,
-  ) =>
-    selector({
-      arrangeGroupChildren: mocks.arrangeGroupChildren,
-      ungroupNode: mocks.ungroupNode,
-      updateNodeData: mocks.updateNodeData,
-    }),
-}));
+const commandPorts = {
+  arrangeGroupChildren: mocks.arrangeGroupChildren,
+  ungroupNode: mocks.ungroupNode,
+  updateNodeBackgroundColor: mocks.updateNodeBackgroundColor,
+};
 
 describe("useGroupNodeToolbarController", () => {
   beforeEach(() => {
     mocks.arrangeGroupChildren.mockReset();
     mocks.ungroupNode.mockReset();
-    mocks.updateNodeData.mockReset();
+    mocks.updateNodeBackgroundColor.mockReset();
     mocks.t.mockReset().mockImplementation((key: string) => key);
   });
 
@@ -41,6 +32,8 @@ describe("useGroupNodeToolbarController", () => {
       useGroupNodeToolbarController({
         nodeId: "group-a",
         backgroundColor: "#ef4444",
+        translate: mocks.t,
+        ...commandPorts,
       }),
     );
 
@@ -56,6 +49,8 @@ describe("useGroupNodeToolbarController", () => {
       useGroupNodeToolbarController({
         nodeId: "group-a",
         backgroundColor: null,
+        translate: mocks.t,
+        ...commandPorts,
       }),
     );
 
@@ -66,9 +61,9 @@ describe("useGroupNodeToolbarController", () => {
     act(() => result.current.arrange("vertical"));
     act(() => result.current.ungroup());
 
-    expect(mocks.updateNodeData.mock.calls).toEqual([
-      ["group-a", { backgroundColor: "#3b82f6" }],
-      ["group-a", { backgroundColor: null }],
+    expect(mocks.updateNodeBackgroundColor.mock.calls).toEqual([
+      ["group-a", "#3b82f6"],
+      ["group-a", null],
     ]);
     expect(mocks.arrangeGroupChildren.mock.calls).toEqual([
       ["group-a", "grid"],

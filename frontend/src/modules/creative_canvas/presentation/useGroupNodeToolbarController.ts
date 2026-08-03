@@ -1,32 +1,41 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from "react";
-import { useTranslation } from "react-i18next";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type { CanvasGroupArrangementMode } from "@/modules/creative_canvas/public";
-import { GROUP_COLOR_PRESETS } from "@/features/canvas/domain/groupColors";
+import type { CanvasGroupArrangementMode } from "@/modules/creative_canvas/domain/canvasGroupArrangement";
+import { GROUP_COLOR_PRESETS } from "@/modules/creative_canvas/domain/groupColors";
 
-export interface GroupNodeToolbarControllerOptions {
+export interface GroupNodeToolbarCommandPorts {
+  arrangeGroupChildren: (
+    nodeId: string,
+    mode: CanvasGroupArrangementMode,
+  ) => void;
+  ungroupNode: (nodeId: string) => unknown;
+  updateNodeBackgroundColor: (
+    nodeId: string,
+    backgroundColor: string | null,
+  ) => void;
+}
+
+export interface GroupNodeToolbarControllerOptions
+  extends GroupNodeToolbarCommandPorts {
   nodeId: string;
   backgroundColor: string | null;
+  translate: (key: string) => string;
 }
 
 export function useGroupNodeToolbarController({
   nodeId,
   backgroundColor,
+  translate,
+  arrangeGroupChildren,
+  ungroupNode,
+  updateNodeBackgroundColor,
 }: GroupNodeToolbarControllerOptions) {
-  const { t } = useTranslation();
-  const arrangeGroupChildren = useCanvasStore(
-    (state) => state.arrangeGroupChildren,
-  );
-  const ungroupNode = useCanvasStore((state) => state.ungroupNode);
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-
   const setBackgroundColor = useCallback(
     (color: string | null) => {
-      updateNodeData(nodeId, { backgroundColor: color });
+      updateNodeBackgroundColor(nodeId, color);
     },
-    [nodeId, updateNodeData],
+    [nodeId, updateNodeBackgroundColor],
   );
   const arrange = useCallback(
     (mode: CanvasGroupArrangementMode) => {
@@ -39,7 +48,7 @@ export function useGroupNodeToolbarController({
   }, [nodeId, ungroupNode]);
 
   return {
-    t,
+    t: translate,
     backgroundColor,
     colorPresets: GROUP_COLOR_PRESETS,
     setBackgroundColor,

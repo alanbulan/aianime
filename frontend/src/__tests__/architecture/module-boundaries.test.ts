@@ -13797,7 +13797,10 @@ describe("frontend architecture boundaries", () => {
     expect(creationModel).toContain(
       "layoutCanvasStoryboardGroupMembers(ordered, {}, ports)",
     );
-    expect(additionModel).toContain("layoutCanvasStoryboardGroupMembers(existing,");
+    expect(additionModel).toContain(
+      "const currentLayout = layoutCanvasStoryboardGroupMembers(",
+    );
+    expect(additionModel).toContain("    existing,");
     expect(storyboardGroupSlice).toContain("@/modules/creative_canvas/public");
     expect(storyboardGroupSlice).not.toContain(
       "../application/canvasStoryboardGroupMemberAddition",
@@ -21414,7 +21417,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
         "@/features/canvas/ui/AudioNodeToolbarActions",
-        "@/features/canvas/ui/GroupNodeToolbarActions",
+        "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter",
         "@/features/canvas/ui/ImageNodeToolbarActions",
         "@/features/canvas/ui/NodeMainlineToolbarActions",
         "@/features/canvas/ui/NodeManagementToolbarActions",
@@ -21449,7 +21452,7 @@ describe("frontend architecture boundaries", () => {
       "<NodeOutputToolbarActions",
       "<VideoNodeToolbarActions",
       "<AudioNodeToolbarActions",
-      "<GroupNodeToolbarActions",
+       "<CanvasGroupNodeToolbarActionsAdapter",
       "<NodeManagementToolbarActions",
     ].map((declaration) => viewSource.indexOf(declaration));
     expect(assemblyOrder.every((index) => index >= 0)).toBe(true);
@@ -22093,19 +22096,19 @@ describe("frontend architecture boundaries", () => {
   it("separates ordinary group toolbar commands from its view", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useGroupNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useGroupNodeToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useGroupNodeToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useGroupNodeToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/GroupNodeToolbarActions.tsx",
+      "features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/GroupNodeToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/GroupNodeToolbarActionsView.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -22129,10 +22132,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "react-i18next",
-        "@/features/canvas/canvasStore",
-        "@/modules/creative_canvas/public",
-        "@/features/canvas/domain/groupColors",
+        "@/modules/creative_canvas/domain/canvasGroupArrangement",
+        "@/modules/creative_canvas/domain/groupColors",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -22154,12 +22155,20 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain(
       "style={{ backgroundColor: preset.value }}",
     );
+    expect(new Set(importSpecifiers(componentPath))).toEqual(new Set([
+      "react",
+      "react-i18next",
+      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
+      "./nodeActionToolbarStyles",
+    ]));
     expect(componentSource).toContain("useGroupNodeToolbarController({");
     expect(componentSource).toContain(
-      "<GroupNodeToolbarActionsView controller={controller} />",
+      "<GroupNodeToolbarActionsView",
     );
+    expect(componentSource).toContain("styles={toolbarStyles}");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/GroupNodeToolbarActions",
+      "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/hooks/useGroupNodeToolbarController",
@@ -22167,7 +22176,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/domain/groupColors",
     );
-    expect(toolbarSource).toContain("<GroupNodeToolbarActions");
+    expect(toolbarSource).toContain("<CanvasGroupNodeToolbarActionsAdapter");
     for (const legacyInlineLogic of [
       "GROUP_COLOR_PRESETS",
       "arrangeGroupChildren",
@@ -22178,12 +22187,24 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(declarationOwners).toEqual([
-      ["features/canvas/hooks/useGroupNodeToolbarController.ts"],
-      ["features/canvas/ui/GroupNodeToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/useGroupNodeToolbarController.ts"],
+      ["modules/creative_canvas/presentation/GroupNodeToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useGroupNodeToolbarController"',
     );
+    for (const retiredGroupToolbarPath of [
+      "features/canvas/domain/groupColors.ts",
+      "features/canvas/hooks/useGroupNodeToolbarController.ts",
+      "features/canvas/hooks/useGroupNodeToolbarController.test.tsx",
+      "features/canvas/ui/GroupNodeToolbarActions.tsx",
+      "features/canvas/ui/GroupNodeToolbarActionsView.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredGroupToolbarPath)),
+        retiredGroupToolbarPath,
+      ).toBe(false);
+    }
   });
 
   it("separates image grid toolbar requests, interaction, and view", () => {

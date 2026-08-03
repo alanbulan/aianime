@@ -8,20 +8,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
-import type { GroupNodeToolbarController } from "@/features/canvas/hooks/useGroupNodeToolbarController";
+import type { GroupNodeToolbarController } from "@/modules/creative_canvas/presentation/useGroupNodeToolbarController";
 
-import {
-  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
-  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
-  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+export interface GroupNodeToolbarStyleClasses {
+  menuContent: string;
+  menuItem: string;
+  textButton: string;
+}
 
 export interface GroupNodeToolbarActionsViewProps {
   controller: GroupNodeToolbarController;
+  styles: GroupNodeToolbarStyleClasses;
 }
 
 export function GroupNodeToolbarActionsView({
   controller,
+  styles,
 }: GroupNodeToolbarActionsViewProps) {
   const {
     t,
@@ -37,7 +39,7 @@ export function GroupNodeToolbarActionsView({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <UiChipButton
-            className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
+            className={styles.textButton}
             title="组背景色"
             onClick={(event) => event.stopPropagation()}
           >
@@ -56,7 +58,7 @@ export function GroupNodeToolbarActionsView({
         <DropdownMenuContent
           align="start"
           sideOffset={6}
-          className={NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS}
+          className={styles.menuContent}
           onClick={(event) => event.stopPropagation()}
         >
           <div className="grid grid-cols-5 gap-1.5 p-1.5">
@@ -92,7 +94,7 @@ export function GroupNodeToolbarActionsView({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <UiChipButton
-            className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
+            className={styles.textButton}
             title="排列方式"
             onClick={(event) => event.stopPropagation()}
           >
@@ -104,23 +106,23 @@ export function GroupNodeToolbarActionsView({
         <DropdownMenuContent
           align="start"
           sideOffset={6}
-          className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[120px]`}
+          className={`${styles.menuContent} min-w-[120px]`}
           onClick={(event) => event.stopPropagation()}
         >
           <DropdownMenuItem
-            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
+            className={styles.menuItem}
             onSelect={() => arrange("grid")}
           >
             网格
           </DropdownMenuItem>
           <DropdownMenuItem
-            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
+            className={styles.menuItem}
             onSelect={() => arrange("horizontal")}
           >
             横向排列
           </DropdownMenuItem>
           <DropdownMenuItem
-            className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
+            className={styles.menuItem}
             onSelect={() => arrange("vertical")}
           >
             纵向排列
@@ -128,7 +130,7 @@ export function GroupNodeToolbarActionsView({
         </DropdownMenuContent>
       </DropdownMenu>
       <UiChipButton
-        className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
+        className={`${styles.textButton} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
         onClick={(event) => {
           event.stopPropagation();
           ungroup();

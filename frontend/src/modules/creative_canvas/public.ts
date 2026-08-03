@@ -266,6 +266,29 @@ export type {
   CanvasStoryboardMemberImage,
 } from "@/modules/creative_canvas/application/canvasStoryboardGroupMemberAddition";
 export {
+  GROUP_COLOR_PRESETS,
+  groupColorBackground,
+  groupColorBorder,
+} from "@/modules/creative_canvas/domain/groupColors";
+export type {
+  GroupColorPreset,
+} from "@/modules/creative_canvas/domain/groupColors";
+export {
+  useGroupNodeToolbarController,
+} from "@/modules/creative_canvas/presentation/useGroupNodeToolbarController";
+export type {
+  GroupNodeToolbarCommandPorts,
+  GroupNodeToolbarController,
+  GroupNodeToolbarControllerOptions,
+} from "@/modules/creative_canvas/presentation/useGroupNodeToolbarController";
+export {
+  GroupNodeToolbarActionsView,
+} from "@/modules/creative_canvas/presentation/GroupNodeToolbarActionsView";
+export type {
+  GroupNodeToolbarActionsViewProps,
+  GroupNodeToolbarStyleClasses,
+} from "@/modules/creative_canvas/presentation/GroupNodeToolbarActionsView";
+export {
   filterPresetManagedEdgeChanges,
   filterPresetManagedNodeChanges,
 } from "@/modules/creative_canvas/application/canvasManagedChangeGuard";

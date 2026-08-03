@@ -198,6 +198,7 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasStoryboardGroupMembers.ts",
       "canvasStoryboardGroupMembers.test.ts",
       "canvasGrouping.ts",
+      "groupColors.ts",
     ];
     const canvasGroupApplicationFiles = [
       "canvasGroupCreation.ts",
@@ -206,6 +207,11 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasStoryboardGroupCreation.test.ts",
       "canvasStoryboardGroupMemberAddition.ts",
       "canvasStoryboardGroupMemberAddition.test.ts",
+    ];
+    const canvasGroupPresentationFiles = [
+      "useGroupNodeToolbarController.ts",
+      "useGroupNodeToolbarController.test.tsx",
+      "GroupNodeToolbarActionsView.tsx",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -697,6 +703,21 @@ describe("round 2 residual architecture boundaries", () => {
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
         file,
+      ).toBe(false);
+    }
+    for (const file of canvasGroupPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(
+        true,
+      );
+    }
+    for (const retiredGroupPresentationPath of [
+      "features/canvas/hooks/useGroupNodeToolbarController.ts",
+      "features/canvas/hooks/useGroupNodeToolbarController.test.tsx",
+      "features/canvas/ui/GroupNodeToolbarActionsView.tsx",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredGroupPresentationPath)),
+        retiredGroupPresentationPath,
       ).toBe(false);
     }
     for (const file of canvasMainlineDomainFiles) {
@@ -1931,7 +1952,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 615],
+      ["features/canvas", 611],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

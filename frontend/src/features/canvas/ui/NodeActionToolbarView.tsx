@@ -6,7 +6,7 @@ import type { NodeActionToolbarShellProjection } from "@/features/canvas/applica
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import type { GridActionRequest } from "@/modules/creative_canvas/public";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
-import { GroupNodeToolbarActions } from "@/features/canvas/ui/GroupNodeToolbarActions";
+import { CanvasGroupNodeToolbarActionsAdapter } from "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
 import { NodeMainlineToolbarActions } from "@/features/canvas/ui/NodeMainlineToolbarActions";
 import { NodeManagementToolbarActions } from "@/features/canvas/ui/NodeManagementToolbarActions";
@@ -100,7 +100,7 @@ export function NodeActionToolbarView({
             />
           )}
           {!projection.isImageEdit && projection.isUngroupableGroup && (
-            <GroupNodeToolbarActions
+            <CanvasGroupNodeToolbarActionsAdapter
               nodeId={node.id}
               backgroundColor={projection.groupBackgroundColor}
             />
