@@ -5,8 +5,8 @@ import {
   detectAspectRatio,
   prepareNodeImage,
   prepareNodeImageFromFile,
-} from '@/features/canvas/application/imagePreparation';
-import type { CanvasImageRuntimeGateway } from '@/features/canvas/application/ports';
+  type CanvasImageRuntimeGateway,
+} from './imagePreparation';
 
 const getDimensions = vi.fn();
 const now = vi.fn();

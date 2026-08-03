@@ -3067,10 +3067,19 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/creative_canvas/domain/imageData.ts"),
       "utf8",
     );
-    const imagePreparation = readFileSync(
-      resolve(applicationRoot, "imagePreparation.ts"),
+    const imagePreparationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/imagePreparation.ts",
+    );
+    const imagePreparation = readFileSync(imagePreparationPath, "utf8");
+    const canvasApplicationPorts = readFileSync(
+      resolve(applicationRoot, "ports.ts"),
       "utf8",
     );
+    const legacyImagePreparationPaths = [
+      "features/canvas/application/imagePreparation.ts",
+      "__tests__/features/canvas/image-preparation.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
     const imageRuntime = readFileSync(
       resolve(
         SRC_ROOT,
@@ -3229,6 +3238,19 @@ describe("frontend architecture boundaries", () => {
     expect(imageData).not.toContain("new FileReader(");
     expect(imagePreparation).toContain("CanvasImageRuntimeGateway");
     expect(imagePreparation).toContain("runtime.preparePreview(");
+    expect(importSpecifiers(imagePreparationPath)).toEqual([
+      "../domain/imageData",
+    ]);
+    for (const legacyDeclaration of [
+      "export interface CanvasImageDimensions",
+      "export interface CanvasImagePreviewData",
+      "export interface CanvasImageRuntimeGateway",
+    ]) {
+      expect(canvasApplicationPorts).not.toContain(legacyDeclaration);
+    }
+    for (const legacyPath of legacyImagePreparationPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(imageRuntime).toContain("document.createElement('canvas')");
     expect(imageRuntime).toContain("new Image()");
     expect(imageRuntime).toContain("new FileReader()");

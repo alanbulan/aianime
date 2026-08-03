@@ -14,9 +14,12 @@ import {
   composeCapability,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
+  detectAspectRatio as detectAspectRatioUseCase,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
   migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
+  prepareNodeImage as prepareNodeImageUseCase,
+  prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
@@ -39,11 +42,6 @@ import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
-import {
-  detectAspectRatio as detectAspectRatioUseCase,
-  prepareNodeImage as prepareNodeImageUseCase,
-  prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
-} from './application/imagePreparation';
 import {
   pollExportImageGeneration as pollExportImageGenerationUseCase,
   type PollExportImageGenerationParams,

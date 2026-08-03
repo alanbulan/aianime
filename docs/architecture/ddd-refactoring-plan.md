@@ -1128,6 +1128,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第七百七十四批将 Canvas 图片/视频生成比例集合、最近比例吸附、像素比例约分、原图缩放阈值、本地图片路径与可渲染源判定、显示 URL、base64 提取规则及测试整体迁入 Creative Canvas domain。模块内部只相对依赖既有 `aspectRatio`，约 35 个生产调用方统一经 Creative Canvas public 消费；旧 `features/canvas/application/imageData.ts` 与外置 `snap-aspect-ratio` 测试直接删除，不保留 facade、re-export 或第二套图片数据规则。Creative Canvas 由 701 增到 703，Canvas 由 503 降到 502，Freezone 保持 0，残余 ratchet 收紧到 502/0。直接关联行为 Vitest 23 个文件 101 项、完整前端架构目录 6 个文件 383 项、前端 TypeScript 和 `git diff --check` 通过；首轮行为回归 91/97，6 项失败均为全量 public mock 缺少迁入出口，修正后扩大定向集 101/101 通过；TypeScript 首轮发现 6 个纯类型符号缺少 `type` 标记，架构首轮 335/336 暴露父视图断言过宽，均按真实依赖修正并复跑通过。未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第七百七十五批将 Canvas 图片源持久化、预览生成、文件读取编排、宽高比探测、稳定错误投影及 `CanvasImageRuntimeGateway`/尺寸/预览 DTO 与测试整体迁入 Creative Canvas application；新应用层只相对依赖本域 `imageData`。旧 Canvas composition 经 public 取得唯一用例，浏览器 runtime 继续作为旧 Canvas infrastructure 适配器并经 public 实现新端口；旧 `ports.ts` 删除运行时端口和预览 DTO，只复用新尺寸合同，旧应用文件和外置测试直接删除，不保留 facade、re-export 或第二套图片准备编排。Creative Canvas 由 703 增到 705，Canvas 由 502 降到 501，Freezone 保持 0，残余 ratchet 收紧到 501/0。直接关联行为 Vitest 7 个文件 32 项、定向架构 1 项、第二轮残余边界 11 项、完整前端架构目录 6 个文件 383 项、前端 TypeScript 和 `git diff --check` 通过。旧浏览器 runtime 仍待后续 infrastructure 切片，不能据此宣称图片运行时整链已迁移；未启动 Electron/Vite、未做应用界面验证、未构建安装包、未调用真实模型，唯一商业 Gateway、登录鉴权、普通版 Cloud、专业版授权后 BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E 继续进行中，R1、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

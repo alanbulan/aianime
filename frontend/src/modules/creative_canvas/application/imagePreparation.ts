@@ -1,6 +1,26 @@
 // Copyright (c) 2026 AI anime
-import { reduceAspectRatio } from '@/modules/creative_canvas/public';
-import type { CanvasImageRuntimeGateway } from './ports';
+import { reduceAspectRatio } from '../domain/imageData';
+
+export interface CanvasImageDimensions {
+  width: number;
+  height: number;
+}
+
+export interface CanvasImagePreviewData extends CanvasImageDimensions {
+  normalizedDataUrl: string;
+  previewDataUrl: string;
+}
+
+export interface CanvasImageRuntimeGateway {
+  now: () => number;
+  persist: (sourceImage: string) => Promise<string>;
+  readFileAsDataUrl: (file: File) => Promise<string>;
+  preparePreview: (
+    sourceImage: string,
+    maxDimension: number,
+  ) => Promise<CanvasImagePreviewData>;
+  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
+}
 
 const DEFAULT_PREVIEW_MAX_DIMENSION = 512;
 

@@ -10,6 +10,7 @@ import type {
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 import type {
+  CanvasImageDimensions,
   CanvasStoryScriptResult,
   CanvasTaskResultGateway,
 } from '@/modules/creative_canvas/public';
@@ -200,27 +201,6 @@ export interface ImageSplitGateway {
     cols: number,
     lineThickness: number
   ) => Promise<string[]>;
-}
-
-export interface CanvasImageDimensions {
-  width: number;
-  height: number;
-}
-
-export interface CanvasImagePreviewData extends CanvasImageDimensions {
-  normalizedDataUrl: string;
-  previewDataUrl: string;
-}
-
-export interface CanvasImageRuntimeGateway {
-  now: () => number;
-  persist: (sourceImage: string) => Promise<string>;
-  readFileAsDataUrl: (file: File) => Promise<string>;
-  preparePreview: (
-    sourceImage: string,
-    maxDimension: number,
-  ) => Promise<CanvasImagePreviewData>;
-  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
 }
 
 export interface CanvasStoryboardImageMetadata {

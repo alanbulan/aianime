@@ -555,6 +555,17 @@ export type {
   CanvasNodeDataUpdatePorts,
   CanvasNodeDataUpdateResult,
 } from "@/modules/creative_canvas/application/canvasNodeData";
+export {
+  detectAspectRatio,
+  prepareNodeImage,
+  prepareNodeImageFromFile,
+} from "@/modules/creative_canvas/application/imagePreparation";
+export type {
+  CanvasImageDimensions,
+  CanvasImagePreviewData,
+  CanvasImageRuntimeGateway,
+  PreparedNodeImage,
+} from "@/modules/creative_canvas/application/imagePreparation";
 export { parseAspectRatio } from "@/modules/creative_canvas/domain/aspectRatio";
 export {
   IMAGE_GENERATION_ASPECT_RATIOS,
