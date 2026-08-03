@@ -2980,7 +2980,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const crossProjectAssets = readFileSync(
-      resolve(applicationRoot, "crossProjectAssets.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/canvasClipboardAssetMigration.ts",
+      ),
       "utf8",
     );
     const generationErrorReport = readFileSync(
@@ -3116,7 +3119,7 @@ describe("frontend architecture boundaries", () => {
       "export { showErrorDialog } from './infrastructure/globalErrorDialog';",
     );
     expect(composition).toContain("freezoneAssetGateway");
-    expect(composition).toContain("migratePastedNodeAssetsUseCase(");
+    expect(composition).toContain("migrateCanvasClipboardAssetsUseCase(");
     expect(composition).toContain("currentOrigin: window.location.origin");
     expect(composition).toContain("uploadLocalImageToBackendUseCase(");
     expect(composition).toContain(
@@ -3165,7 +3168,7 @@ describe("frontend architecture boundaries", () => {
       "resolveNodeGenerationTaskState({",
     );
     expect(crossProjectAssets).toContain("currentOrigin: string");
-    expect(crossProjectAssets).toContain("assetSourceGateway.read(fetchUrl");
+    expect(crossProjectAssets).toContain("assetStorageGateway.read(fetchUrl");
     expect(generationErrorReport).toContain(
       "export function resolveGenerationOsInfo(",
     );
@@ -9052,6 +9055,70 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const duplicateNodes = useCallback");
     expect(canvasView).not.toContain("pasteIterationRef");
     expect(canvasView).not.toContain("getNodeSize(");
+  });
+
+  it("keeps Canvas clipboard asset migration behind the platform storage port", () => {
+    const migrationPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasClipboardAssetMigration.ts",
+    );
+    const migrationModel = readFileSync(migrationPath, "utf8");
+    const compositionModel = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const publicModel = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const legacyPaths = [
+      "features/canvas/application/crossProjectAssets.ts",
+      "__tests__/features/canvas/cross-project-assets.test.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const forbiddenImports = importSpecifiers(migrationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier === "@/modules/creative_canvas/public",
+    );
+    const declaration = [
+      "export async function",
+      "migrateCanvasClipboardAssets<",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "modules/creative_canvas/application/canvasClipboardAssetMigration.ts",
+    ]);
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
+    expect(migrationModel).toContain("MAX_CONCURRENT_UPLOADS = 4");
+    expect(migrationModel).toContain("currentOrigin: string");
+    expect(migrationModel).toContain("assetStorageGateway.read(fetchUrl");
+    expect(migrationModel).toContain("assetStorageGateway.upload(");
+    expect(migrationModel).not.toContain("readUrl(");
+    expect(migrationModel).not.toContain("apiKey");
+    expect(migrationModel).not.toContain("baseUrl");
+    expect(compositionModel).toContain(
+      "migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase",
+    );
+    expect(compositionModel).toContain(
+      "migrateCanvasClipboardAssetsUseCase(\n    freezoneAssetGateway,",
+    );
+    expect(compositionModel).toContain("currentOrigin: window.location.origin");
+    expect(publicModel).toContain(
+      "application/canvasClipboardAssetMigration",
+    );
   });
 
   it("keeps Canvas Alt-drag copy lifecycle in one presentation controller", () => {

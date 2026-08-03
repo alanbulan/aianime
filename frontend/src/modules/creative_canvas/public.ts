@@ -560,10 +560,16 @@ export type {
   CanvasClipboardRect,
   PlanCanvasClipboardDuplicationParams,
 } from "@/modules/creative_canvas/application/canvasClipboardDuplication";
+export { migrateCanvasClipboardAssets } from "@/modules/creative_canvas/application/canvasClipboardAssetMigration";
+export type {
+  CanvasClipboardAssetMigrationNode,
+  CanvasClipboardAssetMigrationRequest,
+  CanvasClipboardAssetMigrationSummary,
+  CanvasClipboardAssetStorageGateway,
+  MigrateCanvasClipboardAssetsParams,
+} from "@/modules/creative_canvas/application/canvasClipboardAssetMigration";
 export { useCanvasClipboardDuplicationController } from "@/modules/creative_canvas/presentation/useCanvasClipboardDuplicationController";
 export type {
-  CanvasClipboardAssetMigrationParams,
-  CanvasClipboardAssetMigrationSummary,
   CanvasClipboardDuplicationController,
   CanvasClipboardDuplicationControllerOptions,
   CanvasClipboardDuplicationResult,

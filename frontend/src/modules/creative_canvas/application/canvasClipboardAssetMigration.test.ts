@@ -1,33 +1,27 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { migratePastedNodeAssets } from '@/features/canvas/application/crossProjectAssets';
-import type {
-  CanvasAssetGateway,
-  CanvasAssetSourceGateway,
-} from '@/features/canvas/application/ports';
-import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
+import {
+  migrateCanvasClipboardAssets,
+  type CanvasClipboardAssetStorageGateway,
+} from './canvasClipboardAssetMigration';
+
+type TestNodeData = Record<string, unknown>;
 
 const uploadAsset = vi.fn();
 const readAsset = vi.fn();
-const assetGateway: CanvasAssetGateway = {
+const assetStorageGateway: CanvasClipboardAssetStorageGateway = {
   upload: (projectId, file, filename, options) =>
     uploadAsset(projectId, file, filename, options),
-};
-const assetSourceGateway: CanvasAssetSourceGateway = {
   read: (source, options) => readAsset(source, options),
 };
 
-function asData(value: Record<string, unknown>): CanvasNodeData {
-  return value as unknown as CanvasNodeData;
-}
-
 // Simulates "live" node data === the pasted snapshot (no concurrent edit).
-function liveFrom(nodes: Array<{ id: string; data: CanvasNodeData }>) {
+function liveFrom(nodes: Array<{ id: string; data: TestNodeData }>) {
   return (id: string) => nodes.find((node) => node.id === id)?.data ?? null;
 }
 
-describe('migratePastedNodeAssets', () => {
+describe('migrateCanvasClipboardAssets', () => {
   beforeEach(() => {
     readAsset.mockReset().mockResolvedValue(new Blob(['x']));
     uploadAsset.mockReset();
@@ -42,11 +36,11 @@ describe('migratePastedNodeAssets', () => {
   });
 
   it('re-uploads source-project media and rewrites URLs, incl. nested arrays', async () => {
-    const updates: Array<{ id: string; patch: Partial<CanvasNodeData> }> = [];
+    const updates: Array<{ id: string; patch: Partial<TestNodeData> }> = [];
     const nodes = [
       {
         id: 'n1',
-        data: asData({
+        data: {
           videoUrl: '/static/projects/projA/videos/clip.mp4',
           // nested album cards — must be migrated too
           album: [
@@ -57,11 +51,11 @@ describe('migratePastedNodeAssets', () => {
           externalUrl: 'https://example.com/page',
           // non-url field with a path string must be left untouched
           label: '/static/projects/projA/images/a.png',
-        }),
+        },
       },
     ];
 
-    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
+    const summary = await migrateCanvasClipboardAssets(assetStorageGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -97,10 +91,10 @@ describe('migratePastedNodeAssets', () => {
   it('uploads each unique asset only once', async () => {
     const reused = '/static/projects/projA/images/shared.png';
     const nodes = [
-      { id: 'n1', data: asData({ imageUrl: reused, previewImageUrl: reused }) },
-      { id: 'n2', data: asData({ imageUrl: reused }) },
+      { id: 'n1', data: { imageUrl: reused, previewImageUrl: reused } },
+      { id: 'n2', data: { imageUrl: reused } },
     ];
-    await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
+    await migrateCanvasClipboardAssets(assetStorageGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -112,12 +106,12 @@ describe('migratePastedNodeAssets', () => {
 
   it('keeps the original URL and counts failures when upload fails', async () => {
     uploadAsset.mockRejectedValue(new Error('boom'));
-    const updates: Array<{ id: string; patch: Partial<CanvasNodeData> }> = [];
+    const updates: Array<{ id: string; patch: Partial<TestNodeData> }> = [];
 
     const nodes = [
-      { id: 'n1', data: asData({ videoUrl: '/static/projects/projA/videos/clip.mp4' }) },
+      { id: 'n1', data: { videoUrl: '/static/projects/projA/videos/clip.mp4' } },
     ];
-    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
+    const summary = await migrateCanvasClipboardAssets(assetStorageGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -132,21 +126,21 @@ describe('migratePastedNodeAssets', () => {
   });
 
   it('rewrites the LIVE node data, preserving concurrent user edits and skipping vanished nodes', async () => {
-    const updates: Array<{ id: string; patch: Partial<CanvasNodeData> }> = [];
+    const updates: Array<{ id: string; patch: Partial<TestNodeData> }> = [];
     // Snapshot captured at paste time.
-    const snapshot = [
-      { id: 'n1', data: asData({ videoUrl: '/static/projects/projA/videos/clip.mp4' }) },
-      { id: 'n2', data: asData({ imageUrl: '/static/projects/projA/images/a.png' }) },
+    const snapshot: Array<{ id: string; data: TestNodeData }> = [
+      { id: 'n1', data: { videoUrl: '/static/projects/projA/videos/clip.mp4' } },
+      { id: 'n2', data: { imageUrl: '/static/projects/projA/images/a.png' } },
     ];
     // By the time migration finishes: n1 gained a user-added album card; n2 was deleted.
-    const live: Record<string, CanvasNodeData> = {
-      n1: asData({
+    const live: Record<string, TestNodeData> = {
+      n1: {
         videoUrl: '/static/projects/projA/videos/clip.mp4',
         album: [{ imageUrl: '/static/projects/projA/images/user-added.png' }],
-      }),
+      },
     };
 
-    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
+    const summary = await migrateCanvasClipboardAssets(assetStorageGateway, {
       currentOrigin: 'http://localhost',
       nodes: snapshot,
       targetProject: 'projB',

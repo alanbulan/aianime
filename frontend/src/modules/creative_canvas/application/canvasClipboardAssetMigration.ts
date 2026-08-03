@@ -1,9 +1,17 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasAssetGateway,
-  CanvasAssetSourceGateway,
-} from '@/features/canvas/application/ports';
-import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
+
+export interface CanvasClipboardAssetStorageGateway {
+  read: (
+    source: string,
+    options?: { includeCredentials?: boolean },
+  ) => Promise<Blob>;
+  upload: (
+    projectId: string,
+    file: File | Blob,
+    filename: string,
+    options?: { disableTimeout?: boolean },
+  ) => Promise<{ readonly url: string }>;
+}
 
 /**
  * 跨项目粘贴时的资产迁移。
@@ -77,8 +85,7 @@ function filenameFromUrl(fetchUrl: string): string {
 }
 
 async function uploadAssetToProject(
-  assetGateway: CanvasAssetGateway,
-  assetSourceGateway: CanvasAssetSourceGateway,
+  assetStorageGateway: CanvasClipboardAssetStorageGateway,
   rawUrl: string,
   targetProject: string,
   currentOrigin: string,
@@ -87,12 +94,12 @@ async function uploadAssetToProject(
   if (!fetchUrl) {
     return rawUrl;
   }
-  const blob = await assetSourceGateway.read(fetchUrl, {
+  const blob = await assetStorageGateway.read(fetchUrl, {
     includeCredentials: true,
   });
   // 与图片同一个 /freezone/upload 接口，后端按通用 blob 处理；timeoutMs:false 关掉
   // ky 默认 30s 超时，避免大视频上传被中断。
-  const uploaded = await assetGateway.upload(
+  const uploaded = await assetStorageGateway.upload(
     targetProject,
     blob,
     filenameFromUrl(fetchUrl),
@@ -198,12 +205,12 @@ function createUploadLimiter(max: number): <T>(task: () => Promise<T>) => Promis
     });
 }
 
-export interface PastedNodeForMigration {
+export interface CanvasClipboardAssetMigrationNode<TNodeData extends object> {
   id: string;
-  data: CanvasNodeData;
+  data: TNodeData;
 }
 
-export interface AssetMigrationSummary {
+export interface CanvasClipboardAssetMigrationSummary {
   /** 成功迁移的去重资产数。 */
   migrated: number;
   /** 迁移失败、保留原 URL 的去重资产数。 */
@@ -218,19 +225,27 @@ export interface AssetMigrationSummary {
  * 纯改写——这样上传期间用户对节点的编辑（改 URL、往画册加卡片等）不会被旧快照覆盖；
  * 节点若已被删除 / 切走项目则跳过。相同 URL 只上传一次。
  */
-export interface MigratePastedNodeAssetsParams {
-  nodes: PastedNodeForMigration[];
+export interface CanvasClipboardAssetMigrationRequest<
+  TNodeData extends object,
+> {
+  nodes: CanvasClipboardAssetMigrationNode<TNodeData>[];
   targetProject: string;
-  currentOrigin: string;
-  getLiveNodeData: (id: string) => CanvasNodeData | null;
-  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  getLiveNodeData: (id: string) => TNodeData | null;
+  updateNodeData: (id: string, patch: Partial<TNodeData>) => void;
 }
 
-export async function migratePastedNodeAssets(
-  assetGateway: CanvasAssetGateway,
-  assetSourceGateway: CanvasAssetSourceGateway,
-  params: MigratePastedNodeAssetsParams,
-): Promise<AssetMigrationSummary> {
+export interface MigrateCanvasClipboardAssetsParams<
+  TNodeData extends object,
+> extends CanvasClipboardAssetMigrationRequest<TNodeData> {
+  currentOrigin: string;
+}
+
+export async function migrateCanvasClipboardAssets<
+  TNodeData extends object,
+>(
+  assetStorageGateway: CanvasClipboardAssetStorageGateway,
+  params: MigrateCanvasClipboardAssetsParams<TNodeData>,
+): Promise<CanvasClipboardAssetMigrationSummary> {
   const {
     nodes,
     targetProject,
@@ -256,8 +271,7 @@ export async function migratePastedNodeAssets(
   await Promise.all(
     [...urls].map((url) =>
       limit(() => uploadAssetToProject(
-        assetGateway,
-        assetSourceGateway,
+        assetStorageGateway,
         url,
         targetProject,
         currentOrigin,
@@ -297,7 +311,7 @@ export async function migratePastedNodeAssets(
       }
     }
     if (Object.keys(patch).length > 0) {
-      updateNodeData(id, patch as Partial<CanvasNodeData>);
+    updateNodeData(id, patch as Partial<TNodeData>);
     }
   }
 

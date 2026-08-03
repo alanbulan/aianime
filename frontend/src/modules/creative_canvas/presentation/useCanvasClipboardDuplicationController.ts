@@ -9,6 +9,10 @@ import {
   type CanvasClipboardDuplicationSourceEdge,
   type CanvasClipboardDuplicationSourceNode,
 } from '../application/canvasClipboardDuplication';
+import type {
+  CanvasClipboardAssetMigrationRequest,
+  CanvasClipboardAssetMigrationSummary,
+} from '../application/canvasClipboardAssetMigration';
 
 export interface CanvasClipboardSelectableNode<TNodeData extends object>
   extends CanvasClipboardDuplicationSourceNode<TNodeData> {
@@ -29,20 +33,6 @@ export interface CanvasClipboardNodeSelectionCommit {
 export interface CanvasClipboardDuplicationResult {
   firstNodeId: string | null;
   idMap: Map<string, string>;
-}
-
-export interface CanvasClipboardAssetMigrationSummary {
-  migrated: number;
-  failed: number;
-}
-
-export interface CanvasClipboardAssetMigrationParams<
-  TNodeData extends object,
-> {
-  nodes: Array<{ id: string; data: TNodeData }>;
-  targetProject: string;
-  getLiveNodeData: (nodeId: string) => TNodeData | null;
-  updateNodeData: (nodeId: string, patch: Partial<TNodeData>) => void;
 }
 
 export interface CanvasClipboardDuplicationControllerOptions<
@@ -80,7 +70,7 @@ export interface CanvasClipboardDuplicationControllerOptions<
   selectNode: (nodeId: string | null) => void;
   currentProject: string | null;
   migrateAssets: (
-    params: CanvasClipboardAssetMigrationParams<TNodeData>,
+    params: CanvasClipboardAssetMigrationRequest<TNodeData>,
   ) => Promise<CanvasClipboardAssetMigrationSummary>;
   updateNodeData: (
     nodeId: string,

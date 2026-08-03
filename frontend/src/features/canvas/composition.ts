@@ -16,11 +16,13 @@ import {
   createUseCanvasViewerSurfaceController,
   generateCanvasRedraw,
   getFreezoneCanvasMetadata,
+  migrateCanvasClipboardAssets as migrateCanvasClipboardAssetsUseCase,
   publishCanvasCommitRequested,
   resolveCurrentShotMetadataPrompt,
   resolvePromptReferenceRoles,
   submitCanvasImageGeneration,
   type CanvasAssetDragPayload,
+  type CanvasClipboardAssetMigrationRequest,
 } from '@/modules/creative_canvas/public';
 import { canvasEventBus } from './application/canvasServices';
 import { useCanvasStore } from './canvasStore';
@@ -37,10 +39,6 @@ import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
-import {
-  migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
-  type MigratePastedNodeAssetsParams,
-} from './application/crossProjectAssets';
 import {
   detectAspectRatio as detectAspectRatioUseCase,
   prepareNodeImage as prepareNodeImageUseCase,
@@ -273,11 +271,10 @@ export function hydrateAssetDragPayload(payload: CanvasAssetDragPayload) {
   );
 }
 
-export function migratePastedNodeAssets(
-  params: Omit<MigratePastedNodeAssetsParams, 'currentOrigin'>,
+export function migratePastedNodeAssets<TNodeData extends object>(
+  params: CanvasClipboardAssetMigrationRequest<TNodeData>,
 ) {
-  return migratePastedNodeAssetsUseCase(
-    freezoneAssetGateway,
+  return migrateCanvasClipboardAssetsUseCase(
     freezoneAssetGateway,
     {
       ...params,
