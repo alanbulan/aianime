@@ -3,8 +3,6 @@ import { act, renderHook } from '@testing-library/react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useViewerImmersiveBody } from '@/features/viewer-kit/useViewerImmersiveBody';
-
 import { useCanvasNodeMenuShortcut } from './useCanvasNodeMenuShortcut';
 
 function pointerMove(
@@ -62,6 +60,7 @@ describe('useCanvasNodeMenuShortcut', () => {
         placementActive: false,
         setPlacementClientPosition: vi.fn(),
         openNodeMenu,
+        isImmersiveViewerActive: () => false,
       }),
     );
 
@@ -82,12 +81,14 @@ describe('useCanvasNodeMenuShortcut', () => {
 
   it('falls back to the pane center and ignores blocked shortcuts', () => {
     const openNodeMenu = vi.fn();
+    const isImmersiveViewerActive = vi.fn(() => false);
     const { result } = renderHook(() =>
       useCanvasNodeMenuShortcut({
         wrapperRef: { current: wrapperElement },
         placementActive: false,
         setPlacementClientPosition: vi.fn(),
         openNodeMenu,
+        isImmersiveViewerActive,
       }),
     );
 
@@ -104,9 +105,8 @@ describe('useCanvasNodeMenuShortcut', () => {
         key: 'Tab',
       }));
     });
-    const immersiveViewer = renderHook(() => useViewerImmersiveBody(true));
+    isImmersiveViewerActive.mockReturnValue(true);
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' })));
-    immersiveViewer.unmount();
     input.remove();
 
     expect(openNodeMenu).toHaveBeenCalledTimes(1);
@@ -118,6 +118,7 @@ describe('useCanvasNodeMenuShortcut', () => {
       wrapperRef: { current: wrapperElement },
       setPlacementClientPosition,
       openNodeMenu: vi.fn(),
+      isImmersiveViewerActive: () => false,
     };
     const { result, rerender } = renderHook(
       ({ placementActive }) => useCanvasNodeMenuShortcut({

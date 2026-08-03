@@ -293,6 +293,12 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasNodePlacementConfirm.test.tsx",
       "useCanvasNodePlacementController.ts",
       "useCanvasNodePlacementController.test.tsx",
+      "useCanvasPaneClickController.ts",
+      "useCanvasPaneClickController.test.tsx",
+      "useCanvasNodeMenuShortcut.ts",
+      "useCanvasNodeMenuShortcut.test.tsx",
+      "useCanvasNodeClickController.ts",
+      "useCanvasNodeClickController.test.tsx",
     ];
     const canvasMainlineDomainFiles = [
       "mainlineNodeFlags.ts",
@@ -924,6 +930,12 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/hooks/useCanvasNodePlacementConfirm.test.tsx",
       "features/canvas/hooks/useCanvasNodePlacementController.ts",
       "features/canvas/hooks/useCanvasNodePlacementController.test.tsx",
+      "features/canvas/hooks/useCanvasPaneClickController.ts",
+      "features/canvas/hooks/useCanvasPaneClickController.test.tsx",
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.test.tsx",
+      "features/canvas/hooks/useCanvasNodeClickController.ts",
+      "features/canvas/hooks/useCanvasNodeClickController.test.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredInteractionPath)),
@@ -2170,7 +2182,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 556],
+      ["features/canvas", 550],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

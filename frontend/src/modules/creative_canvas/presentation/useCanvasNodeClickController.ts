@@ -4,16 +4,24 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 
-import {
-  DEFAULT_NODE_WIDTH,
-  isStoryboardGroupNode,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import type { CanvasFocusableNode } from './useCanvasPendingNodeFocus';
 
+const DEFAULT_NODE_WIDTH = 320;
 const DEFAULT_STORYBOARD_GROUP_HEIGHT = 240;
 const STORYBOARD_FOCUS_OPTIONS = { zoom: 1, duration: 320 } as const;
 
-export interface CanvasNodeClickControllerOptions {
+export interface CanvasNodeClickTarget extends CanvasFocusableNode {
+  width?: number;
+  height?: number;
+  measured?: {
+    width?: number;
+    height?: number;
+  };
+}
+
+export interface CanvasNodeClickControllerOptions<
+  TNode extends CanvasNodeClickTarget = CanvasNodeClickTarget,
+> {
   placementActive: boolean;
   commitPlacement: (position: { x: number; y: number }) => boolean;
   suppressNextPaneClick: () => void;
@@ -21,23 +29,29 @@ export interface CanvasNodeClickControllerOptions {
     position: { x: number; y: number },
     options: { zoom: number; duration: number },
   ) => void;
+  isStoryboardGroupNode: (node: TNode) => boolean;
 }
 
-export interface CanvasNodeClickController {
+export interface CanvasNodeClickController<
+  TNode extends CanvasNodeClickTarget = CanvasNodeClickTarget,
+> {
   handleNodeClick: (
     event: ReactMouseEvent,
-    node: CanvasNode,
+    node: TNode,
   ) => void;
 }
 
-export function useCanvasNodeClickController({
+export function useCanvasNodeClickController<
+  TNode extends CanvasNodeClickTarget,
+>({
   placementActive,
   commitPlacement,
   suppressNextPaneClick,
   centerViewport,
-}: CanvasNodeClickControllerOptions): CanvasNodeClickController {
+  isStoryboardGroupNode,
+}: CanvasNodeClickControllerOptions<TNode>): CanvasNodeClickController<TNode> {
   const handleNodeClick = useCallback(
-    (event: ReactMouseEvent, node: CanvasNode) => {
+    (event: ReactMouseEvent, node: TNode) => {
       if (placementActive) {
         event.preventDefault();
         event.stopPropagation();
@@ -51,11 +65,11 @@ export function useCanvasNodeClickController({
       }
 
       const width = node.measured?.width
-        ?? (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
+        ?? node.width
+        ?? DEFAULT_NODE_WIDTH;
       const height = node.measured?.height
-        ?? (typeof node.height === 'number'
-          ? node.height
-          : DEFAULT_STORYBOARD_GROUP_HEIGHT);
+        ?? node.height
+        ?? DEFAULT_STORYBOARD_GROUP_HEIGHT;
       centerViewport(
         {
           x: node.position.x + width / 2,
@@ -67,6 +81,7 @@ export function useCanvasNodeClickController({
     [
       centerViewport,
       commitPlacement,
+      isStoryboardGroupNode,
       placementActive,
       suppressNextPaneClick,
     ],

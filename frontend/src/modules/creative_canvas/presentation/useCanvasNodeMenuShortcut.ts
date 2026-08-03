@@ -7,9 +7,10 @@ import {
   type RefObject,
 } from 'react';
 
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
-import { isCanvasPaneTarget, isTypingTarget } from '@/modules/creative_canvas/public';
+import {
+  isCanvasPaneTarget,
+  isTypingTarget,
+} from './canvasInteractionTargets';
 
 export interface CanvasClientPosition {
   x: number;
@@ -21,6 +22,7 @@ export interface CanvasNodeMenuShortcutOptions {
   placementActive: boolean;
   setPlacementClientPosition: (position: CanvasClientPosition) => void;
   openNodeMenu: (position: CanvasClientPosition) => void;
+  isImmersiveViewerActive: () => boolean;
 }
 
 export interface CanvasNodeMenuShortcutController {
@@ -34,6 +36,7 @@ export function useCanvasNodeMenuShortcut({
   placementActive,
   setPlacementClientPosition,
   openNodeMenu,
+  isImmersiveViewerActive,
 }: CanvasNodeMenuShortcutOptions): CanvasNodeMenuShortcutController {
   const lastPointerPositionRef = useRef<CanvasClientPosition | null>(null);
 
@@ -118,7 +121,11 @@ export function useCanvasNodeMenuShortcut({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [getPreferredCanvasPointerPosition, openNodeMenu]);
+  }, [
+    getPreferredCanvasPointerPosition,
+    isImmersiveViewerActive,
+    openNodeMenu,
+  ]);
 
   return {
     handleCanvasPointerMove,

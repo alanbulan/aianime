@@ -4,34 +4,26 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasNodeClickController,
   type CanvasNodeClickControllerOptions,
+  type CanvasNodeClickTarget,
 } from './useCanvasNodeClickController';
 
-function node(
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
-  return {
-    id: 'node',
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x: 10, y: 20 },
-    data: {},
-    ...overrides,
-  } as CanvasNode;
+interface TestNode extends CanvasNodeClickTarget {
+  storyboardGroup: boolean;
 }
 
-function storyboardGroup(
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
-  return node({
-    type: CANVAS_NODE_TYPES.group,
-    data: { storyboardGroup: true },
+function node(overrides: Partial<TestNode> = {}): TestNode {
+  return {
+    id: 'node',
+    position: { x: 10, y: 20 },
+    storyboardGroup: false,
     ...overrides,
-  });
+  };
+}
+
+function storyboardGroup(overrides: Partial<TestNode> = {}): TestNode {
+  return node({ storyboardGroup: true, ...overrides });
 }
 
 function event(clientX = 120, clientY = 80): ReactMouseEvent {
@@ -44,13 +36,14 @@ function event(clientX = 120, clientY = 80): ReactMouseEvent {
 }
 
 function createOptions(
-  overrides: Partial<CanvasNodeClickControllerOptions> = {},
-): CanvasNodeClickControllerOptions {
+  overrides: Partial<CanvasNodeClickControllerOptions<TestNode>> = {},
+): CanvasNodeClickControllerOptions<TestNode> {
   return {
     placementActive: false,
     commitPlacement: vi.fn(() => true),
     suppressNextPaneClick: vi.fn(),
     centerViewport: vi.fn(),
+    isStoryboardGroupNode: (candidate) => candidate.storyboardGroup,
     ...overrides,
   };
 }

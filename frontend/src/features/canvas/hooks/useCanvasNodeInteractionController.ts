@@ -2,38 +2,34 @@
 import { useCallback, type RefObject } from 'react';
 
 import {
+  useCanvasNodeClickController,
+  useCanvasNodeMenuShortcut,
   useCanvasNodePlacementController,
+  useCanvasPaneClickController,
+  type CanvasNodeClickController,
+  type CanvasNodeClickControllerOptions,
+  type CanvasNodeMenuShortcutController,
   type CanvasNodePlacement,
   type CanvasNodePlacementController,
+  type CanvasPaneClickController,
   type SkillDefinition,
 } from '@/modules/creative_canvas/public';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 
-import type {
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
+import {
+  isStoryboardGroupNode,
+  type CanvasNode,
+  type CanvasNodeData,
+  type CanvasNodeType,
 } from '../domain/canvasNodes';
 import type {
   CanvasNodeMenuStateController,
 } from './useCanvasNodeMenuStateController';
 import {
-  useCanvasNodeClickController,
-  type CanvasNodeClickController,
-  type CanvasNodeClickControllerOptions,
-} from './useCanvasNodeClickController';
-import {
   useCanvasNodeMenuSelectionController,
   type CanvasNodeMenuSelectionController,
   type CanvasNodeMenuSelectionControllerOptions,
 } from './useCanvasNodeMenuSelectionController';
-import {
-  useCanvasNodeMenuShortcut,
-  type CanvasNodeMenuShortcutController,
-} from './useCanvasNodeMenuShortcut';
-import {
-  useCanvasPaneClickController,
-  type CanvasPaneClickController,
-} from './useCanvasPaneClickController';
 import {
   useCanvasQuickAddController,
   type CanvasQuickAddController,
@@ -63,7 +59,7 @@ export interface CanvasNodeInteractionControllerOptions {
   dismissNodeMenu:
     CanvasNodeMenuStateController['dismissNodeMenuForPaneClick'];
   onBlankPaneClick?: () => void;
-  centerViewport: CanvasNodeClickControllerOptions['centerViewport'];
+  centerViewport: CanvasNodeClickControllerOptions<CanvasNode>['centerViewport'];
   flowPosition: CanvasPosition;
   menuPosition: CanvasPosition;
   menuAllowedTypes: readonly CanvasNodeType[] | undefined;
@@ -82,7 +78,7 @@ export interface CanvasNodeInteractionController
   extends CanvasNodePlacementController<CanvasNodeType, CanvasNodeData>,
   CanvasPaneClickController,
   CanvasNodeMenuShortcutController,
-  CanvasNodeClickController,
+  CanvasNodeClickController<CanvasNode>,
   CanvasNodeMenuSelectionController,
   CanvasQuickAddController {
   openNodeMenuAtClientPosition: (clientPosition: CanvasPosition) => void;
@@ -154,12 +150,14 @@ export function useCanvasNodeInteractionController({
     setPlacementClientPosition:
       placement.updateNodePlacementClientPosition,
     openNodeMenu: openNodeMenuAtClientPosition,
+    isImmersiveViewerActive,
   });
-  const nodeClick = useCanvasNodeClickController({
+  const nodeClick = useCanvasNodeClickController<CanvasNode>({
     placementActive: placement.placementActive,
     commitPlacement: placement.commitNodePlacementAtClientPosition,
     suppressNextPaneClick: paneClick.suppressNextPaneClick,
     centerViewport,
+    isStoryboardGroupNode,
   });
   const menuSelection = useCanvasNodeMenuSelectionController({
     wrapperRef,

@@ -7819,11 +7819,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas node-click orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeClickController.ts",
+      moduleRoot,
+      "presentation/useCanvasNodeClickController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const nodeInteractionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -7835,16 +7843,11 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
-        specifier === "@/features/canvas/nodeFactoryComposition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasNodeClickController(",
+      "useCanvasNodeClickController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -7853,13 +7856,18 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeClickController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeClickController.ts",
     ]);
     expect(hookModel).toContain("isStoryboardGroupNode(node)");
     expect(hookModel).toContain("DEFAULT_NODE_WIDTH");
     expect(hookModel).toContain("DEFAULT_STORYBOARD_GROUP_HEIGHT = 240");
     expect(hookModel).toContain("zoom: 1");
     expect(hookModel).toContain("duration: 320");
+    expect(nodeInteractionSource).toContain("@/modules/creative_canvas/public");
+    expect(nodeInteractionSource).toContain("isStoryboardGroupNode,");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodeClickController",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -7871,6 +7879,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("isStoryboardGroupNode(");
     expect(canvasView).not.toContain("DEFAULT_NODE_WIDTH");
     expect(canvasView).not.toContain("node.position.x + width / 2");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodeClickController.ts",
+      "features/canvas/hooks/useCanvasNodeClickController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas drop indicator state in Creative Canvas presentation", () => {
@@ -9727,11 +9741,19 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas node-menu pointer and shortcut state in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+      moduleRoot,
+      "presentation/useCanvasNodeMenuShortcut.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const nodeInteractionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -9743,9 +9765,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
@@ -9758,11 +9778,16 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeMenuShortcut.ts",
     ]);
     expect(hookModel).toContain("isCanvasPaneTarget");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
+    expect(nodeInteractionSource).toContain("@/modules/creative_canvas/public");
+    expect(nodeInteractionSource).toContain("isImmersiveViewerActive,");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasNodeMenuShortcut",
+    );
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -9774,6 +9799,12 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("ReactPointerEvent");
     expect(canvasView).not.toContain("event.key !== 'Tab'");
     expect(canvasView).not.toContain(".react-flow__pane");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas viewport metrics in one presentation hook", () => {
@@ -24624,9 +24655,10 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas pane-click orchestration in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasPaneClickController.ts",
+      moduleRoot,
+      "presentation/useCanvasPaneClickController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const nodeInteractionPath = resolve(
@@ -24646,9 +24678,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const nodeInteractionForbiddenImports = importSpecifiers(
       nodeInteractionPath,
@@ -24689,7 +24719,7 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(nodeInteractionForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasPaneClickController.ts",
+      "modules/creative_canvas/presentation/useCanvasPaneClickController.ts",
     ]);
     expect(nodeInteractionOwners).toEqual([
       "features/canvas/hooks/useCanvasNodeInteractionController.ts",
@@ -24702,9 +24732,9 @@ describe("frontend architecture boundaries", () => {
     expect(nodeInteractionSource).not.toContain(
       "./useCanvasNodePlacementController",
     );
-    expect(nodeInteractionSource).toContain("./useCanvasPaneClickController");
-    expect(nodeInteractionSource).toContain("./useCanvasNodeMenuShortcut");
-    expect(nodeInteractionSource).toContain("./useCanvasNodeClickController");
+    expect(nodeInteractionSource).not.toContain("./useCanvasPaneClickController");
+    expect(nodeInteractionSource).not.toContain("./useCanvasNodeMenuShortcut");
+    expect(nodeInteractionSource).not.toContain("./useCanvasNodeClickController");
     expect(nodeInteractionSource).toContain(
       "./useCanvasNodeMenuSelectionController",
     );
@@ -24726,6 +24756,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("suppressNextPaneClickRef");
     expect(canvasSource).not.toContain("event.detail >= 2");
     expect(canvasSource).not.toContain("const handlePaneClick = useCallback");
+    expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasPaneClickController",
+    );
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasPaneClickController.ts",
+      "features/canvas/hooks/useCanvasPaneClickController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas context-menu commands in one presentation controller", () => {
