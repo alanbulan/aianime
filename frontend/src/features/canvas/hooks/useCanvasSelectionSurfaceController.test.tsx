@@ -2,12 +2,12 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasMarqueeSelectionOptions } from '@/modules/creative_canvas/public';
-import type { CanvasEdge } from '../domain/canvasNodes';
 import type {
+  CanvasMarqueeSelectionOptions,
   CanvasSelectionCommandControllerOptions,
-} from './useCanvasSelectionCommandController';
-import type { CanvasSelectionSyncOptions } from './useCanvasSelectionSync';
+  CanvasSelectionSyncOptions,
+} from '@/modules/creative_canvas/public';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import {
   useCanvasSelectionSurfaceController,
   type CanvasSelectionSurfaceControllerOptions,
@@ -31,10 +31,11 @@ const controllerMocks = vi.hoisted(() => {
       (_options: CanvasMarqueeSelectionOptions) => marqueeController,
     ),
     useSelectionSync: vi.fn(
-      (_options: CanvasSelectionSyncOptions) => selectionResult,
+      (_options: CanvasSelectionSyncOptions<CanvasNode>) => selectionResult,
     ),
     useSelectionCommands: vi.fn(
-      (_options: CanvasSelectionCommandControllerOptions) => commandController,
+      (_options: CanvasSelectionCommandControllerOptions<CanvasNode, CanvasEdge>) =>
+        commandController,
     ),
   };
 });
@@ -42,11 +43,7 @@ const controllerMocks = vi.hoisted(() => {
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   useCanvasMarqueeSelection: controllerMocks.useMarqueeSelection,
-}));
-vi.mock('./useCanvasSelectionCommandController', () => ({
   useCanvasSelectionCommandController: controllerMocks.useSelectionCommands,
-}));
-vi.mock('./useCanvasSelectionSync', () => ({
   useCanvasSelectionSync: controllerMocks.useSelectionSync,
 }));
 
@@ -104,12 +101,15 @@ describe('useCanvasSelectionSurfaceController', () => {
       nodes: options.nodes,
       selectedNodeId: options.selectedNodeId,
       setSelectedNodeId: options.setSelectedNodeId,
+      isUploadNode: expect.any(Function),
     });
     expect(controllerMocks.useSelectionCommands).toHaveBeenCalledWith(
       expect.objectContaining({
         nodes: options.nodes,
         selectedNodeIds: ['selected-node'],
         selectedNodeId: options.selectedNodeId,
+        isNodeDeletionLocked: expect.any(Function),
+        isEdgeDeletionLocked: expect.any(Function),
         groupNodes: options.groupNodes,
         deleteEdge: options.deleteEdge,
         deleteNode: options.deleteNode,

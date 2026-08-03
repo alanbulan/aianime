@@ -1,14 +1,22 @@
 // Copyright (c) 2026 AI anime
-import { useCallback } from 'react';
+import { useCallback } from "react";
 
-import { resolveCanvasSelectionDeletion } from '../domain/canvasSelectionDeletion';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import {
+  resolveCanvasSelectionDeletion,
+  type CanvasSelectionDeletionEdge,
+  type CanvasSelectionDeletionNode,
+} from "../domain/canvasSelectionDeletion";
 
-export interface CanvasSelectionCommandControllerOptions {
-  nodes: readonly CanvasNode[];
+export interface CanvasSelectionCommandControllerOptions<
+  TNode extends CanvasSelectionDeletionNode = CanvasSelectionDeletionNode,
+  TEdge extends CanvasSelectionDeletionEdge = CanvasSelectionDeletionEdge,
+> {
+  nodes: readonly TNode[];
   selectedNodeIds: readonly string[];
   selectedNodeId: string | null;
-  getCurrentEdges: () => readonly CanvasEdge[];
+  getCurrentEdges: () => readonly TEdge[];
+  isNodeDeletionLocked: (node: TNode) => boolean;
+  isEdgeDeletionLocked: (edge: TEdge) => boolean;
   groupNodes: (nodeIds: string[]) => unknown;
   deleteEdge: (edgeId: string) => void;
   deleteNode: (nodeId: string) => void;
@@ -20,16 +28,24 @@ export interface CanvasSelectionCommandController {
   deleteSelection: () => boolean;
 }
 
-export function useCanvasSelectionCommandController({
+export function useCanvasSelectionCommandController<
+  TNode extends CanvasSelectionDeletionNode,
+  TEdge extends CanvasSelectionDeletionEdge,
+>({
   nodes,
   selectedNodeIds,
   selectedNodeId,
   getCurrentEdges,
+  isNodeDeletionLocked,
+  isEdgeDeletionLocked,
   groupNodes,
   deleteEdge,
   deleteNode,
   deleteNodes,
-}: CanvasSelectionCommandControllerOptions): CanvasSelectionCommandController {
+}: CanvasSelectionCommandControllerOptions<
+  TNode,
+  TEdge
+>): CanvasSelectionCommandController {
   const groupSelection = useCallback(() => {
     groupNodes([...selectedNodeIds]);
   }, [groupNodes, selectedNodeIds]);
@@ -40,6 +56,8 @@ export function useCanvasSelectionCommandController({
       edges: getCurrentEdges(),
       selectedNodeIds,
       selectedNodeId,
+      isNodeDeletionLocked,
+      isEdgeDeletionLocked,
     });
     deletion.edgeIds.forEach((edgeId) => deleteEdge(edgeId));
     if (deletion.nodeIds.length === 1) {
@@ -53,6 +71,8 @@ export function useCanvasSelectionCommandController({
     deleteNode,
     deleteNodes,
     getCurrentEdges,
+    isEdgeDeletionLocked,
+    isNodeDeletionLocked,
     nodes,
     selectedNodeId,
     selectedNodeIds,

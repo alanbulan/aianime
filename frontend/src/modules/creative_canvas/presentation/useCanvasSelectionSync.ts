@@ -1,15 +1,18 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from "react";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+export interface CanvasSelectionSyncNode {
+  id: string;
+  selected?: boolean;
+}
 
-export interface CanvasSelectionSyncOptions {
-  nodes: readonly CanvasNode[];
+export interface CanvasSelectionSyncOptions<
+  TNode extends CanvasSelectionSyncNode = CanvasSelectionSyncNode,
+> {
+  nodes: readonly TNode[];
   selectedNodeId: string | null;
   setSelectedNodeId: (nodeId: string | null) => void;
+  isUploadNode: (node: TNode) => boolean;
 }
 
 export interface CanvasSelectionSyncResult {
@@ -17,11 +20,14 @@ export interface CanvasSelectionSyncResult {
   selectedUploadNodeId: string | null;
 }
 
-export function useCanvasSelectionSync({
+export function useCanvasSelectionSync<
+  TNode extends CanvasSelectionSyncNode,
+>({
   nodes,
   selectedNodeId,
   setSelectedNodeId,
-}: CanvasSelectionSyncOptions): CanvasSelectionSyncResult {
+  isUploadNode,
+}: CanvasSelectionSyncOptions<TNode>): CanvasSelectionSyncResult {
   const selectedNodeIds = useMemo(
     () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
     [nodes],
@@ -31,10 +37,8 @@ export function useCanvasSelectionSync({
       return null;
     }
     const selectedNode = nodes.find((node) => node.id === selectedNodeIds[0]);
-    return selectedNode?.type === CANVAS_NODE_TYPES.upload
-      ? selectedNode.id
-      : null;
-  }, [nodes, selectedNodeIds]);
+    return selectedNode && isUploadNode(selectedNode) ? selectedNode.id : null;
+  }, [isUploadNode, nodes, selectedNodeIds]);
 
   useEffect(() => {
     const nextSelectedNodeId = selectedNodeIds.length === 1

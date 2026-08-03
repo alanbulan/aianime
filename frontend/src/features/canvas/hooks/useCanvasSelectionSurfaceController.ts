@@ -4,20 +4,24 @@ import { useCallback } from 'react';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import {
   useCanvasMarqueeSelection,
+  useCanvasSelectionCommandController,
+  useCanvasSelectionSync,
   type CanvasMarqueeSelectionController,
   type CanvasMarqueeSelectionOptions,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
-import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
-import {
-  useCanvasSelectionCommandController,
   type CanvasSelectionCommandController,
   type CanvasSelectionCommandControllerOptions,
-} from './useCanvasSelectionCommandController';
-import {
-  useCanvasSelectionSync,
   type CanvasSelectionSyncResult,
-} from './useCanvasSelectionSync';
+} from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+} from '../domain/canvasNodes';
+import { collectCanvasNodeIdsInRect } from '../domain/canvasSelection';
+import {
+  isPresetManagedEdge,
+  isPresetManagedNode,
+} from '../domain/mainlineNodeFlags';
 
 interface CanvasNativeSelectionStorePort {
   setState: (state: { nodesSelectionActive: boolean }) => unknown;
@@ -25,6 +29,15 @@ interface CanvasNativeSelectionStorePort {
 
 interface CanvasSelectionGraph {
   edges: readonly CanvasEdge[];
+}
+
+type CanvasSelectionCommandOptions = CanvasSelectionCommandControllerOptions<
+  CanvasNode,
+  CanvasEdge
+>;
+
+function isCanvasUploadNode(node: CanvasNode): boolean {
+  return node.type === CANVAS_NODE_TYPES.upload;
 }
 
 export interface CanvasSelectionSurfaceControllerOptions {
@@ -39,10 +52,10 @@ export interface CanvasSelectionSurfaceControllerOptions {
   setSelectedNodeId: CanvasMarqueeSelectionOptions['setSelectedNodeId'];
   onMarqueeStart: CanvasMarqueeSelectionOptions['onMarqueeStart'];
   getGraph: () => CanvasSelectionGraph;
-  groupNodes: CanvasSelectionCommandControllerOptions['groupNodes'];
-  deleteEdge: CanvasSelectionCommandControllerOptions['deleteEdge'];
-  deleteNode: CanvasSelectionCommandControllerOptions['deleteNode'];
-  deleteNodes: CanvasSelectionCommandControllerOptions['deleteNodes'];
+  groupNodes: CanvasSelectionCommandOptions['groupNodes'];
+  deleteEdge: CanvasSelectionCommandOptions['deleteEdge'];
+  deleteNode: CanvasSelectionCommandOptions['deleteNode'];
+  deleteNodes: CanvasSelectionCommandOptions['deleteNodes'];
 }
 
 export interface CanvasSelectionSurfaceController
@@ -88,6 +101,7 @@ export function useCanvasSelectionSurfaceController({
     nodes,
     selectedNodeId,
     setSelectedNodeId,
+    isUploadNode: isCanvasUploadNode,
   });
   const getCurrentEdges = useCallback(
     () => getGraph().edges,
@@ -98,6 +112,8 @@ export function useCanvasSelectionSurfaceController({
     selectedNodeIds: selection.selectedNodeIds,
     selectedNodeId,
     getCurrentEdges,
+    isNodeDeletionLocked: isPresetManagedNode,
+    isEdgeDeletionLocked: isPresetManagedEdge,
     groupNodes,
     deleteEdge,
     deleteNode,

@@ -712,6 +712,17 @@ export type {
   CanvasMarqueeSelectionRect,
   CanvasNodeSelectionChange,
 } from "@/modules/creative_canvas/presentation/useCanvasMarqueeSelection";
+export { useCanvasSelectionSync } from "@/modules/creative_canvas/presentation/useCanvasSelectionSync";
+export type {
+  CanvasSelectionSyncNode,
+  CanvasSelectionSyncOptions,
+  CanvasSelectionSyncResult,
+} from "@/modules/creative_canvas/presentation/useCanvasSelectionSync";
+export { useCanvasSelectionCommandController } from "@/modules/creative_canvas/presentation/useCanvasSelectionCommandController";
+export type {
+  CanvasSelectionCommandController,
+  CanvasSelectionCommandControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasSelectionCommandController";
 export { useCanvasMediaTransferController } from "@/modules/creative_canvas/presentation/useCanvasMediaTransferController";
 export type {
   CanvasMediaTransferController,

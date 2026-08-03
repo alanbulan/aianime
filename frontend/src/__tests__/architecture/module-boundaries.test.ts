@@ -9052,20 +9052,33 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas selection deletion rules in the domain", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const domainPath = resolve(
-      SRC_ROOT,
-      "features/canvas/domain/canvasSelectionDeletion.ts",
+      moduleRoot,
+      "domain/canvasSelectionDeletion.ts",
     );
     const domainModel = readFileSync(domainPath, "utf8");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionCommandController.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionCommandController.ts",
     );
     const controllerModel = readFileSync(controllerPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const selectionSurfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+    );
+    const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const legacyPaths = [
+      "features/canvas/domain/canvasSelectionDeletion.ts",
+      "features/canvas/domain/canvasSelectionDeletion.test.ts",
+      "features/canvas/hooks/useCanvasSelectionCommandController.ts",
+      "features/canvas/hooks/useCanvasSelectionCommandController.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(domainPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -9074,13 +9087,11 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "resolveCanvasSelectionDeletion(",
+      "resolveCanvasSelectionDeletion<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9092,20 +9103,50 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
+    const privateModuleImports = new Set([
+      "@/modules/creative_canvas/domain/canvasSelectionDeletion",
+      "@/modules/creative_canvas/presentation/useCanvasSelectionCommandController",
+    ]);
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => privateModuleImports.has(specifier))
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(forbiddenImports).toEqual([]);
     expect(controllerForbiddenImports).toEqual([]);
+    expect(directPrivateConsumers).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/domain/canvasSelectionDeletion.ts",
+      "modules/creative_canvas/domain/canvasSelectionDeletion.ts",
     ]);
-    expect(domainModel).toContain("isPresetManagedNode");
-    expect(domainModel).toContain("isPresetManagedEdge");
+    expect(importSpecifiers(publicPath)).not.toContain(
+      "@/modules/creative_canvas/domain/canvasSelectionDeletion",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasSelectionCommandController",
+    );
+    expect(domainModel).toContain("isNodeDeletionLocked");
+    expect(domainModel).toContain("isEdgeDeletionLocked");
+    expect(domainModel).not.toContain("isPresetManagedNode");
+    expect(domainModel).not.toContain("isPresetManagedEdge");
     expect(controllerModel).toContain("resolveCanvasSelectionDeletion({");
     expect(controllerModel).toContain("edges: getCurrentEdges()");
+    expect(importSpecifiers(selectionSurfacePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(selectionSurface).toContain(
+      "isNodeDeletionLocked: isPresetManagedNode",
+    );
+    expect(selectionSurface).toContain(
+      "isEdgeDeletionLocked: isPresetManagedEdge",
+    );
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasSelectionCommandController",
@@ -9466,8 +9507,8 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const childControllers = [
-      "./useCanvasSelectionSync",
-      "./useCanvasSelectionCommandController",
+      "useCanvasSelectionSync",
+      "useCanvasSelectionCommandController",
     ];
 
     expect(forbiddenImports).toEqual([]);
@@ -9476,9 +9517,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     for (const childController of childControllers) {
       expect(controllerSource).toContain(childController);
-      expect(canvasView).not.toContain(
-        childController.replace("./", "./hooks/"),
-      );
+      expect(controllerSource).not.toContain(`./${childController}`);
+      expect(canvasView).not.toContain(`./hooks/${childController}`);
     }
     expect(importSpecifiers(controllerPath)).toContain(
       "@/modules/creative_canvas/public",
@@ -9487,6 +9527,13 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("./useCanvasMarqueeSelection");
     expect(controllerSource).toContain("collectCanvasNodeIdsInRect,");
     expect(controllerSource).toContain("isImmersiveViewerActive,");
+    expect(controllerSource).toContain("isUploadNode: isCanvasUploadNode");
+    expect(controllerSource).toContain(
+      "isNodeDeletionLocked: isPresetManagedNode",
+    );
+    expect(controllerSource).toContain(
+      "isEdgeDeletionLocked: isPresetManagedEdge",
+    );
     expect(controllerSource).toContain("nativeSelectionStore.setState({");
     expect(controllerSource).toContain("() => getGraph().edges");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
@@ -9495,15 +9542,26 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas selected-node projection in one presentation hook", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const hookPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasSelectionSync.ts",
+      moduleRoot,
+      "presentation/useCanvasSelectionSync.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const selectionSurfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+    );
+    const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const legacyPaths = [
+      "features/canvas/hooks/useCanvasSelectionSync.ts",
+      "features/canvas/hooks/useCanvasSelectionSync.test.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -9511,24 +9569,41 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasSelectionSync(",
+      "useCanvasSelectionSync<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const privateModuleImport =
+      "@/modules/creative_canvas/presentation/useCanvasSelectionSync";
+    const directPrivateConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter((specifier) => specifier === privateModuleImport)
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
+    for (const legacyPath of legacyPaths) {
+      expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
+    }
     expect(forbiddenImports).toEqual([]);
+    expect(directPrivateConsumers).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasSelectionSync.ts",
+      "modules/creative_canvas/presentation/useCanvasSelectionSync.ts",
     ]);
-    expect(hookModel).toContain("CANVAS_NODE_TYPES.upload");
+    expect(importSpecifiers(publicPath)).toContain(privateModuleImport);
+    expect(hookModel).toContain("isUploadNode(selectedNode)");
+    expect(hookModel).not.toContain("CANVAS_NODE_TYPES");
+    expect(importSpecifiers(selectionSurfacePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(selectionSurface).toContain("isUploadNode: isCanvasUploadNode");
     expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSync");
     expect(canvasView).not.toContain("selectedNodeIds.length === 1");
