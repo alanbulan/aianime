@@ -10,6 +10,11 @@ import {
   CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_TOOLBAR_CLASS,
+  ZoomScaledToolbar,
   generateCanvasVideoUpscale,
   generationTaskDescriptor,
   resolveCanvasVideoUpscaleDenoise,
@@ -18,13 +23,6 @@ import {
   type CanvasVideoUpscaleResolution,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { ZoomScaledToolbar } from './ZoomScaledToolbar';
-import {
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from './nodeControlStyles';
 
 interface VideoUpscalePersistedFields {
   upscaleSourceUrl?: string;

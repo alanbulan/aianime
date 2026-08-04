@@ -16,8 +16,10 @@ import type { ImageNodeToolbarController } from "@/features/canvas/hooks/useImag
 
 import { ImageEditToolbarActions } from "./ImageEditToolbarActions";
 import { ImageGridToolbarActions } from "./ImageGridToolbarActions";
-import { NodeToolbarIconChip } from "./NodeToolbarIconChip";
-import { NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS } from "./nodeActionToolbarStyles";
+import {
+  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+  NodeToolbarIconChip,
+} from "@/modules/creative_canvas/public";
 
 const toolIconMap: Record<ToolIconKey, LucideIcon> = {
   crop: Crop,

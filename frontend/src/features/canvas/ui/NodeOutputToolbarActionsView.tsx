@@ -4,8 +4,10 @@ import { Copy, Download } from "lucide-react";
 import { UiChipButton } from "@/components/ui";
 import type { NodeOutputToolbarController } from "@/features/canvas/hooks/useNodeOutputToolbarController";
 
-import { NodeToolbarIconChip } from "./NodeToolbarIconChip";
-import { NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS } from "./nodeActionToolbarStyles";
+import {
+  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+  NodeToolbarIconChip,
+} from "@/modules/creative_canvas/public";
 
 export interface NodeOutputToolbarActionsViewProps {
   controller: NodeOutputToolbarController;

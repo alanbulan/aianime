@@ -18,17 +18,15 @@ import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
   MULTI_ANGLE_IMAGE_SIZES,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
   useCanvasImageModels,
   type MultiAngleImageSize,
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
 } from '@/modules/creative_canvas/public';
-import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
 import { MultiAngleSphere } from '@/features/canvas/ui/MultiAngleSphere';
 
 interface MultiAnglePresetConfig {

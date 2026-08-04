@@ -10,16 +10,14 @@ import {
 import { Music, Pause } from "lucide-react";
 import { createPortal } from "react-dom";
 
-import type {
-  VideoReferenceCapEntry,
-  VideoReferenceCaps,
-  VideoReferenceItem,
-} from "@/modules/creative_canvas/public";
 import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import {
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
+  type VideoReferenceCapEntry,
+  type VideoReferenceCaps,
+  type VideoReferenceItem,
+} from "@/modules/creative_canvas/public";
 
 export interface ReferenceMediaRowProps {
   items: ReadonlyArray<VideoReferenceCapEntry>;

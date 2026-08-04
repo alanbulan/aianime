@@ -20,22 +20,20 @@ import { useTranslation } from 'react-i18next';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import type { TextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
 import {
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
-  NODE_INLINE_ICON_BUTTON_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
-import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
+  NODE_INLINE_ICON_BUTTON_CLASS,
+  NodeGenerationOverlay,
   NodeResizeHandle,
   type TextNodeMode,
 } from '@/modules/creative_canvas/public';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

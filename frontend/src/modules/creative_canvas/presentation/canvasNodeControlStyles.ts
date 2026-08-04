@@ -47,6 +47,8 @@ export const NODE_CREDIT_PILL_FLAT_CLASS = 'rounded-none bg-transparent px-0';
 export const NODE_GENERATE_BUTTON_BASE_CLASS =
   'nodrag inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors';
 
-export const NODE_GENERATE_BUTTON_ENABLED_CLASS = 'bg-foreground text-background hover:bg-foreground/90';
+export const NODE_GENERATE_BUTTON_ENABLED_CLASS =
+  'bg-foreground text-background hover:bg-foreground/90';
 
-export const NODE_GENERATE_BUTTON_DISABLED_CLASS = 'cursor-not-allowed bg-muted text-muted-foreground/45';
+export const NODE_GENERATE_BUTTON_DISABLED_CLASS =
+  'cursor-not-allowed bg-muted text-muted-foreground/45';

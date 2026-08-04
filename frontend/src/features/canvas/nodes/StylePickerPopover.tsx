@@ -3,10 +3,10 @@ import { useMemo } from 'react';
 import { Check, X } from 'lucide-react';
 
 import {
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
   useCanvasStyleTemplates,
   type CanvasStyleTemplate,
 } from '@/modules/creative_canvas/public';
-import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 interface StylePickerPopoverProps {
   projectId: string;

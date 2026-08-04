@@ -27,11 +27,15 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+vi.mock('@/features/canvas/ui/OperationPanelShell', () => ({
+  OperationPanelShell: ({ children }: { children: ReactNode }) => (
+    <section>{children}</section>
+  ),
 }));
 
-vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  NodeGenerationOverlay: () => <div>generation-overlay</div>,
   RegenerateButton: ({
     label,
     onClick,
@@ -43,9 +47,6 @@ vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
       regenerate:{label}
     </button>
   ),
-}));
-
-vi.mock('@/features/canvas/ui/EditableTableCell', () => ({
   EditableTableCell: ({
     value,
     onCommit,
@@ -57,16 +58,6 @@ vi.mock('@/features/canvas/ui/EditableTableCell', () => ({
       edit:{value}
     </button>
   ),
-}));
-
-vi.mock('@/features/canvas/ui/OperationPanelShell', () => ({
-  OperationPanelShell: ({ children }: { children: ReactNode }) => (
-    <section>{children}</section>
-  ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeResizeHandle: ({
     minWidth,
     minHeight,

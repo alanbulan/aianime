@@ -22,16 +22,16 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import {
+  NODE_INLINE_ERROR_MESSAGE_CLASS,
   translateSkillCardinality,
   translateSkillInputLabel,
   translateSkillOutputLabel,
   translateSkillParameterLabel,
   translateSkillParameterOption,
   translateSkillRequirement,
+  type SkillProvider,
 } from '@/modules/creative_canvas/public';
-import type { SkillProvider } from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PROVIDER_LABELS: Record<SkillProvider, string> = {

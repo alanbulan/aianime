@@ -25,7 +25,7 @@ import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from "@/modules/creative_canvas/public";
 
 export interface VideoNodeToolbarActionsViewProps {
   controller: VideoNodeToolbarController;

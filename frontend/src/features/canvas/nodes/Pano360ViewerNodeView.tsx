@@ -33,9 +33,9 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NODE_INLINE_ERROR_MESSAGE_CLASS,
   NodeResizeHandle,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';

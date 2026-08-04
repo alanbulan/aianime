@@ -14,6 +14,11 @@ import {
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_TOOLBAR_CLASS,
+  ZoomScaledToolbar,
   generationTaskDescriptor,
   generateCanvasScene360,
   useCanvasImageModels,
@@ -22,13 +27,6 @@ import {
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { ZoomScaledToolbar } from './ZoomScaledToolbar';
-import {
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from './nodeControlStyles';
 
 const PANO_VIEWER_LAYOUT_WIDTH = 720;
 const PANO_VIEWER_LAYOUT_HEIGHT = 420;

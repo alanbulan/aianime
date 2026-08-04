@@ -7,7 +7,7 @@ import type { NodeMainlineToolbarController } from "@/features/canvas/hooks/useN
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from "@/modules/creative_canvas/public";
 
 export interface NodeMainlineToolbarActionsViewProps {
   controller: NodeMainlineToolbarController;

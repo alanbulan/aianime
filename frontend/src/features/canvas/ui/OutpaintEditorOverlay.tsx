@@ -29,6 +29,11 @@ import {
   DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
   DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
   DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_TOOLBAR_CLASS,
   calculateCanvasOutpaintFrame,
   generateCanvasOutpaint,
   generationTaskDescriptor,
@@ -42,13 +47,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-} from './nodeControlStyles';
 
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;

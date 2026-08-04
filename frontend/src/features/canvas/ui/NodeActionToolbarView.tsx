@@ -7,10 +7,6 @@ import type {
   CanvasNode,
   VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
-import type {
-  GridActionRequest,
-  NodeActionToolbarShellProjection,
-} from "@/modules/creative_canvas/public";
 import { AudioNodeToolbarActions } from "@/features/canvas/ui/AudioNodeToolbarActions";
 import { CanvasGroupNodeToolbarActionsAdapter } from "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter";
 import { ImageNodeToolbarActions } from "@/features/canvas/ui/ImageNodeToolbarActions";
@@ -19,14 +15,15 @@ import { NodeManagementToolbarActions } from "@/features/canvas/ui/NodeManagemen
 import { NodeOutputToolbarActions } from "@/features/canvas/ui/NodeOutputToolbarActions";
 import { CanvasStoryboardGroupToolbarAdapter } from "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter";
 import { VideoNodeToolbarActions } from "@/features/canvas/ui/VideoNodeToolbarActions";
-import { ZoomScaledToolbar } from "@/features/canvas/ui/ZoomScaledToolbar";
-
 import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,
   NODE_TOOLBAR_OFFSET,
   NODE_TOOLBAR_POSITION,
-} from "./nodeToolbarConfig";
+  ZoomScaledToolbar,
+  type GridActionRequest,
+  type NodeActionToolbarShellProjection,
+} from "@/modules/creative_canvas/public";
 
 export interface NodeActionToolbarViewProps {
   projectId: string;

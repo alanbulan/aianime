@@ -26,6 +26,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  NODE_CREDIT_PILL_FLAT_CLASS,
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -48,7 +49,6 @@ import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { NODE_CREDIT_PILL_FLAT_CLASS } from './nodeControlStyles';
 
 interface RedrawOverlayProps {
   projectId: string;

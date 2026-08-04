@@ -7,17 +7,14 @@ import { toast } from 'sonner';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type { CanvasNode, GroupNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
-  StoryboardGroupToolbarView,
-  useStoryboardGroupToolbarController,
-} from '@/modules/creative_canvas/public';
-
-import {
   NODE_TOOLBAR_ALIGN,
   NODE_TOOLBAR_CLASS,
   NODE_TOOLBAR_OFFSET,
   NODE_TOOLBAR_POSITION,
-} from './nodeToolbarConfig';
-import { ZoomScaledToolbar } from './ZoomScaledToolbar';
+  StoryboardGroupToolbarView,
+  ZoomScaledToolbar,
+  useStoryboardGroupToolbarController,
+} from '@/modules/creative_canvas/public';
 
 const toolbarStyles = {
   panel:

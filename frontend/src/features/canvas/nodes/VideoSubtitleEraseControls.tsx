@@ -19,15 +19,13 @@ import { useTranslation } from "react-i18next";
 import { CreditCostPill } from "@/components/credits/credit-visual";
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
-  type VideoSubtitleEraseBox,
-  type VideoSubtitleEraseMode,
-} from "@/modules/creative_canvas/public";
-import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
+  type VideoSubtitleEraseBox,
+  type VideoSubtitleEraseMode,
+} from "@/modules/creative_canvas/public";
 
 interface DisplayedRect {
   left: number;

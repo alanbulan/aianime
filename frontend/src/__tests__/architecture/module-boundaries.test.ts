@@ -1129,6 +1129,42 @@ describe("frontend architecture boundaries", () => {
       moduleRoot,
       "presentation/PanelExpandButton.tsx",
     );
+    const controlStylesPath = resolve(
+      moduleRoot,
+      "presentation/canvasNodeControlStyles.ts",
+    );
+    const actionToolbarStylesPath = resolve(
+      moduleRoot,
+      "presentation/canvasNodeActionToolbarStyles.ts",
+    );
+    const canvasControlStylesPath = resolve(
+      moduleRoot,
+      "presentation/canvasControlStyles.ts",
+    );
+    const toolbarConfigPath = resolve(
+      moduleRoot,
+      "presentation/canvasNodeToolbarConfig.ts",
+    );
+    const zoomToolbarPath = resolve(
+      moduleRoot,
+      "presentation/ZoomScaledToolbar.tsx",
+    );
+    const toolbarChipPath = resolve(
+      moduleRoot,
+      "presentation/NodeToolbarIconChip.tsx",
+    );
+    const generationOverlayPath = resolve(
+      moduleRoot,
+      "presentation/NodeGenerationOverlay.tsx",
+    );
+    const regenerateButtonPath = resolve(
+      moduleRoot,
+      "presentation/RegenerateButton.tsx",
+    );
+    const editableTableCellPath = resolve(
+      moduleRoot,
+      "presentation/EditableTableCell.tsx",
+    );
     const entryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/GroupNode.tsx",
@@ -1167,6 +1203,30 @@ describe("frontend architecture boundaries", () => {
     );
     const priceBadgeSource = readFileSync(priceBadgePath, "utf8");
     const expandButtonSource = readFileSync(expandButtonPath, "utf8");
+    const controlStylesSource = readFileSync(controlStylesPath, "utf8");
+    const actionToolbarStylesSource = readFileSync(
+      actionToolbarStylesPath,
+      "utf8",
+    );
+    const canvasControlStylesSource = readFileSync(
+      canvasControlStylesPath,
+      "utf8",
+    );
+    const toolbarConfigSource = readFileSync(toolbarConfigPath, "utf8");
+    const zoomToolbarSource = readFileSync(zoomToolbarPath, "utf8");
+    const toolbarChipSource = readFileSync(toolbarChipPath, "utf8");
+    const generationOverlaySource = readFileSync(
+      generationOverlayPath,
+      "utf8",
+    );
+    const regenerateButtonSource = readFileSync(
+      regenerateButtonPath,
+      "utf8",
+    );
+    const editableTableCellSource = readFileSync(
+      editableTableCellPath,
+      "utf8",
+    );
     const publicSource = readFileSync(resolve(moduleRoot, "public.ts"), "utf8");
     const declarations = [
       ["export const", "GroupNode", "=", "memo("].join(" "),
@@ -1176,6 +1236,11 @@ describe("frontend architecture boundaries", () => {
       ["export function", "NodeResizeHandle("].join(" "),
       ["export function", "NodePriceBadge("].join(" "),
       ["export function", "PanelExpandButton("].join(" "),
+      ["export function", "ZoomScaledToolbar("].join(" "),
+      ["export function", "NodeToolbarIconChip("].join(" "),
+      ["export function", "NodeGenerationOverlay("].join(" "),
+      ["export function", "RegenerateButton("].join(" "),
+      ["export function", "EditableTableCell("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -1207,6 +1272,11 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/NodeResizeHandle.tsx"],
       ["modules/creative_canvas/presentation/NodePriceBadge.tsx"],
       ["modules/creative_canvas/presentation/PanelExpandButton.tsx"],
+      ["modules/creative_canvas/presentation/ZoomScaledToolbar.tsx"],
+      ["modules/creative_canvas/presentation/NodeToolbarIconChip.tsx"],
+      ["modules/creative_canvas/presentation/NodeGenerationOverlay.tsx"],
+      ["modules/creative_canvas/presentation/RegenerateButton.tsx"],
+      ["modules/creative_canvas/presentation/EditableTableCell.tsx"],
     ]);
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
     expect(registrySource).toContain("groupNode: BoundGroupNode");
@@ -1282,10 +1352,39 @@ describe("frontend architecture boundaries", () => {
         "./canvasNodeFrameStyles",
       ]),
     );
+    expect(importSpecifiers(controlStylesPath)).toEqual([]);
+    expect(importSpecifiers(actionToolbarStylesPath)).toEqual([]);
+    expect(importSpecifiers(canvasControlStylesPath)).toEqual([]);
+    expect(importSpecifiers(toolbarConfigPath)).toEqual(["@xyflow/react"]);
+    expect(importSpecifiers(zoomToolbarPath)).toEqual(["react"]);
+    expect(new Set(importSpecifiers(toolbarChipPath))).toEqual(
+      new Set([
+        "react",
+        "lucide-react",
+        "@/components/ui",
+        "./canvasNodeActionToolbarStyles",
+      ]),
+    );
+    expect(importSpecifiers(generationOverlayPath)).toEqual(["react"]);
+    expect(importSpecifiers(regenerateButtonPath)).toEqual(["lucide-react"]);
+    expect(importSpecifiers(editableTableCellPath)).toEqual(["react"]);
     expect(frameStylesSource).toContain("CANVAS_NODE_OPS_PANEL_CLASS");
     expect(resizeHandleSource).toContain("<NodeResizeControl");
     expect(priceBadgeSource).not.toContain("@/features/");
     expect(expandButtonSource).not.toContain("@/features/");
+    for (const sharedPresentationSource of [
+      controlStylesSource,
+      actionToolbarStylesSource,
+      canvasControlStylesSource,
+      toolbarConfigSource,
+      zoomToolbarSource,
+      toolbarChipSource,
+      generationOverlaySource,
+      regenerateButtonSource,
+      editableTableCellSource,
+    ]) {
+      expect(sharedPresentationSource).not.toContain("@/features/");
+    }
     expect(resizeHandleTestSource).toContain("from './NodeResizeHandle'");
     expect(publicSource).toContain(
       'from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles"',
@@ -1300,6 +1399,15 @@ describe("frontend architecture boundaries", () => {
         || specifier.includes("features/canvas/ui/NodeResizeHandle")
         || specifier.includes("features/canvas/ui/NodePriceBadge")
         || specifier.includes("features/canvas/ui/PanelExpandButton")
+        || specifier.includes("features/canvas/ui/nodeControlStyles")
+        || specifier.includes("features/canvas/ui/nodeActionToolbarStyles")
+        || specifier.includes("features/canvas/ui/canvasControlStyles")
+        || specifier.includes("features/canvas/ui/nodeToolbarConfig")
+        || specifier.includes("features/canvas/ui/ZoomScaledToolbar")
+        || specifier.includes("features/canvas/ui/NodeToolbarIconChip")
+        || specifier.includes("features/canvas/ui/NodeGenerationOverlay")
+        || specifier.includes("features/canvas/ui/RegenerateButton")
+        || specifier.includes("features/canvas/ui/EditableTableCell")
         || specifier === "./nodeFrameStyles",
       );
     expect(legacyNodeFrameImports).toEqual([]);
@@ -1333,6 +1441,15 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/NodePriceBadge.tsx",
       "features/canvas/ui/PanelExpandButton.tsx",
       "__tests__/features/canvas/node-resize-handle.test.tsx",
+      "features/canvas/ui/nodeControlStyles.ts",
+      "features/canvas/ui/nodeActionToolbarStyles.ts",
+      "features/canvas/ui/canvasControlStyles.ts",
+      "features/canvas/ui/nodeToolbarConfig.ts",
+      "features/canvas/ui/ZoomScaledToolbar.tsx",
+      "features/canvas/ui/NodeToolbarIconChip.tsx",
+      "features/canvas/ui/NodeGenerationOverlay.tsx",
+      "features/canvas/ui/RegenerateButton.tsx",
+      "features/canvas/ui/EditableTableCell.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredControllerPath)),
@@ -23287,8 +23404,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/ui/NodeOutputToolbarActions",
         "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter",
         "@/features/canvas/ui/VideoNodeToolbarActions",
-        "@/features/canvas/ui/ZoomScaledToolbar",
-        "./nodeToolbarConfig",
       ]),
     );
     for (const forbiddenViewLogic of [
@@ -23703,7 +23818,7 @@ describe("frontend architecture boundaries", () => {
     );
     const stylesPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/nodeActionToolbarStyles.ts",
+      "modules/creative_canvas/presentation/canvasNodeActionToolbarStyles.ts",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -23779,7 +23894,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/ui/VideoNodeToolbarActions",
     );
     expect(importSpecifiers(viewPath)).toContain(
-      "./nodeActionToolbarStyles",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/hooks/useVideoNodeToolbarController",
@@ -24031,7 +24146,6 @@ describe("frontend architecture boundaries", () => {
       "react-i18next",
       "@/features/canvas/canvasStore",
       "@/modules/creative_canvas/public",
-      "./nodeActionToolbarStyles",
     ]));
     expect(componentSource).toContain("useGroupNodeToolbarController({");
     expect(componentSource).toContain(
@@ -24157,8 +24271,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
-        "./nodeToolbarConfig",
-        "./ZoomScaledToolbar",
       ]),
     );
     expect(adapterSource).toContain(
@@ -24733,7 +24845,7 @@ describe("frontend architecture boundaries", () => {
     );
     const iconChipPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeToolbarIconChip.tsx",
+      "modules/creative_canvas/presentation/NodeToolbarIconChip.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -24829,7 +24941,7 @@ describe("frontend architecture boundaries", () => {
       "react",
       "lucide-react",
       "@/components/ui",
-      "./nodeActionToolbarStyles",
+      "./canvasNodeActionToolbarStyles",
     ]);
     expect(iconChipSource).not.toContain("useState");
     expect(iconChipSource).not.toContain("useEffect");
@@ -24887,7 +24999,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/imageNodeToolbarModel.ts"],
       ["features/canvas/hooks/useImageNodeToolbarController.ts"],
       ["features/canvas/ui/ImageNodeToolbarActionsView.tsx"],
-      ["features/canvas/ui/NodeToolbarIconChip.tsx"],
+      ["modules/creative_canvas/presentation/NodeToolbarIconChip.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageNodeToolbarModel"',
@@ -28395,7 +28507,10 @@ describe("frontend architecture boundaries", () => {
     const activeClassOwners = [
       viewPath,
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
-      resolve(SRC_ROOT, "features/canvas/ui/nodeControlStyles.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/canvasNodeControlStyles.ts",
+      ),
     ]
       .filter((path) => readFileSync(path, "utf8").includes(activeClass))
       .map(relativeSource)
@@ -28406,7 +28521,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/VideoCountPicker.tsx",
     ]);
     expect(activeClassOwners).toEqual([
-      "features/canvas/ui/nodeControlStyles.ts",
+      "modules/creative_canvas/presentation/canvasNodeControlStyles.ts",
     ]);
     expect(viewSource).toContain("options.map((option)");
     expect(viewSource).toContain("NODE_OPTION_ACTIVE_BUTTON_CLASS");

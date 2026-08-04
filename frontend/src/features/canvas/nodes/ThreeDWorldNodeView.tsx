@@ -11,6 +11,8 @@ import {
 } from '@/features/canvas/application/threeDWorldNodeModel';
 import {
   CANVAS_NODE_OPS_PANEL_CLASS,
+  NODE_INLINE_ERROR_MESSAGE_CLASS,
+  NodeGenerationOverlay,
   NodeResizeHandle,
   type CanvasGenerationHistoryRecord,
   type CanvasImageTo3dVisibleSourceKind,
@@ -22,12 +24,10 @@ import {
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;

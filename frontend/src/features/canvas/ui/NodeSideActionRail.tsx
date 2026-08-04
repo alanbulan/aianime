@@ -3,7 +3,7 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position, useStore } from '@xyflow
 import { useState, type ReactNode } from 'react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { ZoomScaledToolbar } from '@/features/canvas/ui/ZoomScaledToolbar';
+import { ZoomScaledToolbar } from '@/modules/creative_canvas/public';
 
 interface NodeSideActionRailProps {
   nodeId: string;

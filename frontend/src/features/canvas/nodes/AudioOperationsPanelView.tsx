@@ -15,19 +15,17 @@ import {
 import {
   CANVAS_NODE_OPS_PANEL_CLASS,
   MUSIC_LENGTH_PRESETS,
-  PanelExpandButton,
-} from '@/modules/creative_canvas/public';
-import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
-import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
-import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
+  PanelExpandButton,
+} from '@/modules/creative_canvas/public';
+import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
+import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
+import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { UiSelect } from '@/components/ui';
 import {

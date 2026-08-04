@@ -25,10 +25,19 @@ import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  EditableTableCell,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
+  NODE_INLINE_ICON_BUTTON_CLASS,
   hasCompletedHistoryRecords,
   NodeGenerationHistory,
+  NodeGenerationOverlay,
   NodeResizeHandle,
   PanelExpandButton,
+  RegenerateButton,
   canvasNodeFrameClass,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptRow,
@@ -36,22 +45,11 @@ import {
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
-import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
-import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
-  NODE_INLINE_ICON_BUTTON_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

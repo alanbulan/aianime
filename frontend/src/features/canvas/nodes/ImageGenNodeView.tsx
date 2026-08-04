@@ -33,9 +33,21 @@ import {
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_OPS_PANEL_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
+  NODE_INLINE_ICON_BUTTON_CLASS,
+  NODE_REFERENCE_MEDIA_CHIP_CLASS,
+  NODE_REFERENCE_MEDIA_DETACH_CLASS,
+  NODE_TEXT_CONTROL_ICON_CLASS,
+  NODE_TEXT_CONTROL_TRIGGER_CLASS,
   NodeGenerationHistory,
+  NodeGenerationOverlay,
   NodeResizeHandle,
   PanelExpandButton,
+  RegenerateButton,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
@@ -51,7 +63,6 @@ import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPromp
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -61,24 +72,11 @@ import {
   OperationPanelShell,
 } from '@/features/canvas/ui/OperationPanelShell';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from '@/features/canvas/ui/NodeSideActionRail';
-import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
-  NODE_INLINE_ICON_BUTTON_CLASS,
-  NODE_REFERENCE_MEDIA_CHIP_CLASS,
-  NODE_REFERENCE_MEDIA_DETACH_CLASS,
-  NODE_TEXT_CONTROL_ICON_CLASS,
-  NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';

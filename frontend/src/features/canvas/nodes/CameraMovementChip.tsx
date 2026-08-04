@@ -5,13 +5,11 @@ import { createPortal } from "react-dom";
 
 import { CameraMovementPickerPopover } from "@/features/canvas/nodes/CameraMovementPickerPopover";
 import {
+  NODE_TEXT_CONTROL_ICON_CLASS,
+  NODE_TEXT_CONTROL_TRIGGER_CLASS,
   findCameraMovementPreset,
   type CameraMovementPreset,
 } from "@/modules/creative_canvas/public";
-import {
-  NODE_TEXT_CONTROL_ICON_CLASS,
-  NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
 
 const CAMERA_MOVEMENT_POPOVER_WIDTH = 640;
 const CAMERA_MOVEMENT_POPOVER_MAX_HEIGHT = 560;

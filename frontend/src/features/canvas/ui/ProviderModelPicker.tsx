@@ -4,16 +4,14 @@ import { createPortal } from 'react-dom';
 import { Box, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_TEXT_CONTROL_ICON_CLASS,
+  NODE_TEXT_CONTROL_TRIGGER_CLASS,
   useCanvasImageModels,
   useCanvasVideoModels,
   type CanvasCatalogModelOption,
   type CanvasImageMode,
 } from '@/modules/creative_canvas/public';
-import {
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  NODE_TEXT_CONTROL_ICON_CLASS,
-  NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
 
 const MODEL_PICKER_POPOVER_WIDTH = 260;
 const MODEL_PICKER_POPOVER_CLASS =

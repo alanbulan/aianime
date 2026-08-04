@@ -5,7 +5,6 @@ import { AlertTriangle, Image as ImageIcon, Sparkles } from 'lucide-react';
 import type { ImageNodeController } from '@/features/canvas/hooks/useImageNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -13,10 +12,11 @@ import {
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   CandidateBindingBadges,
+  NodeGenerationOverlay,
   NodeResizeHandle,
+  RegenerateButton,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
-import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 
 export function ImageNodeView({
   controller,

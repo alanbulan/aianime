@@ -26,8 +26,21 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  RegenerateButton: ({
+    onClick,
+    label,
+  }: {
+    onClick(): void;
+    label: string;
+  }) => (
+    <button type="button" onClick={onClick}>{label}</button>
+  ),
+  NodeContextBadges: () => <div>context-badges</div>,
+  NodeResizeHandle: () => <div>resize-handle</div>,
+  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  canvasNodeFrameClass: () => 'frame-class',
 }));
 
 vi.mock('@/features/canvas/ui/AudioWaveformPlayer', () => ({
@@ -44,18 +57,6 @@ vi.mock('@/features/canvas/ui/AudioWaveformPlayer', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
-  RegenerateButton: ({
-    onClick,
-    label,
-  }: {
-    onClick(): void;
-    label: string;
-  }) => (
-    <button type="button" onClick={onClick}>{label}</button>
-  ),
-}));
-
 vi.mock('@/features/canvas/nodes/AudioOperationsPanel', () => ({
   AudioOperationsPanel: ({
     projectId,
@@ -68,13 +69,6 @@ vi.mock('@/features/canvas/nodes/AudioOperationsPanel', () => ({
   }) => (
     <div>operations:{projectId}:{canvasId}:{nodeId}</div>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
-  NodeContextBadges: () => <div>context-badges</div>,
-  NodeResizeHandle: () => <div>resize-handle</div>,
-  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
-  canvasNodeFrameClass: () => 'frame-class',
 }));
 
 function createController(): AudioNodeController {

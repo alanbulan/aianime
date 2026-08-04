@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
 import {
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
   type CameraMovementPreset,
   resolveCameraPresetVideoUrl,
 } from '@/modules/creative_canvas/public';
-import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 const CAMERA_MOVEMENT_PANEL_CLASS =
   `nodrag nowheel flex w-[640px] flex-col ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;

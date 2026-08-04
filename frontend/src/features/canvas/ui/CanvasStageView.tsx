@@ -24,6 +24,9 @@ import { edgeTypes as canvasEdgeTypes } from '../edges';
 import { createCanvasNodeTypes } from '../nodes';
 import {
   CanvasContextMenu,
+  CANVAS_CONTROL_GLASS_CLASS,
+  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
+  CANVAS_CONTROL_ICON_BUTTON_CLASS,
   CanvasMinimapButton,
   CanvasQuickActionBar,
   CanvasSnapAlignButton,
@@ -37,11 +40,6 @@ import {
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
-import {
-  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
-  CANVAS_CONTROL_ICON_BUTTON_CLASS,
-  CANVAS_CONTROL_GLASS_CLASS,
-} from './canvasControlStyles';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';

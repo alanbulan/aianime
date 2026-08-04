@@ -33,13 +33,7 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeResizeHandle: () => <div>resize-handle</div>,
-}));
-
-vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
-}));
-
-vi.mock('@/features/canvas/ui/EditableTableCell', () => ({
   EditableTableCell: ({
     value,
     onCommit,

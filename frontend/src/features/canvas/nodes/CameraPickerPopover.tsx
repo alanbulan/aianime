@@ -4,10 +4,10 @@ import { Aperture, Camera, ChevronDown, Focus, X } from 'lucide-react';
 
 import type { ImageGenCameraSelection } from '@/features/canvas/domain/canvasNodes';
 import {
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
   useCanvasCameraOptions,
   type CanvasCameraOptions,
 } from '@/modules/creative_canvas/public';
-import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 // Wheel geometry keeps the chosen item centered in a compact viewport.
 const ITEM_HEIGHT = 88;

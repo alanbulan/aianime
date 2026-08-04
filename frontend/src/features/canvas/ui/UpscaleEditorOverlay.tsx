@@ -9,6 +9,11 @@ import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
   CANVAS_UPSCALE_IMAGE_SIZES,
   CANVAS_UPSCALE_SCALE_FACTORS,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_TOOLBAR_CLASS,
+  ZoomScaledToolbar,
   generateCanvasUpscale,
   generationTaskDescriptor,
   resolveCanvasUpscaleImageSize,
@@ -21,13 +26,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from './nodeControlStyles';
-import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;

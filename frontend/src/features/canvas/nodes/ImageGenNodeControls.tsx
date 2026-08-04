@@ -8,6 +8,10 @@ import {
   IMAGE_GEN_COUNT_OPTIONS,
   IMAGE_GEN_QUALITY_OPTIONS,
   IMAGE_GEN_SIZE_OPTIONS,
+  NODE_COUNT_POPOVER_CLASS,
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_TEXT_CONTROL_ICON_CLASS,
+  NODE_TEXT_CONTROL_TRIGGER_CLASS,
   resolveNearestImageGenAspectOption,
 } from '@/modules/creative_canvas/public';
 import type {
@@ -22,12 +26,6 @@ import {
   CameraPickerPopover,
 } from '@/features/canvas/nodes/CameraPickerPopover';
 import { StylePickerPopover } from '@/features/canvas/nodes/StylePickerPopover';
-import {
-  NODE_COUNT_POPOVER_CLASS,
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  NODE_TEXT_CONTROL_ICON_CLASS,
-  NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
 
 const IMAGE_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;

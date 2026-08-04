@@ -27,6 +27,10 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+  NODE_TOOLBAR_CLASS,
   DEFAULT_CANVAS_NODE_WIDTH,
   CANVAS_REDRAW_IMAGE_SIZES,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
@@ -40,12 +44,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import {
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from './nodeControlStyles';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

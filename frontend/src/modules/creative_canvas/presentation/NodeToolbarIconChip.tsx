@@ -3,11 +3,10 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { UiChipButton } from "@/components/ui";
-
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
   NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from "./canvasNodeActionToolbarStyles";
 
 export interface NodeToolbarIconChipProps {
   label: string;

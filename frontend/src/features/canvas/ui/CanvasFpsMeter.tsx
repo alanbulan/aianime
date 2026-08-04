@@ -6,7 +6,7 @@ import {
   CANVAS_CONTROL_GLASS_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,
-} from './canvasControlStyles';
+} from '@/modules/creative_canvas/public';
 
 /**
  * 画布右上角的 FPS 计量器:点击按钮开启后,用 requestAnimationFrame 实时统计帧率

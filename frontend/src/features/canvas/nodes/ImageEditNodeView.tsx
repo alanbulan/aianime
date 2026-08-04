@@ -7,19 +7,17 @@ import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
 import {
-  NODE_CONTROL_CHIP_CLASS,
-  NODE_CONTROL_ICON_CLASS,
-  NODE_CONTROL_MODEL_CHIP_CLASS,
-  NODE_CONTROL_PARAMS_CHIP_CLASS,
-  NODE_CONTROL_PRIMARY_BUTTON_CLASS,
-} from '@/features/canvas/ui/nodeControlStyles';
-import {
   AssetLibraryModal,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   IMAGE_EDIT_NODE_SIZE_LIMITS,
+  NODE_CONTROL_CHIP_CLASS,
+  NODE_CONTROL_ICON_CLASS,
+  NODE_CONTROL_MODEL_CHIP_CLASS,
+  NODE_CONTROL_PARAMS_CHIP_CLASS,
+  NODE_CONTROL_PRIMARY_BUTTON_CLASS,
   NodePriceBadge,
   NodeResizeHandle,
   canvasNodeFrameClass,

@@ -11,6 +11,8 @@ import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  NODE_TOOLBAR_CLASS,
+  ZoomScaledToolbar,
   generationTaskDescriptor,
   generateCanvasRelight,
   inheritMainlineFields,
@@ -21,8 +23,6 @@ import {
   type LightMainLightDescriptor,
   type LightSmartModeDescriptor,
 } from '@/features/canvas/ui/LightEditorPanel';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
 export interface LightEditorRequestPayload {
   sourceNodeId: string;

@@ -1,25 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from 'react';
 
-type NodeGenerationOverlayProps = {
-  /** 生成开始时间戳,用于模拟进度。为空时从挂载时刻开始计时。 */
+export interface NodeGenerationOverlayProps {
   startedAt?: number | null;
-  /** 预估生成总时长(毫秒),用于模拟进度推进。 */
   durationMs?: number;
   /** @deprecated 仅保留兼容旧调用，加载态不再绘制背景遮罩。 */
   hasBackground?: boolean;
-  /** 圆角,默认跟随节点圆角变量。 */
   rounded?: string;
-  /** 进度文案的 i18n key,需接收 {{percent}} 插值。默认「生成中 X%」。 */
   messageKey?: string;
-};
+}
 
 const DEFAULT_DURATION_MS = 60000;
 
-/**
- * 节点生成中的统一 loading 覆盖层:
- * - 中央直接显示百分比,不再额外叠加遮罩、图标或状态文案
- */
 export function NodeGenerationOverlay({
   startedAt = null,
   durationMs = DEFAULT_DURATION_MS,

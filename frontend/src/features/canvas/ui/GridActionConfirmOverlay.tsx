@@ -10,6 +10,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  NODE_TOOLBAR_CLASS,
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -22,7 +23,6 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   const normalized = String(apiModel ?? '').trim().toLowerCase();

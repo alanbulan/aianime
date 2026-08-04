@@ -5,18 +5,18 @@ import { AlertTriangle, Music2 } from 'lucide-react';
 import type { AudioNodeController } from '@/features/canvas/hooks/useAudioNodeController';
 import { AudioOperationsPanel } from '@/features/canvas/nodes/AudioOperationsPanel';
 import { AudioWaveformPlayer } from '@/features/canvas/ui/AudioWaveformPlayer';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   NodeContextBadges,
+  NodeGenerationOverlay,
   NodeResizeHandle,
+  RegenerateButton,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 
 export function AudioNodeView({
   controller,

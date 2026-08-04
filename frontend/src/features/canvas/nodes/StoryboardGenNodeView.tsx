@@ -8,6 +8,7 @@ import { UiButton } from '@/components/ui';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NODE_CONTROL_PRIMARY_BUTTON_CLASS,
   NodePriceBadge,
   NodeResizeHandle,
   STORYBOARD_GEN_FRAME_GRID_GAP_PX,
@@ -21,7 +22,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NODE_CONTROL_PRIMARY_BUTTON_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
 const STORYBOARD_GEN_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_GEN_ICON_ADJUST = { x: 0, y: 0, scale: 0.95 };

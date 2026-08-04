@@ -45,9 +45,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     minWidth: number;
     minHeight: number;
   }) => <div>resize:{minWidth}:{minHeight}</div>,
-}));
-
-vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: ({ durationMs }: { durationMs: number }) => (
     <div>generation-overlay:{durationMs}</div>
   ),

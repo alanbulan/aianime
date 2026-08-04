@@ -3,12 +3,12 @@ import { memo } from "react";
 
 import type { CanvasNodeData } from "@/features/canvas/domain/canvasNodes";
 import { useImageEditToolbarController } from "@/features/canvas/composition";
-import { ImageEditToolbarActionsView } from "@/modules/creative_canvas/public";
 import {
+  ImageEditToolbarActionsView,
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from "@/modules/creative_canvas/public";
 
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

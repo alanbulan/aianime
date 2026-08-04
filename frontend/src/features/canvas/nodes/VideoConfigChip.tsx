@@ -6,15 +6,13 @@ import { useTranslation } from "react-i18next";
 import type {
   VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
-import type {
-  Seedance2SceneOptimize,
-  VideoGenQuality,
-} from "@/modules/creative_canvas/public";
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
+  type Seedance2SceneOptimize,
+  type VideoGenQuality,
+} from "@/modules/creative_canvas/public";
 
 const VIDEO_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[320px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;

@@ -17,11 +17,11 @@ import {
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
   DEFAULT_CANVAS_NODE_WIDTH,
+  NODE_TOOLBAR_CLASS,
   loadImageElement,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 
 interface RotateEditorOverlayProps {
   projectId: string;

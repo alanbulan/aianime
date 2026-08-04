@@ -4,14 +4,14 @@ import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Expand, FileVideo2, X } from 'lucide-react';
 
 import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoStoryNodeController';
-import { EditableTableCell } from '@/features/canvas/ui/EditableTableCell';
-import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  EditableTableCell,
+  NodeGenerationOverlay,
   NodeResizeHandle,
   type VideoStoryRow,
   canvasNodeFrameClass,

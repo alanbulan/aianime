@@ -5,14 +5,11 @@ import { useTranslation } from "react-i18next";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   GroupNodeToolbarActionsView,
-  useGroupNodeToolbarController,
-} from "@/modules/creative_canvas/public";
-
-import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+  useGroupNodeToolbarController,
+} from "@/modules/creative_canvas/public";
 
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

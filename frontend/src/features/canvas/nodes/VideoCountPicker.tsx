@@ -8,7 +8,7 @@ import {
   NODE_COUNT_POPOVER_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
+} from "@/modules/creative_canvas/public";
 
 const VIDEO_COUNT_OPTION_BASE_CLASS =
   "block w-full rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors";

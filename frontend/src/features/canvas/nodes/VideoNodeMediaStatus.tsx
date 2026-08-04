@@ -2,8 +2,10 @@
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { NodeGenerationOverlay } from "@/features/canvas/ui/NodeGenerationOverlay";
-import { RegenerateButton } from "@/features/canvas/ui/RegenerateButton";
+import {
+  NodeGenerationOverlay,
+  RegenerateButton,
+} from "@/modules/creative_canvas/public";
 
 export function VideoUploadingState() {
   const { t } = useTranslation();

@@ -17,15 +17,13 @@ import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
-  useCanvasImageModels,
-  type CanvasRelightKeyLightDirection,
-} from "@/modules/creative_canvas/public";
-import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
-} from "@/features/canvas/ui/nodeControlStyles";
+  useCanvasImageModels,
+  type CanvasRelightKeyLightDirection,
+} from "@/modules/creative_canvas/public";
 
 export type LightPresetKey =
   | "overexposedFilm"
