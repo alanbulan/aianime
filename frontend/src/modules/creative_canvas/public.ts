@@ -2859,6 +2859,8 @@ export type {
   VideoAlbumGalleryProps,
   VideoAlbumToggleButtonProps,
 } from "@/modules/creative_canvas/presentation/VideoAlbumControls";
+export { VideoNodeEmptyState } from "@/modules/creative_canvas/presentation/VideoNodeEmptyState";
+export type { VideoNodeEmptyStateProps } from "@/modules/creative_canvas/presentation/VideoNodeEmptyState";
 export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
 export {
   VideoNodeGenerationHistoryPanel,

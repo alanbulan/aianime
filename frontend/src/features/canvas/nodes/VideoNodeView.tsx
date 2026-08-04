@@ -35,6 +35,7 @@ import {
   VideoAlbumDeck,
   VideoAlbumGallery,
   VideoAlbumToggleButton,
+  VideoNodeEmptyState,
   VideoNodeGenerationHistoryPanel,
   VideoPlayerControls,
   VideoGeneratingState,
@@ -46,10 +47,7 @@ import {
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import {
-  VideoNodeEmptyState,
-  VideoUploadActionRail,
-} from '@/features/canvas/nodes/VideoNodeEmptyState';
+import { VideoUploadActionRail } from '@/features/canvas/nodes/VideoUploadActionRail';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

@@ -2,50 +2,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  VideoNodeEmptyState,
-  VideoUploadActionRail,
-} from "./VideoNodeEmptyState";
+import { VideoNodeEmptyState } from "./VideoNodeEmptyState";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) =>
-      ({
-        "node.videoNode.clickToUpload": "点击上传视频",
-        "node.videoNode.upload": "上传",
-        "node.videoUpscale.placeholder": "等待上游视频",
-      })[key] ?? key,
+      ({ "node.videoUpscale.placeholder": "等待上游视频" })[key] ?? key,
   }),
 }));
 
-vi.mock("@/features/canvas/ui/NodeSideActionRail", () => ({
-  NODE_SIDE_ACTION_BUTTON_CLASS: "side-action",
-  NODE_SIDE_ACTION_ICON_CLASS: "side-icon",
-  NodeSideActionRail: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="side-action-rail">{children}</div>
-  ),
-}));
-
 describe("VideoNodeEmptyState", () => {
-  it("routes the upload command without bubbling to the node", () => {
-    const onNodeClick = vi.fn();
-    const onUpload = vi.fn();
-    render(
-      <div onClick={onNodeClick}>
-        <VideoUploadActionRail
-          nodeId="video-1"
-          selected
-          onUpload={onUpload}
-        />
-      </div>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "上传" }));
-
-    expect(onUpload).toHaveBeenCalledOnce();
-    expect(onNodeClick).not.toHaveBeenCalled();
-  });
-
   it("offers both frame-source commands without upstream video", () => {
     const onNodeClick = vi.fn();
     const onSpawnFirstLastFrame = vi.fn();

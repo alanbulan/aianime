@@ -28105,12 +28105,21 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
   });
 
-  it("keeps VideoNode empty and upload states in one presentation view", () => {
+  it("keeps VideoNode empty and upload states in explicit presentation owners", () => {
     const viewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeEmptyState.tsx",
+    );
+    const uploadRailPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoUploadActionRail.tsx",
+    );
+    const oldCombinedPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/VideoNodeEmptyState.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
+    const uploadRailSource = readFileSync(uploadRailPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
@@ -28123,8 +28132,8 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier.startsWith("@/features/canvas/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier === "@/features/canvas/composition",
     );
     const declarations = [
@@ -28139,15 +28148,43 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldCombinedPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/VideoNodeEmptyState.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/nodes/VideoUploadActionRail.test.tsx",
+        ),
+      ),
+    ).toBe(true);
     expect(implementationOwners).toEqual(
-      declarations.map(() => [
-        "features/canvas/nodes/VideoNodeEmptyState.tsx",
-      ]),
+      [
+        ["features/canvas/nodes/VideoUploadActionRail.tsx"],
+        ["modules/creative_canvas/presentation/VideoNodeEmptyState.tsx"],
+      ],
     );
-    expect(viewSource).toContain("<NodeSideActionRail");
+    expect(viewSource).not.toContain("<NodeSideActionRail");
+    expect(uploadRailSource).toContain("<NodeSideActionRail");
+    expect(uploadRailSource).toContain(
+      "@/features/canvas/ui/NodeSideActionRail",
+    );
     expect(viewSource).toContain("首尾帧生成视频");
     expect(viewSource).toContain("hasUpstreamVideo");
     expect(videoNode).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoUploadActionRail",
+    );
+    expect(videoNode).not.toContain(
       "@/features/canvas/nodes/VideoNodeEmptyState",
     );
     expect(videoNode).toContain("<VideoUploadActionRail");

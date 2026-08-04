@@ -1,43 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { Layers, Play, Sparkles, Upload } from "lucide-react";
+import { Layers, Play, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-import {
-  NODE_SIDE_ACTION_BUTTON_CLASS,
-  NODE_SIDE_ACTION_ICON_CLASS,
-  NodeSideActionRail,
-} from "@/features/canvas/ui/NodeSideActionRail";
-
-export interface VideoUploadActionRailProps {
-  nodeId: string;
-  selected: boolean;
-  onUpload: () => void;
-}
-
-export function VideoUploadActionRail({
-  nodeId,
-  selected,
-  onUpload,
-}: VideoUploadActionRailProps) {
-  const { t } = useTranslation();
-
-  return (
-    <NodeSideActionRail nodeId={nodeId} autoHide selected={selected}>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onUpload();
-        }}
-        className={NODE_SIDE_ACTION_BUTTON_CLASS}
-        title={t("node.videoNode.clickToUpload")}
-      >
-        <Upload className={NODE_SIDE_ACTION_ICON_CLASS} />
-        <span>{t("node.videoNode.upload")}</span>
-      </button>
-    </NodeSideActionRail>
-  );
-}
 
 export interface VideoNodeEmptyStateProps {
   isUpscaleNode: boolean;
