@@ -1210,6 +1210,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百一十七批将快捷添加面板、节点网格、技能分组行、技能子面板和图标映射迁入 Creative Canvas presentation，使快捷栏与节点选择菜单共享同一组展示基元。节点顺序继续只由 `NODE_SELECTION_MENU_ADD_NODE_TYPES` 持有，技能分组与隐藏技能规则继续只由 `skillGroupsForNodeSelectionMenu` 持有；旧 Canvas 快捷添加面板、旧共享菜单文件及旧测试路径直接删除，不保留 facade、re-export 或第二套实现。`CanvasQuickActionBar` 仅经模块 public 使用新面板，`Canvas.tsx` 将同一份由 `nodeRegistry` 投影的 `NODE_SELECTION_MENU_DEFINITIONS` 注入节点选择菜单与快捷添加菜单，模块不反向依赖旧 Canvas。定向 7 个文件 17 项、残余门禁 11 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 889/342/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 342/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百一十八批将画布快捷栏状态与定位、快捷键面板、帮助菜单及键盘/触控板/鼠标三种平移手势图标迁入 Creative Canvas presentation。模块以 `HistoryAssetsModal: ComponentType<CanvasHistoryAssetsModalCommandProps>` 组件端口调用既有历史素材适配器；`CanvasStageView` 在旧 Canvas 边界注入 `CanvasHistoryAssetsModalAdapter`，Zustand 节点投影、媒体 URL、下载、图片/视频/3D Viewer 装配仍由唯一旧适配器持有，模块不反向依赖旧 Canvas、Store 或 Viewer Kit。4 个旧展示所有者直接删除，不保留 facade、re-export 或第二套实现；模块 public 收紧为只暴露快捷栏及外部必需的菜单定义类型，快捷添加面板和菜单基元保持模块私有。快捷操作及相关回归 7 个文件 13 项、残余门禁 11 项、完整模块边界 329 项、颜色字面量门禁、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 894/338/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 338/0。首次定向回归的 1 项失败源于测试把按钮 `aria-label` 当成第二段可见文案，修正为验证面板标题后通过；完整模块门禁首次 328/329，唯一失败为旧断言仍要求快捷栏重复持有 `CanvasHistoryAssetPlacement`，按复用命令端口后的真实合同更新并复跑全绿。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
