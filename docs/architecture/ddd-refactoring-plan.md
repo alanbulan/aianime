@@ -1204,6 +1204,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百一十三批将图片编辑工具栏 controller factory/test/View 迁入 Creative Canvas presentation；控制器通过注入的抠图 Hook 与裁剪事件端口编排重绘、擦除、抠图、裁剪、高清和扩图，模块不反向依赖旧 Canvas、Store、API 或自身 public。Canvas `composition.ts` 唯一注入已组合抠图 Hook 与工具事件，旧 Canvas 装配组件只提供真实节点数据、页面回调和样式合同。旧 controller/test/View 直接删除，不保留 facade、re-export 或第二套实现。新 controller 2 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 874/354/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 354/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百一十五批将一跳上游节点的连线顺序、手动引用排序和节点自带参考图优先去重规则迁入 Creative Canvas domain，将按节点订阅、浅比较及内容/图片投影 Hook factory 迁入 presentation。Canvas `composition.ts` 唯一注入 Zustand Store、旧 Canvas 节点内容投影和图片投影，所有生产消费者统一经组合根使用；旧 Hook、旧排序规则及旧测试路径直接删除，不保留 facade、re-export 或第二套实现。领域与 Hook 定向 2 个文件 12 项、受影响控制器 8 个文件 38 项、残余门禁 11 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 878/352/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 352/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
