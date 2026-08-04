@@ -1198,6 +1198,12 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百零九批将上游引用解绑的边匹配规则迁入 Creative Canvas domain，将命令 Hook/测试迁入 presentation；纯规则返回指定 source/target 的全部边 ID，Hook 通过 `readEdges/useDeleteEdge` 窄端口在命令执行时读取最新图状态，Canvas `composition.ts` 唯一注入 Zustand。Audio Operations、Image Edit、Three D World 三个消费者统一经组合根使用，旧 Hook 直接删除，不保留 facade、re-export 或第二套实现。首轮测试发现直接 `forEach(deleteEdge)` 会把索引和数组额外传给删除端口，收紧为显式单参数调用后，业务定向 Vitest 5 个文件 18 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 864/364/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 364/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百一十一批将图片宫格工具栏 controller/test/View 迁入 Creative Canvas presentation；控制器直接依赖本域宫格规则与唯一 Hover Menu，View 通过样式合同保持展示层可复用，旧 Canvas 仅保留真实页面回调与工具栏样式适配器。三个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套实现。定向 Vitest 3 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；提交后实测 Creative Canvas/Canvas 为 867/361。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百一十二批将图片抠图 controller factory/test 迁入 Creative Canvas presentation，将浏览器 Worker client 与 Worker 本体迁入 infrastructure；Canvas `composition.ts` 唯一注入 Zustand 节点写入、平台对象存储上传、fetch、空闲调度、时钟和 Worker，模块控制器只持有业务时序与窄端口。旧 Hook、client、Worker 四个路径直接删除，不保留 facade、re-export 或第二套实现；导出节点尺寸继续复用本域唯一常量。抠图 controller 4 项、图片编辑工具栏回归 2 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；平台对象存储、商业 Gateway、登录鉴权、Cloud/BYOK 和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百一十三批将图片编辑工具栏 controller factory/test/View 迁入 Creative Canvas presentation；控制器通过注入的抠图 Hook 与裁剪事件端口编排重绘、擦除、抠图、裁剪、高清和扩图，模块不反向依赖旧 Canvas、Store、API 或自身 public。Canvas `composition.ts` 唯一注入已组合抠图 Hook 与工具事件，旧 Canvas 装配组件只提供真实节点数据、页面回调和样式合同。旧 controller/test/View 直接删除，不保留 facade、re-export 或第二套实现。新 controller 2 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 874/354/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 354/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
