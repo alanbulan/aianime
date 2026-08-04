@@ -891,6 +891,17 @@ export type {
   ImageEditToolbarActionProjection,
   ImageEditToolbarProjection,
 } from "@/modules/creative_canvas/domain/imageEditToolbarModel";
+export { createUseImageEditToolbarController } from "@/modules/creative_canvas/presentation/useImageEditToolbarController";
+export type {
+  ImageEditToolbarController,
+  ImageEditToolbarControllerDependencies,
+  ImageEditToolbarControllerOptions,
+} from "@/modules/creative_canvas/presentation/useImageEditToolbarController";
+export { ImageEditToolbarActionsView } from "@/modules/creative_canvas/presentation/ImageEditToolbarActionsView";
+export type {
+  ImageEditToolbarActionsViewProps,
+  ImageEditToolbarStyleClasses,
+} from "@/modules/creative_canvas/presentation/ImageEditToolbarActionsView";
 export { useHoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export type { HoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export { projectImageGridToolbarActions } from "@/modules/creative_canvas/domain/imageGridToolbarModel";

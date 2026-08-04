@@ -2,9 +2,19 @@
 import { memo } from "react";
 
 import type { CanvasNodeData } from "@/features/canvas/domain/canvasNodes";
-import { useImageEditToolbarController } from "@/features/canvas/hooks/useImageEditToolbarController";
+import { useImageEditToolbarController } from "@/features/canvas/composition";
+import { ImageEditToolbarActionsView } from "@/modules/creative_canvas/public";
+import {
+  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
+  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
+  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+} from "./nodeActionToolbarStyles";
 
-import { ImageEditToolbarActionsView } from "./ImageEditToolbarActionsView";
+const toolbarStyles = {
+  menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
+  menuItem: NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
+  textButton: NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+};
 
 export interface ImageEditToolbarActionsProps {
   projectId: string;
@@ -41,7 +51,12 @@ export const ImageEditToolbarActions = memo(
       onOpenUpscale,
       onOpenOutpaint,
     });
-    return <ImageEditToolbarActionsView controller={controller} />;
+    return (
+      <ImageEditToolbarActionsView
+        controller={controller}
+        styles={toolbarStyles}
+      />
+    );
   },
 );
 

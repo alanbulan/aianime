@@ -7,23 +7,17 @@ import {
   ImageUpscale,
   Scissors,
   Wand2,
-} from "lucide-react";
+} from 'lucide-react';
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu";
-import { UiChipButton } from "@/components/ui";
-import type { ImageEditToolbarController } from "@/features/canvas/hooks/useImageEditToolbarController";
-import type { ImageEditToolbarActionKey } from "@/modules/creative_canvas/public";
-
-import {
-  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
-  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
-  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from '@/components/shadcn/dropdown-menu';
+import { UiChipButton } from '@/components/ui';
+import type { ImageEditToolbarActionKey } from '../domain/imageEditToolbarModel';
+import type { ImageEditToolbarController } from './useImageEditToolbarController';
 
 const actionIconMap: Record<ImageEditToolbarActionKey, typeof Crop> = {
   repaint: Wand2,
@@ -34,12 +28,20 @@ const actionIconMap: Record<ImageEditToolbarActionKey, typeof Crop> = {
   outpaint: Expand,
 };
 
+export interface ImageEditToolbarStyleClasses {
+  menuContent: string;
+  menuItem: string;
+  textButton: string;
+}
+
 export interface ImageEditToolbarActionsViewProps {
   controller: ImageEditToolbarController;
+  styles: ImageEditToolbarStyleClasses;
 }
 
 export function ImageEditToolbarActionsView({
   controller,
+  styles,
 }: ImageEditToolbarActionsViewProps) {
   const {
     actions,
@@ -54,7 +56,7 @@ export function ImageEditToolbarActionsView({
     <DropdownMenu {...menuRootProps}>
       <DropdownMenuTrigger asChild>
         <UiChipButton
-          className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
+          className={styles.textButton}
           onClick={(event) => event.stopPropagation()}
           {...menuHoverProps}
         >
@@ -66,7 +68,7 @@ export function ImageEditToolbarActionsView({
       <DropdownMenuContent
         align="start"
         sideOffset={6}
-        className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[180px]`}
+        className={`${styles.menuContent} min-w-[180px]`}
         onClick={(event) => event.stopPropagation()}
         {...menuHoverProps}
       >
@@ -75,7 +77,7 @@ export function ImageEditToolbarActionsView({
           return (
             <DropdownMenuItem
               key={action.key}
-              className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
+              className={styles.menuItem}
               onSelect={() => selectAction(action.key)}
             >
               <Icon className="h-4 w-4" />

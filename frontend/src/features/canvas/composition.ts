@@ -22,6 +22,7 @@ import {
   createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
   createUseDetachUpstream,
+  createUseImageEditToolbarController,
   createUseImageMatteController,
   createUseIsBoxSelecting,
   detectAspectRatio as detectAspectRatioUseCase,
@@ -53,6 +54,7 @@ import {
   freezoneSceneAssetsGateway,
   type CanvasAssetDragPayload,
   type CanvasBeatDirectorManifestGateway,
+  NODE_TOOL_TYPES,
   type ExportStoryboardGridCommand,
   type GetCanvasBeatDirectorManifestParams,
   type GetCanvasDirectorStagePaletteParams,
@@ -273,6 +275,16 @@ export const useImageMatteController = createUseImageMatteController({
   exportNodeHeight: EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   reportError: (message, error) => console.error(message, error),
 });
+export const useImageEditToolbarController =
+  createUseImageEditToolbarController({
+    useImageMatteController,
+    openCropTool: (nodeId) => {
+      canvasEventBus.publish('tool-dialog/open', {
+        nodeId,
+        toolType: NODE_TOOL_TYPES.crop,
+      });
+    },
+  });
 export const useCanvasGenerationRecoveryController =
   createUseCanvasGenerationRecoveryController({
     usePendingExportImageNodeIds,

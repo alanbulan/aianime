@@ -24126,11 +24126,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditToolbarController.ts",
+      "modules/creative_canvas/presentation/useImageEditToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useImageEditToolbarController.test.tsx",
     );
     const gridControllerPath = resolve(
       SRC_ROOT,
@@ -24142,7 +24142,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageEditToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/ImageEditToolbarActionsView.tsx",
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
@@ -24166,7 +24166,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export function", "projectImageEditToolbar("].join(" "),
       ["export function", "useHoverMenuController("].join(" "),
-      ["export function", "useImageEditToolbarController("].join(" "),
+      ["export function", "createUseImageEditToolbarController("].join(" "),
       ["export function", "ImageEditToolbarActionsView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -24200,9 +24200,9 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/composition",
-        "@/modules/creative_canvas/public",
+        "../domain/imageEditToolbarModel",
+        "./useImageMatteController",
+        "./useHoverMenuController",
       ]),
     );
     expect(controllerSource).toContain("useHoverMenuController()");
@@ -24210,6 +24210,10 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<UiChipButton");
     expect(controllerSource).not.toContain("<DropdownMenu");
+    expect(controllerSource).not.toContain("@/features/");
+    expect(controllerSource).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
     for (const forbiddenViewDependency of [
       "useCanvasStore",
       "useTranslation",
@@ -24228,9 +24232,8 @@ describe("frontend architecture boundaries", () => {
       expect(viewSource).not.toContain(forbiddenViewDependency);
     }
     expect(componentSource).toContain("useImageEditToolbarController({");
-    expect(componentSource).toContain(
-      "<ImageEditToolbarActionsView controller={controller} />",
-    );
+    expect(componentSource).toContain("<ImageEditToolbarActionsView");
+    expect(componentSource).toContain("styles={toolbarStyles}");
     expect(componentSource).not.toContain("onMatteImage");
     expect(importSpecifiers(imageToolbarViewPath)).toContain(
       "./ImageEditToolbarActions",
@@ -24265,8 +24268,8 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageEditToolbarModel.ts"],
       ["modules/creative_canvas/presentation/useHoverMenuController.ts"],
-      ["features/canvas/hooks/useImageEditToolbarController.ts"],
-      ["features/canvas/ui/ImageEditToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/useImageEditToolbarController.ts"],
+      ["modules/creative_canvas/presentation/ImageEditToolbarActionsView.tsx"],
     ]);
     expect(importSpecifiers(resolve(
       SRC_ROOT,
@@ -24281,8 +24284,8 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageEditToolbarModel"',
     );
-    expect(readFileSync(controllerTestPath, "utf8")).toContain(
-      'from "./useImageEditToolbarController"',
+    expect(importSpecifiers(controllerTestPath)).toContain(
+      "./useImageEditToolbarController",
     );
     expect(existsSync(resolve(
       SRC_ROOT,
@@ -24292,6 +24295,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/imageEditToolbarModel.test.ts",
     ))).toBe(false);
+    for (const legacyPath of [
+      "features/canvas/hooks/useImageEditToolbarController.ts",
+      "features/canvas/hooks/useImageEditToolbarController.test.tsx",
+      "features/canvas/ui/ImageEditToolbarActionsView.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
   });
 
   it("separates image matting projections from browser orchestration", () => {
@@ -24325,7 +24335,7 @@ describe("frontend architecture boundaries", () => {
     );
     const editControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditToolbarController.ts",
+      "modules/creative_canvas/presentation/useImageEditToolbarController.ts",
     );
     const componentPath = resolve(
       SRC_ROOT,
