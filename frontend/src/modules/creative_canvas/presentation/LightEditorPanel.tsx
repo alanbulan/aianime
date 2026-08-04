@@ -15,15 +15,15 @@ import { CreditCostPill } from "@/components/credits/credit-visual";
 import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
+import type { CanvasRelightKeyLightDirection } from "../domain/relight";
+import { useCanvasImageModels } from "../generationCatalogComposition";
 import {
-  CANVAS_NODE_TOOLBAR_CARD_CLASS,
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  useCanvasImageModels,
-  type CanvasRelightKeyLightDirection,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
+import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from "./canvasNodeFrameStyles";
 
 export type LightPresetKey =
   | "overexposedFilm"
@@ -151,7 +151,7 @@ export interface LightEditorSubmitPayload {
   imageSize: LightImageSize;
 }
 
-interface LightEditorPanelProps {
+export interface LightEditorPanelProps {
   projectId: string;
   imageSource: string;
   onClose: () => void;

@@ -8,18 +8,16 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
-  MultiAngleEditorPanel,
-  type MultiAngleSubmitPayload,
-} from '@/features/canvas/ui/MultiAngleEditorPanel';
-import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  MultiAngleEditorPanel,
   NODE_TOOLBAR_CLASS,
   ZoomScaledToolbar,
   generationTaskDescriptor,
   generateCanvasMultiAngle,
   inheritMainlineFields,
+  type MultiAngleSubmitPayload,
 } from '@/modules/creative_canvas/public';
 
 interface MultiAngleEditorOverlayProps {

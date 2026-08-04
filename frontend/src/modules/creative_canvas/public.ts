@@ -2757,6 +2757,23 @@ export type {
 } from "@/modules/creative_canvas/domain/multiAngle";
 export { MultiAngleSphere } from "@/modules/creative_canvas/presentation/MultiAngleSphere";
 export type { MultiAngleSphereProps } from "@/modules/creative_canvas/presentation/MultiAngleSphere";
+export { MultiAngleEditorPanel } from "@/modules/creative_canvas/presentation/MultiAngleEditorPanel";
+export type {
+  MultiAngleEditorPanelProps,
+  MultiAngleSubmitPayload,
+} from "@/modules/creative_canvas/presentation/MultiAngleEditorPanel";
+export { LightEditorPanel } from "@/modules/creative_canvas/presentation/LightEditorPanel";
+export type {
+  LightDepth,
+  LightEditorPanelProps,
+  LightEditorSubmitPayload,
+  LightImageSize,
+  LightMainLightDescriptor,
+  LightPresetKey,
+  LightPreviewMode,
+  LightSmartModeDescriptor,
+  LightVector,
+} from "@/modules/creative_canvas/presentation/LightEditorPanel";
 export {
   CANVAS_OUTPAINT_ASPECT_RATIOS,
   CANVAS_OUTPAINT_IMAGE_SIZES,

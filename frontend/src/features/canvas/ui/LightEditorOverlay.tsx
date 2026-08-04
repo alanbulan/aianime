@@ -11,18 +11,16 @@ import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  LightEditorPanel,
   NODE_TOOLBAR_CLASS,
   ZoomScaledToolbar,
   generationTaskDescriptor,
   generateCanvasRelight,
   inheritMainlineFields,
-} from '@/modules/creative_canvas/public';
-import {
-  LightEditorPanel,
   type LightEditorSubmitPayload,
   type LightMainLightDescriptor,
   type LightSmartModeDescriptor,
-} from '@/features/canvas/ui/LightEditorPanel';
+} from '@/modules/creative_canvas/public';
 
 export interface LightEditorRequestPayload {
   sourceNodeId: string;

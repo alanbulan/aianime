@@ -15,19 +15,21 @@ import { UiTextArea } from '@/components/ui';
 import { Slider } from '@/components/shadcn/slider';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
-  CANVAS_NODE_TOOLBAR_CARD_CLASS,
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
-  MultiAngleSphere,
   MULTI_ANGLE_IMAGE_SIZES,
+  type MultiAngleImageSize,
+  type MultiAnglePresetKey,
+  type MultiAngleZoomLevel,
+} from '../domain/multiAngle';
+import { useCanvasImageModels } from '../generationCatalogComposition';
+import { MultiAngleSphere } from './MultiAngleSphere';
+import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  useCanvasImageModels,
-  type MultiAngleImageSize,
-  type MultiAnglePresetKey,
-  type MultiAngleZoomLevel,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeControlStyles';
+import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from './canvasNodeFrameStyles';
 
 interface MultiAnglePresetConfig {
   horizontalDeg: number;
@@ -88,7 +90,7 @@ export interface MultiAngleSubmitPayload {
   imageSize: MultiAngleImageSize;
 }
 
-interface MultiAngleEditorPanelProps {
+export interface MultiAngleEditorPanelProps {
   projectId: string;
   imageSource: string;
   onClose: () => void;

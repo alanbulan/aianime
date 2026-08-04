@@ -1274,6 +1274,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百四十九批将 `MultiAngleSphere` 与 `multi-angle-sphere.css` 迁入 Creative Canvas presentation，并新增方向微调行为测试覆盖方位角归一化与俯仰角上下界。组件只依赖 React 和同目录样式，不依赖旧 Canvas、Store、API 或模块 public；`MultiAngleEditorPanel` 改经 Creative Canvas public 使用唯一组件，旧 `features/canvas/ui/MultiAngleSphere.tsx` 与旧样式路径直接删除，不保留 facade、re-export 或第二套实现。残余门禁登记组件、测试和样式新所有者，禁止旧路径回流，将 Canvas TS/TSX 上限收紧到 241；颜色预算只迁移路径、不改变既有颜色值。多角度球面交互、残余边界与颜色门禁 3 个文件 13 项，完整模块边界 337 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1012/241/0，Canvas CSS 从 1 降到 0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百五十批将 `MultiAngleEditorPanel` 与 `LightEditorPanel` 整体迁入 Creative Canvas presentation。面板内部改为相对依赖本域 `multiAngle`/`relight`、目录组合根、`MultiAngleSphere` 和节点样式，不经模块 public 自回绕，也不导入旧 Canvas、Store 或 API；两个旧 Overlay 统一经 Creative Canvas public 使用唯一面板和类型合同。旧面板路径直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记两个新 presentation 所有者和两个旧路径禁回流，Canvas TS/TSX 上限收紧到 239，光影颜色预算迁移到新路径且颜色值不变。架构/残余/颜色门禁 3 个文件 349 项、相关多角度/光影领域回归 4 个文件 6 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1014/239/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

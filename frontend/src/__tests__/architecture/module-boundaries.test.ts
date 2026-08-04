@@ -23028,7 +23028,7 @@ describe("frontend architecture boundaries", () => {
     );
     const panelPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/MultiAngleEditorPanel.tsx",
+      "modules/creative_canvas/presentation/MultiAngleEditorPanel.tsx",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -23107,9 +23107,17 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneMultiAngleGenerationGateway",
     );
-    expect(importSpecifiers(panelPath)).toContain(
+    expect(importSpecifiers(panelPath)).toEqual(
+      expect.arrayContaining([
+        "../domain/multiAngle",
+        "../generationCatalogComposition",
+        "./MultiAngleSphere",
+      ]),
+    );
+    expect(importSpecifiers(panelPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(panelSource).not.toContain("@/features/canvas/");
     expect(panelSource).not.toContain("export type MultiAnglePresetKey");
     expect(panelSource).not.toContain("export type MultiAngleZoomLevel");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
@@ -23156,7 +23164,7 @@ describe("frontend architecture boundaries", () => {
     );
     const panelPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/LightEditorPanel.tsx",
+      "modules/creative_canvas/presentation/LightEditorPanel.tsx",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -23223,9 +23231,16 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneRelightGenerationGateway",
     );
     expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
-    expect(importSpecifiers(panelPath)).toContain(
+    expect(importSpecifiers(panelPath)).toEqual(
+      expect.arrayContaining([
+        "../domain/relight",
+        "../generationCatalogComposition",
+      ]),
+    );
+    expect(importSpecifiers(panelPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(panelSource).not.toContain("@/features/canvas/");
     expect(panelSource).not.toContain("export type LightDirectionKey");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
@@ -25392,7 +25407,7 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/MultiAngleEditorPanel.tsx",
+      "modules/creative_canvas/presentation/MultiAngleEditorPanel.tsx",
     );
     const sphereSource = readFileSync(spherePath, "utf8");
     const sphereTestSource = readFileSync(sphereTestPath, "utf8");
@@ -25415,7 +25430,8 @@ describe("frontend architecture boundaries", () => {
     expect(sphereSource).not.toContain("@/features/canvas");
     expect(sphereSource).not.toContain("@/modules/creative_canvas/public");
     expect(sphereTestSource).toContain("from './MultiAngleSphere'");
-    expect(importSpecifiers(consumerPath)).toContain(
+    expect(importSpecifiers(consumerPath)).toContain("./MultiAngleSphere");
+    expect(importSpecifiers(consumerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(consumerSource).toContain("<MultiAngleSphere");
