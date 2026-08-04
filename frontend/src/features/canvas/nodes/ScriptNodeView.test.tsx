@@ -27,16 +27,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: ({
-    minWidth,
-    minHeight,
-  }: {
-    minWidth: number;
-    minHeight: number;
-  }) => <div>resize:{minWidth}:{minHeight}</div>,
-}));
-
 vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
 }));
@@ -75,16 +65,18 @@ vi.mock('@/features/canvas/ui/OperationPanelShell', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/PanelExpandButton', () => ({
-  PanelExpandButton: ({ onToggle }: { onToggle(): void }) => (
-    <button type="button" onClick={onToggle}>
-      expand-panel
-    </button>
-  ),
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  NodeResizeHandle: ({
+    minWidth,
+    minHeight,
+  }: {
+    minWidth: number;
+    minHeight: number;
+  }) => <div>resize:{minWidth}:{minHeight}</div>,
+  PanelExpandButton: ({ onToggle }: { onToggle(): void }) => (
+    <button type="button" onClick={onToggle}>expand-panel</button>
+  ),
   NodeGenerationHistory: ({
     onRestore,
     records,

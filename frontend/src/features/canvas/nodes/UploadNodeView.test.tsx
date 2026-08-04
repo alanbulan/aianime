@@ -35,16 +35,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: ({
-    minWidth,
-    minHeight,
-  }: {
-    minWidth: number;
-    minHeight: number;
-  }) => <div>resize:{minWidth}:{minHeight}</div>,
-}));
-
 vi.mock('@/features/canvas/ui/NodeSideActionRail', () => ({
   NODE_SIDE_ACTION_BUTTON_CLASS: 'side-action',
   NODE_SIDE_ACTION_ICON_CLASS: 'side-icon',
@@ -64,9 +54,22 @@ vi.mock('@/features/canvas/ui/DirectorControlBundleBadge', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  CANVAS_NODE_INPUT_BODY_FRAME_CLASS: 'body-frame',
+  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS: 'selected-frame',
+  CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
+  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  VIDEO_FILE_ACCEPT: 'video/*',
+  canvasNodeFrameClass: () => 'frame-class',
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>roles:{roles.join(',')}</div>
   ),
+  NodeResizeHandle: ({
+    minWidth,
+    minHeight,
+  }: {
+    minWidth: number;
+    minHeight: number;
+  }) => <div>resize:{minWidth}:{minHeight}</div>,
 }));
 
 vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({

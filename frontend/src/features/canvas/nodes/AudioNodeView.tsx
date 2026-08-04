@@ -7,16 +7,16 @@ import { AudioOperationsPanel } from '@/features/canvas/nodes/AudioOperationsPan
 import { AudioWaveformPlayer } from '@/features/canvas/ui/AudioWaveformPlayer';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NodeContextBadges,
+  NodeResizeHandle,
+  canvasNodeFrameClass,
+} from '@/modules/creative_canvas/public';
+import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import {
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import { NodeContextBadges } from '@/modules/creative_canvas/public';
 
 export function AudioNodeView({
   controller,

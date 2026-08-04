@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
+  CANVAS_NODE_OPS_PANEL_CLASS,
   CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
   CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
@@ -18,7 +19,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_OPS_PANEL_CLASS } from './nodeFrameStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 import {
   NODE_GENERATE_BUTTON_BASE_CLASS,

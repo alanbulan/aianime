@@ -19,7 +19,6 @@ import { useTranslation } from 'react-i18next';
 
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import type { TextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
-import type { TextNodeMode } from '@/modules/creative_canvas/public';
 import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
@@ -33,13 +32,14 @@ import {
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
-} from '@/features/canvas/ui/nodeFrameStyles';
+  NodeResizeHandle,
+  type TextNodeMode,
+} from '@/modules/creative_canvas/public';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 
 const PICKER_INSET = 32;

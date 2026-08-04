@@ -17,9 +17,10 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { CreditCostPill } from "@/components/credits/credit-visual";
-import type {
-  VideoSubtitleEraseBox,
-  VideoSubtitleEraseMode,
+import {
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  type VideoSubtitleEraseBox,
+  type VideoSubtitleEraseMode,
 } from "@/modules/creative_canvas/public";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
@@ -27,7 +28,6 @@ import {
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from "@/features/canvas/ui/nodeFrameStyles";
 
 interface DisplayedRect {
   left: number;

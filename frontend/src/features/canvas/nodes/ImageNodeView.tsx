@@ -12,11 +12,11 @@ import {
 } from '@/features/canvas/ui/NodeHeader';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  CandidateBindingBadges,
+  NodeResizeHandle,
   canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
+} from '@/modules/creative_canvas/public';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import { CandidateBindingBadges } from '@/modules/creative_canvas/public';
 
 export function ImageNodeView({
   controller,

@@ -6,7 +6,12 @@ import { Minus, Plus, Sparkles } from 'lucide-react';
 import { CreditSparkIcon } from '@/components/credits/credit-visual';
 import { UiButton } from '@/components/ui';
 import {
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NodePriceBadge,
+  NodeResizeHandle,
   STORYBOARD_GEN_FRAME_GRID_GAP_PX,
+  canvasNodeFrameClass,
   findReferenceTokens,
 } from '@/modules/creative_canvas/public';
 import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
@@ -16,14 +21,7 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodePriceBadge } from '@/features/canvas/ui/NodePriceBadge';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { NODE_CONTROL_PRIMARY_BUTTON_CLASS } from '@/features/canvas/ui/nodeControlStyles';
-import {
-  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 
 const STORYBOARD_GEN_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_GEN_ICON_ADJUST = { x: 0, y: 0, scale: 0.95 };

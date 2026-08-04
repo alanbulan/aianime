@@ -18,8 +18,9 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
 import {
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  DEFAULT_CANVAS_NODE_WIDTH,
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -42,7 +43,6 @@ import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

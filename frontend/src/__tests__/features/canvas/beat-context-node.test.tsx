@@ -52,13 +52,10 @@ vi.mock("@/modules/creative_canvas/public", async () => {
     listFreezoneBeatContext: (...args: unknown[]) =>
       listFreezoneBeatContext(...args),
     NodeContextBadges: () => null,
+    NodeResizeHandle: () => <div data-testid="resize-handle" />,
     openPresetProjectionInMyCanvas: vi.fn(),
   };
 });
-
-vi.mock("@/features/canvas/ui/NodeResizeHandle", () => ({
-  NodeResizeHandle: () => <div data-testid="resize-handle" />,
-}));
 
 vi.mock("@/features/canvas/ui/NodeHeader", () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: "",

@@ -64,13 +64,15 @@ import {
   useNodeGenerationHistory,
   useNodeGenerationTaskState,
   useCanvasStyleTemplates,
+  canvasNodeFrameClass,
+  orderedReferenceUrlsWithOwnFirst,
   type CanvasAssetLibrarySelection,
   type CanvasGenerationHistoryRecord,
   type CanvasImageMode,
   resolveImageDisplayUrl,
+  resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,
@@ -93,10 +95,8 @@ import type {
   MentionCandidate,
   PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
-import { orderedReferenceUrlsWithOwnFirst } from '@/modules/creative_canvas/public';
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,

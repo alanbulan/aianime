@@ -4,17 +4,15 @@ import { Film } from 'lucide-react';
 
 import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
 import {
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
   VideoComposeModal,
+  canvasNodeFrameClass,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import {
-  CANVAS_NODE_INPUT_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 
 export function VideoComposeNodeView({
   controller,

@@ -12,11 +12,9 @@ import {
 } from '@/features/canvas/ui/NodeHeader';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import {
+  NodeResizeHandle,
   type VideoStoryRow,
+  canvasNodeFrameClass,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 

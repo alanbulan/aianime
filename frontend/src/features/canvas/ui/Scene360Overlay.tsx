@@ -9,6 +9,7 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
   CANVAS_SCENE_360_ASPECT_RATIOS,
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -22,7 +23,6 @@ import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,

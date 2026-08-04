@@ -35,7 +35,8 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
+  NodeContextBadges: () => <div>context-badges</div>,
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -51,10 +52,6 @@ vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
       resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
     </div>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
-  NodeContextBadges: () => <div>context-badges</div>,
 }));
 
 vi.mock('@/components/ui', () => ({

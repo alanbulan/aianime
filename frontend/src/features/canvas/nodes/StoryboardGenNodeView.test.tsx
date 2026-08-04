@@ -32,11 +32,9 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodePriceBadge', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
-}));
-
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,

@@ -28,7 +28,14 @@ import {
   IMAGE_GEN_OPERATIONS_PANEL_EXPANDED_MIN_WIDTH,
   IMAGE_GEN_OPERATIONS_PANEL_GAP,
   IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
+  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
+  CANVAS_NODE_OPS_PANEL_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
   NodeGenerationHistory,
+  NodeResizeHandle,
+  PanelExpandButton,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
@@ -49,12 +56,10 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import {
   NODE_OPS_PANEL_ENTER_CLASS,
   OperationPanelShell,
 } from '@/features/canvas/ui/OperationPanelShell';
-import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
 import {
@@ -62,13 +67,6 @@ import {
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from '@/features/canvas/ui/NodeSideActionRail';
-import {
-  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
-  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
-  CANVAS_NODE_INPUT_SURFACE_CLASS,
-  CANVAS_NODE_OPS_PANEL_CLASS,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

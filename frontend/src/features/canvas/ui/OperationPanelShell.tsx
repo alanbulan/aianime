@@ -2,7 +2,7 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
+import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/modules/creative_canvas/public';
 
 interface OperationPanelShellProps {
   /** 展开时改用 body 级居中弹窗展示，收起时是节点下方的浮动面板。 */

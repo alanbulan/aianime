@@ -32,7 +32,12 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
+vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
+  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -43,19 +48,7 @@ vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
     minHeight: number;
     maxWidth: number;
     maxHeight: number;
-  }) => (
-    <div>
-      resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
-    </div>
-  ),
-}));
-
-vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  }) => <div>resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}</div>,
   NodeGenerationHistory: ({
     records,
     onRestore,

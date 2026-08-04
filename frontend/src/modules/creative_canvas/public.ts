@@ -2729,3 +2729,22 @@ export type {
   CanvasEventMap,
 } from "@/modules/creative_canvas/application/canvasEventBus";
 export { canvasEventBus } from "@/modules/creative_canvas/canvasEventComposition";
+export {
+  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
+  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
+  CANVAS_NODE_INPUT_FRAME_CLASS,
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
+  CANVAS_NODE_OPS_PANEL_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  CANVAS_NODE_TOOLBAR_CARD_CLASS,
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  CANVAS_NODE_TOOLBAR_SURFACE_CLASS,
+  canvasNodeFrameClass,
+} from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
+export { NodeResizeHandle } from "@/modules/creative_canvas/presentation/NodeResizeHandle";
+export type { NodeResizeHandleProps } from "@/modules/creative_canvas/presentation/NodeResizeHandle";
+export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
+export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
+export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";
+export type { PanelExpandButtonProps } from "@/modules/creative_canvas/presentation/PanelExpandButton";

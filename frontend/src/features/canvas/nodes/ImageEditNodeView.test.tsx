@@ -31,28 +31,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodePriceBadge', () => ({
-  NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
-}));
-
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: ({
-    minWidth,
-    minHeight,
-    maxWidth,
-    maxHeight,
-  }: {
-    minWidth: number;
-    minHeight: number;
-    maxWidth: number;
-    maxHeight: number;
-  }) => (
-    <div>
-      resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
-    </div>
-  ),
-}));
-
 vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
   CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
     <img src={src} alt={alt} />
@@ -102,6 +80,34 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  CANVAS_NODE_INPUT_FRAME_CLASS: 'input-frame',
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS: 'input-placeholder',
+  CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
+  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  IMAGE_EDIT_NODE_SIZE_LIMITS: {
+    minWidth: 240,
+    minHeight: 180,
+    maxWidth: 1400,
+    maxHeight: 1400,
+  },
+  canvasNodeFrameClass: () => 'frame-class',
+  NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
+  NodeResizeHandle: ({
+    minWidth,
+    minHeight,
+    maxWidth,
+    maxHeight,
+  }: {
+    minWidth: number;
+    minHeight: number;
+    maxWidth: number;
+    maxHeight: number;
+  }) => (
+    <div>resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}</div>
+  ),
+  projectImageEditPromptSegments: (prompt: string) => [
+    { kind: 'text', text: prompt, start: 0 },
+  ],
   stringifyParamValue: (value: unknown) => String(value),
   resolveImageDisplayUrl: (url: string) => url,
   AssetLibraryModal: ({

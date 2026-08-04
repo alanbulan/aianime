@@ -6,8 +6,6 @@ import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEd
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
-import { NodePriceBadge } from '@/features/canvas/ui/NodePriceBadge';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import {
   NODE_CONTROL_CHIP_CLASS,
   NODE_CONTROL_ICON_CLASS,
@@ -16,22 +14,22 @@ import {
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
 import {
+  AssetLibraryModal,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
-import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
-import {
-  AssetLibraryModal,
   IMAGE_EDIT_NODE_SIZE_LIMITS,
+  NodePriceBadge,
+  NodeResizeHandle,
+  canvasNodeFrameClass,
   projectImageEditPromptSegments,
   stringifyParamValue,
   type CapabilityParamDefinition,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
+import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
+import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { UiButton } from '@/components/ui';
 
 function PromptWithHighlights({

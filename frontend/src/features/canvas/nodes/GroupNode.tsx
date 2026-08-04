@@ -13,24 +13,24 @@ import {
   type CanvasNode,
   type GroupNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+import {
+  GroupNodeView,
+  NodeResizeHandle,
+  canvasNodeFrameClass,
+  computeSnapAlign,
+  getStoryboardCellPreview,
+  resolveNodeDisplayName,
+  useGroupNodeController,
+  useSnapAlignStore,
+  type GroupNodeControllerPorts,
+  type GroupNodeViewBindings,
+  type StoryboardCellPreviewPorts,
+} from '@/modules/creative_canvas/public';
 import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
-import {
-  GroupNodeView,
-  computeSnapAlign,
-  getStoryboardCellPreview,
-  useSnapAlignStore,
-  useGroupNodeController,
-  type GroupNodeControllerPorts,
-  type GroupNodeViewBindings,
-  type StoryboardCellPreviewPorts,
-} from '@/modules/creative_canvas/public';
 
 const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
   types: {

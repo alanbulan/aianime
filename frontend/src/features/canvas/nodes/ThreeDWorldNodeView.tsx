@@ -10,10 +10,13 @@ import {
   type ThreeDWorldReferenceText,
 } from '@/features/canvas/application/threeDWorldNodeModel';
 import {
+  CANVAS_NODE_OPS_PANEL_CLASS,
+  NodeResizeHandle,
   type CanvasGenerationHistoryRecord,
   type CanvasImageTo3dVisibleSourceKind,
   NodeContextBadges,
   NodeGenerationHistory,
+  canvasNodeFrameClass,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
@@ -24,12 +27,7 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
-import {
-  CANVAS_NODE_OPS_PANEL_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;

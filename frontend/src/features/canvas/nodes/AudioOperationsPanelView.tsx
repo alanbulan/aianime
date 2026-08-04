@@ -12,12 +12,14 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 
-import { MUSIC_LENGTH_PRESETS } from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_OPS_PANEL_CLASS,
+  MUSIC_LENGTH_PRESETS,
+  PanelExpandButton,
+} from '@/modules/creative_canvas/public';
 import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
-import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
-import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

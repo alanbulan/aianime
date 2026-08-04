@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
+  CANVAS_NODE_TOOLBAR_CARD_CLASS,
   CANVAS_UPSCALE_IMAGE_SIZES,
   CANVAS_UPSCALE_SCALE_FACTORS,
   generateCanvasUpscale,
@@ -21,7 +22,6 @@ import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from './nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

@@ -33,12 +33,12 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NodeResizeHandle,
   canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
+} from '@/modules/creative_canvas/public';
 import {
   PANO_FOV_MAX,
   PANO_FOV_MIN,

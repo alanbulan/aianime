@@ -21,8 +21,15 @@ import { CreditCostPill } from '@/components/credits/credit-visual';
 import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNodeModel';
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
 import {
+  CANVAS_NODE_INPUT_FRAME_CLASS,
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
   hasCompletedHistoryRecords,
   NodeGenerationHistory,
+  NodeResizeHandle,
+  PanelExpandButton,
+  canvasNodeFrameClass,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptRow,
   isRenderableImageSrc,
@@ -35,17 +42,8 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
-import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import {
-  CANVAS_NODE_INPUT_FRAME_CLASS,
-  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
-  CANVAS_NODE_INPUT_SURFACE_CLASS,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

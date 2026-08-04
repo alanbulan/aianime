@@ -59,19 +59,8 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
-import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import {
-  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
-  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
-  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
-  CANVAS_NODE_INPUT_SURFACE_CLASS,
-  CANVAS_NODE_OPS_PANEL_CLASS,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
@@ -82,7 +71,16 @@ import {
 } from '@/features/canvas/ui/nodeControlStyles';
 import {
   AssetLibraryModal,
+  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
+  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
+  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
+  CANVAS_NODE_OPS_PANEL_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
   NodeContextBadges,
+  NodeResizeHandle,
+  PanelExpandButton,
+  canvasNodeFrameClass,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 

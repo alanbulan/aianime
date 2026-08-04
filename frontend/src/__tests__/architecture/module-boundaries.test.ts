@@ -1108,6 +1108,27 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("separates the Canvas group-node controller and view", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const frameStylesPath = resolve(
+      moduleRoot,
+      "presentation/canvasNodeFrameStyles.ts",
+    );
+    const resizeHandlePath = resolve(
+      moduleRoot,
+      "presentation/NodeResizeHandle.tsx",
+    );
+    const resizeHandleTestPath = resolve(
+      moduleRoot,
+      "presentation/NodeResizeHandle.test.tsx",
+    );
+    const priceBadgePath = resolve(
+      moduleRoot,
+      "presentation/NodePriceBadge.tsx",
+    );
+    const expandButtonPath = resolve(
+      moduleRoot,
+      "presentation/PanelExpandButton.tsx",
+    );
     const entryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/GroupNode.tsx",
@@ -1138,10 +1159,23 @@ describe("frontend architecture boundaries", () => {
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const registrySource = readFileSync(registryPath, "utf8");
+    const frameStylesSource = readFileSync(frameStylesPath, "utf8");
+    const resizeHandleSource = readFileSync(resizeHandlePath, "utf8");
+    const resizeHandleTestSource = readFileSync(
+      resizeHandleTestPath,
+      "utf8",
+    );
+    const priceBadgeSource = readFileSync(priceBadgePath, "utf8");
+    const expandButtonSource = readFileSync(expandButtonPath, "utf8");
+    const publicSource = readFileSync(resolve(moduleRoot, "public.ts"), "utf8");
     const declarations = [
       ["export const", "GroupNode", "=", "memo("].join(" "),
       ["export function", "useGroupNodeController("].join(" "),
       ["export function", "GroupNodeView("].join(" "),
+      ["export function", "canvasNodeFrameClass("].join(" "),
+      ["export function", "NodeResizeHandle("].join(" "),
+      ["export function", "NodePriceBadge("].join(" "),
+      ["export function", "PanelExpandButton("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -1162,8 +1196,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/features/canvas/ui/NodeHeader",
-        "@/features/canvas/ui/NodeResizeHandle",
-        "@/features/canvas/ui/nodeFrameStyles",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -1171,6 +1203,10 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/nodes/GroupNode.tsx"],
       ["modules/creative_canvas/presentation/useGroupNodeController.ts"],
       ["modules/creative_canvas/presentation/GroupNodeView.tsx"],
+      ["modules/creative_canvas/presentation/canvasNodeFrameStyles.ts"],
+      ["modules/creative_canvas/presentation/NodeResizeHandle.tsx"],
+      ["modules/creative_canvas/presentation/NodePriceBadge.tsx"],
+      ["modules/creative_canvas/presentation/PanelExpandButton.tsx"],
     ]);
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
     expect(registrySource).toContain("groupNode: BoundGroupNode");
@@ -1236,6 +1272,37 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).toContain(
       "createElement(NodeResizeHandle, options)",
     );
+    expect(importSpecifiers(frameStylesPath)).toEqual([]);
+    expect(importSpecifiers(resizeHandlePath)).toEqual(["@xyflow/react"]);
+    expect(importSpecifiers(priceBadgePath)).toEqual([]);
+    expect(new Set(importSpecifiers(expandButtonPath))).toEqual(
+      new Set([
+        "lucide-react",
+        "react-i18next",
+        "./canvasNodeFrameStyles",
+      ]),
+    );
+    expect(frameStylesSource).toContain("CANVAS_NODE_OPS_PANEL_CLASS");
+    expect(resizeHandleSource).toContain("<NodeResizeControl");
+    expect(priceBadgeSource).not.toContain("@/features/");
+    expect(expandButtonSource).not.toContain("@/features/");
+    expect(resizeHandleTestSource).toContain("from './NodeResizeHandle'");
+    expect(publicSource).toContain(
+      'from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles"',
+    );
+    expect(publicSource).toContain(
+      'export { NodeResizeHandle }',
+    );
+    const legacyNodeFrameImports = sourceFiles(resolve(SRC_ROOT, "features/canvas"))
+      .flatMap((path) => importSpecifiers(path))
+      .filter((specifier) =>
+        specifier.includes("features/canvas/ui/nodeFrameStyles")
+        || specifier.includes("features/canvas/ui/NodeResizeHandle")
+        || specifier.includes("features/canvas/ui/NodePriceBadge")
+        || specifier.includes("features/canvas/ui/PanelExpandButton")
+        || specifier === "./nodeFrameStyles",
+      );
+    expect(legacyNodeFrameImports).toEqual([]);
     expect(viewSource).toContain("bindings.historyModal");
     expect(viewSource).toContain("bindings.renderHeader({");
     expect(viewSource).toContain("projection-stale-frame");
@@ -1261,6 +1328,11 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/GroupNodeView.test.tsx",
       "features/canvas/domain/storyboardCellPreview.ts",
       "__tests__/features/canvas/storyboard-cell-preview.test.ts",
+      "features/canvas/ui/nodeFrameStyles.ts",
+      "features/canvas/ui/NodeResizeHandle.tsx",
+      "features/canvas/ui/NodePriceBadge.tsx",
+      "features/canvas/ui/PanelExpandButton.tsx",
+      "__tests__/features/canvas/node-resize-handle.test.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredControllerPath)),

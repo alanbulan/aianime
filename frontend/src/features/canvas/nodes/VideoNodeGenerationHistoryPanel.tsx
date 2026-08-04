@@ -2,12 +2,12 @@
 import type { ComponentProps } from "react";
 
 import {
+  CANVAS_NODE_OPS_PANEL_CLASS,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
   NodeGenerationHistory,
 } from "@/modules/creative_canvas/public";
 import { NODE_OPS_PANEL_ENTER_CLASS } from "@/features/canvas/ui/OperationPanelShell";
-import { CANVAS_NODE_OPS_PANEL_CLASS } from "@/features/canvas/ui/nodeFrameStyles";
 
 type GenerationHistoryProps = ComponentProps<typeof NodeGenerationHistory>;
 

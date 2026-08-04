@@ -22,8 +22,10 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import { NodeContextBadges } from '@/modules/creative_canvas/public';
+import {
+  NodeContextBadges,
+  NodeResizeHandle,
+} from '@/modules/creative_canvas/public';
 import { UiSelect } from '@/components/ui';
 import { parseColorValue } from '@/lib/sketch-colors';
 import { timeOfDayLabel } from '@/lib/time-of-day';

@@ -11,8 +11,11 @@ import {
 } from 'lucide-react';
 
 import {
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NodeResizeHandle,
   STORYBOARD_GRID_GAP_PX,
   STORYBOARD_NODE_SIZE_LIMITS,
+  canvasNodeFrameClass,
   resolveImageDisplayUrl,
   type StoryboardExportOptions,
   type StoryboardFrameItem,
@@ -24,16 +27,11 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import {
   NODE_CONTROL_CHIP_CLASS,
   NODE_CONTROL_ICON_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
-import {
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 
 const STORYBOARD_SPLIT_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_SPLIT_ICON_ADJUST = { x: 0, y: 0, scale: 1 };

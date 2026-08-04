@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
-type NodePriceBadgeProps = {
+export interface NodePriceBadgeProps {
   label: string;
   title?: string;
-};
+}
 
 export function NodePriceBadge({ label, title }: NodePriceBadgeProps) {
   return (

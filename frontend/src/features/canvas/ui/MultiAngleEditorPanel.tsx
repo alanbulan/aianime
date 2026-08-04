@@ -15,6 +15,7 @@ import { UiTextArea } from '@/components/ui';
 import { Slider } from '@/components/shadcn/slider';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
+  CANVAS_NODE_TOOLBAR_CARD_CLASS,
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
   MULTI_ANGLE_IMAGE_SIZES,
   useCanvasImageModels,
@@ -28,9 +29,6 @@ import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from '@/features/canvas/ui/nodeControlStyles';
-import {
-  CANVAS_NODE_TOOLBAR_CARD_CLASS,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import { MultiAngleSphere } from '@/features/canvas/ui/MultiAngleSphere';
 
 interface MultiAnglePresetConfig {

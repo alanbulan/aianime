@@ -14,12 +14,14 @@ import { useTranslation } from 'react-i18next';
 import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
+  DEFAULT_CANVAS_NODE_WIDTH,
+  loadImageElement,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { loadImageElement } from '@/modules/creative_canvas/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 
 interface RotateEditorOverlayProps {
   projectId: string;

@@ -50,10 +50,6 @@ vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: () => <div>resize-handle</div>,
-}));
-
 vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
   RegenerateButton: ({ onClick }: { onClick(): void }) => (
     <button type="button" onClick={onClick}>retry</button>
@@ -61,9 +57,12 @@ vi.mock('@/features/canvas/ui/RegenerateButton', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  canvasNodeFrameClass: () => 'frame-class',
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>bindings:{roles.join(',')}</div>
   ),
+  NodeResizeHandle: () => <div>resize-handle</div>,
 }));
 
 function createController(): ImageNodeController {

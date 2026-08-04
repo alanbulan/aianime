@@ -26,10 +26,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeResizeHandle', () => ({
-  NodeResizeHandle: () => <div>resize-handle</div>,
-}));
-
 vi.mock('@/features/canvas/ui/NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
 }));
@@ -76,6 +72,9 @@ vi.mock('@/features/canvas/nodes/AudioOperationsPanel', () => ({
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   NodeContextBadges: () => <div>context-badges</div>,
+  NodeResizeHandle: () => <div>resize-handle</div>,
+  CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  canvasNodeFrameClass: () => 'frame-class',
 }));
 
 function createController(): AudioNodeController {

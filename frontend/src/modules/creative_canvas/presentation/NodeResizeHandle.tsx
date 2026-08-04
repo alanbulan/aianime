@@ -1,18 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { NodeResizeControl } from '@xyflow/react';
 
-type NodeResizeHandleProps = {
+export interface NodeResizeHandleProps {
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;
   maxHeight?: number;
   visible?: boolean;
-  /**
-   * 锁定缩放时的宽高比。图片/视频等用 object-contain 显示的节点必须开启，
-   * 否则自由缩放会让节点宽高比偏离内容比例，露出容器底色形成黑边。
-   */
   keepAspectRatio?: boolean;
-};
+}
 
 const DEFAULT_MIN_WIDTH = 160;
 const DEFAULT_MIN_HEIGHT = 100;

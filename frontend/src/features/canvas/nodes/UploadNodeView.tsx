@@ -3,7 +3,16 @@ import { Handle, Position } from '@xyflow/react';
 import { Camera, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { VIDEO_FILE_ACCEPT } from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
+  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
+  CANVAS_NODE_INPUT_SURFACE_CLASS,
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  CandidateBindingBadges,
+  NodeResizeHandle,
+  VIDEO_FILE_ACCEPT,
+  canvasNodeFrameClass,
+} from '@/modules/creative_canvas/public';
 import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
@@ -11,20 +20,11 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
-import {
-  CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
-  CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
-  CANVAS_NODE_INPUT_SURFACE_CLASS,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
-  canvasNodeFrameClass,
-} from '@/features/canvas/ui/nodeFrameStyles';
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from '@/features/canvas/ui/NodeSideActionRail';
-import { CandidateBindingBadges } from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 export function UploadNodeView({

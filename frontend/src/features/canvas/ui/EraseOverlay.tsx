@@ -26,6 +26,7 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  CANVAS_NODE_TOOLBAR_PILL_CLASS,
   DEFAULT_CANVAS_NODE_WIDTH,
   CANVAS_REDRAW_IMAGE_SIZES,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
@@ -40,7 +41,6 @@ import {
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_CREDIT_PILL_FLAT_CLASS,
