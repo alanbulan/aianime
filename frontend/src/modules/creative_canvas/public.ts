@@ -2839,6 +2839,14 @@ export type {
 } from "@/modules/creative_canvas/presentation/VideoNodeMediaStatus";
 export { VideoNodeClipPanel } from "@/modules/creative_canvas/presentation/VideoNodeClipPanel";
 export type { VideoNodeClipPanelProps } from "@/modules/creative_canvas/presentation/VideoNodeClipPanel";
+export {
+  SubtitleEraseBoxOverlay,
+  SubtitleEraseOpsPanel,
+} from "@/modules/creative_canvas/presentation/VideoSubtitleEraseControls";
+export type {
+  SubtitleEraseBoxOverlayProps,
+  SubtitleEraseOpsPanelProps,
+} from "@/modules/creative_canvas/presentation/VideoSubtitleEraseControls";
 export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
 export {
   VideoNodeGenerationHistoryPanel,

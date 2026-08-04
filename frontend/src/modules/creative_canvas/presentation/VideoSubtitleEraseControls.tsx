@@ -17,15 +17,17 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { CreditCostPill } from "@/components/credits/credit-visual";
+import type {
+  VideoSubtitleEraseBox,
+  VideoSubtitleEraseMode,
+} from "../domain/videoSubtitleErase";
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from "./canvasNodeFrameStyles";
 import {
-  CANVAS_NODE_TOOLBAR_PILL_CLASS,
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  type VideoSubtitleEraseBox,
-  type VideoSubtitleEraseMode,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
 
 interface DisplayedRect {
   left: number;
