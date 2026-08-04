@@ -26889,10 +26889,22 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("keeps Canvas stage and transient overlay markup in presentation views", () => {
+  it("keeps Canvas stage shell in Canvas and transient overlays in Creative Canvas", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasTransientOverlays.tsx",
+    );
+    const viewTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasTransientOverlays.test.tsx",
+    );
+    const legacyViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/ui/CanvasTransientOverlays.tsx",
+    );
+    const legacyViewTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasTransientOverlays.test.tsx",
     );
     const stagePath = resolve(
       SRC_ROOT,
@@ -26912,7 +26924,8 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/public",
     );
     const stageForbiddenImports = importSpecifiers(stagePath).filter(
       (specifier) =>
@@ -26967,6 +26980,9 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(stageForbiddenImports).toEqual([]);
+    expect(existsSync(viewTestPath)).toBe(true);
+    expect(existsSync(legacyViewPath)).toBe(false);
+    expect(existsSync(legacyViewTestPath)).toBe(false);
     expect(stageOwners).toEqual([
       "features/canvas/ui/CanvasStageView.tsx",
     ]);
@@ -26974,10 +26990,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/CanvasStageView.tsx",
     ]);
     expect(overlaysOwners).toEqual([
-      "features/canvas/ui/CanvasTransientOverlays.tsx",
+      "modules/creative_canvas/presentation/CanvasTransientOverlays.tsx",
     ]);
     expect(connectionPreviewOwners).toEqual([
-      "features/canvas/ui/CanvasTransientOverlays.tsx",
+      "modules/creative_canvas/presentation/CanvasTransientOverlays.tsx",
     ]);
     expect(viewSource).toContain("z-[130]");
     expect(viewSource).toContain("z-[135]");
@@ -26988,6 +27004,10 @@ describe("frontend architecture boundaries", () => {
     expect(stageSource).toContain("createCanvasNodeTypes({ projectId, canvasId })");
     expect(stageSource).toContain("nodeTypes={canvasNodeTypes}");
     expect(stageSource).toContain("edgeTypes={canvasEdgeTypes}");
+    expect(importSpecifiers(stagePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(stageSource).not.toContain("./CanvasTransientOverlays");
     expect(stageSource).toContain("<CanvasTransientOverlays");
     expect(stageSource).toContain("<CanvasConnectionPreviewOverlay");
     expect(stageSource.indexOf("<CanvasQuickActionBar")).toBeLessThan(

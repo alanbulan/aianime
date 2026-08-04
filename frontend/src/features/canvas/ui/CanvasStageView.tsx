@@ -28,10 +28,12 @@ import {
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,
   CanvasFpsMeter,
+  CanvasConnectionPreviewOverlay,
   CanvasMinimapButton,
   CanvasQuickActionBar,
   CanvasSnapAlignButton,
   CanvasSnapAlignGuides,
+  CanvasTransientOverlays,
   CanvasZoomControl,
   ImageViewerModal,
   NodeSelectionMenu,
@@ -43,10 +45,6 @@ import {
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
-import {
-  CanvasConnectionPreviewOverlay,
-  CanvasTransientOverlays,
-} from './CanvasTransientOverlays';
 import { MultiSelectionConnectButton } from './MultiSelectionConnectButton';
 import { MultiSelectionToolbar } from './MultiSelectionToolbar';
 import { NodeSpawnPlusOverlay } from './NodeSpawnPlusOverlay';

@@ -62,11 +62,15 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS: 'control-button-active',
   CANVAS_CONTROL_ICON_BUTTON_CLASS: 'control-button',
   CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
+  CanvasConnectionPreviewOverlay: () => (
+    <div data-testid="canvas-connection-preview" />
+  ),
   CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,
   CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
   CanvasQuickActionBar: () => <div data-testid="canvas-quick-action-bar" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
+  CanvasTransientOverlays: () => <div data-testid="canvas-transient-overlays" />,
   CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
   NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
@@ -87,12 +91,6 @@ vi.mock('./BackToNodesHint', () => ({
 }));
 vi.mock('./CanvasHistoryAssetsModalAdapter', () => ({
   CanvasHistoryAssetsModalAdapter: () => null,
-}));
-vi.mock('./CanvasTransientOverlays', () => ({
-  CanvasTransientOverlays: () => <div data-testid="canvas-transient-overlays" />,
-  CanvasConnectionPreviewOverlay: () => (
-    <div data-testid="canvas-connection-preview" />
-  ),
 }));
 vi.mock('./MultiSelectionConnectButton', () => ({
   MultiSelectionConnectButton: () => (

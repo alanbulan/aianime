@@ -1866,6 +1866,14 @@ export type { CanvasNodeImageProps } from "@/modules/creative_canvas/presentatio
 export { CanvasFpsMeter } from "@/modules/creative_canvas/presentation/CanvasFpsMeter";
 export { OperationPanelShell } from "@/modules/creative_canvas/presentation/OperationPanelShell";
 export type { OperationPanelShellProps } from "@/modules/creative_canvas/presentation/OperationPanelShell";
+export {
+  CanvasConnectionPreviewOverlay,
+  CanvasTransientOverlays,
+} from "@/modules/creative_canvas/presentation/CanvasTransientOverlays";
+export type {
+  CanvasConnectionPreviewOverlayProps,
+  CanvasTransientOverlaysProps,
+} from "@/modules/creative_canvas/presentation/CanvasTransientOverlays";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";

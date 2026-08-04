@@ -1244,6 +1244,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百三十四批将共享 `OperationPanelShell`、`CanvasFpsMeter` 及两组行为测试迁入 Creative Canvas presentation。音频、图片生成、脚本和视频节点的操作面板，以及 Canvas Stage 的 FPS 控件统一经模块 public 使用唯一实现；两个旧 Canvas 生产文件和三处旧测试 mock 入口直接删除，不保留 facade、re-export 或第二套实现。模块内操作面板只相对依赖节点框架样式，FPS 控件只相对依赖画布控制样式，不反向依赖旧 Canvas、Store、API 或自身 public；架构门禁固定唯一所有者、旧路径不存在、内部依赖方向和五个生产消费者入口。定向业务回归 5 个文件 11 项、操作面板/FPS/共享节点定向架构 3 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过；首次业务回归的 3 项失败来自新测试 DOM 层级断言与 Canvas Stage 完整 mock 缺少既有样式出口，按真实渲染结构和 public 合同修正后同组复跑全绿。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 957/283/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 283/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百三十五批将框选矩形、节点放置预览、空画布提示、媒体拖放提示和连接预览 SVG 及行为测试整体迁入 Creative Canvas presentation。`CanvasStageView` 经模块 public 使用 `CanvasTransientOverlays` 与 `CanvasConnectionPreviewOverlay` 两个唯一展示出口，旧 Canvas 生产/测试路径及测试 mock 入口直接删除，不保留 facade、re-export 或第二套实现。覆盖层保持纯 React/翻译/图标展示叶子，不依赖 Store、API、旧 Canvas application/infrastructure/composition 或模块 public 自回绕；架构门禁固定两个声明的唯一所有者、旧路径不存在、Stage Shell 仍由旧 Canvas 唯一持有和 public 消费入口。覆盖层与 Canvas Stage/手动连线回归 3 个文件 8 项、定向架构 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 959/281/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 281/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

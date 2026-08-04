@@ -80,7 +80,7 @@
 
 | 区域 | 当前事实 | 未满足的退出条件 |
 | --- | --- | --- |
-| 前端 Creative Canvas | `modules/creative_canvas` 已有 957 个 TS/TSX 文件；`features/canvas` 仍有 283 个 TS/TSX 文件和 1 个 CSS 文件，`features/freezone` 已归零并删除 | 已迁切片均由 Creative Canvas 唯一持有；第 803-834 批进一步将 Connection Gesture、Render、Project 三个页面级 Surface、纯渲染投影、Hover Menu、框选状态投影、上游解绑、图片宫格工具栏、图片抠图运行时、图片编辑工具栏、上游引用排序/订阅、节点选择菜单、快捷添加菜单、快捷操作栏、节点框架基础基元、节点共享展示基元/样式、视频节点展示能力、共享引用控件、节点侧栏、图片节点展示、共享操作面板和 FPS 展示收进模块，旧 Canvas 的对应生产/测试所有者已删除。Store、旧 Canvas 内容投影、节点注册表、生成恢复、抠图节点写入/平台上传、历史素材 Viewer 和工具事件的具体适配仍只在既有组合层注入，模块不反向依赖旧 Canvas；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
+| 前端 Creative Canvas | `modules/creative_canvas` 已有 959 个 TS/TSX 文件；`features/canvas` 仍有 281 个 TS/TSX 文件和 1 个 CSS 文件，`features/freezone` 已归零并删除 | 已迁切片均由 Creative Canvas 唯一持有；第 803-835 批进一步将 Connection Gesture、Render、Project 三个页面级 Surface、纯渲染投影、Hover Menu、框选状态投影、上游解绑、图片宫格工具栏、图片抠图运行时、图片编辑工具栏、上游引用排序/订阅、节点选择菜单、快捷添加菜单、快捷操作栏、节点框架基础基元、节点共享展示基元/样式、视频节点展示能力、共享引用控件、节点侧栏、图片节点展示、共享操作面板、FPS 和瞬态覆盖层展示收进模块，旧 Canvas 的对应生产/测试所有者已删除。Store、旧 Canvas 内容投影、节点注册表、生成恢复、抠图节点写入/平台上传、历史素材 Viewer 和工具事件的具体适配仍只在既有组合层注入，模块不反向依赖旧 Canvas；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
 | Canvas 网关方向 | `freezoneAiGateway.ts` 已改为显式依赖注入，不再读取 URL 或导入 Freezone；R1-B 十四个切片已把 Freezone 路由持有的 `projectId/canvasId` 显式传到 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询，生产代码中的 `readUrl()` 从 38 个文件、89 处降到 0；上下文查询、预设元数据和浏览器 Canvas 存储回收迁移后，旧 `features/freezone/public.ts` 及其生产消费者均为 0 | R1-B 路由上下文和旧聚合 public 已关闭；R1-C 至 R1-E 仍需按所有权切片收敛两个旧 feature 中的剩余实现 |
 | 后端 Creative Canvas | 已有 `modules/creative_canvas`；视觉、文件锁、路径、项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、预设和任务执行已有唯一所有者，模块内对旧 `ai_anime.freezone.*` 的生产导入为 0；模块外对 Creative Canvas infrastructure 的直接导入也为 0 | Creative Canvas 本域 job 与跨域提交/本地恢复边界已收敛；云端 Invocation 恢复单列在 R6 |
 | 后端 Freezone | 旧 `freezone` 包的 Python 源文件已全部删除；任务 runner 和测试对 `freezone.jobs` 的导入为 0，旧包对 `ai_anime.generators.*` 的导入为 0 | 无后端生产实现残余；后续门禁持续禁止旧包回流 |
@@ -803,10 +803,12 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 | 第 834 批前端验证 | Creative Canvas 共享操作面板与 FPS 展示 | `OperationPanelShell`、`CanvasFpsMeter` 及两组行为测试迁入 Creative Canvas presentation；音频、图片生成、脚本、视频操作面板和 Canvas Stage 共 5 个生产消费者统一经模块 public 使用，旧 Canvas 生产路径和测试 mock 入口直接删除。架构门禁固定两个组件的唯一所有者、旧路径不存在、模块仅依赖本地节点框架/画布控制样式且不反向依赖旧 Canvas、Store、API 或自身 public；不保留 facade、re-export 或第二套实现。定向业务回归 5 个文件 11 项、操作面板/FPS/共享节点定向架构 3 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过；首次业务回归的 3 项失败来自新测试 DOM 层级断言与 Canvas Stage 完整 mock 缺少既有样式出口，按真实渲染结构和 public 合同修正后同组复跑全绿。实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 957/283/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 283/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 
+| 第 835 批前端验证 | Creative Canvas 瞬态覆盖层展示 | 框选矩形、节点放置预览、空画布提示、媒体拖放提示和连接预览 SVG 及行为测试整体迁入 Creative Canvas presentation；`CanvasStageView` 经模块 public 使用两个唯一展示出口，旧 Canvas 生产/测试路径和测试 mock 入口直接删除。覆盖层保持纯 React/翻译/图标展示叶子，不依赖 Store、API、旧 Canvas application/infrastructure/composition 或模块 public 自回绕；架构门禁固定两个声明的唯一所有者、旧路径不存在、Stage Shell 仍由旧 Canvas 唯一持有及 public 消费入口。不保留 facade、re-export 或第二套实现。覆盖层与 Canvas Stage/手动连线回归 3 个文件 8 项、定向架构 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 959/281/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 281/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
+
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。
-2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 283 个 TS/TSX 文件及 1 个样式文件，最后一个消费者切换后删除旧目录，不做整目录复制。
+2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 281 个 TS/TSX 文件及 1 个样式文件，最后一个消费者切换后删除旧目录，不做整目录复制。
 3. R2 已完成：AI Assistant 与 Task Execution 前端旧目录均已归零；后端核心协议、身份、限额、协作取消、可终止子进程、执行核心、Inline/Mock 执行、项目任务查询/清理/取消、客户端投影、16 个内置 runner、统一提交和本地重启恢复均由 Task Execution 持有，旧 `task_backend` 包和 route 组合直连已删除。Hermes ACP 已内置为唯一 Agent 执行运行时且没有 backend 选择器，模型仍只走 Cloud/BYOK 两条商业入口；云端 Invocation 跨进程恢复继续留在 R6。
 4. R5/R6：网关固定 file object、Invocation 和 SSE 合同后接入文件、调用记录、取消/恢复与额度刷新；安全制品 schema 未固定前继续禁止下载/安装。
 5. R4/R5 网关阻塞项具备合同后补离线验签、权威许可拒绝语义和更新安全链，最后执行 R7 干净环境门禁。
