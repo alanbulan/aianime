@@ -51,6 +51,7 @@ import {
   NodeGenerationOverlay,
   NodeResizeHandle,
   NodeSideActionRail,
+  OperationPanelShell,
   PanelExpandButton,
   RegenerateButton,
   ReferenceTextChip,
@@ -72,7 +73,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   CreditCostPill,

@@ -6,13 +6,8 @@ import {
   CANVAS_CONTROL_GLASS_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasControlStyles';
 
-/**
- * 画布右上角的 FPS 计量器:点击按钮开启后,用 requestAnimationFrame 实时统计帧率
- * 并显示;关闭时停止 rAF 循环,不产生任何开销。帧率按区间着色(绿/黄/红),便于
- * 排查画布卡顿。
- */
 export function CanvasFpsMeter() {
   const [enabled, setEnabled] = useState(false);
   const [fps, setFps] = useState<number | null>(null);
@@ -28,7 +23,6 @@ export function CanvasFpsMeter() {
     const tick = (now: number) => {
       frames += 1;
       const elapsed = now - windowStart;
-      // 每 ~500ms 结算一次,兼顾刷新及时与读数稳定。
       if (elapsed >= 500) {
         setFps(Math.round((frames * 1000) / elapsed));
         frames = 0;

@@ -21,11 +21,11 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
+  OperationPanelShell,
   PanelExpandButton,
   ReferenceTextChip,
 } from '@/modules/creative_canvas/public';
 import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
-import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { UiSelect } from '@/components/ui';
 import {

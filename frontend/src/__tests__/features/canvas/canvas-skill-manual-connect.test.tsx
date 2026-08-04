@@ -181,6 +181,7 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
   CanvasContextMenu: () => null,
+  CanvasFpsMeter: () => null,
   CanvasMinimapButton: () => null,
   CanvasQuickActionBar: () => null,
   CanvasSnapAlignButton: () => null,
@@ -192,10 +193,6 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
 
 vi.mock("@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({
   CanvasMinimapBookmarksOverlayAdapter: () => null,
-}));
-
-vi.mock("@/features/canvas/ui/CanvasFpsMeter", () => ({
-  CanvasFpsMeter: () => null,
 }));
 
 describe("Canvas manual skill connections", () => {

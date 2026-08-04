@@ -36,6 +36,7 @@ import {
   NodeGenerationHistory,
   NodeGenerationOverlay,
   NodeResizeHandle,
+  OperationPanelShell,
   PanelExpandButton,
   RegenerateButton,
   canvasNodeFrameClass,
@@ -49,7 +50,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

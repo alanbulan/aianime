@@ -58,7 +58,11 @@ vi.mock('@/components/credits/credit-visual', () => ({
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
+  CANVAS_CONTROL_GLASS_CLASS: 'control-glass',
+  CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS: 'control-button-active',
+  CANVAS_CONTROL_ICON_BUTTON_CLASS: 'control-button',
   CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
+  CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,
   CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
   CanvasQuickActionBar: () => <div data-testid="canvas-quick-action-bar" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
@@ -80,9 +84,6 @@ vi.mock('../nodes', () => ({
 vi.mock('../edges', () => ({ edgeTypes: stageMocks.edgeTypes }));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,
-}));
-vi.mock('./CanvasFpsMeter', () => ({
-  CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,
 }));
 vi.mock('./CanvasHistoryAssetsModalAdapter', () => ({
   CanvasHistoryAssetsModalAdapter: () => null,

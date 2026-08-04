@@ -27,6 +27,7 @@ import {
   CANVAS_CONTROL_GLASS_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS,
   CANVAS_CONTROL_ICON_BUTTON_CLASS,
+  CanvasFpsMeter,
   CanvasMinimapButton,
   CanvasQuickActionBar,
   CanvasSnapAlignButton,
@@ -40,7 +41,6 @@ import {
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
-import { CanvasFpsMeter } from './CanvasFpsMeter';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 import {

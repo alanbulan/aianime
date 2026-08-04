@@ -27,12 +27,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/OperationPanelShell', () => ({
-  OperationPanelShell: ({ children }: { children: ReactNode }) => (
-    <section>{children}</section>
-  ),
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
@@ -65,6 +59,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     minWidth: number;
     minHeight: number;
   }) => <div>resize:{minWidth}:{minHeight}</div>,
+  OperationPanelShell: ({ children }: { children: ReactNode }) => (
+    <section>{children}</section>
+  ),
   PanelExpandButton: ({ onToggle }: { onToggle(): void }) => (
     <button type="button" onClick={onToggle}>expand-panel</button>
   ),

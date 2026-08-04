@@ -32314,6 +32314,109 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps shared operation panel and FPS presentation in Creative Canvas", () => {
+    const operationPanelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/OperationPanelShell.tsx",
+    );
+    const fpsMeterPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasFpsMeter.tsx",
+    );
+    const operationPanelSource = readFileSync(operationPanelPath, "utf8");
+    const fpsMeterSource = readFileSync(fpsMeterPath, "utf8");
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const declarations = [
+      ["export function", "OperationPanelShell("].join(" "),
+      ["export function", "CanvasFpsMeter("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const operationPanelConsumers = [
+      "features/canvas/nodes/AudioOperationsPanelView.tsx",
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "features/canvas/nodes/ScriptNodeView.tsx",
+      "features/canvas/nodes/VideoNodeView.tsx",
+    ];
+    const fpsMeterConsumers = ["features/canvas/ui/CanvasStageView.tsx"];
+
+    expect(existsSync(operationPanelPath)).toBe(true);
+    expect(existsSync(fpsMeterPath)).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/OperationPanelShell.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/CanvasFpsMeter.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/ui/OperationPanelShell.tsx")),
+    ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/ui/CanvasFpsMeter.tsx")),
+    ).toBe(false);
+    expect(implementationOwners).toEqual([
+      ["modules/creative_canvas/presentation/OperationPanelShell.tsx"],
+      ["modules/creative_canvas/presentation/CanvasFpsMeter.tsx"],
+    ]);
+    expect(importSpecifiers(operationPanelPath)).toEqual([
+      "react",
+      "react-dom",
+      "./canvasNodeFrameStyles",
+    ]);
+    expect(importSpecifiers(fpsMeterPath)).toEqual([
+      "react",
+      "lucide-react",
+      "./canvasControlStyles",
+    ]);
+    for (const source of [operationPanelSource, fpsMeterSource]) {
+      expect(source).not.toContain("@/features/canvas/");
+      expect(source).not.toContain("@/stores/");
+      expect(source).not.toContain("@/api/");
+      expect(source).not.toContain("@/modules/creative_canvas/public");
+    }
+    expect(publicSource).toContain(
+      'export { OperationPanelShell } from "@/modules/creative_canvas/presentation/OperationPanelShell";',
+    );
+    expect(publicSource).toContain(
+      'export { CanvasFpsMeter } from "@/modules/creative_canvas/presentation/CanvasFpsMeter";',
+    );
+    for (const relativePath of operationPanelConsumers) {
+      const path = resolve(SRC_ROOT, relativePath);
+      const source = readFileSync(path, "utf8");
+      expect(importSpecifiers(path)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(source).toContain("<OperationPanelShell");
+      expect(source).not.toContain("@/features/canvas/ui/OperationPanelShell");
+    }
+    for (const relativePath of fpsMeterConsumers) {
+      const path = resolve(SRC_ROOT, relativePath);
+      const source = readFileSync(path, "utf8");
+      expect(importSpecifiers(path)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(source).toContain("<CanvasFpsMeter");
+      expect(source).not.toContain("./CanvasFpsMeter");
+    }
+  });
+
   it("keeps shared reference and director badges in Creative Canvas presentation", () => {
     const modulePublic = readFileSync(
       resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),

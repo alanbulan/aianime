@@ -1863,6 +1863,9 @@ export { ImageViewerModal } from "@/modules/creative_canvas/presentation/ImageVi
 export type { ImageViewerModalProps } from "@/modules/creative_canvas/presentation/ImageViewerModal";
 export { CanvasNodeImage } from "@/modules/creative_canvas/presentation/CanvasNodeImage";
 export type { CanvasNodeImageProps } from "@/modules/creative_canvas/presentation/CanvasNodeImage";
+export { CanvasFpsMeter } from "@/modules/creative_canvas/presentation/CanvasFpsMeter";
+export { OperationPanelShell } from "@/modules/creative_canvas/presentation/OperationPanelShell";
+export type { OperationPanelShellProps } from "@/modules/creative_canvas/presentation/OperationPanelShell";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";
