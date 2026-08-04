@@ -2973,6 +2973,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).toContain("uploadRailNodeHovered");
+    expect(controllerSource).toContain(
+      "(state) => state.hoveredNodeId === id",
+    );
     expect(viewSource).not.toContain("generateCanvasImage(");
     expect(viewSource).not.toContain("translateCanvasText(");
     expect(viewSource).not.toContain("uploadCanvasAsset(");
@@ -3070,6 +3074,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useCanvasStore(");
+    expect(viewSource).toContain("uploadRailNodeHovered");
+    expect(controllerSource).toContain(
+      "(state) => state.hoveredNodeId === id",
+    );
     expect(viewSource).not.toContain("submitVideoGeneration(");
     expect(viewSource).not.toContain("translateCanvasText(");
     expect(viewSource).not.toContain("uploadCanvasAsset(");

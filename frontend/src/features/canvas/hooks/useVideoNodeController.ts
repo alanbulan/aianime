@@ -166,6 +166,9 @@ export function useVideoNodeController({
   const setActiveOverlayNodeId = useCanvasStore(
     (state) => state.setActiveOverlayNodeId,
   );
+  const uploadRailNodeHovered = useCanvasStore(
+    (state) => state.hoveredNodeId === id,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   // 在途守卫：持到本批所有并发任务 allSettled 才释放（见 handleSubmit）。
   const submittingRef = useRef(false);
@@ -1851,6 +1854,7 @@ export function useVideoNodeController({
     t,
     setSelectedNode,
     isBoxSelecting,
+    uploadRailNodeHovered,
     updateNodeData,
     inputRef,
     videoEl,

@@ -68,7 +68,6 @@ import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextP
 import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPrompt';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -91,6 +90,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     t,
     isBoxSelecting,
     hasActiveOverlay,
+    uploadRailNodeHovered,
     updateNodeData,
     setSelectedNode,
     prompt,
@@ -191,10 +191,6 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     showImageOpsPanel,
     projectId,
   } = controller;
-  const uploadRailNodeHovered = useCanvasStore(
-    (state) => state.hoveredNodeId === id,
-  );
-
   return (
     <div
       ref={albumRootRef}

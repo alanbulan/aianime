@@ -19,7 +19,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
 } from '@/features/canvas/application/videoNodeModel';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
 import {
   CameraMovementChip,
@@ -82,9 +81,6 @@ export interface VideoNodeViewProps {
 }
 
 export function VideoNodeView({ controller }: VideoNodeViewProps) {
-  const uploadRailNodeHovered = useCanvasStore(
-    (state) => state.hoveredNodeId === controller.id,
-  );
   const {
     id,
     data,
@@ -92,6 +88,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     t,
     setSelectedNode,
     isBoxSelecting,
+    uploadRailNodeHovered,
     updateNodeData,
     inputRef,
     videoEl,

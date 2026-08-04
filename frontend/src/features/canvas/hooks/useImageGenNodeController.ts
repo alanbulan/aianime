@@ -139,6 +139,9 @@ export function useImageGenNodeController({
   // 操作区重叠。
   const hasActiveOverlay = useCanvasStore((state) => state.activeOverlayNodeId === id);
   const setActiveOverlayNodeId = useCanvasStore((state) => state.setActiveOverlayNodeId);
+  const uploadRailNodeHovered = useCanvasStore(
+    (state) => state.hoveredNodeId === id,
+  );
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
   const updateNodeSize = useCanvasStore((state) => state.updateNodeSize);
   const deleteEdge = useCanvasStore((state) => state.deleteEdge);
@@ -1133,6 +1136,7 @@ export function useImageGenNodeController({
     t,
     isBoxSelecting,
     hasActiveOverlay,
+    uploadRailNodeHovered,
     updateNodeData,
     setSelectedNode,
     prompt,
