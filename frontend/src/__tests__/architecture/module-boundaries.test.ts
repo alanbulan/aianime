@@ -23946,11 +23946,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGridToolbarController.ts",
+      "modules/creative_canvas/presentation/useImageGridToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGridToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useImageGridToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -23958,7 +23958,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageGridToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/ImageGridToolbarActionsView.tsx",
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
@@ -24003,13 +24003,15 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
     }
-    expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set([
-        "react",
-        "react-i18next",
-        "@/modules/creative_canvas/public",
-      ]),
-    );
+    expect(new Set(importSpecifiers(controllerPath))).toEqual(new Set([
+      "react",
+      "react-i18next",
+      "../domain/imageGridToolbarModel",
+      "../domain/gridAction",
+      "./useHoverMenuController",
+    ]));
+    expect(controllerSource).not.toContain("@/features/canvas");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<UiChipButton");
     expect(controllerSource).not.toContain("<DropdownMenu");
@@ -24026,9 +24028,9 @@ describe("frontend architecture boundaries", () => {
       expect(viewSource).not.toContain(forbiddenViewDependency);
     }
     expect(componentSource).toContain("useImageGridToolbarController({");
-    expect(componentSource).toContain(
-      "<ImageGridToolbarActionsView controller={controller} />",
-    );
+    expect(componentSource).toContain("<ImageGridToolbarActionsView");
+    expect(componentSource).toContain("controller={controller}");
+    expect(componentSource).toContain("styles={toolbarStyles}");
     expect(importSpecifiers(imageToolbarViewPath)).toContain(
       "./ImageGridToolbarActions",
     );
@@ -24057,15 +24059,27 @@ describe("frontend architecture boundaries", () => {
     }
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageGridToolbarModel.ts"],
-      ["features/canvas/hooks/useImageGridToolbarController.ts"],
-      ["features/canvas/ui/ImageGridToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/useImageGridToolbarController.ts"],
+      ["modules/creative_canvas/presentation/ImageGridToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageGridToolbarModel"',
     );
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
-      'from "./useImageGridToolbarController"',
+      "from './useImageGridToolbarController'",
     );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGridToolbarController.ts",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useImageGridToolbarController.test.tsx",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageGridToolbarActionsView.tsx",
+    ))).toBe(false);
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/imageGridToolbarModel.ts",
@@ -24099,7 +24113,7 @@ describe("frontend architecture boundaries", () => {
     );
     const gridControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGridToolbarController.ts",
+      "modules/creative_canvas/presentation/useImageGridToolbarController.ts",
     );
     const componentPath = resolve(
       SRC_ROOT,

@@ -1,10 +1,22 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { GridActionRequest } from "@/modules/creative_canvas/public";
-import { useImageGridToolbarController } from "@/features/canvas/hooks/useImageGridToolbarController";
+import {
+  ImageGridToolbarActionsView,
+  useImageGridToolbarController,
+  type GridActionRequest,
+} from "@/modules/creative_canvas/public";
+import {
+  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
+  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
+  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+} from "./nodeActionToolbarStyles";
 
-import { ImageGridToolbarActionsView } from "./ImageGridToolbarActionsView";
+const toolbarStyles = {
+  menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
+  menuItem: NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
+  textButton: NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
+};
 
 export interface ImageGridToolbarActionsProps {
   nodeId: string;
@@ -17,7 +29,12 @@ export const ImageGridToolbarActions = memo(
       nodeId,
       onOpenGridAction,
     });
-    return <ImageGridToolbarActionsView controller={controller} />;
+    return (
+      <ImageGridToolbarActionsView
+        controller={controller}
+        styles={toolbarStyles}
+      />
+    );
   },
 );
 

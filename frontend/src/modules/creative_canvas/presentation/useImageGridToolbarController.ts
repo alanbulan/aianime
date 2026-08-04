@@ -1,17 +1,15 @@
 // Copyright (c) 2026 AI anime
-import {
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
-import { useTranslation } from "react-i18next";
+import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   projectImageGridToolbarActions,
-  useHoverMenuController,
-  type GridActionKey,
-  type GridActionRequest,
-} from "@/modules/creative_canvas/public";
+} from '../domain/imageGridToolbarModel';
+import type {
+  GridActionKey,
+  GridActionRequest,
+} from '../domain/gridAction';
+import { useHoverMenuController } from './useHoverMenuController';
 
 export interface ImageGridToolbarControllerOptions {
   nodeId: string;

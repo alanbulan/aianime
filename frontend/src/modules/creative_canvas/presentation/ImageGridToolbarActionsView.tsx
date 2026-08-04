@@ -11,23 +11,17 @@ import {
   Rewind,
   User,
   Users,
-} from "lucide-react";
+} from 'lucide-react';
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu";
-import { UiChipButton } from "@/components/ui";
-import type { GridActionKey } from "@/modules/creative_canvas/public";
-import type { ImageGridToolbarController } from "@/features/canvas/hooks/useImageGridToolbarController";
-
-import {
-  NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
-  NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
-  NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "./nodeActionToolbarStyles";
+} from '@/components/shadcn/dropdown-menu';
+import { UiChipButton } from '@/components/ui';
+import type { GridActionKey } from '../domain/gridAction';
+import type { ImageGridToolbarController } from './useImageGridToolbarController';
 
 const actionIconMap: Record<GridActionKey, typeof LayoutGrid> = {
   multiCameraGrid: Grid3x3,
@@ -41,12 +35,20 @@ const actionIconMap: Record<GridActionKey, typeof LayoutGrid> = {
   frameProjection5sEarlier: Rewind,
 };
 
+export interface ImageGridToolbarStyleClasses {
+  menuContent: string;
+  menuItem: string;
+  textButton: string;
+}
+
 export interface ImageGridToolbarActionsViewProps {
   controller: ImageGridToolbarController;
+  styles: ImageGridToolbarStyleClasses;
 }
 
 export function ImageGridToolbarActionsView({
   controller,
+  styles,
 }: ImageGridToolbarActionsViewProps) {
   const {
     t,
@@ -61,19 +63,19 @@ export function ImageGridToolbarActionsView({
     <DropdownMenu {...menuRootProps}>
       <DropdownMenuTrigger asChild>
         <UiChipButton
-          className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
+          className={styles.textButton}
           onClick={(event) => event.stopPropagation()}
           {...menuHoverProps}
         >
           <LayoutGrid className="h-3.5 w-3.5" />
-          {t("nodeToolbar.gridMenu.trigger")}
+          {t('nodeToolbar.gridMenu.trigger')}
           <ChevronDown className="h-3 w-3" />
         </UiChipButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
         sideOffset={6}
-        className={`${NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS} min-w-[200px]`}
+        className={`${styles.menuContent} min-w-[200px]`}
         onClick={(event) => event.stopPropagation()}
         {...menuHoverProps}
       >
@@ -85,8 +87,8 @@ export function ImageGridToolbarActionsView({
               key={action.key}
               className={
                 isActive
-                  ? "gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary"
-                  : NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS
+                  ? 'gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary'
+                  : styles.menuItem
               }
               onSelect={() => selectAction(action)}
             >
