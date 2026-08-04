@@ -793,10 +793,12 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 | 第 829 批前端验证 | Creative Canvas 视频引用媒体展示 | 混合图片/视频/音频引用行及行为测试迁入 Creative Canvas presentation；引用上限与媒体项类型改为直接依赖本域合同，引用移除按钮和节点控制样式改为模块内相对依赖。`VideoNodeView` 经模块 public 使用唯一展示组件，旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套引用媒体实现。组件回归 1 个文件 3 项、视频引用定向架构边界 2 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 通过；完整模块边界全文件扫描在 240 秒窗口内未产出结果而终止，未据此声称全量通过。实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 943/291/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 291/0；颜色预算 2 条随文件迁移至模块路径，颜色值未变。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 
+| 第 830 批前端验证 | Creative Canvas 视频相册展示 | 视频相册叠层、展开按钮、双列画廊及行为测试迁入 Creative Canvas presentation；该切片保持纯 React/lucide 展示叶子，不依赖旧 Canvas、Store、API 或模块 public 自回绕。`VideoNodeView` 经模块 public 使用三个唯一展示组件，旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套相册展示实现。组件回归 1 个文件 3 项、相册定向架构边界 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 通过；实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 945/289/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 289/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
+
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。
-2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 291 个 TS/TSX 文件及 1 个样式文件，最后一个消费者切换后删除旧目录，不做整目录复制。
+2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 289 个 TS/TSX 文件及 1 个样式文件，最后一个消费者切换后删除旧目录，不做整目录复制。
 3. R2 已完成：AI Assistant 与 Task Execution 前端旧目录均已归零；后端核心协议、身份、限额、协作取消、可终止子进程、执行核心、Inline/Mock 执行、项目任务查询/清理/取消、客户端投影、16 个内置 runner、统一提交和本地重启恢复均由 Task Execution 持有，旧 `task_backend` 包和 route 组合直连已删除。Hermes ACP 已内置为唯一 Agent 执行运行时且没有 backend 选择器，模型仍只走 Cloud/BYOK 两条商业入口；云端 Invocation 跨进程恢复继续留在 R6。
 4. R5/R6：网关固定 file object、Invocation 和 SSE 合同后接入文件、调用记录、取消/恢复与额度刷新；安全制品 schema 未固定前继续禁止下载/安装。
 5. R4/R5 网关阻塞项具备合同后补离线验签、权威许可拒绝语义和更新安全链，最后执行 R7 干净环境门禁。

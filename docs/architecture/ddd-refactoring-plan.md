@@ -1234,6 +1234,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百二十九批将混合图片/视频/音频引用行及行为测试迁入 Creative Canvas presentation。引用上限与媒体项类型改为直接依赖本域合同，引用移除按钮和节点控制样式改为模块内相对依赖；`VideoNodeView` 经模块 public 使用唯一展示组件，旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套引用媒体实现。组件回归 1 个文件 3 项、视频引用定向架构边界 2 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 通过；完整模块边界全文件扫描在 240 秒窗口内未产出结果而终止，未据此声称全量通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 943/291/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 291/0；颜色预算 2 条随文件迁移至模块路径，颜色值未变。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百三十批将视频相册叠层、展开按钮、双列画廊及行为测试迁入 Creative Canvas presentation。该切片保持纯 React/lucide 展示叶子，不依赖旧 Canvas、Store、API 或模块 public 自回绕；`VideoNodeView` 经模块 public 使用三个唯一展示组件，旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套相册展示实现。组件回归 1 个文件 3 项、相册定向架构边界 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 945/289/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 289/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
