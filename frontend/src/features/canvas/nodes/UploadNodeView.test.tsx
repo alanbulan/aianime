@@ -20,7 +20,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -33,9 +33,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
       title:{titleText}
     </button>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasNodeImage: ({ src }: { src: string }) => (
     <img src={src} alt="uploaded" />
   ),

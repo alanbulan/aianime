@@ -49,7 +49,7 @@ import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNode
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

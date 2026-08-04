@@ -15,7 +15,8 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left' },
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -28,10 +29,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
       title:{titleText}
     </button>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeResizeHandle: () => <div>resize-handle</div>,
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
   EditableTableCell: ({

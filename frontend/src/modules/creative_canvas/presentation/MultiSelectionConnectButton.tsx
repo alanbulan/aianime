@@ -3,8 +3,10 @@ import { memo, useCallback, useMemo, useRef } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { resolveCanvasBatchConnectContext } from '@/modules/creative_canvas/public';
+import {
+  resolveCanvasBatchConnectContext,
+  type CanvasBatchConnectionNode,
+} from '../domain/canvasBatchConnection';
 
 const DRAG_THRESHOLD_PX = 5;
 
@@ -12,7 +14,8 @@ export interface BatchConnectParams {
   clientPosition: { x: number; y: number };
 }
 
-interface MultiSelectionConnectButtonProps {
+export interface MultiSelectionConnectButtonProps {
+  nodes: readonly CanvasBatchConnectionNode[];
   onBatchOpenMenu: (params: BatchConnectParams) => void;
   onBatchDragStart: (params: BatchConnectParams) => void;
   onBatchDragMove: (params: BatchConnectParams) => void;
@@ -33,13 +36,12 @@ interface MultiSelectionConnectButtonProps {
  */
 export const MultiSelectionConnectButton = memo(
   ({
+    nodes,
     onBatchOpenMenu,
     onBatchDragStart,
     onBatchDragMove,
     onBatchDragEnd,
   }: MultiSelectionConnectButtonProps) => {
-    const nodes = useCanvasStore((state) => state.nodes);
-
     // Anchor to the full selection box (all selected nodes) so the "+" sits on
     // its right edge, matching the dashed frame / top toolbar.
     const selectedIds = useMemo(

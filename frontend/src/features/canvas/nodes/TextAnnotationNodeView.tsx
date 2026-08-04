@@ -37,7 +37,7 @@ import {
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 
 const PICKER_INSET = 32;

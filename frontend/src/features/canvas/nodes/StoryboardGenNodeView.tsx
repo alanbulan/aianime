@@ -21,7 +21,7 @@ import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 
 const STORYBOARD_GEN_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_GEN_ICON_ADJUST = { x: 0, y: 0, scale: 0.95 };

@@ -11,26 +11,6 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
-  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
-  NodeHeader: ({
-    titleText,
-    onTitleChange,
-    rightSlot,
-  }: {
-    titleText: string;
-    onTitleChange(value: string): void;
-    rightSlot?: ReactNode;
-  }) => (
-    <div>
-      <button type="button" onClick={() => onTitleChange('新标题')}>
-        title:{titleText}
-      </button>
-      {rightSlot}
-    </div>
-  ),
-}));
-
 vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
@@ -64,6 +44,23 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
+  NodeHeader: ({
+    titleText,
+    onTitleChange,
+    rightSlot,
+  }: {
+    titleText: string;
+    onTitleChange(value: string): void;
+    rightSlot?: ReactNode;
+  }) => (
+    <div>
+      <button type="button" onClick={() => onTitleChange('新标题')}>
+        title:{titleText}
+      </button>
+      {rightSlot}
+    </div>
+  ),
   CanvasNodeImage: ({
     src,
     alt,

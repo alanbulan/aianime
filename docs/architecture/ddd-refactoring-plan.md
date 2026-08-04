@@ -1254,6 +1254,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百三十九批清除图片/视频节点纯 View 对旧 Canvas Store 的直接订阅：`ImageGenNodeView` 与 `VideoNodeView` 改为接收既有 Controller 投影出的 `uploadRailNodeHovered`，hover 选择器唯一留在 `useImageGenNodeController` 与 `useVideoNodeController`。本批不新增状态容器、Hook、facade 或第二套订阅；架构门禁固定两个 View 不得回流 Store，并要求两个 Controller 持有唯一 hover 选择器。对应架构 2 项与前端 TypeScript 通过，Creative Canvas/Canvas/Freezone 文件数保持 968/274/0。商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百四十批将 `NodeHeader`、`MultiSelectionConnectButton` 和 `BackToNodesHintView` 迁入 Creative Canvas presentation，并为三个公共展示组件补齐独立行为测试。旧 NodeHeader 与批量连线 View 直接删除；`BackToNodesHint.tsx` 保留为 Canvas 状态适配器，只负责 Store、React Flow 和翻译，布局由模块 View 唯一持有。17 个节点 View、Canvas Stage 和手动连线测试 mock 全部切换到模块路径，不保留 facade、re-export 或第二套实现；模块按钮直接依赖本域批量连接规则，不读取 Store。公共组件行为回归 3 个文件 7 项、Canvas/手动连线回归 2 个文件 5 项、节点 View 回归 16 个文件 46 项、完整模块边界 333 项、残余边界与颜色门禁 12 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 974/272/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 272/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

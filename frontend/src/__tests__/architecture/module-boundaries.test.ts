@@ -1165,6 +1165,14 @@ describe("frontend architecture boundaries", () => {
       moduleRoot,
       "presentation/EditableTableCell.tsx",
     );
+    const nodeHeaderPath = resolve(
+      moduleRoot,
+      "presentation/NodeHeader.tsx",
+    );
+    const legacyNodeHeaderPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeHeader.tsx",
+    );
     const entryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/GroupNode.tsx",
@@ -1227,6 +1235,7 @@ describe("frontend architecture boundaries", () => {
       editableTableCellPath,
       "utf8",
     );
+    const nodeHeaderSource = readFileSync(nodeHeaderPath, "utf8");
     const publicSource = readFileSync(resolve(moduleRoot, "public.ts"), "utf8");
     const declarations = [
       ["export const", "GroupNode", "=", "memo("].join(" "),
@@ -1241,6 +1250,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "NodeGenerationOverlay("].join(" "),
       ["export function", "RegenerateButton("].join(" "),
       ["export function", "EditableTableCell("].join(" "),
+      ["export function", "NodeHeader("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -1260,7 +1270,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
-        "@/features/canvas/ui/NodeHeader",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -1277,7 +1286,15 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/NodeGenerationOverlay.tsx"],
       ["modules/creative_canvas/presentation/RegenerateButton.tsx"],
       ["modules/creative_canvas/presentation/EditableTableCell.tsx"],
+      ["modules/creative_canvas/presentation/NodeHeader.tsx"],
     ]);
+    expect(existsSync(legacyNodeHeaderPath)).toBe(false);
+    expect(importSpecifiers(nodeHeaderPath)).toEqual(["react"]);
+    expect(nodeHeaderSource).not.toContain("useCanvasStore");
+    expect(nodeHeaderSource).not.toContain("@/features/canvas");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/presentation/NodeHeader",
+    );
     expect(registrySource).toContain("import { GroupNode } from './GroupNode'");
     expect(registrySource).toContain("groupNode: BoundGroupNode");
     expect(entrySource).toContain("useGroupNodeController({");
@@ -8062,10 +8079,30 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const backToNodesView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/BackToNodesHint.tsx"),
+    const backToNodesAdapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/BackToNodesHint.tsx",
+    );
+    const backToNodesViewPath = resolve(
+      moduleRoot,
+      "presentation/BackToNodesHintView.tsx",
+    );
+    const backToNodesAdapter = readFileSync(
+      backToNodesAdapterPath,
       "utf8",
     );
+    const backToNodesView = readFileSync(
+      backToNodesViewPath,
+      "utf8",
+    );
+    const backToNodesViewOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ["export function", "BackToNodesHintView("].join(" "),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const forbiddenGeometryImports = importSpecifiers(geometryPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -8160,7 +8197,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const overlapsView =");
     expect(canvasView).not.toContain("initialViewportCorrectionPendingRef");
     expect(canvasView).not.toContain("useNodesInitialized");
-    expect(backToNodesView).toContain("@/modules/creative_canvas/public");
+    expect(backToNodesAdapter).toContain("@/modules/creative_canvas/public");
+    expect(backToNodesAdapter).toContain("<BackToNodesHintView");
+    expect(backToNodesViewOwners).toEqual([
+      "modules/creative_canvas/presentation/BackToNodesHintView.tsx",
+    ]);
+    expect(importSpecifiers(backToNodesViewPath)).toEqual([]);
+    expect(backToNodesView).not.toContain("useCanvasStore");
+    expect(backToNodesView).not.toContain("useReactFlow");
+    expect(backToNodesView).not.toContain("useTranslation");
     expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
       "@/modules/creative_canvas/domain/canvasGeometry",
     );
@@ -16841,11 +16886,29 @@ describe("frontend architecture boundaries", () => {
     );
     const multiSelectionConnectButton = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/ui/MultiSelectionConnectButton.tsx",
+        moduleRoot,
+        "presentation/MultiSelectionConnectButton.tsx",
       ),
       "utf8",
     );
+    const legacyMultiSelectionConnectButtonPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/MultiSelectionConnectButton.tsx",
+    );
+    const multiSelectionConnectButtonDeclaration = [
+      "export const",
+      "MultiSelectionConnectButton",
+      "=",
+      "memo(",
+    ].join(" ");
+    const multiSelectionConnectButtonOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          multiSelectionConnectButtonDeclaration,
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const batchConnectionController = readFileSync(
       resolve(
         moduleRoot,
@@ -16886,6 +16949,10 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/domain/canvasBatchConnection.ts",
     ]);
+    expect(existsSync(legacyMultiSelectionConnectButtonPath)).toBe(false);
+    expect(multiSelectionConnectButtonOwners).toEqual([
+      "modules/creative_canvas/presentation/MultiSelectionConnectButton.tsx",
+    ]);
     for (const declaration of declarations) {
       expect(planningModel).toContain(declaration);
     }
@@ -16908,8 +16975,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const sourceIdSet = new Set(drag.sourceIds)");
     expect(canvasView).not.toContain("let minY = Infinity");
     expect(multiSelectionConnectButton).toContain(
-      "@/modules/creative_canvas/public",
+      "../domain/canvasBatchConnection",
     );
+    expect(multiSelectionConnectButton).not.toContain("useCanvasStore");
     expect(multiSelectionConnectButton).toContain(
       "resolveCanvasBatchConnectContext(nodes)",
     );

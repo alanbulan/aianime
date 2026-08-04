@@ -16,7 +16,7 @@ import {
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 
 export function AudioNodeView({
   controller,

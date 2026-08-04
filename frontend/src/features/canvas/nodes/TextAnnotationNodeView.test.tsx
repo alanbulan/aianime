@@ -22,7 +22,8 @@ vi.mock('react-markdown', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -37,10 +38,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
       title:{titleText}:{String(editable)}
     </button>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeResizeHandle: ({ minWidth, minHeight }: {
     minWidth: number;
     minHeight: number;

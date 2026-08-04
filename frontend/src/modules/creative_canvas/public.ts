@@ -1908,6 +1908,24 @@ export type {
 } from "@/modules/creative_canvas/presentation/VideoNodeToolbarActionsView";
 export { NodeActionToolbarView } from "@/modules/creative_canvas/presentation/NodeActionToolbarView";
 export type { NodeActionToolbarViewProps } from "@/modules/creative_canvas/presentation/NodeActionToolbarView";
+export {
+  NodeHeader,
+  NODE_HEADER_FLOATING_POSITION_CLASS,
+  NODE_HEADER_META_CLASS,
+  NODE_HEADER_TITLE_CLASS,
+  NODE_HEADER_TONE_CLASS,
+} from "@/modules/creative_canvas/presentation/NodeHeader";
+export type {
+  HeaderAdjust,
+  NodeHeaderProps,
+} from "@/modules/creative_canvas/presentation/NodeHeader";
+export { BackToNodesHintView } from "@/modules/creative_canvas/presentation/BackToNodesHintView";
+export type { BackToNodesHintViewProps } from "@/modules/creative_canvas/presentation/BackToNodesHintView";
+export { MultiSelectionConnectButton } from "@/modules/creative_canvas/presentation/MultiSelectionConnectButton";
+export type {
+  BatchConnectParams,
+  MultiSelectionConnectButtonProps,
+} from "@/modules/creative_canvas/presentation/MultiSelectionConnectButton";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";

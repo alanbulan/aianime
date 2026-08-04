@@ -51,16 +51,13 @@ vi.mock("@/modules/creative_canvas/public", async () => {
     getFreezoneCanvas: (...args: unknown[]) => getFreezoneCanvas(...args),
     listFreezoneBeatContext: (...args: unknown[]) =>
       listFreezoneBeatContext(...args),
+    NODE_HEADER_FLOATING_POSITION_CLASS: "",
+    NodeHeader: ({ titleText }: { titleText: string }) => <div>{titleText}</div>,
     NodeContextBadges: () => null,
     NodeResizeHandle: () => <div data-testid="resize-handle" />,
     openPresetProjectionInMyCanvas: vi.fn(),
   };
 });
-
-vi.mock("@/features/canvas/ui/NodeHeader", () => ({
-  NODE_HEADER_FLOATING_POSITION_CLASS: "",
-  NodeHeader: ({ titleText }: { titleText: string }) => <div>{titleText}</div>,
-}));
 
 vi.mock("@/modules/narrative_planning/public", () => ({
   updateBeat: (...args: unknown[]) => updateBeat(...args),

@@ -7,7 +7,7 @@ import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoS
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   EditableTableCell,

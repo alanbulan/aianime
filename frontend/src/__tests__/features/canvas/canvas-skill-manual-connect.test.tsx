@@ -165,10 +165,6 @@ vi.mock("@/features/canvas/ui/MultiSelectionToolbar", () => ({
   MultiSelectionToolbar: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/MultiSelectionConnectButton", () => ({
-  MultiSelectionConnectButton: () => null,
-}));
-
 vi.mock("@/features/canvas/ui/NodeSpawnPlusOverlay", () => ({
   NodeSpawnPlusOverlay: () => null,
 }));
@@ -190,6 +186,7 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   CanvasTransientOverlays: () => null,
   CanvasZoomControl: () => null,
   ImageViewerModal: () => null,
+  MultiSelectionConnectButton: () => null,
   VideoViewerModal: () => null,
 }));
 

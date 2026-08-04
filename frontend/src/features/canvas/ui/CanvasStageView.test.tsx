@@ -73,6 +73,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasTransientOverlays: () => <div data-testid="canvas-transient-overlays" />,
   CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
+  MultiSelectionConnectButton: () => (
+    <div data-testid="multi-selection-connect-button" />
+  ),
   NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
@@ -91,11 +94,6 @@ vi.mock('./BackToNodesHint', () => ({
 }));
 vi.mock('./CanvasHistoryAssetsModalAdapter', () => ({
   CanvasHistoryAssetsModalAdapter: () => null,
-}));
-vi.mock('./MultiSelectionConnectButton', () => ({
-  MultiSelectionConnectButton: () => (
-    <div data-testid="multi-selection-connect-button" />
-  ),
 }));
 vi.mock('./MultiSelectionToolbar', () => ({
   MultiSelectionToolbar: () => <div data-testid="multi-selection-toolbar" />,

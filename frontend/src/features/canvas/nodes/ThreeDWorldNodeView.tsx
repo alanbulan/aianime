@@ -27,7 +27,7 @@ import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWo
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 const PANEL_GAP_PX = 12;

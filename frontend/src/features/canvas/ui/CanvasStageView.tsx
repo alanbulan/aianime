@@ -30,6 +30,7 @@ import {
   CanvasFpsMeter,
   CanvasConnectionPreviewOverlay,
   CanvasMinimapButton,
+  MultiSelectionConnectButton,
   CanvasQuickActionBar,
   CanvasSnapAlignButton,
   CanvasSnapAlignGuides,
@@ -38,6 +39,7 @@ import {
   ImageViewerModal,
   NodeSelectionMenu,
   type CanvasQuickActionBarProps,
+  type MultiSelectionConnectButtonProps,
   type NodeSelectionMenuProps,
   PAN_ACTIVATION_KEY_CODE,
   VideoViewerModal,
@@ -45,7 +47,6 @@ import {
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
-import { MultiSelectionConnectButton } from './MultiSelectionConnectButton';
 import { MultiSelectionToolbar } from './MultiSelectionToolbar';
 import { NodeSpawnPlusOverlay } from './NodeSpawnPlusOverlay';
 import { NodeToolDialog } from './NodeToolDialog';
@@ -126,7 +127,7 @@ export interface CanvasStageViewProps {
   minimapProps: CanvasStageMinimapProps;
   transientOverlayProps: ComponentProps<typeof CanvasTransientOverlays>;
   contextMenuProps: ComponentProps<typeof CanvasContextMenu> | null;
-  multiSelectionConnectProps: ComponentProps<typeof MultiSelectionConnectButton>;
+  multiSelectionConnectProps: Omit<MultiSelectionConnectButtonProps, 'nodes'>;
   nodeSpawnPlusProps: ComponentProps<typeof NodeSpawnPlusOverlay>;
   zoomControlProps: Omit<
     ComponentProps<typeof CanvasZoomControl>,
@@ -223,7 +224,10 @@ export function CanvasStageView({
 
           <SelectedNodeOverlay projectId={projectId} canvasId={canvasId} />
           <MultiSelectionToolbar />
-          <MultiSelectionConnectButton {...multiSelectionConnectProps} />
+          <MultiSelectionConnectButton
+            nodes={flowProps.nodes ?? []}
+            {...multiSelectionConnectProps}
+          />
           <NodeSpawnPlusOverlay {...nodeSpawnPlusProps} />
           <CanvasSnapAlignGuides />
         </ReactFlow>

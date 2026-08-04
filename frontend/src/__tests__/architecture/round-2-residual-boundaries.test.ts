@@ -215,6 +215,8 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasStoryboardGroupMemberAddition.test.ts",
     ];
     const canvasGroupPresentationFiles = [
+      "NodeHeader.tsx",
+      "NodeHeader.test.tsx",
       "useGroupNodeController.ts",
       "useGroupNodeController.test.tsx",
       "GroupNodeView.tsx",
@@ -244,6 +246,8 @@ describe("round 2 residual architecture boundaries", () => {
       "bookmarkActions.test.ts",
     ];
     const canvasViewportPresentationFiles = [
+      "BackToNodesHintView.tsx",
+      "BackToNodesHintView.test.tsx",
       "useCanvasViewportBookmarkShortcuts.ts",
       "useCanvasViewportBookmarkShortcuts.test.tsx",
       "useCanvasViewportCommit.ts",
@@ -341,6 +345,8 @@ describe("round 2 residual architecture boundaries", () => {
       "nodeDisplay.test.ts",
     ];
     const canvasConnectionPresentationFiles = [
+      "MultiSelectionConnectButton.tsx",
+      "MultiSelectionConnectButton.test.tsx",
       "canvasConnectionInteraction.ts",
       "canvasConnectionInteraction.test.ts",
       "useCanvasConnectionController.ts",
@@ -2301,7 +2307,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 274],
+      ["features/canvas", 272],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -17,7 +17,8 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({ titleText }: { titleText: string }) => (
     <div>title:{titleText}</div>

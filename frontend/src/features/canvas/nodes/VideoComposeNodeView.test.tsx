@@ -12,7 +12,8 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/features/canvas/ui/NodeHeader', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
+  CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -25,9 +26,7 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
       title:{titleText}
     </button>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
+  canvasNodeFrameClass: () => 'frame-class',
   resolveImageDisplayUrl: (url: string) => url,
   VideoComposeModal: ({
     project,

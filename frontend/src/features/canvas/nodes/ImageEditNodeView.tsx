@@ -4,7 +4,7 @@ import { ImageIcon, Maximize2, Sparkles, UploadCloud } from 'lucide-react';
 
 import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
-import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/modules/creative_canvas/public';
 import {
   AssetLibraryModal,
   CanvasNodeImage,

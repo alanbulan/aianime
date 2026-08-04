@@ -30,7 +30,7 @@ import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHist
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 
 const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
   types: {

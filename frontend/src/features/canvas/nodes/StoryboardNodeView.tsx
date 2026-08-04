@@ -29,7 +29,7 @@ import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 
 const STORYBOARD_SPLIT_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_SPLIT_ICON_ADJUST = { x: 0, y: 0, scale: 1 };

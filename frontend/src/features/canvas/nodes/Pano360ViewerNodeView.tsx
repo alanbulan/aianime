@@ -32,7 +32,7 @@ import type { Pano360ViewerNodeController } from '@/features/canvas/hooks/usePan
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/features/canvas/ui/NodeHeader';
+} from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   NODE_INLINE_ERROR_MESSAGE_CLASS,

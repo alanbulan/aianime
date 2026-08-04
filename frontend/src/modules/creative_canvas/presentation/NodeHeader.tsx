@@ -9,13 +9,13 @@ import {
   useState,
 } from 'react';
 
-type HeaderAdjust = {
+export type HeaderAdjust = {
   x?: number;
   y?: number;
   scale?: number;
 };
 
-type NodeHeaderProps = {
+export interface NodeHeaderProps {
   icon?: ReactNode;
   titleText?: string;
   metaText?: string;
@@ -35,7 +35,7 @@ type NodeHeaderProps = {
   titleAdjust?: HeaderAdjust;
   editable?: boolean;
   onTitleChange?: (value: string) => void;
-};
+}
 
 export const NODE_HEADER_TONE_CLASS = 'text-muted-foreground';
 export const NODE_HEADER_TITLE_CLASS = 'text-[14px] font-normal';
