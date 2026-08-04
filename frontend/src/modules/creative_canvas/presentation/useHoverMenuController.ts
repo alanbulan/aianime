@@ -1,9 +1,21 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HOVER_MENU_CLOSE_DELAY_MS = 160;
 
-export function useHoverMenuController() {
+export interface HoverMenuController {
+  rootProps: {
+    open: boolean;
+    onOpenChange: (nextOpen: boolean) => void;
+    modal: false;
+  };
+  hoverProps: {
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
+}
+
+export function useHoverMenuController(): HoverMenuController {
   const [open, setOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,7 +50,7 @@ export function useHoverMenuController() {
   useEffect(() => cancelClose, [cancelClose]);
 
   return {
-    rootProps: { open, onOpenChange, modal: false } as const,
+    rootProps: { open, onOpenChange, modal: false },
     hoverProps: { onMouseEnter: openNow, onMouseLeave: scheduleClose },
   };
 }

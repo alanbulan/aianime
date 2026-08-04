@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import {
   type CanvasNodeData,
 } from "@/features/canvas/domain/canvasNodes";
-import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 import { useImageMatteController } from "@/features/canvas/hooks/useImageMatteController";
 import {
   canvasEventBus,
   NODE_TOOL_TYPES,
   projectImageEditToolbar,
+  useHoverMenuController,
   type ImageEditToolbarActionKey,
 } from "@/modules/creative_canvas/public";
 

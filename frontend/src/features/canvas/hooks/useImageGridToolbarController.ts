@@ -8,10 +8,10 @@ import { useTranslation } from "react-i18next";
 
 import {
   projectImageGridToolbarActions,
+  useHoverMenuController,
   type GridActionKey,
   type GridActionRequest,
 } from "@/modules/creative_canvas/public";
-import { useHoverMenuController } from "@/features/canvas/hooks/useHoverMenuController";
 
 export interface ImageGridToolbarControllerOptions {
   nodeId: string;

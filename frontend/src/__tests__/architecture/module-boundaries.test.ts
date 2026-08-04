@@ -24008,7 +24008,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useHoverMenuController",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -24088,7 +24087,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hoverControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useHoverMenuController.ts",
+      "modules/creative_canvas/presentation/useHoverMenuController.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -24167,7 +24166,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/hooks/useHoverMenuController",
         "@/features/canvas/hooks/useImageMatteController",
         "@/modules/creative_canvas/public",
       ]),
@@ -24231,10 +24229,20 @@ describe("frontend architecture boundaries", () => {
     }
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageEditToolbarModel.ts"],
-      ["features/canvas/hooks/useHoverMenuController.ts"],
+      ["modules/creative_canvas/presentation/useHoverMenuController.ts"],
       ["features/canvas/hooks/useImageEditToolbarController.ts"],
       ["features/canvas/ui/ImageEditToolbarActionsView.tsx"],
     ]);
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/public.ts",
+    ))).toContain(
+      "@/modules/creative_canvas/presentation/useHoverMenuController",
+    );
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useHoverMenuController.ts",
+    ))).toBe(false);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageEditToolbarModel"',
     );

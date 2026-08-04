@@ -877,6 +877,8 @@ export type {
   ImageEditToolbarActionProjection,
   ImageEditToolbarProjection,
 } from "@/modules/creative_canvas/domain/imageEditToolbarModel";
+export { useHoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
+export type { HoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export { projectImageGridToolbarActions } from "@/modules/creative_canvas/domain/imageGridToolbarModel";
 export { projectImageNodeToolbar } from "@/modules/creative_canvas/domain/imageNodeToolbarModel";
 export type { ImageNodeToolbarProjection } from "@/modules/creative_canvas/domain/imageNodeToolbarModel";
