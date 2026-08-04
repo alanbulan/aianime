@@ -1260,6 +1260,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百四十二批将认证图片模型目录到节点展示模型的投影迁入 Creative Canvas application，将模型定义与价格合同迁入 domain，将价格计算/币种展示迁入 application；投影直接复用本域 `CanvasCatalogModelOption` 和图片能力过滤规则，不再经模块 public 自回绕或维护重复目录 DTO。设置 Store、图片编辑/分镜生成 Controller 和模型参数视图统一经 Creative Canvas public 使用唯一出口，旧 `features/canvas/models`、`pricing`、聚合 `public.ts` 的 7 个文件及两个空目录直接删除，不保留 facade、re-export、静态模型回退或第二套价格规则。模型目录、价格和两个 Controller 回归 4 个文件 16 项，完整模块边界、残余边界与颜色门禁 3 个文件 347 项、前端 TypeScript 和 `git diff --check` 全部通过；同时修正第 841 批连线组件对 React Flow `Position` 的运行时枚举耦合，改为类型导入与标准位置值，避免模块 public 加载污染部分 mock。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 984/262/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 262/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百四十三批将节点图片源解析、工具类型/内置目录/注册表、标注类型与编解码迁入 Creative Canvas domain，将工具处理器及图片分割/图片处理/ID 端口迁入 application，将浏览器标注绘制迁入 infrastructure。Canvas 两个浏览器适配器和组合根只经模块 public 装配，节点工具弹窗、覆盖层、节点与工具栏 Controller 全部切换 `resolveCanvasNodeSourceImageUrl` 唯一规则；旧 `features/canvas/tools` 的 8 个文件、旧 `application/toolProcessor.ts`、旧处理器测试、`canvasNodes.ts` 中重复解析函数及 `ports.ts` 中 5 个重复工具合同直接删除，不保留 facade、re-export 或第二套实现。新增图片源解析、标注编解码和工具注册行为测试，连同处理器与两个 Controller 回归共 6 个文件 19 项通过；三项架构门禁首次合跑因 184 秒外层时限终止且无失败断言，随后拆分单进程复跑完整模块边界 335 项、残余边界 11 项和颜色门禁 1 项全部通过，前端 TypeScript 与 `git diff --check` 通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 996/253/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 253/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

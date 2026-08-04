@@ -1,29 +1,20 @@
 // Copyright (c) 2026 AI anime
+import { stringifyAnnotationItems } from './canvasAnnotationCodec';
+import { NODE_TOOL_TYPES } from './canvasNodeTool';
 import {
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isUploadNode,
-  resolveNodeSourceImageUrl,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
-import { stringifyAnnotationItems } from './annotation';
-import type { CanvasToolPlugin } from './types';
+  isCanvasToolImageSourceNode,
+  resolveCanvasNodeSourceImageUrl,
+  type CanvasNodeImageSourceLike,
+} from './canvasNodeImageSource';
+import type { CanvasToolPlugin } from './canvasTool';
 
 // imageGen 也算图片源节点：上传的参考图同样可被裁剪 / 标注 / 分格抽取，
 // 结果会落到新建的下游节点，不会覆盖参考图本身。
-function supportsImageSourceNode(node: CanvasNode): boolean {
+function hasToolableImage(node: CanvasNodeImageSourceLike): boolean {
   return (
-    isUploadNode(node) ||
-    isImageEditNode(node) ||
-    isExportImageNode(node) ||
-    isImageGenNode(node)
+    isCanvasToolImageSourceNode(node) &&
+    Boolean(resolveCanvasNodeSourceImageUrl(node))
   );
-}
-
-function hasToolableImage(node: CanvasNode): boolean {
-  return supportsImageSourceNode(node) && Boolean(resolveNodeSourceImageUrl(node));
 }
 
 export const cropToolPlugin: CanvasToolPlugin = {

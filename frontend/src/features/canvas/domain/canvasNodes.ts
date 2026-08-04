@@ -735,23 +735,3 @@ export function nodeHasImage(node: CanvasNode | null | undefined): boolean {
 
   return false;
 }
-
-// The single image an image-bearing node's toolbar/tools should act on.
-// imageGen has no generated result until the user hits 生成, but an uploaded
-// 参考图 (referenceImageUrl) is still the image shown on the node — operations
-// like 抠图 / 裁剪 / 分格抽取 should target it, matching ImageGenNode's previewUrl
-// fallback order (imageUrl → previewImageUrl → referenceImageUrl).
-export function resolveNodeSourceImageUrl(
-  node: CanvasNode | null | undefined
-): string | null {
-  if (!node) {
-    return null;
-  }
-  if (isImageGenNode(node)) {
-    return node.data.imageUrl || node.data.previewImageUrl || node.data.referenceImageUrl || null;
-  }
-  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
-    return node.data.imageUrl || node.data.previewImageUrl || null;
-  }
-  return null;
-}

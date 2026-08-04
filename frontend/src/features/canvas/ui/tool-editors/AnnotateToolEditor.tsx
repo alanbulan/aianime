@@ -28,14 +28,14 @@ import {
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type Konva from 'konva';
 
-import type { ToolOptions } from '@/features/canvas/tools';
+import type { ToolOptions } from '@/modules/creative_canvas/public';
 import {
   normalizeAnnotationRect,
   parseAnnotationItems,
   stringifyAnnotationItems,
   type AnnotationItem,
   type AnnotationToolType,
-} from '@/features/canvas/tools/annotation';
+} from '@/modules/creative_canvas/public';
 import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
 import type { VisualToolEditorProps } from './types';
 

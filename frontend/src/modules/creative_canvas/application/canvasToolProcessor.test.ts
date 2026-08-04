@@ -2,12 +2,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
+  CanvasImageSplitGateway,
   CanvasToolImageGateway,
-  IdGenerator,
-  ImageSplitGateway,
-} from '@/features/canvas/application/ports';
-import { CanvasToolProcessor } from '@/features/canvas/application/toolProcessor';
-import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
+  CanvasToolIdGenerator,
+} from './canvasToolProcessor';
+import { CanvasToolProcessor } from './canvasToolProcessor';
+import { NODE_TOOL_TYPES } from '../domain/canvasNodeTool';
 
 const annotateImage = vi.fn();
 const cropImage = vi.fn();
@@ -19,7 +19,7 @@ const readStoryboardMetadata = vi.fn();
 const splitImage = vi.fn();
 const splitImageLocally = vi.fn();
 
-const splitGateway: ImageSplitGateway = {
+const splitGateway: CanvasImageSplitGateway = {
   split: (sourceImage, rows, cols, lineThickness) =>
     splitImage(sourceImage, rows, cols, lineThickness),
 };
@@ -36,7 +36,7 @@ const imageGateway: CanvasToolImageGateway = {
     splitImageLocally(sourceImage, rows, cols, lineThickness),
 };
 
-const idGenerator: IdGenerator = {
+const idGenerator: CanvasToolIdGenerator = {
   next: () => nextId(),
 };
 

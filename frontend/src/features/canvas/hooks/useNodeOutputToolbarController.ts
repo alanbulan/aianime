@@ -2,7 +2,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { resolveImageDisplayUrl } from "@/modules/creative_canvas/public";
+import {
+  resolveCanvasNodeSourceImageUrl,
+  resolveImageDisplayUrl,
+} from "@/modules/creative_canvas/public";
 import {
   projectNodeActionGenerationError,
   projectNodeActionStoryboardText,
@@ -10,7 +13,6 @@ import {
 } from "@/features/canvas/application/nodeActionToolbarModel";
 import {
   isImageEditNode,
-  resolveNodeSourceImageUrl,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
 import { downloadUrlAsFile } from "@/lib/browserDownload";
@@ -53,7 +55,8 @@ export function useNodeOutputToolbarController({
     [ignoreAtTagWhenCopyingAndGenerating, i18n.language, node, t],
   );
   const imageSource = useMemo(
-    () => (isImageEditNode(node) ? null : resolveNodeSourceImageUrl(node)),
+    () =>
+      isImageEditNode(node) ? null : resolveCanvasNodeSourceImageUrl(node),
     [node],
   );
   const imageDownloadFilename = useMemo(

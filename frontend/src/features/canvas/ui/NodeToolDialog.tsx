@@ -5,12 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
 import {
-  resolveNodeSourceImageUrl,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   canvasEventBus,
   EXPORT_RESULT_DISPLAY_NAME,
+  getToolPlugin,
   NODE_TOOL_TYPES,
+  resolveCanvasNodeSourceImageUrl,
+  type ToolOptions,
   type NodeToolType,
 } from '@/modules/creative_canvas/public';
 import {
@@ -19,7 +19,6 @@ import {
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { readStoryboardImageMetadata } from '@/commands/image';
-import { getToolPlugin, type ToolOptions } from '@/features/canvas/tools';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   inheritMainlineFields,
@@ -85,7 +84,7 @@ export function NodeToolDialog({ projectId }: NodeToolDialogProps) {
   }, [displayToolDialog, nodes]);
 
   const sourceImageUrl = useMemo(
-    () => resolveNodeSourceImageUrl(sourceNode),
+    () => resolveCanvasNodeSourceImageUrl(sourceNode),
     [sourceNode],
   );
 

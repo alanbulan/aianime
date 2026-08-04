@@ -9,7 +9,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  resolveNodeSourceImageUrl,
   type CanvasNode,
   type GroupNodeData,
 } from '@/features/canvas/domain/canvasNodes';
@@ -20,6 +19,7 @@ import {
   computeSnapAlign,
   getStoryboardCellPreview,
   resolveNodeDisplayName,
+  resolveCanvasNodeSourceImageUrl,
   useGroupNodeController,
   useSnapAlignStore,
   type GroupNodeControllerPorts,
@@ -55,7 +55,7 @@ const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
       CANVAS_NODE_TYPES.exportImage,
     ],
   },
-  resolveSourceImageUrl: resolveNodeSourceImageUrl,
+  resolveSourceImageUrl: resolveCanvasNodeSourceImageUrl,
 };
 
 type GroupNodeProps = NodeProps & {

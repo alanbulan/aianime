@@ -2844,6 +2844,64 @@ export type {
   CanvasToolDialogRequest,
   NodeToolType,
 } from "@/modules/creative_canvas/domain/canvasNodeTool";
+export {
+  CanvasToolProcessor,
+} from "@/modules/creative_canvas/application/canvasToolProcessor";
+export type {
+  CanvasImageSplitGateway,
+  CanvasStoryboardImageMetadata,
+  CanvasToolIdGenerator,
+  CanvasToolImageGateway,
+} from "@/modules/creative_canvas/application/canvasToolProcessor";
+export type {
+  CanvasToolPlugin,
+  CanvasToolResult,
+  ToolColorField,
+  ToolEditorKind,
+  ToolExecutionContext,
+  ToolFieldSchema,
+  ToolIconKey,
+  ToolNumberField,
+  ToolOptionPrimitive,
+  ToolOptions,
+  ToolSelectField,
+  ToolTextField,
+} from "@/modules/creative_canvas/domain/canvasTool";
+export {
+  annotateToolPlugin,
+  builtInToolPlugins,
+  cropToolPlugin,
+  splitStoryboardToolPlugin,
+} from "@/modules/creative_canvas/domain/canvasToolCatalog";
+export {
+  getNodeToolPlugins,
+  getToolPlugin,
+} from "@/modules/creative_canvas/domain/canvasToolRegistry";
+export {
+  isCanvasToolImageSourceNode,
+  resolveCanvasNodeSourceImageUrl,
+} from "@/modules/creative_canvas/domain/canvasNodeImageSource";
+export type {
+  CanvasNodeImageSourceLike,
+} from "@/modules/creative_canvas/domain/canvasNodeImageSource";
+export {
+  normalizeAnnotationRect,
+  parseAnnotationItems,
+  stringifyAnnotationItems,
+} from "@/modules/creative_canvas/domain/canvasAnnotationCodec";
+export type {
+  AnnotationItem,
+  AnnotationStyle,
+  AnnotationToolType,
+  ArrowAnnotation,
+  EllipseAnnotation,
+  PenAnnotation,
+  RectAnnotation,
+  TextAnnotation,
+} from "@/modules/creative_canvas/domain/canvasAnnotation";
+export {
+  drawAnnotations,
+} from "@/modules/creative_canvas/infrastructure/browserCanvasAnnotationRenderer";
 export type {
   CanvasEventBus,
   CanvasEventMap,

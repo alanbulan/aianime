@@ -3686,10 +3686,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       "utf8",
     );
-    const toolProcessor = readFileSync(
-      resolve(applicationRoot, "toolProcessor.ts"),
-      "utf8",
+    const toolProcessorPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasToolProcessor.ts",
     );
+    const toolProcessor = readFileSync(toolProcessorPath, "utf8");
     const toolImageGateway = readFileSync(
       resolve(
         SRC_ROOT,
@@ -3950,8 +3951,8 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/infrastructure/videoTranscode",
     );
     expect(toolProcessor).toContain("CanvasToolImageGateway");
-    expect(toolProcessor).toContain("@/modules/creative_canvas/public");
-    expect(toolProcessor).not.toContain("../domain/toolImageGeometry");
+    expect(toolProcessor).not.toContain("@/features/");
+    expect(toolProcessor).toContain("../domain/toolImageGeometry");
     expect(toolProcessor).not.toContain("document.");
     expect(toolProcessor).not.toContain("./imageData");
     expect(toolImageGateway).toContain("document.createElement('canvas')");
@@ -3973,8 +3974,27 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasImageRuntimeGateway",
       "export interface GenerationRuntimeDiagnostics",
       "export interface GenerationRuntimeGateway",
+      "export interface ImageSplitGateway",
+      "export interface CanvasStoryboardImageMetadata",
+      "export interface CanvasToolImageGateway",
+      "export interface ToolProcessorResult",
+      "export interface ToolProcessor",
     ]) {
       expect(canvasApplicationPorts).not.toContain(legacyDeclaration);
+    }
+    for (const retiredToolPath of [
+      "features/canvas/application/toolProcessor.ts",
+      "__tests__/features/canvas/tool-processor.test.ts",
+      "features/canvas/tools/annotation/codec.ts",
+      "features/canvas/tools/annotation/draw.ts",
+      "features/canvas/tools/annotation/index.ts",
+      "features/canvas/tools/annotation/types.ts",
+      "features/canvas/tools/builtInTools.ts",
+      "features/canvas/tools/index.ts",
+      "features/canvas/tools/registry.ts",
+      "features/canvas/tools/types.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredToolPath)), retiredToolPath).toBe(false);
     }
     for (const legacyPath of legacyImagePreparationPaths) {
       expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
@@ -25017,11 +25037,11 @@ describe("frontend architecture boundaries", () => {
     );
     const toolTypesPath = resolve(
       SRC_ROOT,
-      "features/canvas/tools/types.ts",
+      "modules/creative_canvas/domain/canvasTool.ts",
     );
     const builtInToolsPath = resolve(
       SRC_ROOT,
-      "features/canvas/tools/builtInTools.ts",
+      "modules/creative_canvas/domain/canvasToolCatalog.ts",
     );
     const toolDialogPath = resolve(
       SRC_ROOT,
@@ -25071,7 +25091,6 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/tools",
       ]),
     );
     expect(controllerSource).not.toContain("className=");

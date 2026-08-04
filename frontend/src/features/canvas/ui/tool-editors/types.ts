@@ -1,5 +1,9 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasToolPlugin, ToolFieldSchema, ToolOptions } from '@/features/canvas/tools';
+import type {
+  CanvasToolPlugin,
+  ToolFieldSchema,
+  ToolOptions,
+} from '@/modules/creative_canvas/public';
 
 export interface ToolEditorBaseProps {
   plugin: CanvasToolPlugin;

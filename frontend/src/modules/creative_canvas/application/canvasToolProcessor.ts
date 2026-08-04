@@ -1,30 +1,67 @@
 // Copyright (c) 2026 AI anime
 import {
   NODE_TOOL_TYPES,
-  resolveMaxAllowedLineThickness,
   type NodeToolType,
-  type StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
-import type {
-  CanvasToolImageGateway,
-  IdGenerator,
-  ImageSplitGateway,
-  ToolProcessor,
-  ToolProcessorResult,
-} from './ports';
+} from '../domain/canvasNodeTool';
+import type { CanvasToolResult } from '../domain/canvasTool';
+import type { CanvasImageDimensions } from './imagePreparation';
+import type { StoryboardFrameItem } from '../domain/storyboard';
+import { resolveMaxAllowedLineThickness } from '../domain/toolImageGeometry';
 
-export class CanvasToolProcessor implements ToolProcessor {
+export interface CanvasImageSplitGateway {
+  split: (
+    imageSource: string,
+    rows: number,
+    cols: number,
+    lineThickness: number,
+  ) => Promise<string[]>;
+}
+
+export interface CanvasToolImageGateway {
+  crop: (
+    sourceImage: string,
+    options: Record<string, unknown>,
+  ) => Promise<string>;
+  annotate: (
+    sourceImage: string,
+    options: Record<string, unknown>,
+  ) => Promise<string>;
+  persist: (sourceImage: string) => Promise<string>;
+  detectAspectRatio: (sourceImage: string) => Promise<string>;
+  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
+  splitLocally: (
+    sourceImage: string,
+    rows: number,
+    cols: number,
+    lineThickness: number,
+  ) => Promise<string[]>;
+  readStoryboardMetadata: (
+    sourceImage: string,
+  ) => Promise<CanvasStoryboardImageMetadata | null>;
+}
+
+export interface CanvasStoryboardImageMetadata {
+  gridRows: number;
+  gridCols: number;
+  frameNotes: string[];
+}
+
+export interface CanvasToolIdGenerator {
+  next: () => string;
+}
+
+export class CanvasToolProcessor {
   constructor(
-    private readonly splitGateway: ImageSplitGateway,
+    private readonly splitGateway: CanvasImageSplitGateway,
     private readonly imageGateway: CanvasToolImageGateway,
-    private readonly idGenerator: IdGenerator
+    private readonly idGenerator: CanvasToolIdGenerator,
   ) {}
 
   async process(
     toolType: NodeToolType,
     sourceImageUrl: string,
     options: Record<string, unknown>
-  ): Promise<ToolProcessorResult> {
+  ): Promise<CanvasToolResult> {
     if (toolType === NODE_TOOL_TYPES.splitStoryboard) {
       const metadata = await this.readStoryboardMetadata(sourceImageUrl);
       return await this.splitStoryboard(
@@ -63,7 +100,7 @@ export class CanvasToolProcessor implements ToolProcessor {
     lineThicknessPercent: number,
     lineThicknessPxFallback: number,
     frameNotes?: string[]
-  ): Promise<ToolProcessorResult> {
+  ): Promise<CanvasToolResult> {
     const normalizedRows = Number.isFinite(rows) ? rows : 3;
     const normalizedCols = Number.isFinite(cols) ? cols : 3;
     const normalizedLineThicknessPercent = Number.isFinite(lineThicknessPercent)

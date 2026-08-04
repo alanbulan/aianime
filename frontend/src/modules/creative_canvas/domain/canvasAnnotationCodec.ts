@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { AnnotationItem } from './types';
+import type { AnnotationItem } from './canvasAnnotation';
 
 export function normalizeAnnotationRect(
   x1: number,

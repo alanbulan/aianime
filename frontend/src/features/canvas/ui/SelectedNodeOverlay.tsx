@@ -12,15 +12,15 @@ import {
   isPano360ViewerNode,
   isUploadNode,
   isVideoNode,
-  resolveNodeSourceImageUrl,
   type CanvasNode,
   type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
-import { DEFAULT_CANVAS_NODE_WIDTH } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
+  DEFAULT_CANVAS_NODE_WIDTH,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  resolveCanvasNodeSourceImageUrl,
   type GridActionRequest,
 } from '@/modules/creative_canvas/public';
 import { NodeActionToolbar } from './NodeActionToolbar';
@@ -135,7 +135,7 @@ export const SelectedNodeOverlay = memo(({
   }, [nodes, multiAngleNodeId]);
 
   const multiAngleImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(multiAngleNode),
+    () => resolveCanvasNodeSourceImageUrl(multiAngleNode),
     [multiAngleNode]
   );
 
@@ -154,12 +154,12 @@ export const SelectedNodeOverlay = memo(({
   }, [nodes, redrawNodeId]);
 
   const redrawImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(redrawNode),
+    () => resolveCanvasNodeSourceImageUrl(redrawNode),
     [redrawNode]
   );
 
   const lightEditorImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(lightEditorNode),
+    () => resolveCanvasNodeSourceImageUrl(lightEditorNode),
     [lightEditorNode]
   );
 
@@ -171,7 +171,7 @@ export const SelectedNodeOverlay = memo(({
   }, [nodes, scene360NodeId]);
 
   const scene360ImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(scene360Node),
+    () => resolveCanvasNodeSourceImageUrl(scene360Node),
     [scene360Node]
   );
 
@@ -183,7 +183,7 @@ export const SelectedNodeOverlay = memo(({
   }, [gridActionRequest, nodes]);
 
   const gridActionImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(gridActionNode),
+    () => resolveCanvasNodeSourceImageUrl(gridActionNode),
     [gridActionNode]
   );
 
@@ -234,7 +234,7 @@ export const SelectedNodeOverlay = memo(({
   }, [nodes, eraseNodeId]);
 
   const eraseImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(eraseNode),
+    () => resolveCanvasNodeSourceImageUrl(eraseNode),
     [eraseNode]
   );
 
@@ -297,7 +297,7 @@ export const SelectedNodeOverlay = memo(({
   }, [nodes, outpaintNodeId]);
 
   const outpaintImageSource = useMemo(
-    () => resolveNodeSourceImageUrl(outpaintNode),
+    () => resolveCanvasNodeSourceImageUrl(outpaintNode),
     [outpaintNode]
   );
 
@@ -422,7 +422,7 @@ export const SelectedNodeOverlay = memo(({
       // 与工具栏 canHandleImage / 其它图片工具一致，用统一 helper 取图源
       // ——它能识别 imageGen 节点（含 referenceImageUrl 兜底）。此前这里只读
       // imageUrl||previewImageUrl 且守卫漏了 imageGen，导致在生成图节点上点「高清」无反应。
-      const sourceImageUrl = resolveNodeSourceImageUrl(sourceNode);
+      const sourceImageUrl = resolveCanvasNodeSourceImageUrl(sourceNode);
       if (!sourceImageUrl) return;
 
       const sourceAspectRatio =

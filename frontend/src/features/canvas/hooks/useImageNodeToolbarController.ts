@@ -4,17 +4,17 @@ import { useTranslation } from "react-i18next";
 
 import {
   isImageEditNode,
-  resolveNodeSourceImageUrl,
   type CanvasNode,
 } from "@/features/canvas/domain/canvasNodes";
 import {
   canvasEventBus,
   NODE_TOOL_TYPES,
   projectImageNodeToolbar,
+  getNodeToolPlugins,
+  resolveCanvasNodeSourceImageUrl,
   type GridActionRequest,
   type NodeToolType,
 } from "@/modules/creative_canvas/public";
-import { getNodeToolPlugins } from "@/features/canvas/tools";
 
 export interface ImageNodeToolbarControllerOptions {
   projectId: string;
@@ -49,7 +49,7 @@ export function useImageNodeToolbarController({
   const projection = useMemo(
     () =>
       projectImageNodeToolbar(
-        resolveNodeSourceImageUrl(node),
+        resolveCanvasNodeSourceImageUrl(node),
         isImageEditNode(node),
         isPresetLocked,
       ),

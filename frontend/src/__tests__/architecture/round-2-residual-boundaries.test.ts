@@ -464,6 +464,24 @@ describe("round 2 residual architecture boundaries", () => {
       "toolImageGeometry.ts",
       "toolImageGeometry.test.ts",
     ];
+    const canvasImageToolDomainFiles = [
+      "canvasAnnotation.ts",
+      "canvasAnnotationCodec.ts",
+      "canvasAnnotationCodec.test.ts",
+      "canvasNodeImageSource.ts",
+      "canvasNodeImageSource.test.ts",
+      "canvasTool.ts",
+      "canvasToolCatalog.ts",
+      "canvasToolRegistry.ts",
+      "canvasToolRegistry.test.ts",
+    ];
+    const canvasImageToolApplicationFiles = [
+      "canvasToolProcessor.ts",
+      "canvasToolProcessor.test.ts",
+    ];
+    const canvasImageToolInfrastructureFiles = [
+      "browserCanvasAnnotationRenderer.ts",
+    ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
@@ -1245,6 +1263,29 @@ describe("round 2 residual architecture boundaries", () => {
         file,
       ).toBe(false);
     }
+    for (const file of canvasImageToolDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+    }
+    for (const file of canvasImageToolApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(true);
+    }
+    for (const file of canvasImageToolInfrastructureFiles) {
+      expect(existsSync(resolve(moduleRoot, "infrastructure", file)), file).toBe(true);
+    }
+    for (const retiredPath of [
+      "features/canvas/application/toolProcessor.ts",
+      "__tests__/features/canvas/tool-processor.test.ts",
+      "features/canvas/tools/annotation/codec.ts",
+      "features/canvas/tools/annotation/draw.ts",
+      "features/canvas/tools/annotation/index.ts",
+      "features/canvas/tools/annotation/types.ts",
+      "features/canvas/tools/builtInTools.ts",
+      "features/canvas/tools/index.ts",
+      "features/canvas/tools/registry.ts",
+      "features/canvas/tools/types.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     for (const file of mediaOperationDomainFiles) {
       expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
       expect(
@@ -1714,6 +1755,14 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/assetLibrary",
         "@/modules/creative_canvas/application/assetLibraryProjection",
         "@/modules/creative_canvas/domain/toolImageGeometry",
+        "@/modules/creative_canvas/domain/canvasAnnotation",
+        "@/modules/creative_canvas/domain/canvasAnnotationCodec",
+        "@/modules/creative_canvas/domain/canvasNodeImageSource",
+        "@/modules/creative_canvas/domain/canvasTool",
+        "@/modules/creative_canvas/domain/canvasToolCatalog",
+        "@/modules/creative_canvas/domain/canvasToolRegistry",
+        "@/modules/creative_canvas/application/canvasToolProcessor",
+        "@/modules/creative_canvas/infrastructure/browserCanvasAnnotationRenderer",
         "@/modules/creative_canvas/domain/multiAngle",
         "@/modules/creative_canvas/domain/outpaint",
         "@/modules/creative_canvas/domain/redraw",
@@ -2307,7 +2356,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 262],
+      ["features/canvas", 253],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

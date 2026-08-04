@@ -7,11 +7,6 @@ import type {
   CanvasPosition,
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
-import type {
-  CanvasImageDimensions,
-  NodeToolType,
-  StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
 
 export interface IdGenerator {
   next: () => string;
@@ -117,58 +112,4 @@ export interface GraphContentResolver {
     nodes: CanvasNode[],
     edges: CanvasEdge[]
   ) => UpstreamContent[];
-}
-
-export interface ImageSplitGateway {
-  split: (
-    imageSource: string,
-    rows: number,
-    cols: number,
-    lineThickness: number
-  ) => Promise<string[]>;
-}
-
-export interface CanvasStoryboardImageMetadata {
-  gridRows: number;
-  gridCols: number;
-  frameNotes: string[];
-}
-
-export interface CanvasToolImageGateway {
-  crop: (
-    sourceImage: string,
-    options: Record<string, unknown>,
-  ) => Promise<string>;
-  annotate: (
-    sourceImage: string,
-    options: Record<string, unknown>,
-  ) => Promise<string>;
-  persist: (sourceImage: string) => Promise<string>;
-  detectAspectRatio: (sourceImage: string) => Promise<string>;
-  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
-  splitLocally: (
-    sourceImage: string,
-    rows: number,
-    cols: number,
-    lineThickness: number,
-  ) => Promise<string[]>;
-  readStoryboardMetadata: (
-    sourceImage: string,
-  ) => Promise<CanvasStoryboardImageMetadata | null>;
-}
-
-export interface ToolProcessorResult {
-  outputImageUrl?: string;
-  storyboardFrames?: StoryboardFrameItem[];
-  rows?: number;
-  cols?: number;
-  frameAspectRatio?: string;
-}
-
-export interface ToolProcessor {
-  process: (
-    toolType: NodeToolType,
-    sourceImageUrl: string,
-    options: Record<string, unknown>
-  ) => Promise<ToolProcessorResult>;
 }

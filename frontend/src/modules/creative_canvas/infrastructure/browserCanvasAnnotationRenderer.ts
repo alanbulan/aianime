@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { AnnotationItem } from './types';
+import type { AnnotationItem } from '../domain/canvasAnnotation';
 
 function drawArrowHead(
   context: CanvasRenderingContext2D,

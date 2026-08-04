@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { splitImageSource } from '@/commands/image';
 
-import type { ImageSplitGateway } from '../application/ports';
+import type { CanvasImageSplitGateway } from '@/modules/creative_canvas/public';
 
-export const webImageSplitGateway: ImageSplitGateway = {
+export const webImageSplitGateway: CanvasImageSplitGateway = {
   split: (imageSource, rows, cols, lineThickness) =>
     splitImageSource(imageSource, rows, cols, lineThickness),
 };

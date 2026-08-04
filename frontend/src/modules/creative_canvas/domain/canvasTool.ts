@@ -1,10 +1,18 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from '../domain/canvasNodes';
-import type { NodeToolType } from '@/modules/creative_canvas/public';
-import type { ToolProcessorResult } from '../application/ports';
+import type { NodeToolType } from './canvasNodeTool';
+import type { CanvasNodeImageSourceLike } from './canvasNodeImageSource';
+import type { StoryboardFrameItem } from './storyboard';
 
 export type ToolOptionPrimitive = string | number | boolean;
 export type ToolOptions = Record<string, ToolOptionPrimitive>;
+
+export interface CanvasToolResult {
+  outputImageUrl?: string;
+  storyboardFrames?: StoryboardFrameItem[];
+  rows?: number;
+  cols?: number;
+  frameAspectRatio?: string;
+}
 
 interface ToolFieldBase {
   key: string;
@@ -46,7 +54,7 @@ export interface ToolExecutionContext {
     toolType: NodeToolType,
     sourceImageUrl: string,
     options: Record<string, unknown>
-  ) => Promise<ToolProcessorResult>;
+  ) => Promise<CanvasToolResult>;
 }
 
 export type ToolIconKey = 'crop' | 'annotate' | 'split';
@@ -57,12 +65,12 @@ export interface CanvasToolPlugin {
   labelKey: string;
   icon: ToolIconKey;
   editor: ToolEditorKind;
-  supportsNode: (node: CanvasNode) => boolean;
-  createInitialOptions: (node: CanvasNode) => ToolOptions;
+  supportsNode: (node: CanvasNodeImageSourceLike) => boolean;
+  createInitialOptions: (node: CanvasNodeImageSourceLike) => ToolOptions;
   fields: ToolFieldSchema[];
   execute: (
     sourceImageUrl: string,
     options: ToolOptions,
     context: ToolExecutionContext
-  ) => Promise<ToolProcessorResult>;
+  ) => Promise<CanvasToolResult>;
 }

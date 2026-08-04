@@ -39,6 +39,12 @@ vi.mock("@/modules/creative_canvas/public", () => ({
     errorDetails?: string;
   }) => [errorMessage, errorDetails].filter(Boolean).join("\n"),
   resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
+  resolveCanvasNodeSourceImageUrl: (node: {
+    data?: Record<string, unknown>;
+  }) => {
+    const data = node.data ?? {};
+    return data.imageUrl ?? data.previewImageUrl ?? data.referenceImageUrl ?? null;
+  },
   sanitizeStoryboardText: (input: string, ignoreAtTag: boolean) =>
     ignoreAtTag ? input.replace(/@\S+/g, "").trim() : input,
 }));

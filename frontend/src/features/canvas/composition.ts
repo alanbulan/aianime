@@ -17,6 +17,7 @@ import {
   browserGenerationRuntimeGateway,
   browserImageRuntimeGateway,
   canvasEventBus,
+  CanvasToolProcessor,
   composeCapability,
   createUseCanvasConnectionGestureSurfaceController,
   createDisconnectableEdge,
@@ -74,7 +75,6 @@ import {
 } from './application/assetDragHydration';
 import { extractUpstreamContent } from './application/graphContentResolver';
 import { extractUpstreamImages } from './application/graphImageResolver';
-import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,

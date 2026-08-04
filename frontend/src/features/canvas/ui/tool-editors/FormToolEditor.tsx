@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import type { ToolFieldSchema, ToolOptions } from '@/features/canvas/tools';
+import type { ToolFieldSchema, ToolOptions } from '@/modules/creative_canvas/public';
 import { UiInput, UiSelect } from '@/components/ui';
 import type { FormToolEditorProps } from './types';
 
