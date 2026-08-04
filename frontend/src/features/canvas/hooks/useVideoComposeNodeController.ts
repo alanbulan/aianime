@@ -19,7 +19,7 @@ import {
   type VideoComposeNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/composition';
 
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 136;

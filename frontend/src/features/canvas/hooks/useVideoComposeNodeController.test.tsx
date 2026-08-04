@@ -52,7 +52,7 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
+vi.mock('@/features/canvas/composition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 

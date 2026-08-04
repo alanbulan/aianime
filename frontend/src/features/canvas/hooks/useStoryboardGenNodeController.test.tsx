@@ -91,10 +91,6 @@ vi.mock('@/stores/settingsStore', () => ({
   ) => selector(mocks.settings),
 }));
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
-  useUpstreamImages: () => mocks.upstreamImages,
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
@@ -137,6 +133,7 @@ vi.mock('@/features/canvas/composition', () => ({
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
+  useUpstreamImages: () => mocks.upstreamImages,
 }));
 
 vi.mock('@/shared/api/errors', () => ({

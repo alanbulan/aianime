@@ -3,7 +3,7 @@ import { useCallback, useMemo } from 'react';
 
 import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
-import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
+import { useUpstreamContents } from '@/features/canvas/composition';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   buildCanvasAudioPrompt,

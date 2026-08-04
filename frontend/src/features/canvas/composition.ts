@@ -25,6 +25,7 @@ import {
   createUseImageEditToolbarController,
   createUseImageMatteController,
   createUseIsBoxSelecting,
+  createUseUpstreamGraph,
   detectAspectRatio as detectAspectRatioUseCase,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -68,6 +69,8 @@ import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
+import { extractUpstreamContent } from './application/graphContentResolver';
+import { extractUpstreamImages } from './application/graphImageResolver';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   CANVAS_NODE_TYPES,
@@ -229,6 +232,15 @@ export const useIsBoxSelecting = createUseIsBoxSelecting({
 export const useDetachUpstream = createUseDetachUpstream({
   useDeleteEdge: () => useCanvasStore((state) => state.deleteEdge),
   readEdges: () => useCanvasStore.getState().edges,
+});
+export const {
+  useUpstreamNodes,
+  useUpstreamContents,
+  useUpstreamImages,
+} = createUseUpstreamGraph({
+  useStore: useCanvasStore,
+  projectContent: extractUpstreamContent,
+  projectImages: extractUpstreamImages,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

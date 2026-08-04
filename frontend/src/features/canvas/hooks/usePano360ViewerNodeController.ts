@@ -31,8 +31,8 @@ import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadLocalImageToBackend,
+  useUpstreamNodes,
 } from '@/features/canvas/composition';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   getFreezoneCanvasMetadata,
   resolveImageDisplayUrl,

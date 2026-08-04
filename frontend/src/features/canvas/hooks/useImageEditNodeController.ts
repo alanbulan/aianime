@@ -29,12 +29,10 @@ import {
   getRuntimeDiagnostics,
   showErrorDialog,
   useDetachUpstream,
-} from '@/features/canvas/composition';
-import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import {
   useUpstreamContents,
   useUpstreamImages,
-} from '@/features/canvas/hooks/useUpstreamGraph';
+} from '@/features/canvas/composition';
+import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
   imageModelDefinitions,
   resolveImageModelResolution,

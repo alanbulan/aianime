@@ -34,12 +34,9 @@ vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
     mocks.useAudioGeneration(...args),
 }));
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
-  useUpstreamContents: () => mocks.upstreamContents,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
+  useUpstreamContents: () => mocks.upstreamContents,
 }));
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {

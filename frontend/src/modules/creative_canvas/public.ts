@@ -902,6 +902,19 @@ export type {
   ImageEditToolbarActionsViewProps,
   ImageEditToolbarStyleClasses,
 } from "@/modules/creative_canvas/presentation/ImageEditToolbarActionsView";
+export {
+  orderedReferenceUrlsWithOwnFirst,
+  sortUpstreamByReferenceOrder,
+  upstreamNodesInEdgeOrder,
+} from "@/modules/creative_canvas/domain/referenceOrdering";
+export { createUseUpstreamGraph } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
+export type {
+  UpstreamGraphDependencies,
+  UpstreamGraphEdge,
+  UpstreamGraphNode,
+  UpstreamGraphStore,
+  UpstreamGraphStoreHook,
+} from "@/modules/creative_canvas/presentation/useUpstreamGraph";
 export { useHoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export type { HoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export { projectImageGridToolbarActions } from "@/modules/creative_canvas/domain/imageGridToolbarModel";

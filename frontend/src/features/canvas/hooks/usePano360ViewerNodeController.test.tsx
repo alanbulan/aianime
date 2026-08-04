@@ -59,18 +59,16 @@ vi.mock('@/features/canvas/canvasStore', () => ({
     }),
 }));
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
-  useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
   uploadAndAutoCommitSelectedBackgroundCandidate: (...args: unknown[]) =>
     mocks.commitBackground(...args),
+  useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   getFreezoneCanvasMetadata: () => mocks.getCanvasMetadata(),
   resolveImageDisplayUrl: (url: string) => url,
 }));

@@ -3241,8 +3241,17 @@ describe("frontend architecture boundaries", () => {
       resolve(applicationRoot, "uploadToolOutput.ts"),
       "utf8",
     );
+    const referenceOrderingPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/referenceOrdering.ts",
+    );
+    const referenceOrdering = readFileSync(referenceOrderingPath, "utf8");
+    const upstreamGraphHookPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useUpstreamGraph.ts",
+    );
     const upstreamGraphHook = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/hooks/useUpstreamGraph.ts"),
+      upstreamGraphHookPath,
       "utf8",
     );
     const nodeGenerationTaskStatePath = resolve(
@@ -3479,9 +3488,39 @@ describe("frontend architecture boundaries", () => {
       "projectId: string | null | undefined",
     );
     expect(uploadToolOutput).toContain("assetSourceGateway.read(trimmed)");
-    expect(upstreamGraphHook).toContain("useCanvasStore(");
+    expect(referenceOrdering).toContain(
+      "export function upstreamNodesInEdgeOrder",
+    );
+    expect(referenceOrdering).toContain(
+      "export function orderedReferenceUrlsWithOwnFirst",
+    );
+    expect(referenceOrdering).toContain(
+      "export function sortUpstreamByReferenceOrder",
+    );
+    expect(importSpecifiers(referenceOrderingPath)).toEqual([]);
+    expect(upstreamGraphHook).toContain("export function createUseUpstreamGraph");
+    expect(upstreamGraphHook).toContain("useStore(");
     expect(upstreamGraphHook).toContain("useShallow(");
     expect(upstreamGraphHook).toContain("upstreamNodesInEdgeOrder(");
+    expect(new Set(importSpecifiers(upstreamGraphHookPath))).toEqual(
+      new Set([
+        "react",
+        "zustand/react/shallow",
+        "../domain/referenceOrdering",
+      ]),
+    );
+    expect(upstreamGraphHook).not.toContain("@/features/");
+    expect(composition).toContain("createUseUpstreamGraph({");
+    expect(composition).toContain("useStore: useCanvasStore");
+    expect(composition).toContain("projectContent: extractUpstreamContent");
+    expect(composition).toContain("projectImages: extractUpstreamImages");
+    for (const retiredUpstreamGraphPath of [
+      "features/canvas/hooks/useUpstreamGraph.ts",
+      "features/canvas/nodes/referenceOrdering.ts",
+      "__tests__/features/canvas/reference-ordering.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredUpstreamGraphPath))).toBe(false);
+    }
     expect(nodeGenerationTaskState).toContain(
       "export function resolveNodeGenerationTaskState(",
     );

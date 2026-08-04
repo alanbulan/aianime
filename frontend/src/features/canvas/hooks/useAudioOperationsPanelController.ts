@@ -13,9 +13,11 @@ import {
   type VoicePickResult,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { useDetachUpstream } from '@/features/canvas/composition';
+import {
+  useDetachUpstream,
+  useUpstreamContents,
+} from '@/features/canvas/composition';
 import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
-import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {
   useCommercialModelCatalog,

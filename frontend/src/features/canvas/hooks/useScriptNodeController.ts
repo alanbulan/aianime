@@ -28,7 +28,7 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/composition';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const REFERENCE_PREVIEW_WIDTH = 240;

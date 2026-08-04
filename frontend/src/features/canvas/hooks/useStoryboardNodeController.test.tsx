@@ -49,10 +49,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
   };
 });
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
-  useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   prepareNodeImage: (...args: unknown[]) => mocks.prepareNodeImage(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
@@ -61,6 +57,7 @@ vi.mock('@/features/canvas/composition', () => ({
     mocks.exportStoryboardGrid(...args),
   packStoryboardFrames: (...args: unknown[]) =>
     mocks.packStoryboardFrames(...args),
+  useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 
 function frame(

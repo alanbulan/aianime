@@ -33,6 +33,7 @@ import {
   uploadCanvasAsset,
   uploadLocalImageToBackend,
   useDetachUpstream,
+  useUpstreamNodes,
 } from '@/features/canvas/composition';
 import {
   imageUrlFromCanvasNode,
@@ -42,7 +43,6 @@ import {
   mergeDirectorWorldSources,
 } from '@/features/canvas/domain/directorWorldSources';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,
   generationTaskDescriptor,

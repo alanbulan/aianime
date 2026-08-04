@@ -32,8 +32,8 @@ import {
   packStoryboardFrames,
   prepareNodeImage,
   uploadLocalImageToBackend,
+  useUpstreamNodes,
 } from '@/features/canvas/composition';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 
 export interface StoryboardPickerState {
   frameId: string;

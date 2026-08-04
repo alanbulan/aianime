@@ -119,11 +119,6 @@ vi.mock('@/stores/settingsStore', () => ({
   ) => selector(mocks.settings),
 }));
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
-  useUpstreamImages: () => mocks.upstreamImages,
-  useUpstreamContents: () => mocks.upstreamContents,
-}));
-
 vi.mock('@/features/canvas/nodes/useReferenceMentionSync', () => ({
   useReferenceMentionSync: () => undefined,
 }));
@@ -177,6 +172,8 @@ vi.mock('@/features/canvas/composition', () => ({
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   useDetachUpstream: () => mocks.detachUpstream,
+  useUpstreamContents: () => mocks.upstreamContents,
+  useUpstreamImages: () => mocks.upstreamImages,
 }));
 
 vi.mock('@/shared/api/errors', () => ({

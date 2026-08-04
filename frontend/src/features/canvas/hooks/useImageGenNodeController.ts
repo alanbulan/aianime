@@ -76,8 +76,8 @@ import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
   useIsBoxSelecting,
+  useUpstreamContents,
 } from '@/features/canvas/composition';
-import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
@@ -93,7 +93,7 @@ import type {
   MentionCandidate,
   PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
-import { orderedReferenceUrlsWithOwnFirst } from '@/features/canvas/nodes/referenceOrdering';
+import { orderedReferenceUrlsWithOwnFirst } from '@/modules/creative_canvas/public';
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import { canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';

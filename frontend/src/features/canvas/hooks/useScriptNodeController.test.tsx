@@ -53,7 +53,7 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
+vi.mock('@/features/canvas/composition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 
@@ -64,12 +64,12 @@ vi.mock('@/modules/model_usage/public', () => ({
   },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async () => {
-  const storyScript = await vi.importActual<
-    typeof import('@/modules/creative_canvas/application/generateCanvasStoryScript')
-  >('@/modules/creative_canvas/application/generateCanvasStoryScript');
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/modules/creative_canvas/public')
+  >();
   return {
-    ...storyScript,
+    ...actual,
     useNodeGenerationHistory: () => ({
       records: mocks.historyRecords,
       isLoading: false,

@@ -46,6 +46,7 @@ import {
   showErrorDialog,
   uploadCanvasAsset,
   useIsBoxSelecting,
+  useUpstreamNodes,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -57,7 +58,6 @@ import {
   canvasEventBus,
   resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
-import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
@@ -73,7 +73,7 @@ import type {
 import {
   sortUpstreamByReferenceOrder,
   upstreamNodesInEdgeOrder,
-} from '@/features/canvas/nodes/referenceOrdering';
+} from '@/modules/creative_canvas/public';
 import { resolveVideoGenerationModeOptions } from '@/features/canvas/nodes/videoGenerationModeOptions';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';

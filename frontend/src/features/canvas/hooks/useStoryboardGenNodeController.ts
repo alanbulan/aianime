@@ -18,6 +18,7 @@ import {
   getRuntimeDiagnostics,
   showErrorDialog,
   uploadLocalImageToBackend,
+  useUpstreamImages,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -65,7 +66,6 @@ import {
   type StoryboardPickerAnchor,
   type StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';
-import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   imageModelDefinitions,
   resolveImageModelResolution,
