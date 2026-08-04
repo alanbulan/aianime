@@ -84,6 +84,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@xyflow/react', () => ({
+  Position: { Top: 'top' },
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
 }));
 
@@ -128,17 +129,6 @@ vi.mock('@/features/canvas/application/graphContentResolver', () => ({
   collectUpstreamReferenceUrls: () => mocks.upstreamReferenceUrls,
 }));
 
-vi.mock('@/features/canvas/models', () => ({
-  imageModelDefinitions: () => [mocks.imageModel],
-  selectImageModel: () => mocks.imageModel,
-  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
-  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
-}));
-
-vi.mock('@/features/canvas/pricing', () => ({
-  resolveModelPriceDisplay: () => null,
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
@@ -150,7 +140,12 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   defaultCapabilityParams: () => ({ strength: 50 }),
   getCapability: (id: string | undefined) =>
     id === mocks.capability.id ? mocks.capability : null,
+  imageModelDefinitions: () => [mocks.imageModel],
   listCapabilities: () => [mocks.capability],
+  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
+  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
+  resolveModelPriceDisplay: () => null,
+  selectImageModel: () => mocks.imageModel,
   resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
   resolveGenerationErrorDiagnostics: () => ({
     details: '诊断详情',

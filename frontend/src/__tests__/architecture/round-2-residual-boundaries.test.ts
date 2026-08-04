@@ -2307,7 +2307,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 269],
+      ["features/canvas", 262],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
@@ -2384,22 +2384,14 @@ describe("round 2 residual architecture boundaries", () => {
   });
 
   it("uses the authenticated catalog as the only Canvas model source", () => {
-    const modelRoot = resolve(SRC_ROOT, "features/canvas/models");
-    const productionModelFiles = sourceFiles(modelRoot)
-      .filter((path) => !/\.test\.(ts|tsx)$/.test(path))
-      .map(relativeSource)
-      .sort();
+    const legacyModelRoot = resolve(SRC_ROOT, "features/canvas/models");
     const catalogConsumers = [
-      "features/canvas/models/registry.ts",
+      "modules/creative_canvas/application/imageModelCatalogProjection.ts",
       "modules/creative_canvas/presentation/useCanvasImageModels.ts",
       "modules/creative_canvas/presentation/useCanvasVideoModels.ts",
     ].map((path) => readFileSync(resolve(SRC_ROOT, path), "utf8"));
 
-    expect(productionModelFiles).toEqual([
-      "features/canvas/models/index.ts",
-      "features/canvas/models/registry.ts",
-      "features/canvas/models/types.ts",
-    ]);
+    expect(existsSync(legacyModelRoot)).toBe(false);
     for (const source of catalogConsumers) {
       for (const forbidden of [
         "fallbackModels",

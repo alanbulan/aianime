@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { ImageModelDefinition } from '@/features/canvas/models/types';
+import type { ImageModelDefinition } from '../domain/imageModelDefinition';
 
 import {
   DEFAULT_GRSAI_CREDIT_TIER_ID,
@@ -11,7 +11,7 @@ import {
   type PriceCurrency,
   type PriceDisplayCurrencyMode,
   type PricingSettingsSnapshot,
-} from './types';
+} from '../domain/modelPricing';
 
 type ResolutionPriceTable = Record<string, number>;
 
@@ -242,7 +242,6 @@ export function resolveModelPriceDisplay(
 export function isHighThinkingEnabled(extraParams: Record<string, unknown> | undefined): boolean {
   return normalizeStringParam(extraParams?.thinking_level) === 'high';
 }
-
 
 
 

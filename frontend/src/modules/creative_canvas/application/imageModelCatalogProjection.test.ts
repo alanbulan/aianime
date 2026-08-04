@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   imageModelDefinitions,
   selectImageModel,
-} from './registry';
+} from './imageModelCatalogProjection';
 
 describe('commercial image model definitions', () => {
   it('keeps the catalog code as the only request model and maps JSON Schema controls', () => {

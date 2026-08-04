@@ -7,7 +7,7 @@ import {
   PRICE_DISPLAY_CURRENCY_MODES,
   type GrsaiCreditTierId,
   type PriceDisplayCurrencyMode,
-} from '@/features/canvas/public';
+} from '@/modules/creative_canvas/public';
 
 export type UiRadiusPreset = 'compact' | 'default' | 'large';
 export type ThemeTonePreset = 'neutral' | 'warm' | 'cool';

@@ -4024,7 +4024,7 @@ describe("frontend architecture boundaries", () => {
     );
     const modelRegistryPath = resolve(
       SRC_ROOT,
-      "features/canvas/models/registry.ts",
+      "modules/creative_canvas/application/imageModelCatalogProjection.ts",
     );
     const pickerPath = resolve(
       SRC_ROOT,
@@ -4072,7 +4072,7 @@ describe("frontend architecture boundaries", () => {
       expect(defaultsSource).toContain(`export const ${name} = ''`);
     }
     expect(modelRegistrySource).toContain(
-      "models: readonly CatalogImageModel[]",
+      "models: readonly CanvasCatalogModelOption[]",
     );
     expect(modelRegistrySource).not.toContain("providerId");
     expect(readFileSync(pickerPath, "utf8")).not.toContain(
@@ -5028,12 +5028,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(canvasPublicPath)).toEqual([
-      "@/features/canvas/pricing/types",
-    ]);
-    expect(readFileSync(canvasPublicPath, "utf8")).not.toContain(
-      "isCommitCandidateData",
-    );
+    expect(existsSync(canvasPublicPath)).toBe(false);
     expect(importSpecifiers(modulePublicPath)).toContain(
       "@/modules/creative_canvas/domain/canvasCommitSource",
     );
@@ -5087,7 +5082,10 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(bootstrap).toContain("installFreezoneCanvasStorageReclaimer();");
-    expect(importSpecifiers(settingsPath)).toContain("@/features/canvas/public");
+    expect(importSpecifiers(settingsPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(settings).not.toContain("@/features/canvas/public");
     expect(settings).not.toContain("@/features/freezone/canvasDraftStorage");
     expect(settings).not.toContain("@/features/canvas/pricing/types");
     expect(composition).toContain(
@@ -32642,6 +32640,57 @@ describe("frontend architecture boundaries", () => {
       expect(readFileSync(adapterPath, "utf8")).not.toContain(
         `./${name}`,
       );
+    }
+  });
+
+  it("keeps Canvas image catalog projection and pricing in Creative Canvas", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
+    const publicSource = readFileSync(resolve(moduleRoot, "public.ts"), "utf8");
+    const ownerPaths = [
+      "application/imageModelCatalogProjection.ts",
+      "application/modelPriceDisplay.ts",
+      "domain/imageModelDefinition.ts",
+      "domain/modelPricing.ts",
+    ].map((path) => resolve(moduleRoot, path));
+    const legacyPaths = [
+      "features/canvas/models",
+      "features/canvas/pricing",
+      "features/canvas/public.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const consumers = [
+      "features/canvas/hooks/useImageEditNodeController.ts",
+      "features/canvas/hooks/useStoryboardGenNodeController.ts",
+      "features/canvas/ui/ModelParamsControls.tsx",
+      "stores/settingsStore.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+
+    expect(ownerPaths.every((path) => existsSync(path))).toBe(true);
+    expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
+    for (const path of ownerPaths) {
+      expect(readFileSync(path, "utf8")).not.toContain(
+        "@/features/canvas/",
+      );
+      expect(importSpecifiers(path)).not.toContain(
+        "@/modules/creative_canvas/public",
+      );
+    }
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/application/imageModelCatalogProjection",
+    );
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/application/modelPriceDisplay",
+    );
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/domain/modelPricing",
+    );
+    for (const path of consumers) {
+      expect(importSpecifiers(path)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      const source = readFileSync(path, "utf8");
+      expect(source).not.toContain("@/features/canvas/models");
+      expect(source).not.toContain("@/features/canvas/pricing");
+      expect(source).not.toContain("@/features/canvas/public");
     }
   });
 

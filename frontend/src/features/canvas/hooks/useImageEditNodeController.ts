@@ -34,13 +34,6 @@ import {
 } from '@/features/canvas/composition';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
-  imageModelDefinitions,
-  resolveImageModelResolution,
-  resolveImageModelResolutions,
-  selectImageModel,
-} from '@/features/canvas/models';
-import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
-import {
   AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -55,6 +48,7 @@ import {
   defaultCapabilityParams,
   findReferenceTokenAtSelection,
   getCapability,
+  imageModelDefinitions,
   insertReferenceToken,
   listCapabilities,
   mergeImageEditCandidateSourceMeta,
@@ -69,7 +63,11 @@ import {
   resolveImageEditPickerAnchor,
   resolveErrorContent,
   resolveGenerationErrorDiagnostics,
+  resolveImageModelResolution,
+  resolveImageModelResolutions,
+  resolveModelPriceDisplay,
   resolveReferenceAwareDeleteRange,
+  selectImageModel,
   useCanvasImageModels,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,

@@ -4,20 +4,12 @@ import type {
   ImageModelDefinition,
   ImageModelRuntimeContext,
   ResolutionOption,
-} from './types';
+} from '../domain/imageModelDefinition';
 import {
   filterCanvasImageModels,
   type CanvasImageMode,
-} from '@/modules/creative_canvas/public';
-
-interface CatalogImageModel {
-  readonly id: string;
-  readonly apiModel: string;
-  readonly label: string;
-  readonly imageModes?: ReadonlyArray<CanvasImageMode>;
-  readonly capabilities?: Record<string, unknown>;
-  readonly parameterSchema?: Record<string, unknown>;
-}
+} from '../domain/imageModelCapability';
+import type { CanvasCatalogModelOption } from './generationCatalog';
 
 const DEFAULT_ASPECT_RATIOS = [
   '1:1',
@@ -52,7 +44,7 @@ const NON_EXTRA_PARAMETER_KEYS = new Set([
 ]);
 
 export function imageModelDefinitions(
-  models: readonly CatalogImageModel[],
+  models: readonly CanvasCatalogModelOption[],
   mode?: CanvasImageMode,
 ): ImageModelDefinition[] {
   return (mode ? filterCanvasImageModels(models, mode) : models).map(
@@ -102,7 +94,9 @@ export function resolveImageModelResolution(
   );
 }
 
-function toImageModelDefinition(model: CatalogImageModel): ImageModelDefinition {
+function toImageModelDefinition(
+  model: CanvasCatalogModelOption,
+): ImageModelDefinition {
   const capabilities = model.capabilities ?? {};
   const properties = schemaProperties(model.parameterSchema ?? {});
   const aspectRatios = firstStringArray(

@@ -4,8 +4,8 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
-  Position,
   type EdgeProps,
+  type Position,
 } from '@xyflow/react';
 import { Scissors } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -58,13 +58,13 @@ const NO_ROUTING_NODES: readonly CanvasEdgeRenderNode[] = [];
 
 function portDotOffset(position: Position | undefined): { dx: number; dy: number } {
   switch (position) {
-    case Position.Left:
+    case 'left':
       return { dx: -PORT_DOT_OFFSET, dy: 0 };
-    case Position.Right:
+    case 'right':
       return { dx: PORT_DOT_OFFSET, dy: 0 };
-    case Position.Top:
+    case 'top':
       return { dx: 0, dy: -PORT_DOT_OFFSET };
-    case Position.Bottom:
+    case 'bottom':
       return { dx: 0, dy: PORT_DOT_OFFSET };
     default:
       return { dx: 0, dy: 0 };
@@ -161,10 +161,10 @@ export function createDisconnectableEdge({
         targetId: target,
         sourceX,
         sourceY,
-        sourcePosition: sourcePosition ?? Position.Right,
+        sourcePosition: sourcePosition ?? 'right',
         targetX,
         targetY,
-        targetPosition: targetPosition ?? Position.Left,
+        targetPosition: targetPosition ?? 'left',
         nodes: routingNodes,
         smartAvoidance: routingMode === 'smartOrthogonal',
       });
@@ -218,8 +218,8 @@ export function createDisconnectableEdge({
     const flowPathId = `canvas-data-flow-path-${safeId}`;
     const flowGradientId = `canvas-data-flow-gradient-${safeId}`;
     const flowGlowId = `canvas-data-flow-glow-${safeId}`;
-    const sourceDotOffset = portDotOffset(sourcePosition ?? Position.Right);
-    const targetDotOffset = portDotOffset(targetPosition ?? Position.Left);
+    const sourceDotOffset = portDotOffset(sourcePosition ?? 'right');
+    const targetDotOffset = portDotOffset(targetPosition ?? 'left');
 
     return (
       <>

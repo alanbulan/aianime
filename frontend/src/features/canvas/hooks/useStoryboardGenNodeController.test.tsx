@@ -59,6 +59,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@xyflow/react', () => ({
+  Position: { Top: 'top' },
   useViewport: () => ({ zoom: mocks.zoom }),
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
 }));
@@ -99,6 +100,7 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     Array.from({ length: count }, (_, index) => `image-${index + 1}`),
   generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
     mocks.generateGridImage(...args),
+  imageModelDefinitions: () => [mocks.imageModel],
   resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
   resolveGenerationErrorDiagnostics: () => ({
     details: '诊断详情',
@@ -108,18 +110,11 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     mocks.resolvePointerAnchor(...args),
   resolveStoryboardPickerAnchor: (...args: unknown[]) =>
     mocks.resolvePickerAnchor(...args),
-  useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
-}));
-
-vi.mock('@/features/canvas/models', () => ({
-  imageModelDefinitions: () => [mocks.imageModel],
-  selectImageModel: () => mocks.imageModel,
-  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
   resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
-}));
-
-vi.mock('@/features/canvas/pricing', () => ({
+  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
   resolveModelPriceDisplay: () => null,
+  selectImageModel: () => mocks.imageModel,
+  useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 
 vi.mock('@/features/canvas/composition', () => ({

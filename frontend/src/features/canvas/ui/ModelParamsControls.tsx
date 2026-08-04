@@ -13,12 +13,12 @@ import { createPortal } from 'react-dom';
 import { SlidersHorizontal, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { AUTO_REQUEST_ASPECT_RATIO } from '@/modules/creative_canvas/public';
 import {
+  AUTO_REQUEST_ASPECT_RATIO,
   type AspectRatioOption,
   type ImageModelDefinition,
   type ResolutionOption,
-} from '@/features/canvas/models';
+} from '@/modules/creative_canvas/public';
 import {
   UiChipButton,
   UiPanel,

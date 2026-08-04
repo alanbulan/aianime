@@ -1258,6 +1258,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百四十一批将正交/智能避障路由规则迁入 Creative Canvas domain，将断开连线展示和交互迁入 presentation，并由旧 Canvas composition 仅注入现有 Zustand Store 与主题设置端口后提供唯一 `canvasEdgeTypes` 装配。旧 `features/canvas/edges` 的三个生产文件和空目录整体删除，Canvas Stage 与测试统一切换组合根，不保留 facade、re-export、重复路由算法或第二套 EdgeTypes。新增路由算法和断开交互行为测试 2 个文件 4 项，连同 Canvas Stage/手动连线回归共 4 个文件 9 项；完整模块边界、残余边界与颜色门禁 3 个文件 346 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 978/269/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 269/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百四十二批将认证图片模型目录到节点展示模型的投影迁入 Creative Canvas application，将模型定义与价格合同迁入 domain，将价格计算/币种展示迁入 application；投影直接复用本域 `CanvasCatalogModelOption` 和图片能力过滤规则，不再经模块 public 自回绕或维护重复目录 DTO。设置 Store、图片编辑/分镜生成 Controller 和模型参数视图统一经 Creative Canvas public 使用唯一出口，旧 `features/canvas/models`、`pricing`、聚合 `public.ts` 的 7 个文件及两个空目录直接删除，不保留 facade、re-export、静态模型回退或第二套价格规则。模型目录、价格和两个 Controller 回归 4 个文件 16 项，完整模块边界、残余边界与颜色门禁 3 个文件 347 项、前端 TypeScript 和 `git diff --check` 全部通过；同时修正第 841 批连线组件对 React Flow `Position` 的运行时枚举耦合，改为类型导入与标准位置值，避免模块 public 加载污染部分 mock。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 984/262/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 262/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

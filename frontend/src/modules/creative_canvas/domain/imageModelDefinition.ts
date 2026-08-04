@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { ModelPricingDefinition } from '@/features/canvas/pricing/types';
+import type { ModelPricingDefinition } from './modelPricing';
 
 export type MediaModelType = 'image' | 'video' | 'audio';
 

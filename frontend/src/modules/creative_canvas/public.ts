@@ -75,6 +75,46 @@ export type {
   CanvasVideoModel,
 } from "@/modules/creative_canvas/application/generationCatalog";
 export {
+  imageModelDefinitions,
+  resolveImageModelResolution,
+  resolveImageModelResolutions,
+  selectImageModel,
+} from "@/modules/creative_canvas/application/imageModelCatalogProjection";
+export {
+  createFixedResolutionPricing,
+  createGrsaiPointsPricing,
+  createMultiplierPricing,
+  getGrsaiCreditTier,
+  isHighThinkingEnabled,
+  resolveModelPriceDisplay,
+  resolvePriceDisplayCurrency,
+} from "@/modules/creative_canvas/application/modelPriceDisplay";
+export type {
+  AspectRatioOption,
+  ExtraParamDefinition,
+  ExtraParamType,
+  ImageModelDefinition,
+  ImageModelRuntimeContext,
+  MediaModelType,
+  ResolutionOption,
+} from "@/modules/creative_canvas/domain/imageModelDefinition";
+export {
+  DEFAULT_GRSAI_CREDIT_TIER_ID,
+  GRSAI_CREDIT_TIERS,
+  PRICE_CURRENCIES,
+  PRICE_DISPLAY_CURRENCY_MODES,
+} from "@/modules/creative_canvas/domain/modelPricing";
+export type {
+  GrsaiCreditTierDefinition,
+  GrsaiCreditTierId,
+  ModelPriceQuote,
+  ModelPricingDefinition,
+  PriceComputationContext,
+  PriceCurrency,
+  PriceDisplayCurrencyMode,
+  PricingSettingsSnapshot,
+} from "@/modules/creative_canvas/domain/modelPricing";
+export {
   prefetchCanvasCameraOptions,
   prefetchCanvasImageModels,
   prefetchCanvasStyleTemplates,

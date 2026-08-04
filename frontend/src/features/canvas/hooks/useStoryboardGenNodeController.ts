@@ -41,6 +41,7 @@ import {
   buildStoryboardGenerationPrompt,
   createReferenceImagePlaceholders,
   generateStoryboardGridImageDataUrl,
+  imageModelDefinitions,
   insertReferenceToken,
   parseAspectRatio,
   pickClosestAspectRatio,
@@ -50,6 +51,9 @@ import {
   resolveErrorContent,
   resolveGenerationErrorDiagnostics,
   resolveImageDisplayUrl,
+  resolveImageModelResolution,
+  resolveImageModelResolutions,
+  resolveModelPriceDisplay,
   resolveReferenceAwareDeleteRange,
   resolveStoryboardPickerAnchor,
   resolveStoryboardPointerAnchor,
@@ -59,6 +63,7 @@ import {
   resolveStoryboardGenRatioControlMode,
   resolveStoryboardGenerationFrameNotes,
   resolveStoryboardGridCount,
+  selectImageModel,
   updateStoryboardGenFrameDescription,
   useCanvasImageModels,
   type StoryboardAspectRatioChoice,
@@ -66,13 +71,6 @@ import {
   type StoryboardPickerAnchor,
   type StoryboardRatioControlMode,
 } from '@/modules/creative_canvas/public';
-import {
-  imageModelDefinitions,
-  resolveImageModelResolution,
-  resolveImageModelResolutions,
-  selectImageModel,
-} from '@/features/canvas/models';
-import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
 
