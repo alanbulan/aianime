@@ -6,6 +6,8 @@ import { AudioNodeToolbarActionsView } from './AudioNodeToolbarActionsView';
 import { NodeMainlineToolbarActionsView } from './NodeMainlineToolbarActionsView';
 import { NodeManagementToolbarActionsView } from './NodeManagementToolbarActionsView';
 import { NodeOutputToolbarActionsView } from './NodeOutputToolbarActionsView';
+import { ImageNodeToolbarActionsView } from './ImageNodeToolbarActionsView';
+import { VideoNodeToolbarActionsView } from './VideoNodeToolbarActionsView';
 
 const translate = ((key: string) => key) as never;
 
@@ -117,5 +119,98 @@ describe('node toolbar action views', () => {
     expect(
       screen.getByRole('button', { name: /nodeToolbar.download/ }),
     ).toBeEnabled();
+  });
+
+  it('forwards image toolbar commands and renders injected edit/grid slots', () => {
+    const openPanorama = vi.fn();
+    const openMultiDimension = vi.fn();
+    const openRelight = vi.fn();
+    const openRotate = vi.fn();
+    const openTool = vi.fn();
+
+    render(
+      <ImageNodeToolbarActionsView
+        controller={{
+          t: translate,
+          visible: true,
+          canRotate: true,
+          toolActions: [
+            { type: 'annotate', icon: 'annotate', label: '标注', iconOnly: true },
+          ],
+          openPanorama,
+          openMultiDimension,
+          openRelight,
+          openRotate,
+          openTool,
+        }}
+        editActions={<span>edit-slot</span>}
+        gridActions={<span>grid-slot</span>}
+      />,
+    );
+
+    expect(screen.getByText('edit-slot')).toBeInTheDocument();
+    expect(screen.getByText('grid-slot')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.panorama' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'nodeToolbar.multiDimension' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.relight' }));
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.rotate' }));
+    expect(openPanorama).toHaveBeenCalledOnce();
+    expect(openMultiDimension).toHaveBeenCalledOnce();
+    expect(openRelight).toHaveBeenCalledOnce();
+    expect(openRotate).toHaveBeenCalledOnce();
+  });
+
+  it('forwards video toolbar commands and subtitle mode selection', () => {
+    const toggleClipMode = vi.fn();
+    const createUpscaleNode = vi.fn();
+    const analyze = vi.fn(async () => undefined);
+    const openSubtitleRemoval = vi.fn();
+    const separateAudioVideo = vi.fn(async () => undefined);
+    const download = vi.fn(async () => undefined);
+    const openFullscreen = vi.fn();
+
+    render(
+      <VideoNodeToolbarActionsView
+        controller={{
+          t: translate,
+          hasVideo: true,
+          isAnalyzing: false,
+          isSeparatingAudioVideo: false,
+          toggleClipMode,
+          createUpscaleNode,
+          analyze,
+          openSubtitleRemoval,
+          separateAudioVideo,
+          download,
+          openFullscreen,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.video.clip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.video.hd' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'nodeToolbar.video.analyze' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'nodeToolbar.video.separateAudioVideo',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'nodeToolbar.download' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'nodeToolbar.video.fullscreen' }),
+    );
+    expect(toggleClipMode).toHaveBeenCalledOnce();
+    expect(createUpscaleNode).toHaveBeenCalledOnce();
+    expect(analyze).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole('button', { name: 'nodeToolbar.video.subtitleRemoval' }),
+    ).toBeEnabled();
+    expect(separateAudioVideo).toHaveBeenCalledOnce();
+    expect(download).toHaveBeenCalledOnce();
+    expect(openFullscreen).toHaveBeenCalledOnce();
   });
 });

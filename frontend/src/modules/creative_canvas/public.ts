@@ -1894,6 +1894,18 @@ export type {
   AudioNodeToolbarActionsViewProps,
   AudioNodeToolbarViewState,
 } from "@/modules/creative_canvas/presentation/AudioNodeToolbarActionsView";
+export { ImageNodeToolbarActionsView } from "@/modules/creative_canvas/presentation/ImageNodeToolbarActionsView";
+export type {
+  ImageNodeToolbarActionsViewProps,
+  ImageNodeToolbarToolAction,
+  ImageNodeToolbarToolIcon,
+  ImageNodeToolbarViewState,
+} from "@/modules/creative_canvas/presentation/ImageNodeToolbarActionsView";
+export { VideoNodeToolbarActionsView } from "@/modules/creative_canvas/presentation/VideoNodeToolbarActionsView";
+export type {
+  VideoNodeToolbarActionsViewProps,
+  VideoNodeToolbarViewState,
+} from "@/modules/creative_canvas/presentation/VideoNodeToolbarActionsView";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";

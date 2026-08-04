@@ -2,10 +2,14 @@
 import { memo } from "react";
 
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { GridActionRequest } from "@/modules/creative_canvas/public";
+import {
+  ImageNodeToolbarActionsView,
+  type GridActionRequest,
+} from "@/modules/creative_canvas/public";
 import { useImageNodeToolbarController } from "@/features/canvas/hooks/useImageNodeToolbarController";
 
-import { ImageNodeToolbarActionsView } from "./ImageNodeToolbarActionsView";
+import { ImageEditToolbarActions } from "./ImageEditToolbarActions";
+import { ImageGridToolbarActions } from "./ImageGridToolbarActions";
 
 export interface ImageNodeToolbarActionsProps {
   projectId: string;
@@ -25,7 +29,32 @@ export interface ImageNodeToolbarActionsProps {
 export const ImageNodeToolbarActions = memo(
   (props: ImageNodeToolbarActionsProps) => {
     const controller = useImageNodeToolbarController(props);
-    return <ImageNodeToolbarActionsView controller={controller} />;
+    return (
+      <ImageNodeToolbarActionsView
+        controller={controller}
+        editActions={
+          controller.canEdit ? (
+            <ImageEditToolbarActions
+              projectId={controller.projectId}
+              nodeId={controller.nodeId}
+              nodeData={controller.nodeData}
+              imageSource={controller.imageSource}
+              isPresetLocked={controller.isPresetLocked}
+              onOpenRedraw={controller.onOpenRedraw}
+              onOpenErase={controller.onOpenErase}
+              onOpenUpscale={controller.onOpenUpscale}
+              onOpenOutpaint={controller.onOpenOutpaint}
+            />
+          ) : null
+        }
+        gridActions={
+          <ImageGridToolbarActions
+            nodeId={controller.nodeId}
+            onOpenGridAction={controller.onOpenGridAction}
+          />
+        }
+      />
+    );
   },
 );
 

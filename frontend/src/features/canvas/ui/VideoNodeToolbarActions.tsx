@@ -3,8 +3,7 @@ import { memo } from "react";
 
 import type { VideoNodeData } from "@/features/canvas/domain/canvasNodes";
 import { useVideoNodeToolbarController } from "@/features/canvas/hooks/useVideoNodeToolbarController";
-
-import { VideoNodeToolbarActionsView } from "./VideoNodeToolbarActionsView";
+import { VideoNodeToolbarActionsView } from "@/modules/creative_canvas/public";
 
 export interface VideoNodeToolbarActionsProps {
   projectId: string;

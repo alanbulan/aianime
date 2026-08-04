@@ -9,40 +9,57 @@ import {
   Scissors,
   type LucideIcon,
 } from "lucide-react";
+import type { TFunction } from "i18next";
+import type { ReactNode } from "react";
 
 import { UiChipButton } from "@/components/ui";
-import type { ToolIconKey } from "@/features/canvas/tools";
-import type { ImageNodeToolbarController } from "@/features/canvas/hooks/useImageNodeToolbarController";
-
-import { ImageEditToolbarActions } from "./ImageEditToolbarActions";
-import { ImageGridToolbarActions } from "./ImageGridToolbarActions";
 import {
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-  NodeToolbarIconChip,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+import { NodeToolbarIconChip } from "./NodeToolbarIconChip";
+import type { NodeToolType } from "../domain/canvasNodeTool";
 
-const toolIconMap: Record<ToolIconKey, LucideIcon> = {
+export type ImageNodeToolbarToolIcon = "crop" | "annotate" | "split";
+
+export interface ImageNodeToolbarToolAction {
+  type: NodeToolType;
+  icon: ImageNodeToolbarToolIcon;
+  label: string;
+  iconOnly: boolean;
+}
+
+export interface ImageNodeToolbarViewState {
+  t: TFunction;
+  visible: boolean;
+  canRotate: boolean;
+  toolActions: ReadonlyArray<ImageNodeToolbarToolAction>;
+  openPanorama(): void;
+  openMultiDimension(): void;
+  openRelight(): void;
+  openRotate(): void;
+  openTool(toolType: NodeToolType): void;
+}
+
+const toolIconMap: Record<ImageNodeToolbarToolIcon, LucideIcon> = {
   crop: Crop,
   annotate: PenLine,
   split: Scissors,
 };
 
 export interface ImageNodeToolbarActionsViewProps {
-  controller: ImageNodeToolbarController;
+  controller: ImageNodeToolbarViewState;
+  editActions: ReactNode;
+  gridActions: ReactNode;
 }
 
 export function ImageNodeToolbarActionsView({
   controller,
+  editActions,
+  gridActions,
 }: ImageNodeToolbarActionsViewProps) {
   if (!controller.visible) return null;
   const {
     t,
-    projectId,
-    nodeId,
-    nodeData,
-    imageSource,
-    isPresetLocked,
-    canEdit,
     canRotate,
     toolActions,
     openPanorama,
@@ -50,11 +67,6 @@ export function ImageNodeToolbarActionsView({
     openRelight,
     openRotate,
     openTool,
-    onOpenUpscale,
-    onOpenOutpaint,
-    onOpenGridAction,
-    onOpenRedraw,
-    onOpenErase,
   } = controller;
 
   return (
@@ -89,23 +101,8 @@ export function ImageNodeToolbarActionsView({
         <Lightbulb className="h-3.5 w-3.5" />
         {t("nodeToolbar.relight")}
       </UiChipButton>
-      {canEdit && (
-        <ImageEditToolbarActions
-          projectId={projectId}
-          nodeId={nodeId}
-          nodeData={nodeData}
-          imageSource={imageSource}
-          isPresetLocked={isPresetLocked}
-          onOpenRedraw={onOpenRedraw}
-          onOpenErase={onOpenErase}
-          onOpenUpscale={onOpenUpscale}
-          onOpenOutpaint={onOpenOutpaint}
-        />
-      )}
-      <ImageGridToolbarActions
-        nodeId={nodeId}
-        onOpenGridAction={onOpenGridAction}
-      />
+      {editActions}
+      {gridActions}
       <span
         aria-hidden
         className="mx-1 h-4 w-px shrink-0 self-center bg-border"

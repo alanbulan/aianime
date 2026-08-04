@@ -11,6 +11,7 @@ import {
   Video as VideoIcon,
   Wand2,
 } from "lucide-react";
+import type { TFunction } from "i18next";
 
 import {
   DropdownMenu,
@@ -19,16 +20,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
-import type { VideoNodeToolbarController } from "@/features/canvas/hooks/useVideoNodeToolbarController";
-
 import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+import type { VideoSubtitleEraseMode } from "../domain/videoSubtitleErase";
+
+export interface VideoNodeToolbarViewState {
+  t: TFunction;
+  hasVideo: boolean;
+  isAnalyzing: boolean;
+  isSeparatingAudioVideo: boolean;
+  toggleClipMode(): void;
+  createUpscaleNode(): void;
+  analyze(): Promise<void>;
+  openSubtitleRemoval(mode: VideoSubtitleEraseMode): void;
+  separateAudioVideo(): Promise<void>;
+  download(): Promise<void>;
+  openFullscreen(): void;
+}
 
 export interface VideoNodeToolbarActionsViewProps {
-  controller: VideoNodeToolbarController;
+  controller: VideoNodeToolbarViewState;
 }
 
 export function VideoNodeToolbarActionsView({

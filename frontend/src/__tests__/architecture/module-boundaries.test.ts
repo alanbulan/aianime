@@ -23892,7 +23892,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoNodeToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/VideoNodeToolbarActionsView.tsx",
     );
     const stylesPath = resolve(
       SRC_ROOT,
@@ -23971,7 +23971,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(toolbarPath)).toContain(
       "@/features/canvas/ui/VideoNodeToolbarActions",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
@@ -23998,7 +23998,7 @@ describe("frontend architecture boundaries", () => {
         "modules/creative_canvas/domain/videoNodeToolbarModel.ts",
       ]),
       ["features/canvas/hooks/useVideoNodeToolbarController.ts"],
-      ["features/canvas/ui/VideoNodeToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/VideoNodeToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./videoNodeToolbarModel"',
@@ -24416,7 +24416,7 @@ describe("frontend architecture boundaries", () => {
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+      "features/canvas/ui/ImageNodeToolbarActions.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -24579,7 +24579,7 @@ describe("frontend architecture boundaries", () => {
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+      "features/canvas/ui/ImageNodeToolbarActions.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -24919,7 +24919,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/ImageNodeToolbarActionsView.tsx",
     );
     const iconChipPath = resolve(
       SRC_ROOT,
@@ -25008,12 +25008,14 @@ describe("frontend architecture boundaries", () => {
     expect(componentSource).toContain("useImageNodeToolbarController(props)");
     expect(componentSource).toContain("projectId: string;");
     expect(componentSource).toContain(
-      "<ImageNodeToolbarActionsView controller={controller} />",
+      "<ImageNodeToolbarActionsView",
     );
     expect(controllerSource).toContain("projectId: string;");
-    expect(viewSource).toContain("projectId={projectId}");
-    expect(viewSource).toContain("<ImageEditToolbarActions");
-    expect(viewSource).toContain("<ImageGridToolbarActions");
+    expect(componentSource).toContain("projectId={controller.projectId}");
+    expect(componentSource).toContain("<ImageEditToolbarActions");
+    expect(componentSource).toContain("<ImageGridToolbarActions");
+    expect(viewSource).toContain("{editActions}");
+    expect(viewSource).toContain("{gridActions}");
     expect(viewSource).toContain("<NodeToolbarIconChip");
     expect(importSpecifiers(iconChipPath)).toEqual([
       "react",
@@ -25076,7 +25078,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageNodeToolbarModel.ts"],
       ["features/canvas/hooks/useImageNodeToolbarController.ts"],
-      ["features/canvas/ui/ImageNodeToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/ImageNodeToolbarActionsView.tsx"],
       ["modules/creative_canvas/presentation/NodeToolbarIconChip.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
@@ -32484,12 +32486,16 @@ describe("frontend architecture boundaries", () => {
       "NodeOutputToolbarActionsView",
       "NodeManagementToolbarActionsView",
       "AudioNodeToolbarActionsView",
+      "ImageNodeToolbarActionsView",
+      "VideoNodeToolbarActionsView",
     ];
     const adapterNames = [
       "NodeMainlineToolbarActions",
       "NodeOutputToolbarActions",
       "NodeManagementToolbarActions",
       "AudioNodeToolbarActions",
+      "ImageNodeToolbarActions",
+      "VideoNodeToolbarActions",
     ];
     const viewPaths = viewNames.map((name) =>
       resolve(

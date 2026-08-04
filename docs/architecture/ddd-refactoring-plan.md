@@ -1248,6 +1248,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百三十六批将主线、输出、管理和音频四个节点工具栏 View 迁入 Creative Canvas presentation。旧 Canvas 适配器只负责调用既有 Controller 并经模块 public 注入 View，View 改用窄展示合同，不再依赖旧 Hook、Store、API 或模块 public 自回绕；统一行为测试覆盖四类按钮/下拉菜单命令转发，架构门禁固定四个 View 唯一所有者、旧路径不存在、模块依赖方向和适配器入口，不保留 facade、re-export 或第二套实现。四个 Controller 回归与 View 行为共 5 个文件 20 项、工具栏定向架构 4 项、专属唯一所有者门禁 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 964/277/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 277/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百三十七批将图片和视频节点工具栏 View 迁入 Creative Canvas presentation。视频 View 使用窄展示合同；图片 View 通过显式 `editActions`/`gridActions` React 插槽接收旧 Canvas 的编辑与九宫格真实适配器，避免 Creative Canvas 反向导入旧目录。两个旧 View 路径直接删除，适配器继续唯一调用既有 Controller 并经模块 public 使用 View，不保留 facade、re-export 或第二套实现。统一 View 测试新增图片/视频按钮与命令转发覆盖；图片、视频 Controller 与 View 回归 3 个文件 12 项，图片/视频/编辑/九宫格及六类 View 唯一所有者架构 5 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 966/275/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 275/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
