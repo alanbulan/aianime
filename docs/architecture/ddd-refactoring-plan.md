@@ -1222,6 +1222,10 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百二十三批将 `VideoConfigChip` 与行为测试迁入 Creative Canvas presentation，比例、质量、时长、场景优化和音频开关继续由一个展示组件投影。组件以 `VideoConfigPatch` 窄补丁合同和本域 `VideoDurationBounds` 替代对旧 `VideoNodeData` 的反向依赖，模块内部直接依赖本域样式与视频模型，不经 public 自回绕；`VideoNodeView` 统一经模块 public 使用唯一实现，两个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套参数弹层。组件回归 1 个文件 3 项、残余与模块边界联合 2 个文件 341 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 927/307/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 307/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百二十四批将主视频元素、播放器控制条及其测试迁入 Creative Canvas presentation。`VideoElementMetadata` 经模块 public 成为控制器唯一类型合同，播放器继续只依赖 DOM、React 和媒体语义 token，不导入旧 Canvas、Store 或 API；`VideoNodeView` 与 `useVideoNodeController` 统一经模块 public 使用，4 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套媒体表面实现。媒体回归 2 个文件 6 项、残余与模块边界联合 3 个文件 342 项、颜色字面量门禁、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 931/303/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 303/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百二十四批将主视频元素、播放器控制条及其测试迁入 Creative Canvas presentation。`VideoElementMetadata` 经模块 public 成为控制器唯一类型合同，播放器继续只依赖 DOM、React 和媒体语义 token，不导入旧 Canvas、Store 或 API；`VideoNodeView` 与 `useVideoNodeController` 统一经模块 public 使用，4 个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套媒体表面实现。媒体回归 2 个文件 6 项、残余与模块边界联合 3 个文件 342 项、颜色字面量门禁、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 931/303/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 303/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
