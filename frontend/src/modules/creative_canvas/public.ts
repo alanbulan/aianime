@@ -2837,6 +2837,13 @@ export type {
   VideoGenerationHistoryPreviewProps,
   VideoGeneratingStateProps,
 } from "@/modules/creative_canvas/presentation/VideoNodeMediaStatus";
+export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
+export {
+  VideoNodeGenerationHistoryPanel,
+} from "@/modules/creative_canvas/presentation/VideoNodeGenerationHistoryPanel";
+export type {
+  VideoNodeGenerationHistoryPanelProps,
+} from "@/modules/creative_canvas/presentation/VideoNodeGenerationHistoryPanel";
 export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";

@@ -28,6 +28,7 @@ import {
   VideoGenerationModeSelect,
   VideoHumanReviewSwitch,
   VideoNodePrimaryVideo,
+  VideoNodeGenerationHistoryPanel,
   VideoPlayerControls,
   VideoGeneratingState,
   VideoGenerationErrorState,
@@ -48,7 +49,6 @@ import {
   VideoNodeEmptyState,
   VideoUploadActionRail,
 } from '@/features/canvas/nodes/VideoNodeEmptyState';
-import { VideoNodeGenerationHistoryPanel } from '@/features/canvas/nodes/VideoNodeGenerationHistoryPanel';
 import { ReferenceMediaRow } from '@/features/canvas/nodes/VideoReferenceMedia';
 import {
   SubtitleEraseBoxOverlay,

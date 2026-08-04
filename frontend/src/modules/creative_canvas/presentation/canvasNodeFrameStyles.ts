@@ -22,6 +22,8 @@ export const CANVAS_NODE_TOOLBAR_PILL_CLASS =
   `rounded-full ${CANVAS_NODE_TOOLBAR_SURFACE_CLASS} p-1.5`;
 export const CANVAS_NODE_TOOLBAR_CARD_CLASS =
   `rounded-2xl ${CANVAS_NODE_TOOLBAR_SURFACE_CLASS}`;
+export const NODE_OPS_PANEL_ENTER_CLASS =
+  "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none";
 
 export function canvasNodeFrameClass({
   selected = false,

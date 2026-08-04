@@ -39,6 +39,7 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
+  NODE_OPS_PANEL_ENTER_CLASS,
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
@@ -67,10 +68,7 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import {
-  NODE_OPS_PANEL_ENTER_CLASS,
-  OperationPanelShell,
-} from '@/features/canvas/ui/OperationPanelShell';
+import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,

@@ -25997,8 +25997,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/ImageGenNodeView.tsx",
     );
     const videoHistoryPanelPath = resolve(
-      SRC_ROOT,
-      "features/canvas/nodes/VideoNodeGenerationHistoryPanel.tsx",
+      moduleRoot,
+      "presentation/VideoNodeGenerationHistoryPanel.tsx",
     );
     const assetDomainSource = readFileSync(assetDomainPath, "utf8");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -26112,7 +26112,7 @@ describe("frontend architecture boundaries", () => {
     expect(imageViewSource).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(videoHistoryPanelSource).toContain(
+    expect(videoHistoryPanelSource).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(imageViewSource).not.toContain(
@@ -28290,7 +28290,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode generation history panel in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeGenerationHistoryPanel.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoNodeGenerationHistoryPanel.tsx",
+    );
+    const oldTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeGenerationHistoryPanel.test.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeGenerationHistoryPanel.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28319,15 +28331,18 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldTestPath)).toBe(false);
+    expect(existsSync(testPath)).toBe(true);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoNodeGenerationHistoryPanel.tsx",
+      "modules/creative_canvas/presentation/VideoNodeGenerationHistoryPanel.tsx",
     ]);
     expect(viewSource).toContain("<NodeGenerationHistory");
     expect(viewSource).toContain("hasCompletedHistoryRecords(records)");
     expect(viewSource).toContain("historyRecordOutputUrl(record)");
     expect(viewSource).toContain("resolveMediaUrl={resolveMediaUrl}");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoNodeGenerationHistoryPanel",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoNodeGenerationHistoryPanel");
     expect(videoNode).toContain(
