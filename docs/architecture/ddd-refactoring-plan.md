@@ -1214,6 +1214,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百一十九批将画布节点边框/输入面/工具栏语义样式、尺寸手柄、价格徽标和操作面板展开按钮迁入 Creative Canvas presentation。约 30 个节点与编辑浮层消费者统一经模块 public 使用唯一实现，旧 Canvas 的 `nodeFrameStyles.ts`、`NodeResizeHandle.tsx`、`NodePriceBadge.tsx`、`PanelExpandButton.tsx` 及旧测试路径直接删除，不保留 facade、re-export 或第二套实现；模块边界门禁固定四个声明的唯一所有者、模块内部依赖方向、旧路径禁回流和退役文件不存在。节点框架相关回归 14 个文件 55 项、残余门禁 11 项、完整模块边界 329 项、颜色字面量门禁、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 899/334/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 334/0。首次联合回归的 4 项失败来自 `ImageEditNodeView` 和 `UploadNodeView` 的完整 public mock 缺少既有导出，补齐测试夹具后定向复跑 4 项通过；未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百二十批将节点控制样式、操作工具栏样式、画布控制样式、节点工具栏配置、缩放补偿工具栏、工具栏图标按钮、生成遮罩、重新生成按钮和可编辑表格单元迁入 Creative Canvas presentation。节点、编辑浮层、工具栏和 Canvas Stage 消费者统一经模块 public 使用唯一实现，旧 Canvas 的 9 个生产所有者直接删除，不保留 facade、re-export 或第二套实现；模块边界门禁固定五个组件声明的唯一所有者、四组样式/配置依赖方向、旧路径禁回流和退役文件不存在。共享节点回归 7 个文件 24 项、残余门禁 11 项、完整模块边界 329 项、颜色字面量与主题对比度 5 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 908/325/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 325/0。完整模块边界首次仅因 120 秒命令上限被中止且无失败输出，延长同一单进程窗口后 329 项通过；未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
