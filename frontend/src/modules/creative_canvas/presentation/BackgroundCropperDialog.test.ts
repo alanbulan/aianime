@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   centerInitialCrop,
   pixelCropFromPercentCrop,
-} from "@/features/canvas/ui/BackgroundCropperDialog";
+} from "./BackgroundCropperDialog";
 
 describe("BackgroundCropperDialog initial crop", () => {
   it("creates a completed 16:9 pixel crop for wide images", () => {

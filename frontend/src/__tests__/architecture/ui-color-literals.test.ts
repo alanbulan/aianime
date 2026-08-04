@@ -39,7 +39,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/creative_canvas/domain/canvasAnnotationCodec.ts": 4,
   "modules/creative_canvas/domain/canvasToolCatalog.ts": 1,
   "features/canvas/ui/AudioWaveformPlayer.tsx": 2,
-  "features/canvas/ui/BackgroundCropperDialog.tsx": 2,
+  "modules/creative_canvas/presentation/BackgroundCropperDialog.tsx": 2,
   "features/canvas/ui/EraseOverlay.tsx": 10,
   "features/canvas/ui/LightEditorPanel.tsx": 19,
   "features/canvas/ui/ModelParamsControls.tsx": 6,

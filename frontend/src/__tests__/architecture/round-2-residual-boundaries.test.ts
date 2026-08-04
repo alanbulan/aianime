@@ -490,6 +490,8 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const canvasImageToolPresentationFiles = [
       "AnnotateToolEditor.tsx",
+      "BackgroundCropperDialog.tsx",
+      "BackgroundCropperDialog.test.ts",
       "CropToolEditor.tsx",
       "FormToolEditor.tsx",
       "FormToolEditor.test.tsx",
@@ -1308,6 +1310,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/tool-editors/FormToolEditor.tsx",
       "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx",
       "features/canvas/ui/tool-editors/types.ts",
+      "features/canvas/ui/BackgroundCropperDialog.tsx",
+      "__tests__/features/canvas/background-cropper-dialog.test.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -2389,7 +2393,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 245],
+      ["features/canvas", 244],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -2920,6 +2920,14 @@ export {
 export {
   SplitStoryboardToolEditor,
 } from "@/modules/creative_canvas/presentation/SplitStoryboardToolEditor";
+export {
+  BackgroundCropperDialog,
+  centerInitialCrop,
+  pixelCropFromPercentCrop,
+} from "@/modules/creative_canvas/presentation/BackgroundCropperDialog";
+export type {
+  BackgroundCropperDialogProps,
+} from "@/modules/creative_canvas/presentation/BackgroundCropperDialog";
 export type {
   FormToolEditorProps,
   ToolEditorBaseProps,

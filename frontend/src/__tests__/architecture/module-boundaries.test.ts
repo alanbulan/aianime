@@ -25282,6 +25282,61 @@ describe("frontend architecture boundaries", () => {
     ))).toBe(false);
   });
 
+  it("keeps the background cropper in Creative Canvas presentation", () => {
+    const cropperPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/BackgroundCropperDialog.tsx",
+    );
+    const cropperTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/BackgroundCropperDialog.test.ts",
+    );
+    const imageNodeViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+    );
+    const skillNodeViewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNodeView.tsx",
+    );
+    const cropperSource = readFileSync(cropperPath, "utf8");
+    const cropperTestSource = readFileSync(cropperTestPath, "utf8");
+    const imageNodeViewSource = readFileSync(imageNodeViewPath, "utf8");
+    const skillNodeViewSource = readFileSync(skillNodeViewPath, "utf8");
+    const cropperDeclaration = [
+      "export function",
+      "BackgroundCropperDialog(",
+    ].join(" ");
+
+    expect(
+      sourceFiles(SRC_ROOT)
+        .filter((path) =>
+          readFileSync(path, "utf8").includes(cropperDeclaration),
+        )
+        .map(relativeSource),
+    ).toEqual([
+      "modules/creative_canvas/presentation/BackgroundCropperDialog.tsx",
+    ]);
+    expect(cropperSource).not.toContain("@/features/canvas");
+    expect(cropperSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(cropperPath)).toContain("../domain/imageData");
+    expect(cropperTestSource).toContain('from "./BackgroundCropperDialog"');
+    expect(imageNodeViewSource).toContain("BackgroundCropperDialog");
+    expect(skillNodeViewSource).toContain("BackgroundCropperDialog");
+    expect(imageNodeViewSource).not.toContain(
+      "@/features/canvas/ui/BackgroundCropperDialog",
+    );
+    expect(skillNodeViewSource).not.toContain(
+      "@/features/canvas/ui/BackgroundCropperDialog",
+    );
+    for (const retiredPath of [
+      "features/canvas/ui/BackgroundCropperDialog.tsx",
+      "__tests__/features/canvas/background-cropper-dialog.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,

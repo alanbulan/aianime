@@ -16,9 +16,9 @@ import {
 } from '@/features/canvas/application/skillNodeModel';
 import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
-import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
+  BackgroundCropperDialog,
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';

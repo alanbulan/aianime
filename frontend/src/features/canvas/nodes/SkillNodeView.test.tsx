@@ -23,9 +23,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   NodeHeader: ({ titleText }: { titleText: string }) => (
     <div>title:{titleText}</div>
   ),
-}));
-
-vi.mock('@/features/canvas/ui/BackgroundCropperDialog', () => ({
   BackgroundCropperDialog: ({
     sourceLabel,
     onClose,

@@ -17,6 +17,7 @@ import {
 
 import {
   AssetLibraryModal,
+  BackgroundCropperDialog,
   CanvasNodeImage,
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
@@ -67,7 +68,6 @@ import {
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPrompt';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
