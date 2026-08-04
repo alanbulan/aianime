@@ -1218,6 +1218,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百二十一批将视频节点的运镜选择器、资产库入口、生成数量选择、生成模式选择和真人验证开关迁入 Creative Canvas presentation，并将生成模式选项规则迁入 Creative Canvas domain。`VideoNodeView` 与 `useVideoNodeController` 统一经模块 public 使用唯一实现，旧 Canvas 的 13 个生产/测试所有者直接删除，不保留 facade、re-export 或第二套实现。定向回归 6 个文件 15 项、残余门禁 11 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 921/312/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 312/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百二十二批将引用取消按钮、引用文本预览 Chip 和导演合成徽标迁入 Creative Canvas presentation。9 个节点/媒体消费者与相关测试统一经模块 public 使用唯一实现，旧 Canvas 的 3 个生产所有者及旧徽标测试路径直接删除，不保留 facade、re-export 或第二套实现；模块边界门禁固定新所有者存在、旧路径不存在和模块不反向依赖旧 Canvas。核查同时确认 `CommitTargetHint` 当前无生产或测试消费者，按既有死代码不主动删除约束保持原状，不包装进新模块。节点回归与徽标测试 5 个文件 13 项、残余与完整模块边界联合 2 个文件 341 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 925/309/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 309/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
