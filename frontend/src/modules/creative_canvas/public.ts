@@ -915,6 +915,31 @@ export type {
   UpstreamGraphStore,
   UpstreamGraphStoreHook,
 } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
+export {
+  NODE_SELECTION_MENU_ADD_NODE_TYPES,
+  NODE_SELECTION_MENU_NODE_TYPES,
+  NODE_SELECTION_MENU_SKILL_PROVIDER_LABELS,
+  referenceGenerateItemsForAllowedTypes,
+  skillGroupsForNodeSelectionMenu,
+} from "@/modules/creative_canvas/domain/nodeSelectionMenuModel";
+export type {
+  NodeSelectionMenuNodeType,
+  NodeSelectionSkillGroup,
+  ReferenceGenerateAction,
+  ReferenceGenerateActionKey,
+} from "@/modules/creative_canvas/domain/nodeSelectionMenuModel";
+export { NodeSelectionMenu } from "@/modules/creative_canvas/presentation/NodeSelectionMenu";
+export type { NodeSelectionMenuProps } from "@/modules/creative_canvas/presentation/NodeSelectionMenu";
+export { NodeSelectionMenuView } from "@/modules/creative_canvas/presentation/NodeSelectionMenuView";
+export type {
+  NodeSelectionMenuNodeDefinition,
+  NodeSelectionMenuViewProps,
+} from "@/modules/creative_canvas/presentation/NodeSelectionMenuView";
+export { useNodeSelectionMenuController } from "@/modules/creative_canvas/presentation/useNodeSelectionMenuController";
+export type {
+  NodeSelectionMenuController,
+  NodeSelectionMenuControllerOptions,
+} from "@/modules/creative_canvas/presentation/useNodeSelectionMenuController";
 export { useHoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export type { HoverMenuController } from "@/modules/creative_canvas/presentation/useHoverMenuController";
 export { projectImageGridToolbarActions } from "@/modules/creative_canvas/domain/imageGridToolbarModel";

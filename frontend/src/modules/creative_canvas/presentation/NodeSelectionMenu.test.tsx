@@ -2,26 +2,12 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { NODE_SELECTION_MENU_NODE_TYPES } from '../domain/nodeSelectionMenuModel';
 import { NodeSelectionMenu } from './NodeSelectionMenu';
 
 const translations: Record<string, string> = {
   'node.menu.sectionAddNode': '添加节点',
-  'node.menu.sectionAddResource': '添加资源',
   'node.menu.sectionSkillNode': '技能节点',
-  'node.menu.uploadImage': '上传资源',
-  'node.menu.image': '图片',
-  'node.menu.aiImageGeneration': 'AI 图片',
-  'node.menu.storyboard': '分格抽取结果',
-  'node.menu.storyboardGen': '多版本宫格',
-  'node.menu.beatContext': '镜头上下文',
-  'node.menu.textAnnotation': '文本',
-  'node.menu.video': '视频',
-  'node.menu.audio': '音频',
-  'node.menu.videoStory': '视频故事',
-  'node.menu.videoCompose': '视频合成',
-  'node.menu.script': '脚本',
-  'node.menu.pano360Viewer': '360° 全景',
-  'node.menu.threeDWorld': '3D 世界',
 };
 
 vi.mock('react-i18next', () => ({
@@ -35,6 +21,13 @@ describe('NodeSelectionMenu', () => {
     render(
       <NodeSelectionMenu
         position={{ x: 12, y: 16 }}
+        nodeDefinitions={[
+          {
+            type: NODE_SELECTION_MENU_NODE_TYPES.beatContext,
+            label: '镜头上下文',
+            icon: 'sparkles',
+          },
+        ]}
         onSelect={vi.fn()}
         onClose={vi.fn()}
       />,

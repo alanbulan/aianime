@@ -15,12 +15,12 @@ import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual'
 import type {
   CanvasEdge,
   CanvasNode,
+  CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { isCeRuntime } from '@/lib/runtime-config';
 
 import { edgeTypes as canvasEdgeTypes } from '../edges';
-import { NodeSelectionMenu } from '../NodeSelectionMenu';
 import { createCanvasNodeTypes } from '../nodes';
 import {
   CanvasContextMenu,
@@ -29,6 +29,8 @@ import {
   CanvasSnapAlignGuides,
   CanvasZoomControl,
   ImageViewerModal,
+  NodeSelectionMenu,
+  type NodeSelectionMenuProps,
   PAN_ACTIVATION_KEY_CODE,
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
@@ -137,7 +139,7 @@ export interface CanvasStageViewProps {
     'placement' | 'projectId' | 'canvasId'
   > | null;
   connectionPreviewProps: ComponentProps<typeof CanvasConnectionPreviewOverlay>;
-  nodeSelectionMenuProps: ComponentProps<typeof NodeSelectionMenu> | null;
+  nodeSelectionMenuProps: NodeSelectionMenuProps<CanvasNodeType> | null;
   imageViewerProps: ComponentProps<typeof ImageViewerModal>;
   videoViewerProps: ComponentProps<typeof VideoViewerModal>;
 }

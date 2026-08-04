@@ -64,6 +64,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
   CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
   ImageViewerModal: () => <div data-testid="image-viewer-modal" />,
+  NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
 vi.mock('@/lib/runtime-config', () => ({ isCeRuntime: () => false }));
@@ -76,9 +77,6 @@ vi.mock('../nodes', () => ({
   createCanvasNodeTypes: stageMocks.createCanvasNodeTypes,
 }));
 vi.mock('../edges', () => ({ edgeTypes: stageMocks.edgeTypes }));
-vi.mock('../NodeSelectionMenu', () => ({
-  NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
-}));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,
 }));
@@ -166,6 +164,7 @@ function createProps(
     connectionPreviewProps: { preview: null },
     nodeSelectionMenuProps: {
       position: { x: 30, y: 40 },
+      nodeDefinitions: [],
       onSelect: noop,
       onClose: noop,
     },

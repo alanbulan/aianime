@@ -3,34 +3,22 @@ import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import type { NodeSelectionMenuController } from '@/features/canvas/hooks/useNodeSelectionMenuController';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+import type { SkillDefinition } from '../domain/skillContract';
+import { NODE_SELECTION_MENU_NODE_TYPES } from '../domain/nodeSelectionMenuModel';
+import {
+  NodeSelectionMenuView,
+  type NodeSelectionMenuNodeDefinition,
+} from './NodeSelectionMenuView';
+import type { NodeSelectionMenuController } from './useNodeSelectionMenuController';
 
-import { NodeSelectionMenuView } from './NodeSelectionMenuView';
-
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./skillI18n', () => ({
   translateSkillDescription: (skill: SkillDefinition) => `description:${skill.id}`,
   translateSkillName: (skill: SkillDefinition) => `skill:${skill.id}`,
 }));
 
-vi.mock('./canvas-node-menu-shared', () => ({
-  CANVAS_MENU_ICON_CELL_CLASS: 'icon-cell',
-  CANVAS_MENU_ROW_CLASS: 'menu-row',
-  CanvasMenuSectionHeader: ({ label }: { label: string }) => <div>{label}</div>,
-  CanvasAddNodeGrid: ({
-    onSelectNode,
-  }: {
-    onSelectNode(type: string, position: { x: number; y: number }): void;
-  }) => (
-    <button
-      type="button"
-      onClick={() => onSelectNode(CANVAS_NODE_TYPES.video, { x: 12, y: 18 })}
-    >
-      add-grid-node
-    </button>
-  ),
-}));
+const nodeDefinitions: NodeSelectionMenuNodeDefinition<string>[] = [
+  { type: NODE_SELECTION_MENU_NODE_TYPES.video, label: '视频', icon: 'video' },
+];
 
 function skill(id: string): SkillDefinition {
   return {
@@ -43,7 +31,7 @@ function skill(id: string): SkillDefinition {
   };
 }
 
-function createController(): NodeSelectionMenuController {
+function createController(): NodeSelectionMenuController<string> {
   return {
     translate: (key: string) => ({
       'node.menu.sectionAddNode': '添加节点',
@@ -67,7 +55,7 @@ function createController(): NodeSelectionMenuController {
     showSkillProvider: vi.fn(),
     cancelSkillPanelClose: vi.fn(),
     scheduleSkillPanelClose: vi.fn(),
-  } as unknown as NodeSelectionMenuController;
+  } as unknown as NodeSelectionMenuController<string>;
 }
 
 describe('NodeSelectionMenuView', () => {
@@ -76,11 +64,14 @@ describe('NodeSelectionMenuView', () => {
     controller.referenceGenerateItems = [{
       key: 'pano360',
       label: '360° 全景',
-      type: CANVAS_NODE_TYPES.pano360Viewer,
+      type: NODE_SELECTION_MENU_NODE_TYPES.pano360Viewer,
       disabled: false,
     }];
     const { container } = render(
-      <NodeSelectionMenuView controller={controller} />,
+      <NodeSelectionMenuView
+        controller={controller}
+        nodeDefinitions={nodeDefinitions}
+      />,
     );
 
     const root = container.firstElementChild as HTMLElement;
@@ -91,7 +82,7 @@ describe('NodeSelectionMenuView', () => {
       { clientX: 44, clientY: 55 },
     );
     expect(controller.selectNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.pano360Viewer,
+      NODE_SELECTION_MENU_NODE_TYPES.pano360Viewer,
       { x: 44, y: 55 },
     );
   });
@@ -104,17 +95,22 @@ describe('NodeSelectionMenuView', () => {
     controller.activeSkillGroup = { provider: 'tool', items: [item] };
     controller.canSelectSkill = true;
     controller.skillPanelSide = 'left';
-    render(<NodeSelectionMenuView controller={controller} />);
+    render(
+      <NodeSelectionMenuView
+        controller={controller}
+        nodeDefinitions={nodeDefinitions}
+      />,
+    );
 
     expect(screen.getByText('添加节点')).toBeInTheDocument();
     expect(screen.getByText('技能节点')).toBeInTheDocument();
     expect(screen.getAllByText('工具技能')).toHaveLength(2);
     expect(screen.getByText('description:tool.visible')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'add-grid-node' }));
+    fireEvent.click(screen.getByRole('button', { name: '视频' }));
     expect(controller.selectNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.video,
-      { x: 12, y: 18 },
+      NODE_SELECTION_MENU_NODE_TYPES.video,
+      { x: 0, y: 0 },
     );
 
     fireEvent.mouseEnter(screen.getAllByRole('button')[1]);

@@ -3,9 +3,8 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UI_POPOVER_TRANSITION_MS } from '@/components/ui/motion';
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
+import type { SkillDefinition } from '../domain/skillContract';
+import { NODE_SELECTION_MENU_NODE_TYPES } from '../domain/nodeSelectionMenuModel';
 import { useNodeSelectionMenuController } from './useNodeSelectionMenuController';
 
 vi.mock('react-i18next', () => ({
@@ -30,6 +29,9 @@ describe('useNodeSelectionMenuController', () => {
       'requestAnimationFrame',
       (callback: FrameRequestCallback) => window.setTimeout(callback, 0),
     );
+    vi.stubGlobal('cancelAnimationFrame', (frame: number) => {
+      window.clearTimeout(frame);
+    });
   });
 
   afterEach(() => {
@@ -47,7 +49,7 @@ describe('useNodeSelectionMenuController', () => {
     }));
 
     act(() => result.current.selectNode(
-      CANVAS_NODE_TYPES.video,
+      NODE_SELECTION_MENU_NODE_TYPES.video,
       { x: 40, y: 50 },
     ));
     expect(onClose).not.toHaveBeenCalled();
@@ -59,7 +61,7 @@ describe('useNodeSelectionMenuController', () => {
 
     act(() => vi.advanceTimersByTime(10));
     expect(onSelect).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.video,
+      NODE_SELECTION_MENU_NODE_TYPES.video,
       { x: 40, y: 50 },
     );
   });

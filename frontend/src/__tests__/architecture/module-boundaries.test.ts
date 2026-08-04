@@ -429,35 +429,35 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas node-selection menu controller and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/NodeSelectionMenu.tsx",
+      "modules/creative_canvas/presentation/NodeSelectionMenu.tsx",
     );
     const entryTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/NodeSelectionMenu.test.tsx",
+      "modules/creative_canvas/presentation/NodeSelectionMenu.test.tsx",
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeSelectionMenuController.ts",
+      "modules/creative_canvas/presentation/useNodeSelectionMenuController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeSelectionMenuController.test.tsx",
+      "modules/creative_canvas/presentation/useNodeSelectionMenuController.test.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/nodeSelectionMenuModel.ts",
+      "modules/creative_canvas/domain/nodeSelectionMenuModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/nodeSelectionMenuModel.test.ts",
+      "modules/creative_canvas/domain/nodeSelectionMenuModel.test.ts",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeSelectionMenuView.tsx",
+      "modules/creative_canvas/presentation/NodeSelectionMenuView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeSelectionMenuView.test.tsx",
+      "modules/creative_canvas/presentation/NodeSelectionMenuView.test.tsx",
     );
     const stagePath = resolve(
       SRC_ROOT,
@@ -476,11 +476,11 @@ describe("frontend architecture boundaries", () => {
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const declarations = [
-      ["export function", "NodeSelectionMenu("].join(" "),
-      ["export function", "useNodeSelectionMenuController("].join(" "),
-      ["export function", "referenceGenerateItemsForAllowedTypes("].join(" "),
+      ["export function", "NodeSelectionMenu<"].join(" "),
+      ["export function", "useNodeSelectionMenuController<"].join(" "),
+      ["export function", "referenceGenerateItemsForAllowedTypes<"].join(" "),
       ["export function", "skillGroupsForNodeSelectionMenu("].join(" "),
-      ["export function", "NodeSelectionMenuView("].join(" "),
+      ["export function", "NodeSelectionMenuView<"].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -493,27 +493,31 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
         "react",
-        "./hooks/useNodeSelectionMenuController",
-        "./ui/NodeSelectionMenuView",
+        "./useNodeSelectionMenuController",
+        "./NodeSelectionMenuView",
       ]),
     );
     expect(new Set(importSpecifiers(modelPath))).toEqual(
       new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
+        "./canvasConnection",
+        "./skillContract",
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/NodeSelectionMenu.tsx"],
-      ["features/canvas/hooks/useNodeSelectionMenuController.ts"],
-      ["features/canvas/ui/nodeSelectionMenuModel.ts"],
-      ["features/canvas/ui/nodeSelectionMenuModel.ts"],
-      ["features/canvas/ui/NodeSelectionMenuView.tsx"],
+      ["modules/creative_canvas/presentation/NodeSelectionMenu.tsx"],
+      ["modules/creative_canvas/presentation/useNodeSelectionMenuController.ts"],
+      ["modules/creative_canvas/domain/nodeSelectionMenuModel.ts"],
+      ["modules/creative_canvas/domain/nodeSelectionMenuModel.ts"],
+      ["modules/creative_canvas/presentation/NodeSelectionMenuView.tsx"],
     ]);
-    expect(importSpecifiers(stagePath)).toContain("../NodeSelectionMenu");
-    expect(entrySource).toContain("useNodeSelectionMenuController(props)");
+    expect(importSpecifiers(stagePath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(entrySource).toContain(
-      "createElement(NodeSelectionMenuView, { controller })",
+      "useNodeSelectionMenuController(controllerOptions)",
+    );
+    expect(entrySource).toContain(
+      "createElement(NodeSelectionMenuView<TNodeType>,",
     );
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("className=");
@@ -521,20 +525,33 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("document.addEventListener('mousedown'");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("lucide-react");
+    expect(controllerSource).not.toContain("@/features/");
     expect(modelSource).not.toContain("from 'react'");
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
-    expect(viewSource).toContain("<CanvasAddNodeGrid");
+    expect(viewSource).toContain("nodeDefinitions.map");
     expect(viewSource).toContain("controller.activeSkillGroup.items.map");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("document.");
-    expect(entryTestSource).toContain('from \'./NodeSelectionMenu\'');
+    expect(entryTestSource).toContain("from './NodeSelectionMenu'");
     expect(controllerTestSource).toContain(
-      'from \'./useNodeSelectionMenuController\'',
+      "from './useNodeSelectionMenuController'",
     );
-    expect(modelTestSource).toContain('from \'./nodeSelectionMenuModel\'');
-    expect(viewTestSource).toContain('from \'./NodeSelectionMenuView\'');
+    expect(modelTestSource).toContain("from './nodeSelectionMenuModel'");
+    expect(viewTestSource).toContain("from './NodeSelectionMenuView'");
+    for (const retiredPath of [
+      "features/canvas/NodeSelectionMenu.tsx",
+      "features/canvas/NodeSelectionMenu.test.tsx",
+      "features/canvas/hooks/useNodeSelectionMenuController.ts",
+      "features/canvas/hooks/useNodeSelectionMenuController.test.tsx",
+      "features/canvas/ui/nodeSelectionMenuModel.ts",
+      "features/canvas/ui/nodeSelectionMenuModel.test.ts",
+      "features/canvas/ui/NodeSelectionMenuView.tsx",
+      "features/canvas/ui/NodeSelectionMenuView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
+    }
   });
 
   it("separates the Canvas video-story node controller and view", () => {

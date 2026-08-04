@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
+import type { SkillDefinition } from './skillContract';
 import {
+  NODE_SELECTION_MENU_ADD_NODE_TYPES,
+  NODE_SELECTION_MENU_NODE_TYPES,
   referenceGenerateItemsForAllowedTypes,
   skillGroupsForNodeSelectionMenu,
 } from './nodeSelectionMenuModel';
@@ -24,27 +24,49 @@ function skill(
 }
 
 describe('nodeSelectionMenuModel', () => {
+  it('keeps the established add-node order and excludes generated-only nodes', () => {
+    expect(NODE_SELECTION_MENU_ADD_NODE_TYPES).toEqual([
+      NODE_SELECTION_MENU_NODE_TYPES.textAnnotation,
+      NODE_SELECTION_MENU_NODE_TYPES.beatContext,
+      NODE_SELECTION_MENU_NODE_TYPES.imageGen,
+      NODE_SELECTION_MENU_NODE_TYPES.video,
+      NODE_SELECTION_MENU_NODE_TYPES.videoCompose,
+      NODE_SELECTION_MENU_NODE_TYPES.audio,
+      NODE_SELECTION_MENU_NODE_TYPES.script,
+      NODE_SELECTION_MENU_NODE_TYPES.upload,
+      NODE_SELECTION_MENU_NODE_TYPES.pano360Viewer,
+      NODE_SELECTION_MENU_NODE_TYPES.threeDWorld,
+    ]);
+    expect(NODE_SELECTION_MENU_ADD_NODE_TYPES).not.toContain(
+      NODE_SELECTION_MENU_NODE_TYPES.videoStory,
+    );
+    expect(NODE_SELECTION_MENU_ADD_NODE_TYPES).not.toContain(
+      NODE_SELECTION_MENU_NODE_TYPES.storyboardGen,
+    );
+  });
+
   it('uses the full add-node menu when allowed types are unspecified', () => {
     expect(referenceGenerateItemsForAllowedTypes(undefined)).toBeNull();
   });
 
   it('projects supported reference actions and preserves image precedence', () => {
+    const nodeTypes = NODE_SELECTION_MENU_NODE_TYPES;
     const items = referenceGenerateItemsForAllowedTypes([
-      CANVAS_NODE_TYPES.upload,
-      CANVAS_NODE_TYPES.imageEdit,
-      CANVAS_NODE_TYPES.imageGen,
-      CANVAS_NODE_TYPES.pano360Viewer,
+      nodeTypes.upload,
+      nodeTypes.imageEdit,
+      nodeTypes.imageGen,
+      nodeTypes.pano360Viewer,
     ]);
 
     expect(items).toEqual([
       expect.objectContaining({
         key: 'image',
-        type: CANVAS_NODE_TYPES.imageGen,
+        type: nodeTypes.imageGen,
         disabled: false,
       }),
       expect.objectContaining({
         key: 'pano360',
-        type: CANVAS_NODE_TYPES.pano360Viewer,
+        type: nodeTypes.pano360Viewer,
         disabled: false,
       }),
     ]);

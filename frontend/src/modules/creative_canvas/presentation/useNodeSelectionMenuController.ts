@@ -10,41 +10,41 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { UI_POPOVER_TRANSITION_MS } from '@/components/ui/motion';
-import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type {
   SkillDefinition,
   SkillProvider,
-} from '@/modules/creative_canvas/public';
-
+} from '../domain/skillContract';
 import {
   referenceGenerateItemsForAllowedTypes,
   skillGroupsForNodeSelectionMenu,
-} from '../ui/nodeSelectionMenuModel';
+} from '../domain/nodeSelectionMenuModel';
 
 const SKILL_PANEL_CLOSE_DELAY_MS = 40;
 const MENU_VIEWPORT_MARGIN = 12;
 const SKILL_PANEL_GAP = 8;
 
-export interface NodeSelectionMenuControllerOptions {
+export interface NodeSelectionMenuControllerOptions<
+  TNodeType extends string = string,
+> {
   position: { x: number; y: number };
-  allowedTypes?: CanvasNodeType[];
+  allowedTypes?: readonly TNodeType[];
   onSelect: (
-    type: CanvasNodeType,
+    type: TNodeType,
     clientPosition?: { x: number; y: number },
   ) => void;
-  skillItems?: SkillDefinition[];
+  skillItems?: readonly SkillDefinition[];
   onSelectSkill?: (skill: SkillDefinition) => void;
   onClose: () => void;
 }
 
-export function useNodeSelectionMenuController({
+export function useNodeSelectionMenuController<TNodeType extends string>({
   position,
   allowedTypes,
   onSelect,
   skillItems,
   onSelectSkill,
   onClose,
-}: NodeSelectionMenuControllerOptions) {
+}: NodeSelectionMenuControllerOptions<TNodeType>) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const mainPanelRef = useRef<HTMLDivElement>(null);
@@ -84,7 +84,8 @@ export function useNodeSelectionMenuController({
   }, [activeSkillProvider, skillGroups]);
 
   useEffect(() => {
-    requestAnimationFrame(() => setIsVisible(true));
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useLayoutEffect(() => {
@@ -133,7 +134,7 @@ export function useNodeSelectionMenuController({
   }, [onClose]);
 
   const selectNode = useCallback((
-    type: CanvasNodeType,
+    type: TNodeType,
     clientPosition?: { x: number; y: number },
   ) => {
     close();
@@ -218,6 +219,5 @@ export function useNodeSelectionMenuController({
   };
 }
 
-export type NodeSelectionMenuController = ReturnType<
-  typeof useNodeSelectionMenuController
->;
+export type NodeSelectionMenuController<TNodeType extends string = string> =
+  ReturnType<typeof useNodeSelectionMenuController<TNodeType>>;

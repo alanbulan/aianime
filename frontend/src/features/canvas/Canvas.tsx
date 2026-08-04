@@ -16,13 +16,20 @@ import {
   canvasNodeIntersectsSelectionRect,
   isPresetManagedEdge,
   isPresetManagedNode,
+  NODE_SELECTION_MENU_ADD_NODE_TYPES,
   useCanvasCommandSurfaceController,
   useCanvasRenderSurfaceController,
   useCanvasSelectionSurfaceController,
+  type NodeSelectionMenuNodeDefinition,
   type CanvasCommandHistoryPort,
 } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
-import { CANVAS_NODE_TYPES, isUploadNode } from './domain/canvasNodes';
+import {
+  CANVAS_NODE_TYPES,
+  isUploadNode,
+  type CanvasNodeType,
+} from './domain/canvasNodes';
+import { getNodeDefinition } from './domain/nodeRegistry';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
@@ -50,6 +57,17 @@ const CANVAS_COMMAND_HISTORY_PORT: CanvasCommandHistoryPort = {
     };
   },
 };
+
+const NODE_SELECTION_MENU_DEFINITIONS = NODE_SELECTION_MENU_ADD_NODE_TYPES.map(
+  (type): NodeSelectionMenuNodeDefinition<CanvasNodeType> => {
+    const definition = getNodeDefinition(type);
+    return {
+    type: definition.type,
+    label: definition.menuLabelKey,
+    icon: definition.menuIcon,
+    };
+  },
+);
 
 export function Canvas({
   projectId,
@@ -426,6 +444,7 @@ export function Canvas({
         showNodeMenu
           ? {
               position: menuPosition,
+              nodeDefinitions: NODE_SELECTION_MENU_DEFINITIONS,
               allowedTypes: menuAllowedTypes,
               onSelect: handleNodeSelect,
               skillItems: menuAllowedTypes ? undefined : skillRegistry,
