@@ -3,13 +3,13 @@ import { memo } from "react";
 
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
+  ImageGridToolbarActions,
   ImageNodeToolbarActionsView,
   type GridActionRequest,
 } from "@/modules/creative_canvas/public";
 import { useImageNodeToolbarController } from "@/features/canvas/hooks/useImageNodeToolbarController";
 
 import { ImageEditToolbarActions } from "./ImageEditToolbarActions";
-import { ImageGridToolbarActions } from "./ImageGridToolbarActions";
 
 export interface ImageNodeToolbarActionsProps {
   projectId: string;

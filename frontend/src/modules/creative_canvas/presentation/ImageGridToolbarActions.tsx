@@ -2,13 +2,13 @@
 import { memo } from "react";
 
 import {
-  ImageGridToolbarActionsView,
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-  useImageGridToolbarController,
-  type GridActionRequest,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+import type { GridActionRequest } from "../domain/gridAction";
+import { ImageGridToolbarActionsView } from "./ImageGridToolbarActionsView";
+import { useImageGridToolbarController } from "./useImageGridToolbarController";
 
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

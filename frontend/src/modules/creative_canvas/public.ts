@@ -1009,6 +1009,8 @@ export type {
   ImageGridToolbarControllerOptions,
 } from "@/modules/creative_canvas/presentation/useImageGridToolbarController";
 export { ImageGridToolbarActionsView } from "@/modules/creative_canvas/presentation/ImageGridToolbarActionsView";
+export { ImageGridToolbarActions } from "@/modules/creative_canvas/presentation/ImageGridToolbarActions";
+export type { ImageGridToolbarActionsProps } from "@/modules/creative_canvas/presentation/ImageGridToolbarActions";
 export type {
   ImageGridToolbarActionsViewProps,
   ImageGridToolbarStyleClasses,

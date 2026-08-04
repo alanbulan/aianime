@@ -24557,7 +24557,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageGridToolbarActions.tsx",
+      "modules/creative_canvas/presentation/ImageGridToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24584,6 +24584,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "projectImageGridToolbarActions("].join(" "),
       ["export function", "useImageGridToolbarController("].join(" "),
       ["export function", "ImageGridToolbarActionsView("].join(" "),
+      ["export const", "ImageGridToolbarActions", "=", "memo("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -24634,8 +24635,20 @@ describe("frontend architecture boundaries", () => {
     expect(componentSource).toContain("<ImageGridToolbarActionsView");
     expect(componentSource).toContain("controller={controller}");
     expect(componentSource).toContain("styles={toolbarStyles}");
-    expect(importSpecifiers(imageToolbarViewPath)).toContain(
+    expect(new Set(importSpecifiers(componentPath))).toEqual(new Set([
+      "react",
+      "../domain/gridAction",
+      "./ImageGridToolbarActionsView",
+      "./canvasNodeActionToolbarStyles",
+      "./useImageGridToolbarController",
+    ]));
+    expect(componentSource).not.toContain("@/features/canvas");
+    expect(componentSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(imageToolbarViewPath)).not.toContain(
       "./ImageGridToolbarActions",
+    );
+    expect(importSpecifiers(imageToolbarViewPath)).toContain(
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(toolbarPath)).toContain(
       "./ImageNodeToolbarActions",
@@ -24664,6 +24677,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/imageGridToolbarModel.ts"],
       ["modules/creative_canvas/presentation/useImageGridToolbarController.ts"],
       ["modules/creative_canvas/presentation/ImageGridToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/ImageGridToolbarActions.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageGridToolbarModel"',
@@ -24682,6 +24696,10 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/ui/ImageGridToolbarActionsView.tsx",
+    ))).toBe(false);
+    expect(existsSync(resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ImageGridToolbarActions.tsx",
     ))).toBe(false);
     expect(existsSync(resolve(
       SRC_ROOT,
