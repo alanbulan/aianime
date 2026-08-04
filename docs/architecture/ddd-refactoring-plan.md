@@ -448,7 +448,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 5. Narrative Planning | 已完成 | 后端领域/应用/适配器边界与前端 route/controller/view 已收敛到唯一模块 |
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
 | 7. Production | 已完成 | 前后端 Production 边界、合成页、episode presentation 与 Beat 状态读模型均已收敛到唯一 public API |
-| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 856 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 368/0 个 TS/TSX 文件，Canvas 另有 1 个 CSS 文件；R1-A、R1-B 和 R1-F 已关闭。第 803-805 批已将 Connection Gesture、Render、Project 三个页面级 Surface 与纯渲染投影收进 Creative Canvas，Store 与生成恢复的具体适配仍由唯一旧组合根注入，模块不反向依赖旧 Canvas；App Shell 对旧 Canvas 私有入口保持 4 个。R1-C 至 R1-E 的其余 Canvas 所有权尚未迁完，阶段 8 不标记完成 |
+| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 864 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 364/0 个 TS/TSX 文件，Canvas 另有 1 个 CSS 文件；R1-A、R1-B 和 R1-F 已关闭。第 803-809 批已将 Connection Gesture、Render、Project 三个页面级 Surface、纯渲染投影、Hover Menu、框选状态投影和上游解绑规则/Hook 收进 Creative Canvas，Store、生成恢复与上游解绑的具体适配仍由唯一旧组合根注入，模块不反向依赖旧 Canvas；App Shell 对旧 Canvas 私有入口保持 4 个。R1-C 至 R1-E 的其余 Canvas 所有权尚未迁完，阶段 8 不标记完成 |
 | 9. Supporting Contexts | 已完成 | Model Usage、Platform Release、AI Assistant 与 Task Execution 已形成唯一模块边界；旧 `features/superchat`、旧 `task-center` 和旧 `task_backend` 已删除，跨上下文提交、业务 route 组合和本地 inline 重启恢复均已收口 |
 | 10. 最终收敛 | 第二轮收尾中 | 当前定向门禁可通过，但扫描范围未覆盖全部遗留目录，且尚未在与锁文件一致的干净环境完成最终复验 |
 
@@ -1191,6 +1191,12 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 第八百零五批将 Project Surface 与测试迁入 Creative Canvas presentation；模块统一组合 Project Context 与 Generation Recovery 时序，通过 `useGenerationRecovery` 窄 Hook 端口保持恢复逻辑唯一。旧 `composition.ts` 继续唯一装配 Store 选择、轮询与恢复用例，并把具体恢复 Hook 注入模块 Surface；两个旧生产/测试所有者直接删除。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 856/368/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 368/0。定向 Vitest 6 个文件 347 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
 第八百零六批同步两份计划文档中的第 803-805 批证据、阶段 8 真实状态和 Creative Canvas 残余统计；统计口径改为 TS/TSX 与样式文件分列，避免继续把 Canvas 唯一 CSS 文件误记为 TS/TSX，残余 ratchet 从 376 收紧到真实的 368/0。完整前端架构目录 6 个文件 386 项通过，前端 TypeScript 与 `git diff --check` 同批执行。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百零七批将 Hover Menu 的延迟关闭、节点/浮层指针切换和清理 Hook/测试迁入 Creative Canvas presentation；图片编辑与图片网格工具栏统一经模块 public 使用唯一实现，旧 Canvas 生产/测试所有者直接删除，不保留 facade、re-export 或第二套实现。迁移后 Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 858/367/0。定向 Vitest 4 个文件 335 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百零八批将框选状态投影 Hook/测试迁入 Creative Canvas presentation；模块 factory 只通过泛型 Store Hook 读取最小 `selected` 节点合同，Canvas `composition.ts` 唯一注入 Zustand，Audio、ImageGen、TextAnnotation、Video 四个消费者统一从组合根取得 Hook。两个旧 Hook/test 所有者直接删除，不保留 facade、re-export 或第二套实现。业务定向 Vitest 3 个文件 14 项、完整模块边界 328 项、前端 TypeScript 和 `git diff --check` 通过。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
+第八百零九批将上游引用解绑的边匹配规则迁入 Creative Canvas domain，将命令 Hook/测试迁入 presentation；纯规则返回指定 source/target 的全部边 ID，Hook 通过 `readEdges/useDeleteEdge` 窄端口在命令执行时读取最新图状态，Canvas `composition.ts` 唯一注入 Zustand。Audio Operations、Image Edit、Three D World 三个消费者统一经组合根使用，旧 Hook 直接删除，不保留 facade、re-export 或第二套实现。首轮测试发现直接 `forEach(deleteEdge)` 会把索引和数组额外传给删除端口，收紧为显式单参数调用后，业务定向 Vitest 5 个文件 18 项、完整模块边界 329 项、前端 TypeScript 和 `git diff --check` 通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 864/364/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 364/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
 任务：
 
