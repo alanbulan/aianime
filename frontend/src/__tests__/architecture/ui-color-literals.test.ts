@@ -34,7 +34,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/nodes/BeatContextNodeView.tsx": 22,
   "features/canvas/nodes/contextPromptPalette.ts": 22,
   "features/canvas/nodes/VideoNodeView.tsx": 6,
-  "features/canvas/nodes/VideoPlayerControls.tsx": 4,
+  "modules/creative_canvas/presentation/VideoPlayerControls.tsx": 4,
   "features/canvas/nodes/VideoReferenceMedia.tsx": 2,
   "modules/creative_canvas/presentation/CanvasSnapAlignGuides.tsx": 2,
   "features/canvas/tools/annotation/codec.ts": 4,

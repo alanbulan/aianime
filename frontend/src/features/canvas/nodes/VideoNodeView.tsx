@@ -27,6 +27,8 @@ import {
   VideoCountPicker,
   VideoGenerationModeSelect,
   VideoHumanReviewSwitch,
+  VideoNodePrimaryVideo,
+  VideoPlayerControls,
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
@@ -49,8 +51,6 @@ import {
   VideoMetadataLoadingOverlay,
   VideoUploadingState,
 } from '@/features/canvas/nodes/VideoNodeMediaStatus';
-import { VideoNodePrimaryVideo } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
-import { VideoPlayerControls } from '@/features/canvas/nodes/VideoPlayerControls';
 import { ReferenceMediaRow } from '@/features/canvas/nodes/VideoReferenceMedia';
 import {
   SubtitleEraseBoxOverlay,

@@ -75,7 +75,7 @@ import {
   upstreamNodesInEdgeOrder,
 } from '@/modules/creative_canvas/public';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
+import type { VideoElementMetadata } from '@/modules/creative_canvas/public';
 import {
   CAMERA_MOVEMENT_PRESETS,
   DEFAULT_VIDEO_DURATION_SEC,

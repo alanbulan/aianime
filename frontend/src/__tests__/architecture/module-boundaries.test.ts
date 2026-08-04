@@ -27862,7 +27862,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode player controls in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoPlayerControls.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoPlayerControls.tsx",
+    );
+    const oldTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoPlayerControls.test.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoPlayerControls.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -27891,15 +27903,18 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldTestPath)).toBe(false);
+    expect(existsSync(testPath)).toBe(true);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoPlayerControls.tsx",
+      "modules/creative_canvas/presentation/VideoPlayerControls.tsx",
     ]);
     expect(viewSource).toContain('videoEl.addEventListener("play"');
     expect(viewSource).toContain('videoEl.addEventListener("timeupdate"');
     expect(viewSource).toContain('videoEl.addEventListener("volumechange"');
     expect(viewSource).toContain("videoEl.currentTime = next");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoPlayerControls",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoPlayerControls");
     expect(videoNode).not.toContain("interface VideoPlayerControlsProps");
@@ -28195,7 +28210,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode primary video element in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodePrimaryVideo.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoNodePrimaryVideo.tsx",
+    );
+    const oldTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodePrimaryVideo.test.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodePrimaryVideo.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28228,13 +28255,16 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldTestPath)).toBe(false);
+    expect(existsSync(testPath)).toBe(true);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoNodePrimaryVideo.tsx",
+      "modules/creative_canvas/presentation/VideoNodePrimaryVideo.tsx",
     ]);
     expect(viewSource).toContain("<video");
     expect(viewSource).toContain("Math.round(element.duration * 1000)");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoNodePrimaryVideo",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoNodePrimaryVideo");
     expect(videoNodeController).toContain("buildVideoMetadataPatch(");

@@ -2817,6 +2817,13 @@ export type {
   VideoConfigChipProps,
   VideoConfigPatch,
 } from "@/modules/creative_canvas/presentation/VideoConfigChip";
+export { VideoNodePrimaryVideo } from "@/modules/creative_canvas/presentation/VideoNodePrimaryVideo";
+export type {
+  VideoElementMetadata,
+  VideoNodePrimaryVideoProps,
+} from "@/modules/creative_canvas/presentation/VideoNodePrimaryVideo";
+export { VideoPlayerControls } from "@/modules/creative_canvas/presentation/VideoPlayerControls";
+export type { VideoPlayerControlsProps } from "@/modules/creative_canvas/presentation/VideoPlayerControls";
 export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";
