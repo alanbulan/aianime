@@ -3,8 +3,7 @@ import { memo } from "react";
 
 import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import { useNodeManagementToolbarController } from "@/features/canvas/hooks/useNodeManagementToolbarController";
-
-import { NodeManagementToolbarActionsView } from "./NodeManagementToolbarActionsView";
+import { NodeManagementToolbarActionsView } from "@/modules/creative_canvas/public";
 
 export interface NodeManagementToolbarActionsProps {
   node: CanvasNode;

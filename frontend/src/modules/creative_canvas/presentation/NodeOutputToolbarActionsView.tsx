@@ -1,16 +1,27 @@
 // Copyright (c) 2026 AI anime
 import { Copy, Download } from "lucide-react";
+import type { TFunction } from "i18next";
 
 import { UiChipButton } from "@/components/ui";
-import type { NodeOutputToolbarController } from "@/features/canvas/hooks/useNodeOutputToolbarController";
-
 import {
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-  NodeToolbarIconChip,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+import { NodeToolbarIconChip } from "./NodeToolbarIconChip";
+
+export interface NodeOutputToolbarViewState {
+  t: TFunction;
+  canCopyStoryboardText: boolean;
+  canCopyGenerationError: boolean;
+  canDownloadImage: boolean;
+  isCopyTextSuccess: boolean;
+  isCopyErrorSuccess: boolean;
+  copyStoryboardText(): Promise<void>;
+  copyGenerationError(): Promise<void>;
+  downloadImage(): Promise<void>;
+}
 
 export interface NodeOutputToolbarActionsViewProps {
-  controller: NodeOutputToolbarController;
+  controller: NodeOutputToolbarViewState;
 }
 
 export function NodeOutputToolbarActionsView({

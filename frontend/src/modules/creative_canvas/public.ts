@@ -1874,6 +1874,26 @@ export type {
   CanvasConnectionPreviewOverlayProps,
   CanvasTransientOverlaysProps,
 } from "@/modules/creative_canvas/presentation/CanvasTransientOverlays";
+export { NodeMainlineToolbarActionsView } from "@/modules/creative_canvas/presentation/NodeMainlineToolbarActionsView";
+export type {
+  NodeMainlineToolbarActionsViewProps,
+  NodeMainlineToolbarViewState,
+} from "@/modules/creative_canvas/presentation/NodeMainlineToolbarActionsView";
+export { NodeOutputToolbarActionsView } from "@/modules/creative_canvas/presentation/NodeOutputToolbarActionsView";
+export type {
+  NodeOutputToolbarActionsViewProps,
+  NodeOutputToolbarViewState,
+} from "@/modules/creative_canvas/presentation/NodeOutputToolbarActionsView";
+export { NodeManagementToolbarActionsView } from "@/modules/creative_canvas/presentation/NodeManagementToolbarActionsView";
+export type {
+  NodeManagementToolbarActionsViewProps,
+  NodeManagementToolbarViewState,
+} from "@/modules/creative_canvas/presentation/NodeManagementToolbarActionsView";
+export { AudioNodeToolbarActionsView } from "@/modules/creative_canvas/presentation/AudioNodeToolbarActionsView";
+export type {
+  AudioNodeToolbarActionsViewProps,
+  AudioNodeToolbarViewState,
+} from "@/modules/creative_canvas/presentation/AudioNodeToolbarActionsView";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";

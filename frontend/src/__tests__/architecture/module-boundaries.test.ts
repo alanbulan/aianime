@@ -23218,7 +23218,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeMainlineToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/NodeMainlineToolbarActionsView.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -23270,7 +23270,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useNodeMainlineToolbarController",
-        "./NodeMainlineToolbarActionsView",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(componentSource).toContain(
@@ -23335,7 +23335,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["features/canvas/hooks/useNodeMainlineToolbarController.ts"],
       ["features/canvas/ui/NodeMainlineToolbarActions.tsx"],
-      ["features/canvas/ui/NodeMainlineToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/NodeMainlineToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeMainlineToolbarController"',
@@ -23564,7 +23564,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeOutputToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/NodeOutputToolbarActionsView.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -23619,7 +23619,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useNodeOutputToolbarController",
-        "./NodeOutputToolbarActionsView",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(componentSource).toContain(
@@ -23686,7 +23686,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["features/canvas/hooks/useNodeOutputToolbarController.ts"],
       ["features/canvas/ui/NodeOutputToolbarActions.tsx"],
-      ["features/canvas/ui/NodeOutputToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/NodeOutputToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeOutputToolbarController"',
@@ -23716,7 +23716,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeManagementToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/NodeManagementToolbarActionsView.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -23788,7 +23788,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/canvasNodes",
         "@/features/canvas/hooks/useNodeManagementToolbarController",
-        "./NodeManagementToolbarActionsView",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(componentSource).toContain(
@@ -23851,7 +23851,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/nodeManagementToolbarModel.ts"],
       ["features/canvas/hooks/useNodeManagementToolbarController.ts"],
       ["features/canvas/ui/NodeManagementToolbarActions.tsx"],
-      ["features/canvas/ui/NodeManagementToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/NodeManagementToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./nodeManagementToolbarModel"',
@@ -24039,7 +24039,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/AudioNodeToolbarActionsView.tsx",
+      "modules/creative_canvas/presentation/AudioNodeToolbarActionsView.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -24143,7 +24143,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
       ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
       ["features/canvas/hooks/useAudioNodeToolbarController.ts"],
-      ["features/canvas/ui/AudioNodeToolbarActionsView.tsx"],
+      ["modules/creative_canvas/presentation/AudioNodeToolbarActionsView.tsx"],
       ["lib/audioTranscode.ts"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
@@ -32474,6 +32474,79 @@ describe("frontend architecture boundaries", () => {
       );
       expect(readFileSync(path, "utf8")).not.toContain(
         "@/features/canvas/",
+      );
+    }
+  });
+
+  it("keeps node toolbar action views in Creative Canvas presentation", () => {
+    const viewNames = [
+      "NodeMainlineToolbarActionsView",
+      "NodeOutputToolbarActionsView",
+      "NodeManagementToolbarActionsView",
+      "AudioNodeToolbarActionsView",
+    ];
+    const adapterNames = [
+      "NodeMainlineToolbarActions",
+      "NodeOutputToolbarActions",
+      "NodeManagementToolbarActions",
+      "AudioNodeToolbarActions",
+    ];
+    const viewPaths = viewNames.map((name) =>
+      resolve(
+        SRC_ROOT,
+        `modules/creative_canvas/presentation/${name}.tsx`,
+      ),
+    );
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/NodeToolbarActionsViews.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    for (const [index, viewPath] of viewPaths.entries()) {
+      const name = viewNames[index];
+      const declaration = ["export function", `${name}(`].join(" ");
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort();
+      const legacyPath = resolve(
+        SRC_ROOT,
+        `features/canvas/ui/${name}.tsx`,
+      );
+      const forbiddenImports = importSpecifiers(viewPath).filter(
+        (specifier) =>
+          specifier.startsWith("@/features/canvas/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/api/") ||
+          specifier === "@/modules/creative_canvas/public",
+      );
+
+      expect(owners).toEqual([
+        `modules/creative_canvas/presentation/${name}.tsx`,
+      ]);
+      expect(existsSync(legacyPath)).toBe(false);
+      expect(forbiddenImports).toEqual([]);
+      expect(publicSource).toContain(
+        `@/modules/creative_canvas/presentation/${name}`,
+      );
+
+      const adapterPath = resolve(
+        SRC_ROOT,
+        `features/canvas/ui/${adapterNames[index]}.tsx`,
+      );
+      expect(importSpecifiers(adapterPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(readFileSync(adapterPath, "utf8")).not.toContain(
+        `./${name}`,
       );
     }
   });

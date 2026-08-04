@@ -2,15 +2,22 @@
 import { FolderOpen, Link2 } from "lucide-react";
 
 import { UiChipButton } from "@/components/ui";
-import type { NodeMainlineToolbarController } from "@/features/canvas/hooks/useNodeMainlineToolbarController";
-
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+
+export interface NodeMainlineToolbarViewState {
+  isPresetLocked: boolean;
+  canOpenWorkbench: boolean;
+  canEnsureBeatContext: boolean;
+  openingWorkbench: boolean;
+  openWorkbench(): void;
+  ensureBeatContextNode(): void;
+}
 
 export interface NodeMainlineToolbarActionsViewProps {
-  controller: NodeMainlineToolbarController;
+  controller: NodeMainlineToolbarViewState;
 }
 
 export function NodeMainlineToolbarActionsView({

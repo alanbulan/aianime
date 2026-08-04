@@ -1246,6 +1246,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百三十五批将框选矩形、节点放置预览、空画布提示、媒体拖放提示和连接预览 SVG 及行为测试整体迁入 Creative Canvas presentation。`CanvasStageView` 经模块 public 使用 `CanvasTransientOverlays` 与 `CanvasConnectionPreviewOverlay` 两个唯一展示出口，旧 Canvas 生产/测试路径及测试 mock 入口直接删除，不保留 facade、re-export 或第二套实现。覆盖层保持纯 React/翻译/图标展示叶子，不依赖 Store、API、旧 Canvas application/infrastructure/composition 或模块 public 自回绕；架构门禁固定两个声明的唯一所有者、旧路径不存在、Stage Shell 仍由旧 Canvas 唯一持有和 public 消费入口。覆盖层与 Canvas Stage/手动连线回归 3 个文件 8 项、定向架构 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 959/281/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 281/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百三十六批将主线、输出、管理和音频四个节点工具栏 View 迁入 Creative Canvas presentation。旧 Canvas 适配器只负责调用既有 Controller 并经模块 public 注入 View，View 改用窄展示合同，不再依赖旧 Hook、Store、API 或模块 public 自回绕；统一行为测试覆盖四类按钮/下拉菜单命令转发，架构门禁固定四个 View 唯一所有者、旧路径不存在、模块依赖方向和适配器入口，不保留 facade、re-export 或第二套实现。四个 Controller 回归与 View 行为共 5 个文件 20 项、工具栏定向架构 4 项、专属唯一所有者门禁 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 964/277/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 277/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

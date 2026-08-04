@@ -31,7 +31,16 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/creative_canvas/public", () => ({
+  buildGenerationErrorReport: ({
+    errorMessage,
+    errorDetails,
+  }: {
+    errorMessage: string;
+    errorDetails?: string;
+  }) => [errorMessage, errorDetails].filter(Boolean).join("\n"),
   resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
+  sanitizeStoryboardText: (input: string, ignoreAtTag: boolean) =>
+    ignoreAtTag ? input.replace(/@\S+/g, "").trim() : input,
 }));
 
 vi.mock("@/lib/browserDownload", () => ({

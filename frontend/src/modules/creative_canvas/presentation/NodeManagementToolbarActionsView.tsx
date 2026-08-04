@@ -1,16 +1,26 @@
 // Copyright (c) 2026 AI anime
 import { RefreshCw, Send, Trash2 } from "lucide-react";
+import type { TFunction } from "i18next";
 
 import { UiChipButton } from "@/components/ui";
-import type { NodeManagementToolbarController } from "@/features/canvas/hooks/useNodeManagementToolbarController";
-
 import {
   NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+
+export interface NodeManagementToolbarViewState {
+  t: TFunction;
+  projectionKey: string | null;
+  projectionIsStale: boolean;
+  removalTarget: "projection" | "node" | null;
+  canCommit: boolean;
+  syncProjection(): void;
+  remove(): void;
+  commit(): void;
+}
 
 export interface NodeManagementToolbarActionsViewProps {
-  controller: NodeManagementToolbarController;
+  controller: NodeManagementToolbarViewState;
 }
 
 export function NodeManagementToolbarActionsView({

@@ -3,8 +3,7 @@ import { memo } from "react";
 
 import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
 import { useAudioNodeToolbarController } from "@/features/canvas/hooks/useAudioNodeToolbarController";
-
-import { AudioNodeToolbarActionsView } from "./AudioNodeToolbarActionsView";
+import { AudioNodeToolbarActionsView } from "@/modules/creative_canvas/public";
 
 export interface AudioNodeToolbarActionsProps {
   nodeId: string;

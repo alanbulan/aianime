@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { ChevronDown, Download, Loader2 } from "lucide-react";
+import type { TFunction } from "i18next";
 
 import {
   DropdownMenu,
@@ -8,16 +9,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
-import type { AudioNodeToolbarController } from "@/features/canvas/hooks/useAudioNodeToolbarController";
-
 import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeActionToolbarStyles";
+import type { AudioNodeToolbarFormat } from "../application/audioNodeToolbarModel";
+
+export interface AudioNodeToolbarViewState {
+  t: TFunction;
+  hasAudio: boolean;
+  convertingFormat: AudioNodeToolbarFormat | null;
+  isConverting: boolean;
+  formatOptions: ReadonlyArray<{
+    format: AudioNodeToolbarFormat;
+    available: boolean;
+  }>;
+  download(format: AudioNodeToolbarFormat): Promise<void>;
+}
 
 export interface AudioNodeToolbarActionsViewProps {
-  controller: AudioNodeToolbarController;
+  controller: AudioNodeToolbarViewState;
 }
 
 export function AudioNodeToolbarActionsView({
