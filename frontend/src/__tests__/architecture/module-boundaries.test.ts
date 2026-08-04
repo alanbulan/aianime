@@ -3298,22 +3298,29 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/infrastructure/browserGenerationRuntimeGateway.ts",
     );
+    const matteClientPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserMatteWorkerClient.ts",
+    );
     const matteClient = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/infrastructure/matteClient.ts",
-      ),
+      matteClientPath,
+      "utf8",
+    );
+    const matteWorkerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/matteWorker.ts",
+    );
+    const matteWorker = readFileSync(matteWorkerPath, "utf8");
+    const imageMatteControllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useImageMatteController.ts",
+    );
+    const imageMatteController = readFileSync(
+      imageMatteControllerPath,
       "utf8",
     );
     const nodeActionToolbar = readFileSync(
       resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbarView.tsx"),
-      "utf8",
-    );
-    const imageMatteController = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useImageMatteController.ts",
-      ),
       "utf8",
     );
     const videoTranscode = readFileSync(
@@ -3532,10 +3539,24 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
-    expect(matteClient).toContain('new URL("./matteWorker.ts"');
-    expect(imageMatteController).toContain(
-      "@/features/canvas/infrastructure/matteClient",
+    expect(importSpecifiers(matteClientPath)).toEqual([]);
+    expect(matteClient).toContain("new URL('./matteWorker.ts'");
+    expect(importSpecifiers(matteWorkerPath)).toEqual([
+      "@huggingface/transformers",
+    ]);
+    expect(matteWorker).toContain("pipeline('background-removal'");
+    expect(new Set(importSpecifiers(imageMatteControllerPath))).toEqual(
+      new Set(["react", "../domain/imageMatteNodeModel"]),
     );
+    expect(imageMatteController).not.toContain("@/features/");
+    expect(imageMatteController).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(composition).toContain("createUseImageMatteController({");
+    expect(composition).toContain("useCanvasStore.getState().addNode(");
+    expect(composition).toContain("uploadCanvasAsset(projectId, blob, filename)");
+    expect(composition).toContain("matteImageInBrowserWorker");
+    expect(composition).toContain("preloadBrowserMatteWorker");
     expect(nodeActionToolbar).not.toContain(
       "@/features/canvas/infrastructure/matteClient",
     );
@@ -24180,7 +24201,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/hooks/useImageMatteController",
+        "@/features/canvas/composition",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -24284,11 +24305,23 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageMatteController.ts",
+      "modules/creative_canvas/presentation/useImageMatteController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageMatteController.test.tsx",
+      "modules/creative_canvas/presentation/useImageMatteController.test.tsx",
+    );
+    const clientPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserMatteWorkerClient.ts",
+    );
+    const workerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/matteWorker.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
     );
     const editControllerPath = resolve(
       SRC_ROOT,
@@ -24304,6 +24337,9 @@ describe("frontend architecture boundaries", () => {
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const clientSource = readFileSync(clientPath, "utf8");
+    const workerSource = readFileSync(workerPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const editControllerSource = readFileSync(editControllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
@@ -24312,7 +24348,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "buildImageMatteSuccessPatch("].join(" "),
       ["export function", "buildImageMatteFailurePatch("].join(" "),
       ["export function", "resolveImageMatteUploadFilename("].join(" "),
-      ["export function", "useImageMatteController("].join(" "),
+      ["export function", "createUseImageMatteController("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -24342,17 +24378,25 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
-        "@/features/canvas/composition",
-        "@/features/canvas/domain/canvasNodes",
-        "@/features/canvas/infrastructure/matteClient",
-        "@/modules/creative_canvas/public",
+        "../domain/imageMatteNodeModel",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<UiChipButton");
     expect(controllerSource).not.toContain("<DropdownMenu");
     expect(controllerSource).not.toContain("readUrl");
+    expect(controllerSource).not.toContain("useCanvasStore");
+    expect(controllerSource).not.toContain("fetch(");
+    expect(controllerSource).not.toContain("window");
+    expect(importSpecifiers(clientPath)).toEqual([]);
+    expect(clientSource).toContain("new URL('./matteWorker.ts'");
+    expect(importSpecifiers(workerPath)).toEqual(["@huggingface/transformers"]);
+    expect(workerSource).toContain("pipeline('background-removal'");
+    expect(compositionSource).toContain("createUseImageMatteController({");
+    expect(compositionSource).toContain("useCanvasStore.getState().addNode(");
+    expect(compositionSource).toContain("uploadCanvasAsset(projectId, blob, filename)");
+    expect(compositionSource).toContain("fetch(sourceUrl)");
+    expect(compositionSource).toContain("requestIdleCallback");
     expect(editControllerSource).toContain("useImageMatteController({");
     expect(editControllerSource).toContain("projectId,");
     expect(componentSource).toContain("projectId,");
@@ -24383,13 +24427,13 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
       ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
       ["modules/creative_canvas/domain/imageMatteNodeModel.ts"],
-      ["features/canvas/hooks/useImageMatteController.ts"],
+      ["modules/creative_canvas/presentation/useImageMatteController.ts"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./imageMatteNodeModel"',
     );
-    expect(readFileSync(controllerTestPath, "utf8")).toContain(
-      'from "./useImageMatteController"',
+    expect(importSpecifiers(controllerTestPath)).toContain(
+      "./useImageMatteController",
     );
     expect(existsSync(resolve(
       SRC_ROOT,
@@ -24399,6 +24443,14 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/imageMatteNodeModel.test.ts",
     ))).toBe(false);
+    for (const legacyPath of [
+      "features/canvas/hooks/useImageMatteController.ts",
+      "features/canvas/hooks/useImageMatteController.test.tsx",
+      "features/canvas/infrastructure/matteClient.ts",
+      "features/canvas/infrastructure/matteWorker.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
   });
 
   it("separates image node toolbar projection, commands, and view", () => {
@@ -30194,7 +30246,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
-      "features/canvas/hooks/useImageMatteController.ts",
       "features/canvas/ui/RedrawOverlay.tsx",
       "features/canvas/ui/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   type CanvasNodeData,
 } from "@/features/canvas/domain/canvasNodes";
-import { useImageMatteController } from "@/features/canvas/hooks/useImageMatteController";
+import { useImageMatteController } from "@/features/canvas/composition";
 import {
   canvasEventBus,
   NODE_TOOL_TYPES,

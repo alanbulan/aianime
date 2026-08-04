@@ -25,7 +25,7 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   canvasEventBus: { publish: mocks.publish },
 }));
 
-vi.mock("@/features/canvas/hooks/useImageMatteController", () => ({
+vi.mock("@/features/canvas/composition", () => ({
   useImageMatteController: (...args: unknown[]) =>
     mocks.useImageMatteController(...args),
 }));

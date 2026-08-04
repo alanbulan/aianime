@@ -22,8 +22,11 @@ import {
   createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
   createUseDetachUpstream,
+  createUseImageMatteController,
   createUseIsBoxSelecting,
   detectAspectRatio as detectAspectRatioUseCase,
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   exportStoryboardGrid as exportStoryboardGridUseCase,
   freezoneGenerationTaskGateway,
   generateCanvasRedraw,
@@ -33,7 +36,9 @@ import {
   getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
   getStoryboardReferenceFrameHeight,
   nodeNeedsGenerationResume,
+  matteImageInBrowserWorker,
   platformCanvasAssetGateway,
+  preloadBrowserMatteWorker,
   prepareNodeImage as prepareNodeImageUseCase,
   prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
   packStoryboardFrames as packStoryboardFramesUseCase,
@@ -62,7 +67,10 @@ import {
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
 import { CanvasToolProcessor } from './application/toolProcessor';
-import { CANVAS_NODE_TYPES } from './domain/canvasNodes';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasNodeData,
+} from './domain/canvasNodes';
 import {
   stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
@@ -219,6 +227,51 @@ export const useIsBoxSelecting = createUseIsBoxSelecting({
 export const useDetachUpstream = createUseDetachUpstream({
   useDeleteEdge: () => useCanvasStore((state) => state.deleteEdge),
   readEdges: () => useCanvasStore.getState().edges,
+});
+export const useImageMatteController = createUseImageMatteController({
+  addExportImageNode: (position, data) =>
+    useCanvasStore.getState().addNode(
+      CANVAS_NODE_TYPES.exportImage,
+      position,
+      data as Partial<CanvasNodeData>,
+    ),
+  addEdge: (sourceNodeId, targetNodeId) => {
+    useCanvasStore.getState().addEdge(sourceNodeId, targetNodeId);
+  },
+  findNodePosition: (nodeId, width, height) =>
+    useCanvasStore.getState().findNodePosition(nodeId, width, height),
+  selectNode: (nodeId) => useCanvasStore.getState().setSelectedNode(nodeId),
+  updateNodeData: (nodeId, patch) =>
+    useCanvasStore
+      .getState()
+      .updateNodeData(nodeId, patch as Partial<CanvasNodeData>),
+  uploadAsset: (projectId, blob, filename) =>
+    uploadCanvasAsset(projectId, blob, filename),
+  fetchBlob: async (sourceUrl) => {
+    const response = await fetch(sourceUrl);
+    if (!response.ok) {
+      throw new Error(`fetch source failed: ${response.status}`);
+    }
+    return response.blob();
+  },
+  matteImage: matteImageInBrowserWorker,
+  preloadWorker: preloadBrowserMatteWorker,
+  schedulePreload: (callback) => {
+    const target = window as typeof window & {
+      requestIdleCallback?: (idleCallback: () => void) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (typeof target.requestIdleCallback === 'function') {
+      const handle = target.requestIdleCallback(callback);
+      return () => target.cancelIdleCallback?.(handle);
+    }
+    const timer = window.setTimeout(callback, 1200);
+    return () => window.clearTimeout(timer);
+  },
+  now: () => Date.now(),
+  exportNodeWidth: EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  exportNodeHeight: EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+  reportError: (message, error) => console.error(message, error),
 });
 export const useCanvasGenerationRecoveryController =
   createUseCanvasGenerationRecoveryController({
