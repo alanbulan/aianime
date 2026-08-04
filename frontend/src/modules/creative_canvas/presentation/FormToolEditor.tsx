@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import type { ToolFieldSchema, ToolOptions } from '@/modules/creative_canvas/public';
+import type { ToolFieldSchema, ToolOptions } from '../domain/canvasTool';
 import { UiInput, UiSelect } from '@/components/ui';
-import type { FormToolEditorProps } from './types';
+import type { FormToolEditorProps } from './canvasToolEditorContracts';
 
 function readTextOption(options: ToolOptions, key: string): string {
   const value = options[key];

@@ -6,9 +6,9 @@ import ReactCrop, {
 } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
-import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
-import type { ToolSelectField } from '@/modules/creative_canvas/public';
-import type { VisualToolEditorProps } from './types';
+import type { ToolSelectField } from '../domain/canvasTool';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type { VisualToolEditorProps } from './canvasToolEditorContracts';
 
 const VIEWPORT_PADDING_PX = 20;
 const VIEWPORT_MIN_WIDTH_PX = 220;

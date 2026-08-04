@@ -2902,6 +2902,23 @@ export type {
 export {
   drawAnnotations,
 } from "@/modules/creative_canvas/infrastructure/browserCanvasAnnotationRenderer";
+export {
+  AnnotateToolEditor,
+} from "@/modules/creative_canvas/presentation/AnnotateToolEditor";
+export {
+  CropToolEditor,
+} from "@/modules/creative_canvas/presentation/CropToolEditor";
+export {
+  FormToolEditor,
+} from "@/modules/creative_canvas/presentation/FormToolEditor";
+export {
+  SplitStoryboardToolEditor,
+} from "@/modules/creative_canvas/presentation/SplitStoryboardToolEditor";
+export type {
+  FormToolEditorProps,
+  ToolEditorBaseProps,
+  VisualToolEditorProps,
+} from "@/modules/creative_canvas/presentation/canvasToolEditorContracts";
 export type {
   CanvasEventBus,
   CanvasEventMap,

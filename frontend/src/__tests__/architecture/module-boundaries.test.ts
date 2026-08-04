@@ -25047,6 +25047,31 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/NodeToolDialog.tsx",
     );
+    const toolEditorPaths = [
+      [
+        "AnnotateToolEditor",
+        resolve(SRC_ROOT, "modules/creative_canvas/presentation/AnnotateToolEditor.tsx"),
+      ],
+      [
+        "CropToolEditor",
+        resolve(SRC_ROOT, "modules/creative_canvas/presentation/CropToolEditor.tsx"),
+      ],
+      [
+        "FormToolEditor",
+        resolve(SRC_ROOT, "modules/creative_canvas/presentation/FormToolEditor.tsx"),
+      ],
+      [
+        "SplitStoryboardToolEditor",
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/SplitStoryboardToolEditor.tsx",
+        ),
+      ],
+    ] as const;
+    const toolEditorContractsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/canvasToolEditorContracts.ts",
+    );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -25056,6 +25081,11 @@ describe("frontend architecture boundaries", () => {
     const toolTypesSource = readFileSync(toolTypesPath, "utf8");
     const builtInToolsSource = readFileSync(builtInToolsPath, "utf8");
     const toolDialogSource = readFileSync(toolDialogPath, "utf8");
+    const toolEditorSources = toolEditorPaths.map(([name, path]) => ({
+      name,
+      path,
+      source: readFileSync(path, "utf8"),
+    }));
     const declarations = [
       ["export function", "projectImageNodeToolbar("].join(" "),
       ["export function", "useImageNodeToolbarController("].join(" "),
@@ -25180,6 +25210,35 @@ describe("frontend architecture boundaries", () => {
     }
     expect(toolDialogSource).toContain("t(activePlugin.labelKey)");
     expect(toolDialogSource).not.toContain("resolveToolLabel");
+    expect(toolDialogSource).not.toContain("./tool-editors/");
+    for (const { name, path, source } of toolEditorSources) {
+      expect(source, name).not.toContain("@/features/canvas");
+      expect(source, name).not.toContain("@/modules/creative_canvas/public");
+      expect(source, name).not.toContain("useCanvasStore");
+      expect(toolDialogSource).toContain(name);
+      expect(
+        sourceFiles(SRC_ROOT)
+          .filter((candidate) =>
+            readFileSync(candidate, "utf8").includes(`export function ${name}(`),
+          )
+          .map(relativeSource),
+      ).toEqual([relativeSource(path)]);
+    }
+    expect(importSpecifiers(toolEditorContractsPath)).toEqual([
+      "../domain/canvasTool",
+    ]);
+    for (const retiredToolEditorPath of [
+      "features/canvas/ui/tool-editors/AnnotateToolEditor.tsx",
+      "features/canvas/ui/tool-editors/CropToolEditor.tsx",
+      "features/canvas/ui/tool-editors/FormToolEditor.tsx",
+      "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx",
+      "features/canvas/ui/tool-editors/types.ts",
+    ]) {
+      expect(
+        existsSync(resolve(SRC_ROOT, retiredToolEditorPath)),
+        retiredToolEditorPath,
+      ).toBe(false);
+    }
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageNodeToolbarModel.ts"],
       ["features/canvas/hooks/useImageNodeToolbarController.ts"],

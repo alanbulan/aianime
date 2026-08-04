@@ -28,16 +28,18 @@ import {
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type Konva from 'konva';
 
-import type { ToolOptions } from '@/modules/creative_canvas/public';
+import type { ToolOptions } from '../domain/canvasTool';
 import {
   normalizeAnnotationRect,
   parseAnnotationItems,
   stringifyAnnotationItems,
-  type AnnotationItem,
-  type AnnotationToolType,
-} from '@/modules/creative_canvas/public';
-import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
-import type { VisualToolEditorProps } from './types';
+} from '../domain/canvasAnnotationCodec';
+import type {
+  AnnotationItem,
+  AnnotationToolType,
+} from '../domain/canvasAnnotation';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type { VisualToolEditorProps } from './canvasToolEditorContracts';
 
 const VIEWPORT_PADDING_PX = 16;
 const VIEWPORT_MIN_WIDTH_PX = 220;

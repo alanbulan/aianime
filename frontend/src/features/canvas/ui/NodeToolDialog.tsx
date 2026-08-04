@@ -6,10 +6,16 @@ import { X } from 'lucide-react';
 
 import {
   canvasEventBus,
+  AnnotateToolEditor,
+  CropToolEditor,
   EXPORT_RESULT_DISPLAY_NAME,
+  FormToolEditor,
   getToolPlugin,
+  inheritMainlineFields,
   NODE_TOOL_TYPES,
   resolveCanvasNodeSourceImageUrl,
+  resolveImageDisplayUrl,
+  SplitStoryboardToolEditor,
   type ToolOptions,
   type NodeToolType,
 } from '@/modules/creative_canvas/public';
@@ -20,17 +26,9 @@ import {
 } from '@/features/canvas/composition';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  inheritMainlineFields,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 import { UiButton, UiModal } from '@/components/ui';
 import { UI_DIALOG_TRANSITION_MS } from '@/components/ui/motion';
-import { FormToolEditor } from './tool-editors/FormToolEditor';
-import { CropToolEditor } from './tool-editors/CropToolEditor';
-import { AnnotateToolEditor } from './tool-editors/AnnotateToolEditor';
-import { SplitStoryboardToolEditor } from './tool-editors/SplitStoryboardToolEditor';
 
 const VISUAL_TOOL_MODAL_CLASS =
   'relative flex flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl backdrop-blur-md';

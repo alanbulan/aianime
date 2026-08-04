@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
-import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
+import { resolveImageDisplayUrl } from '../domain/imageData';
 import { UiInput } from '@/components/ui';
-import type { VisualToolEditorProps } from './types';
+import type { VisualToolEditorProps } from './canvasToolEditorContracts';
 
 const MIN_GRID_SIZE = 1;
 const MAX_GRID_SIZE = 8;

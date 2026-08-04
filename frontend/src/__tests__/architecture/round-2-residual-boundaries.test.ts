@@ -482,6 +482,14 @@ describe("round 2 residual architecture boundaries", () => {
     const canvasImageToolInfrastructureFiles = [
       "browserCanvasAnnotationRenderer.ts",
     ];
+    const canvasImageToolPresentationFiles = [
+      "AnnotateToolEditor.tsx",
+      "CropToolEditor.tsx",
+      "FormToolEditor.tsx",
+      "FormToolEditor.test.tsx",
+      "SplitStoryboardToolEditor.tsx",
+      "canvasToolEditorContracts.ts",
+    ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
@@ -1272,6 +1280,9 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of canvasImageToolInfrastructureFiles) {
       expect(existsSync(resolve(moduleRoot, "infrastructure", file)), file).toBe(true);
     }
+    for (const file of canvasImageToolPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
+    }
     for (const retiredPath of [
       "features/canvas/application/toolProcessor.ts",
       "__tests__/features/canvas/tool-processor.test.ts",
@@ -1283,6 +1294,11 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/tools/index.ts",
       "features/canvas/tools/registry.ts",
       "features/canvas/tools/types.ts",
+      "features/canvas/ui/tool-editors/AnnotateToolEditor.tsx",
+      "features/canvas/ui/tool-editors/CropToolEditor.tsx",
+      "features/canvas/ui/tool-editors/FormToolEditor.tsx",
+      "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx",
+      "features/canvas/ui/tool-editors/types.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
     }
@@ -1763,6 +1779,11 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/creative_canvas/domain/canvasToolRegistry",
         "@/modules/creative_canvas/application/canvasToolProcessor",
         "@/modules/creative_canvas/infrastructure/browserCanvasAnnotationRenderer",
+        "@/modules/creative_canvas/presentation/AnnotateToolEditor",
+        "@/modules/creative_canvas/presentation/CropToolEditor",
+        "@/modules/creative_canvas/presentation/FormToolEditor",
+        "@/modules/creative_canvas/presentation/SplitStoryboardToolEditor",
+        "@/modules/creative_canvas/presentation/canvasToolEditorContracts",
         "@/modules/creative_canvas/domain/multiAngle",
         "@/modules/creative_canvas/domain/outpaint",
         "@/modules/creative_canvas/domain/redraw",
@@ -2356,7 +2377,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 253],
+      ["features/canvas", 248],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

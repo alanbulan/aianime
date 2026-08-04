@@ -3,7 +3,7 @@ import type {
   CanvasToolPlugin,
   ToolFieldSchema,
   ToolOptions,
-} from '@/modules/creative_canvas/public';
+} from '../domain/canvasTool';
 
 export interface ToolEditorBaseProps {
   plugin: CanvasToolPlugin;
