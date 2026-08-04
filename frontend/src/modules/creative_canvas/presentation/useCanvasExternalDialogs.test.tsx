@@ -38,17 +38,19 @@ class ExternalDialogEventPortMock
 describe('useCanvasExternalDialogs', () => {
   it('bridges tool dialog events and owns video viewer state', () => {
     const eventPort = new ExternalDialogEventPortMock();
+    const openImageViewer = vi.fn();
     const openToolDialog = vi.fn();
     const closeToolDialog = vi.fn();
     const { result, unmount } = renderHook(() =>
       useCanvasExternalDialogs({
         eventPort,
+        openImageViewer,
         openToolDialog,
         closeToolDialog,
       }),
     );
 
-    expect(eventPort.size).toBe(3);
+    expect(eventPort.size).toBe(4);
     expect(result.current.videoViewer).toEqual({
       isOpen: false,
       videoUrl: '',
@@ -56,6 +58,13 @@ describe('useCanvasExternalDialogs', () => {
     });
 
     act(() => {
+      eventPort.emit('image-viewer/open', {
+        imageUrl: 'https://example.com/image.png',
+        imageList: [
+          'https://example.com/image.png',
+          'https://example.com/second.png',
+        ],
+      });
       eventPort.emit('tool-dialog/open', {
         nodeId: 'node-1',
         toolType: 'crop',
@@ -67,6 +76,13 @@ describe('useCanvasExternalDialogs', () => {
       });
     });
 
+    expect(openImageViewer).toHaveBeenCalledWith(
+      'https://example.com/image.png',
+      [
+        'https://example.com/image.png',
+        'https://example.com/second.png',
+      ],
+    );
     expect(openToolDialog).toHaveBeenCalledWith({
       nodeId: 'node-1',
       toolType: 'crop',

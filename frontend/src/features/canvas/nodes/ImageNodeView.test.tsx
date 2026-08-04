@@ -26,7 +26,7 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasNodeImage: ({
     src,
     alt,
@@ -40,9 +40,6 @@ vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
       image:{src}:{alt}
     </button>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
   DirectorControlBundleBadge: () => <div>director-badge</div>,
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
   RegenerateButton: ({ onClick }: { onClick(): void }) => (

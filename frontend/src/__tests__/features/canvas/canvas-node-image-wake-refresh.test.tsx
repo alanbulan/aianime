@@ -3,7 +3,7 @@ import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { withImageCacheBust } from "@/shared/media/image-cache";
-import { CanvasNodeImage } from "@/features/canvas/ui/CanvasNodeImage";
+import { CanvasNodeImage } from "@/modules/creative_canvas/public";
 
 describe("CanvasNodeImage wake refresh", () => {
   it("does not cache-bust static image src when the page wakes", () => {

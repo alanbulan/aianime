@@ -7759,6 +7759,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/ImageViewerModal.tsx",
     );
+    const nodeImagePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasNodeImage.tsx",
+    );
+    const nodeImageTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasNodeImage.test.tsx",
+    );
+    const oldNodeImagePath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasNodeImage.tsx",
+    );
     const videoModalPath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/presentation/VideoViewerModal.tsx",
@@ -7786,6 +7798,22 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/public.ts",
     );
+    const eventPortPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/canvasEventBus.ts",
+    );
+    const externalDialogsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasExternalDialogs.ts",
+    );
+    const viewerControllerPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useCanvasViewerSurfaceController.ts",
+    );
+    const nodeImageSource = readFileSync(nodeImagePath, "utf8");
+    const eventPortSource = readFileSync(eventPortPath, "utf8");
+    const externalDialogsSource = readFileSync(externalDialogsPath, "utf8");
+    const viewerControllerSource = readFileSync(viewerControllerPath, "utf8");
     const forbiddenImports = importSpecifiers(viewerPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -7806,11 +7834,60 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const nodeImageDeclaration = [
+      "export const",
+      "CanvasNodeImage =",
+    ].join(" ");
+    const nodeImageOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(nodeImageDeclaration))
+      .map(relativeSource)
+      .sort();
+    const nodeImageConsumers = [
+      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "features/canvas/nodes/ImageNodeView.tsx",
+      "features/canvas/nodes/StoryboardGenNodeView.tsx",
+      "features/canvas/nodes/StoryboardNodeView.tsx",
+      "features/canvas/nodes/UploadNodeView.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
 
     expect(forbiddenImports).toEqual([]);
     expect(viewerContractOwners).toEqual([
       "modules/creative_canvas/domain/canvasImageViewer.ts",
     ]);
+    expect(nodeImageOwners).toEqual([
+      "modules/creative_canvas/presentation/CanvasNodeImage.tsx",
+    ]);
+    expect(existsSync(nodeImageTestPath)).toBe(true);
+    expect(existsSync(oldNodeImagePath)).toBe(false);
+    expect(importSpecifiers(nodeImagePath)).toEqual([
+      "react",
+      "../canvasEventComposition",
+    ]);
+    expect(nodeImageSource).not.toContain("useCanvasStore");
+    expect(nodeImageSource).not.toContain("@/features/canvas/");
+    expect(nodeImageSource).not.toContain("@/modules/creative_canvas/public");
+    expect(nodeImageSource).toContain(
+      "canvasEventBus.publish('image-viewer/open'",
+    );
+    expect(eventPortSource).toContain('"image-viewer/open"');
+    expect(externalDialogsSource).toContain(
+      "eventPort.subscribe(\n      'image-viewer/open'",
+    );
+    expect(externalDialogsSource).toContain(
+      "openImageViewer(imageUrl, imageList)",
+    );
+    expect(viewerControllerSource).toContain(
+      "const openImageViewer = useStore((state) => state.openImageViewer)",
+    );
+    for (const consumerPath of nodeImageConsumers) {
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(consumerPath)).not.toContain(
+        "@/features/canvas/ui/CanvasNodeImage",
+      );
+    }
     expect(viewerModel).toContain("export function openCanvasImageViewer(");
     expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
     expect(viewportSlice).toContain("@/modules/creative_canvas/public");
@@ -7846,6 +7923,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(publicPath)).toEqual(
       expect.arrayContaining([
         "@/modules/creative_canvas/domain/canvasImageViewer",
+        "@/modules/creative_canvas/presentation/CanvasNodeImage",
         "@/modules/creative_canvas/presentation/ImageViewerModal",
         "@/modules/creative_canvas/presentation/VideoViewerModal",
       ]),

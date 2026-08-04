@@ -6,6 +6,7 @@ import { Minus, Plus, Sparkles } from 'lucide-react';
 import { CreditSparkIcon } from '@/components/credits/credit-visual';
 import { UiButton } from '@/components/ui';
 import {
+  CanvasNodeImage,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
@@ -16,7 +17,6 @@ import {
   findReferenceTokens,
 } from '@/modules/creative_canvas/public';
 import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import {
   NodeHeader,

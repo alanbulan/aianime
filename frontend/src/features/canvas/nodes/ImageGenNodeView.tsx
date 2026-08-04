@@ -17,6 +17,7 @@ import {
 
 import {
   AssetLibraryModal,
+  CanvasNodeImage,
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
   historyRecordOutputUrl,
@@ -66,7 +67,6 @@ import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextP
 import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPrompt';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   NodeHeader,

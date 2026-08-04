@@ -50,4 +50,20 @@ describe("InMemoryCanvasEventBus", () => {
     expect(upload).toHaveBeenCalledWith({ nodeId: "upload-1", file });
     expect(reupload).not.toHaveBeenCalled();
   });
+
+  it("publishes image viewer commands with the normalized image list", () => {
+    const bus = new InMemoryCanvasEventBus();
+    const open = vi.fn();
+    bus.subscribe("image-viewer/open", open);
+
+    bus.publish("image-viewer/open", {
+      imageUrl: "/original.png",
+      imageList: ["/preview.png", "/original.png"],
+    });
+
+    expect(open).toHaveBeenCalledWith({
+      imageUrl: "/original.png",
+      imageList: ["/preview.png", "/original.png"],
+    });
+  });
 });

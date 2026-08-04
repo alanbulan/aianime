@@ -14,6 +14,10 @@ import {
 
 export interface CanvasViewerSurfaceStore {
   imageViewer: CanvasImageViewerState;
+  openImageViewer: (
+    imageUrl: string,
+    imageList?: CanvasImageViewerState['imageList'],
+  ) => void;
   closeImageViewer: ImageViewerModalProps['onClose'];
   navigateImageViewer: (direction: CanvasImageViewerDirection) => void;
   openToolDialog: (dialog: CanvasToolDialogRequest) => void;
@@ -41,12 +45,14 @@ export function createUseCanvasViewerSurfaceController({
 }: CanvasViewerSurfaceControllerDependencies) {
   return function useCanvasViewerSurfaceController(): CanvasViewerSurfaceController {
     const imageViewer = useStore((state) => state.imageViewer);
+    const openImageViewer = useStore((state) => state.openImageViewer);
     const closeImageViewer = useStore((state) => state.closeImageViewer);
     const navigateImageViewer = useStore((state) => state.navigateImageViewer);
     const openToolDialog = useStore((state) => state.openToolDialog);
     const closeToolDialog = useStore((state) => state.closeToolDialog);
     const { videoViewer, closeVideoViewer } = useCanvasExternalDialogs({
       eventPort,
+      openImageViewer,
       openToolDialog,
       closeToolDialog,
     });

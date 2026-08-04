@@ -32,6 +32,10 @@ export interface CanvasEventMap {
     videoUrl: string;
     title?: string;
   };
+  "image-viewer/open": {
+    imageUrl: string;
+    imageList: string[];
+  };
 }
 
 export interface CanvasEventBus {

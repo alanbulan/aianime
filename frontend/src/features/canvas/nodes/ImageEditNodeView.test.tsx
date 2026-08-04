@@ -31,12 +31,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
-  CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} />
-  ),
-}));
-
 vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
@@ -70,6 +64,15 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  CanvasNodeImage: ({
+    src,
+    alt,
+  }: {
+    src: string;
+    alt: string;
+  }) => (
+    <img src={src} alt={alt} />
+  ),
   ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
     <span>detach:{nodeId}</span>
   ),

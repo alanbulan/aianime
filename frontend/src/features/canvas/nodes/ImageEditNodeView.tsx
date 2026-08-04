@@ -3,11 +3,11 @@ import { Handle, Position } from '@xyflow/react';
 import { ImageIcon, Maximize2, Sparkles, UploadCloud } from 'lucide-react';
 
 import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
 import {
   AssetLibraryModal,
+  CanvasNodeImage,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,

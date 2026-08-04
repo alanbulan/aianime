@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import {
+  CanvasNodeImage,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   NODE_CONTROL_CHIP_CLASS,
   NODE_CONTROL_ICON_CLASS,
@@ -25,7 +26,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import type { StoryboardNodeController } from '@/features/canvas/hooks/useStoryboardNodeController';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

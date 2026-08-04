@@ -4,6 +4,7 @@ import { Camera, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  CanvasNodeImage,
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
@@ -18,7 +19,6 @@ import {
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
 import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

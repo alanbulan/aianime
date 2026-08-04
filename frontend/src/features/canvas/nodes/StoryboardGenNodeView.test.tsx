@@ -34,6 +34,9 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
+    <img src={src} alt={alt} />
+  ),
   NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
   NodeResizeHandle: ({
     minWidth,
@@ -49,12 +52,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     <div>
       resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
     </div>
-  ),
-}));
-
-vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
-  CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} />
   ),
 }));
 

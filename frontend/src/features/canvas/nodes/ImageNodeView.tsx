@@ -3,12 +3,12 @@ import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 import type { ImageNodeController } from '@/features/canvas/hooks/useImageNodeController';
-import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
 import {
+  CanvasNodeImage,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   CandidateBindingBadges,
   NodeGenerationOverlay,

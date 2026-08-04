@@ -13,6 +13,7 @@ import {
 
 const controllerMocks = vi.hoisted(() => {
   const closeImageViewer = vi.fn();
+  const openImageViewer = vi.fn();
   const navigateImageViewer = vi.fn();
   const openToolDialog = vi.fn();
   const closeToolDialog = vi.fn();
@@ -24,6 +25,7 @@ const controllerMocks = vi.hoisted(() => {
       imageList: ['https://example.com/image.png'],
       currentIndex: 0,
     },
+    openImageViewer,
     closeImageViewer,
     navigateImageViewer,
     openToolDialog,
@@ -39,6 +41,7 @@ const controllerMocks = vi.hoisted(() => {
   };
   return {
     closeImageViewer,
+    openImageViewer,
     navigateImageViewer,
     openToolDialog,
     closeToolDialog,
@@ -79,6 +82,7 @@ describe('useCanvasViewerSurfaceController', () => {
 
     expect(controllerMocks.useExternalDialogs).toHaveBeenCalledWith({
       eventPort,
+      openImageViewer: controllerMocks.openImageViewer,
       openToolDialog: controllerMocks.openToolDialog,
       closeToolDialog: controllerMocks.closeToolDialog,
     });

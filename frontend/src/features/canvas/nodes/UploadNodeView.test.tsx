@@ -35,13 +35,10 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
   CanvasNodeImage: ({ src }: { src: string }) => (
     <img src={src} alt="uploaded" />
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
   DirectorControlBundleBadge: () => <div>bundle-badge</div>,
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS: 'body-frame',
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS: 'selected-frame',
