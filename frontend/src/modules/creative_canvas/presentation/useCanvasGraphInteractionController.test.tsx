@@ -1,32 +1,56 @@
 // Copyright (c) 2026 AI anime
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasGraphInteractionController,
   type CanvasGraphInteractionControllerOptions,
+  type CanvasGraphInteractionEdge,
+  type CanvasGraphInteractionNode,
 } from './useCanvasGraphInteractionController';
 
-function sourceNode(position = { x: 0, y: 0 }): CanvasNode {
+type TestNodeType = 'group' | 'text';
+
+interface TestNode extends CanvasGraphInteractionNode<TestNodeType> {
+  selected?: boolean;
+}
+
+interface TestEdge extends CanvasGraphInteractionEdge {}
+
+interface TestNodeChange {
+  id: string;
+  type: 'position' | 'remove' | 'select';
+  position?: { x: number; y: number };
+  dragging?: boolean;
+}
+
+interface TestEdgeChange {
+  id: string;
+  type: 'remove' | 'select';
+}
+
+type TestOptions = CanvasGraphInteractionControllerOptions<
+  TestNode,
+  TestEdge,
+  TestNodeType,
+  TestNodeChange,
+  TestEdgeChange
+>;
+
+function sourceNode(position = { x: 0, y: 0 }): TestNode {
   return {
     id: 'source',
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'text',
     position,
     selected: true,
     data: {},
-  } as CanvasNode;
+  };
 }
 
-function createOptions(): CanvasGraphInteractionControllerOptions {
+function createOptions(): TestOptions {
   const graph = {
     nodes: [sourceNode()],
-    edges: [] as CanvasEdge[],
+    edges: [] as TestEdge[],
   };
   return {
     nodes: graph.nodes,
@@ -37,6 +61,13 @@ function createOptions(): CanvasGraphInteractionControllerOptions {
     elevateNodes: vi.fn(),
     selectNode: vi.fn(),
     getGraph: vi.fn(() => graph),
+    groupNodeType: 'group',
+    mapPositionCommit: (update) => ({
+      id: update.nodeId,
+      type: 'position',
+      position: update.position,
+      dragging: update.dragging,
+    }),
     fitGroupToChildren: vi.fn(),
     alignNodeChanges: vi.fn(({ changes }) => changes),
     applyNodeChanges: vi.fn(),
@@ -52,7 +83,7 @@ describe('useCanvasGraphInteractionController', () => {
     const { result } = renderHook(() =>
       useCanvasGraphInteractionController(options),
     );
-    const event = { altKey: true } as ReactMouseEvent;
+    const event = { altKey: true };
 
     act(() => result.current.handleNodeDragStart(
       event,
@@ -92,9 +123,9 @@ describe('useCanvasGraphInteractionController', () => {
     const { result } = renderHook(() =>
       useCanvasGraphInteractionController(options),
     );
-    const change = {
+    const change: TestNodeChange = {
       id: 'source',
-      type: 'position' as const,
+      type: 'position',
       position: { x: 10, y: 15 },
       dragging: true,
     };

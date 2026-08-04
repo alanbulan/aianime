@@ -1,108 +1,133 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, type RefObject } from 'react';
 
+import type {
+  CanvasNodeMenuCreationData,
+  CanvasNodeMenuSelectionNode,
+  CanvasNodeMenuTypes,
+} from '../application/canvasNodeMenuSelection';
+import type { SkillDefinition } from '../domain/skillContract';
 import {
   useCanvasNodeClickController,
-  useCanvasNodeMenuSelectionController,
-  useCanvasNodeMenuShortcut,
-  useCanvasNodePlacementController,
-  useCanvasPaneClickController,
-  useCanvasQuickAddController,
   type CanvasNodeClickController,
   type CanvasNodeClickControllerOptions,
+  type CanvasNodeClickTarget,
+} from './useCanvasNodeClickController';
+import {
+  useCanvasNodeMenuSelectionController,
+  type CanvasNodeMenuPlacement,
   type CanvasNodeMenuSelectionController,
   type CanvasNodeMenuSelectionControllerOptions,
+} from './useCanvasNodeMenuSelectionController';
+import {
+  useCanvasNodeMenuShortcut,
   type CanvasNodeMenuShortcutController,
-  type CanvasNodeMenuStateController,
-  type CanvasNodeMenuTypes,
+} from './useCanvasNodeMenuShortcut';
+import type { CanvasNodeMenuStateController } from './useCanvasNodeMenuStateController';
+import {
+  useCanvasNodePlacementController,
   type CanvasNodePlacement,
   type CanvasNodePlacementController,
-  type CanvasPaneClickController,
-  type CanvasQuickAddController,
-  type SkillDefinition,
-} from '@/modules/creative_canvas/public';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
-
+} from './useCanvasNodePlacementController';
 import {
-  CANVAS_NODE_TYPES,
-  isStoryboardGroupNode,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+  useCanvasPaneClickController,
+  type CanvasPaneClickController,
+} from './useCanvasPaneClickController';
+import {
+  useCanvasQuickAddController,
+  type CanvasQuickAddController,
+} from './useCanvasQuickAddController';
 
 interface CanvasPosition {
   x: number;
   y: number;
 }
 
-const CANVAS_NODE_MENU_TYPES = {
-  imageEdit: CANVAS_NODE_TYPES.imageEdit,
-  upload: CANVAS_NODE_TYPES.upload,
-  imageGen: CANVAS_NODE_TYPES.imageGen,
-  skill: CANVAS_NODE_TYPES.skill,
-} satisfies CanvasNodeMenuTypes<CanvasNodeType>;
+export interface CanvasNodeInteractionNode
+  extends CanvasNodeClickTarget,
+    CanvasNodeMenuSelectionNode {}
 
-export interface CanvasNodeInteractionControllerOptions {
+export interface CanvasNodeInteractionControllerOptions<
+  TNodeType extends string,
+  TNodeData extends object,
+  TNode extends CanvasNodeInteractionNode,
+> {
   wrapperRef: RefObject<HTMLDivElement | null>;
-  nodes: readonly CanvasNode[];
+  nodes: readonly TNode[];
+  nodeTypes: CanvasNodeMenuTypes<TNodeType>;
+  skillNodeType: TNodeType;
   screenToFlowPosition: (clientPosition: CanvasPosition) => CanvasPosition;
   createNode: (
-    type: CanvasNodeType,
+    type: TNodeType,
     position: CanvasPosition,
-    data?: Partial<CanvasNodeData>,
+    data?: Partial<TNodeData>,
   ) => string;
+  adaptMenuCreationData: (
+    data: CanvasNodeMenuCreationData,
+  ) => Partial<TNodeData>;
   selectNode: (nodeId: string | null) => void;
   bindSkill: (nodeId: string, skill: SkillDefinition) => void;
   confirmPlacement: (nodeId: string) => void;
   resolvePlacementLabel: (
-    placement: CanvasNodePlacement<CanvasNodeType, CanvasNodeData>,
+    placement: CanvasNodePlacement<TNodeType, TNodeData>,
   ) => string;
   openPlainNodeMenu:
-    CanvasNodeMenuStateController<CanvasNodeType>['openPlainNodeMenu'];
+    CanvasNodeMenuStateController<TNodeType>['openPlainNodeMenu'];
   dismissNodeMenu:
-    CanvasNodeMenuStateController<CanvasNodeType>['dismissNodeMenuForPaneClick'];
+    CanvasNodeMenuStateController<TNodeType>['dismissNodeMenuForPaneClick'];
   onBlankPaneClick?: () => void;
-  centerViewport: CanvasNodeClickControllerOptions<CanvasNode>['centerViewport'];
+  centerViewport: CanvasNodeClickControllerOptions<TNode>['centerViewport'];
+  isStoryboardGroupNode: (node: TNode) => boolean;
+  isImmersiveViewerActive: () => boolean;
   flowPosition: CanvasPosition;
   menuPosition: CanvasPosition;
-  menuAllowedTypes: readonly CanvasNodeType[] | undefined;
+  menuAllowedTypes: readonly TNodeType[] | undefined;
   pendingConnection:
     CanvasNodeMenuSelectionControllerOptions<
-      CanvasNodeType,
-      CanvasNode
+      TNodeType,
+      TNode
     >['pendingConnection'];
   pendingBatchSourceIds:
     CanvasNodeMenuSelectionControllerOptions<
-      CanvasNodeType,
-      CanvasNode
+      TNodeType,
+      TNode
     >['pendingBatchSourceIds'];
   connectSpawnedNode:
     CanvasNodeMenuSelectionControllerOptions<
-      CanvasNodeType,
-      CanvasNode
+      TNodeType,
+      TNode
     >['connectSpawnedNode'];
   hideMenuForPlacement:
-    CanvasNodeMenuStateController<CanvasNodeType>['hideNodeMenuForPlacement'];
+    CanvasNodeMenuStateController<TNodeType>['hideNodeMenuForPlacement'];
   closeNodeMenu:
-    CanvasNodeMenuStateController<CanvasNodeType>['closeNodeMenu'];
+    CanvasNodeMenuStateController<TNodeType>['closeNodeMenu'];
 }
 
-export interface CanvasNodeInteractionController
-  extends CanvasNodePlacementController<CanvasNodeType, CanvasNodeData>,
-  CanvasPaneClickController,
-  CanvasNodeMenuShortcutController,
-  CanvasNodeClickController<CanvasNode>,
-  CanvasNodeMenuSelectionController<CanvasNodeType>,
-  CanvasQuickAddController<CanvasNodeType> {
+export interface CanvasNodeInteractionController<
+  TNodeType extends string,
+  TNodeData extends object,
+  TNode extends CanvasNodeInteractionNode,
+> extends CanvasNodePlacementController<TNodeType, TNodeData>,
+    CanvasPaneClickController,
+    CanvasNodeMenuShortcutController,
+    CanvasNodeClickController<TNode>,
+    CanvasNodeMenuSelectionController<TNodeType>,
+    CanvasQuickAddController<TNodeType> {
   openNodeMenuAtClientPosition: (clientPosition: CanvasPosition) => void;
 }
 
-export function useCanvasNodeInteractionController({
+export function useCanvasNodeInteractionController<
+  TNodeType extends string,
+  TNodeData extends object,
+  TNode extends CanvasNodeInteractionNode,
+>({
   wrapperRef,
   nodes,
+  nodeTypes,
+  skillNodeType,
   screenToFlowPosition,
   createNode,
+  adaptMenuCreationData,
   selectNode,
   bindSkill,
   confirmPlacement,
@@ -111,6 +136,8 @@ export function useCanvasNodeInteractionController({
   dismissNodeMenu,
   onBlankPaneClick,
   centerViewport,
+  isStoryboardGroupNode,
+  isImmersiveViewerActive,
   flowPosition,
   menuPosition,
   menuAllowedTypes,
@@ -119,10 +146,14 @@ export function useCanvasNodeInteractionController({
   connectSpawnedNode,
   hideMenuForPlacement,
   closeNodeMenu,
-}: CanvasNodeInteractionControllerOptions): CanvasNodeInteractionController {
+}: CanvasNodeInteractionControllerOptions<
+  TNodeType,
+  TNodeData,
+  TNode
+>): CanvasNodeInteractionController<TNodeType, TNodeData, TNode> {
   const placement = useCanvasNodePlacementController<
-    CanvasNodeType,
-    CanvasNodeData
+    TNodeType,
+    TNodeData
   >({
     wrapperRef,
     screenToFlowPosition,
@@ -132,6 +163,32 @@ export function useCanvasNodeInteractionController({
     confirmPlacement,
     resolvePlacementLabel,
   });
+  const createMenuNode = useCallback(
+    (
+      type: TNodeType,
+      position: CanvasPosition,
+      data?: CanvasNodeMenuCreationData,
+    ) => data
+      ? createNode(type, position, adaptMenuCreationData(data))
+      : createNode(type, position),
+    [adaptMenuCreationData, createNode],
+  );
+  const beginMenuNodePlacement = useCallback(
+    (
+      menuPlacement: CanvasNodeMenuPlacement<TNodeType>,
+      clientPosition: CanvasPosition | null,
+    ) => placement.beginNodePlacement(
+      {
+        type: menuPlacement.type,
+        initialData: menuPlacement.initialData
+          ? adaptMenuCreationData(menuPlacement.initialData)
+          : undefined,
+        skill: menuPlacement.skill,
+      },
+      clientPosition,
+    ),
+    [adaptMenuCreationData, placement.beginNodePlacement],
+  );
   const openNodeMenuAtClientPosition = useCallback(
     (clientPosition: CanvasPosition) => {
       const containerRect = wrapperRef.current?.getBoundingClientRect();
@@ -169,7 +226,7 @@ export function useCanvasNodeInteractionController({
     openNodeMenu: openNodeMenuAtClientPosition,
     isImmersiveViewerActive,
   });
-  const nodeClick = useCanvasNodeClickController<CanvasNode>({
+  const nodeClick = useCanvasNodeClickController<TNode>({
     placementActive: placement.placementActive,
     commitPlacement: placement.commitNodePlacementAtClientPosition,
     suppressNextPaneClick: paneClick.suppressNextPaneClick,
@@ -177,33 +234,33 @@ export function useCanvasNodeInteractionController({
     isStoryboardGroupNode,
   });
   const menuSelection = useCanvasNodeMenuSelectionController<
-    CanvasNodeType,
-    CanvasNode
+    TNodeType,
+    TNode
   >({
     wrapperRef,
     nodes,
-    nodeTypes: CANVAS_NODE_MENU_TYPES,
+    nodeTypes,
     flowPosition,
     menuPosition,
     menuAllowedTypes,
     pendingConnection,
     pendingBatchSourceIds,
     getLastCanvasPointerPosition: menuShortcut.getLastCanvasPointerPosition,
-    createNode,
-    beginNodePlacement: placement.beginNodePlacement,
+    createNode: createMenuNode,
+    beginNodePlacement: beginMenuNodePlacement,
     connectSpawnedNode,
     selectNode,
     hideMenuForPlacement,
     closeNodeMenu,
     releasePaneClickSuppression: paneClick.releasePaneClickSuppression,
   });
-  const quickAdd = useCanvasQuickAddController<CanvasNodeType>({
+  const quickAdd = useCanvasQuickAddController<TNodeType>({
     wrapperRef,
     screenToFlowPosition,
-    createNode,
+    createNode: createMenuNode,
     selectNode,
     bindSkill,
-    skillNodeType: CANVAS_NODE_TYPES.skill,
+    skillNodeType,
   });
 
   return {

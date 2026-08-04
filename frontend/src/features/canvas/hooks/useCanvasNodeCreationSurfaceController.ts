@@ -4,36 +4,62 @@ import { useCallback } from 'react';
 import {
   useCanvasNodeCatalogController,
   useCanvasConnectionController,
+  useCanvasNodeInteractionController,
   useCanvasNodeMenuStateController,
   loadCanvasSkillRegistry,
   type CanvasConnectionController,
   type CanvasConnectionControllerOptions,
-  type CanvasNodeCatalogController,
-  type CanvasNodeCatalogControllerOptions,
-  type CanvasNodeMenuStateController,
-} from '@/modules/creative_canvas/public';
-
-import { nodeCatalog } from '../application/nodeCatalog';
-import type { CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
-import {
-  useCanvasNodeInteractionController,
   type CanvasNodeInteractionController,
   type CanvasNodeInteractionControllerOptions,
-} from './useCanvasNodeInteractionController';
+  type CanvasNodeCatalogController,
+  type CanvasNodeCatalogControllerOptions,
+  type CanvasNodeMenuCreationData,
+  type CanvasNodeMenuStateController,
+  type CanvasNodeMenuTypes,
+} from '@/modules/creative_canvas/public';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+
+import { nodeCatalog } from '../application/nodeCatalog';
+import {
+  CANVAS_NODE_TYPES,
+  isStoryboardGroupNode,
+  type CanvasNode,
+  type CanvasNodeData,
+  type CanvasNodeType,
+} from '../domain/canvasNodes';
+
+type NodeInteractionControllerOptions = CanvasNodeInteractionControllerOptions<
+  CanvasNodeType,
+  CanvasNodeData,
+  CanvasNode
+>;
+
+const CANVAS_NODE_MENU_TYPES = {
+  imageEdit: CANVAS_NODE_TYPES.imageEdit,
+  upload: CANVAS_NODE_TYPES.upload,
+  imageGen: CANVAS_NODE_TYPES.imageGen,
+  skill: CANVAS_NODE_TYPES.skill,
+} satisfies CanvasNodeMenuTypes<CanvasNodeType>;
+
+function adaptCanvasNodeMenuCreationData(
+  data: CanvasNodeMenuCreationData,
+): Partial<CanvasNodeData> {
+  return data as Partial<CanvasNodeData>;
+}
 
 export interface CanvasNodeCreationSurfaceControllerOptions {
   translate: CanvasNodeCatalogControllerOptions<CanvasNodeType>['translate'];
-  wrapperRef: CanvasNodeInteractionControllerOptions['wrapperRef'];
-  nodes: CanvasNodeInteractionControllerOptions['nodes'];
+  wrapperRef: NodeInteractionControllerOptions['wrapperRef'];
+  nodes: NodeInteractionControllerOptions['nodes'];
   screenToFlowPosition:
-    CanvasNodeInteractionControllerOptions['screenToFlowPosition'];
-  createNode: CanvasNodeInteractionControllerOptions['createNode'];
-  selectNode: CanvasNodeInteractionControllerOptions['selectNode'];
+    NodeInteractionControllerOptions['screenToFlowPosition'];
+  createNode: NodeInteractionControllerOptions['createNode'];
+  selectNode: NodeInteractionControllerOptions['selectNode'];
   confirmPlacement:
-    CanvasNodeInteractionControllerOptions['confirmPlacement'];
+    NodeInteractionControllerOptions['confirmPlacement'];
   onBlankPaneClick?:
-    CanvasNodeInteractionControllerOptions['onBlankPaneClick'];
-  centerViewport: CanvasNodeInteractionControllerOptions['centerViewport'];
+    NodeInteractionControllerOptions['onBlankPaneClick'];
+  centerViewport: NodeInteractionControllerOptions['centerViewport'];
   getGraph: CanvasConnectionControllerOptions['getGraph'];
   connectRegular: CanvasConnectionControllerOptions['connectRegular'];
   replaceEdges: CanvasConnectionControllerOptions['replaceEdges'];
@@ -69,7 +95,7 @@ type CanvasNodeCreationConnectionController = Pick<
 >;
 
 type CanvasNodeCreationInteractionController = Pick<
-  CanvasNodeInteractionController,
+  CanvasNodeInteractionController<CanvasNodeType, CanvasNodeData, CanvasNode>,
   | 'placementActive'
   | 'placementPreview'
   | 'cancelNodePlacement'
@@ -128,8 +154,11 @@ export function useCanvasNodeCreationSurfaceController({
   const nodeInteraction = useCanvasNodeInteractionController({
     wrapperRef,
     nodes,
+    nodeTypes: CANVAS_NODE_MENU_TYPES,
+    skillNodeType: CANVAS_NODE_TYPES.skill,
     screenToFlowPosition,
     createNode,
+    adaptMenuCreationData: adaptCanvasNodeMenuCreationData,
     selectNode,
     bindSkill: connection.bindSingleBeatContextInput,
     confirmPlacement,
@@ -138,6 +167,8 @@ export function useCanvasNodeCreationSurfaceController({
     dismissNodeMenu: nodeMenu.dismissNodeMenuForPaneClick,
     onBlankPaneClick,
     centerViewport,
+    isStoryboardGroupNode,
+    isImmersiveViewerActive,
     flowPosition: nodeMenu.flowPosition,
     menuPosition: nodeMenu.menuPosition,
     menuAllowedTypes: nodeMenu.menuAllowedTypes,

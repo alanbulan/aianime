@@ -75,11 +75,9 @@ const controllerMocks = vi.hoisted(() => {
 vi.mock('@/modules/creative_canvas/public', () => ({
   loadCanvasSkillRegistry: vi.fn(),
   useCanvasConnectionController: controllerMocks.useConnection,
+  useCanvasNodeInteractionController: controllerMocks.useNodeInteraction,
   useCanvasNodeMenuStateController: controllerMocks.useNodeMenu,
   useCanvasNodeCatalogController: controllerMocks.useNodeCatalog,
-}));
-vi.mock('./useCanvasNodeInteractionController', () => ({
-  useCanvasNodeInteractionController: controllerMocks.useNodeInteraction,
 }));
 
 function createOptions(): CanvasNodeCreationSurfaceControllerOptions {
@@ -123,8 +121,16 @@ describe('useCanvasNodeCreationSurfaceController', () => {
     expect(controllerMocks.useNodeInteraction).toHaveBeenCalledWith({
       wrapperRef: options.wrapperRef,
       nodes: options.nodes,
+      nodeTypes: {
+        imageEdit: 'imageNode',
+        upload: 'uploadNode',
+        imageGen: 'imageGenNode',
+        skill: 'skillNode',
+      },
+      skillNodeType: 'skillNode',
       screenToFlowPosition: options.screenToFlowPosition,
       createNode: options.createNode,
+      adaptMenuCreationData: expect.any(Function),
       selectNode: options.selectNode,
       bindSkill: controllerMocks.connection.bindSingleBeatContextInput,
       confirmPlacement: options.confirmPlacement,
@@ -134,6 +140,8 @@ describe('useCanvasNodeCreationSurfaceController', () => {
       dismissNodeMenu: controllerMocks.nodeMenu.dismissNodeMenuForPaneClick,
       onBlankPaneClick: options.onBlankPaneClick,
       centerViewport: options.centerViewport,
+      isStoryboardGroupNode: expect.any(Function),
+      isImmersiveViewerActive: expect.any(Function),
       flowPosition: controllerMocks.nodeMenu.flowPosition,
       menuPosition: controllerMocks.nodeMenu.menuPosition,
       menuAllowedTypes: controllerMocks.nodeMenu.menuAllowedTypes,

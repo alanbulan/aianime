@@ -2,11 +2,40 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import {
   useCanvasNodeInteractionController,
   type CanvasNodeInteractionControllerOptions,
+  type CanvasNodeInteractionNode,
 } from './useCanvasNodeInteractionController';
+
+type TestNodeType =
+  | 'imageEdit'
+  | 'imageGen'
+  | 'skill'
+  | 'storyboardGroup'
+  | 'upload';
+
+interface TestNodeData {
+  [key: string]: unknown;
+}
+
+interface TestNode extends CanvasNodeInteractionNode {
+  type: TestNodeType;
+  data: TestNodeData;
+}
+
+type TestOptions = CanvasNodeInteractionControllerOptions<
+  TestNodeType,
+  TestNodeData,
+  TestNode
+>;
+
+const TEST_NODE_TYPES = {
+  imageEdit: 'imageEdit',
+  upload: 'upload',
+  imageGen: 'imageGen',
+  skill: 'skill',
+} as const;
 
 function wrapperElement(): HTMLDivElement {
   const element = document.createElement('div');
@@ -24,12 +53,15 @@ function wrapperElement(): HTMLDivElement {
   return element;
 }
 
-function createOptions(): CanvasNodeInteractionControllerOptions {
+function createOptions(): TestOptions {
   return {
     wrapperRef: { current: wrapperElement() },
     nodes: [],
+    nodeTypes: TEST_NODE_TYPES,
+    skillNodeType: 'skill',
     screenToFlowPosition: vi.fn(({ x, y }) => ({ x: x / 2, y: y / 2 })),
     createNode: vi.fn(() => 'node-1'),
+    adaptMenuCreationData: (data) => ({ ...data }),
     selectNode: vi.fn(),
     bindSkill: vi.fn(),
     confirmPlacement: vi.fn(),
@@ -37,6 +69,8 @@ function createOptions(): CanvasNodeInteractionControllerOptions {
     openPlainNodeMenu: vi.fn(),
     dismissNodeMenu: vi.fn(),
     centerViewport: vi.fn(),
+    isStoryboardGroupNode: (node) => node.type === 'storyboardGroup',
+    isImmersiveViewerActive: () => false,
     flowPosition: { x: 0, y: 0 },
     menuPosition: { x: 0, y: 0 },
     menuAllowedTypes: undefined,
@@ -70,10 +104,10 @@ describe('useCanvasNodeInteractionController', () => {
       useCanvasNodeInteractionController(options),
     );
 
-    act(() => result.current.quickAddNode(CANVAS_NODE_TYPES.upload));
+    act(() => result.current.quickAddNode('upload'));
 
     expect(options.createNode).toHaveBeenCalledWith(
-      CANVAS_NODE_TYPES.upload,
+      'upload',
       { x: 105, y: 85 },
     );
     expect(options.selectNode).toHaveBeenCalledWith('node-1');

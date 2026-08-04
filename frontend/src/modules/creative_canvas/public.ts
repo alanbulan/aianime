@@ -1034,6 +1034,19 @@ export type {
   CanvasDragLifecycleNode,
   CanvasDragStartEvent,
 } from "@/modules/creative_canvas/presentation/useCanvasDragLifecycleController";
+export { useCanvasGraphInteractionController } from "@/modules/creative_canvas/presentation/useCanvasGraphInteractionController";
+export type {
+  CanvasGraphInteractionController,
+  CanvasGraphInteractionControllerOptions,
+  CanvasGraphInteractionEdge,
+  CanvasGraphInteractionNode,
+} from "@/modules/creative_canvas/presentation/useCanvasGraphInteractionController";
+export { useCanvasNodeInteractionController } from "@/modules/creative_canvas/presentation/useCanvasNodeInteractionController";
+export type {
+  CanvasNodeInteractionController,
+  CanvasNodeInteractionControllerOptions,
+  CanvasNodeInteractionNode,
+} from "@/modules/creative_canvas/presentation/useCanvasNodeInteractionController";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

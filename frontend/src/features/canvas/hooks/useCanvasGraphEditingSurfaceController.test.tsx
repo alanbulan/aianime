@@ -2,7 +2,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasGraphInteractionControllerOptions } from './useCanvasGraphInteractionController';
 import {
   useCanvasGraphEditingSurfaceController,
   type CanvasGraphEditingSurfaceControllerOptions,
@@ -33,7 +32,7 @@ const controllerMocks = vi.hoisted(() => {
     useClipboard,
     createClipboardHook: vi.fn(() => useClipboard),
     useGraphInteraction: vi.fn(
-      (_options: CanvasGraphInteractionControllerOptions) => graphInteraction,
+      (_options: unknown) => graphInteraction,
     ),
   };
 });
@@ -43,8 +42,6 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   createCanvasClipboardControllerHook: controllerMocks.createClipboardHook,
   getNodeSize: () => ({ width: 320, height: 200 }),
   hasRectCollision: () => false,
-}));
-vi.mock('./useCanvasGraphInteractionController', () => ({
   useCanvasGraphInteractionController: controllerMocks.useGraphInteraction,
 }));
 
@@ -116,12 +113,31 @@ describe('useCanvasGraphEditingSurfaceController', () => {
       elevateNodes: options.elevateNodes,
       selectNode: options.selectNode,
       getGraph: options.getGraph,
+      groupNodeType: 'groupNode',
+      mapPositionCommit: expect.any(Function),
       fitGroupToChildren: options.fitGroupToChildren,
       alignNodeChanges: options.alignNodeChanges,
       applyNodeChanges: options.applyNodeChanges,
       applyEdgeChanges: options.applyEdgeChanges,
       deleteEdge: options.deleteEdge,
       clearSnapAlignment: options.clearSnapAlignment,
+    });
+    const graphOptions = controllerMocks.useGraphInteraction.mock.calls[0]?.[0] as {
+      mapPositionCommit: (update: {
+        nodeId: string;
+        position: { x: number; y: number };
+        dragging: boolean;
+      }) => unknown;
+    };
+    expect(graphOptions.mapPositionCommit({
+      nodeId: 'node-1',
+      position: { x: 12, y: 34 },
+      dragging: true,
+    })).toEqual({
+      id: 'node-1',
+      type: 'position',
+      position: { x: 12, y: 34 },
+      dragging: true,
     });
     expect(result.current).not.toHaveProperty('duplicateNodes');
   });

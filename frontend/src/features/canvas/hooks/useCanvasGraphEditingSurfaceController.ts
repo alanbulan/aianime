@@ -1,11 +1,17 @@
 // Copyright (c) 2026 AI anime
+import type { EdgeChange, NodeChange } from '@xyflow/react';
+
 import {
   cloneCanvasNodeData,
   createCanvasClipboardControllerHook,
   getNodeSize,
   hasRectCollision,
+  useCanvasGraphInteractionController,
   type CanvasClipboardController,
   type CanvasClipboardControllerOptions,
+  type CanvasAltDragPositionCommit,
+  type CanvasGraphInteractionController,
+  type CanvasGraphInteractionControllerOptions,
 } from '@/modules/creative_canvas/public';
 import type {
   CanvasEdge,
@@ -13,11 +19,7 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
 } from '../domain/canvasNodes';
-import {
-  useCanvasGraphInteractionController,
-  type CanvasGraphInteractionController,
-  type CanvasGraphInteractionControllerOptions,
-} from './useCanvasGraphInteractionController';
+import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 
 type ClipboardControllerOptions = CanvasClipboardControllerOptions<
   CanvasNode,
@@ -25,6 +27,24 @@ type ClipboardControllerOptions = CanvasClipboardControllerOptions<
   CanvasNodeType,
   CanvasNodeData
 >;
+type GraphInteractionControllerOptions = CanvasGraphInteractionControllerOptions<
+  CanvasNode,
+  CanvasEdge,
+  CanvasNodeType,
+  NodeChange<CanvasNode>,
+  EdgeChange<CanvasEdge>
+>;
+
+function mapCanvasPositionCommit(
+  update: CanvasAltDragPositionCommit,
+): NodeChange<CanvasNode> {
+  return {
+    id: update.nodeId,
+    type: 'position',
+    position: update.position,
+    dragging: update.dragging,
+  };
+}
 
 const noIgnoredCanvasNodeIds = new Set<string>();
 const useCanvasClipboardController = createCanvasClipboardControllerHook<
@@ -55,27 +75,32 @@ export interface CanvasGraphEditingSurfaceControllerOptions {
   currentProject: ClipboardControllerOptions['currentProject'];
   getGraph: ClipboardControllerOptions['getGraph'];
   createNode: ClipboardControllerOptions['createNode'];
-  applyNodeChanges: CanvasGraphInteractionControllerOptions['applyNodeChanges'];
+  applyNodeChanges: GraphInteractionControllerOptions['applyNodeChanges'];
   connectNodes: ClipboardControllerOptions['connectNodes'];
   selectNode: ClipboardControllerOptions['selectNode'];
   updateNodeData: ClipboardControllerOptions['updateNodeData'];
   queueSnapshotPaste: ClipboardControllerOptions['queueSnapshotPaste'];
-  elevateNodes: CanvasGraphInteractionControllerOptions['elevateNodes'];
+  elevateNodes: GraphInteractionControllerOptions['elevateNodes'];
   fitGroupToChildren:
-    CanvasGraphInteractionControllerOptions['fitGroupToChildren'];
+    GraphInteractionControllerOptions['fitGroupToChildren'];
   alignNodeChanges:
-    CanvasGraphInteractionControllerOptions['alignNodeChanges'];
+    GraphInteractionControllerOptions['alignNodeChanges'];
   applyEdgeChanges:
-    CanvasGraphInteractionControllerOptions['applyEdgeChanges'];
-  deleteEdge: CanvasGraphInteractionControllerOptions['deleteEdge'];
+    GraphInteractionControllerOptions['applyEdgeChanges'];
+  deleteEdge: GraphInteractionControllerOptions['deleteEdge'];
   clearSnapAlignment:
-    CanvasGraphInteractionControllerOptions['clearSnapAlignment'];
+    GraphInteractionControllerOptions['clearSnapAlignment'];
 }
 
 export type CanvasGraphEditingSurfaceController = Omit<
   CanvasClipboardController<CanvasNode, CanvasEdge>,
   'duplicateNodes'
-> & CanvasGraphInteractionController;
+> & CanvasGraphInteractionController<
+  CanvasNode,
+  CanvasEdge,
+  NodeChange<CanvasNode>,
+  EdgeChange<CanvasEdge>
+>;
 
 export function useCanvasGraphEditingSurfaceController({
   nodes,
@@ -109,13 +134,21 @@ export function useCanvasGraphEditingSurfaceController({
     updateNodeData,
     queueSnapshotPaste,
   });
-  const graphInteraction = useCanvasGraphInteractionController({
+  const graphInteraction = useCanvasGraphInteractionController<
+    CanvasNode,
+    CanvasEdge,
+    CanvasNodeType,
+    NodeChange<CanvasNode>,
+    EdgeChange<CanvasEdge>
+  >({
     nodes,
     selectedNodeIds,
     duplicateNodes,
     elevateNodes,
     selectNode,
     getGraph,
+    groupNodeType: CANVAS_NODE_TYPES.group,
+    mapPositionCommit: mapCanvasPositionCommit,
     fitGroupToChildren,
     alignNodeChanges,
     applyNodeChanges,
