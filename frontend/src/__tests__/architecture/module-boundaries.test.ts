@@ -8319,7 +8319,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(canvasView).toContain("useCanvasConnectionGestureSurfaceController,");
     expect(canvasView).not.toContain("./hooks/useCanvasNodeHover");
-    expect(canvasView).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(canvasView).toContain("useCanvasRenderSurfaceController,");
     expect(canvasView).not.toContain("./hooks/useCanvasNodePlacementConfirm");
     expect(canvasView).not.toContain("hoveredNodeClearTimerRef");
     expect(canvasView).not.toContain("NODE_SPAWN_PLUS_HIDE_DELAY_MS");
@@ -26192,11 +26192,13 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas render assembly in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasRenderSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
     const canvasSource = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -26205,34 +26207,37 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "@xyflow/react" ||
         specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasRenderSurfaceController(",
+      "useCanvasRenderSurfaceController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const internalDependencies = ["../ui/canvasRenderProjection"];
-
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasRenderSurfaceController.ts",
     ]);
-    for (const dependency of internalDependencies) {
+    for (const dependency of [
+      "./canvasRenderProjection",
+      "./edgeVisibilityStore",
+      "./useCanvasNodePlacementConfirm",
+    ]) {
       expect(controllerSource).toContain(dependency);
     }
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
     expect(controllerSource).toContain("useCanvasNodePlacementConfirm");
-    expect(controllerSource).not.toContain("./useCanvasNodePlacementConfirm");
     expect(controllerSource).not.toContain("../ui/edgeVisibilityStore");
-    expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasRenderSurfaceController",
+    );
+    expect(canvasSource).toContain("useCanvasRenderSurfaceController,");
     expect(canvasSource).not.toContain("./ui/edgeVisibilityStore");
     expect(canvasSource).not.toContain("./ui/canvasRenderProjection");
     expect(canvasSource).not.toContain("./hooks/useCanvasNodePlacementConfirm");
@@ -26241,6 +26246,8 @@ describe("frontend architecture boundaries", () => {
     for (const retiredViewportControlPath of [
       "features/canvas/ui/CanvasZoomControl.tsx",
       "features/canvas/ui/edgeVisibilityStore.ts",
+      "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+      "features/canvas/hooks/useCanvasRenderSurfaceController.test.tsx",
     ]) {
       expect(
         existsSync(resolve(SRC_ROOT, retiredViewportControlPath)),
@@ -26250,15 +26257,16 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas render projection in one pure presentation model", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const projectionPath = resolve(
-      SRC_ROOT,
-      "features/canvas/ui/canvasRenderProjection.ts",
+      moduleRoot,
+      "presentation/canvasRenderProjection.ts",
     );
     const projectionSource = readFileSync(projectionPath, "utf8");
     const renderController = readFileSync(
       resolve(
-        SRC_ROOT,
-        "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+        moduleRoot,
+        "presentation/useCanvasRenderSurfaceController.ts",
       ),
       "utf8",
     );
@@ -26276,17 +26284,15 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const nodeProjectionDeclaration = [
       "export function",
-      "projectCanvasNodesForRender(",
+      "projectCanvasNodesForRender<",
     ].join(" ");
     const edgeProjectionDeclaration = [
       "export function",
-      "projectCanvasEdgesForRender(",
+      "projectCanvasEdgesForRender<",
     ].join(" ");
     const nodeProjectionOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(
@@ -26303,20 +26309,26 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(nodeProjectionOwners).toEqual([
-      "features/canvas/ui/canvasRenderProjection.ts",
+      "modules/creative_canvas/presentation/canvasRenderProjection.ts",
     ]);
     expect(edgeProjectionOwners).toEqual([
-      "features/canvas/ui/canvasRenderProjection.ts",
+      "modules/creative_canvas/presentation/canvasRenderProjection.ts",
     ]);
     expect(projectionSource).toContain("PLACEMENT_CONFIRM_CLASS_NAME");
     expect(projectionSource).toContain("edge.hidden ? edge");
     expect(renderController).toContain("projectCanvasNodesForRender(");
     expect(renderController).toContain("projectCanvasEdgesForRender(");
-    expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(canvasSource).toContain("useCanvasRenderSurfaceController,");
     expect(canvasSource).not.toContain("projectCanvasNodesForRender(");
     expect(canvasSource).not.toContain("projectCanvasEdgesForRender(");
     expect(canvasSource).not.toContain("canvas-node-placement-confirm");
     expect(canvasSource).not.toContain("edge.hidden ? edge");
+    for (const retiredPath of [
+      "features/canvas/ui/canvasRenderProjection.ts",
+      "features/canvas/ui/canvasRenderProjection.test.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas stage and transient overlay markup in presentation views", () => {

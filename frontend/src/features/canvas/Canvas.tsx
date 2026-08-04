@@ -17,6 +17,7 @@ import {
   isPresetManagedEdge,
   isPresetManagedNode,
   useCanvasCommandSurfaceController,
+  useCanvasRenderSurfaceController,
   useCanvasSelectionSurfaceController,
   type CanvasCommandHistoryPort,
 } from '@/modules/creative_canvas/public';
@@ -27,7 +28,6 @@ import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEd
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
-import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 import {
   useCanvasConnectionGestureSurfaceController,

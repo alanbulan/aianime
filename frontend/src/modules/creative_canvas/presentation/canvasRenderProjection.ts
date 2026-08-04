@@ -1,15 +1,21 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
-
 const PLACEMENT_CONFIRM_CLASS_NAME = 'canvas-node-placement-confirm';
 
-export function projectCanvasNodesForRender(
-  nodes: CanvasNode[],
+export interface CanvasRenderNode {
+  id: string;
+  className?: string;
+}
+
+export interface CanvasRenderEdge {
+  hidden?: boolean;
+}
+
+export function projectCanvasNodesForRender<
+  TNode extends CanvasRenderNode,
+>(
+  nodes: TNode[],
   placementConfirmNodeId: string | null,
-): CanvasNode[] {
+): TNode[] {
   if (!placementConfirmNodeId) {
     return nodes;
   }
@@ -26,10 +32,9 @@ export function projectCanvasNodesForRender(
   });
 }
 
-export function projectCanvasEdgesForRender(
-  edges: CanvasEdge[],
-  edgesHidden: boolean,
-): CanvasEdge[] {
+export function projectCanvasEdgesForRender<
+  TEdge extends CanvasRenderEdge,
+>(edges: TEdge[], edgesHidden: boolean): TEdge[] {
   if (!edgesHidden) {
     return edges;
   }

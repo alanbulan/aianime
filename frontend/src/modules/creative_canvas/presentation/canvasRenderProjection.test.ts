@@ -2,26 +2,32 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,
 } from './canvasRenderProjection';
 
-function node(id: string, className?: string): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x: 0, y: 0 },
-    data: {},
-    className,
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  className?: string;
+  data: { label: string };
 }
 
-function edge(id: string, hidden?: boolean): CanvasEdge {
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  hidden?: boolean;
+}
+
+function node(id: string, className?: string): TestNode {
+  return {
+    id,
+    className,
+    data: { label: id },
+  };
+}
+
+function edge(id: string, hidden?: boolean): TestEdge {
   return {
     id,
     source: `${id}-source`,

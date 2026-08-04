@@ -517,6 +517,11 @@ export {
 export type {
   CanvasNodePlacementConfirmController,
 } from "@/modules/creative_canvas/presentation/useCanvasNodePlacementConfirm";
+export { useCanvasRenderSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasRenderSurfaceController";
+export type {
+  CanvasRenderSurfaceController,
+  CanvasRenderSurfaceControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasRenderSurfaceController";
 export {
   useCanvasNodePlacementController,
 } from "@/modules/creative_canvas/presentation/useCanvasNodePlacementController";

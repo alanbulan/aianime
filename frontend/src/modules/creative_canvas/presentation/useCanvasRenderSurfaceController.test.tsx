@@ -2,14 +2,20 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  CanvasEdge,
-  CanvasNode,
-} from '../domain/canvasNodes';
 import {
   useCanvasRenderSurfaceController,
   type CanvasRenderSurfaceControllerOptions,
 } from './useCanvasRenderSurfaceController';
+
+interface TestNode {
+  id: string;
+  className?: string;
+}
+
+interface TestEdge {
+  id: string;
+  hidden?: boolean;
+}
 
 interface EdgeVisibilityState {
   hidden: boolean;
@@ -26,8 +32,8 @@ const controllerMocks = vi.hoisted(() => {
     hidden: true,
     toggle: vi.fn(),
   };
-  const renderedNodes = [{ id: 'rendered-node' }] as CanvasNode[];
-  const renderedEdges = [{ id: 'rendered-edge' }] as CanvasEdge[];
+  const renderedNodes = [{ id: 'rendered-node' }];
+  const renderedEdges = [{ id: 'rendered-edge' }];
   return {
     triggerPlacementConfirm,
     placementConfirm,
@@ -44,19 +50,24 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  useCanvasNodePlacementConfirm: controllerMocks.usePlacementConfirm,
+vi.mock('./edgeVisibilityStore', () => ({
   useEdgeVisibilityStore: controllerMocks.useEdgeVisibility,
 }));
-vi.mock('../ui/canvasRenderProjection', () => ({
+vi.mock('./useCanvasNodePlacementConfirm', () => ({
+  useCanvasNodePlacementConfirm: controllerMocks.usePlacementConfirm,
+}));
+vi.mock('./canvasRenderProjection', () => ({
   projectCanvasNodesForRender: controllerMocks.projectNodes,
   projectCanvasEdgesForRender: controllerMocks.projectEdges,
 }));
 
-function createOptions(): CanvasRenderSurfaceControllerOptions {
+function createOptions(): CanvasRenderSurfaceControllerOptions<
+  TestNode,
+  TestEdge
+> {
   return {
-    nodes: [{ id: 'node-1' }] as CanvasNode[],
-    edges: [{ id: 'edge-1' }] as CanvasEdge[],
+    nodes: [{ id: 'node-1' }],
+    edges: [{ id: 'edge-1' }],
   };
 }
 
