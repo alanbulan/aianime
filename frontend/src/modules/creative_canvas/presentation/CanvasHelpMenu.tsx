@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
-import { useTranslation } from "react-i18next";
-import { PRODUCT_MANUAL_URL } from "@/lib/product-manual";
+import { useTranslation } from 'react-i18next';
+
+import { PRODUCT_MANUAL_URL } from '@/lib/product-manual';
 
 interface CanvasHelpMenuProps {
   onClose: () => void;
@@ -15,8 +16,8 @@ interface HelpMenuItem {
 
 const HELP_MENU_ITEMS: HelpMenuItem[] = [
   {
-    key: "tutorial",
-    labelKey: "canvas.quickbar.helpMenu.tutorial",
+    key: 'tutorial',
+    labelKey: 'canvas.quickbar.helpMenu.tutorial',
     href: PRODUCT_MANUAL_URL,
   },
 ];

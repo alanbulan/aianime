@@ -1,40 +1,42 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 
-import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import type {
-  CanvasAsset,
-  CanvasHistoryAssetPlacement,
-  NodeSelectionMenuNodeDefinition,
-  SkillDefinition,
-} from '@/modules/creative_canvas/public';
-import { CanvasAddNodePanel } from '@/modules/creative_canvas/public';
-
-import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
-import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
+import type { SkillDefinition } from '../domain/skillContract';
+import { CanvasAddNodePanel } from './CanvasAddNodePanel';
+import type { NodeSelectionMenuNodeDefinition } from './CanvasNodeMenuPrimitives';
+import type { CanvasHistoryAssetsModalCommandProps } from './useCanvasHistoryAssetsModalController';
 import { CanvasHelpMenu } from './CanvasHelpMenu';
+import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
 
 type QuickPanel = 'add' | 'history' | 'shortcuts' | 'help';
 
-// 悬停即开 / 离开延迟关闭的轻量 popover 面板（区别于 history 那种 modal）。
 const HOVER_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add']);
-const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add', 'shortcuts', 'help']);
+const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set([
+  'add',
+  'shortcuts',
+  'help',
+]);
 
-interface CanvasQuickActionBarProps {
+export interface CanvasQuickActionBarProps<
+  TNodeType extends string = string,
+> {
   projectId: string;
   canvasId: string;
   placement?: 'bottom-right' | 'top-right';
-  nodeDefinitions: readonly NodeSelectionMenuNodeDefinition<CanvasNodeType>[];
+  nodeDefinitions: readonly NodeSelectionMenuNodeDefinition<TNodeType>[];
   skillItems: SkillDefinition[];
-  onAddNode: (type: CanvasNodeType) => void;
+  onAddNode: (type: TNodeType) => void;
   onAddSkill: (skill: SkillDefinition) => void;
-  onUseAsset: (
-    asset: CanvasAsset,
-    placement?: CanvasHistoryAssetPlacement,
-  ) => void;
-  onDeleteNode: (nodeId: string) => void;
+  onUseAsset: CanvasHistoryAssetsModalCommandProps['onUseAsset'];
+  onDeleteNode: CanvasHistoryAssetsModalCommandProps['onDeleteNode'];
+  HistoryAssetsModal: ComponentType<CanvasHistoryAssetsModalCommandProps>;
 }
 
 interface QuickActionDef {
@@ -42,7 +44,6 @@ interface QuickActionDef {
   icon: ComponentType<{ className?: string }>;
   labelKey: string;
   tooltipKey?: string;
-  /** Rendered as the always-filled white primary button (libtv "+" style). */
   primary?: boolean;
 }
 
@@ -68,7 +69,7 @@ const ACTIONS: QuickActionDef[] = [
   },
 ];
 
-export function CanvasQuickActionBar({
+export function CanvasQuickActionBar<TNodeType extends string>({
   projectId,
   canvasId,
   placement = 'bottom-right',
@@ -78,7 +79,8 @@ export function CanvasQuickActionBar({
   onAddSkill,
   onUseAsset,
   onDeleteNode,
-}: CanvasQuickActionBarProps) {
+  HistoryAssetsModal,
+}: CanvasQuickActionBarProps<TNodeType>) {
   const { t } = useTranslation();
   const [openPanel, setOpenPanel] = useState<QuickPanel | null>(null);
   const popoverCloseTimerRef = useRef<number | null>(null);
@@ -94,14 +96,14 @@ export function CanvasQuickActionBar({
   const schedulePopoverClose = () => {
     cancelPopoverClose();
     popoverCloseTimerRef.current = window.setTimeout(() => {
-      setOpenPanel((current) => (current && HOVER_POPOVER_PANELS.has(current) ? null : current));
+      setOpenPanel((current) => (
+        current && HOVER_POPOVER_PANELS.has(current) ? null : current
+      ));
       popoverCloseTimerRef.current = null;
     }, 120);
   };
 
-  useEffect(() => {
-    return () => cancelPopoverClose();
-  }, []);
+  useEffect(() => () => cancelPopoverClose(), []);
 
   const toggle = (panel: QuickPanel) => {
     setOpenPanel((current) => (current === panel ? null : panel));
@@ -125,25 +127,22 @@ export function CanvasQuickActionBar({
     setOpenPanel(panel);
   };
 
-  const hasPopover = openPanel != null && ANCHORED_POPOVER_PANELS.has(openPanel);
-  // Anchor the popovers above the bar (or below it when the chrome lives at the
-  // top), opening upward toward the canvas.
+  const hasPopover = openPanel !== null
+    && ANCHORED_POPOVER_PANELS.has(openPanel);
   const popoverAnchorClass = isTop ? 'top-full mt-3' : 'bottom-full mb-3';
-  const popoverEnterClass = `animate-in fade-in-0 zoom-in-95 duration-150 ease-out motion-reduce:animate-none ${
-    isTop ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1'
-  }`;
+  const popoverEnterClass = [
+    'animate-in fade-in-0 zoom-in-95 duration-150 ease-out',
+    'motion-reduce:animate-none',
+    isTop ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1',
+  ].join(' ');
 
   return (
     <>
-      {/*
-        Click-away layer for the anchored popovers. Kept OUT of the centered bar
-        wrapper below: that wrapper would carry no transform, but the shortcuts
-        popover uses `-translate-x-1/2`, and a `fixed` backdrop nested under any
-        transformed ancestor is positioned relative to it instead of the
-        viewport — so the backdrop lives here at the fragment root.
-      */}
       {hasPopover && (
-        <div className="fixed inset-0 z-[40]" onClick={() => setOpenPanel(null)} />
+        <div
+          className="fixed inset-0 z-[40]"
+          onClick={() => setOpenPanel(null)}
+        />
       )}
 
       <div
@@ -155,7 +154,7 @@ export function CanvasQuickActionBar({
           className="nopan nowheel pointer-events-auto relative"
           onPointerEnter={cancelPopoverClose}
           onPointerLeave={() => {
-            if (openPanel != null && HOVER_POPOVER_PANELS.has(openPanel)) {
+            if (openPanel !== null && HOVER_POPOVER_PANELS.has(openPanel)) {
               schedulePopoverClose();
             }
           }}
@@ -180,7 +179,9 @@ export function CanvasQuickActionBar({
           )}
 
           {openPanel === 'shortcuts' && (
-            <div className={`absolute left-1/2 -translate-x-1/2 ${popoverAnchorClass}`}>
+            <div
+              className={`absolute left-1/2 -translate-x-1/2 ${popoverAnchorClass}`}
+            >
               <div className={popoverEnterClass}>
                 <CanvasShortcutsPanel onClose={() => setOpenPanel(null)} />
               </div>
@@ -199,8 +200,6 @@ export function CanvasQuickActionBar({
             {ACTIONS.map((action) => {
               const { key, icon: Icon, labelKey, tooltipKey, primary } = action;
               const active = openPanel === key;
-              // The "+" is always a white primary chip; the other two only fill
-              // white while their panel is open (libtv keyboard-highlight style).
               const filled = primary || active;
               return (
                 <span key={key} className="group relative inline-flex">
@@ -242,7 +241,7 @@ export function CanvasQuickActionBar({
       </div>
 
       {openPanel === 'history' && (
-        <CanvasHistoryAssetsModalAdapter
+        <HistoryAssetsModal
           projectId={projectId}
           canvasId={canvasId}
           onClose={() => setOpenPanel(null)}

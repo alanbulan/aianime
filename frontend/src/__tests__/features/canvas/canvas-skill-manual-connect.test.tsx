@@ -180,18 +180,14 @@ vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
-  CanvasAddNodePanel: () => null,
   CanvasContextMenu: () => null,
   CanvasMinimapButton: () => null,
+  CanvasQuickActionBar: () => null,
   CanvasSnapAlignButton: () => null,
   CanvasSnapAlignGuides: () => null,
   CanvasZoomControl: () => null,
   ImageViewerModal: () => null,
   VideoViewerModal: () => null,
-}));
-
-vi.mock("@/features/canvas/ui/CanvasQuickActionBar", () => ({
-  CanvasQuickActionBar: () => null,
 }));
 
 vi.mock("@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({

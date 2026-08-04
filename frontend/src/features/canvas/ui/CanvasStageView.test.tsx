@@ -60,6 +60,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
   CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
   CanvasMinimapButton: () => <div data-testid="canvas-minimap-button" />,
+  CanvasQuickActionBar: () => <div data-testid="canvas-quick-action-bar" />,
   CanvasSnapAlignButton: () => <div data-testid="snap-align-button" />,
   CanvasSnapAlignGuides: () => <div data-testid="snap-align-guides" />,
   CanvasZoomControl: () => <div data-testid="canvas-zoom-control" />,
@@ -83,8 +84,8 @@ vi.mock('./BackToNodesHint', () => ({
 vi.mock('./CanvasFpsMeter', () => ({
   CanvasFpsMeter: () => <div data-testid="canvas-fps-meter" />,
 }));
-vi.mock('./CanvasQuickActionBar', () => ({
-  CanvasQuickActionBar: () => <div data-testid="canvas-quick-action-bar" />,
+vi.mock('./CanvasHistoryAssetsModalAdapter', () => ({
+  CanvasHistoryAssetsModalAdapter: () => null,
 }));
 vi.mock('./CanvasTransientOverlays', () => ({
   CanvasTransientOverlays: () => <div data-testid="canvas-transient-overlays" />,

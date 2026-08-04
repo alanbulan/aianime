@@ -477,7 +477,23 @@ describe("frontend architecture boundaries", () => {
     );
     const quickActionBarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasQuickActionBar.tsx",
+      "modules/creative_canvas/presentation/CanvasQuickActionBar.tsx",
+    );
+    const quickActionBarTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasQuickActionBar.test.tsx",
+    );
+    const shortcutsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasShortcutsPanel.tsx",
+    );
+    const helpPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasHelpMenu.tsx",
+    );
+    const panIconsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx",
     );
     const legacyTestPath = resolve(
       SRC_ROOT,
@@ -495,6 +511,17 @@ describe("frontend architecture boundaries", () => {
     const addNodePanelSource = readFileSync(addNodePanelPath, "utf8");
     const addNodePanelTestSource = readFileSync(addNodePanelTestPath, "utf8");
     const quickActionBarSource = readFileSync(quickActionBarPath, "utf8");
+    const quickActionBarTestSource = readFileSync(
+      quickActionBarTestPath,
+      "utf8",
+    );
+    const shortcutsSource = readFileSync(shortcutsPath, "utf8");
+    const helpSource = readFileSync(helpPath, "utf8");
+    const panIconsSource = readFileSync(panIconsPath, "utf8");
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
     const declarations = [
       ["export function", "NodeSelectionMenu<"].join(" "),
       ["export function", "useNodeSelectionMenuController<"].join(" "),
@@ -505,6 +532,12 @@ describe("frontend architecture boundaries", () => {
       ["export function", "CanvasAddNodeGrid<"].join(" "),
       ["export function", "CanvasSkillProviderRows("].join(" "),
       ["export function", "CanvasSkillPanel("].join(" "),
+      ["export function", "CanvasQuickActionBar<"].join(" "),
+      ["export function", "CanvasShortcutsPanel("].join(" "),
+      ["export function", "CanvasHelpMenu("].join(" "),
+      ["export function", "KeyboardPanIcon("].join(" "),
+      ["export function", "TrackpadPanIcon("].join(" "),
+      ["export function", "MousePanIcon("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -538,6 +571,12 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
       ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
       ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
+      ["modules/creative_canvas/presentation/CanvasQuickActionBar.tsx"],
+      ["modules/creative_canvas/presentation/CanvasShortcutsPanel.tsx"],
+      ["modules/creative_canvas/presentation/CanvasHelpMenu.tsx"],
+      ["modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx"],
+      ["modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx"],
+      ["modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx"],
     ]);
     expect(importSpecifiers(stagePath)).toContain(
       "@/modules/creative_canvas/public",
@@ -579,12 +618,30 @@ describe("frontend architecture boundaries", () => {
     expect(addNodePanelTestSource).toContain("from './CanvasAddNodePanel'");
     expect(primitivesSource).not.toContain("@/features/");
     expect(addNodePanelSource).not.toContain("@/features/");
-    expect(quickActionBarSource).toContain(
-      "from '@/modules/creative_canvas/public'",
-    );
     expect(quickActionBarSource).toContain("<CanvasAddNodePanel");
-    expect(quickActionBarSource).not.toContain("./CanvasAddNodePanel");
+    expect(quickActionBarSource).toContain("HistoryAssetsModal:");
+    expect(quickActionBarSource).toContain("<HistoryAssetsModal");
+    expect(quickActionBarSource).toContain("./CanvasAddNodePanel");
+    expect(quickActionBarSource).toContain("./CanvasShortcutsPanel");
+    expect(quickActionBarSource).toContain("./CanvasHelpMenu");
     expect(quickActionBarSource).not.toContain("./canvas-node-menu-shared");
+    expect(quickActionBarSource).not.toContain("@/features/");
+    expect(shortcutsSource).toContain("@/lib/platform");
+    expect(shortcutsSource).toContain("./CanvasPanShortcutIcons");
+    expect(helpSource).toContain("@/lib/product-manual");
+    expect(panIconsSource).not.toContain("@/features/");
+    expect(quickActionBarTestSource).toContain(
+      "from './CanvasQuickActionBar'",
+    );
+    expect(publicSource).toContain(
+      'export { CanvasQuickActionBar } from "@/modules/creative_canvas/presentation/CanvasQuickActionBar"',
+    );
+    expect(publicSource).not.toContain(
+      'export { CanvasAddNodePanel }',
+    );
+    expect(publicSource).not.toContain(
+      'export { CanvasAddNodeGrid',
+    );
     for (const retiredPath of [
       "features/canvas/NodeSelectionMenu.tsx",
       "features/canvas/NodeSelectionMenu.test.tsx",
@@ -597,6 +654,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/CanvasAddNodePanel.tsx",
       "features/canvas/ui/canvas-node-menu-shared.tsx",
       "__tests__/features/canvas/canvas-add-node-panel.test.tsx",
+      "features/canvas/ui/CanvasQuickActionBar.tsx",
+      "features/canvas/ui/CanvasShortcutsPanel.tsx",
+      "features/canvas/ui/CanvasHelpMenu.tsx",
+      "features/canvas/ui/pan-shortcut-icons.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
     }
@@ -8856,7 +8917,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const quickActionView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasQuickActionBar.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/CanvasQuickActionBar.tsx",
+      ),
       "utf8",
     );
     const historyAssetsController = readFileSync(
@@ -8928,7 +8992,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("@/features/canvas/domain/canvasAssets");
     expect(plannerModel).not.toContain("@/features/");
     expect(hookModel).not.toContain("@/features/");
-    expect(quickActionView).toContain("CanvasHistoryAssetPlacement");
+    expect(quickActionView).toContain(
+      "CanvasHistoryAssetsModalCommandProps['onUseAsset']",
+    );
+    expect(quickActionView).not.toContain("CanvasHistoryAssetPlacement");
     expect(historyAssetsController).toContain("CanvasHistoryAssetPlacement");
     expect(quickActionView).not.toContain(
       "placement?: { index: number; total: number }",
@@ -25640,6 +25707,26 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain("<ImageViewerModal");
     expect(adapterSource).toContain("<VideoViewerModal");
     expect(adapterSource).toContain("<ThreeDDirectorDialog");
+    const stageSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      "utf8",
+    );
+    const quickActionSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "presentation/CanvasQuickActionBar.tsx",
+      ),
+      "utf8",
+    );
+    expect(stageSource).toContain(
+      "HistoryAssetsModal={CanvasHistoryAssetsModalAdapter}",
+    );
+    expect(quickActionSource).toContain(
+      "HistoryAssetsModal: ComponentType<CanvasHistoryAssetsModalCommandProps>",
+    );
+    expect(quickActionSource).not.toContain(
+      "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
+    );
     expect(cardSource).toContain("<audio");
     expect(cardSource).toContain("requestAnimationFrame(tick)");
     expect(cardSource).not.toContain("@/features/canvas/canvasStore");

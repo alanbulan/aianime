@@ -25,11 +25,13 @@ import { createCanvasNodeTypes } from '../nodes';
 import {
   CanvasContextMenu,
   CanvasMinimapButton,
+  CanvasQuickActionBar,
   CanvasSnapAlignButton,
   CanvasSnapAlignGuides,
   CanvasZoomControl,
   ImageViewerModal,
   NodeSelectionMenu,
+  type CanvasQuickActionBarProps,
   type NodeSelectionMenuProps,
   PAN_ACTIVATION_KEY_CODE,
   VideoViewerModal,
@@ -42,7 +44,7 @@ import {
 } from './canvasControlStyles';
 import { CanvasFpsMeter } from './CanvasFpsMeter';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
-import { CanvasQuickActionBar } from './CanvasQuickActionBar';
+import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 import {
   CanvasConnectionPreviewOverlay,
   CanvasTransientOverlays,
@@ -135,8 +137,8 @@ export interface CanvasStageViewProps {
     'isImmersiveViewerActive' | 'placement' | 'styles'
   >;
   quickActionBarProps: Omit<
-    ComponentProps<typeof CanvasQuickActionBar>,
-    'placement' | 'projectId' | 'canvasId'
+    CanvasQuickActionBarProps<CanvasNodeType>,
+    'placement' | 'projectId' | 'canvasId' | 'HistoryAssetsModal'
   > | null;
   connectionPreviewProps: ComponentProps<typeof CanvasConnectionPreviewOverlay>;
   nodeSelectionMenuProps: NodeSelectionMenuProps<CanvasNodeType> | null;
@@ -264,6 +266,7 @@ export function CanvasStageView({
             projectId={projectId}
             canvasId={canvasId}
             placement={controlsPlacement}
+            HistoryAssetsModal={CanvasHistoryAssetsModalAdapter}
           />
         )}
 
