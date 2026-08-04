@@ -28401,24 +28401,38 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode clip operation panel in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeClipPanel.tsx",
+    );
+    const clipPanelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoClipPanel.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoNodeClipPanel.tsx",
     );
+    const oldClipPanelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoClipPanel.tsx",
+    );
     const viewSource = readFileSync(viewPath, "utf8");
+    const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(viewPath).filter(
-      (specifier) =>
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@xyflow/react/") ||
-        specifier === "zustand" ||
-        specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const forbiddenImports = [viewPath, clipPanelPath].flatMap((path) =>
+      importSpecifiers(path).filter(
+        (specifier) =>
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/api/") ||
+          specifier.startsWith("@/features/canvas/") ||
+          specifier === "@/modules/creative_canvas/public",
+      ),
     );
     const declaration = [
       "export function",
@@ -28430,18 +28444,57 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldClipPanelPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/VideoNodeClipPanel.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/VideoClipPanel.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/nodes/VideoNodeClipPanel.test.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/nodes/VideoClipPanel.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoNodeClipPanel.tsx",
+      "modules/creative_canvas/presentation/VideoNodeClipPanel.tsx",
     ]);
     expect(viewSource).toContain("<VideoClipPanel");
+    expect(viewSource).toContain('from "./VideoClipPanel"');
+    expect(clipPanelSource).toContain("../domain/videoClipRange");
+    expect(clipPanelSource).toContain("../application/videoFrameStrip");
+    expect(clipPanelSource).toContain("./canvasNodeFrameStyles");
     expect(viewSource).toContain("if (!visible || !videoUrl) return null");
     expect(viewSource).toContain("剪辑失败：{error}");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoNodeClipPanel",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoNodeClipPanel");
+    expect(videoNode).not.toContain("@/features/canvas/nodes/VideoClipPanel");
     expect(videoNode).not.toContain(
-      'from "@/features/canvas/nodes/VideoClipPanel"',
+      "@/features/canvas/nodes/VideoNodeClipPanel",
     );
     expect(videoNode).not.toContain("<VideoClipPanel");
     expect(videoNode).not.toContain("剪辑失败：{clipError}");
@@ -28802,7 +28855,7 @@ describe("frontend architecture boundaries", () => {
     );
     const clipPanelPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoClipPanel.tsx",
+      "modules/creative_canvas/presentation/VideoClipPanel.tsx",
     );
     const timelinePath = resolve(
       SRC_ROOT,
@@ -28843,9 +28896,10 @@ describe("frontend architecture boundaries", () => {
         "modules/creative_canvas/domain/videoClipRange.ts",
       ]),
     );
-    expect(clipPanelSource).toContain(
+    expect(clipPanelSource).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(clipPanelSource).toContain("../domain/videoClipRange");
     expect(clipPanelSource).toContain("resolveVideoClipRange({");
     expect(clipPanelSource).not.toContain("const MIN_CLIP_MS = 200");
     expect(timelineSource).not.toContain("export const MIN_CLIP_MS");
@@ -31544,7 +31598,7 @@ describe("frontend architecture boundaries", () => {
     );
     const clipPanelPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoClipPanel.tsx",
+      "modules/creative_canvas/presentation/VideoClipPanel.tsx",
     );
     const filmstripPath = resolve(
       SRC_ROOT,
@@ -31634,7 +31688,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode).toContain("captureBrowserVideoFrameStrip,");
     expect(clipPanelSource).toContain(
-      "type CaptureVideoFrameStrip",
+      "import type { CaptureVideoFrameStrip }",
     );
     expect(sharedCrossOriginSource).toContain(crossOriginDeclaration);
     expect(crossOriginOwners).toEqual([

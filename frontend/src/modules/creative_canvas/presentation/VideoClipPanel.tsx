@@ -10,17 +10,17 @@ import {
 } from 'react';
 import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-react';
 
+import type { CaptureVideoFrameStrip } from '../application/videoFrameStrip';
+import { resolveImageDisplayUrl } from '../domain/imageData';
 import {
-  CANVAS_NODE_OPS_PANEL_CLASS,
   VIDEO_CLIP_MIN_DURATION_MS,
   constrainVideoClipEndMs,
   constrainVideoClipStartMs,
   resolveVideoClipRange,
-  type CaptureVideoFrameStrip,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoClipRange';
+import { CANVAS_NODE_OPS_PANEL_CLASS } from './canvasNodeFrameStyles';
 
-interface VideoClipPanelProps {
+export interface VideoClipPanelProps {
   videoUrl: string;
   durationMs: number | null | undefined;
   clipStartMs: number | null | undefined;

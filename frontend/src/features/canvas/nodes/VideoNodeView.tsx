@@ -27,6 +27,7 @@ import {
   VideoCountPicker,
   VideoGenerationModeSelect,
   VideoHumanReviewSwitch,
+  VideoNodeClipPanel,
   VideoNodePrimaryVideo,
   VideoNodeGenerationHistoryPanel,
   VideoPlayerControls,
@@ -44,7 +45,6 @@ import {
   VideoAlbumGallery,
   VideoAlbumToggleButton,
 } from '@/features/canvas/nodes/VideoAlbumControls';
-import { VideoNodeClipPanel } from '@/features/canvas/nodes/VideoNodeClipPanel';
 import {
   VideoNodeEmptyState,
   VideoUploadActionRail,

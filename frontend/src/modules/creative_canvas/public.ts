@@ -2837,6 +2837,8 @@ export type {
   VideoGenerationHistoryPreviewProps,
   VideoGeneratingStateProps,
 } from "@/modules/creative_canvas/presentation/VideoNodeMediaStatus";
+export { VideoNodeClipPanel } from "@/modules/creative_canvas/presentation/VideoNodeClipPanel";
+export type { VideoNodeClipPanelProps } from "@/modules/creative_canvas/presentation/VideoNodeClipPanel";
 export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
 export {
   VideoNodeGenerationHistoryPanel,

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { ComponentProps } from "react";
 
-import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
+import { VideoClipPanel } from "./VideoClipPanel";
 
 type ClipPanelProps = ComponentProps<typeof VideoClipPanel>;
 
