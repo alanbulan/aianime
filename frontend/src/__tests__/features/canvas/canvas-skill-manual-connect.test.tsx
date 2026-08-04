@@ -153,10 +153,6 @@ vi.mock("@/features/canvas/nodes", () => ({
   createCanvasNodeTypes: () => ({}),
 }));
 
-vi.mock("@/features/canvas/edges", () => ({
-  edgeTypes: {},
-}));
-
 vi.mock("@/features/canvas/ui/SelectedNodeOverlay", () => ({
   SelectedNodeOverlay: () => null,
 }));

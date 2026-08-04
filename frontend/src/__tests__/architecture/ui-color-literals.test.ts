@@ -25,7 +25,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/canvas/Canvas.tsx": 1,
   "modules/creative_canvas/domain/groupColors.ts": 9,
   "features/canvas/domain/nodeRegistry.ts": 2,
-  "features/canvas/edges/DisconnectableEdge.tsx": 13,
+  "modules/creative_canvas/presentation/DisconnectableEdge.tsx": 13,
   "modules/creative_canvas/presentation/useCanvasNodeMenuStateController.ts": 1,
   "features/canvas/infrastructure/browserToolImageGateway.ts": 2,
   "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts": 1,

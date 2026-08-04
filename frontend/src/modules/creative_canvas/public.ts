@@ -192,6 +192,16 @@ export type {
   CanvasRect,
 } from "@/modules/creative_canvas/domain/canvasGeometry";
 export {
+  createDisconnectableEdge,
+} from "@/modules/creative_canvas/presentation/DisconnectableEdge";
+export type {
+  CanvasEdgeRenderNode,
+  CanvasEdgeRenderStore,
+  CanvasEdgeRenderStoreHook,
+  CanvasEdgeRoutingMode,
+  CreateDisconnectableEdgeOptions,
+} from "@/modules/creative_canvas/presentation/DisconnectableEdge";
+export {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
 } from "@/modules/creative_canvas/domain/canvasBatchConnection";

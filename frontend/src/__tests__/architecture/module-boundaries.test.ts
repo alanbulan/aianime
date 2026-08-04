@@ -32644,4 +32644,52 @@ describe("frontend architecture boundaries", () => {
       );
     }
   });
+
+  it("keeps Canvas edge routing and presentation in Creative Canvas", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasEdgeRouting.ts",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/DisconnectableEdge.tsx",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const stagePath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasStageView.tsx",
+    );
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+
+    expect(existsSync(domainPath)).toBe(true);
+    expect(existsSync(viewPath)).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/edges")),
+    ).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasGeometry"]);
+    expect(
+      importSpecifiers(viewPath).filter(
+        (specifier) =>
+          specifier.startsWith("@/features/canvas/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier === "@/modules/creative_canvas/public",
+      ),
+    ).toEqual([]);
+    expect(publicSource).toContain(
+      'export {\n  createDisconnectableEdge,\n} from "@/modules/creative_canvas/presentation/DisconnectableEdge";',
+    );
+    expect(readFileSync(compositionPath, "utf8")).toContain(
+      "export const canvasEdgeTypes: EdgeTypes = {",
+    );
+    expect(importSpecifiers(stagePath)).toContain("../composition");
+    expect(readFileSync(stagePath, "utf8")).toContain(
+      "edgeTypes={canvasEdgeTypes}",
+    );
+  });
 });

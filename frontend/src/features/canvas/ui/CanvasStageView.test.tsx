@@ -88,7 +88,7 @@ vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter', () => ({
 vi.mock('../nodes', () => ({
   createCanvasNodeTypes: stageMocks.createCanvasNodeTypes,
 }));
-vi.mock('../edges', () => ({ edgeTypes: stageMocks.edgeTypes }));
+vi.mock('../composition', () => ({ canvasEdgeTypes: stageMocks.edgeTypes }));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,
 }));

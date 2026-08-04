@@ -6,7 +6,7 @@
 >
 > 最近复核：2026-08-04（第二轮 GOAL 保持执行中）
 >
-> 代码基线：`refactor/ddd-modular-monolith@3d445092`
+> 代码基线：`refactor/ddd-modular-monolith` 第 841 批提交后 HEAD
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
@@ -60,6 +60,7 @@
 | 画布开发运行态 | 重启 Electron 内嵌后端后，故障画布 GET 携带会话返回 200；不带会话返回 401 | 原 500 是重构后旧 Python 进程保留过期模块状态导致的 `ImportError`，不是 Canvas 数据损坏；开发进程重启后已恢复 |
 | 本次许可路由增量 | 前端 4 个文件 20 项通过；前端 TypeScript 通过 | 无许可/未激活不能进入工作区，激活成功后才放行 |
 | 干净锁定环境 | 尚未执行 R7 | 不能据此声称第二轮全量门禁完成 |
+| 第 841 批前端检查点 | 连线路由/断开交互与 Canvas 回归 4 个文件 9 项、完整模块边界/残余边界/颜色门禁 3 个文件 346 项、前端 TypeScript 和 `git diff --check` 通过 | 连线路由和展示已形成 Creative Canvas 唯一所有者；R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成 |
 
 当前主仓库已经具备以下事实能力：
 
@@ -80,7 +81,7 @@
 
 | 区域 | 当前事实 | 未满足的退出条件 |
 | --- | --- | --- |
-| 前端 Creative Canvas | `modules/creative_canvas` 已有 974 个 TS/TSX 文件；`features/canvas` 仍有 272 个 TS/TSX 文件和 1 个 CSS 文件，`features/freezone` 已归零并删除 | 第 840 批又将 `NodeHeader`、批量连线按钮和回到节点提示的纯展示层收进模块；旧 Canvas 的对应生产/测试所有者已删除，模块 public 只提供唯一出口。Store、旧 Canvas 内容投影、节点注册表、生成恢复、抠图节点写入/平台上传、历史素材 Viewer 和工具事件的具体适配仍只在既有组合层注入，模块不反向依赖旧 Canvas；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
+| 前端 Creative Canvas | `modules/creative_canvas` 已有 978 个 TS/TSX 文件；`features/canvas` 仍有 269 个 TS/TSX 文件和 1 个 CSS 文件，`features/freezone` 已归零并删除 | 第 841 批已将正交/智能避障路由规则、断开连线展示和交互收进模块；旧 `features/canvas/edges` 三个生产文件及空目录已删除，Store 与主题设置只在旧 Canvas composition 作为端口注入。模块 public 提供唯一工厂出口，Canvas Stage 只消费唯一 `canvasEdgeTypes` 装配；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
 | Canvas 网关方向 | `freezoneAiGateway.ts` 已改为显式依赖注入，不再读取 URL 或导入 Freezone；R1-B 十四个切片已把 Freezone 路由持有的 `projectId/canvasId` 显式传到 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询，生产代码中的 `readUrl()` 从 38 个文件、89 处降到 0；上下文查询、预设元数据和浏览器 Canvas 存储回收迁移后，旧 `features/freezone/public.ts` 及其生产消费者均为 0 | R1-B 路由上下文和旧聚合 public 已关闭；R1-C 至 R1-E 仍需按所有权切片收敛两个旧 feature 中的剩余实现 |
 | 后端 Creative Canvas | 已有 `modules/creative_canvas`；视觉、文件锁、路径、项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、预设和任务执行已有唯一所有者，模块内对旧 `ai_anime.freezone.*` 的生产导入为 0；模块外对 Creative Canvas infrastructure 的直接导入也为 0 | Creative Canvas 本域 job 与跨域提交/本地恢复边界已收敛；云端 Invocation 恢复单列在 R6 |
 | 后端 Freezone | 旧 `freezone` 包的 Python 源文件已全部删除；任务 runner 和测试对 `freezone.jobs` 的导入为 0，旧包对 `ai_anime.generators.*` 的导入为 0 | 无后端生产实现残余；后续门禁持续禁止旧包回流 |
@@ -809,11 +810,12 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 | 第 838 批前端验证 | Creative Canvas 节点工具栏总 View | `NodeActionToolbarView` 迁入 Creative Canvas presentation，只持有 React Flow 工具栏外壳、缩放补偿、面板布局和两个 ReactNode 插槽；旧 Canvas `NodeActionToolbar` 继续唯一持有节点类型判断、领域投影和八类真实适配器装配。旧 View 路径直接删除，不保留 facade、re-export 或第二套实现。新增 View 行为 2 项、工具栏/Viewer 回归 30 项、工具栏定向架构 11 项、前端 TypeScript 和 `git diff --check` 通过。完整模块边界实跑为 321/333 项通过，剩余 2 项失败真实暴露 `ImageGenNodeView`、`VideoNodeView` 仍直接订阅旧 Canvas Store，已登记为下一批；其余 10 项旧导入断言漂移已校正。实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 968/274/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 274/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 | 第 839 批前端验证 | 图片/视频节点 hover 状态职责回收 | `ImageGenNodeView` 与 `VideoNodeView` 删除对旧 `canvasStore` 的直接订阅，hover 投影由既有节点 Controller 读取并作为 `uploadRailNodeHovered` 显式传给纯 View；不新增状态容器、Hook 或第二套订阅。架构门禁固定两个 View 不得回流 Store，并要求两个 Controller 持有唯一 hover 选择器。对应架构 2 项与前端 TypeScript 通过，文件计数保持 968/274/0；本批不改变商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储或 Hermes ACP 边界。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 | 第 840 批前端验证 | Creative Canvas 节点公共展示层收敛 | `NodeHeader`、`MultiSelectionConnectButton`、`BackToNodesHintView` 及 3 组行为测试迁入 `modules/creative_canvas/presentation`；旧 NodeHeader/批量连线 View 直接删除，回到节点提示保留为仅负责 Store、React Flow 和翻译的 Canvas 适配器，布局由模块 View 唯一持有。17 个节点 View、Canvas Stage 和手动连线测试 mock 全部切换到模块路径，不保留 facade、re-export 或第二套实现。公共组件行为回归 3 个文件 7 项、Canvas/手动连线回归 2 个文件 5 项、节点 View 回归 16 个文件 46 项、完整模块边界 333 项、残余边界与颜色门禁 12 项、前端 TypeScript 和 `git diff --check` 全部通过；实测 Creative Canvas/Canvas/Freezone 为 974/272/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 272/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
+| 第 841 批前端验证 | Creative Canvas 连线路由与断开交互收敛 | 正交/智能避障路由规则迁入 Creative Canvas domain，断开连线展示与交互迁入 presentation；旧 Canvas composition 只注入现有 Store 与主题设置端口并提供唯一 `canvasEdgeTypes`，Canvas Stage 与测试统一切换该装配。旧 `features/canvas/edges` 三个生产文件及空目录整体删除，不保留 facade、re-export、重复路由算法或第二套 EdgeTypes。路由与断开交互行为、Canvas Stage 和手动连线回归 4 个文件 9 项，完整模块边界/残余边界/颜色门禁 3 个文件 346 项、前端 TypeScript 和 `git diff --check` 全部通过；实测 Creative Canvas/Canvas/Freezone 为 978/269/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 269/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。
-2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 272 个 TS/TSX 文件及 1 个样式文件，NodeHeader、批量连线和回到节点展示已完成唯一所有者收敛，下一批处理剩余 Canvas 组合层/节点交互边界；最后一个消费者切换后删除旧目录，不做整目录复制。
+2. R1-C 至 R1-E：旧聚合 public 与整个 Freezone 前端根已归零；继续按领域规则、应用适配器和展示出口迁移当前 `features/canvas` 的 269 个 TS/TSX 文件及 1 个样式文件，节点公共展示与连线路由/断开交互已完成唯一所有者收敛，下一批处理剩余 Canvas 组合层/节点交互边界；最后一个消费者切换后删除旧目录，不做整目录复制。
 3. R2 已完成：AI Assistant 与 Task Execution 前端旧目录均已归零；后端核心协议、身份、限额、协作取消、可终止子进程、执行核心、Inline/Mock 执行、项目任务查询/清理/取消、客户端投影、16 个内置 runner、统一提交和本地重启恢复均由 Task Execution 持有，旧 `task_backend` 包和 route 组合直连已删除。Hermes ACP 已内置为唯一 Agent 执行运行时且没有 backend 选择器，模型仍只走 Cloud/BYOK 两条商业入口；云端 Invocation 跨进程恢复继续留在 R6。
 4. R5/R6：网关固定 file object、Invocation 和 SSE 合同后接入文件、调用记录、取消/恢复与额度刷新；安全制品 schema 未固定前继续禁止下载/安装。
 5. R4/R5 网关阻塞项具备合同后补离线验签、权威许可拒绝语义和更新安全链，最后执行 R7 干净环境门禁。

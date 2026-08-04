@@ -20,8 +20,8 @@ import type {
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { isCeRuntime } from '@/lib/runtime-config';
 
-import { edgeTypes as canvasEdgeTypes } from '../edges';
 import { createCanvasNodeTypes } from '../nodes';
+import { canvasEdgeTypes } from '../composition';
 import {
   CanvasContextMenu,
   CANVAS_CONTROL_GLASS_CLASS,

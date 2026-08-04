@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useShallow } from 'zustand/react/shallow';
+import type { EdgeTypes } from '@xyflow/react';
 
 import {
   embedStoryboardImageMetadata,
@@ -18,6 +19,7 @@ import {
   canvasEventBus,
   composeCapability,
   createUseCanvasConnectionGestureSurfaceController,
+  createDisconnectableEdge,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
@@ -65,6 +67,7 @@ import {
   type ResumeNodeGenerationParams,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from './canvasStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
@@ -222,6 +225,14 @@ export const useCanvasViewerSurfaceController =
     eventPort: canvasEventBus,
     useStore: useCanvasStore,
   });
+const DisconnectableEdge = createDisconnectableEdge({
+  useStore: useCanvasStore,
+  useRoutingMode: () =>
+    useSettingsStore((state) => state.canvasEdgeRoutingMode),
+});
+export const canvasEdgeTypes: EdgeTypes = {
+  disconnectableEdge: DisconnectableEdge,
+};
 export const useCanvasConnectionGestureSurfaceController =
   createUseCanvasConnectionGestureSurfaceController({
     useStore: useCanvasStore,
