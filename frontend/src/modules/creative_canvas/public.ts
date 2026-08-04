@@ -2849,6 +2849,16 @@ export type {
 } from "@/modules/creative_canvas/presentation/VideoSubtitleEraseControls";
 export { ReferenceMediaRow } from "@/modules/creative_canvas/presentation/VideoReferenceMedia";
 export type { ReferenceMediaRowProps } from "@/modules/creative_canvas/presentation/VideoReferenceMedia";
+export {
+  VideoAlbumDeck,
+  VideoAlbumGallery,
+  VideoAlbumToggleButton,
+} from "@/modules/creative_canvas/presentation/VideoAlbumControls";
+export type {
+  VideoAlbumDeckProps,
+  VideoAlbumGalleryProps,
+  VideoAlbumToggleButtonProps,
+} from "@/modules/creative_canvas/presentation/VideoAlbumControls";
 export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
 export {
   VideoNodeGenerationHistoryPanel,

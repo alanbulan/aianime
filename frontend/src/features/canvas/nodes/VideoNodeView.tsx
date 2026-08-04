@@ -32,6 +32,9 @@ import {
   SubtitleEraseBoxOverlay,
   SubtitleEraseOpsPanel,
   ReferenceMediaRow,
+  VideoAlbumDeck,
+  VideoAlbumGallery,
+  VideoAlbumToggleButton,
   VideoNodeGenerationHistoryPanel,
   VideoPlayerControls,
   VideoGeneratingState,
@@ -43,11 +46,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import {
-  VideoAlbumDeck,
-  VideoAlbumGallery,
-  VideoAlbumToggleButton,
-} from '@/features/canvas/nodes/VideoAlbumControls';
 import {
   VideoNodeEmptyState,
   VideoUploadActionRail,

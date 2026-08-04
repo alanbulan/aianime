@@ -31880,6 +31880,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoAlbumControls.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoAlbumControls.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
@@ -31895,8 +31899,8 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier.startsWith("@/features/canvas/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier === "@/features/canvas/composition",
     );
     const declarations = [
@@ -31912,15 +31916,35 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/VideoAlbumControls.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/nodes/VideoAlbumControls.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/nodes/VideoAlbumControls.tsx",
+        "modules/creative_canvas/presentation/VideoAlbumControls.tsx",
       ]),
     );
     expect(viewSource).toContain("Math.min(totalSlots - 1, 3)");
     expect(viewSource).toContain("Math.hypot(");
     expect(viewSource).toContain("onDownload(url, index)");
     expect(videoNode).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(videoNode).not.toContain(
       "@/features/canvas/nodes/VideoAlbumControls",
     );
     expect(videoNode).toContain("<VideoAlbumDeck");
