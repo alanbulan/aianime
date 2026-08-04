@@ -3644,7 +3644,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const nodeActionToolbar = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbarView.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/NodeActionToolbarView.tsx",
+      ),
       "utf8",
     );
     const videoTranscode = readFileSync(
@@ -23222,7 +23225,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -23296,7 +23299,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("openWorkbench()");
     expect(viewSource).toContain("ensureBeatContextNode()");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/NodeMainlineToolbarActions",
+      "./NodeMainlineToolbarActions",
     );
     expect(toolbarSource).toContain("<NodeMainlineToolbarActions");
     for (const forbiddenParentDependency of [
@@ -23435,7 +23438,7 @@ describe("frontend architecture boundaries", () => {
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "modules/creative_canvas/presentation/NodeActionToolbarView.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -23457,31 +23460,31 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
-        "./NodeActionToolbarView",
+        "./AudioNodeToolbarActions",
+        "./CanvasGroupNodeToolbarActionsAdapter",
+        "./CanvasStoryboardGroupToolbarAdapter",
+        "./ImageNodeToolbarActions",
+        "./NodeMainlineToolbarActions",
+        "./NodeManagementToolbarActions",
+        "./NodeOutputToolbarActions",
+        "./VideoNodeToolbarActions",
       ]),
     );
     expect(componentSource).toContain(
       "projectNodeActionToolbarShell({",
     );
     expect(componentSource).toContain(
-      "<NodeActionToolbarView {...props} projection={projection} />",
+      "<NodeActionToolbarView",
     );
     expect(componentSource).not.toContain("className=");
     expect(componentSource).not.toContain("useCanvasStore");
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
+        "react",
         "@xyflow/react",
         "@/components/ui",
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-        "@/features/canvas/ui/AudioNodeToolbarActions",
-        "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter",
-        "@/features/canvas/ui/ImageNodeToolbarActions",
-        "@/features/canvas/ui/NodeMainlineToolbarActions",
-        "@/features/canvas/ui/NodeManagementToolbarActions",
-        "@/features/canvas/ui/NodeOutputToolbarActions",
-        "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter",
-        "@/features/canvas/ui/VideoNodeToolbarActions",
+        "./canvasNodeToolbarConfig",
+        "./ZoomScaledToolbar",
       ]),
     );
     for (const forbiddenViewLogic of [
@@ -23501,9 +23504,7 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(viewSource).not.toContain(forbiddenViewLogic);
     }
-    expect(viewSource).toContain(
-      "<CanvasStoryboardGroupToolbarAdapter node={node} />",
-    );
+    expect(viewSource).toContain("return storyboardGroupToolbar");
     const assemblyOrder = [
       "<NodeMainlineToolbarActions",
       "<ImageNodeToolbarActions",
@@ -23512,7 +23513,7 @@ describe("frontend architecture boundaries", () => {
       "<AudioNodeToolbarActions",
        "<CanvasGroupNodeToolbarActionsAdapter",
       "<NodeManagementToolbarActions",
-    ].map((declaration) => viewSource.indexOf(declaration));
+    ].map((declaration) => componentSource.indexOf(declaration));
     expect(assemblyOrder.every((index) => index >= 0)).toBe(true);
     expect(assemblyOrder).toEqual([...assemblyOrder].sort((a, b) => a - b));
     expect(importSpecifiers(modelPath)).toEqual([]);
@@ -23534,8 +23535,19 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/nodeActionToolbarShellModel.ts"],
       ["features/canvas/ui/NodeActionToolbar.tsx"],
-      ["features/canvas/ui/NodeActionToolbarView.tsx"],
+      ["modules/creative_canvas/presentation/NodeActionToolbarView.tsx"],
     ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/NodeActionToolbarView.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbarView.tsx")),
+    ).toBe(false);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
       'from "./nodeActionToolbarShellModel"',
     );
@@ -23568,7 +23580,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -23647,7 +23659,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("copyGenerationError()");
     expect(viewSource).toContain("downloadImage()");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/NodeOutputToolbarActions",
+      "./NodeOutputToolbarActions",
     );
     expect(toolbarSource).toContain(
       "<NodeOutputToolbarActions node={node} />",
@@ -23720,7 +23732,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -23814,7 +23826,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("remove()");
     expect(viewSource).toContain("commit()");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/NodeManagementToolbarActions",
+      "./NodeManagementToolbarActions",
     );
     expect(toolbarSource).toContain(
       "<NodeManagementToolbarActions node={node} />",
@@ -23900,7 +23912,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -23969,7 +23981,7 @@ describe("frontend architecture boundaries", () => {
       "<VideoNodeToolbarActionsView controller={controller} />",
     );
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/VideoNodeToolbarActions",
+      "./VideoNodeToolbarActions",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
@@ -24043,7 +24055,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const transcodePath = resolve(SRC_ROOT, "lib/audioTranscode.ts");
     const transcodeTestPath = resolve(
@@ -24118,7 +24130,7 @@ describe("frontend architecture boundaries", () => {
       "<AudioNodeToolbarActionsView controller={controller} />",
     );
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/AudioNodeToolbarActions",
+      "./AudioNodeToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain("@/lib/audioTranscode");
     expect(importSpecifiers(toolbarPath)).not.toContain(
@@ -24176,7 +24188,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -24231,7 +24243,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(componentSource).toContain("styles={toolbarStyles}");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter",
+      "./CanvasGroupNodeToolbarActionsAdapter",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/hooks/useGroupNodeToolbarController",
@@ -24289,7 +24301,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -24357,7 +24369,7 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain("<StoryboardGroupToolbarView");
     expect(adapterSource).toContain("styles={toolbarStyles}");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/CanvasStoryboardGroupToolbarAdapter",
+      "./CanvasStoryboardGroupToolbarAdapter",
     );
     expect(toolbarSource).toContain(
       "<CanvasStoryboardGroupToolbarAdapter node={node} />",
@@ -24420,7 +24432,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -24489,7 +24501,7 @@ describe("frontend architecture boundaries", () => {
       "./ImageGridToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/ImageNodeToolbarActions",
+      "./ImageNodeToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/ImageGridToolbarActions",
@@ -24583,7 +24595,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const hoverControllerSource = readFileSync(hoverControllerPath, "utf8");
@@ -24672,7 +24684,7 @@ describe("frontend architecture boundaries", () => {
       "./ImageEditToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/ImageNodeToolbarActions",
+      "./ImageNodeToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/ImageEditToolbarActions",
@@ -24776,7 +24788,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -24927,7 +24939,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const toolTypesPath = resolve(
       SRC_ROOT,
@@ -25026,7 +25038,7 @@ describe("frontend architecture boundaries", () => {
     expect(iconChipSource).not.toContain("useState");
     expect(iconChipSource).not.toContain("useEffect");
     expect(importSpecifiers(toolbarPath)).toContain(
-      "@/features/canvas/ui/ImageNodeToolbarActions",
+      "./ImageNodeToolbarActions",
     );
     expect(importSpecifiers(toolbarPath)).not.toContain(
       "@/features/canvas/ui/NodeToolbarIconChip",
@@ -25043,7 +25055,7 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(toolbarSource).toContain("<ImageNodeToolbarActions");
-    expect(toolbarSource).toContain("projectId={projectId}");
+    expect(toolbarSource).toContain("projectId={props.projectId}");
     expect(toolbarSource).not.toContain("<NodeToolbarIconChip");
     for (const legacyInlineLogic of [
       "getNodeToolPlugins",
@@ -25100,7 +25112,7 @@ describe("frontend architecture boundaries", () => {
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const outputControllerPath = resolve(
       SRC_ROOT,
@@ -25167,7 +25179,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbarView.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
     );
     const selectedOverlayPath = resolve(
       SRC_ROOT,

@@ -1906,6 +1906,8 @@ export type {
   VideoNodeToolbarActionsViewProps,
   VideoNodeToolbarViewState,
 } from "@/modules/creative_canvas/presentation/VideoNodeToolbarActionsView";
+export { NodeActionToolbarView } from "@/modules/creative_canvas/presentation/NodeActionToolbarView";
+export type { NodeActionToolbarViewProps } from "@/modules/creative_canvas/presentation/NodeActionToolbarView";
 export { VideoViewerModal } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export type { VideoViewerModalProps } from "@/modules/creative_canvas/presentation/VideoViewerModal";
 export { createUseCanvasViewerSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewerSurfaceController";

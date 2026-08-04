@@ -496,7 +496,7 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps Director World generation behind the connected ThreeDWorldNode", () => {
-    const toolbar = read("src/features/canvas/ui/NodeActionToolbarView.tsx");
+    const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const overlay = read("src/features/canvas/ui/SelectedNodeOverlay.tsx");
     const worldModel = read(
       "src/features/canvas/application/threeDWorldNodeModel.ts",
@@ -559,7 +559,7 @@ describe("freezone viewer contracts", () => {
   });
 
   it("routes projection group toolbar actions through projection sync and remove events", () => {
-    const toolbar = read("src/features/canvas/ui/NodeActionToolbarView.tsx");
+    const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const managementModel = read(
       "src/modules/creative_canvas/domain/nodeManagementToolbarModel.ts",
     );
