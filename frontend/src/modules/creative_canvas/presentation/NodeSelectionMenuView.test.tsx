@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SkillDefinition } from '../domain/skillContract';
 import { NODE_SELECTION_MENU_NODE_TYPES } from '../domain/nodeSelectionMenuModel';
 import {
-  NodeSelectionMenuView,
   type NodeSelectionMenuNodeDefinition,
-} from './NodeSelectionMenuView';
+} from './CanvasNodeMenuPrimitives';
+import { NodeSelectionMenuView } from './NodeSelectionMenuView';
 import type { NodeSelectionMenuController } from './useNodeSelectionMenuController';
 
 vi.mock('./skillI18n', () => ({

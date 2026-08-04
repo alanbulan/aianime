@@ -459,9 +459,25 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/NodeSelectionMenuView.test.tsx",
     );
+    const primitivesPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx",
+    );
+    const addNodePanelPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasAddNodePanel.tsx",
+    );
+    const addNodePanelTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/CanvasAddNodePanel.test.tsx",
+    );
     const stagePath = resolve(
       SRC_ROOT,
       "features/canvas/ui/CanvasStageView.tsx",
+    );
+    const quickActionBarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasQuickActionBar.tsx",
     );
     const legacyTestPath = resolve(
       SRC_ROOT,
@@ -475,12 +491,20 @@ describe("frontend architecture boundaries", () => {
     const modelTestSource = readFileSync(modelTestPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const primitivesSource = readFileSync(primitivesPath, "utf8");
+    const addNodePanelSource = readFileSync(addNodePanelPath, "utf8");
+    const addNodePanelTestSource = readFileSync(addNodePanelTestPath, "utf8");
+    const quickActionBarSource = readFileSync(quickActionBarPath, "utf8");
     const declarations = [
       ["export function", "NodeSelectionMenu<"].join(" "),
       ["export function", "useNodeSelectionMenuController<"].join(" "),
       ["export function", "referenceGenerateItemsForAllowedTypes<"].join(" "),
       ["export function", "skillGroupsForNodeSelectionMenu("].join(" "),
       ["export function", "NodeSelectionMenuView<"].join(" "),
+      ["export function", "CanvasAddNodePanel<"].join(" "),
+      ["export function", "CanvasAddNodeGrid<"].join(" "),
+      ["export function", "CanvasSkillProviderRows("].join(" "),
+      ["export function", "CanvasSkillPanel("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -493,6 +517,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(entryPath))).toEqual(
       new Set([
         "react",
+        "./CanvasNodeMenuPrimitives",
         "./useNodeSelectionMenuController",
         "./NodeSelectionMenuView",
       ]),
@@ -509,6 +534,10 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/nodeSelectionMenuModel.ts"],
       ["modules/creative_canvas/domain/nodeSelectionMenuModel.ts"],
       ["modules/creative_canvas/presentation/NodeSelectionMenuView.tsx"],
+      ["modules/creative_canvas/presentation/CanvasAddNodePanel.tsx"],
+      ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
+      ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
+      ["modules/creative_canvas/presentation/CanvasNodeMenuPrimitives.tsx"],
     ]);
     expect(importSpecifiers(stagePath)).toContain(
       "@/modules/creative_canvas/public",
@@ -529,8 +558,15 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("from 'react'");
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
-    expect(viewSource).toContain("nodeDefinitions.map");
-    expect(viewSource).toContain("controller.activeSkillGroup.items.map");
+    expect(primitivesSource).toContain("nodeDefinitions.map");
+    expect(primitivesSource).toContain("group.items.map");
+    expect(viewSource).toContain("<CanvasAddNodeGrid");
+    expect(viewSource).toContain("<CanvasSkillProviderRows");
+    expect(viewSource).toContain("<CanvasSkillPanel");
+    expect(addNodePanelSource).toContain("<CanvasAddNodeGrid");
+    expect(addNodePanelSource).toContain("<CanvasSkillProviderRows");
+    expect(addNodePanelSource).toContain("<CanvasSkillPanel");
+    expect(addNodePanelSource).toContain("skillGroupsForNodeSelectionMenu(skillItems)");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("document.");
@@ -540,6 +576,15 @@ describe("frontend architecture boundaries", () => {
     );
     expect(modelTestSource).toContain("from './nodeSelectionMenuModel'");
     expect(viewTestSource).toContain("from './NodeSelectionMenuView'");
+    expect(addNodePanelTestSource).toContain("from './CanvasAddNodePanel'");
+    expect(primitivesSource).not.toContain("@/features/");
+    expect(addNodePanelSource).not.toContain("@/features/");
+    expect(quickActionBarSource).toContain(
+      "from '@/modules/creative_canvas/public'",
+    );
+    expect(quickActionBarSource).toContain("<CanvasAddNodePanel");
+    expect(quickActionBarSource).not.toContain("./CanvasAddNodePanel");
+    expect(quickActionBarSource).not.toContain("./canvas-node-menu-shared");
     for (const retiredPath of [
       "features/canvas/NodeSelectionMenu.tsx",
       "features/canvas/NodeSelectionMenu.test.tsx",
@@ -549,6 +594,9 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/ui/nodeSelectionMenuModel.test.ts",
       "features/canvas/ui/NodeSelectionMenuView.tsx",
       "features/canvas/ui/NodeSelectionMenuView.test.tsx",
+      "features/canvas/ui/CanvasAddNodePanel.tsx",
+      "features/canvas/ui/canvas-node-menu-shared.tsx",
+      "__tests__/features/canvas/canvas-add-node-panel.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath))).toBe(false);
     }

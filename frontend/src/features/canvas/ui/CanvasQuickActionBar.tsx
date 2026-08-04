@@ -7,10 +7,11 @@ import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type {
   CanvasAsset,
   CanvasHistoryAssetPlacement,
+  NodeSelectionMenuNodeDefinition,
   SkillDefinition,
 } from '@/modules/creative_canvas/public';
+import { CanvasAddNodePanel } from '@/modules/creative_canvas/public';
 
-import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 import { CanvasHelpMenu } from './CanvasHelpMenu';
@@ -25,6 +26,7 @@ interface CanvasQuickActionBarProps {
   projectId: string;
   canvasId: string;
   placement?: 'bottom-right' | 'top-right';
+  nodeDefinitions: readonly NodeSelectionMenuNodeDefinition<CanvasNodeType>[];
   skillItems: SkillDefinition[];
   onAddNode: (type: CanvasNodeType) => void;
   onAddSkill: (skill: SkillDefinition) => void;
@@ -70,6 +72,7 @@ export function CanvasQuickActionBar({
   projectId,
   canvasId,
   placement = 'bottom-right',
+  nodeDefinitions,
   skillItems,
   onAddNode,
   onAddSkill,
@@ -166,6 +169,7 @@ export function CanvasQuickActionBar({
             >
               <div className={popoverEnterClass}>
                 <CanvasAddNodePanel
+                  nodeDefinitions={nodeDefinitions}
                   skillItems={skillItems}
                   onSelectNode={onAddNode}
                   onSelectSkill={onAddSkill}

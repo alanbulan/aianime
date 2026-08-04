@@ -930,9 +930,23 @@ export type {
 } from "@/modules/creative_canvas/domain/nodeSelectionMenuModel";
 export { NodeSelectionMenu } from "@/modules/creative_canvas/presentation/NodeSelectionMenu";
 export type { NodeSelectionMenuProps } from "@/modules/creative_canvas/presentation/NodeSelectionMenu";
+export { CanvasAddNodePanel } from "@/modules/creative_canvas/presentation/CanvasAddNodePanel";
+export type { CanvasAddNodePanelProps } from "@/modules/creative_canvas/presentation/CanvasAddNodePanel";
 export { NodeSelectionMenuView } from "@/modules/creative_canvas/presentation/NodeSelectionMenuView";
+export {
+  CanvasAddNodeGrid,
+  CanvasMenuSectionHeader,
+  CanvasSkillPanel,
+  CanvasSkillProviderRows,
+} from "@/modules/creative_canvas/presentation/CanvasNodeMenuPrimitives";
 export type {
+  CanvasAddNodeGridProps,
+  CanvasNodeMenuIconKey,
+  CanvasSkillPanelProps,
+  CanvasSkillProviderRowsProps,
   NodeSelectionMenuNodeDefinition,
+} from "@/modules/creative_canvas/presentation/CanvasNodeMenuPrimitives";
+export type {
   NodeSelectionMenuViewProps,
 } from "@/modules/creative_canvas/presentation/NodeSelectionMenuView";
 export { useNodeSelectionMenuController } from "@/modules/creative_canvas/presentation/useNodeSelectionMenuController";

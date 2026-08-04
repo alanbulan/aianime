@@ -2,9 +2,9 @@
 import { createElement } from 'react';
 
 import {
-  NodeSelectionMenuView,
   type NodeSelectionMenuNodeDefinition,
-} from './NodeSelectionMenuView';
+} from './CanvasNodeMenuPrimitives';
+import { NodeSelectionMenuView } from './NodeSelectionMenuView';
 import {
   useNodeSelectionMenuController,
   type NodeSelectionMenuControllerOptions,

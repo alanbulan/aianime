@@ -432,6 +432,7 @@ export function Canvas({
         taskPanelOpen
           ? null
           : {
+              nodeDefinitions: NODE_SELECTION_MENU_DEFINITIONS,
               skillItems: skillRegistry,
               onAddNode: handleQuickAddNode,
               onAddSkill: handleQuickAddSkill,

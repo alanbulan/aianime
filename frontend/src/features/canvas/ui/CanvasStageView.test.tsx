@@ -155,6 +155,7 @@ function createProps(
     nodeSpawnPlusProps: {},
     zoomControlProps: { onOrganize: noop },
     quickActionBarProps: {
+      nodeDefinitions: [],
       skillItems: [],
       onAddNode: noop,
       onAddSkill: noop,
