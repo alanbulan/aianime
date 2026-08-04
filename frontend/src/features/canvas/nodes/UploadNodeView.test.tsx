@@ -35,14 +35,6 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/NodeSideActionRail', () => ({
-  NODE_SIDE_ACTION_BUTTON_CLASS: 'side-action',
-  NODE_SIDE_ACTION_ICON_CLASS: 'side-icon',
-  NodeSideActionRail: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-}));
-
 vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
   CanvasNodeImage: ({ src }: { src: string }) => (
     <img src={src} alt="uploaded" />
@@ -55,10 +47,15 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS: 'selected-frame',
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  NODE_SIDE_ACTION_BUTTON_CLASS: 'side-action',
+  NODE_SIDE_ACTION_ICON_CLASS: 'side-icon',
   VIDEO_FILE_ACCEPT: 'video/*',
   canvasNodeFrameClass: () => 'frame-class',
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>roles:{roles.join(',')}</div>
+  ),
+  NodeSideActionRail: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
   ),
   NodeResizeHandle: ({
     minWidth,

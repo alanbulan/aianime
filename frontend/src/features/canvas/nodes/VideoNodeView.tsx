@@ -19,6 +19,7 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
 } from '@/features/canvas/application/videoNodeModel';
 import { CreditCostPill } from '@/components/credits/credit-visual';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
 import {
   CameraMovementChip,
@@ -43,11 +44,11 @@ import {
   VideoGenerationHistoryPreview,
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
+  VideoUploadActionRail,
   VideoUploadingState,
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import { VideoUploadActionRail } from '@/features/canvas/nodes/VideoUploadActionRail';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -81,6 +82,9 @@ export interface VideoNodeViewProps {
 }
 
 export function VideoNodeView({ controller }: VideoNodeViewProps) {
+  const uploadRailNodeHovered = useCanvasStore(
+    (state) => state.hoveredNodeId === controller.id,
+  );
   const {
     id,
     data,
@@ -288,6 +292,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
         <VideoUploadActionRail
           nodeId={id}
           selected={Boolean(selected)}
+          nodeHovered={uploadRailNodeHovered}
           onUpload={handleUploadClick}
         />
       )}

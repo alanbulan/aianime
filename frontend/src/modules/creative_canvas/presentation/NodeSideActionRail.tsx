@@ -2,10 +2,9 @@
 import { NodeToolbar as ReactFlowNodeToolbar, Position, useStore } from '@xyflow/react';
 import { useState, type ReactNode } from 'react';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { ZoomScaledToolbar } from '@/modules/creative_canvas/public';
+import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
-interface NodeSideActionRailProps {
+export interface NodeSideActionRailProps {
   nodeId: string;
   position?: Position.Left | Position.Right;
   children: ReactNode;
@@ -17,6 +16,8 @@ interface NodeSideActionRailProps {
   autoHide?: boolean;
   /** 节点是否被选中（autoHide 时用于「选中也显示」）。 */
   selected?: boolean;
+  /** 由 Canvas 组合层注入的节点 hover 状态。 */
+  nodeHovered?: boolean;
 }
 
 // NodeToolbar 默认恒定屏幕尺寸（不随缩放变化），于是整理画布缩小后节点变成缩略图、
@@ -35,11 +36,11 @@ export function NodeSideActionRail({
   children,
   autoHide = false,
   selected = false,
+  nodeHovered = false,
 }: NodeSideActionRailProps) {
   const isLeft = position === Position.Left;
-  // Canvas 维护的节点 hover（离开带 400ms 延迟，桥接「从节点移到上方按钮」的
-  // 空隙）；railHovered 进一步保证鼠标停在按钮栏上时不被那个延迟清掉而隐藏。
-  const nodeHovered = useCanvasStore((state) => state.hoveredNodeId === nodeId);
+  // 组合层注入的节点 hover 带 400ms 离开延迟，桥接「从节点移到上方按钮」的
+  // 空隙；railHovered 进一步保证鼠标停在按钮栏上时不被那个延迟清掉而隐藏。
   const [railHovered, setRailHovered] = useState(false);
   const isVisible = !autoHide || selected || nodeHovered || railHovered;
   // 把这条按钮栏抬到同节点的 spawn「+」(NodeSpawnPlusOverlay) 之上。两者都是

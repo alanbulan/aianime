@@ -12,6 +12,9 @@ import {
   NodeResizeHandle,
   VIDEO_FILE_ACCEPT,
   DirectorControlBundleBadge,
+  NODE_SIDE_ACTION_BUTTON_CLASS,
+  NODE_SIDE_ACTION_ICON_CLASS,
+  NodeSideActionRail,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
 import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
@@ -20,11 +23,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
-import {
-  NODE_SIDE_ACTION_BUTTON_CLASS,
-  NODE_SIDE_ACTION_ICON_CLASS,
-  NodeSideActionRail,
-} from '@/features/canvas/ui/NodeSideActionRail';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 
 export function UploadNodeView({

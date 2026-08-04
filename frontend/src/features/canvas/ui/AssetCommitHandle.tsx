@@ -8,8 +8,6 @@ import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
-} from '@/features/canvas/ui/NodeSideActionRail';
-import {
   deriveNodeDropInfo,
   useAssetDropStore,
 } from '@/modules/creative_canvas/public';

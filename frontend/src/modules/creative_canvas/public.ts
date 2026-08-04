@@ -2861,6 +2861,14 @@ export type {
 } from "@/modules/creative_canvas/presentation/VideoAlbumControls";
 export { VideoNodeEmptyState } from "@/modules/creative_canvas/presentation/VideoNodeEmptyState";
 export type { VideoNodeEmptyStateProps } from "@/modules/creative_canvas/presentation/VideoNodeEmptyState";
+export {
+  NODE_SIDE_ACTION_BUTTON_CLASS,
+  NODE_SIDE_ACTION_ICON_CLASS,
+  NodeSideActionRail,
+} from "@/modules/creative_canvas/presentation/NodeSideActionRail";
+export type { NodeSideActionRailProps } from "@/modules/creative_canvas/presentation/NodeSideActionRail";
+export { VideoUploadActionRail } from "@/modules/creative_canvas/presentation/VideoUploadActionRail";
+export type { VideoUploadActionRailProps } from "@/modules/creative_canvas/presentation/VideoUploadActionRail";
 export { NODE_OPS_PANEL_ENTER_CLASS } from "@/modules/creative_canvas/presentation/canvasNodeFrameStyles";
 export {
   VideoNodeGenerationHistoryPanel,

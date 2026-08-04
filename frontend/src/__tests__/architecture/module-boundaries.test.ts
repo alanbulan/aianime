@@ -28112,11 +28112,23 @@ describe("frontend architecture boundaries", () => {
     );
     const uploadRailPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoUploadActionRail.tsx",
+      "modules/creative_canvas/presentation/VideoUploadActionRail.tsx",
+    );
+    const uploadRailTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoUploadActionRail.test.tsx",
     );
     const oldCombinedPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/VideoNodeEmptyState.tsx",
+    );
+    const oldUploadRailPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoUploadActionRail.tsx",
+    );
+    const oldUploadRailTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoUploadActionRail.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const uploadRailSource = readFileSync(uploadRailPath, "utf8");
@@ -28124,17 +28136,19 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(viewPath).filter(
-      (specifier) =>
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@xyflow/react/") ||
-        specifier === "zustand" ||
-        specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/") ||
-        specifier === "@/modules/creative_canvas/public" ||
-        specifier === "@/features/canvas/composition",
+    const forbiddenImports = [viewPath, uploadRailPath].flatMap((path) =>
+      importSpecifiers(path).filter(
+        (specifier) =>
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/api/") ||
+          specifier.startsWith("@/features/canvas/") ||
+          specifier === "@/modules/creative_canvas/public" ||
+          specifier === "@/features/canvas/composition",
+      ),
     );
     const declarations = [
       ["export function", "VideoUploadActionRail("].join(" "),
@@ -28149,6 +28163,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(existsSync(oldCombinedPath)).toBe(false);
+    expect(existsSync(oldUploadRailPath)).toBe(false);
+    expect(existsSync(oldUploadRailTestPath)).toBe(false);
     expect(
       existsSync(
         resolve(
@@ -28157,31 +28173,22 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(true);
-    expect(
-      existsSync(
-        resolve(
-          SRC_ROOT,
-          "features/canvas/nodes/VideoUploadActionRail.test.tsx",
-        ),
-      ),
-    ).toBe(true);
+    expect(existsSync(uploadRailTestPath)).toBe(true);
     expect(implementationOwners).toEqual(
       [
-        ["features/canvas/nodes/VideoUploadActionRail.tsx"],
+        ["modules/creative_canvas/presentation/VideoUploadActionRail.tsx"],
         ["modules/creative_canvas/presentation/VideoNodeEmptyState.tsx"],
       ],
     );
     expect(viewSource).not.toContain("<NodeSideActionRail");
     expect(uploadRailSource).toContain("<NodeSideActionRail");
-    expect(uploadRailSource).toContain(
-      "@/features/canvas/ui/NodeSideActionRail",
-    );
+    expect(uploadRailSource).toContain("./NodeSideActionRail");
     expect(viewSource).toContain("首尾帧生成视频");
     expect(viewSource).toContain("hasUpstreamVideo");
     expect(videoNode).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(videoNode).toContain(
+    expect(videoNode).not.toContain(
       "@/features/canvas/nodes/VideoUploadActionRail",
     );
     expect(videoNode).not.toContain(
@@ -28193,6 +28200,94 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("<span>首尾帧生成视频</span>");
     expect(videoNode).not.toContain("<Layers");
     expect(videoNode).not.toContain("<Sparkles");
+  });
+
+  it("keeps the shared node side action rail in Creative Canvas presentation", () => {
+    const railPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/NodeSideActionRail.tsx",
+    );
+    const railTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/NodeSideActionRail.test.tsx",
+    );
+    const oldRailPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeSideActionRail.tsx",
+    );
+    const railSource = readFileSync(railPath, "utf8");
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const consumerSources = new Map(
+      [
+        "features/canvas/nodes/VideoNodeView.tsx",
+        "features/canvas/nodes/ImageGenNodeView.tsx",
+        "features/canvas/nodes/UploadNodeView.tsx",
+        "features/canvas/ui/AssetCommitHandle.tsx",
+      ].map((relativePath) => [
+        relativePath,
+        readFileSync(resolve(SRC_ROOT, relativePath), "utf8"),
+      ]),
+    );
+    const forbiddenImports = importSpecifiers(railPath).filter(
+      (specifier) =>
+        specifier.startsWith("@/features/canvas/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier === "@/modules/creative_canvas/public",
+    );
+    const declaration = ["export function", "NodeSideActionRail("].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(railPath)).toBe(true);
+    expect(existsSync(railTestPath)).toBe(true);
+    expect(existsSync(oldRailPath)).toBe(false);
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "modules/creative_canvas/presentation/NodeSideActionRail.tsx",
+    ]);
+    expect(railSource).toContain("nodeHovered?: boolean");
+    expect(railSource).toContain("nodeHovered = false");
+    expect(railSource).toContain(
+      "!autoHide || selected || nodeHovered || railHovered",
+    );
+    expect(railSource).not.toContain("useCanvasStore");
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/presentation/NodeSideActionRail",
+    );
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/presentation/VideoUploadActionRail",
+    );
+    for (const source of consumerSources.values()) {
+      expect(source).toContain("@/modules/creative_canvas/public");
+      expect(source).not.toContain("@/features/canvas/ui/NodeSideActionRail");
+      expect(source).not.toContain(
+        "@/features/canvas/nodes/VideoUploadActionRail",
+      );
+    }
+    expect(
+      consumerSources.get("features/canvas/nodes/VideoNodeView.tsx"),
+    ).toContain("<VideoUploadActionRail");
+    expect(
+      consumerSources.get("features/canvas/nodes/VideoNodeView.tsx"),
+    ).toContain("nodeHovered={uploadRailNodeHovered}");
+    expect(
+      consumerSources.get("features/canvas/nodes/ImageGenNodeView.tsx"),
+    ).toContain("<NodeSideActionRail");
+    expect(
+      consumerSources.get("features/canvas/nodes/ImageGenNodeView.tsx"),
+    ).toContain("nodeHovered={uploadRailNodeHovered}");
+    expect(
+      consumerSources.get("features/canvas/nodes/UploadNodeView.tsx"),
+    ).toContain("<NodeSideActionRail");
+    expect(
+      consumerSources.get("features/canvas/ui/AssetCommitHandle.tsx"),
+    ).toContain("<NodeSideActionRail");
   });
 
   it("keeps VideoNode media status views in one presentation module", () => {

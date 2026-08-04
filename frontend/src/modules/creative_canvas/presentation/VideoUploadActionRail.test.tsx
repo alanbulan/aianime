@@ -14,7 +14,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/features/canvas/ui/NodeSideActionRail", () => ({
+vi.mock("./NodeSideActionRail", () => ({
   NODE_SIDE_ACTION_BUTTON_CLASS: "side-action",
   NODE_SIDE_ACTION_ICON_CLASS: "side-icon",
   NodeSideActionRail: ({ children }: { children: React.ReactNode }) => (
@@ -31,6 +31,7 @@ describe("VideoUploadActionRail", () => {
         <VideoUploadActionRail
           nodeId="video-1"
           selected
+          nodeHovered={false}
           onUpload={onUpload}
         />
       </div>,

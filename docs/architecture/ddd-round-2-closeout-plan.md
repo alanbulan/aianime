@@ -797,6 +797,8 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 | 第 831 批前端验证 | Creative Canvas 视频空状态所有权拆分 | 原混合文件拆为 Creative Canvas 持有的纯视频空状态和旧 Canvas 持有的上传侧栏适配器；空状态及 3 项行为测试迁入模块，上传侧栏改为独立真实文件并只保留 `NodeSideActionRail` 桥接，不保留原 `VideoNodeEmptyState` 路径、转发 facade 或重复组件。`VideoNodeView` 分别经模块 public 与明确旧适配器入口消费两个所有者。两个所有者回归 2 个文件 4 项、定向架构边界 1 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 通过；实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 947/289/0，Canvas 另有 1 个 CSS 文件；本批是同数拆分，残余 ratchet 保持 289/0，上传侧栏待共享 `NodeSideActionRail` 状态桥接收敛后再迁移。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
 
+| 第 832 批前端验证 | Creative Canvas 共享节点侧栏收敛 | `NodeSideActionRail`、`VideoUploadActionRail` 及测试迁入 Creative Canvas presentation；侧栏不再读取旧 `canvasStore`，由 `VideoNodeView`、`ImageGenNodeView` 显式注入 `nodeHovered`，上传节点和素材提交句柄经模块 public 使用唯一实现。旧生产/测试路径直接删除，不保留 facade、re-export 或第二套侧栏；模块 public 增加两个明确展示出口，架构门禁固定唯一所有者、旧路径不存在、模块不反向依赖旧 Canvas/public 及四个消费者入口。受影响回归 3 个文件 5 项、定向架构 2 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过；实测 Creative Canvas/Canvas/Freezone 的 TS/TSX 为 951/286/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 286/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C 至 R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 继续进行中 |
+
 后续严格按以下顺序执行，每一项都必须切换调用方、删除被替代实现并补门禁后才进入下一项：
 
 1. R1-B：十四个路由上下文切片已完成，Canvas 生产代码 `readUrl()` 为 0；门禁持续禁止 URL fallback、全局 Context facade 或第二套节点注册回流。

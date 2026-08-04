@@ -42,11 +42,14 @@ import {
   NODE_OPS_PANEL_ENTER_CLASS,
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
+  NODE_SIDE_ACTION_BUTTON_CLASS,
+  NODE_SIDE_ACTION_ICON_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
   NodeGenerationHistory,
   NodeGenerationOverlay,
   NodeResizeHandle,
+  NodeSideActionRail,
   PanelExpandButton,
   RegenerateButton,
   ReferenceTextChip,
@@ -64,17 +67,13 @@ import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPromp
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/features/canvas/ui/NodeHeader';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
-import {
-  NODE_SIDE_ACTION_BUTTON_CLASS,
-  NODE_SIDE_ACTION_ICON_CLASS,
-  NodeSideActionRail,
-} from '@/features/canvas/ui/NodeSideActionRail';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';
@@ -192,6 +191,9 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     showImageOpsPanel,
     projectId,
   } = controller;
+  const uploadRailNodeHovered = useCanvasStore(
+    (state) => state.hoveredNodeId === id,
+  );
 
   return (
     <div
@@ -280,7 +282,12 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
       />
 
       {!hasGeneratedResult && !referenceImageUrl && !isGenerating && !generationError && (
-        <NodeSideActionRail nodeId={id} autoHide selected={Boolean(selected)}>
+        <NodeSideActionRail
+          nodeId={id}
+          autoHide
+          selected={Boolean(selected)}
+          nodeHovered={uploadRailNodeHovered}
+        >
           <button
             type="button"
             disabled={isUploading}

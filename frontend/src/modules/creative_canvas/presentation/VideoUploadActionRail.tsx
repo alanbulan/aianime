@@ -6,23 +6,30 @@ import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
-} from "@/features/canvas/ui/NodeSideActionRail";
+} from "./NodeSideActionRail";
 
 export interface VideoUploadActionRailProps {
   nodeId: string;
   selected: boolean;
+  nodeHovered: boolean;
   onUpload: () => void;
 }
 
 export function VideoUploadActionRail({
   nodeId,
   selected,
+  nodeHovered,
   onUpload,
 }: VideoUploadActionRailProps) {
   const { t } = useTranslation();
 
   return (
-    <NodeSideActionRail nodeId={nodeId} autoHide selected={selected}>
+    <NodeSideActionRail
+      nodeId={nodeId}
+      autoHide
+      selected={selected}
+      nodeHovered={nodeHovered}
+    >
       <button
         type="button"
         onClick={(event) => {
