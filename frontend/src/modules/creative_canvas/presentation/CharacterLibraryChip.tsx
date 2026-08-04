@@ -4,7 +4,7 @@ import { Library } from "lucide-react";
 import {
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
 
 export interface CharacterLibraryChipProps {
   onOpen: () => void;

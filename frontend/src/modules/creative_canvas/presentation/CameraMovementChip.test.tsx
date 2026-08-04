@@ -2,10 +2,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { CameraMovementPreset } from "@/modules/creative_canvas/public";
+import type { CameraMovementPreset } from "../domain/cameraMovementPresets";
 import { CameraMovementChip } from "./CameraMovementChip";
 
-vi.mock("@/features/canvas/nodes/CameraMovementPickerPopover", () => ({
+vi.mock("./CameraMovementPickerPopover", () => ({
   CameraMovementPickerPopover: ({
     selectedId,
     onConfirm,

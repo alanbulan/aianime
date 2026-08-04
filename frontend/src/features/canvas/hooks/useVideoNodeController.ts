@@ -74,7 +74,6 @@ import {
   sortUpstreamByReferenceOrder,
   upstreamNodesInEdgeOrder,
 } from '@/modules/creative_canvas/public';
-import { resolveVideoGenerationModeOptions } from '@/features/canvas/nodes/videoGenerationModeOptions';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type { VideoElementMetadata } from '@/features/canvas/nodes/VideoNodePrimaryVideo';
 import {
@@ -120,6 +119,7 @@ import {
   videoQualityOptionsForModel,
   videoReferenceCapsForMode,
   validateVideoReferenceAudioDuration,
+  resolveVideoGenerationModeOptions,
   type CanvasAssetLibrarySelection,
   type CanvasGenerationHistoryRecord,
   type CameraMovementPreset,

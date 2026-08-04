@@ -31,6 +31,11 @@ export {
 } from "@/modules/creative_canvas/domain/cameraMovementPresets";
 export type { CameraMovementPreset } from "@/modules/creative_canvas/domain/cameraMovementPresets";
 export type { VideoGenMode } from "@/modules/creative_canvas/domain/videoGenerationMode";
+export { resolveVideoGenerationModeOptions } from "@/modules/creative_canvas/domain/videoGenerationModeOptions";
+export type {
+  VideoGenerationModeCounts,
+  VideoGenerationModeOption,
+} from "@/modules/creative_canvas/domain/videoGenerationModeOptions";
 export {
   DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
@@ -2798,3 +2803,16 @@ export { RegenerateButton } from "@/modules/creative_canvas/presentation/Regener
 export type { RegenerateButtonProps } from "@/modules/creative_canvas/presentation/RegenerateButton";
 export { EditableTableCell } from "@/modules/creative_canvas/presentation/EditableTableCell";
 export type { EditableTableCellProps } from "@/modules/creative_canvas/presentation/EditableTableCell";
+export { CameraMovementChip } from "@/modules/creative_canvas/presentation/CameraMovementChip";
+export type { CameraMovementChipProps } from "@/modules/creative_canvas/presentation/CameraMovementChip";
+export { CharacterLibraryChip } from "@/modules/creative_canvas/presentation/CharacterLibraryChip";
+export type { CharacterLibraryChipProps } from "@/modules/creative_canvas/presentation/CharacterLibraryChip";
+export { VideoCountPicker } from "@/modules/creative_canvas/presentation/VideoCountPicker";
+export type {
+  VideoCountPickerProps,
+  VideoGenerationCount,
+} from "@/modules/creative_canvas/presentation/VideoCountPicker";
+export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
+export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
+export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";
+export type { VideoHumanReviewSwitchProps } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";

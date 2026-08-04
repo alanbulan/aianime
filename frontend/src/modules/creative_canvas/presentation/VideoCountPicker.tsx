@@ -3,20 +3,21 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { VideoGenCount } from "@/features/canvas/domain/canvasNodes";
 import {
   NODE_COUNT_POPOVER_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
+
+export type VideoGenerationCount = 1 | 2 | 4;
 
 const VIDEO_COUNT_OPTION_BASE_CLASS =
   "block w-full rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors";
 
 export interface VideoCountPickerProps {
-  value: VideoGenCount;
-  options: ReadonlyArray<VideoGenCount>;
-  onChange: (next: VideoGenCount) => void;
+  value: VideoGenerationCount;
+  options: ReadonlyArray<VideoGenerationCount>;
+  onChange: (next: VideoGenerationCount) => void;
 }
 
 export function VideoCountPicker({

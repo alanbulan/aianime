@@ -28296,7 +28296,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode human review switch in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoHumanReviewSwitch.tsx",
+      "modules/creative_canvas/presentation/VideoHumanReviewSwitch.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28326,12 +28326,12 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoHumanReviewSwitch.tsx",
+      "modules/creative_canvas/presentation/VideoHumanReviewSwitch.tsx",
     ]);
     expect(viewSource).toContain('role="switch"');
     expect(viewSource).toContain("真人验证");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoHumanReviewSwitch",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoHumanReviewSwitch");
     expect(videoNode).not.toContain('role="switch"');
@@ -28390,7 +28390,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/CameraMovementChip.tsx",
+      "modules/creative_canvas/presentation/CameraMovementChip.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28417,14 +28417,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/CameraMovementChip.tsx",
+      "modules/creative_canvas/presentation/CameraMovementChip.tsx",
     ]);
     expect(viewSource).toContain("createPortal(");
     expect(viewSource).toContain('window.addEventListener("resize"');
     expect(viewSource).toContain('document.addEventListener("mousedown"');
     expect(viewSource).toContain("findCameraMovementPreset(");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/CameraMovementChip",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<CameraMovementChip");
     expect(videoNode).not.toContain("interface CameraMovementChipProps");
@@ -28436,7 +28436,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode asset-library trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/CharacterLibraryChip.tsx",
+      "modules/creative_canvas/presentation/CharacterLibraryChip.tsx",
     );
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNodeView.tsx"),
@@ -28462,10 +28462,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/CharacterLibraryChip.tsx",
+      "modules/creative_canvas/presentation/CharacterLibraryChip.tsx",
     ]);
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/CharacterLibraryChip",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<CharacterLibraryChip");
     expect(videoNode).not.toContain("interface CharacterLibraryChipProps");
@@ -28474,7 +28474,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode count selection in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoCountPicker.tsx",
+      "modules/creative_canvas/presentation/VideoCountPicker.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28518,7 +28518,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoCountPicker.tsx",
+      "modules/creative_canvas/presentation/VideoCountPicker.tsx",
     ]);
     expect(activeClassOwners).toEqual([
       "modules/creative_canvas/presentation/canvasNodeControlStyles.ts",
@@ -28526,7 +28526,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("options.map((option)");
     expect(viewSource).toContain("NODE_OPTION_ACTIVE_BUTTON_CLASS");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoCountPicker",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoCountPicker");
     expect(videoNode).toContain("options={VIDEO_NODE_COUNT_OPTIONS}");
@@ -28594,11 +28594,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode generation-mode projection separate from its view", () => {
     const projectionPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/videoGenerationModeOptions.ts",
+      "modules/creative_canvas/domain/videoGenerationModeOptions.ts",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoGenerationModeSelect.tsx",
+      "modules/creative_canvas/presentation/VideoGenerationModeSelect.tsx",
     );
     const projectionSource = readFileSync(projectionPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -28633,13 +28633,11 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
 
-    expect(importSpecifiers(projectionPath)).toEqual([
-      "@/modules/creative_canvas/public",
-    ]);
+    expect(importSpecifiers(projectionPath)).toEqual(["./videoGenerationMode"]);
     expect(forbiddenViewImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      ["features/canvas/nodes/videoGenerationModeOptions.ts"],
-      ["features/canvas/nodes/VideoGenerationModeSelect.tsx"],
+      ["modules/creative_canvas/domain/videoGenerationModeOptions.ts"],
+      ["modules/creative_canvas/presentation/VideoGenerationModeSelect.tsx"],
     ]);
     expect(projectionSource).toContain("TYPED_REFERENCE_MODE_ORDER");
     expect(projectionSource).toContain("上游含视频素材时只能用");
@@ -28648,10 +28646,10 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("HappyHorse");
     expect(viewSource).not.toContain("上游含视频素材时只能用");
     expect(videoNodeController).toContain(
-      "@/features/canvas/nodes/videoGenerationModeOptions",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoGenerationModeSelect",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNodeController).toContain(
       "resolveVideoGenerationModeOptions({",

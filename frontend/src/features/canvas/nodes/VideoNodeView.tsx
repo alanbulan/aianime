@@ -20,8 +20,13 @@ import {
 } from '@/features/canvas/application/videoNodeModel';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
-import { CameraMovementChip } from '@/features/canvas/nodes/CameraMovementChip';
-import { CharacterLibraryChip } from '@/features/canvas/nodes/CharacterLibraryChip';
+import {
+  CameraMovementChip,
+  CharacterLibraryChip,
+  VideoCountPicker,
+  VideoGenerationModeSelect,
+  VideoHumanReviewSwitch,
+} from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
@@ -31,9 +36,6 @@ import {
   VideoAlbumToggleButton,
 } from '@/features/canvas/nodes/VideoAlbumControls';
 import { VideoConfigChip } from '@/features/canvas/nodes/VideoConfigChip';
-import { VideoCountPicker } from '@/features/canvas/nodes/VideoCountPicker';
-import { VideoGenerationModeSelect } from '@/features/canvas/nodes/VideoGenerationModeSelect';
-import { VideoHumanReviewSwitch } from '@/features/canvas/nodes/VideoHumanReviewSwitch';
 import { VideoNodeClipPanel } from '@/features/canvas/nodes/VideoNodeClipPanel';
 import {
   VideoNodeEmptyState,

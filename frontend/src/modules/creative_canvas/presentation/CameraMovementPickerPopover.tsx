@@ -4,14 +4,16 @@ import { X } from 'lucide-react';
 
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
-  type CameraMovementPreset,
+} from './canvasNodeControlStyles';
+import {
   resolveCameraPresetVideoUrl,
-} from '@/modules/creative_canvas/public';
+  type CameraMovementPreset,
+} from '../domain/cameraMovementPresets';
 
 const CAMERA_MOVEMENT_PANEL_CLASS =
   `nodrag nowheel flex w-[640px] flex-col ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 
-interface CameraMovementPickerPopoverProps {
+export interface CameraMovementPickerPopoverProps {
   templates: ReadonlyArray<CameraMovementPreset>;
   isLoading: boolean;
   selectedId: string | null;

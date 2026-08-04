@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { VideoGenerationModeOption } from "./videoGenerationModeOptions";
+import type { VideoGenerationModeOption } from "../domain/videoGenerationModeOptions";
 import { VideoGenerationModeSelect } from "./VideoGenerationModeSelect";
 
 vi.mock("react-i18next", () => ({

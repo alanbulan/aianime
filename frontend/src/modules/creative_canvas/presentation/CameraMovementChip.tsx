@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { Film } from "lucide-react";
 import { createPortal } from "react-dom";
 
-import { CameraMovementPickerPopover } from "@/features/canvas/nodes/CameraMovementPickerPopover";
 import {
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
+} from "./canvasNodeControlStyles";
+import {
   findCameraMovementPreset,
   type CameraMovementPreset,
-} from "@/modules/creative_canvas/public";
+} from "../domain/cameraMovementPresets";
+import { CameraMovementPickerPopover } from "./CameraMovementPickerPopover";
 
 const CAMERA_MOVEMENT_POPOVER_WIDTH = 640;
 const CAMERA_MOVEMENT_POPOVER_MAX_HEIGHT = 560;

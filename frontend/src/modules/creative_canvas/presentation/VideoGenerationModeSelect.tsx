@@ -4,13 +4,13 @@ import { ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import type { VideoGenerationModeOption } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   NODE_CONTEXT_CONTROL_TRIGGER_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,
-  type VideoGenMode,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
+import type { VideoGenerationModeOption } from "../domain/videoGenerationModeOptions";
+import type { VideoGenMode } from "../domain/videoGenerationMode";
 
 const VIDEO_MODE_POPOVER_WIDTH = 132;
 const VIDEO_MODE_POPOVER_CLASS =
