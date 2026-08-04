@@ -38,9 +38,6 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   NodeResizeHandle: () => <div>resize-handle</div>,
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
   canvasNodeFrameClass: () => 'frame-class',
-}));
-
-vi.mock('@/features/canvas/ui/AudioWaveformPlayer', () => ({
   AudioWaveformPlayer: ({
     src,
     onLoadedDuration,

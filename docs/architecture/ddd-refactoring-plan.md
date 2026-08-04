@@ -1268,6 +1268,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百四十六批将 `BackgroundCropperDialog` 与裁剪几何测试迁入 Creative Canvas presentation。组件改为直接依赖本域 `imageData`，不经模块 public 自回绕，也不读取旧 Canvas Store、API 或 composition；图片生成节点与 Skill 节点统一经 Creative Canvas public 使用唯一组件，Skill 节点测试 mock 同步切换模块出口。旧 `features/canvas/ui/BackgroundCropperDialog.tsx` 和旧 `__tests__/features/canvas/background-cropper-dialog.test.ts` 直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记新 presentation 所有者、禁止两个旧路径回流，并将 Canvas TS/TSX 上限收紧到 244，颜色预算只迁移路径、不改变颜色值。裁剪几何、Skill 节点、残余边界和颜色门禁 4 个文件 18 项通过；完整模块边界首轮 335/336，唯一失败为新所有者门禁的声明字符串自匹配，分段声明修正后定向 1 项通过，180 秒复跑外层超时且无失败输出，延长窗口后完整 336 项通过；前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1008/244/0，Canvas 另有 1 个 CSS 文件。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百四十七批将 `AudioWaveformPlayer` 迁入 Creative Canvas presentation，继续唯一持有浏览器音频拉取/解码、LRU 峰值缓存、波形绘制、播放与 Shift 拖拽定位；组件不依赖旧 Canvas、Store、API 或模块 public。`AudioNodeView` 与对应测试 mock 改经 Creative Canvas public 使用唯一组件，旧 `features/canvas/ui/AudioWaveformPlayer.tsx` 直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记新 presentation 所有者、禁止旧路径回流，并将 Canvas TS/TSX 上限收紧到 243，颜色预算只迁移路径、不改变颜色值。音频节点展示、残余边界和颜色门禁 3 个文件 15 项、完整模块边界 336 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1009/243/0，Canvas 另有 1 个 CSS 文件。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

@@ -498,6 +498,9 @@ describe("round 2 residual architecture boundaries", () => {
       "SplitStoryboardToolEditor.tsx",
       "canvasToolEditorContracts.ts",
     ];
+    const canvasAudioPresentationFiles = [
+      "AudioWaveformPlayer.tsx",
+    ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
@@ -1294,6 +1297,9 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of canvasImageToolPresentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
     }
+    for (const file of canvasAudioPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
+    }
     for (const retiredPath of [
       "features/canvas/application/toolProcessor.ts",
       "__tests__/features/canvas/tool-processor.test.ts",
@@ -1312,6 +1318,7 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/tool-editors/types.ts",
       "features/canvas/ui/BackgroundCropperDialog.tsx",
       "__tests__/features/canvas/background-cropper-dialog.test.ts",
+      "features/canvas/ui/AudioWaveformPlayer.tsx",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -2393,7 +2400,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 244],
+      ["features/canvas", 243],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

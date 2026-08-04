@@ -2925,6 +2925,9 @@ export {
   centerInitialCrop,
   pixelCropFromPercentCrop,
 } from "@/modules/creative_canvas/presentation/BackgroundCropperDialog";
+export {
+  AudioWaveformPlayer,
+} from "@/modules/creative_canvas/presentation/AudioWaveformPlayer";
 export type {
   BackgroundCropperDialogProps,
 } from "@/modules/creative_canvas/presentation/BackgroundCropperDialog";

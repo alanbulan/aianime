@@ -776,6 +776,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/AudioNodeView.test.tsx",
     );
+    const waveformPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/AudioWaveformPlayer.tsx",
+    );
     const registryPath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/index.ts",
@@ -787,12 +791,14 @@ describe("frontend architecture boundaries", () => {
     const controllerTestSource = readFileSync(controllerTestPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
     const viewTestSource = readFileSync(viewTestPath, "utf8");
+    const waveformSource = readFileSync(waveformPath, "utf8");
     const registrySource = readFileSync(registryPath, "utf8");
     const declarations = [
       ["export const", "AudioNode", "=", "memo("].join(" "),
       ["export function", "isAudioFile("].join(" "),
       ["export function", "useAudioNodeController("].join(" "),
       ["export function", "AudioNodeView("].join(" "),
+      ["export function", "AudioWaveformPlayer("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -815,6 +821,7 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/audioFileTypes.ts"],
       ["features/canvas/hooks/useAudioNodeController.ts"],
       ["features/canvas/nodes/AudioNodeView.tsx"],
+      ["modules/creative_canvas/presentation/AudioWaveformPlayer.tsx"],
     ]);
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).not.toContain("react");
@@ -854,6 +861,21 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useCanvasStore(");
     expect(viewSource).not.toContain("uploadCanvasAsset(");
     expect(viewSource).not.toContain("loadCanvasAudioReferences(");
+    expect(viewSource).not.toContain(
+      "@/features/canvas/ui/AudioWaveformPlayer",
+    );
+    expect(viewTestSource).not.toContain(
+      "@/features/canvas/ui/AudioWaveformPlayer",
+    );
+    expect(importSpecifiers(waveformPath)).toEqual(["react"]);
+    expect(waveformSource).not.toContain("@/features/canvas");
+    expect(waveformSource).not.toContain("@/modules/creative_canvas/public");
+    expect(waveformSource).not.toContain("useCanvasStore");
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/ui/AudioWaveformPlayer.tsx"),
+      ),
+    ).toBe(false);
     expect(domainTestSource).toContain("from './audioFileTypes'");
     expect(controllerTestSource).toContain(
       "from './useAudioNodeController'",
