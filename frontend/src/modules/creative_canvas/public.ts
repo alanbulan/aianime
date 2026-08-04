@@ -700,6 +700,13 @@ export type {
   CanvasBoxSelectionStoreHook,
   IsBoxSelectingDependencies,
 } from "@/modules/creative_canvas/presentation/useIsBoxSelecting";
+export { resolveCanvasUpstreamDetachmentEdgeIds } from "@/modules/creative_canvas/domain/canvasUpstreamDetachment";
+export type { CanvasUpstreamDetachmentEdge } from "@/modules/creative_canvas/domain/canvasUpstreamDetachment";
+export { createUseDetachUpstream } from "@/modules/creative_canvas/presentation/useDetachUpstream";
+export type {
+  CanvasUpstreamEdgeDeletion,
+  DetachUpstreamDependencies,
+} from "@/modules/creative_canvas/presentation/useDetachUpstream";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

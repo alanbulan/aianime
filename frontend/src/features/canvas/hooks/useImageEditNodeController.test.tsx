@@ -124,10 +124,6 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamContents: () => mocks.upstreamContents,
 }));
 
-vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
-  useDetachUpstream: () => mocks.detachUpstream,
-}));
-
 vi.mock('@/features/canvas/nodes/useReferenceMentionSync', () => ({
   useReferenceMentionSync: () => undefined,
 }));
@@ -180,6 +176,7 @@ vi.mock('@/features/canvas/composition', () => ({
   detectAspectRatio: (...args: unknown[]) => mocks.detectAspectRatio(...args),
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
+  useDetachUpstream: () => mocks.detachUpstream,
 }));
 
 vi.mock('@/shared/api/errors', () => ({

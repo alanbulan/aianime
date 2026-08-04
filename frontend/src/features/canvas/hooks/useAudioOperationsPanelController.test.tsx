@@ -38,7 +38,7 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamContents: () => mocks.upstreamContents,
 }));
 
-vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
+vi.mock('@/features/canvas/composition', () => ({
   useDetachUpstream: () => mocks.detachUpstream,
 }));
 

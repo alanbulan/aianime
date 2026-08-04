@@ -21,6 +21,7 @@ import {
   createUseCanvasGenerationRecoveryController,
   createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
+  createUseDetachUpstream,
   createUseIsBoxSelecting,
   detectAspectRatio as detectAspectRatioUseCase,
   exportStoryboardGrid as exportStoryboardGridUseCase,
@@ -214,6 +215,10 @@ export const useCanvasConnectionGestureSurfaceController =
   });
 export const useIsBoxSelecting = createUseIsBoxSelecting({
   useStore: useCanvasStore,
+});
+export const useDetachUpstream = createUseDetachUpstream({
+  useDeleteEdge: () => useCanvasStore((state) => state.deleteEdge),
+  readEdges: () => useCanvasStore.getState().edges,
 });
 export const useCanvasGenerationRecoveryController =
   createUseCanvasGenerationRecoveryController({

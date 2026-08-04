@@ -32,6 +32,7 @@ import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
+  useDetachUpstream,
 } from '@/features/canvas/composition';
 import {
   imageUrlFromCanvasNode,
@@ -41,7 +42,6 @@ import {
   mergeDirectorWorldSources,
 } from '@/features/canvas/domain/directorWorldSources';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
-import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   generateCanvasImageTo3d,

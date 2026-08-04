@@ -31364,4 +31364,81 @@ describe("frontend architecture boundaries", () => {
       );
     }
   });
+
+  it("keeps upstream detachment planning and execution inside Creative Canvas", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasUpstreamDetachment.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/useDetachUpstream.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const compositionSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ["export function", "createUseDetachUpstream("].join(" "),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const consumerPaths = [
+      "features/canvas/hooks/useAudioOperationsPanelController.ts",
+      "features/canvas/hooks/useImageEditNodeController.ts",
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+    ];
+
+    expect(implementationOwners).toEqual([
+      "modules/creative_canvas/presentation/useDetachUpstream.ts",
+    ]);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(hookPath)).toEqual([
+      "react",
+      "../domain/canvasUpstreamDetachment",
+    ]);
+    expect(domainSource).toContain(
+      "resolveCanvasUpstreamDetachmentEdgeIds(",
+    );
+    expect(hookSource).toContain("readEdges()");
+    expect(hookSource).toContain(
+      ".forEach((edgeId) => deleteEdge(edgeId))",
+    );
+    expect(hookSource).not.toContain("zustand");
+    expect(hookSource).not.toContain("@/features/canvas");
+    expect(hookSource).not.toContain("canvasStore");
+    expect(publicSource).toContain(
+      'export { createUseDetachUpstream } from "@/modules/creative_canvas/presentation/useDetachUpstream";',
+    );
+    expect(compositionSource).toContain("createUseDetachUpstream,");
+    expect(compositionSource).toContain(
+      "export const useDetachUpstream = createUseDetachUpstream({",
+    );
+    expect(compositionSource).toContain(
+      "readEdges: () => useCanvasStore.getState().edges,",
+    );
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/hooks/useDetachUpstream.ts")),
+    ).toBe(false);
+    for (const consumerPath of consumerPaths) {
+      const path = resolve(SRC_ROOT, consumerPath);
+      const source = readFileSync(path, "utf8");
+      expect(importSpecifiers(path)).toContain(
+        "@/features/canvas/composition",
+      );
+      expect(source).toContain("useDetachUpstream");
+      expect(source).not.toContain(
+        "@/features/canvas/hooks/useDetachUpstream",
+      );
+    }
+  });
 });

@@ -81,10 +81,6 @@ vi.mock('@/features/canvas/hooks/useUpstreamGraph', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 
-vi.mock('@/features/canvas/hooks/useDetachUpstream', () => ({
-  useDetachUpstream: () => mocks.detachUpstream,
-}));
-
 vi.mock('@/features/canvas/composition', () => ({
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
     mocks.getBeatManifest(...args),
@@ -95,6 +91,7 @@ vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (...args: unknown[]) => mocks.uploadAsset(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImage(...args),
+  useDetachUpstream: () => mocks.detachUpstream,
 }));
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({

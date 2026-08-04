@@ -28,8 +28,8 @@ import {
   detectAspectRatio,
   getRuntimeDiagnostics,
   showErrorDialog,
+  useDetachUpstream,
 } from '@/features/canvas/composition';
-import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
   useUpstreamContents,
