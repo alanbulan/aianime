@@ -70,10 +70,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
-  useIsBoxSelecting: () => mocks.boxSelecting,
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   DEFAULT_SHARED_MODEL_ID: '',
@@ -113,6 +109,7 @@ const NODE_CONTEXT = {
 vi.mock('@/features/canvas/composition', () => ({
   awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>
     mocks.awaitCanvasGenerationTaskCompletion(taskKey, project),
+  useIsBoxSelecting: () => mocks.boxSelecting,
 }));
 
 function data(

@@ -21,6 +21,7 @@ import {
   createUseCanvasGenerationRecoveryController,
   createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
+  createUseIsBoxSelecting,
   detectAspectRatio as detectAspectRatioUseCase,
   exportStoryboardGrid as exportStoryboardGridUseCase,
   freezoneGenerationTaskGateway,
@@ -211,6 +212,9 @@ export const useCanvasConnectionGestureSurfaceController =
   createUseCanvasConnectionGestureSurfaceController({
     useStore: useCanvasStore,
   });
+export const useIsBoxSelecting = createUseIsBoxSelecting({
+  useStore: useCanvasStore,
+});
 export const useCanvasGenerationRecoveryController =
   createUseCanvasGenerationRecoveryController({
     usePendingExportImageNodeIds,

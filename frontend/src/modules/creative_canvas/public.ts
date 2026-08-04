@@ -693,6 +693,13 @@ export type {
   CanvasConnectionGestureSurfaceStore,
   CanvasConnectionGestureSurfaceStoreHook,
 } from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureSurfaceController";
+export { createUseIsBoxSelecting } from "@/modules/creative_canvas/presentation/useIsBoxSelecting";
+export type {
+  CanvasBoxSelectionNode,
+  CanvasBoxSelectionStore,
+  CanvasBoxSelectionStoreHook,
+  IsBoxSelectingDependencies,
+} from "@/modules/creative_canvas/presentation/useIsBoxSelecting";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

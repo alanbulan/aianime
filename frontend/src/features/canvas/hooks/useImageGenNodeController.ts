@@ -75,8 +75,8 @@ import {
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
+  useIsBoxSelecting,
 } from '@/features/canvas/composition';
-import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,

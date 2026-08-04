@@ -45,6 +45,7 @@ import {
   rememberLastVideoModel,
   showErrorDialog,
   uploadCanvasAsset,
+  useIsBoxSelecting,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -56,7 +57,6 @@ import {
   canvasEventBus,
   resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
-import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import {
   setAlbumPendingTotal,

@@ -4,7 +4,10 @@ import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { awaitCanvasGenerationTaskCompletion } from '@/features/canvas/composition';
+import {
+  awaitCanvasGenerationTaskCompletion,
+  useIsBoxSelecting,
+} from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type TextAnnotationNodeData,
@@ -13,7 +16,6 @@ import {
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
-import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import {
   generateCanvasReversePrompt,
   generationTaskDescriptor,

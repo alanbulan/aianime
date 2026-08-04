@@ -52,10 +52,6 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/features/canvas/hooks/useIsBoxSelecting', () => ({
-  useIsBoxSelecting: () => mocks.isBoxSelecting,
-}));
-
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
   useAudioGeneration: (...args: unknown[]) =>
     mocks.useAudioGeneration(...args),
@@ -64,6 +60,7 @@ vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
 vi.mock('@/features/canvas/composition', () => ({
   uploadCanvasAsset: (project: string, file: File, filename: string) =>
     mocks.uploadCanvasAsset(project, file, filename),
+  useIsBoxSelecting: () => mocks.isBoxSelecting,
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({

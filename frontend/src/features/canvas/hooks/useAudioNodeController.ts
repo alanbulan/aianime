@@ -5,7 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
+import {
+  uploadCanvasAsset,
+  useIsBoxSelecting,
+} from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type AudioNodeData,
@@ -14,7 +17,6 @@ import {
   canvasEventBus,
   resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
-import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {
   hasMainlineContexts,

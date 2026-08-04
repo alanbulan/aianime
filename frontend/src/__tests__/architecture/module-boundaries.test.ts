@@ -31296,16 +31296,20 @@ describe("frontend architecture boundaries", () => {
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useIsBoxSelecting.ts",
+      "modules/creative_canvas/presentation/useIsBoxSelecting.ts",
     );
     const hookSource = readFileSync(hookPath, "utf8");
-    const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const compositionSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
     );
     const declaration = [
       "export function",
-      "useIsBoxSelecting(",
+      "createUseIsBoxSelecting(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -31319,19 +31323,45 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useIsBoxSelecting.ts",
+      "modules/creative_canvas/presentation/useIsBoxSelecting.ts",
     ]);
-    expect(importSpecifiers(hookPath)).toEqual([
-      "@/features/canvas/canvasStore",
-    ]);
-    expect(hookSource).toContain("return useCanvasStore((state) => {");
-    expect(canvasStore).not.toContain("useIsBoxSelecting");
+    expect(importSpecifiers(hookPath)).toEqual([]);
+    expect(hookSource).toContain("return useStore((state) => {");
+    expect(hookSource).not.toContain("zustand");
+    expect(hookSource).not.toContain("@/features/canvas");
+    expect(hookSource).not.toContain("canvasStore");
+    expect(hookSource).not.toContain("@/api");
+    expect(publicSource).toContain(
+      'export { createUseIsBoxSelecting } from "@/modules/creative_canvas/presentation/useIsBoxSelecting";',
+    );
+    expect(compositionSource).toContain("createUseIsBoxSelecting,");
+    expect(compositionSource).toContain(
+      "export const useIsBoxSelecting = createUseIsBoxSelecting({",
+    );
+    expect(compositionSource).toContain("useStore: useCanvasStore,");
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/hooks/useIsBoxSelecting.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/hooks/useIsBoxSelecting.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     for (const consumerPath of consumerPaths) {
-      const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
-      expect(source).toContain(
+      const path = resolve(SRC_ROOT, consumerPath);
+      const source = readFileSync(path, "utf8");
+      expect(importSpecifiers(path)).toContain(
+        "@/features/canvas/composition",
+      );
+      expect(source).toContain("useIsBoxSelecting");
+      expect(source).not.toContain(
         "@/features/canvas/hooks/useIsBoxSelecting",
       );
-      expect(source).not.toContain("useCanvasStore, useIsBoxSelecting");
     }
   });
 });
