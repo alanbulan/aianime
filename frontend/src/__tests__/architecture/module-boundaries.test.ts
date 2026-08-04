@@ -28537,7 +28537,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode generation parameters in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoConfigChip.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoConfigChip.tsx",
+    );
+    const oldTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoConfigChip.test.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoConfigChip.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28556,9 +28568,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas"),
     );
     const declaration = ["export function", "VideoConfigChip("].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -28567,15 +28577,18 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldTestPath)).toBe(false);
+    expect(existsSync(testPath)).toBe(true);
     expect(implementationOwners).toEqual([
-      "features/canvas/nodes/VideoConfigChip.tsx",
+      "modules/creative_canvas/presentation/VideoConfigChip.tsx",
     ]);
     expect(viewSource).toContain("aspectRatioOptions.map((ratio)");
     expect(viewSource).toContain("normalizeDuration(parsed)");
     expect(viewSource).toContain("setDurationDraft(String(durationSec))");
     expect(viewSource).not.toContain("function clampVideoDuration(");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoConfigChip",
+      "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain("<VideoConfigChip");
     expect(videoNode).toContain(
@@ -28589,6 +28602,8 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("interface VideoConfigChipProps");
     expect(videoNode).not.toContain("durationDraft");
     expect(videoNode).not.toContain("VIDEO_PARAM_POPOVER_CLASS");
+    expect(viewSource).not.toContain("VideoNodeData");
+    expect(viewSource).toContain("onChange: (patch: VideoConfigPatch) => void");
   });
 
   it("keeps VideoNode generation-mode projection separate from its view", () => {

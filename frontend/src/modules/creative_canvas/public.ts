@@ -2812,6 +2812,11 @@ export type {
   VideoCountPickerProps,
   VideoGenerationCount,
 } from "@/modules/creative_canvas/presentation/VideoCountPicker";
+export { VideoConfigChip } from "@/modules/creative_canvas/presentation/VideoConfigChip";
+export type {
+  VideoConfigChipProps,
+  VideoConfigPatch,
+} from "@/modules/creative_canvas/presentation/VideoConfigChip";
 export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";

@@ -4,15 +4,15 @@ import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type {
-  VideoNodeData,
-} from "@/features/canvas/domain/canvasNodes";
+  Seedance2SceneOptimize,
+  VideoDurationBounds,
+  VideoGenQuality,
+} from "../domain/videoGenerationModel";
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_OPTION_ACTIVE_BUTTON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-  type Seedance2SceneOptimize,
-  type VideoGenQuality,
-} from "@/modules/creative_canvas/public";
+} from "./canvasNodeControlStyles";
 
 const VIDEO_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[320px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
@@ -24,18 +24,27 @@ const VIDEO_PARAM_IDLE_BUTTON_CLASS =
   "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground";
 const VIDEO_PARAM_ROW_CLASS = "mb-4 gap-2";
 
+export interface VideoConfigPatch {
+  readonly [key: string]: unknown;
+  readonly aspectRatio?: string;
+  readonly quality?: VideoGenQuality;
+  readonly durationSec?: number;
+  readonly sceneOptimize?: Seedance2SceneOptimize;
+  readonly generateAudio?: boolean;
+}
+
 export interface VideoConfigChipProps {
-  aspectRatio: VideoNodeData["aspectRatio"];
-  aspectRatioOptions: ReadonlyArray<VideoNodeData["aspectRatio"]>;
+  aspectRatio: string;
+  aspectRatioOptions: ReadonlyArray<string>;
   quality: VideoGenQuality;
   qualityOptions: ReadonlyArray<VideoGenQuality>;
   durationSec: number;
-  durationBounds: { min: number; max: number };
+  durationBounds: VideoDurationBounds;
   normalizeDuration: (value: number) => number;
   sceneOptimize?: Seedance2SceneOptimize;
   sceneOptimizeOptions: ReadonlyArray<Seedance2SceneOptimize>;
   generateAudio: boolean;
-  onChange: (patch: Partial<VideoNodeData>) => void;
+  onChange: (patch: VideoConfigPatch) => void;
 }
 
 export function VideoConfigChip({

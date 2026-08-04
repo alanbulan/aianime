@@ -23,6 +23,7 @@ import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeCo
 import {
   CameraMovementChip,
   CharacterLibraryChip,
+  VideoConfigChip,
   VideoCountPicker,
   VideoGenerationModeSelect,
   VideoHumanReviewSwitch,
@@ -34,7 +35,6 @@ import {
   VideoAlbumGallery,
   VideoAlbumToggleButton,
 } from '@/features/canvas/nodes/VideoAlbumControls';
-import { VideoConfigChip } from '@/features/canvas/nodes/VideoConfigChip';
 import { VideoNodeClipPanel } from '@/features/canvas/nodes/VideoNodeClipPanel';
 import {
   VideoNodeEmptyState,
