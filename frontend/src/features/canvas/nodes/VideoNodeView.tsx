@@ -29,6 +29,12 @@ import {
   VideoHumanReviewSwitch,
   VideoNodePrimaryVideo,
   VideoPlayerControls,
+  VideoGeneratingState,
+  VideoGenerationErrorState,
+  VideoGenerationHistoryPreview,
+  VideoLoadErrorOverlay,
+  VideoMetadataLoadingOverlay,
+  VideoUploadingState,
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
@@ -43,14 +49,6 @@ import {
   VideoUploadActionRail,
 } from '@/features/canvas/nodes/VideoNodeEmptyState';
 import { VideoNodeGenerationHistoryPanel } from '@/features/canvas/nodes/VideoNodeGenerationHistoryPanel';
-import {
-  VideoGeneratingState,
-  VideoGenerationErrorState,
-  VideoGenerationHistoryPreview,
-  VideoLoadErrorOverlay,
-  VideoMetadataLoadingOverlay,
-  VideoUploadingState,
-} from '@/features/canvas/nodes/VideoNodeMediaStatus';
 import { ReferenceMediaRow } from '@/features/canvas/nodes/VideoReferenceMedia';
 import {
   SubtitleEraseBoxOverlay,

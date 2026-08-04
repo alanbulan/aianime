@@ -2824,6 +2824,19 @@ export type {
 } from "@/modules/creative_canvas/presentation/VideoNodePrimaryVideo";
 export { VideoPlayerControls } from "@/modules/creative_canvas/presentation/VideoPlayerControls";
 export type { VideoPlayerControlsProps } from "@/modules/creative_canvas/presentation/VideoPlayerControls";
+export {
+  VideoGeneratingState,
+  VideoGenerationErrorState,
+  VideoGenerationHistoryPreview,
+  VideoLoadErrorOverlay,
+  VideoMetadataLoadingOverlay,
+  VideoUploadingState,
+} from "@/modules/creative_canvas/presentation/VideoNodeMediaStatus";
+export type {
+  VideoGenerationErrorStateProps,
+  VideoGenerationHistoryPreviewProps,
+  VideoGeneratingStateProps,
+} from "@/modules/creative_canvas/presentation/VideoNodeMediaStatus";
 export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";

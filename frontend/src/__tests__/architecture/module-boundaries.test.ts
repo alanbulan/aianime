@@ -28103,7 +28103,19 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode media status views in one presentation module", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeMediaStatus.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoNodeMediaStatus.tsx",
+    );
+    const oldTestPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeMediaStatus.test.tsx",
+    );
+    const testPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoNodeMediaStatus.test.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const videoNode = readFileSync(
@@ -28138,16 +28150,19 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(existsSync(oldTestPath)).toBe(false);
+    expect(existsSync(testPath)).toBe(true);
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/nodes/VideoNodeMediaStatus.tsx",
+        "modules/creative_canvas/presentation/VideoNodeMediaStatus.tsx",
       ]),
     );
     expect(viewSource).toContain("<NodeGenerationOverlay");
     expect(viewSource).toContain("<RegenerateButton");
     expect(viewSource).toContain("新视频生成中…");
     expect(videoNode).toContain(
-      "@/features/canvas/nodes/VideoNodeMediaStatus",
+      "@/modules/creative_canvas/public",
     );
     for (const declaration of declarations) {
       const componentName = declaration.slice(
