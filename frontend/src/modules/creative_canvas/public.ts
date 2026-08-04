@@ -2847,12 +2847,18 @@ export type {
 export {
   CanvasToolProcessor,
 } from "@/modules/creative_canvas/application/canvasToolProcessor";
+export {
+  canvasToolProcessor,
+} from "@/modules/creative_canvas/canvasToolComposition";
 export type {
   CanvasImageSplitGateway,
   CanvasStoryboardImageMetadata,
   CanvasToolIdGenerator,
   CanvasToolImageGateway,
 } from "@/modules/creative_canvas/application/canvasToolProcessor";
+export {
+  uuidGenerator,
+} from "@/modules/creative_canvas/infrastructure/idGenerator";
 export type {
   CanvasToolPlugin,
   CanvasToolResult,

@@ -17,7 +17,6 @@ import {
   browserGenerationRuntimeGateway,
   browserImageRuntimeGateway,
   canvasEventBus,
-  CanvasToolProcessor,
   composeCapability,
   createUseCanvasConnectionGestureSurfaceController,
   createDisconnectableEdge,
@@ -99,13 +98,10 @@ import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
-import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
-import { uuidGenerator } from './infrastructure/idGenerator';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
-import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
 
@@ -212,11 +208,6 @@ export {
   ensureWebSafeVideo,
 };
 
-export const canvasToolProcessor = new CanvasToolProcessor(
-  webImageSplitGateway,
-  browserToolImageGateway,
-  uuidGenerator,
-);
 export const canvasAiGateway = freezoneAiGateway;
 export const CURRENT_RUNTIME_SESSION_ID =
   browserGenerationRuntimeGateway.runtimeSessionId;

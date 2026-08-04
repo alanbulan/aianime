@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { nodeCatalog } from './application/nodeCatalog';
 import { CanvasNodeFactory } from './application/nodeFactory';
+import { uuidGenerator } from '@/modules/creative_canvas/public';
 import {
   browserCanvasNodeDefaultDataGateway,
   rememberLastVideoModel as rememberLastVideoModelInBrowser,
 } from './infrastructure/browserCanvasNodeDefaultDataGateway';
-import { uuidGenerator } from './infrastructure/idGenerator';
 
 export const canvasNodeDefaultDataGateway = browserCanvasNodeDefaultDataGateway;
 

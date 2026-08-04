@@ -1264,6 +1264,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百四十四批将裁剪、标注、分格和通用表单编辑器连同共享 props 合同整体迁入 Creative Canvas presentation。编辑器内部直接依赖本域 `canvasTool`、标注编解码和图片显示规则，不经模块 public 自回绕，也不读取旧 Store、API 或 Canvas composition；`NodeToolDialog` 只经模块 public 装配四个唯一编辑器。旧 `features/canvas/ui/tool-editors` 的 5 个文件直接删除，不保留 facade、re-export 或第二套实现，并清理第 843 批删除文件后遗留的 `tool-editors`、`tools/annotation` 和 `tools` 三个物理空目录。新增通用表单编辑器 schema/不可变更新行为测试；工具编辑器、注册/处理器和图片工具栏 Controller 回归 4 个文件 10 项，完整模块边界 335 项、残余边界 11 项、颜色门禁 1 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1002/248/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 248/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百四十五批将 `browserToolImageGateway`、`webImageSplitGateway` 与 `uuidGenerator` 迁入 Creative Canvas infrastructure，并新增 `canvasToolComposition.ts` 作为 `CanvasToolProcessor` 唯一实例化根。浏览器图片工具适配器直接依赖本域 application/domain/infrastructure，不再经模块 public 自回绕；`NodeToolDialog` 经 Creative Canvas public 使用唯一处理器实例，旧 `features/canvas/composition.ts` 删除处理器、两个网关与 UUID 的重复装配，`nodeFactoryComposition.ts` 改经模块 public 复用同一 UUID 适配器。三个旧 infrastructure 文件直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记新模块所有者、禁止旧路径回流，并将 Canvas TS/TSX 上限收紧到 245，颜色预算只迁移路径、不改变颜色值。工具处理器、表单编辑器与残余边界 3 个文件 16 项，完整模块边界与颜色门禁 2 个文件 336 项、前端 TypeScript 和 `git diff --check` 全部通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1006/245/0，Canvas 另有 1 个 CSS 文件。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

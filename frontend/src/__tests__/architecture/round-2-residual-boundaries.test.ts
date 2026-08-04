@@ -481,6 +481,12 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const canvasImageToolInfrastructureFiles = [
       "browserCanvasAnnotationRenderer.ts",
+      "browserToolImageGateway.ts",
+      "idGenerator.ts",
+      "webImageSplitGateway.ts",
+    ];
+    const canvasImageToolCompositionFiles = [
+      "canvasToolComposition.ts",
     ];
     const canvasImageToolPresentationFiles = [
       "AnnotateToolEditor.tsx",
@@ -1280,6 +1286,9 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of canvasImageToolInfrastructureFiles) {
       expect(existsSync(resolve(moduleRoot, "infrastructure", file)), file).toBe(true);
     }
+    for (const file of canvasImageToolCompositionFiles) {
+      expect(existsSync(resolve(moduleRoot, file)), file).toBe(true);
+    }
     for (const file of canvasImageToolPresentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
     }
@@ -1299,6 +1308,9 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/tool-editors/FormToolEditor.tsx",
       "features/canvas/ui/tool-editors/SplitStoryboardToolEditor.tsx",
       "features/canvas/ui/tool-editors/types.ts",
+      "features/canvas/infrastructure/browserToolImageGateway.ts",
+      "features/canvas/infrastructure/idGenerator.ts",
+      "features/canvas/infrastructure/webImageSplitGateway.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
     }
@@ -2377,7 +2389,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 248],
+      ["features/canvas", 245],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

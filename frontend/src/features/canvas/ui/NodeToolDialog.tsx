@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 
 import {
   canvasEventBus,
+  canvasToolProcessor,
   AnnotateToolEditor,
   CropToolEditor,
   EXPORT_RESULT_DISPLAY_NAME,
@@ -20,7 +21,6 @@ import {
   type NodeToolType,
 } from '@/modules/creative_canvas/public';
 import {
-  canvasToolProcessor,
   prepareNodeImage,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';

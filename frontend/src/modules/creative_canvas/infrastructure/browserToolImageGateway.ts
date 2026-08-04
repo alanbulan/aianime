@@ -4,19 +4,21 @@ import {
   readStoryboardImageMetadata,
 } from '@/commands/image';
 
+import type { CanvasToolImageGateway } from '../application/canvasToolProcessor';
+import { parseAspectRatio } from '../domain/aspectRatio';
+import { parseAnnotationItems } from '../domain/canvasAnnotationCodec';
+import { reduceAspectRatio } from '../domain/imageData';
+import {
+  resolveMaxAllowedLineThickness,
+  splitIntoSegments,
+} from '../domain/toolImageGeometry';
+import { drawAnnotations } from './browserCanvasAnnotationRenderer';
 import {
   browserImageRuntimeGateway,
   canvasToDataUrl,
-  drawAnnotations,
   loadImageElement,
-  parseAnnotationItems,
-  parseAspectRatio,
   persistImageLocally,
-  resolveMaxAllowedLineThickness,
-  splitIntoSegments,
-  reduceAspectRatio,
-  type CanvasToolImageGateway,
-} from '@/modules/creative_canvas/public';
+} from './browserImageRuntime';
 
 async function cropImage(
   sourceImage: string,

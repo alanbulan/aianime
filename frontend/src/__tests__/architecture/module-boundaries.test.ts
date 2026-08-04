@@ -3691,13 +3691,16 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/application/canvasToolProcessor.ts",
     );
     const toolProcessor = readFileSync(toolProcessorPath, "utf8");
-    const toolImageGateway = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "features/canvas/infrastructure/browserToolImageGateway.ts",
-      ),
-      "utf8",
+    const toolImageGatewayPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserToolImageGateway.ts",
     );
+    const toolImageGateway = readFileSync(toolImageGatewayPath, "utf8");
+    const toolCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/canvasToolComposition.ts",
+    );
+    const toolComposition = readFileSync(toolCompositionPath, "utf8");
     const imageData = readFileSync(
       resolve(SRC_ROOT, "modules/creative_canvas/domain/imageData.ts"),
       "utf8",
@@ -3785,13 +3788,13 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/nodeFactoryComposition",
     );
     expect(canvasStore).not.toContain("@/features/canvas/composition");
-    expect(composition).toContain("new CanvasToolProcessor(");
+    expect(composition).not.toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
     expect(composition).toContain("browserGenerationRuntimeGateway");
     expect(composition).toContain("getRuntimeDiagnostics()");
-    expect(composition).toContain("uuidGenerator");
-    expect(composition).toContain("webImageSplitGateway");
-    expect(composition).toContain("browserToolImageGateway");
+    expect(composition).not.toContain("uuidGenerator");
+    expect(composition).not.toContain("webImageSplitGateway");
+    expect(composition).not.toContain("browserToolImageGateway");
     expect(composition).toContain("browserImageRuntimeGateway");
     expect(composition).toContain("prepareNodeImageUseCase(");
     expect(composition).toContain(
@@ -3955,11 +3958,29 @@ describe("frontend architecture boundaries", () => {
     expect(toolProcessor).toContain("../domain/toolImageGeometry");
     expect(toolProcessor).not.toContain("document.");
     expect(toolProcessor).not.toContain("./imageData");
+    expect(toolComposition).toContain("new CanvasToolProcessor(");
+    expect(toolComposition).toContain("uuidGenerator");
+    expect(toolComposition).toContain("webImageSplitGateway");
+    expect(toolComposition).toContain("browserToolImageGateway");
+    expect(toolComposition).not.toContain("@/features/canvas");
     expect(toolImageGateway).toContain("document.createElement('canvas')");
-    expect(toolImageGateway).toContain("@/modules/creative_canvas/public");
-    expect(toolImageGateway).not.toContain("../domain/toolImageGeometry");
+    expect(toolImageGateway).not.toContain("@/modules/creative_canvas/public");
+    expect(toolImageGateway).toContain("../domain/toolImageGeometry");
     expect(toolImageGateway).toContain("cropImageSource");
-    expect(toolImageGateway).not.toContain("./browserImageRuntime");
+    expect(toolImageGateway).toContain("./browserImageRuntime");
+    expect(toolImageGateway).not.toContain("@/features/canvas");
+    expect(new Set(importSpecifiers(toolImageGatewayPath))).toEqual(
+      new Set([
+        "@/commands/image",
+        "../application/canvasToolProcessor",
+        "../domain/aspectRatio",
+        "../domain/canvasAnnotationCodec",
+        "../domain/imageData",
+        "../domain/toolImageGeometry",
+        "./browserCanvasAnnotationRenderer",
+        "./browserImageRuntime",
+      ]),
+    );
     expect(imageData).not.toContain("document.");
     expect(imageData).not.toContain("new Image(");
     expect(imageData).not.toContain("new FileReader(");
