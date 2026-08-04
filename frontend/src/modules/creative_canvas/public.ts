@@ -2755,6 +2755,8 @@ export type {
   MultiAnglePresetKey,
   MultiAngleZoomLevel,
 } from "@/modules/creative_canvas/domain/multiAngle";
+export { MultiAngleSphere } from "@/modules/creative_canvas/presentation/MultiAngleSphere";
+export type { MultiAngleSphereProps } from "@/modules/creative_canvas/presentation/MultiAngleSphere";
 export {
   CANVAS_OUTPAINT_ASPECT_RATIOS,
   CANVAS_OUTPAINT_IMAGE_SIZES,

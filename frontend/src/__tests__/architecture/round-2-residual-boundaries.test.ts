@@ -504,6 +504,10 @@ describe("round 2 residual architecture boundaries", () => {
     const imageGridToolbarPresentationFiles = [
       "ImageGridToolbarActions.tsx",
     ];
+    const multiAnglePresentationFiles = [
+      "MultiAngleSphere.tsx",
+      "MultiAngleSphere.test.tsx",
+    ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
@@ -1306,6 +1310,12 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of imageGridToolbarPresentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
     }
+    for (const file of multiAnglePresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
+    }
+    expect(
+      existsSync(resolve(moduleRoot, "presentation/multi-angle-sphere.css")),
+    ).toBe(true);
     for (const retiredPath of [
       "features/canvas/application/toolProcessor.ts",
       "__tests__/features/canvas/tool-processor.test.ts",
@@ -1326,6 +1336,8 @@ describe("round 2 residual architecture boundaries", () => {
       "__tests__/features/canvas/background-cropper-dialog.test.ts",
       "features/canvas/ui/AudioWaveformPlayer.tsx",
       "features/canvas/ui/ImageGridToolbarActions.tsx",
+      "features/canvas/ui/MultiAngleSphere.tsx",
+      "features/canvas/ui/multi-angle-sphere.css",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -2407,7 +2419,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 242],
+      ["features/canvas", 241],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

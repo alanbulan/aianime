@@ -25377,6 +25377,60 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps the multi-angle sphere and its styles in Creative Canvas", () => {
+    const spherePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/MultiAngleSphere.tsx",
+    );
+    const sphereTestPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/MultiAngleSphere.test.tsx",
+    );
+    const sphereStylePath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/multi-angle-sphere.css",
+    );
+    const consumerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/MultiAngleEditorPanel.tsx",
+    );
+    const sphereSource = readFileSync(spherePath, "utf8");
+    const sphereTestSource = readFileSync(sphereTestPath, "utf8");
+    const consumerSource = readFileSync(consumerPath, "utf8");
+    const sphereDeclaration = [
+      "export function",
+      "MultiAngleSphere(",
+    ].join(" ");
+
+    expect(
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(sphereDeclaration))
+        .map(relativeSource),
+    ).toEqual([
+      "modules/creative_canvas/presentation/MultiAngleSphere.tsx",
+    ]);
+    expect(new Set(importSpecifiers(spherePath))).toEqual(
+      new Set(["react", "./multi-angle-sphere.css"]),
+    );
+    expect(sphereSource).not.toContain("@/features/canvas");
+    expect(sphereSource).not.toContain("@/modules/creative_canvas/public");
+    expect(sphereTestSource).toContain("from './MultiAngleSphere'");
+    expect(importSpecifiers(consumerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(consumerSource).toContain("<MultiAngleSphere");
+    expect(consumerSource).not.toContain(
+      "@/features/canvas/ui/MultiAngleSphere",
+    );
+    expect(existsSync(sphereStylePath)).toBe(true);
+    for (const retiredPath of [
+      "features/canvas/ui/MultiAngleSphere.tsx",
+      "features/canvas/ui/multi-angle-sphere.css",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
+  });
+
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,

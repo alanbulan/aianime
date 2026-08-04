@@ -17,6 +17,7 @@ import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
+  MultiAngleSphere,
   MULTI_ANGLE_IMAGE_SIZES,
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -27,7 +28,6 @@ import {
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
 } from '@/modules/creative_canvas/public';
-import { MultiAngleSphere } from '@/features/canvas/ui/MultiAngleSphere';
 
 interface MultiAnglePresetConfig {
   horizontalDeg: number;
