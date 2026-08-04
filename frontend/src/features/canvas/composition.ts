@@ -19,6 +19,7 @@ import {
   composeCapability,
   createUseCanvasConnectionGestureSurfaceController,
   createUseCanvasGenerationRecoveryController,
+  createUseCanvasProjectSurfaceController,
   createUseCanvasViewerSurfaceController,
   detectAspectRatio as detectAspectRatioUseCase,
   exportStoryboardGrid as exportStoryboardGridUseCase,
@@ -216,6 +217,10 @@ export const useCanvasGenerationRecoveryController =
     usePendingGenerationResumeNodeIds,
     pollExportImageNode,
     resumePendingGenerationNode,
+  });
+export const useCanvasProjectSurfaceController =
+  createUseCanvasProjectSurfaceController({
+    useGenerationRecovery: useCanvasGenerationRecoveryController,
   });
 
 export function getRuntimeDiagnostics() {

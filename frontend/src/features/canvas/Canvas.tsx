@@ -27,10 +27,10 @@ import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
-import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 import {
   useCanvasConnectionGestureSurfaceController,
+  useCanvasProjectSurfaceController,
   useCanvasViewerSurfaceController,
 } from './composition';
 

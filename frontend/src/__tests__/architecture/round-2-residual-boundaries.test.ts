@@ -171,6 +171,8 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasAsyncNodeTasks.test.tsx",
       "useCanvasGenerationRecoveryController.ts",
       "useCanvasGenerationRecoveryController.test.tsx",
+      "useCanvasProjectSurfaceController.ts",
+      "useCanvasProjectSurfaceController.test.tsx",
     ];
     const canvasSelectionDomainFiles = [
       "canvasSelection.ts",

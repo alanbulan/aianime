@@ -9943,11 +9943,18 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas project assembly in one presentation controller", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasProjectSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const publicPath = resolve(moduleRoot, "public.ts");
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -9960,13 +9967,11 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/"),
     );
     const declaration = [
       "export function",
-      "useCanvasProjectSurfaceController(",
+      "createUseCanvasProjectSurfaceController(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9974,15 +9979,25 @@ describe("frontend architecture boundaries", () => {
       .sort();
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasProjectSurfaceController.ts",
     ]);
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain("../composition");
-    expect(controllerSource).not.toContain(
-      "./useCanvasGenerationRecoveryController",
+    expect(controllerSource).toContain(
+      "./useCanvasProjectContextController",
+    );
+    expect(compositionSource).toContain(
+      "createUseCanvasProjectSurfaceController({",
+    );
+    expect(compositionSource).toContain(
+      "useGenerationRecovery: useCanvasGenerationRecoveryController",
+    );
+    expect(importSpecifiers(compositionPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(publicPath)).toContain(
+      "@/modules/creative_canvas/presentation/useCanvasProjectSurfaceController",
     );
     expect(controllerSource).toContain("projectContext.projectId");
-    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(canvasView).toContain("useCanvasProjectSurfaceController,");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasProjectContextController",
     );
@@ -9992,6 +10007,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       canvasView.match(/useCanvasProjectSurfaceController\(\{/g),
     ).toHaveLength(1);
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+      "features/canvas/hooks/useCanvasProjectSurfaceController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
@@ -10010,8 +10031,8 @@ describe("frontend architecture boundaries", () => {
     );
     const publicPath = resolve(moduleRoot, "public.ts");
     const surfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasProjectSurfaceController.ts",
     );
     const legacyPaths = [
       "features/canvas/domain/canvasBeatContextReferences.ts",
@@ -10024,7 +10045,6 @@ describe("frontend architecture boundaries", () => {
     const domainModel = readFileSync(domainPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
-    const surfaceModel = readFileSync(surfacePath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -10095,9 +10115,8 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasProjectContextController",
     );
     expect(importSpecifiers(surfacePath)).toContain(
-      "@/modules/creative_canvas/public",
+      "./useCanvasProjectContextController",
     );
-    expect(surfaceModel).not.toContain("./useCanvasProjectContextController");
     expect(domainModel).toContain("collectCanvasBeatContextEpisodeReferences");
     expect(domainModel).toContain("CanvasBeatContextReferenceNodeLike");
     expect(domainModel).not.toContain("CanvasNode");
@@ -10109,7 +10128,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("projectId: string | null");
     expect(controllerModel).toContain("canvasId: string");
     expect(controllerModel).not.toContain("readUrl");
-    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(canvasView).toContain("useCanvasProjectSurfaceController,");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasProjectContextController",
     );
@@ -14051,8 +14070,8 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionTest = readFileSync(compositionTestPath, "utf8");
     const surfacePath = resolve(
-      SRC_ROOT,
-      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+      moduleRoot,
+      "presentation/useCanvasProjectSurfaceController.ts",
     );
     const surface = readFileSync(surfacePath, "utf8");
     const canvasView = readFileSync(
@@ -14157,9 +14176,11 @@ describe("frontend architecture boundaries", () => {
     expect(compositionTest).toContain(
       "keeps pending ID selections stable across unrelated node updates",
     );
-    expect(importSpecifiers(surfacePath)).toContain("../composition");
-    expect(surface).not.toContain("./useCanvasGenerationRecoveryController");
-    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(surface).toContain("useGenerationRecovery({");
+    expect(composition).toContain(
+      "useGenerationRecovery: useCanvasGenerationRecoveryController",
+    );
+    expect(canvasView).toContain("useCanvasProjectSurfaceController,");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGenerationRecoveryController",
     );

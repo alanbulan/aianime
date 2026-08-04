@@ -1231,6 +1231,12 @@ export type {
   CanvasProjectContextController,
   CanvasProjectContextControllerOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasProjectContextController";
+export { createUseCanvasProjectSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasProjectSurfaceController";
+export type {
+  CanvasProjectSurfaceController,
+  CanvasProjectSurfaceControllerDependencies,
+  CanvasProjectSurfaceControllerOptions,
+} from "@/modules/creative_canvas/presentation/useCanvasProjectSurfaceController";
 export { createUseCanvasGenerationRecoveryController } from "@/modules/creative_canvas/presentation/useCanvasGenerationRecoveryController";
 export type {
   CanvasGenerationRecoveryControllerDependencies,

@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasGenerationRecoveryControllerOptions,
+} from './useCanvasGenerationRecoveryController';
+import type {
   CanvasProjectContextControllerOptions,
-} from '@/modules/creative_canvas/public';
+} from './useCanvasProjectContextController';
 import {
-  useCanvasProjectSurfaceController,
+  createUseCanvasProjectSurfaceController,
   type CanvasProjectSurfaceControllerOptions,
 } from './useCanvasProjectSurfaceController';
 
@@ -27,12 +29,14 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./useCanvasProjectContextController', () => ({
   useCanvasProjectContextController: controllerMocks.useProjectContext,
 }));
-vi.mock('../composition', () => ({
-  useCanvasGenerationRecoveryController: controllerMocks.useGenerationRecovery,
-}));
+
+const useCanvasProjectSurfaceController =
+  createUseCanvasProjectSurfaceController({
+    useGenerationRecovery: controllerMocks.useGenerationRecovery,
+  });
 
 function createOptions(): CanvasProjectSurfaceControllerOptions {
   return {
@@ -43,7 +47,7 @@ function createOptions(): CanvasProjectSurfaceControllerOptions {
   };
 }
 
-describe('useCanvasProjectSurfaceController', () => {
+describe('createUseCanvasProjectSurfaceController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controllerMocks.useProjectContext.mockReturnValue(
