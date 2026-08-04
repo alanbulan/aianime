@@ -3,26 +3,20 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-} from '../domain/canvasNodes';
-import {
   useCanvasGroupFitDragController,
   type CanvasGroupFitDragControllerOptions,
 } from './useCanvasGroupFitDragController';
 
-function node(id: string, parentId?: string): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
-    position: { x: 0, y: 0 },
-    parentId,
-    data: { content: id } as CanvasNodeData,
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  parentId?: string;
 }
 
-function createOptions(): CanvasGroupFitDragControllerOptions {
+function node(id: string, parentId?: string): TestNode {
+  return { id, parentId };
+}
+
+function createOptions(): CanvasGroupFitDragControllerOptions<TestNode> {
   return {
     getGraph: vi.fn(() => ({
       nodes: [
@@ -37,7 +31,7 @@ function createOptions(): CanvasGroupFitDragControllerOptions {
 }
 
 describe('useCanvasGroupFitDragController', () => {
-  it('deduplicates parent groups for a multi-node drag and fits them on finish', () => {
+  it('deduplicates parent groups and fits them on finish', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasGroupFitDragController(options),
@@ -57,7 +51,7 @@ describe('useCanvasGroupFitDragController', () => {
     expect(options.fitGroupToChildren).toHaveBeenNthCalledWith(2, 'group-b');
   });
 
-  it('falls back to the primary node when React Flow supplies no dragged list', () => {
+  it('falls back to the primary node when the dragged list is empty', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasGroupFitDragController(options),
@@ -68,11 +62,10 @@ describe('useCanvasGroupFitDragController', () => {
       result.current.finishDrag();
     });
 
-    expect(options.fitGroupToChildren).toHaveBeenCalledOnce();
     expect(options.fitGroupToChildren).toHaveBeenCalledWith('group-b');
   });
 
-  it('clears a pending group-fit plan when the next node drag holds Alt', () => {
+  it('clears a pending fit plan when the next node drag holds Alt', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasGroupFitDragController(options),

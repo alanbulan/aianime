@@ -1,32 +1,49 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook } from '@testing-library/react';
-import type {
-  EdgeChange,
-  NodeChange,
-} from '@xyflow/react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
 import {
   useCanvasGraphChangeController,
   type CanvasGraphChangeControllerOptions,
 } from './useCanvasGraphChangeController';
 
-function node(id: string, presetManaged = false): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x: 0, y: 0 },
-    data: { preset_managed: presetManaged },
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  data: { preset_managed?: boolean };
 }
 
-function edge(id: string, presetManaged = false): CanvasEdge {
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+  data?: { preset_managed?: boolean };
+}
+
+interface TestNodeChange {
+  id: string;
+  type: string;
+  position?: { x: number; y: number };
+  dragging?: boolean;
+}
+
+interface TestEdgeChange {
+  id: string;
+  type: string;
+  selected?: boolean;
+}
+
+type TestOptions = CanvasGraphChangeControllerOptions<
+  TestNode,
+  TestEdge,
+  TestNodeChange,
+  TestEdgeChange
+>;
+
+function node(id: string, presetManaged = false): TestNode {
+  return { id, data: { preset_managed: presetManaged } };
+}
+
+function edge(id: string, presetManaged = false): TestEdge {
   return {
     id,
     source: 'source',
@@ -35,9 +52,7 @@ function edge(id: string, presetManaged = false): CanvasEdge {
   };
 }
 
-function createOptions(
-  overrides: Partial<CanvasGraphChangeControllerOptions> = {},
-): CanvasGraphChangeControllerOptions {
+function createOptions(overrides: Partial<TestOptions> = {}): TestOptions {
   return {
     getGraph: () => ({ nodes: [], edges: [] }),
     isCopyDragActive: () => false,
@@ -52,20 +67,17 @@ function createOptions(
 describe('useCanvasGraphChangeController', () => {
   it('guards and aligns node changes against the latest graph', () => {
     const nodes = [node('locked', true), node('open')];
-    const lockedRemove = {
-      id: 'locked',
-      type: 'remove',
-    } as NodeChange<CanvasNode>;
-    const openMove = {
+    const lockedRemove: TestNodeChange = { id: 'locked', type: 'remove' };
+    const openMove: TestNodeChange = {
       id: 'open',
       type: 'position',
       position: { x: 10, y: 20 },
       dragging: true,
-    } as NodeChange<CanvasNode>;
-    const alignedMove = {
+    };
+    const alignedMove: TestNodeChange = {
       ...openMove,
       position: { x: 12, y: 24 },
-    } as NodeChange<CanvasNode>;
+    };
     const options = createOptions({
       getGraph: () => ({ nodes, edges: [] }),
       isCopyDragActive: () => true,
@@ -97,7 +109,7 @@ describe('useCanvasGraphChangeController', () => {
     act(() => result.current.handleNodesChange([{
       id: locked.id,
       type: 'remove',
-    }] as NodeChange<CanvasNode>[]));
+    }]));
 
     expect(options.alignNodeChanges).not.toHaveBeenCalled();
     expect(options.applyNodeChanges).not.toHaveBeenCalled();
@@ -106,19 +118,13 @@ describe('useCanvasGraphChangeController', () => {
   it('applies only allowed edge changes from the latest graph', () => {
     const locked = edge('locked', true);
     const open = edge('open');
-    const lockedRemove = {
-      id: locked.id,
-      type: 'remove',
-    } as EdgeChange<CanvasEdge>;
-    const lockedSelect = {
+    const lockedRemove: TestEdgeChange = { id: locked.id, type: 'remove' };
+    const lockedSelect: TestEdgeChange = {
       id: locked.id,
       type: 'select',
       selected: true,
-    } as EdgeChange<CanvasEdge>;
-    const openRemove = {
-      id: open.id,
-      type: 'remove',
-    } as EdgeChange<CanvasEdge>;
+    };
+    const openRemove: TestEdgeChange = { id: open.id, type: 'remove' };
     const options = createOptions({
       getGraph: () => ({ nodes: [], edges: [locked, open] }),
     });
@@ -138,12 +144,12 @@ describe('useCanvasGraphChangeController', () => {
     ]);
   });
 
-  it('routes deletable edge double-clicks through the store command', () => {
+  it('routes deletable edge double-clicks through the graph command', () => {
     const options = createOptions();
     const event = {
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),
-    } as unknown as ReactMouseEvent;
+    };
     const open = edge('open');
     const { result } = renderHook(() =>
       useCanvasGraphChangeController(options),
@@ -156,12 +162,12 @@ describe('useCanvasGraphChangeController', () => {
     expect(options.deleteEdge).toHaveBeenCalledWith(open.id);
   });
 
-  it('does not invoke the store delete command for a managed edge', () => {
+  it('does not delete a managed edge', () => {
     const options = createOptions();
     const event = {
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),
-    } as unknown as ReactMouseEvent;
+    };
     const { result } = renderHook(() =>
       useCanvasGraphChangeController(options),
     );

@@ -7721,7 +7721,14 @@ describe("frontend architecture boundaries", () => {
     const linkedDragController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+        "modules/creative_canvas/presentation/useCanvasLinkedCaptureDragController.ts",
+      ),
+      "utf8",
+    );
+    const graphInteractionController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGraphInteractionController.ts",
       ),
       "utf8",
     );
@@ -7753,9 +7760,16 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/domain/canvasCapturePartners.ts",
     ]);
     expect(partnersModel).toContain(ruleDeclaration);
-    expect(linkedDragController).toContain("@/modules/creative_canvas/public");
+    expect(linkedDragController).toContain("../domain/canvasCapturePartners");
     expect(linkedDragController).toContain("findLinkedCapturePartnerIds(");
-    expect(linkedDragController).toContain("CANVAS_NODE_TYPES.group");
+    expect(linkedDragController).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(linkedDragController).not.toContain("CANVAS_NODE_TYPES.group");
+    expect(graphInteractionController).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(graphInteractionController).toContain("CANVAS_NODE_TYPES.group");
     expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasCapturePartners",
     );
@@ -7794,6 +7808,8 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
@@ -9630,13 +9646,13 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas Alt-drag copy lifecycle in one presentation controller", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+      "modules/creative_canvas/presentation/useCanvasAltDragCopyController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const lifecycleModel = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+        "modules/creative_canvas/presentation/useCanvasDragLifecycleController.ts",
       ),
       "utf8",
     );
@@ -9658,7 +9674,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasAltDragCopyController(",
+      "useCanvasAltDragCopyController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9667,7 +9683,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+      "modules/creative_canvas/presentation/useCanvasAltDragCopyController.ts",
     ]);
     expect(hookModel).toContain("ALT_DRAG_COPY_Z_INDEX = 2000");
     expect(hookModel).toContain("const copyStateRef = useRef<");
@@ -9694,13 +9710,13 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas group-fit drag lifecycle in one presentation controller", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasGroupFitDragController.ts",
+      "modules/creative_canvas/presentation/useCanvasGroupFitDragController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const lifecycleModel = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+        "modules/creative_canvas/presentation/useCanvasDragLifecycleController.ts",
       ),
       "utf8",
     );
@@ -9715,6 +9731,8 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition" ||
@@ -9722,7 +9740,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasGroupFitDragController(",
+      "useCanvasGroupFitDragController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9731,7 +9749,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasGroupFitDragController.ts",
+      "modules/creative_canvas/presentation/useCanvasGroupFitDragController.ts",
     ]);
     expect(hookModel).toContain("resolveParentGroupIds(");
     expect(hookModel).toContain("const groupIds = new Set<string>()");
@@ -9758,13 +9776,13 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas linked-capture drag lifecycle in one presentation controller", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+      "modules/creative_canvas/presentation/useCanvasLinkedCaptureDragController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const lifecycleModel = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+        "modules/creative_canvas/presentation/useCanvasDragLifecycleController.ts",
       ),
       "utf8",
     );
@@ -9779,6 +9797,8 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition" ||
@@ -9786,7 +9806,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasLinkedCaptureDragController(",
+      "useCanvasLinkedCaptureDragController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9795,7 +9815,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+      "modules/creative_canvas/presentation/useCanvasLinkedCaptureDragController.ts",
     ]);
     expect(hookModel).toContain("findLinkedCapturePartnerIds(");
     expect(hookModel).toContain("const linkedDragRef = useRef<");
@@ -10251,7 +10271,7 @@ describe("frontend architecture boundaries", () => {
     const graphChangeController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphChangeController.ts",
       ),
       "utf8",
     );
@@ -10310,7 +10330,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas graph-change orchestration in one presentation controller", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      "modules/creative_canvas/presentation/useCanvasGraphChangeController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -10319,9 +10339,13 @@ describe("frontend architecture boundaries", () => {
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
         specifier === "@/features/canvas/composition" ||
@@ -10329,7 +10353,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasGraphChangeController(",
+      "useCanvasGraphChangeController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -10338,7 +10362,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      "modules/creative_canvas/presentation/useCanvasGraphChangeController.ts",
     ]);
     expect(hookModel).toContain("alignNodeChanges({");
     expect(hookModel).toContain("copyDragActive: isCopyDragActive()");
@@ -10384,7 +10408,7 @@ describe("frontend architecture boundaries", () => {
     const graphChangeController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphChangeController.ts",
       ),
       "utf8",
     );
@@ -16833,7 +16857,7 @@ describe("frontend architecture boundaries", () => {
     const graphChangeController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphChangeController.ts",
       ),
       "utf8",
     );
@@ -25618,7 +25642,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas drag lifecycle orchestration in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      "modules/creative_canvas/presentation/useCanvasDragLifecycleController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const graphInteractionPath = resolve(
@@ -25635,10 +25659,14 @@ describe("frontend architecture boundaries", () => {
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
       (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
@@ -25660,7 +25688,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasDragLifecycleController(",
+      "useCanvasDragLifecycleController<",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -25680,7 +25708,7 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(graphInteractionForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      "modules/creative_canvas/presentation/useCanvasDragLifecycleController.ts",
     ]);
     expect(graphInteractionOwners).toEqual([
       "features/canvas/hooks/useCanvasGraphInteractionController.ts",
@@ -25692,20 +25720,18 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("finishGroupFitDrag();");
     expect(controllerSource).toContain("finishAltDragCopy(node.id, node.position)");
     expect(graphInteractionSource).toContain(
-      "./useCanvasAltDragCopyController",
+      "from '@/modules/creative_canvas/public'",
     );
-    expect(graphInteractionSource).toContain(
-      "./useCanvasGroupFitDragController",
-    );
-    expect(graphInteractionSource).toContain(
-      "./useCanvasLinkedCaptureDragController",
-    );
-    expect(graphInteractionSource).toContain(
-      "./useCanvasGraphChangeController",
-    );
-    expect(graphInteractionSource).toContain(
-      "./useCanvasDragLifecycleController",
-    );
+    for (const controllerName of [
+      "useCanvasAltDragCopyController",
+      "useCanvasGroupFitDragController",
+      "useCanvasLinkedCaptureDragController",
+      "useCanvasGraphChangeController",
+      "useCanvasDragLifecycleController",
+    ]) {
+      expect(graphInteractionSource).toContain(controllerName);
+      expect(graphInteractionSource).not.toContain(`./${controllerName}`);
+    }
     expect(graphInteractionSource).toContain("type: 'position' as const");
     expect(graphInteractionSource).toContain(
       "isCopyDragActive: altDragCopy.isCopyDragActive",
@@ -25722,6 +25748,20 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("const handleNodeDrag = useCallback");
     expect(canvasSource).not.toContain("const handleNodeDragStop = useCallback");
     expect(canvasSource).not.toContain("const handleSelectionDragStart = useCallback");
+    for (const retiredControllerPath of [
+      "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+      "features/canvas/hooks/useCanvasAltDragCopyController.test.tsx",
+      "features/canvas/hooks/useCanvasGroupFitDragController.ts",
+      "features/canvas/hooks/useCanvasGroupFitDragController.test.tsx",
+      "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+      "features/canvas/hooks/useCanvasLinkedCaptureDragController.test.tsx",
+      "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      "features/canvas/hooks/useCanvasGraphChangeController.test.tsx",
+      "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      "features/canvas/hooks/useCanvasDragLifecycleController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredControllerPath))).toBe(false);
+    }
   });
 
   it("keeps Canvas node-creation assembly in one presentation controller", () => {
@@ -26368,7 +26408,7 @@ describe("frontend architecture boundaries", () => {
     const altDragController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+        "modules/creative_canvas/presentation/useCanvasAltDragCopyController.ts",
       ),
       "utf8",
     );

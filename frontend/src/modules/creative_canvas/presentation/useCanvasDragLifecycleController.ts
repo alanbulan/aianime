@@ -1,7 +1,14 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
+export interface CanvasDragLifecycleNode {
+  id: string;
+  position: { x: number; y: number };
+}
+
+export interface CanvasDragStartEvent {
+  altKey: boolean;
+}
 
 export interface CanvasDragLifecycleControllerOptions {
   beginGroupFitNodeDrag: (
@@ -30,22 +37,23 @@ export interface CanvasDragLifecycleControllerOptions {
   clearSnapAlignment: () => void;
 }
 
-export interface CanvasDragLifecycleController {
+export interface CanvasDragLifecycleController<
+  TNode extends CanvasDragLifecycleNode,
+> {
   handleNodeDragStart: (
-    event: ReactMouseEvent,
-    node: CanvasNode,
-    draggedNodes: CanvasNode[],
+    event: CanvasDragStartEvent,
+    node: TNode,
+    draggedNodes: TNode[],
   ) => void;
-  handleNodeDrag: (event: ReactMouseEvent, node: CanvasNode) => void;
-  handleNodeDragStop: (event: ReactMouseEvent, node: CanvasNode) => void;
-  handleSelectionDragStart: (
-    event: ReactMouseEvent,
-    draggedNodes: CanvasNode[],
-  ) => void;
+  handleNodeDrag: (event: unknown, node: TNode) => void;
+  handleNodeDragStop: (event: unknown, node: TNode) => void;
+  handleSelectionDragStart: (event: unknown, draggedNodes: TNode[]) => void;
   handleSelectionDragStop: () => void;
 }
 
-export function useCanvasDragLifecycleController({
+export function useCanvasDragLifecycleController<
+  TNode extends CanvasDragLifecycleNode,
+>({
   beginGroupFitNodeDrag,
   beginGroupFitSelectionDrag,
   finishGroupFitDrag,
@@ -56,26 +64,22 @@ export function useCanvasDragLifecycleController({
   updateAltDragCopy,
   finishAltDragCopy,
   clearSnapAlignment,
-}: CanvasDragLifecycleControllerOptions): CanvasDragLifecycleController {
+}: CanvasDragLifecycleControllerOptions): CanvasDragLifecycleController<TNode> {
   const handleNodeDragStart = useCallback(
-    (event: ReactMouseEvent, node: CanvasNode, draggedNodes: CanvasNode[]) => {
+    (event: CanvasDragStartEvent, node: TNode, draggedNodes: TNode[]) => {
       beginGroupFitNodeDrag(
         event.altKey,
         node.id,
-        draggedNodes?.map((draggedNode) => draggedNode.id) ?? [],
+        draggedNodes.map((draggedNode) => draggedNode.id),
       );
-      beginLinkedCaptureDrag(
-        event.altKey,
-        node.id,
-        draggedNodes?.length ?? 0,
-      );
+      beginLinkedCaptureDrag(event.altKey, node.id, draggedNodes.length);
       beginAltDragCopy(event.altKey, node.id);
     },
     [beginAltDragCopy, beginGroupFitNodeDrag, beginLinkedCaptureDrag],
   );
 
   const handleNodeDrag = useCallback(
-    (_event: ReactMouseEvent, node: CanvasNode) => {
+    (_event: unknown, node: TNode) => {
       updateLinkedCaptureDrag(node.position);
       updateAltDragCopy(node.id, node.position);
     },
@@ -83,7 +87,7 @@ export function useCanvasDragLifecycleController({
   );
 
   const handleNodeDragStop = useCallback(
-    (_event: ReactMouseEvent, node: CanvasNode) => {
+    (_event: unknown, node: TNode) => {
       clearSnapAlignment();
       finishLinkedCaptureDrag();
       finishGroupFitDrag();
@@ -98,7 +102,7 @@ export function useCanvasDragLifecycleController({
   );
 
   const handleSelectionDragStart = useCallback(
-    (_event: ReactMouseEvent, draggedNodes: CanvasNode[]) => {
+    (_event: unknown, draggedNodes: TNode[]) => {
       beginGroupFitSelectionDrag(draggedNodes.map((node) => node.id));
     },
     [beginGroupFitSelectionDrag],

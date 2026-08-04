@@ -1001,6 +1001,39 @@ export type {
   CanvasClipboardControllerPorts,
   CanvasClipboardNodeChange,
 } from "@/modules/creative_canvas/presentation/useCanvasClipboardController";
+export { useCanvasAltDragCopyController } from "@/modules/creative_canvas/presentation/useCanvasAltDragCopyController";
+export type {
+  CanvasAltDragCopyController,
+  CanvasAltDragCopyControllerOptions,
+  CanvasAltDragNode,
+  CanvasAltDragPositionCommit,
+} from "@/modules/creative_canvas/presentation/useCanvasAltDragCopyController";
+export { useCanvasGroupFitDragController } from "@/modules/creative_canvas/presentation/useCanvasGroupFitDragController";
+export type {
+  CanvasGroupFitDragController,
+  CanvasGroupFitDragControllerOptions,
+  CanvasGroupFitDragNode,
+} from "@/modules/creative_canvas/presentation/useCanvasGroupFitDragController";
+export { useCanvasLinkedCaptureDragController } from "@/modules/creative_canvas/presentation/useCanvasLinkedCaptureDragController";
+export type {
+  CanvasLinkedCaptureDragController,
+  CanvasLinkedCaptureDragControllerOptions,
+  CanvasLinkedCaptureDragNode,
+  CanvasLinkedCapturePositionCommit,
+} from "@/modules/creative_canvas/presentation/useCanvasLinkedCaptureDragController";
+export { useCanvasGraphChangeController } from "@/modules/creative_canvas/presentation/useCanvasGraphChangeController";
+export type {
+  CanvasGraphChangeController,
+  CanvasGraphChangeControllerOptions,
+  CanvasGraphChangeEvent,
+} from "@/modules/creative_canvas/presentation/useCanvasGraphChangeController";
+export { useCanvasDragLifecycleController } from "@/modules/creative_canvas/presentation/useCanvasDragLifecycleController";
+export type {
+  CanvasDragLifecycleController,
+  CanvasDragLifecycleControllerOptions,
+  CanvasDragLifecycleNode,
+  CanvasDragStartEvent,
+} from "@/modules/creative_canvas/presentation/useCanvasDragLifecycleController";
 export type {
   CanvasConnectionMenuRequest,
   CanvasConnectionPreviewRequest,

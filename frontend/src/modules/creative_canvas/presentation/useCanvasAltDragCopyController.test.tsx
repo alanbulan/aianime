@@ -3,29 +3,23 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-} from '../domain/canvasNodes';
-import {
   useCanvasAltDragCopyController,
   type CanvasAltDragCopyControllerOptions,
 } from './useCanvasAltDragCopyController';
 
-function node(
-  id: string,
-  position: { x: number; y: number },
-): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
-    position,
-    data: { content: id } as CanvasNodeData,
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  position: { x: number; y: number };
 }
 
-function createOptions(overrides: Partial<CanvasAltDragCopyControllerOptions> = {}) {
-  const options: CanvasAltDragCopyControllerOptions = {
+function node(id: string, position: { x: number; y: number }): TestNode {
+  return { id, position };
+}
+
+function createOptions(
+  overrides: Partial<CanvasAltDragCopyControllerOptions<TestNode>> = {},
+): CanvasAltDragCopyControllerOptions<TestNode> {
+  return {
     nodes: [
       node('source-a', { x: 10, y: 20 }),
       node('source-b', { x: 40, y: 50 }),
@@ -44,7 +38,6 @@ function createOptions(overrides: Partial<CanvasAltDragCopyControllerOptions> = 
     selectNode: vi.fn(),
     ...overrides,
   };
-  return options;
 }
 
 describe('useCanvasAltDragCopyController', () => {
@@ -91,7 +84,7 @@ describe('useCanvasAltDragCopyController', () => {
     expect(result.current.isCopyDragActive()).toBe(false);
   });
 
-  it('duplicates only the dragged node when it is outside the active selection', () => {
+  it('duplicates only the dragged node outside the active selection', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasAltDragCopyController(options),
@@ -114,7 +107,7 @@ describe('useCanvasAltDragCopyController', () => {
     expect(options.selectNode).toHaveBeenCalledWith('copy-c');
   });
 
-  it('clears a pending copy when the next drag does not hold Alt', () => {
+  it('clears pending copy state when the next drag does not hold Alt', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasAltDragCopyController(options),

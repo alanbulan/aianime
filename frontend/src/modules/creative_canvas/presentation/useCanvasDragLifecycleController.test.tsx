@@ -1,21 +1,19 @@
 // Copyright (c) 2026 AI anime
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 import {
   useCanvasDragLifecycleController,
   type CanvasDragLifecycleControllerOptions,
 } from './useCanvasDragLifecycleController';
 
-function node(id: string, x = 0, y = 0): CanvasNode {
-  return {
-    id,
-    type: CANVAS_NODE_TYPES.upload,
-    position: { x, y },
-    data: {},
-  } as CanvasNode;
+interface TestNode {
+  id: string;
+  position: { x: number; y: number };
+}
+
+function node(id: string, x = 0, y = 0): TestNode {
+  return { id, position: { x, y } };
 }
 
 function createOptions(): CanvasDragLifecycleControllerOptions {
@@ -42,12 +40,12 @@ describe('useCanvasDragLifecycleController', () => {
   it('starts group, linked-capture and Alt-copy controllers in order', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
-      useCanvasDragLifecycleController(options),
+      useCanvasDragLifecycleController<TestNode>(options),
     );
     const dragged = node('dragged');
 
     act(() => result.current.handleNodeDragStart(
-      { altKey: true } as ReactMouseEvent,
+      { altKey: true },
       dragged,
       [dragged, node('selected')],
     ));
@@ -73,14 +71,16 @@ describe('useCanvasDragLifecycleController', () => {
   it('updates linked capture before Alt-copy and preserves stop order', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
-      useCanvasDragLifecycleController(options),
+      useCanvasDragLifecycleController<TestNode>(options),
     );
     const dragged = node('dragged', 120, 240);
-    const event = {} as ReactMouseEvent;
 
-    act(() => result.current.handleNodeDrag(event, dragged));
+    act(() => result.current.handleNodeDrag({}, dragged));
 
-    expect(options.updateLinkedCaptureDrag).toHaveBeenCalledWith({ x: 120, y: 240 });
+    expect(options.updateLinkedCaptureDrag).toHaveBeenCalledWith({
+      x: 120,
+      y: 240,
+    });
     expect(options.updateAltDragCopy).toHaveBeenCalledWith(
       'dragged',
       { x: 120, y: 240 },
@@ -91,7 +91,7 @@ describe('useCanvasDragLifecycleController', () => {
     );
 
     vi.clearAllMocks();
-    act(() => result.current.handleNodeDragStop(event, dragged));
+    act(() => result.current.handleNodeDragStop({}, dragged));
 
     expect(options.finishAltDragCopy).toHaveBeenCalledWith(
       'dragged',
@@ -108,11 +108,11 @@ describe('useCanvasDragLifecycleController', () => {
   it('maps selection drags to group-fit lifecycle commands', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
-      useCanvasDragLifecycleController(options),
+      useCanvasDragLifecycleController<TestNode>(options),
     );
 
     act(() => result.current.handleSelectionDragStart(
-      {} as ReactMouseEvent,
+      {},
       [node('node-a'), node('node-b')],
     ));
     act(() => result.current.handleSelectionDragStop());

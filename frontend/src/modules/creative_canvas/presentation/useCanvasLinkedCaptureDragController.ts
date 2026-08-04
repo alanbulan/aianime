@@ -1,17 +1,20 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import { findLinkedCapturePartnerIds } from '@/modules/creative_canvas/public';
-
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+  findLinkedCapturePartnerIds,
+  type CanvasCapturePartnerEdge,
+  type CanvasCapturePartnerNode,
+} from '../domain/canvasCapturePartners';
 
 interface CanvasLinkedCaptureDragState {
   partnerStarts: Map<string, { x: number; y: number }>;
   draggedStart: { x: number; y: number };
+}
+
+export interface CanvasLinkedCaptureDragNode<TNodeType>
+  extends CanvasCapturePartnerNode<TNodeType> {
+  position: { x: number; y: number };
 }
 
 export interface CanvasLinkedCapturePositionCommit {
@@ -20,11 +23,16 @@ export interface CanvasLinkedCapturePositionCommit {
   dragging: true;
 }
 
-export interface CanvasLinkedCaptureDragControllerOptions {
+export interface CanvasLinkedCaptureDragControllerOptions<
+  TNode extends CanvasLinkedCaptureDragNode<TNodeType>,
+  TEdge extends CanvasCapturePartnerEdge,
+  TNodeType,
+> {
   getGraph: () => {
-    nodes: readonly CanvasNode[];
-    edges: readonly CanvasEdge[];
+    nodes: readonly TNode[];
+    edges: readonly TEdge[];
   };
+  groupNodeType: TNodeType;
   commitNodePositions: (
     updates: CanvasLinkedCapturePositionCommit[],
   ) => void;
@@ -40,10 +48,19 @@ export interface CanvasLinkedCaptureDragController {
   finishLinkedDrag: () => void;
 }
 
-export function useCanvasLinkedCaptureDragController({
+export function useCanvasLinkedCaptureDragController<
+  TNode extends CanvasLinkedCaptureDragNode<TNodeType>,
+  TEdge extends CanvasCapturePartnerEdge,
+  TNodeType,
+>({
   getGraph,
+  groupNodeType,
   commitNodePositions,
-}: CanvasLinkedCaptureDragControllerOptions): CanvasLinkedCaptureDragController {
+}: CanvasLinkedCaptureDragControllerOptions<
+  TNode,
+  TEdge,
+  TNodeType
+>): CanvasLinkedCaptureDragController {
   const linkedDragRef = useRef<CanvasLinkedCaptureDragState | null>(null);
 
   const beginLinkedDrag = useCallback(
@@ -58,7 +75,7 @@ export function useCanvasLinkedCaptureDragController({
         draggedNodeId,
         nodes,
         edges,
-        CANVAS_NODE_TYPES.group,
+        groupNodeType,
       );
       if (partnerIds.length === 0) {
         return;
@@ -85,7 +102,7 @@ export function useCanvasLinkedCaptureDragController({
         draggedStart: { ...draggedNode.position },
       };
     },
-    [getGraph],
+    [getGraph, groupNodeType],
   );
 
   const updateLinkedDrag = useCallback(

@@ -3,37 +3,49 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   useCanvasLinkedCaptureDragController,
   type CanvasLinkedCaptureDragControllerOptions,
 } from './useCanvasLinkedCaptureDragController';
 
+type TestNodeType = 'uploadNode' | 'groupNode';
+
+interface TestNode {
+  id: string;
+  type: TestNodeType;
+  position: { x: number; y: number };
+  parentId?: string;
+  data?: unknown;
+}
+
+interface TestEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+type TestOptions = CanvasLinkedCaptureDragControllerOptions<
+  TestNode,
+  TestEdge,
+  TestNodeType
+>;
+
 function node(
   id: string,
   position: { x: number; y: number },
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<TestNode> = {},
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    type: 'uploadNode',
     position,
-    data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
 function captureGraph() {
   const source = node('source', { x: 10, y: 20 });
   const secondSource = node('second-source', { x: 50, y: 60 });
-  const group = node(
-    'group',
-    { x: 100, y: 200 },
-    { type: CANVAS_NODE_TYPES.group },
-  );
+  const group = node('group', { x: 100, y: 200 }, { type: 'groupNode' });
   const capture = node('capture', { x: 0, y: 0 }, {
     parentId: group.id,
     data: { captureMetadata: { yaw: 90 } },
@@ -43,14 +55,15 @@ function captureGraph() {
     edges: [
       { id: 'edge-1', source: source.id, target: capture.id },
       { id: 'edge-2', source: secondSource.id, target: capture.id },
-    ] as CanvasEdge[],
+    ],
   };
 }
 
-function createOptions(): CanvasLinkedCaptureDragControllerOptions {
+function createOptions(): TestOptions {
   const graph = captureGraph();
   return {
     getGraph: vi.fn(() => graph),
+    groupNodeType: 'groupNode',
     commitNodePositions: vi.fn(),
   };
 }
@@ -67,16 +80,14 @@ describe('useCanvasLinkedCaptureDragController', () => {
       result.current.updateLinkedDrag({ x: 30, y: 55 });
     });
 
-    expect(options.commitNodePositions).toHaveBeenCalledWith([
-      {
-        nodeId: 'group',
-        position: { x: 120, y: 235 },
-        dragging: true,
-      },
-    ]);
+    expect(options.commitNodePositions).toHaveBeenCalledWith([{
+      nodeId: 'group',
+      position: { x: 120, y: 235 },
+      dragging: true,
+    }]);
   });
 
-  it('moves every top-level source when dragging the capture output group', () => {
+  it('moves every top-level source with the capture output group', () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useCanvasLinkedCaptureDragController(options),
@@ -88,11 +99,7 @@ describe('useCanvasLinkedCaptureDragController', () => {
     });
 
     expect(options.commitNodePositions).toHaveBeenCalledWith([
-      {
-        nodeId: 'source',
-        position: { x: 40, y: 70 },
-        dragging: true,
-      },
+      { nodeId: 'source', position: { x: 40, y: 70 }, dragging: true },
       {
         nodeId: 'second-source',
         position: { x: 80, y: 110 },

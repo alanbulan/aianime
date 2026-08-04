@@ -1,51 +1,62 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
+import type { EdgeChange, NodeChange } from '@xyflow/react';
 
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 import {
   useCanvasAltDragCopyController,
   type CanvasAltDragCopyControllerOptions,
   type CanvasAltDragPositionCommit,
-} from './useCanvasAltDragCopyController';
-import {
   useCanvasDragLifecycleController,
   type CanvasDragLifecycleController,
-} from './useCanvasDragLifecycleController';
-import {
   useCanvasGraphChangeController,
   type CanvasGraphChangeController,
   type CanvasGraphChangeControllerOptions,
-} from './useCanvasGraphChangeController';
-import {
   useCanvasGroupFitDragController,
   type CanvasGroupFitDragControllerOptions,
-} from './useCanvasGroupFitDragController';
-import {
   useCanvasLinkedCaptureDragController,
-} from './useCanvasLinkedCaptureDragController';
+} from '@/modules/creative_canvas/public';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+  type CanvasNodeType,
+} from '../domain/canvasNodes';
+
+type AltDragCopyOptions = CanvasAltDragCopyControllerOptions<CanvasNode>;
+type GroupFitDragOptions = CanvasGroupFitDragControllerOptions<CanvasNode>;
+type GraphChangeOptions = CanvasGraphChangeControllerOptions<
+  CanvasNode,
+  CanvasEdge,
+  NodeChange<CanvasNode>,
+  EdgeChange<CanvasEdge>
+>;
 
 export interface CanvasGraphInteractionControllerOptions {
   nodes: readonly CanvasNode[];
   selectedNodeIds: readonly string[];
-  duplicateNodes: CanvasAltDragCopyControllerOptions['duplicateNodes'];
-  elevateNodes: CanvasAltDragCopyControllerOptions['elevateNodes'];
-  selectNode: CanvasAltDragCopyControllerOptions['selectNode'];
+  duplicateNodes: AltDragCopyOptions['duplicateNodes'];
+  elevateNodes: AltDragCopyOptions['elevateNodes'];
+  selectNode: AltDragCopyOptions['selectNode'];
   getGraph: () => {
     nodes: readonly CanvasNode[];
     edges: readonly CanvasEdge[];
   };
   fitGroupToChildren:
-    CanvasGroupFitDragControllerOptions['fitGroupToChildren'];
-  alignNodeChanges: CanvasGraphChangeControllerOptions['alignNodeChanges'];
-  applyNodeChanges: CanvasGraphChangeControllerOptions['applyNodeChanges'];
-  applyEdgeChanges: CanvasGraphChangeControllerOptions['applyEdgeChanges'];
-  deleteEdge: CanvasGraphChangeControllerOptions['deleteEdge'];
+    GroupFitDragOptions['fitGroupToChildren'];
+  alignNodeChanges: GraphChangeOptions['alignNodeChanges'];
+  applyNodeChanges: GraphChangeOptions['applyNodeChanges'];
+  applyEdgeChanges: GraphChangeOptions['applyEdgeChanges'];
+  deleteEdge: GraphChangeOptions['deleteEdge'];
   clearSnapAlignment: () => void;
 }
 
 export interface CanvasGraphInteractionController
-  extends CanvasGraphChangeController,
-  CanvasDragLifecycleController {}
+  extends CanvasGraphChangeController<
+    CanvasEdge,
+    NodeChange<CanvasNode>,
+    EdgeChange<CanvasEdge>
+  >,
+  CanvasDragLifecycleController<CanvasNode> {}
 
 export function useCanvasGraphInteractionController({
   nodes,
@@ -84,8 +95,13 @@ export function useCanvasGraphInteractionController({
     getGraph,
     fitGroupToChildren,
   });
-  const linkedCaptureDrag = useCanvasLinkedCaptureDragController({
+  const linkedCaptureDrag = useCanvasLinkedCaptureDragController<
+    CanvasNode,
+    CanvasEdge,
+    CanvasNodeType
+  >({
     getGraph,
+    groupNodeType: CANVAS_NODE_TYPES.group,
     commitNodePositions,
   });
   const graphChanges = useCanvasGraphChangeController({

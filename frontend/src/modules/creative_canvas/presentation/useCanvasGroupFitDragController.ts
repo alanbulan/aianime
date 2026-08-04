@@ -1,10 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
+export interface CanvasGroupFitDragNode {
+  id: string;
+  parentId?: string;
+}
 
-export interface CanvasGroupFitDragControllerOptions {
-  getGraph: () => { nodes: readonly CanvasNode[] };
+export interface CanvasGroupFitDragControllerOptions<
+  TNode extends CanvasGroupFitDragNode,
+> {
+  getGraph: () => { nodes: readonly TNode[] };
   fitGroupToChildren: (groupNodeId: string) => void;
 }
 
@@ -18,8 +23,8 @@ export interface CanvasGroupFitDragController {
   finishDrag: () => void;
 }
 
-function resolveParentGroupIds(
-  nodes: readonly CanvasNode[],
+function resolveParentGroupIds<TNode extends CanvasGroupFitDragNode>(
+  nodes: readonly TNode[],
   draggedNodeIds: readonly string[],
 ): string[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
@@ -33,10 +38,12 @@ function resolveParentGroupIds(
   return [...groupIds];
 }
 
-export function useCanvasGroupFitDragController({
+export function useCanvasGroupFitDragController<
+  TNode extends CanvasGroupFitDragNode,
+>({
   getGraph,
   fitGroupToChildren,
-}: CanvasGroupFitDragControllerOptions): CanvasGroupFitDragController {
+}: CanvasGroupFitDragControllerOptions<TNode>): CanvasGroupFitDragController {
   const pendingGroupIdsRef = useRef<string[]>([]);
 
   const beginNodeDrag = useCallback(

@@ -1,9 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef } from 'react';
 
-import type { CanvasNode } from '../domain/canvasNodes';
-
 const ALT_DRAG_COPY_Z_INDEX = 2000;
+
+export interface CanvasAltDragNode {
+  id: string;
+  position: { x: number; y: number };
+}
 
 interface CanvasAltDragCopyState {
   sourceNodeIds: string[];
@@ -18,8 +21,10 @@ export interface CanvasAltDragPositionCommit {
   dragging: boolean;
 }
 
-export interface CanvasAltDragCopyControllerOptions {
-  nodes: readonly CanvasNode[];
+export interface CanvasAltDragCopyControllerOptions<
+  TNode extends CanvasAltDragNode,
+> {
+  nodes: readonly TNode[];
   selectedNodeIds: readonly string[];
   duplicateNodes: (
     sourceNodeIds: string[],
@@ -90,14 +95,16 @@ function createPositionCommits(
   return [...sourceUpdates, ...copyUpdates];
 }
 
-export function useCanvasAltDragCopyController({
+export function useCanvasAltDragCopyController<
+  TNode extends CanvasAltDragNode,
+>({
   nodes,
   selectedNodeIds,
   duplicateNodes,
   elevateNodes,
   commitNodePositions,
   selectNode,
-}: CanvasAltDragCopyControllerOptions): CanvasAltDragCopyController {
+}: CanvasAltDragCopyControllerOptions<TNode>): CanvasAltDragCopyController {
   const copyStateRef = useRef<CanvasAltDragCopyState | null>(null);
 
   const beginCopyDrag = useCallback(
