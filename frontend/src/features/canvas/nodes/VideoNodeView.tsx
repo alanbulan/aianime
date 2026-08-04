@@ -31,6 +31,7 @@ import {
   VideoNodePrimaryVideo,
   SubtitleEraseBoxOverlay,
   SubtitleEraseOpsPanel,
+  ReferenceMediaRow,
   VideoNodeGenerationHistoryPanel,
   VideoPlayerControls,
   VideoGeneratingState,
@@ -51,7 +52,6 @@ import {
   VideoNodeEmptyState,
   VideoUploadActionRail,
 } from '@/features/canvas/nodes/VideoNodeEmptyState';
-import { ReferenceMediaRow } from '@/features/canvas/nodes/VideoReferenceMedia';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

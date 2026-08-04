@@ -27952,6 +27952,10 @@ describe("frontend architecture boundaries", () => {
   it("keeps VideoNode reference media in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/presentation/VideoReferenceMedia.tsx",
+    );
+    const oldViewPath = resolve(
+      SRC_ROOT,
       "features/canvas/nodes/VideoReferenceMedia.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
@@ -27971,8 +27975,8 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier.startsWith("@/features/canvas/") ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier === "@/features/canvas/composition",
     );
     const declarations = [
@@ -27990,9 +27994,26 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(forbiddenImports).toEqual([]);
+    expect(existsSync(oldViewPath)).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/VideoReferenceMedia.test.tsx",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/nodes/VideoReferenceMedia.test.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(implementationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/nodes/VideoReferenceMedia.tsx",
+        "modules/creative_canvas/presentation/VideoReferenceMedia.tsx",
       ]),
     );
     expect(viewSource).toContain(
@@ -28001,7 +28022,13 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("new Audio()");
     expect(viewSource).toContain("createPortal(");
     expect(viewSource).not.toContain("REFERENCE_CAPS_BY_MODE");
+    expect(viewSource).toContain("../domain/videoReferenceLimits");
+    expect(viewSource).toContain("./canvasNodeControlStyles");
+    expect(viewSource).toContain("./ReferenceDetachButton");
     expect(videoNode).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(videoNode).not.toContain(
       "@/features/canvas/nodes/VideoReferenceMedia",
     );
     expect(videoNode).toContain("<ReferenceMediaRow");
@@ -28034,7 +28061,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const referenceView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/VideoReferenceMedia.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/VideoReferenceMedia.tsx",
+      ),
       "utf8",
     );
     const declarations = [
@@ -28068,9 +28098,10 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(referenceView).toContain(
+    expect(referenceView).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(referenceView).toContain("../domain/videoReferenceLimits");
     expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
   });
 
