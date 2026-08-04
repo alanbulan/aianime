@@ -22,9 +22,9 @@ import {
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
   PanelExpandButton,
+  ReferenceTextChip,
 } from '@/modules/creative_canvas/public';
 import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { UiSelect } from '@/components/ui';

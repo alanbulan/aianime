@@ -24,10 +24,10 @@ import {
   projectImageEditPromptSegments,
   stringifyParamValue,
   type CapabilityParamDefinition,
+  ReferenceDetachButton,
+  ReferenceTextChip,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
-import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { UiButton } from '@/components/ui';
 
 function PromptWithHighlights({

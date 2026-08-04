@@ -2816,3 +2816,8 @@ export { VideoGenerationModeSelect } from "@/modules/creative_canvas/presentatio
 export type { VideoGenerationModeSelectProps } from "@/modules/creative_canvas/presentation/VideoGenerationModeSelect";
 export { VideoHumanReviewSwitch } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";
 export type { VideoHumanReviewSwitchProps } from "@/modules/creative_canvas/presentation/VideoHumanReviewSwitch";
+export { ReferenceDetachButton } from "@/modules/creative_canvas/presentation/ReferenceDetachButton";
+export type { ReferenceDetachButtonProps } from "@/modules/creative_canvas/presentation/ReferenceDetachButton";
+export { ReferenceTextChip } from "@/modules/creative_canvas/presentation/ReferenceTextChip";
+export type { ReferenceTextChipProps } from "@/modules/creative_canvas/presentation/ReferenceTextChip";
+export { DirectorControlBundleBadge } from "@/modules/creative_canvas/presentation/DirectorControlBundleBadge";

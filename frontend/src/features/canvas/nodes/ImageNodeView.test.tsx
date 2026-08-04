@@ -42,11 +42,8 @@ vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/DirectorControlBundleBadge', () => ({
-  DirectorControlBundleBadge: () => <div>director-badge</div>,
-}));
-
 vi.mock('@/modules/creative_canvas/public', () => ({
+  DirectorControlBundleBadge: () => <div>director-badge</div>,
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
   RegenerateButton: ({ onClick }: { onClick(): void }) => (
     <button type="button" onClick={onClick}>retry</button>

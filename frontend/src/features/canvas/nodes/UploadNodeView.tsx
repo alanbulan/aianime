@@ -11,11 +11,11 @@ import {
   CandidateBindingBadges,
   NodeResizeHandle,
   VIDEO_FILE_ACCEPT,
+  DirectorControlBundleBadge,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
 import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
-import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

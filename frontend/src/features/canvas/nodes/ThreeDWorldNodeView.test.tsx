@@ -35,6 +35,12 @@ vi.mock('@/features/canvas/ui/NodeHeader', () => ({
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
+    <span>detach:{nodeId}</span>
+  ),
+  ReferenceTextChip: ({ sourceLabel }: { sourceLabel: string }) => (
+    <div>text-ref:{sourceLabel}</div>
+  ),
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -63,18 +69,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
         refresh-history
       </button>
     </div>
-  ),
-}));
-
-vi.mock('@/features/canvas/nodes/shared/ReferenceDetachButton', () => ({
-  ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
-    <span>detach:{nodeId}</span>
-  ),
-}));
-
-vi.mock('@/features/canvas/nodes/shared/ReferenceTextChip', () => ({
-  ReferenceTextChip: ({ sourceLabel }: { sourceLabel: string }) => (
-    <div>text-ref:{sourceLabel}</div>
   ),
 }));
 

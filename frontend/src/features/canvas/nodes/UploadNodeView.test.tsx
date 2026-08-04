@@ -49,11 +49,8 @@ vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/ui/DirectorControlBundleBadge', () => ({
-  DirectorControlBundleBadge: () => <div>bundle-badge</div>,
-}));
-
 vi.mock('@/modules/creative_canvas/public', () => ({
+  DirectorControlBundleBadge: () => <div>bundle-badge</div>,
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS: 'body-frame',
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS: 'selected-frame',
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',

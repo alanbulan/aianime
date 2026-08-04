@@ -10,10 +10,10 @@ import {
 import { Music, Pause } from "lucide-react";
 import { createPortal } from "react-dom";
 
-import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import {
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
+  ReferenceDetachButton,
   type VideoReferenceCapEntry,
   type VideoReferenceCaps,
   type VideoReferenceItem,

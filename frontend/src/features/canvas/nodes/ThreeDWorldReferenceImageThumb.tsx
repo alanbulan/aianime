@@ -2,9 +2,11 @@
 import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { resolveImageDisplayUrl } from '@/modules/creative_canvas/public';
+import {
+  ReferenceDetachButton,
+  resolveImageDisplayUrl,
+} from '@/modules/creative_canvas/public';
 import type { ThreeDWorldReferenceImage } from '@/features/canvas/application/threeDWorldNodeModel';
-import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
 
 const PREVIEW_WIDTH = 240;
 const PREVIEW_OFFSET = 10;

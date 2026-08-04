@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   DirectorControlBundleBadge,
   hasDirectorControlBundle,
-} from "@/features/canvas/ui/DirectorControlBundleBadge";
+} from "./DirectorControlBundleBadge";
 
 describe("DirectorControlBundleBadge", () => {
   it("detects only complete director control bundle records", () => {

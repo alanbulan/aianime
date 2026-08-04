@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { X } from 'lucide-react';
 
-interface ReferenceDetachButtonProps {
+export interface ReferenceDetachButtonProps {
   /** 上游节点 id（连线的 source） */
   nodeId: string;
   /** 取消引用回调 */

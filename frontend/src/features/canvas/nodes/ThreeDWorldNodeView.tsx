@@ -19,10 +19,10 @@ import {
   NodeContextBadges,
   NodeGenerationHistory,
   canvasNodeFrameClass,
+  ReferenceTextChip,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';
 import {
   NodeHeader,

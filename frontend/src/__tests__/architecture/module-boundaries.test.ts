@@ -31892,4 +31892,45 @@ describe("frontend architecture boundaries", () => {
       );
     }
   });
+
+  it("keeps shared reference and director badges in Creative Canvas presentation", () => {
+    const modulePublic = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),
+      "utf8",
+    );
+    const owners = [
+      "modules/creative_canvas/presentation/ReferenceDetachButton.tsx",
+      "modules/creative_canvas/presentation/ReferenceTextChip.tsx",
+      "modules/creative_canvas/presentation/DirectorControlBundleBadge.tsx",
+    ];
+    const legacyPaths = [
+      "features/canvas/nodes/shared/ReferenceDetachButton.tsx",
+      "features/canvas/nodes/shared/ReferenceTextChip.tsx",
+      "features/canvas/ui/DirectorControlBundleBadge.tsx",
+    ];
+    expect(modulePublic).toContain(
+      'export { ReferenceDetachButton } from "@/modules/creative_canvas/presentation/ReferenceDetachButton";',
+    );
+    expect(modulePublic).toContain(
+      'export { ReferenceTextChip } from "@/modules/creative_canvas/presentation/ReferenceTextChip";',
+    );
+    expect(modulePublic).toContain(
+      'export { DirectorControlBundleBadge } from "@/modules/creative_canvas/presentation/DirectorControlBundleBadge";',
+    );
+    expect(
+      owners.map((path) => existsSync(resolve(SRC_ROOT, path))),
+    ).toEqual([true, true, true]);
+    expect(
+      legacyPaths.map((path) => existsSync(resolve(SRC_ROOT, path))),
+    ).toEqual([false, false, false]);
+    for (const owner of owners) {
+      const path = resolve(SRC_ROOT, owner);
+      expect(importSpecifiers(path)).not.toContain(
+        "@/features/canvas/composition",
+      );
+      expect(readFileSync(path, "utf8")).not.toContain(
+        "@/features/canvas/",
+      );
+    }
+  });
 });

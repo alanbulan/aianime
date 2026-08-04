@@ -4,7 +4,6 @@ import { AlertTriangle, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 import type { ImageNodeController } from '@/features/canvas/hooks/useImageNodeController';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
-import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
@@ -15,6 +14,7 @@ import {
   NodeGenerationOverlay,
   NodeResizeHandle,
   RegenerateButton,
+  DirectorControlBundleBadge,
   canvasNodeFrameClass,
 } from '@/modules/creative_canvas/public';
 

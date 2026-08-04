@@ -29,7 +29,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
   VideoAlbumDeck,
   VideoAlbumGallery,
@@ -80,6 +79,7 @@ import {
   NodeContextBadges,
   NodeResizeHandle,
   PanelExpandButton,
+  ReferenceTextChip,
   canvasNodeFrameClass,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';

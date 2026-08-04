@@ -5,7 +5,7 @@ import { FileText } from 'lucide-react';
 
 import { ReferenceDetachButton } from './ReferenceDetachButton';
 
-interface ReferenceTextChipProps {
+export interface ReferenceTextChipProps {
   /** 上游文本节点 id（连线的 source） */
   nodeId: string;
   /** 被引用的文本内容 */

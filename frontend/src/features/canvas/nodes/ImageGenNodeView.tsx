@@ -48,10 +48,10 @@ import {
   NodeResizeHandle,
   PanelExpandButton,
   RegenerateButton,
+  ReferenceTextChip,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
 import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
-import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import {
   AspectSizeChip,
   CameraChip,

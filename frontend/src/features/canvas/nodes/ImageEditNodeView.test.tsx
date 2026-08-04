@@ -37,16 +37,6 @@ vi.mock('@/features/canvas/ui/CanvasNodeImage', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/nodes/shared/ReferenceDetachButton', () => ({
-  ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
-    <span>detach:{nodeId}</span>
-  ),
-}));
-
-vi.mock('@/features/canvas/nodes/shared/ReferenceTextChip', () => ({
-  ReferenceTextChip: ({ text }: { text: string }) => <span>text:{text}</span>,
-}));
-
 vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
@@ -80,10 +70,19 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
+    <span>detach:{nodeId}</span>
+  ),
+  ReferenceTextChip: ({ text }: { text: string }) => <span>text:{text}</span>,
   CANVAS_NODE_INPUT_FRAME_CLASS: 'input-frame',
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS: 'input-placeholder',
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  NODE_CONTROL_CHIP_CLASS: 'chip',
+  NODE_CONTROL_ICON_CLASS: 'icon',
+  NODE_CONTROL_MODEL_CHIP_CLASS: 'model-chip',
+  NODE_CONTROL_PARAMS_CHIP_CLASS: 'params-chip',
+  NODE_CONTROL_PRIMARY_BUTTON_CLASS: 'primary-button',
   IMAGE_EDIT_NODE_SIZE_LIMITS: {
     minWidth: 240,
     minHeight: 180,
