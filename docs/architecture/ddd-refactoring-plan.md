@@ -1226,6 +1226,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百二十五批将上传、历史生成预览、生成中、生成失败、视频加载失败和元数据加载状态迁入 Creative Canvas presentation。模块内部改为直接依赖 `NodeGenerationOverlay` 与 `RegenerateButton`，不经自身 public 回绕；`VideoNodeView` 经模块 public 使用 6 个状态组件，两个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套状态实现。状态回归 1 个文件 5 项、残余与模块边界联合 2 个文件 341 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 933/301/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 301/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百二十六批将视频生成历史面板及行为测试迁入 Creative Canvas presentation。历史记录领域规则、节点历史组件和节点框架样式均改为模块内直接依赖，不经自身 public 回绕；操作面板入场动画常量同步收归 Creative Canvas 节点框架样式，旧 Canvas 的操作面板与图片节点经模块 public 复用。`VideoNodeView` 经模块 public 使用唯一历史面板，两个旧生产/测试所有者直接删除，不保留 facade、re-export 或第二套历史展示实现。历史面板回归 1 个文件 3 项、残余与模块边界联合 2 个文件 341 项、前端 TypeScript 和 `git diff --check` 通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 935/299/0，Canvas 另有 1 个 CSS 文件，残余 ratchet 收紧到 299/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型，商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
