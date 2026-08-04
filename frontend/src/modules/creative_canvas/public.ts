@@ -680,6 +680,14 @@ export type {
   CanvasConnectionGestureController,
   CanvasConnectionGestureControllerOptions,
 } from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureController";
+export { createUseCanvasConnectionGestureSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureSurfaceController";
+export type {
+  CanvasConnectionGestureSurfaceController,
+  CanvasConnectionGestureSurfaceControllerDependencies,
+  CanvasConnectionGestureSurfaceControllerOptions,
+  CanvasConnectionGestureSurfaceStore,
+  CanvasConnectionGestureSurfaceStoreHook,
+} from "@/modules/creative_canvas/presentation/useCanvasConnectionGestureSurfaceController";
 export { navigateCanvasHistory } from "@/modules/creative_canvas/application/canvasHistoryNavigation";
 export type {
   CanvasHistoryDirection,

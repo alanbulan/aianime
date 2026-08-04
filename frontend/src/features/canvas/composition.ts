@@ -17,6 +17,7 @@ import {
   browserImageRuntimeGateway,
   canvasEventBus,
   composeCapability,
+  createUseCanvasConnectionGestureSurfaceController,
   createUseCanvasGenerationRecoveryController,
   createUseCanvasViewerSurfaceController,
   detectAspectRatio as detectAspectRatioUseCase,
@@ -203,6 +204,10 @@ export const CURRENT_RUNTIME_SESSION_ID =
 export const useCanvasViewerSurfaceController =
   createUseCanvasViewerSurfaceController({
     eventPort: canvasEventBus,
+    useStore: useCanvasStore,
+  });
+export const useCanvasConnectionGestureSurfaceController =
+  createUseCanvasConnectionGestureSurfaceController({
     useStore: useCanvasStore,
   });
 export const useCanvasGenerationRecoveryController =

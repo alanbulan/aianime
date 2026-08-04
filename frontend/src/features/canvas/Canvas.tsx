@@ -24,13 +24,15 @@ import { useAppStore } from '@/stores/app-store';
 import { CANVAS_NODE_TYPES, isUploadNode } from './domain/canvasNodes';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
-import { useCanvasConnectionGestureSurfaceController } from './hooks/useCanvasConnectionGestureSurfaceController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
-import { useCanvasViewerSurfaceController } from './composition';
+import {
+  useCanvasConnectionGestureSurfaceController,
+  useCanvasViewerSurfaceController,
+} from './composition';
 
 interface CanvasProps {
   projectId: string;

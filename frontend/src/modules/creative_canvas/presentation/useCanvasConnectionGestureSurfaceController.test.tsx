@@ -3,8 +3,9 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  useCanvasConnectionGestureSurfaceController,
+  createUseCanvasConnectionGestureSurfaceController,
   type CanvasConnectionGestureSurfaceControllerOptions,
+  type CanvasConnectionGestureSurfaceStore,
 } from './useCanvasConnectionGestureSurfaceController';
 
 const controllerMocks = vi.hoisted(() => {
@@ -29,23 +30,25 @@ const controllerMocks = vi.hoisted(() => {
     storeState,
     hover,
     gestures,
-    useStore: vi.fn(
-      (selector: (state: typeof storeState) => unknown) =>
-        selector(storeState),
-    ),
     useNodeHover: vi.fn(() => hover),
     useConnectionGestures: vi.fn(() => gestures),
   };
 });
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: controllerMocks.useStore,
-}));
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./useCanvasConnectionGestureController', () => ({
   useCanvasConnectionGestureController:
     controllerMocks.useConnectionGestures,
+}));
+vi.mock('./useCanvasNodeHover', () => ({
   useCanvasNodeHover: controllerMocks.useNodeHover,
 }));
+
+const useStore = <TSelected,>(
+  selector: (state: CanvasConnectionGestureSurfaceStore) => TSelected,
+): TSelected => selector(controllerMocks.storeState);
+
+const useCanvasConnectionGestureSurfaceController =
+  createUseCanvasConnectionGestureSurfaceController({ useStore });
 
 function createOptions(): CanvasConnectionGestureSurfaceControllerOptions {
   return {
@@ -64,7 +67,7 @@ function createOptions(): CanvasConnectionGestureSurfaceControllerOptions {
   };
 }
 
-describe('useCanvasConnectionGestureSurfaceController', () => {
+describe('createUseCanvasConnectionGestureSurfaceController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controllerMocks.storeState.hoveredNodeId = 'node-1';
