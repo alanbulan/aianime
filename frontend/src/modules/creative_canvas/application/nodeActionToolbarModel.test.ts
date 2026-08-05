@@ -2,23 +2,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from "@/features/canvas/domain/canvasNodes";
-
-import {
   projectNodeActionGenerationError,
   projectNodeActionStoryboardText,
   resolveNodeActionImageDownloadFilename,
+  type NodeActionToolbarNode,
 } from "./nodeActionToolbarModel";
 
 function node(
-  type: CanvasNodeType,
+  type: string | null | undefined,
   data: Record<string, unknown>,
   id = "node-a",
-): CanvasNode {
-  return { id, type, position: { x: 0, y: 0 }, data } as CanvasNode;
+): NodeActionToolbarNode {
+  return { id, type, data };
 }
 
 const formatLine = (index: string, content: string) =>
@@ -28,7 +23,7 @@ describe("nodeActionToolbarModel", () => {
   it("projects the preserved ImageGen error only when a displayed error exists", () => {
     expect(
       projectNodeActionGenerationError(
-        node(CANVAS_NODE_TYPES.imageGen, {
+        node("imageGenNode", {
           generationError: " Provider error ",
           generationErrorDetails: " Raw provider error ",
         }),
@@ -38,7 +33,7 @@ describe("nodeActionToolbarModel", () => {
 
     expect(
       projectNodeActionGenerationError(
-        node(CANVAS_NODE_TYPES.imageGen, {
+        node("imageGenNode", {
           generationErrorDetails: "Raw provider error",
         }),
         "Fallback error",
@@ -48,7 +43,7 @@ describe("nodeActionToolbarModel", () => {
 
   it("builds the complete ExportImage report and hides errors on other nodes", () => {
     const exported = projectNodeActionGenerationError(
-      node(CANVAS_NODE_TYPES.exportImage, {
+      node("exportImageNode", {
         generationError: "Export failed",
         generationErrorDetails: "Encoder exited with code 1",
         generationDebugContext: {
@@ -68,7 +63,7 @@ describe("nodeActionToolbarModel", () => {
 
     expect(
       projectNodeActionGenerationError(
-        node(CANVAS_NODE_TYPES.video, {
+        node("videoNode", {
           generationError: "Hidden error",
           generationErrorDetails: "Hidden details",
         }),
@@ -79,7 +74,7 @@ describe("nodeActionToolbarModel", () => {
 
   it("projects StoryboardGen descriptions in source order and sanitizes tags", () => {
     const projected = projectNodeActionStoryboardText(
-      node(CANVAS_NODE_TYPES.storyboardGen, {
+      node("storyboardGenNode", {
         frames: [
           { description: "First @图1", referenceIndex: null },
           { description: "Second @ 图2", referenceIndex: null },
@@ -97,7 +92,7 @@ describe("nodeActionToolbarModel", () => {
 
   it("sorts StoryboardSplit notes by order and preserves the empty-state action", () => {
     const projected = projectNodeActionStoryboardText(
-      node(CANVAS_NODE_TYPES.storyboardSplit, {
+      node("storyboardSplitNode", {
         frames: [
           { order: 2, note: "Second" },
           { order: 1, note: "First" },
@@ -113,7 +108,7 @@ describe("nodeActionToolbarModel", () => {
     });
     expect(
       projectNodeActionStoryboardText(
-        node(CANVAS_NODE_TYPES.storyboardSplit, { frames: [] }),
+        node("storyboardSplitNode", { frames: [] }),
         false,
         formatLine,
       ),
@@ -124,7 +119,7 @@ describe("nodeActionToolbarModel", () => {
     expect(
       resolveNodeActionImageDownloadFilename(
         node(
-          CANVAS_NODE_TYPES.exportImage,
+          "exportImageNode",
           { sourceFileName: " source.webp ", displayName: "Preview" },
           "image-a",
         ),
@@ -133,7 +128,7 @@ describe("nodeActionToolbarModel", () => {
     expect(
       resolveNodeActionImageDownloadFilename(
         node(
-          CANVAS_NODE_TYPES.exportImage,
+          "exportImageNode",
           { sourceFileName: " ", displayName: " Preview " },
           "image-b",
         ),
@@ -141,7 +136,7 @@ describe("nodeActionToolbarModel", () => {
     ).toBe("Preview.png");
     expect(
       resolveNodeActionImageDownloadFilename(
-        node(CANVAS_NODE_TYPES.exportImage, {}, "image-c"),
+        node("exportImageNode", {}, "image-c"),
       ),
     ).toBe("node-image-c.png");
   });

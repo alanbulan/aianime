@@ -1290,6 +1290,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百五十七批将 `nodeActionBeatContext` 与其测试迁入 Creative Canvas application。节点输入改用模块自有 `BeatContextActionNode` 窄合同，`MainlineContext` 继续来自本域 `mainlineContext`，不再导入旧 `CanvasNode`；显式/直接/作用域媒体/来源元数据四路投影与 Beat 数据构建、身份比较规则全部保留。主线路工具栏控制器统一经 Creative Canvas public 使用唯一投影，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套投影；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 230。投影、主线路工具栏控制器与架构/残余/颜色门禁 5 个文件 359 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1023/230/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百五十八批将 `nodeActionToolbarModel` 与其测试迁入 Creative Canvas application。节点输入改用模块自有 `NodeActionToolbarNode` 窄合同，错误报告与故事板文本清理继续来自本域 application/domain，不再导入旧节点类型谓词；ImageGen/Export 错误投影、StoryboardGen/Split 文本投影与图片下载文件名规则全部保留。输出工具栏控制器统一经 Creative Canvas public 使用唯一投影，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套投影；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 228，错误通知契约测试同步指向新所有者。投影、输出工具栏控制器、错误通知契约与架构/残余/颜色门禁 6 个文件 363 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1025/228/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

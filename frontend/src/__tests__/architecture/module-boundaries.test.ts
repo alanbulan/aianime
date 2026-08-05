@@ -23538,11 +23538,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps node-action toolbar projections in one pure application model", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionToolbarModel.ts",
+      "modules/creative_canvas/application/nodeActionToolbarModel.ts",
     );
     const applicationTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionToolbarModel.test.ts",
+      "modules/creative_canvas/application/nodeActionToolbarModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -23567,8 +23567,8 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
+        "./generationErrorReport",
+        "../domain/storyboardText",
       ]),
     );
     for (const forbiddenDependency of [
@@ -23584,7 +23584,12 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(applicationSource).not.toContain(forbiddenDependency);
     }
+    expect(applicationSource).not.toContain("@/features/canvas/");
+    expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
     expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/nodeActionToolbarModel",
     );
     expect(controllerSource).toContain("projectNodeActionGenerationError(");
@@ -23605,7 +23610,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/application/nodeActionToolbarModel.ts",
+        "modules/creative_canvas/application/nodeActionToolbarModel.ts",
       ]),
     );
     expect(applicationTestSource).toContain(
@@ -23807,7 +23812,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/application/nodeActionToolbarModel",
         "@/features/canvas/domain/canvasNodes",
         "@/lib/browserDownload",
         "@/modules/creative_canvas/public",

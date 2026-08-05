@@ -38,6 +38,64 @@ vi.mock("@/modules/creative_canvas/public", () => ({
     errorMessage: string;
     errorDetails?: string;
   }) => [errorMessage, errorDetails].filter(Boolean).join("\n"),
+  projectNodeActionGenerationError: (
+    node: { data?: Record<string, unknown> },
+    fallbackErrorMessage: string,
+  ) => {
+    const data = node.data ?? {};
+    const generationError =
+      typeof data.generationError === "string"
+        ? data.generationError.trim()
+        : "";
+    const generationErrorDetails =
+      typeof data.generationErrorDetails === "string"
+        ? data.generationErrorDetails.trim()
+        : "";
+    return {
+      canCopy: Boolean(generationError),
+      report: generationErrorDetails || generationError || fallbackErrorMessage,
+    };
+  },
+  projectNodeActionStoryboardText: (
+    node: {
+      type?: string | null;
+      data?: { frames?: Array<{ description?: string; note?: string; order?: number }> };
+    },
+    ignoreAtTag: boolean,
+    formatLine: (index: string, content: string) => string,
+  ) => {
+    const frames = node.data?.frames ?? [];
+    const sanitize = (input: string) =>
+      ignoreAtTag ? input.replace(/@\S+/g, "").trim() : input;
+    if (node.type === "storyboardSplitNode") {
+      return {
+        canCopy: true,
+        text: [...frames]
+          .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+          .map((frame, index) =>
+            formatLine(
+              String(index + 1).padStart(2, "0"),
+              sanitize(frame.note ?? ""),
+            ),
+          )
+          .join("\n"),
+      };
+    }
+    if (node.type === "storyboardGenNode") {
+      return {
+        canCopy: true,
+        text: frames
+          .map((frame, index) =>
+            formatLine(
+              String(index + 1).padStart(2, "0"),
+              sanitize(frame.description ?? ""),
+            ),
+          )
+          .join("\n"),
+      };
+    }
+    return { canCopy: false, text: "" };
+  },
   resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
   resolveCanvasNodeSourceImageUrl: (node: {
     data?: Record<string, unknown>;
@@ -47,6 +105,20 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   },
   sanitizeStoryboardText: (input: string, ignoreAtTag: boolean) =>
     ignoreAtTag ? input.replace(/@\S+/g, "").trim() : input,
+  resolveNodeActionImageDownloadFilename: (
+    node: { id: string; data?: Record<string, unknown> },
+  ) => {
+    const sourceFileName =
+      typeof node.data?.sourceFileName === "string"
+        ? node.data.sourceFileName.trim()
+        : "";
+    if (sourceFileName) return sourceFileName;
+    const displayName =
+      typeof node.data?.displayName === "string"
+        ? node.data.displayName.trim()
+        : "";
+    return displayName ? `${displayName}.png` : `node-${node.id}.png`;
+  },
 }));
 
 vi.mock("@/lib/browserDownload", () => ({

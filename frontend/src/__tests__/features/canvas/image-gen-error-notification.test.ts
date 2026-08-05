@@ -20,14 +20,14 @@ describe("ImageGenNode error notification contract", () => {
 
   it("projects the preserved raw ImageGen error for the node toolbar", () => {
     const modelSource = read(
-      "src/features/canvas/application/nodeActionToolbarModel.ts",
+      "src/modules/creative_canvas/application/nodeActionToolbarModel.ts",
     );
     const controllerSource = read(
       "src/features/canvas/hooks/useNodeOutputToolbarController.ts",
     );
 
     expect(modelSource).toContain(
-      "isExportImageNode(node) || isImageGenNode(node)",
+      'node.type === "exportImageNode" || node.type === "imageGenNode"',
     );
     expect(modelSource).toContain(
       "report: generationErrorDetails || generationError",

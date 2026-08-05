@@ -3,14 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  resolveCanvasNodeSourceImageUrl,
-  resolveImageDisplayUrl,
-} from "@/modules/creative_canvas/public";
-import {
   projectNodeActionGenerationError,
   projectNodeActionStoryboardText,
   resolveNodeActionImageDownloadFilename,
-} from "@/features/canvas/application/nodeActionToolbarModel";
+  resolveCanvasNodeSourceImageUrl,
+  resolveImageDisplayUrl,
+} from "@/modules/creative_canvas/public";
 import {
   isImageEditNode,
   type CanvasNode,

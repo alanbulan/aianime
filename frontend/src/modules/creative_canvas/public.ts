@@ -1849,6 +1849,17 @@ export type {
   NodeActionBeatContext,
 } from "@/modules/creative_canvas/application/nodeActionBeatContext";
 export {
+  projectNodeActionGenerationError,
+  projectNodeActionStoryboardText,
+  resolveNodeActionImageDownloadFilename,
+} from "@/modules/creative_canvas/application/nodeActionToolbarModel";
+export type {
+  NodeActionGenerationErrorProjection,
+  NodeActionStoryboardLineFormatter,
+  NodeActionStoryboardTextProjection,
+  NodeActionToolbarNode,
+} from "@/modules/creative_canvas/application/nodeActionToolbarModel";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,
