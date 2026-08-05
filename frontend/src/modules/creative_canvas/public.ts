@@ -1158,6 +1158,7 @@ export {
   snapImageGenAspectRatio,
 } from "@/modules/creative_canvas/domain/imageGenNodeModel";
 export type {
+  ImageQuality,
   ImageGenCameraSelectionData,
   ImageGenModelOption,
   ImageGenPreviewData,

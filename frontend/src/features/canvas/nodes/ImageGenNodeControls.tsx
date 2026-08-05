@@ -20,10 +20,12 @@ import {
 import type {
   ImageGenCount,
   ImageGenNodeData,
-  ImageQuality,
   ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
-import type { ImageGenCameraSelectionData } from '@/modules/creative_canvas/public';
+import type {
+  ImageGenCameraSelectionData,
+  ImageQuality,
+} from '@/modules/creative_canvas/public';
 
 const IMAGE_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;

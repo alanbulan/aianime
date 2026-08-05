@@ -16,7 +16,6 @@ import {
   CANVAS_NODE_TYPES,
   type ImageGenCount,
   type ImageGenNodeData,
-  type ImageQuality,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -29,6 +28,7 @@ import {
   hasImageGenCameraSelection,
   imageGenAlbumUrls,
   type ImageGenCameraSelectionData,
+  type ImageQuality,
   IMAGE_GEN_DEFAULT_QUALITY,
   IMAGE_GEN_NODE_DEFAULT_HEIGHT,
   IMAGE_GEN_NODE_DEFAULT_WIDTH,

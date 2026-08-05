@@ -57,6 +57,8 @@ export const IMAGE_GEN_SIZE_OPTIONS = [
   '4K',
 ] as const;
 export const IMAGE_GEN_COUNT_OPTIONS = [1, 2, 4] as const;
+/** Image quality preset, only honored by image2 models (gpt-image-2). */
+export type ImageQuality = 'low' | 'medium' | 'high';
 export const IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS = [
   '2:3',
   '16:9',

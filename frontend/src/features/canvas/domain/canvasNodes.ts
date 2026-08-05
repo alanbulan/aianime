@@ -8,6 +8,7 @@ import type {
 import type {
   AudioVoiceRef,
   ImageGenCameraSelectionData,
+  ImageQuality,
   Seedance2SceneOptimize,
   VideoGenQuality,
   VideoGenMode,
@@ -46,9 +47,6 @@ export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE
 const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
 
 export type ImageSize = (typeof IMAGE_SIZES)[number];
-
-/** Image quality preset, only honored by image2 models (gpt-image-2). */
-export type ImageQuality = 'low' | 'medium' | 'high';
 
 interface NodeDisplayData {
   displayName?: string;
