@@ -34,10 +34,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '@/features/canvas/application/videoNodeModel';
-import {
-  extractUpstreamContent,
-  joinUpstreamText,
-} from '@/features/canvas/application/graphContentResolver';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,
@@ -56,6 +52,8 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   canvasEventBus,
+  extractUpstreamContent,
+  joinUpstreamText,
   resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
 import {

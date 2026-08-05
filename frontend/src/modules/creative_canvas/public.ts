@@ -1876,6 +1876,18 @@ export type {
   UploadCanvasAssetParams,
 } from "@/modules/creative_canvas/application/uploadCanvasAsset";
 export {
+  collectUpstreamReferenceUrls,
+  extractUpstreamContent,
+  joinUpstreamText,
+} from "@/modules/creative_canvas/application/graphContentResolver";
+export type {
+  UpstreamContent,
+} from "@/modules/creative_canvas/application/graphContentResolver";
+export {
+  collectInputImages,
+  extractUpstreamImages,
+} from "@/modules/creative_canvas/application/graphImageResolver";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

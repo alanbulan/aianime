@@ -11,7 +11,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
@@ -38,6 +37,7 @@ import {
   IMAGE_GEN_OPERATIONS_PANEL_HEIGHT,
   IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH,
   isImage2Model,
+  joinUpstreamText,
   extractRequestId,
   generateCanvasImage,
   getFreezoneCanvasMetadata,

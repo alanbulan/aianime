@@ -12,10 +12,6 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  collectUpstreamReferenceUrls,
-  joinUpstreamText,
-} from '@/features/canvas/application/graphContentResolver';
-import {
   CANVAS_NODE_TYPES,
   type ImageEditNodeData,
   type ImageSize,
@@ -41,6 +37,7 @@ import {
   buildGenerationErrorReport,
   buildImageEditGenerationPrompt,
   buildImageEditResultNodeTitle,
+  collectUpstreamReferenceUrls,
   collectImageEditInputSlotTarget,
   collectImageEditInputSourceMeta,
   coercePushTarget,
@@ -50,6 +47,7 @@ import {
   getCapability,
   imageModelDefinitions,
   insertReferenceToken,
+  joinUpstreamText,
   listCapabilities,
   mergeImageEditCandidateSourceMeta,
   mergeImageEditReferenceUrls,

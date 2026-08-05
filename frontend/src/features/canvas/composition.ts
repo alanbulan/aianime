@@ -55,6 +55,8 @@ import {
   submitCanvasImageGeneration,
   freezoneDirectorStagePaletteGateway,
   freezoneSceneAssetsGateway,
+  extractUpstreamContent,
+  extractUpstreamImages,
   type CanvasAssetDragPayload,
   type CanvasBeatDirectorManifestGateway,
   NODE_TOOL_TYPES,
@@ -72,8 +74,6 @@ import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
-import { extractUpstreamContent } from './application/graphContentResolver';
-import { extractUpstreamImages } from './application/graphImageResolver';
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,
