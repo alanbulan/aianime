@@ -91,7 +91,7 @@ vi.mock('@/modules/creative_canvas/public', async () => {
   };
 });
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   prepareNodeImageFromFile: (file: File) =>
     mocks.prepareNodeImageFromFile(file),
   uploadCanvasAsset: (

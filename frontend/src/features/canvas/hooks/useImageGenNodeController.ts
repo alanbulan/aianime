@@ -21,7 +21,7 @@ import {
   uploadCanvasAsset,
   useIsBoxSelecting,
   useUpstreamContents,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,

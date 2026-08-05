@@ -20,7 +20,7 @@ import {
   prepareNodeImageFromFile,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 
 import { canvasEventBus, collectCandidateBindingsForNode, directorControlBundleFromData, directorCaptureBlobToDataUrl, hasMainlineContexts, readDirectorCaptureImageSize, resolveDirectorControlBundleSourceId, resolveDroppedMediaFile, resolveImageDisplayUrl, resolveUploadMediaKind, resolveUploadNodeDirectorSource, resolveUploadNodeLayout, resolveUploadNodeTitle, sceneSnapshotFromDirectorControlBundle, shouldUseOriginalImageByZoom, uploadDirectorCaptureBundle, type UploadImageNodeData } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';

@@ -50,7 +50,7 @@ vi.mock('@/shared/media/image-cache', () => ({
   ) => token == null ? url : `${url}?stamp=${token}`,
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   regenerateExportImageNode: (params: unknown) =>
     mocks.regenerateExportImageNode(params),
 }));

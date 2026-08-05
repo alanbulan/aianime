@@ -21,7 +21,7 @@ import {
   prepareNodeImage,
   uploadLocalImageToBackend,
   useUpstreamNodes,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/modules/creative_canvas/public";

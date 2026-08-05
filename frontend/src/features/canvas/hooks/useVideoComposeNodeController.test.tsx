@@ -54,7 +54,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 

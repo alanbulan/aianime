@@ -18,7 +18,7 @@ import {
   stageSelectedBackgroundOutputForSkill,
   startCanvasSkillRun,
   uploadCanvasAsset,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 
 import {

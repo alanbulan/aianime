@@ -61,7 +61,7 @@ vi.mock('react-i18next', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
     mocks.getBeatManifest(...args),
   getCanvasDirectorStagePalette: (...args: unknown[]) =>

@@ -105,7 +105,7 @@ const NODE_CONTEXT = {
   canvasId: 'canvas-a',
 } as const;
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>
     mocks.awaitCanvasGenerationTaskCompletion(taskKey, project),
   useIsBoxSelecting: () => mocks.boxSelecting,

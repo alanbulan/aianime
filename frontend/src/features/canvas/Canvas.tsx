@@ -37,7 +37,7 @@ import {
   useCanvasConnectionGestureSurfaceController,
   useCanvasProjectSurfaceController,
   useCanvasViewerSurfaceController,
-} from './composition';
+} from '@/modules/creative_canvas/canvasComposition';
 
 import { useCanvasStore } from "@/modules/creative_canvas/public";
 interface CanvasProps {

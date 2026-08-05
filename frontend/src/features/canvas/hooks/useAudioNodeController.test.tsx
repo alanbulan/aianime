@@ -47,7 +47,7 @@ vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
     mocks.useAudioGeneration(...args),
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   uploadCanvasAsset: (project: string, file: File, filename: string) =>
     mocks.uploadCanvasAsset(project, file, filename),
   useIsBoxSelecting: () => mocks.isBoxSelecting,

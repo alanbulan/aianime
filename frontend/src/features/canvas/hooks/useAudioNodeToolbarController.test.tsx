@@ -26,9 +26,6 @@ vi.mock("sonner", () => ({
   toast: { error: (...args: unknown[]) => mocks.toastError(...args) },
 }));
 
-vi.mock("@/features/canvas/canvasStore", () => ({
-}));
-
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   useCanvasStore: (

@@ -2,7 +2,7 @@
 import { useCallback, useMemo } from 'react';
 
 ;
-import { useUpstreamContents } from '@/features/canvas/composition';
+import { useUpstreamContents } from "@/modules/creative_canvas/canvasComposition";
 
 import { buildCanvasAudioPrompt, generateCanvasAudio, generationTaskDescriptor, joinUpstreamText, useNodeGenerationTaskState, type AudioNodeData } from '@/modules/creative_canvas/public';
 

@@ -23,7 +23,7 @@ import {
   useDetachUpstream,
   useUpstreamContents,
   useUpstreamImages,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,

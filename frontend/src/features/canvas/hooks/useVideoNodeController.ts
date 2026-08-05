@@ -21,7 +21,7 @@ import {
   uploadCanvasAsset,
   useIsBoxSelecting,
   useUpstreamNodes,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 
 import {
   canvasEventBus,

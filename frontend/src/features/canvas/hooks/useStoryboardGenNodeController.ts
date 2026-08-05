@@ -19,7 +19,7 @@ import {
   showErrorDialog,
   uploadLocalImageToBackend,
   useUpstreamImages,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName, type ImageSize, type StoryboardGenNodeData } from '@/modules/creative_canvas/public';
 import {

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
 
-import { uploadCanvasAsset } from '@/features/canvas/composition';
+import { uploadCanvasAsset } from "@/modules/creative_canvas/canvasComposition";
 ;
 import { GroupNodeView, NodeResizeHandle, canvasNodeFrameClass, computeSnapAlign, getStoryboardCellPreview, resolveNodeDisplayName, resolveCanvasNodeSourceImageUrl, useGroupNodeController, useSnapAlignStore, type GroupNodeControllerPorts, type GroupNodeViewBindings, type StoryboardCellPreviewPorts, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
 import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';

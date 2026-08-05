@@ -49,7 +49,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   startCanvasSkillRun: (...args: unknown[]) => mocks.startRun(...args),
   awaitCanvasSkillRunResult: (...args: unknown[]) => mocks.awaitRun(...args),
   awaitCanvasGenerationTaskCompletion: (...args: unknown[]) =>

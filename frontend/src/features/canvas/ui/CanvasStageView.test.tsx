@@ -62,6 +62,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS: 'control-button-active',
   CANVAS_CONTROL_ICON_BUTTON_CLASS: 'control-button',
   CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
+  canvasEdgeTypes: stageMocks.edgeTypes,
   CanvasConnectionPreviewOverlay: () => (
     <div data-testid="canvas-connection-preview" />
   ),
@@ -88,7 +89,6 @@ vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter', () => ({
 vi.mock('../nodes', () => ({
   createCanvasNodeTypes: stageMocks.createCanvasNodeTypes,
 }));
-vi.mock('../composition', () => ({ canvasEdgeTypes: stageMocks.edgeTypes }));
 vi.mock('./BackToNodesHint', () => ({
   BackToNodesHint: () => <div data-testid="back-to-nodes-hint" />,
 }));

@@ -7,7 +7,7 @@ import { MIN_VIDEO_COMPOSE_VIDEOS, projectVideoComposeInputs, type ComposeTimeli
 
 
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
-import { useUpstreamNodes } from '@/features/canvas/composition';
+import { useUpstreamNodes } from "@/modules/creative_canvas/canvasComposition";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/modules/creative_canvas/public";

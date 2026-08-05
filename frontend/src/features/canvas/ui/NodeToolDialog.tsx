@@ -8,7 +8,7 @@ import { canvasEventBus, canvasToolProcessor, AnnotateToolEditor, CropToolEditor
 import {
   prepareNodeImage,
   uploadLocalImageToBackend,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 import { readStoryboardImageMetadata } from '@/commands/image';
 
 ;

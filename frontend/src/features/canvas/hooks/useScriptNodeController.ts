@@ -27,7 +27,7 @@ import {
 } from '@/modules/creative_canvas/public';
 
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
-import { useUpstreamNodes } from '@/features/canvas/composition';
+import { useUpstreamNodes } from "@/modules/creative_canvas/canvasComposition";
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

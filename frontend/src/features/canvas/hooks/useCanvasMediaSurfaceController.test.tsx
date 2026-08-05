@@ -48,7 +48,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
   useCanvasMediaTransferController: controllerMocks.useMediaTransfer,
 }));
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   hydrateAssetDragPayload: controllerMocks.hydrateAsset,
 }));
 vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({

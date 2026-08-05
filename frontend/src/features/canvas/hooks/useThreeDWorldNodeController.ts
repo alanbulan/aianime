@@ -20,7 +20,7 @@ import {
   uploadLocalImageToBackend,
   useDetachUpstream,
   useUpstreamNodes,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 import {
   generateCanvasImageTo3d,

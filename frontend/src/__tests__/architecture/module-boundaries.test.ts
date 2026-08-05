@@ -372,7 +372,7 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/Canvas",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
         "@/lib/app-router",
@@ -1288,7 +1288,7 @@ describe("frontend architecture boundaries", () => {
         "sonner",
         "zustand/react/shallow",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/modules/creative_canvas/public",
@@ -2125,7 +2125,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
@@ -2254,7 +2254,7 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "applyTextOverlay: applyStoryboardTextOverlay",
     );
-    expect(importSpecifiers(compositionPath)).toContain(
+    expect(importSpecifiers(compositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     for (const legacyPath of legacyStoryboardPaths) {
@@ -3545,7 +3545,7 @@ describe("frontend architecture boundaries", () => {
             /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
             /^(?:\.\.\/)+composition$/.test(specifier) ||
-            specifier === "@/features/canvas/composition",
+            specifier === "@/modules/creative_canvas/canvasComposition",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -3640,7 +3640,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const composition = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const nodeFactoryComposition = readFileSync(
@@ -3906,7 +3906,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeFactoryComposition).toContain("uuidGenerator");
     expect(nodeFactoryComposition).toContain("nodeCatalog");
     expect(canvasStore).not.toContain("@/modules/creative_canvas/public");
-    expect(canvasStore).not.toContain("@/features/canvas/composition");
+    expect(canvasStore).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(composition).not.toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
     expect(composition).toContain("browserGenerationRuntimeGateway");
@@ -3917,7 +3917,7 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("browserImageRuntimeGateway");
     expect(composition).toContain("prepareNodeImageUseCase(");
     expect(composition).toContain(
-      "export { showErrorDialog } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';",
+      "export { showErrorDialog } from './infrastructure/globalErrorDialog';",
     );
     expect(composition).toContain("platformCanvasAssetGateway");
     expect(composition).not.toContain("migrateCanvasClipboardAssets");
@@ -4913,7 +4913,7 @@ describe("frontend architecture boundaries", () => {
     const gatewayImports = importSpecifiers(gatewayPath);
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const canvasCompositionSource = readFileSync(
       canvasCompositionPath,
@@ -4951,7 +4951,7 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "resolveCurrentShotMetadataPrompt(",
     );
-    expect(importSpecifiers(canvasCompositionPath)).toContain(
+    expect(importSpecifiers(canvasCompositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(canvasCompositionSource).toContain(
@@ -4980,7 +4980,7 @@ describe("frontend architecture boundaries", () => {
     const gatewayImports = importSpecifiers(gatewayPath);
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const canvasCompositionSource = readFileSync(
       canvasCompositionPath,
@@ -5009,7 +5009,7 @@ describe("frontend architecture boundaries", () => {
     expect(gatewayImports).not.toContain(
       "@/features/freezone/domain/referenceRoles",
     );
-    expect(importSpecifiers(canvasCompositionPath)).toContain(
+    expect(importSpecifiers(canvasCompositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(canvasCompositionSource).toContain(
@@ -5452,7 +5452,7 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(apiProjectsPath)).toBe(false);
     expect(existsSync(legacyQueryPath)).toBe(false);
     expect(importSpecifiers(beatContextNodePath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(beatContextNodePath)).toContain(
       "@/modules/creative_canvas/public",
@@ -5577,13 +5577,13 @@ describe("frontend architecture boundaries", () => {
       "./canvasStorageComposition",
     );
     expect(importSpecifiers(canvasBrowserControllerPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(canvasesTabPath)).toContain(
       "../canvasBrowserComposition",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(new Set(importSpecifiers(assetLibraryControllerPath))).toEqual(
       new Set([
@@ -5909,7 +5909,7 @@ describe("frontend architecture boundaries", () => {
     for (const consumerPath of pipelineConsumerPaths) {
       const source = readFileSync(consumerPath, "utf8");
       expect(importSpecifiers(consumerPath)).toContain(
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
       );
       expect(source).toContain("uploadAsset: uploadCanvasAsset");
       expect(source).not.toContain("uploadFreezoneImage");
@@ -6015,16 +6015,16 @@ describe("frontend architecture boundaries", () => {
       const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
       expect(source).not.toContain("@/api/canvas");
       expect(source).toContain("@/modules/creative_canvas/public");
-      expect(source).not.toContain("@/features/canvas/composition");
+      expect(source).not.toContain("@/modules/creative_canvas/canvasComposition");
     }
     expect(importSpecifiers(canvasesTabPath)).toContain(
       "../canvasBrowserComposition",
     );
     expect(importSpecifiers(canvasesTabPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(syncHookSource).not.toContain("@/api/canvas");
-    expect(syncHookSource).not.toContain("@/features/canvas/composition");
+    expect(syncHookSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(forbiddenSyncHookImports).toEqual([]);
     expect(importSpecifiers(syncCompositionPath)).toEqual(
       expect.arrayContaining([
@@ -7566,7 +7566,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const videoNodePath = resolve(
       SRC_ROOT,
@@ -7998,7 +7998,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const viewerContractDeclaration = [
       "export interface",
@@ -8450,7 +8450,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       "isCanvasPaneTarget(",
@@ -8512,7 +8512,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       "resolveClipboardImageFile(",
@@ -8582,7 +8582,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       "getClientPosition(",
@@ -8694,7 +8694,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -8849,7 +8849,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
@@ -8891,7 +8891,7 @@ describe("frontend architecture boundaries", () => {
       "createUseCanvasConnectionGestureSurfaceController({",
     );
     expect(compositionSource).toContain("useStore: useCanvasStore");
-    expect(importSpecifiers(compositionPath)).toContain(
+    expect(importSpecifiers(compositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(publicPath)).toContain(
@@ -8901,7 +8901,7 @@ describe("frontend architecture boundaries", () => {
       "clearHoveredNodeTimer: hover.clearHoveredNodeTimer",
     );
     expect(controllerSource).toContain("setHoveredNodeId,");
-    expect(canvasView).toContain("from './composition'");
+    expect(canvasView).toContain("from '@/modules/creative_canvas/canvasComposition'");
     expect(canvasView).toContain("useCanvasConnectionGestureSurfaceController,");
     expect(canvasView).not.toContain("state.hoveredNodeId");
     expect(canvasView).not.toContain("state.setHoveredNodeId");
@@ -9168,7 +9168,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const hookDeclaration = [
       "export function",
@@ -9221,7 +9221,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -9393,7 +9393,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const hookForbiddenImports = importSpecifiers(hookPath).filter(
@@ -9405,7 +9405,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declarations = [
@@ -9872,7 +9872,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
         "@/features/viewer-kit/public",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
@@ -9963,7 +9963,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -10339,7 +10339,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -10405,7 +10405,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -10471,7 +10471,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -10599,7 +10599,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(moduleRoot, "public.ts");
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const canvasView = readFileSync(
@@ -10637,7 +10637,7 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "useGenerationRecovery: useCanvasGenerationRecoveryController",
     );
-    expect(importSpecifiers(compositionPath)).toContain(
+    expect(importSpecifiers(compositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(publicPath)).toContain(
@@ -10983,7 +10983,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       ["export function", "filterPresetManagedNodeChanges<"].join(" "),
@@ -11041,7 +11041,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -11717,7 +11717,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicPath = resolve(
@@ -11759,7 +11759,7 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "createUseCanvasViewerSurfaceController({",
     );
-    expect(importSpecifiers(compositionPath)).toContain(
+    expect(importSpecifiers(compositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(publicPath)).toContain(
@@ -11767,7 +11767,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(compositionSource).toContain("eventPort: canvasEventBus");
     expect(compositionSource).toContain("useStore: useCanvasStore");
-    expect(canvasView).toContain("from './composition'");
+    expect(canvasView).toContain("from '@/modules/creative_canvas/canvasComposition'");
     expect(canvasView).toContain("useCanvasViewerSurfaceController()");
     expect(canvasView).not.toContain("./hooks/useCanvasViewerSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
@@ -11818,7 +11818,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("const unsubscribeVideoOpen = eventPort.subscribe(");
     expect(hookModel).toContain("'video-viewer/open'");
     expect(hookModel).toContain("Pick<CanvasEventBus, 'subscribe'>");
-    expect(canvasView).toContain("from './composition'");
+    expect(canvasView).toContain("from '@/modules/creative_canvas/canvasComposition'");
     expect(canvasView).not.toContain("./hooks/useCanvasViewerSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
     expect(canvasView).not.toContain("setVideoViewer");
@@ -12252,7 +12252,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("zustand/") ||
           specifier.startsWith("@/features/") ||
           specifier.startsWith("@/features/freezone/infrastructure/") ||
-          specifier === "@/features/canvas/composition" ||
+          specifier === "@/modules/creative_canvas/canvasComposition" ||
           specifier.startsWith("@/shared/api/"),
       ),
     ).toEqual([]);
@@ -12408,7 +12408,7 @@ describe("frontend architecture boundaries", () => {
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
           specifier.startsWith("@/features/freezone/infrastructure/") ||
-          specifier === "@/features/canvas/composition" ||
+          specifier === "@/modules/creative_canvas/canvasComposition" ||
           specifier.startsWith("@/shared/api/"),
       ),
     ).toEqual([]);
@@ -12982,7 +12982,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewModelSource).not.toContain("window.");
     expect(viewModelSource).not.toContain("document.");
     expect(viewModelSource).not.toContain("localStorage");
-    expect(viewModelSource).not.toContain("@/features/canvas/composition");
+    expect(viewModelSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(viewModelSource).not.toContain("@/shared/api/");
     for (const consumerPath of consumerPaths) {
       expect(importSpecifiers(consumerPath)).toContain(
@@ -13131,7 +13131,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(viewSource).not.toContain("useCanvasBrowserController");
-    expect(viewSource).not.toContain("@/features/canvas/composition");
+    expect(viewSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(viewSource).not.toContain("@/modules/identity_access/public");
     expect(viewSource).not.toContain("@/shared/api/");
     expect(existsSync(legacyTabPath)).toBe(false);
@@ -13400,7 +13400,7 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
     expect(presentationSource).not.toContain("zustand");
     expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
-    expect(presentationSource).not.toContain("@/features/canvas/composition");
+    expect(presentationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
     expect(presentationSource).not.toContain("addAssetToCanvas");
@@ -13482,7 +13482,7 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("zustand");
     expect(presentationSource).not.toContain("useAssetDropStore");
     expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
-    expect(presentationSource).not.toContain("@/features/canvas/composition");
+    expect(presentationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
     expect(presentationSource).toContain("cacheBustImage(thumbUrl, cacheToken)");
@@ -13682,7 +13682,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("document.");
     expect(applicationSource).not.toContain("localStorage");
     expect(applicationSource).not.toContain("canvasStore");
-    expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(applicationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(dragContractSource).not.toContain("DataTransfer");
     expect(dragContractSource).not.toContain("@/features/");
@@ -13724,7 +13724,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(panelSource).not.toContain("spawnCanvasAssetNode(");
     expect(panelSource).not.toContain("viewportCenteredPosition(");
@@ -14708,12 +14708,12 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(moduleRoot, "public.ts");
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const composition = readFileSync(compositionPath, "utf8");
     const compositionTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.generationRecovery.test.tsx",
+      "modules/creative_canvas/canvasComposition.generationRecovery.test.tsx",
     );
     const compositionTest = readFileSync(compositionTestPath, "utf8");
     const surfacePath = resolve(
@@ -14847,7 +14847,7 @@ describe("frontend architecture boundaries", () => {
     );
     const useCaseModel = readFileSync(useCasePath, "utf8");
     const composition = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -14865,8 +14865,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/commands/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier.startsWith("@/features/canvas/infrastructure/")
     );
     const declaration = [
       "export async function",
@@ -15174,7 +15173,7 @@ describe("frontend architecture boundaries", () => {
             specifier === "zustand" ||
             specifier.startsWith("@/stores/") ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
-            specifier === "@/features/canvas/composition",
+            specifier === "@/modules/creative_canvas/canvasComposition",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -15438,7 +15437,7 @@ describe("frontend architecture boundaries", () => {
               (specifier.startsWith("@/features/canvas/application/") ||
                 /^(?:\.\.\/)+application(?:\/|$)/.test(specifier))) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
-            specifier === "@/features/canvas/composition" ||
+            specifier === "@/modules/creative_canvas/canvasComposition" ||
             specifier === "@/modules/creative_canvas/public",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
@@ -15591,7 +15590,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@/features/canvas/application/") ||
             /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
-            specifier === "@/features/canvas/composition",
+            specifier === "@/modules/creative_canvas/canvasComposition",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -15705,7 +15704,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const additionDeclaration = [
@@ -15787,7 +15786,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@/features/canvas/application/") ||
             /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
-            specifier === "@/features/canvas/composition",
+            specifier === "@/modules/creative_canvas/canvasComposition",
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
@@ -15872,7 +15871,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
 
     expect(forbiddenImports).toEqual([]);
@@ -16276,7 +16275,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const creationDeclaration = [
@@ -16401,7 +16400,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declarations = [
@@ -16544,7 +16543,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const conversionDeclaration = [
       "export function",
@@ -16590,7 +16589,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const singleDeclaration = [
@@ -16642,7 +16641,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const creationDeclaration = [
@@ -16703,7 +16702,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const updateDeclaration = [
       "export function",
@@ -16800,7 +16799,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const validationDeclaration = [
       "export function",
@@ -16941,7 +16940,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       "resolveCanvasBatchConnectContext(",
@@ -17032,7 +17031,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -17108,7 +17107,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declarations = [
@@ -17172,7 +17171,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -17248,7 +17247,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -17326,7 +17325,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -17350,7 +17349,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const gestureDeclaration = [
@@ -17458,7 +17457,7 @@ describe("frontend architecture boundaries", () => {
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const deletionDeclaration = [
       "export function",
@@ -20242,14 +20241,14 @@ describe("frontend architecture boundaries", () => {
     );
     const hydrationSource = readFileSync(hydrationPath, "utf8");
     const compositionSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hydrationPath).filter(
       (specifier) =>
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
 
     expect(forbiddenImports).toEqual([]);
@@ -20970,7 +20969,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("lucide-react");
     expect(controllerSource).not.toContain("<VoiceSelectionModal");
     expect(importSpecifiers(viewPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(viewPath)).not.toContain("@/lib/url-params");
     expect(importSpecifiers(viewPath)).not.toContain(
@@ -21019,7 +21018,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const scriptModelPath = resolve(
       SRC_ROOT,
@@ -21320,7 +21319,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
@@ -21375,7 +21374,7 @@ describe("frontend architecture boundaries", () => {
     expect(endpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway.ts",
     ]);
-    expect(imports).toContain("@/features/canvas/composition");
+    expect(imports).toContain("@/modules/creative_canvas/canvasComposition");
     expect(imports).not.toContain("@/api/skills");
     expect(imports).not.toContain("@/api/tasks");
     expect(
@@ -21428,7 +21427,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
@@ -21510,7 +21509,7 @@ describe("frontend architecture boundaries", () => {
       'from "@/modules/creative_canvas/application/sceneAssets"',
     );
     expect(importSpecifiers(nodePath)).toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(nodePath)).not.toContain(
       "@/features/freezone/public",
@@ -21550,7 +21549,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
     const duplicateAdapterPath = resolve(
@@ -21636,7 +21635,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
@@ -21695,7 +21694,7 @@ describe("frontend architecture boundaries", () => {
       "getCanvasDirectorStagePaletteUseCase(",
     );
     expect(importSpecifiers(nodePath)).toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(nodePath)).not.toContain(
       "@/api/viewerManifests",
@@ -21744,7 +21743,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
     const canvasCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const sourceIdentityPath = resolve(
       SRC_ROOT,
@@ -22147,7 +22146,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const legacyDirectorWorldDomainPath = resolve(
       SRC_ROOT,
@@ -22298,7 +22297,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
@@ -22584,7 +22583,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -22699,7 +22698,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(controllerSource).toContain("await analyzeCanvasVideoStory({");
     expect(controllerSource).not.toContain("submitFreezoneAnalyzeVideoStory");
@@ -23266,7 +23265,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("useCanvasStore");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
-    expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(applicationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
     expect(importSpecifiers(controllerPath)).toContain(
@@ -23481,7 +23480,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(applicationSource).not.toContain(forbiddenDependency);
     }
@@ -23621,7 +23620,7 @@ describe("frontend architecture boundaries", () => {
       "className=",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
     ]) {
       expect(modelSource).not.toContain(forbiddenModelDependency);
@@ -23870,7 +23869,7 @@ describe("frontend architecture boundaries", () => {
       "canvasEventBus",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
       "@/features/freezone",
     ]) {
@@ -24036,7 +24035,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
     }
@@ -24185,7 +24184,7 @@ describe("frontend architecture boundaries", () => {
       "@/api/",
       "@/stores/",
       "@/lib/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
     }
@@ -24558,7 +24557,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
     }
@@ -24741,7 +24740,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
     }
@@ -24886,7 +24885,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const editControllerPath = resolve(
       SRC_ROOT,
@@ -24935,7 +24934,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
@@ -25125,7 +25124,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "@/api/",
       "@/stores/",
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
       "@/features/canvas/tools",
     ]) {
@@ -25674,7 +25673,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -25911,7 +25910,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const overlayPath = resolve(
       SRC_ROOT,
@@ -26040,7 +26039,7 @@ describe("frontend architecture boundaries", () => {
       "export function generateCanvasRedraw(",
     );
     expect(importSpecifiers(pipelineEditorPath)).toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(pipelineEditorPath)).toContain(
       "@/modules/creative_canvas/public",
@@ -26065,7 +26064,7 @@ describe("frontend architecture boundaries", () => {
     const overlaySource = readFileSync(overlayPath, "utf8");
     const imports = importSpecifiers(overlayPath);
 
-    expect(imports).toContain("@/features/canvas/composition");
+    expect(imports).toContain("@/modules/creative_canvas/canvasComposition");
     expect(imports).toContain("@/modules/creative_canvas/public");
     expect(imports).not.toContain("@/api/ops");
     expect(imports).not.toContain("@/api/tasks");
@@ -26545,7 +26544,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const graphInteractionForbiddenImports = importSpecifiers(
       graphInteractionPath,
@@ -26561,7 +26560,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -26669,7 +26668,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -26844,7 +26843,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const declaration = [
@@ -27211,7 +27210,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition" ||
+        specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
     );
     const stageForbiddenImports = importSpecifiers(stagePath).filter(
@@ -27222,7 +27221,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const stageDeclaration = [
       "export function",
@@ -27347,7 +27346,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -27974,7 +27973,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore.getState().updateNodeData(nodeId, data)",
     );
     expect(sliceSource).not.toContain("nodeFactoryComposition");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28028,7 +28027,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28073,7 +28072,7 @@ describe("frontend architecture boundaries", () => {
       "...createZustandCanvasNodeDeletionSlice({",
     );
     expect(canvasStore).not.toContain("deleteCanvasNodes(");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28129,7 +28128,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28185,7 +28184,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28227,7 +28226,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("selectedNodeId: null");
     expect(canvasStore).not.toContain("activeToolDialog: null");
-    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
@@ -28255,7 +28254,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       "SubtitleEraseBoxOverlay(",
@@ -28345,7 +28344,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -28404,7 +28403,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       ["export function", "ReferenceMediaRow("].join(" "),
@@ -28574,7 +28573,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@/api/") ||
           specifier.startsWith("@/features/canvas/") ||
           specifier === "@/modules/creative_canvas/public" ||
-          specifier === "@/features/canvas/composition",
+          specifier === "@/modules/creative_canvas/canvasComposition",
       ),
     );
     const declarations = [
@@ -28749,7 +28748,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       ["export function", "VideoUploadingState("].join(" "),
@@ -28875,7 +28874,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -28936,7 +28935,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -28990,7 +28989,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = [
       "export function",
@@ -29137,7 +29136,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = ["export function", "CameraMovementChip("].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -29182,7 +29181,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = ["export function", "CharacterLibraryChip("].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -29221,7 +29220,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declaration = ["export function", "VideoCountPicker("].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -29365,7 +29364,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       ["export function", "resolveVideoGenerationModeOptions("].join(" "),
@@ -29732,7 +29731,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("useCanvasStore");
     expect(controllerSource).not.toContain("@/api/");
     expect(controllerSource).not.toContain("@/features/canvas/");
-    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
       "./useVideoComposeTimelineSessionController",
@@ -29895,7 +29894,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("applyVideoComposeTimelineEdit(");
     expect(controllerSource).not.toContain("useCanvasStore");
     expect(controllerSource).not.toContain("@/api/");
-    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
       "./useVideoComposeTimelineEditorController",
@@ -30047,7 +30046,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("requestAnimationFrame(pump)");
     expect(controllerSource).not.toContain("useCanvasStore");
     expect(controllerSource).not.toContain("@/api/");
-    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
       "./useVideoComposeTimelinePointerController",
@@ -30099,7 +30098,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("element.isContentEditable");
     expect(controllerSource).not.toContain("useCanvasStore");
     expect(controllerSource).not.toContain("@/api/");
-    expect(controllerSource).not.toContain("@/features/canvas/composition");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
       "./useVideoComposeKeyboardController",
@@ -30187,7 +30186,7 @@ describe("frontend architecture boundaries", () => {
       "../infrastructure/browserVideoComposeCoverRuntime",
     );
     expect(importSpecifiers(coverEditorPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(coverEditorSource).toContain("uploadFreezoneAsset(");
     expect(importSpecifiers(coverProjectionPath)).toEqual([
@@ -30217,7 +30216,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useCanvasStore");
     expect(viewSource).not.toContain("@/api/");
     expect(viewSource).not.toContain("@/stores/");
-    expect(viewSource).not.toContain("@/features/canvas/composition");
+    expect(viewSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(viewSource).not.toContain("compose/CoverEditor");
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/presentation/VideoComposeModalView.tsx",
@@ -30502,7 +30501,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).toContain("desiredSourceSecondsRef");
     expect(hookSource).toContain("element.addEventListener('seeked'");
     expect(hookSource).not.toContain("useCanvasStore");
-    expect(hookSource).not.toContain("@/features/canvas/composition");
+    expect(hookSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(hookSource).not.toContain("className=");
     expect(importSpecifiers(playbackControllerPath)).toContain(
       "./useVideoComposeTrackMediaSync",
@@ -30596,7 +30595,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/hooks/useVideoComposeExportController",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(modalSource).toContain("useVideoComposeExportController({");
     expect(modalSource).not.toContain("composeCanvasVideo(");
@@ -30642,7 +30641,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -30753,7 +30752,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
@@ -30819,7 +30818,7 @@ describe("frontend architecture boundaries", () => {
       "../videoComposeComposition",
     );
     expect(importSpecifiers(exportControllerPath)).not.toContain(
-      "@/features/canvas/composition",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/tasks");
@@ -30865,7 +30864,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const domainPath = resolve(
       SRC_ROOT,
@@ -30991,7 +30990,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyPaths = [
@@ -31102,7 +31101,7 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       "@/modules/creative_canvas/application/translateCanvasText",
     );
-    expect(importSpecifiers(legacyCompositionPath)).toContain(
+    expect(importSpecifiers(legacyCompositionPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(legacyCompositionSource).not.toContain("resolveCanvasTextModel");
@@ -31144,7 +31143,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const videoNodePath = resolve(
@@ -31287,7 +31286,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const videoNodePath = resolve(
       SRC_ROOT,
@@ -31363,7 +31362,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const coverEditorPath = resolve(
       SRC_ROOT,
@@ -31852,7 +31851,7 @@ describe("frontend architecture boundaries", () => {
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const legacyCompositionSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
@@ -32158,7 +32157,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps URL-based video frame capture in one infrastructure adapter", () => {
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
@@ -32192,7 +32191,7 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain('document.createElement("canvas")');
     expect(infrastructureSource).toContain("mediaNeedsCrossOrigin(source)");
     expect(compositionSource).toContain(
-      "@/modules/creative_canvas/infrastructure/browserVideoFrameCapture",
+      "./infrastructure/browserVideoFrameCapture",
     );
     expect(compositionSource).toContain("captureVideoFrameBlob");
     expect(videoNode).not.toContain(
@@ -32206,7 +32205,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps browser video frame-strip capture in one infrastructure adapter", () => {
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const contractPath = resolve(
       SRC_ROOT,
@@ -32293,7 +32292,7 @@ describe("frontend architecture boundaries", () => {
     expect(filmstripSource).toContain(
       "../infrastructure/browserVideoFrameStrip",
     );
-    expect(filmstripSource).not.toContain("@/features/canvas/composition");
+    expect(filmstripSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(filmstripSource).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
     );
@@ -32463,7 +32462,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
-        specifier === "@/features/canvas/composition",
+        specifier === "@/modules/creative_canvas/canvasComposition",
     );
     const declarations = [
       ["export function", "VideoAlbumDeck("].join(" "),
@@ -32528,7 +32527,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const compositionSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const declaration = [
@@ -32558,7 +32557,9 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       'export { createUseIsBoxSelecting } from "@/modules/creative_canvas/presentation/useIsBoxSelecting";',
     );
-    expect(compositionSource).toContain("createUseIsBoxSelecting,");
+    expect(compositionSource).toContain(
+      "createUseIsBoxSelecting } from './presentation/useIsBoxSelecting'",
+    );
     expect(compositionSource).toContain(
       "export const useIsBoxSelecting = createUseIsBoxSelecting({",
     );
@@ -32580,7 +32581,7 @@ describe("frontend architecture boundaries", () => {
       const path = resolve(SRC_ROOT, consumerPath);
       const source = readFileSync(path, "utf8");
       expect(importSpecifiers(path)).toContain(
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
       );
       expect(source).toContain("useIsBoxSelecting");
       expect(source).not.toContain(
@@ -32605,7 +32606,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const compositionSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
       "utf8",
     );
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -32643,7 +32644,9 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       'export { createUseDetachUpstream } from "@/modules/creative_canvas/presentation/useDetachUpstream";',
     );
-    expect(compositionSource).toContain("createUseDetachUpstream,");
+    expect(compositionSource).toContain(
+      "createUseDetachUpstream } from './presentation/useDetachUpstream'",
+    );
     expect(compositionSource).toContain(
       "export const useDetachUpstream = createUseDetachUpstream({",
     );
@@ -32657,7 +32660,7 @@ describe("frontend architecture boundaries", () => {
       const path = resolve(SRC_ROOT, consumerPath);
       const source = readFileSync(path, "utf8");
       expect(importSpecifiers(path)).toContain(
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
       );
       expect(source).toContain("useDetachUpstream");
       expect(source).not.toContain(
@@ -32802,7 +32805,7 @@ describe("frontend architecture boundaries", () => {
     for (const owner of owners) {
       const path = resolve(SRC_ROOT, owner);
       expect(importSpecifiers(path)).not.toContain(
-        "@/features/canvas/composition",
+        "@/modules/creative_canvas/canvasComposition",
       );
       expect(readFileSync(path, "utf8")).not.toContain(
         "@/features/canvas/",
@@ -32973,7 +32976,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionPath = resolve(
       SRC_ROOT,
-      "features/canvas/composition.ts",
+      "modules/creative_canvas/canvasComposition.ts",
     );
     const stagePath = resolve(
       SRC_ROOT,
@@ -33004,7 +33007,10 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(compositionPath, "utf8")).toContain(
       "export const canvasEdgeTypes: EdgeTypes = {",
     );
-    expect(importSpecifiers(stagePath)).toContain("../composition");
+    expect(importSpecifiers(stagePath)).toContain("@/modules/creative_canvas/public");
+    expect(publicSource).toContain(
+      'export { canvasEdgeTypes } from "@/modules/creative_canvas/canvasComposition";',
+    );
     expect(readFileSync(stagePath, "utf8")).toContain(
       "edgeTypes={canvasEdgeTypes}",
     );

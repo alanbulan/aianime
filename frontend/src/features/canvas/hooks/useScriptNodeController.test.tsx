@@ -32,7 +32,7 @@ vi.mock('@xyflow/react', () => ({
 }));
 
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
 }));
 

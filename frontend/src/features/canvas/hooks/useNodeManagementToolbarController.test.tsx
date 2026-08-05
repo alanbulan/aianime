@@ -20,9 +20,6 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mocks.t }),
 }));
 
-vi.mock("@/features/canvas/canvasStore", () => ({
-}));
-
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   useCanvasStore: (

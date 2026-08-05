@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   uploadCanvasAsset,
   useIsBoxSelecting,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 import { canvasEventBus, resolveNodeDisplayName, type AudioNodeData } from '@/modules/creative_canvas/public';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';

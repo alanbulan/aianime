@@ -8,7 +8,7 @@ import { Canvas } from "@/features/canvas/Canvas";
 import {
   hydrateAssetDragPayload,
   uploadCanvasAsset,
-} from "@/features/canvas/composition";
+} from "@/modules/creative_canvas/canvasComposition";
 import {
   CANVAS_CONNECTION_NODE_TYPES,
   DEFAULT_CANVAS_NODE_WIDTH,

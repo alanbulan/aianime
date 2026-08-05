@@ -17,7 +17,7 @@ import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadLocalImageToBackend,
   useUpstreamNodes,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 import {
   getFreezoneCanvasMetadata,
   resolveImageDisplayUrl,

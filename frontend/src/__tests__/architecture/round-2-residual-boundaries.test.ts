@@ -2880,7 +2880,6 @@ describe("round 2 residual architecture boundaries", () => {
   it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
     const allowed = new Set([
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/Canvas",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/composition",
     ]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>

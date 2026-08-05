@@ -3487,6 +3487,7 @@ export type {
   CanvasEventMap,
 } from "@/modules/creative_canvas/application/canvasEventBus";
 export { canvasEventBus } from "@/modules/creative_canvas/canvasEventComposition";
+export { canvasEdgeTypes } from "@/modules/creative_canvas/canvasComposition";
 export {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,

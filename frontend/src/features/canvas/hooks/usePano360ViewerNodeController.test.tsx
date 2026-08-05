@@ -41,7 +41,7 @@ vi.mock('@photo-sphere-viewer/core', () => ({
 }));
 
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
   uploadAndAutoCommitSelectedBackgroundCandidate: (...args: unknown[]) =>

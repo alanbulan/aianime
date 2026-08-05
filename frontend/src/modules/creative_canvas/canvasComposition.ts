@@ -1,4 +1,51 @@
 // Copyright (c) 2026 AI anime
+import { applyStoryboardTextOverlay, getStoryboardReferenceFrameHeight } from './infrastructure/browserStoryboardExportRuntime';
+import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
+import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
+import { canvasEventBus } from './canvasEventComposition';
+import { composeCapability } from './domain/capabilities/registry';
+import { createUseCanvasConnectionGestureSurfaceController } from './presentation/useCanvasConnectionGestureSurfaceController';
+import { createDisconnectableEdge } from './presentation/DisconnectableEdge';
+import { createUseCanvasGenerationRecoveryController } from './presentation/useCanvasGenerationRecoveryController';
+import { createUseCanvasProjectSurfaceController } from './presentation/useCanvasProjectSurfaceController';
+import { createUseCanvasViewerSurfaceController } from './presentation/useCanvasViewerSurfaceController';
+import { createUseDetachUpstream } from './presentation/useDetachUpstream';
+import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
+import { createUseImageMatteController } from './presentation/useImageMatteController';
+import { createUseIsBoxSelecting } from './presentation/useIsBoxSelecting';
+import { createUseUpstreamGraph } from './presentation/useUpstreamGraph';
+import { detectAspectRatio as detectAspectRatioUseCase, prepareNodeImage as prepareNodeImageUseCase, prepareNodeImageFromFile as prepareNodeImageFromFileUseCase } from './application/imagePreparation';
+import { EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT } from './domain/imageNodeLayout';
+import { exportStoryboardGrid as exportStoryboardGridUseCase, packStoryboardFrames as packStoryboardFramesUseCase, type ExportStoryboardGridCommand } from './application/storyboardExport';
+import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
+import { generateCanvasRedraw, submitCanvasImageGeneration } from './mediaOperationGenerationComposition';
+import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, type CanvasBeatDirectorManifestGateway, type GetCanvasBeatDirectorManifestParams } from './application/beatDirectorManifest';
+import { getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase, type GetCanvasDirectorStagePaletteParams } from './application/directorStagePalette';
+import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
+import { getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase, type GetCanvasSceneAssetsForBeatParams } from './application/sceneAssets';
+import { nodeNeedsGenerationResume, resumeNodeGeneration as resumeNodeGenerationUseCase, type ResumeNodeGenerationParams } from './application/resumeGeneration';
+import { matteImageInBrowserWorker, preloadBrowserMatteWorker } from './infrastructure/browserMatteWorkerClient';
+import { platformCanvasAssetGateway } from './assetTransferComposition';
+import { pollExportImageGeneration as pollExportImageGenerationUseCase, type PollExportImageGenerationParams } from './application/pollExportImageGeneration';
+import { publishCanvasCommitRequested } from './application/canvasCommitEvents';
+import { regenerateExportImageNode as regenerateExportImageNodeUseCase, type RegenerateExportImageNodeParams } from './application/regenerateExportNode';
+import { resolveCurrentShotMetadataPrompt } from './shotMetadataComposition';
+import { resolvePromptReferenceRoles } from './domain/referenceRoles';
+import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
+import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
+import { extractUpstreamContent } from './application/graphContentResolver';
+import { extractUpstreamImages } from './application/graphImageResolver';
+import { CANVAS_NODE_TYPES } from './domain/canvasConnection';
+import { type CanvasAssetDragPayload } from './domain/assetDrag';
+import { NODE_TOOL_TYPES } from './domain/canvasNodeTool';
+import { type SelectedBackgroundGraphGateway, stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase, uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase, type StageSelectedBackgroundOptions, type UploadSelectedBackgroundCandidateOptions } from './application/selectedBackgroundSlot';
+import { type CanvasNodeData } from './domain/canvasNodeData';
+import { awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase, startCanvasSkillRun as startCanvasSkillRunUseCase, type AwaitCanvasSkillRunResultParams, type StartCanvasSkillRunParams } from './application/skillExecution';
+import { hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase, type CanvasSceneDirectorManifestGateway } from './application/assetDragHydration';
+import { type SelectedBackgroundTarget } from './application/selectedBackgroundSlot';
+import { uploadCanvasAsset as uploadCanvasAssetUseCase, type UploadCanvasAssetOptions } from './application/uploadCanvasAsset';
+import { uploadLocalImageToBackend as uploadLocalImageToBackendUseCase } from './application/uploadToolOutput';
+import { useCanvasStore } from './canvasStoreComposition';
 import { useShallow } from 'zustand/react/shallow';
 import type { EdgeTypes } from '@xyflow/react';
 
@@ -12,97 +59,21 @@ import {
   loadSceneDirectorStageManifest,
   type DirectorStageManifest,
 } from '@/modules/asset_world/public';
-import {
-  applyStoryboardTextOverlay,
-  browserGenerationRuntimeGateway,
-  browserImageRuntimeGateway,
-  canvasEventBus,
-  composeCapability,
-  createUseCanvasConnectionGestureSurfaceController,
-  createDisconnectableEdge,
-  createUseCanvasGenerationRecoveryController,
-  createUseCanvasProjectSurfaceController,
-  createUseCanvasViewerSurfaceController,
-  createUseDetachUpstream,
-  createUseImageEditToolbarController,
-  createUseImageMatteController,
-  createUseIsBoxSelecting,
-  createUseUpstreamGraph,
-  detectAspectRatio as detectAspectRatioUseCase,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  exportStoryboardGrid as exportStoryboardGridUseCase,
-  freezoneGenerationTaskGateway,
-  generateCanvasRedraw,
-  getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
-  getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
-  getFreezoneCanvasMetadata,
-  getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
-  getStoryboardReferenceFrameHeight,
-  nodeNeedsGenerationResume,
-  matteImageInBrowserWorker,
-  platformCanvasAssetGateway,
-  preloadBrowserMatteWorker,
-  prepareNodeImage as prepareNodeImageUseCase,
-  prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
-  packStoryboardFrames as packStoryboardFramesUseCase,
-  pollExportImageGeneration as pollExportImageGenerationUseCase,
-  publishCanvasCommitRequested,
-  regenerateExportImageNode as regenerateExportImageNodeUseCase,
-  resolveCurrentShotMetadataPrompt,
-  resolvePromptReferenceRoles,
-  resumeNodeGeneration as resumeNodeGenerationUseCase,
-  submitCanvasImageGeneration,
-  freezoneDirectorStagePaletteGateway,
-  freezoneSceneAssetsGateway,
-  extractUpstreamContent,
-  extractUpstreamImages,
-  CANVAS_NODE_TYPES,
-  type CanvasAssetDragPayload,
-  type CanvasBeatDirectorManifestGateway,
-  NODE_TOOL_TYPES,
-  type ExportStoryboardGridCommand,
-  type GetCanvasBeatDirectorManifestParams,
-  type GetCanvasDirectorStagePaletteParams,
-  type GetCanvasSceneAssetsForBeatParams,
-  type PollExportImageGenerationParams,
-  type RegenerateExportImageNodeParams,
-  type ResumeNodeGenerationParams,
-  type SelectedBackgroundGraphGateway,
-  type CanvasNodeData,
-} from '@/modules/creative_canvas/public';
+
 
 import { useSettingsStore } from '@/stores/settingsStore';
-import {
-  awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
-  startCanvasSkillRun as startCanvasSkillRunUseCase,
-  type AwaitCanvasSkillRunResultParams,
-  type StartCanvasSkillRunParams,
-} from '@/modules/creative_canvas/public';
-import {
-  hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
-  type CanvasSceneDirectorManifestGateway,
-} from '@/modules/creative_canvas/public';
-import {
-  stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
-  uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
-  type SelectedBackgroundTarget,
-  type StageSelectedBackgroundOptions,
-  type UploadSelectedBackgroundCandidateOptions,
-} from '@/modules/creative_canvas/public';
-import {
-  uploadCanvasAsset as uploadCanvasAssetUseCase,
-  uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
-  type UploadCanvasAssetOptions,
-} from '@/modules/creative_canvas/public';
-import { captureVideoFrameBlob } from '@/modules/creative_canvas/infrastructure/browserVideoFrameCapture';
-import { createFreezoneAiGateway } from '@/modules/creative_canvas/infrastructure/freezoneAiGateway';
-import { freezoneSkillExecutionGateway } from '@/modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway';
-import { ensureWebSafeVideo } from '@/modules/creative_canvas/infrastructure/videoTranscode';
-import { zustandCanvasGraphGateway } from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphGateway';
-import { showErrorDialog as showErrorDialogInfrastructure } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+
+
+
+import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
+import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
+import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
+import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
+import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
+
+
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
 };
@@ -200,7 +171,7 @@ function resumePendingGenerationNode({
   });
 }
 
-export { showErrorDialog } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';
+export { showErrorDialog } from './infrastructure/globalErrorDialog';
 export {
   captureVideoFrameBlob,
   ensureWebSafeVideo,

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import {
   awaitCanvasGenerationTaskCompletion,
   useIsBoxSelecting,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 import { resolveNodeDisplayName, type TextAnnotationNodeData, type UploadImageNodeData, type VideoNodeData } from '@/modules/creative_canvas/public';
 import {

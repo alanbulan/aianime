@@ -6,7 +6,7 @@ import { describeAudioVoiceRef, deriveAudioText, filterAudioUpstreamTextContents
 import {
   useDetachUpstream,
   useUpstreamContents,
-} from '@/features/canvas/composition';
+} from "@/modules/creative_canvas/canvasComposition";
 ;
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {

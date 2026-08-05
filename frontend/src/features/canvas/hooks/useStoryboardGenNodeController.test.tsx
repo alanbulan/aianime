@@ -120,7 +120,7 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 
-vi.mock('@/features/canvas/composition', () => ({
+vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   CURRENT_RUNTIME_SESSION_ID: 'session-a',
   canvasAiGateway: {
     submitGenerateImageJob: (...args: unknown[]) =>

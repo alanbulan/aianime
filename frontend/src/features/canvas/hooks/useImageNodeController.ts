@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 
-import { regenerateExportImageNode } from '@/features/canvas/composition';
+import { regenerateExportImageNode } from "@/modules/creative_canvas/canvasComposition";
 ;
 import { resolveNodeDisplayName, type CanvasNodeType, type ExportImageNodeData, type ImageEditNodeData } from '@/modules/creative_canvas/public';
 import {

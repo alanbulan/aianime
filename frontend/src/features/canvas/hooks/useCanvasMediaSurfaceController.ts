@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo } from 'react';
 
-import { hydrateAssetDragPayload } from '@/features/canvas/composition';
+import { hydrateAssetDragPayload } from "@/modules/creative_canvas/canvasComposition";
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import { spawnCanvasAssetNode, useCanvasHistoryAssetController, useCanvasMediaTransferController, type CanvasAssetDragPayload, type CanvasHistoryAssetController, type CanvasHistoryAssetControllerOptions, type CanvasEventBus, type CanvasAssetNodeSpawnPort, type CanvasMediaPasteEventPort, type CanvasMediaTransferController, type CanvasNodeData, type CanvasNodeType } from '@/modules/creative_canvas/public';
 

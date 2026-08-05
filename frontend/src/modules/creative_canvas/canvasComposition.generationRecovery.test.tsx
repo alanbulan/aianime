@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 
-import { useCanvasGenerationRecoveryController } from "./composition";
+import { useCanvasGenerationRecoveryController } from "@/modules/creative_canvas/canvasComposition";
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import type {
   CanvasNode,
@@ -20,9 +20,27 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<
     typeof import("@/modules/creative_canvas/public")
   >()),
-  pollExportImageGeneration: generationMocks.pollExportImageGeneration,
-  resumeNodeGeneration: generationMocks.resumeNodeGeneration,
 }));
+
+vi.mock(
+  "@/modules/creative_canvas/application/pollExportImageGeneration",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@/modules/creative_canvas/application/pollExportImageGeneration")
+    >()),
+    pollExportImageGeneration: generationMocks.pollExportImageGeneration,
+  }),
+);
+
+vi.mock(
+  "@/modules/creative_canvas/application/resumeGeneration",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@/modules/creative_canvas/application/resumeGeneration")
+    >()),
+    resumeNodeGeneration: generationMocks.resumeNodeGeneration,
+  }),
+);
 
 function generationNode(
   id: string,
