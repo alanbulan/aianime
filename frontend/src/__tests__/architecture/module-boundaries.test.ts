@@ -21418,7 +21418,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/skillExecution.ts",
+      "modules/creative_canvas/application/skillExecution.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
@@ -21465,13 +21465,12 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyDomainPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual(["./skillContract"]);
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public"]),
+      new Set(["../domain/skillExecution"]),
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
         "@/modules/creative_canvas/public",
-        "../application/skillExecution",
       ]),
     );
     expect(domainSource).toContain("isSkillRunTerminalStatus(");

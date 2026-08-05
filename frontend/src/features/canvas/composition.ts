@@ -90,7 +90,7 @@ import {
   startCanvasSkillRun as startCanvasSkillRunUseCase,
   type AwaitCanvasSkillRunResultParams,
   type StartCanvasSkillRunParams,
-} from './application/skillExecution';
+} from '@/modules/creative_canvas/public';
 import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,

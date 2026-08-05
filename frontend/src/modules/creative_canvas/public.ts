@@ -1888,6 +1888,16 @@ export {
   extractUpstreamImages,
 } from "@/modules/creative_canvas/application/graphImageResolver";
 export {
+  awaitCanvasSkillRunResult,
+  startCanvasSkillRun,
+} from "@/modules/creative_canvas/application/skillExecution";
+export type {
+  AwaitCanvasSkillRunResultDependencies,
+  AwaitCanvasSkillRunResultParams,
+  CanvasSkillExecutionGateway,
+  StartCanvasSkillRunParams,
+} from "@/modules/creative_canvas/application/skillExecution";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

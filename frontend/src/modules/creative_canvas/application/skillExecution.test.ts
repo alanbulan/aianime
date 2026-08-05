@@ -5,7 +5,7 @@ import type {
   SkillRunRequest,
   SkillRunResponse,
   SkillRunResult,
-} from "@/modules/creative_canvas/public";
+} from "../domain/skillExecution";
 
 import {
   awaitCanvasSkillRunResult,
