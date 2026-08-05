@@ -1,11 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type ThreeDWorldNodeData,
-} from '@/features/canvas/domain/canvasNodes';
 import type { MainlineContext } from '@/modules/creative_canvas/public';
 import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 import {
@@ -19,23 +14,30 @@ import {
   resolveThreeDWorldNodeSize,
 } from './threeDWorldNodeModel';
 
+type TestNode = {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+};
+
 function uploadNode(
   id: string,
   y: number,
   data: Record<string, unknown>,
-): CanvasNode {
+): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    type: 'uploadNode',
     position: { x: 0, y },
     data,
-  } as CanvasNode;
+  };
 }
 
-function textNode(id: string, y: number, content: string): CanvasNode {
+function textNode(id: string, y: number, content: string): TestNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'textAnnotationNode',
     position: { x: 0, y },
     data: { content },
   };
@@ -138,7 +140,7 @@ describe('threeDWorldNodeModel', () => {
   });
 
   it('prioritizes composite previews and recognizes panorama source hints', () => {
-    const data: ThreeDWorldNodeData = {
+    const data: Record<string, unknown> = {
       previewImageUrl: '/combined.png',
       plyUrl: '/world.sog',
       director_control_bundle: {},
@@ -180,7 +182,7 @@ describe('threeDWorldNodeModel', () => {
         sourceTransform: { position: [1, 2, 3] },
       },
     } as unknown as ThreeDSceneSnapshot;
-    const data: ThreeDWorldNodeData = {
+    const data: Record<string, unknown> = {
       scene: previousScene,
       activeSourceId: 'source-a',
       scenesBySourceId: { old: previousScene },

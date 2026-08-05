@@ -8,7 +8,7 @@ import {
   THREE_D_WORLD_NODE_SIZE_LIMITS,
   type ThreeDWorldReferenceImage,
   type ThreeDWorldReferenceText,
-} from '@/features/canvas/application/threeDWorldNodeModel';
+} from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_OPS_PANEL_CLASS,
   NODE_INLINE_ERROR_MESSAGE_CLASS,

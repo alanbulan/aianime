@@ -2782,11 +2782,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/threeDWorldNodeModel.ts",
+      "modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/threeDWorldNodeModel.test.ts",
+      "modules/creative_canvas/application/threeDWorldNodeModel.test.ts",
     );
     const capturePath = resolve(
       SRC_ROOT,
@@ -2863,7 +2863,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ThreeDWorldNode.tsx"],
-      ["features/canvas/application/threeDWorldNodeModel.ts"],
+      ["modules/creative_canvas/application/threeDWorldNodeModel.ts"],
       ["modules/creative_canvas/application/directorCaptureBundle.ts"],
       ["modules/creative_canvas/infrastructure/browserDirectorCaptureRuntime.ts"],
       ["features/canvas/hooks/useThreeDWorldNodeController.ts"],
@@ -2875,6 +2875,8 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
     expect(captureSource).toContain("uploadAsset(");
     expect(captureSource).not.toContain("uploadCanvasAsset");
     expect(captureSource).not.toContain("ThreeDDirectorDialog");
@@ -2909,6 +2911,15 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/infrastructure/browserDirectorCaptureRuntime",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/threeDWorldNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/threeDWorldNodeModel",
     );
     expect(controllerSource).toContain("setDirectorWorldSceneSaveHandler(");
     expect(controllerSource).not.toContain("readUrl()");

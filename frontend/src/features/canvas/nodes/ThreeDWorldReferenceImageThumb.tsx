@@ -6,7 +6,7 @@ import {
   ReferenceDetachButton,
   resolveImageDisplayUrl,
 } from '@/modules/creative_canvas/public';
-import type { ThreeDWorldReferenceImage } from '@/features/canvas/application/threeDWorldNodeModel';
+import type { ThreeDWorldReferenceImage } from '@/modules/creative_canvas/public';
 
 const PREVIEW_WIDTH = 240;
 const PREVIEW_OFFSET = 10;

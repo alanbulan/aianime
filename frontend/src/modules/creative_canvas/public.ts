@@ -2136,6 +2136,32 @@ export type {
   VideoNodeModelOption,
 } from "@/modules/creative_canvas/application/videoNodeModel";
 export {
+  THREE_D_WORLD_NODE_SIZE_LIMITS,
+  buildLocalThreeDWorldDirectorManifest,
+  buildThreeDWorldClearScenePatch,
+  buildThreeDWorldSaveScenePatch,
+  directorSourcesForNode,
+  isCandidateDirectorWorldNode,
+  isSceneDirectorWorldNode,
+  pickThreeDWorldPlyUrl,
+  projectThreeDWorldPanoSources,
+  projectThreeDWorldPreview,
+  projectThreeDWorldReferences,
+  resolveThreeDWorldBeatContext,
+  resolveThreeDWorldImageSourceKind,
+  resolveThreeDWorldNodeSize,
+  resolveThreeDWorldTitle,
+  usableDirectorWorldPreviewUrl,
+} from "@/modules/creative_canvas/application/threeDWorldNodeModel";
+export type {
+  ThreeDWorldBeatContext,
+  ThreeDWorldPreviewProjection,
+  ThreeDWorldReferenceImage,
+  ThreeDWorldReferenceProjection,
+  ThreeDWorldReferenceText,
+  ThreeDWorldUpstreamRef,
+} from "@/modules/creative_canvas/application/threeDWorldNodeModel";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

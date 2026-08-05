@@ -69,7 +69,7 @@ describe("freezone viewer contracts", () => {
 
   it("keeps ThreeDWorldNode freezone mode optional and separate from mainline beat overlay requirements", () => {
     const model = read(
-      "src/features/canvas/application/threeDWorldNodeModel.ts",
+      "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
@@ -148,7 +148,7 @@ describe("freezone viewer contracts", () => {
 
   it("lets a source-less ThreeDWorldNode enter a blank Director World", () => {
     const model = read(
-      "src/features/canvas/application/threeDWorldNodeModel.ts",
+      "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
@@ -426,7 +426,7 @@ describe("freezone viewer contracts", () => {
   it("lets canvas ThreeDWorldNode open pano360 image sources when explicitly connected", () => {
     const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
     const model = read(
-      "src/features/canvas/application/threeDWorldNodeModel.ts",
+      "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
@@ -499,7 +499,7 @@ describe("freezone viewer contracts", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const overlay = read("src/features/canvas/ui/SelectedNodeOverlay.tsx");
     const worldModel = read(
-      "src/features/canvas/application/threeDWorldNodeModel.ts",
+      "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const worldController = read(
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",

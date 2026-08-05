@@ -1,26 +1,27 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isStoryboardGenNode,
-  isTextAnnotationNode,
-  isUploadNode,
-  type CanvasNode,
-  type ThreeDWorldNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   directorPanoSourceFromCanvasNode,
   isPanoImageCanvasNode,
-  resolveNodeDisplayName,
-} from '@/modules/creative_canvas/public';
-import {
-  hasMainlineContexts,
-  type CanvasImageTo3dVisibleSourceKind,
-  type MainlineContext,
-} from '@/modules/creative_canvas/public';
+} from "../domain/directorWorldSources";
+import { hasMainlineContexts, type MainlineContext } from "../domain/mainlineContext";
+import { resolveNodeDisplayName } from "../domain/nodeDisplay";
+import type { CanvasImageTo3dVisibleSourceKind } from "../domain/imageTo3d";
 import type { DirectorStageManifest, DirectorWorldSource, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
+
+type ThreeDWorldNodeData = {
+  [key: string]: any;
+};
+
+type CanvasNode = {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, any>;
+  measured?: { width?: number; height?: number };
+  width?: number | null;
+  height?: number | null;
+  [key: string]: any;
+};
 
 export const THREE_D_WORLD_NODE_SIZE_LIMITS = {
   defaultWidth: 340,
@@ -91,7 +92,7 @@ function projectUpstreamRef(
   node: CanvasNode | undefined | null,
 ): ThreeDWorldUpstreamRef | null {
   if (!node) return null;
-  if (isImageGenNode(node)) {
+  if (node.type === "imageGenNode") {
     const referenceUrl =
       typeof node.data.referenceImageUrl === 'string' &&
       node.data.referenceImageUrl.length > 0
@@ -107,10 +108,10 @@ function projectUpstreamRef(
     };
   }
   if (
-    isUploadNode(node) ||
-    isImageEditNode(node) ||
-    isExportImageNode(node) ||
-    isStoryboardGenNode(node)
+    node.type === "uploadNode" ||
+    node.type === "imageNode" ||
+    node.type === "exportImageNode" ||
+    node.type === "storyboardGenNode"
   ) {
     if (!node.data.imageUrl) return null;
     return {
@@ -120,7 +121,7 @@ function projectUpstreamRef(
       imageUrl: node.data.imageUrl,
     };
   }
-  if (isTextAnnotationNode(node)) {
+  if (node.type === "textAnnotationNode") {
     const text = (node.data.content ?? '').trim();
     if (!text) return null;
     return {
@@ -271,7 +272,7 @@ export function resolveThreeDWorldNodeSize(
 }
 
 export function resolveThreeDWorldTitle(data: ThreeDWorldNodeData): string {
-  return resolveNodeDisplayName(CANVAS_NODE_TYPES.threeDWorld, data);
+  return resolveNodeDisplayName("threeDWorldNode", data);
 }
 
 function sourceKindForManifest(
@@ -377,7 +378,7 @@ export function directorSourcesForNode(
   data: ThreeDWorldNodeData,
   upstreamPanoSources: DirectorWorldSource[],
 ): DirectorWorldSource[] {
-  const explicitSources = (data.sources ?? []).filter(
+  const explicitSources = ((data.sources ?? []) as DirectorWorldSource[]).filter(
     (source) => source.source_type !== 'mesh',
   );
   const hasMainlineContext = hasMainlineContexts(

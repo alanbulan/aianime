@@ -24,7 +24,7 @@ import {
   resolveThreeDWorldNodeSize,
   resolveThreeDWorldTitle,
   usableDirectorWorldPreviewUrl,
-} from '@/features/canvas/application/threeDWorldNodeModel';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   getCanvasBeatDirectorManifest,
@@ -502,7 +502,7 @@ export function useThreeDWorldNodeController({
           upstreamPanoSources,
           snapshot,
           activeSourceId,
-        ),
+        ) as unknown as Parameters<typeof updateNodeData>[1],
       );
     },
     [data, id, updateNodeData, upstreamPanoSources],
@@ -515,7 +515,13 @@ export function useThreeDWorldNodeController({
   );
   const clearScene = useCallback(
     async (activeSourceId?: string) => {
-      updateNodeData(id, buildThreeDWorldClearScenePatch(data, activeSourceId));
+      updateNodeData(
+        id,
+        buildThreeDWorldClearScenePatch(
+          data,
+          activeSourceId,
+        ) as unknown as Parameters<typeof updateNodeData>[1],
+      );
     },
     [data, id, updateNodeData],
   );

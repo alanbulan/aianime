@@ -5,7 +5,7 @@ import {
   directorSourcesForNode,
   isCandidateDirectorWorldNode,
   isSceneDirectorWorldNode,
-} from "@/features/canvas/application/threeDWorldNodeModel";
+} from "@/modules/creative_canvas/public";
 import type { ThreeDWorldNodeData } from "@/features/canvas/domain/canvasNodes";
 
 describe("ThreeDWorldNode source scope", () => {
