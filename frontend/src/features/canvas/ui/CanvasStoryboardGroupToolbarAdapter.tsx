@@ -5,16 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import type { CanvasNode, GroupNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  NODE_TOOLBAR_ALIGN,
-  NODE_TOOLBAR_CLASS,
-  NODE_TOOLBAR_OFFSET,
-  NODE_TOOLBAR_POSITION,
-  StoryboardGroupToolbarView,
-  ZoomScaledToolbar,
-  useStoryboardGroupToolbarController,
-} from '@/modules/creative_canvas/public';
+;
+import { NODE_TOOLBAR_ALIGN, NODE_TOOLBAR_CLASS, NODE_TOOLBAR_OFFSET, NODE_TOOLBAR_POSITION, StoryboardGroupToolbarView, ZoomScaledToolbar, useStoryboardGroupToolbarController, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
 
 const toolbarStyles = {
   panel:

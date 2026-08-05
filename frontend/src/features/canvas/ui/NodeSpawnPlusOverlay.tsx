@@ -5,12 +5,8 @@ import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { isScriptNode, isVideoNode, type CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import {
-  getDownstreamSpawnTypes,
-  nodeHasSourceHandle,
-  nodeHasTargetHandle,
-} from '@/modules/creative_canvas/public';
+import { isScriptNode, isVideoNode } from '@/features/canvas/domain/canvasNodes';
+import { getDownstreamSpawnTypes, nodeHasSourceHandle, nodeHasTargetHandle, type CanvasNodeType } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 type SpawnDirection = 'right' | 'left';

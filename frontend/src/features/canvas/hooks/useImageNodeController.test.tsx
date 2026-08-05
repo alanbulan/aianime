@@ -3,11 +3,11 @@ import type { SyntheticEvent } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 
 import { useImageNodeController } from './useImageNodeController';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES, type ImageEditNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),

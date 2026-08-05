@@ -1,14 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  normalizeCanvasData,
-  navigateCanvasHistory,
-  normalizeHistory,
-  type CanvasHistoryDirection,
-  type CanvasHistoryNavigationState,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-  type CanvasToolDialogRequest as ActiveToolDialog,
-} from '@/modules/creative_canvas/public';
+import { normalizeCanvasData, navigateCanvasHistory, normalizeHistory, type CanvasHistoryDirection, type CanvasHistoryNavigationState, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
 import { nodeCatalog } from '../application/nodeCatalog';
 import type {
   CanvasNodeDefaultDataCatalog,
@@ -17,7 +8,7 @@ import type {
   HydrationGraphNode,
 } from '@/modules/creative_canvas/public';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+;
 
 export interface CanvasHistorySlice {
   history: CanvasHistoryState<CanvasNode, CanvasEdge>;

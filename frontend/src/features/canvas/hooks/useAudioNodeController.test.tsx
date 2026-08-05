@@ -3,10 +3,11 @@ import { StrictMode, type ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 
 import { useAudioNodeController } from './useAudioNodeController';
 
+import type { AudioNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),

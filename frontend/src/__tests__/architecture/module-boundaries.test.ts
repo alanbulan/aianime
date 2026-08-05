@@ -709,7 +709,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useVideoStoryNodeController",
         "./VideoStoryNodeView",
       ]),
@@ -810,7 +810,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useAudioNodeController",
         "./AudioNodeView",
       ]),
@@ -957,7 +957,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useImageNodeController",
         "./ImageNodeView",
       ]),
@@ -1069,7 +1069,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useVideoComposeNodeController",
         "./VideoComposeNodeView",
       ]),
@@ -1289,7 +1289,7 @@ describe("frontend architecture boundaries", () => {
         "zustand/react/shallow",
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
         "@/modules/creative_canvas/public",
       ]),
@@ -1608,7 +1608,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useTextAnnotationNodeController",
         "./TextAnnotationNodeView",
       ]),
@@ -1730,7 +1730,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useUploadNodeController",
         "./UploadNodeView",
       ]),
@@ -1853,7 +1853,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useScriptNodeController",
         "./ScriptNodeView",
       ]),
@@ -1982,7 +1982,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/usePano360ViewerNodeController",
         "./Pano360ViewerNodeView",
       ]),
@@ -2179,7 +2179,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useStoryboardNodeController",
         "./StoryboardNodeView",
       ]),
@@ -2378,7 +2378,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useStoryboardGenNodeController",
         "./StoryboardGenNodeView",
       ]),
@@ -2556,7 +2556,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useImageEditNodeController",
         "./ImageEditNodeView",
       ]),
@@ -2707,7 +2707,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useBeatContextNodeController",
         "./BeatContextNodeView",
       ]),
@@ -2855,7 +2855,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useThreeDWorldNodeController",
         "./ThreeDWorldNodeView",
       ]),
@@ -3005,7 +3005,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useImageGenNodeController",
         "./ImageGenNodeView",
       ]),
@@ -3129,7 +3129,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useVideoNodeController",
         "./VideoNodeView",
       ]),
@@ -3254,7 +3254,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useSkillNodeController",
         "./SkillNodeView",
       ]),
@@ -7647,7 +7647,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeFactorySource).not.toContain("@/features/canvas/");
     expect(nodeFactorySource).not.toContain("@/modules/creative_canvas/public");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["../domain/canvasNodes", "../application/ports"]),
+      new Set(["@/modules/creative_canvas/public", "../application/ports"]),
     );
     expect(adapterSource).toContain(
       'const LAST_VIDEO_MODEL_STORAGE_KEY = "canvas.lastVideoModel"',
@@ -9940,7 +9940,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/composition",
         "@/features/viewer-kit/public",
         "@/modules/creative_canvas/public",
-        "../domain/canvasNodes",
+        "@/modules/creative_canvas/public",
       ]),
     );
     expect(implementationOwners).toEqual([
@@ -23603,7 +23603,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
       ]),
@@ -23614,7 +23614,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useNodeMainlineToolbarController",
         "@/modules/creative_canvas/public",
       ]),
@@ -23806,8 +23806,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
+        "@/features/canvas/domain/canvasNodes",
         "./AudioNodeToolbarActions",
         "./CanvasGroupNodeToolbarActionsAdapter",
         "./CanvasStoryboardGroupToolbarAdapter",
@@ -23965,9 +23965,9 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/domain/canvasNodes",
-        "@/lib/browserDownload",
         "@/modules/creative_canvas/public",
+        "@/lib/browserDownload",
+        "@/features/canvas/domain/canvasNodes",
         "@/stores/settingsStore",
       ]),
     );
@@ -23976,7 +23976,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useNodeOutputToolbarController",
         "@/modules/creative_canvas/public",
       ]),
@@ -24135,8 +24135,8 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
+        "@/features/canvas/domain/canvasNodes",
       ]),
     );
     expect(controllerSource).toContain("useCanvasProjectionStatus(");
@@ -24145,7 +24145,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/hooks/useNodeManagementToolbarController",
         "@/modules/creative_canvas/public",
       ]),
@@ -24300,7 +24300,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/lib/browserDownload",
         "@/modules/creative_canvas/public",
       ]),
@@ -24451,7 +24451,7 @@ describe("frontend architecture boundaries", () => {
         "sonner",
         "@/modules/creative_canvas/public",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/lib/browserDownload",
         "@/lib/audioTranscode",
       ]),
@@ -24706,7 +24706,7 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "sonner",
         "@/features/canvas/canvasStore",
-        "@/features/canvas/domain/canvasNodes",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -25390,8 +25390,8 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
+        "@/features/canvas/domain/canvasNodes",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -27946,7 +27946,6 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(slicePath)).toEqual([
       "@xyflow/react",
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
     ]);
     expect(canvasStore).toMatch(
       /interface CanvasState[\s\S]*?CanvasViewportSlice/,
@@ -28032,7 +28031,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
       "../application/nodeCatalog",
       "../application/ports",
-      "../domain/canvasNodes",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasHistorySlice");
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
@@ -28091,7 +28090,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasGraphMutationSlice");
     expect(canvasStore).toContain(
@@ -28140,7 +28139,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
       "../application/nodeCatalog",
       "../application/ports",
     ]));
@@ -28257,7 +28255,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
+      "@/modules/creative_canvas/public",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");
@@ -28300,7 +28298,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeDeletionSlice");
     expect(canvasStore).toContain(
@@ -33251,7 +33249,13 @@ describe("frontend architecture boundaries", () => {
       expect(source, declaration).not.toContain(declaration);
     }
     expect(source).not.toContain("IMAGE_ASPECT_RATIOS");
-    expect(source).toContain("interface NodeDisplayData {");
-    expect(source).toContain("interface NodeImageData extends NodeDisplayData {");
+    const canvasNodeDataSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/canvasNodeData.ts"),
+      "utf8",
+    );
+    expect(canvasNodeDataSource).toContain("interface NodeDisplayData {");
+    expect(canvasNodeDataSource).toContain(
+      "interface NodeImageData extends NodeDisplayData {",
+    );
   });
 });

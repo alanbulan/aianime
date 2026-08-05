@@ -11,15 +11,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-import {
-  CANVAS_NODE_TOOLBAR_PILL_CLASS,
-  DEFAULT_CANVAS_NODE_WIDTH,
-  NODE_TOOLBAR_CLASS,
-  loadImageElement,
-} from '@/modules/creative_canvas/public';
+;
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS, DEFAULT_CANVAS_NODE_WIDTH, NODE_TOOLBAR_CLASS, loadImageElement, type CanvasNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 

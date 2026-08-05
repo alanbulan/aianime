@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
 
 import { ScriptNodeView } from './ScriptNodeView';
 
+import type { ScriptNodeData } from "@/modules/creative_canvas/public";
 type ScriptNodeProps = NodeProps & {
   id: string;
   data: ScriptNodeData;

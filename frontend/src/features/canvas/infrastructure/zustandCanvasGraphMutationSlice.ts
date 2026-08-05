@@ -8,22 +8,8 @@ import {
   type NodeChange,
 } from '@xyflow/react';
 
-import {
-  applyCanvasEdgeChangeEffects,
-  applyCanvasNodeChangeEffects,
-  createCanvasDataEdge,
-  createCanvasProgrammaticEdge,
-  createSnapshot,
-  deleteCanvasEdge,
-  normalizeEdgesWithNodes,
-  prepareCanvasReactFlowConnection,
-  pushSnapshot,
-  trackEdit,
-  type CanvasDataEdgeCreationOptions,
-  type CanvasNodeChangeEffectState,
-  type CanvasToolDialogRequest as ActiveToolDialog,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
+import { applyCanvasEdgeChangeEffects, applyCanvasNodeChangeEffects, createCanvasDataEdge, createCanvasProgrammaticEdge, createSnapshot, deleteCanvasEdge, normalizeEdgesWithNodes, prepareCanvasReactFlowConnection, pushSnapshot, trackEdit, type CanvasDataEdgeCreationOptions, type CanvasNodeChangeEffectState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
+;
 
 export interface CanvasGraphMutationSlice {
   nodes: CanvasNode[];

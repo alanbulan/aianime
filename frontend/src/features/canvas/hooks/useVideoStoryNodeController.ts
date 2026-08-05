@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { type VideoStoryNodeData } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+;
+import { resolveNodeDisplayName, type VideoStoryNodeData } from '@/modules/creative_canvas/public';
 import type { VideoStoryRow } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

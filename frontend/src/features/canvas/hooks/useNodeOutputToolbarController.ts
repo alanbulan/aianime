@@ -2,17 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  projectNodeActionGenerationError,
-  projectNodeActionStoryboardText,
-  resolveNodeActionImageDownloadFilename,
-  resolveCanvasNodeSourceImageUrl,
-  resolveImageDisplayUrl,
-} from "@/modules/creative_canvas/public";
-import {
-  isImageEditNode,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
+import { projectNodeActionGenerationError, projectNodeActionStoryboardText, resolveNodeActionImageDownloadFilename, resolveCanvasNodeSourceImageUrl, resolveImageDisplayUrl, type CanvasNode } from "@/modules/creative_canvas/public";
+import { isImageEditNode } from "@/features/canvas/domain/canvasNodes";
 import { downloadUrlAsFile } from "@/lib/browserDownload";
 import { useSettingsStore } from "@/stores/settingsStore";
 

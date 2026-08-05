@@ -2,9 +2,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useImageEditNodeController } from './useImageEditNodeController';
 
+import type { ImageEditNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   upstreamImages: [] as string[],
   upstreamContents: [] as Array<{

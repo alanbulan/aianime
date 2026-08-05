@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { StoryboardGenNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useStoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
 
 import { StoryboardGenNodeView } from './StoryboardGenNodeView';
 
+import type { StoryboardGenNodeData } from "@/modules/creative_canvas/public";
 type StoryboardGenNodeProps = NodeProps & {
   id: string;
   data: StoryboardGenNodeData;

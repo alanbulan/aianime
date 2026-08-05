@@ -11,11 +11,8 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { type ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  resolveNodeDisplayName,
-  type ImageSize,
-} from '@/modules/creative_canvas/public';
+;
+import { resolveNodeDisplayName, type ImageSize, type ImageEditNodeData } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CURRENT_RUNTIME_SESSION_ID,

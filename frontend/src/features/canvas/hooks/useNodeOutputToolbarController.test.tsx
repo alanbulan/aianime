@@ -2,11 +2,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type CanvasNode, type CanvasNodeType } from "@/features/canvas/domain/canvasNodes";
+;
 
 import { useNodeOutputToolbarController } from "./useNodeOutputToolbarController";
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES, type CanvasNode, type CanvasNodeType } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   downloadUrl: vi.fn(),
   resolveUrl: vi.fn((url: string) => `resolved:${url}`),

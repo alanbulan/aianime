@@ -69,12 +69,10 @@ import {
   type RegenerateExportImageNodeParams,
   type ResumeNodeGenerationParams,
   type SelectedBackgroundGraphGateway,
+  type CanvasNodeData,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from './canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import {
-  type CanvasNodeData,
-} from './domain/canvasNodes';
 import {
   awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
   startCanvasSkillRun as startCanvasSkillRunUseCase,

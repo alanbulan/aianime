@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { SkillNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useSkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
 
 import { SkillNodeView } from './SkillNodeView';
 
+import type { SkillNodeData } from "@/modules/creative_canvas/public";
 type SkillNodeProps = NodeProps & {
   id: string;
   data: SkillNodeData;

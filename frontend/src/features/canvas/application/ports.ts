@@ -1,13 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
-  CanvasPosition,
-} from '../domain/canvasNodes';
+;
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
 
+import type { CanvasEdge, CanvasNode, CanvasNodeData, CanvasNodeType, CanvasPosition } from "@/modules/creative_canvas/public";
 export interface CanvasGraphSnapshot {
   nodes: readonly CanvasNode[];
   edges: readonly CanvasEdge[];

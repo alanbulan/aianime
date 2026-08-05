@@ -8,8 +8,8 @@ import {
   awaitCanvasGenerationTaskCompletion,
   useIsBoxSelecting,
 } from '@/features/canvas/composition';
-import { type TextAnnotationNodeData, type UploadImageNodeData, type VideoNodeData } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+;
+import { resolveNodeDisplayName, type TextAnnotationNodeData, type UploadImageNodeData, type VideoNodeData } from '@/modules/creative_canvas/public';
 import {
   generateCanvasReversePrompt,
   generationTaskDescriptor,

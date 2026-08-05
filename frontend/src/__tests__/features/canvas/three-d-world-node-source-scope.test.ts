@@ -1,12 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import {
-  directorSourcesForNode,
-  isCandidateDirectorWorldNode,
-  isSceneDirectorWorldNode,
-} from "@/modules/creative_canvas/public";
-import type { ThreeDWorldNodeData } from "@/features/canvas/domain/canvasNodes";
+import { directorSourcesForNode, isCandidateDirectorWorldNode, isSceneDirectorWorldNode, type ThreeDWorldNodeData } from "@/modules/creative_canvas/public";
+;
 
 describe("ThreeDWorldNode source scope", () => {
   it("keeps a custom candidate committed to a slot local-only", () => {

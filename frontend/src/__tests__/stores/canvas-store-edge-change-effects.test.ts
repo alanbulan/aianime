@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { type CanvasEdge, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
+;
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES, type CanvasEdge, type CanvasNode } from "@/modules/creative_canvas/public";
 function seedGraph(): CanvasEdge {
   const source = {
     id: 'source',

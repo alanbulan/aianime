@@ -2,9 +2,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { StoryboardGenNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useStoryboardGenNodeController } from './useStoryboardGenNodeController';
 
+import type { StoryboardGenNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   zoom: 1,
   upstreamImages: [] as string[],

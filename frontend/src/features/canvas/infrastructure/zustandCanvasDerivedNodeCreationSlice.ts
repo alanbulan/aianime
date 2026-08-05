@@ -1,21 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type { Viewport } from '@xyflow/react';
 
-import {
-  createSnapshot,
-  pushSnapshot,
-  trackEdit,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
-  type CanvasMutationState,
-  type CanvasToolDialogRequest as ActiveToolDialog,
-  type StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-} from '../domain/canvasNodes';
+import { createSnapshot, pushSnapshot, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type StoryboardFrameItem, type CanvasEdge, type CanvasNode, type CanvasNodeData } from '@/modules/creative_canvas/public';
+;
 import {
   createPanoCaptureNodes,
   type CanvasPanoCapture,

@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { Pano360ViewerNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { usePano360ViewerNodeController } from '@/features/canvas/hooks/usePano360ViewerNodeController';
 
 import { Pano360ViewerNodeView } from './Pano360ViewerNodeView';
 
+import type { Pano360ViewerNodeData } from "@/modules/creative_canvas/public";
 type Pano360ViewerNodeProps = NodeProps & {
   projectId: string;
   id: string;

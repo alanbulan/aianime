@@ -2,9 +2,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BeatContextNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useBeatContextNodeController } from './useBeatContextNodeController';
 
+import type { BeatContextNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),

@@ -3,21 +3,8 @@ import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import {
-  isAudioNode,
-  isImageGenNode,
-  isProtectedProjectionGroupNode,
-  isVideoNode,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
-import {
-  deriveNodeDropInfo,
-  projectNodeManagementToolbar,
-  publishCanvasCommitRequested,
-  publishCanvasProjectionRemovalRequested,
-  publishCanvasProjectionSyncRequested,
-  useCanvasProjectionStatus,
-} from "@/modules/creative_canvas/public";
+import { isAudioNode, isImageGenNode, isProtectedProjectionGroupNode, isVideoNode } from "@/features/canvas/domain/canvasNodes";
+import { deriveNodeDropInfo, projectNodeManagementToolbar, publishCanvasCommitRequested, publishCanvasProjectionRemovalRequested, publishCanvasProjectionSyncRequested, useCanvasProjectionStatus, type CanvasNode } from "@/modules/creative_canvas/public";
 
 export interface NodeManagementToolbarControllerOptions {
   node: CanvasNode;

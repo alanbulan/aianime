@@ -20,12 +20,8 @@ import {
   uploadLocalImageToBackend,
   useUpstreamImages,
 } from '@/features/canvas/composition';
-import { type StoryboardGenNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  EXPORT_RESULT_DISPLAY_NAME,
-  resolveNodeDisplayName,
-  type ImageSize,
-} from '@/modules/creative_canvas/public';
+;
+import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName, type ImageSize, type StoryboardGenNodeData } from '@/modules/creative_canvas/public';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,

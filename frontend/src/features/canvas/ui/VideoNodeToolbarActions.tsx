@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { VideoNodeData } from "@/features/canvas/domain/canvasNodes";
+;
 import { useVideoNodeToolbarController } from "@/features/canvas/hooks/useVideoNodeToolbarController";
-import { VideoNodeToolbarActionsView } from "@/modules/creative_canvas/public";
+import { VideoNodeToolbarActionsView, type VideoNodeData } from "@/modules/creative_canvas/public";
 
 export interface VideoNodeToolbarActionsProps {
   projectId: string;

@@ -2,20 +2,9 @@
 import { memo, useCallback } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
+;
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  DEFAULT_ASPECT_RATIO,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  MultiAngleEditorPanel,
-  NODE_TOOLBAR_CLASS,
-  ZoomScaledToolbar,
-  generationTaskDescriptor,
-  generateCanvasMultiAngle,
-  inheritMainlineFields,
-  type MultiAngleSubmitPayload,
-} from '@/modules/creative_canvas/public';
+import { DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, MultiAngleEditorPanel, NODE_TOOLBAR_CLASS, ZoomScaledToolbar, generationTaskDescriptor, generateCanvasMultiAngle, inheritMainlineFields, type MultiAngleSubmitPayload, type CanvasNode } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 interface MultiAngleEditorOverlayProps {

@@ -2,10 +2,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 
 import { useUploadNodeController } from './useUploadNodeController';
 
+import type { UploadImageNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   edges: [] as Array<{ source: string; target: string }>,
   subscribers: new Map<string, Set<(payload: unknown) => void>>(),

@@ -4,19 +4,8 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Image as ImageIcon, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import {
-  CANVAS_NODE_TOOLBAR_PILL_CLASS,
-  NODE_TOOLBAR_CLASS,
-  DEFAULT_ASPECT_RATIO,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  generationTaskDescriptor,
-  generateCanvasGridAction,
-  useCanvasImageModels,
-  type GridActionKey,
-  type GridActionRequest,
-} from '@/modules/creative_canvas/public';
+;
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS, NODE_TOOLBAR_CLASS, DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, generationTaskDescriptor, generateCanvasGridAction, useCanvasImageModels, type GridActionKey, type GridActionRequest, type CanvasNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

@@ -2,12 +2,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  CanvasEdge,
-  CanvasNode,
-  SkillNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+;
+import type { SkillDefinition, CanvasEdge, CanvasNode, SkillNodeData } from '@/modules/creative_canvas/public';
 import { useSkillNodeController } from './useSkillNodeController';
 
 const mocks = vi.hoisted(() => ({

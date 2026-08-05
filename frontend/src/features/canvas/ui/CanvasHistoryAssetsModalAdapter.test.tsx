@@ -3,11 +3,8 @@ import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  CanvasAssetBuckets,
-  CanvasHistoryAssetsModalController,
-} from '@/modules/creative_canvas/public';
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasAssetBuckets, CanvasHistoryAssetsModalController, CanvasNode } from '@/modules/creative_canvas/public';
+;
 
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 

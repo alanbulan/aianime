@@ -4,17 +4,8 @@ import { Handle, Position } from '@xyflow/react';
 import { Boxes, Camera, Crop, FileText, Loader2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  findSkillBoundEdges,
-  isNoSkillReferenceEdge,
-  isSkillReferenceInputRole,
-  labelFromSkillReferenceHandle,
-  nonEmptySkillHandleId,
-  resolveSkillInputPreviewUrl,
-  resolveSkillInputSourceLabel,
-  SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
+import { findSkillBoundEdges, isNoSkillReferenceEdge, isSkillReferenceInputRole, labelFromSkillReferenceHandle, nonEmptySkillHandleId, resolveSkillInputPreviewUrl, resolveSkillInputSourceLabel, SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS, type CanvasEdge } from '@/modules/creative_canvas/public';
+;
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
 import {
   BackgroundCropperDialog,

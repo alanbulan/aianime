@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
+;
 import { useAudioNodeToolbarController } from "@/features/canvas/hooks/useAudioNodeToolbarController";
-import { AudioNodeToolbarActionsView } from "@/modules/creative_canvas/public";
+import { AudioNodeToolbarActionsView, type AudioNodeData } from "@/modules/creative_canvas/public";
 
 export interface AudioNodeToolbarActionsProps {
   nodeId: string;

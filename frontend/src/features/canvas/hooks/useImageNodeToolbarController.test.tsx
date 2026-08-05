@@ -2,8 +2,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import { NODE_TOOL_TYPES } from "@/modules/creative_canvas/public";
+;
+import { NODE_TOOL_TYPES, type CanvasNode } from "@/modules/creative_canvas/public";
 
 import { useImageNodeToolbarController } from "./useImageNodeToolbarController";
 

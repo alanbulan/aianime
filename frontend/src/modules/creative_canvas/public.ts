@@ -975,6 +975,30 @@ export {
   upstreamNodesInEdgeOrder,
 } from "@/modules/creative_canvas/domain/referenceOrdering";
 export { hasImageGenPromptOverride } from "@/modules/creative_canvas/domain/imageGenPrompt";
+export type {
+  AudioNodeData,
+  BeatContextNodeData,
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  CanvasPosition,
+  ExportImageNodeData,
+  GroupNodeData,
+  ImageEditNodeData,
+  ImageGenNodeData,
+  Pano360ViewerNodeData,
+  ScriptNodeData,
+  SkillNodeData,
+  StoryboardGenNodeData,
+  StoryboardSplitNodeData,
+  TextAnnotationNodeData,
+  ThreeDWorldNodeData,
+  UploadImageNodeData,
+  VideoComposeNodeData,
+  VideoNodeData,
+  VideoStoryNodeData,
+} from "@/modules/creative_canvas/domain/canvasNodeData";
 export {
   setAlbumPendingTotal,
   useAlbumPendingTotal,

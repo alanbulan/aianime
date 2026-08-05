@@ -14,33 +14,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import {
-  CANVAS_NODE_TOOLBAR_PILL_CLASS,
-  DEFAULT_CANVAS_NODE_WIDTH,
-  DEFAULT_ASPECT_RATIO,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  CANVAS_OUTPAINT_IMAGE_SIZES,
-  CANVAS_OUTPAINT_NUM_IMAGES,
-  DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
-  DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
-  DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_DISABLED_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_TOOLBAR_CLASS,
-  ProviderModelPicker,
-  calculateCanvasOutpaintFrame,
-  generateCanvasOutpaint,
-  generationTaskDescriptor,
-  inheritMainlineFields,
-  useCanvasImageModels,
-  type CanvasOutpaintAspectRatio,
-  type CanvasOutpaintImageSize,
-  type CanvasOutpaintNumImages,
-} from '@/modules/creative_canvas/public';
+;
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS, DEFAULT_CANVAS_NODE_WIDTH, DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, CANVAS_OUTPAINT_IMAGE_SIZES, CANVAS_OUTPAINT_NUM_IMAGES, DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO, DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE, DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_DISABLED_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ProviderModelPicker, calculateCanvasOutpaintFrame, generateCanvasOutpaint, generationTaskDescriptor, inheritMainlineFields, useCanvasImageModels, type CanvasOutpaintAspectRatio, type CanvasOutpaintImageSize, type CanvasOutpaintNumImages, type CanvasNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

@@ -1,21 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import {
-  isAudioNode,
-  isGroupNode,
-  isImageEditNode,
-  isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
-  isVideoNode,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
-import {
-  NodeActionToolbarView,
-  nodeMainlineFlags,
-  projectNodeActionToolbarShell,
-  type GridActionRequest,
-} from "@/modules/creative_canvas/public";
+import { isAudioNode, isGroupNode, isImageEditNode, isProtectedProjectionGroupNode, isStoryboardGroupNode, isVideoNode } from "@/features/canvas/domain/canvasNodes";
+import { NodeActionToolbarView, nodeMainlineFlags, projectNodeActionToolbarShell, type GridActionRequest, type CanvasNode } from "@/modules/creative_canvas/public";
 
 import { AudioNodeToolbarActions } from "./AudioNodeToolbarActions";
 import { CanvasGroupNodeToolbarActionsAdapter } from "./CanvasGroupNodeToolbarActionsAdapter";

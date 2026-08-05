@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { TextAnnotationNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useTextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
 
 import { TextAnnotationNodeView } from './TextAnnotationNodeView';
 
+import type { TextAnnotationNodeData } from "@/modules/creative_canvas/public";
 type TextAnnotationNodeProps = NodeProps & {
   id: string;
   data: TextAnnotationNodeData;

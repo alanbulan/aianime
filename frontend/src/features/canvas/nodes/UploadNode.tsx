@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useUploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
 
 import { UploadNodeView } from './UploadNodeView';
 
+import type { UploadImageNodeData } from "@/modules/creative_canvas/public";
 type UploadNodeProps = NodeProps & {
   id: string;
   data: UploadImageNodeData;

@@ -3,23 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, ChevronDown, Palette } from 'lucide-react';
 
-import {
-  IMAGE_GEN_ASPECT_OPTIONS,
-  IMAGE_GEN_COUNT_OPTIONS,
-  IMAGE_GEN_QUALITY_OPTIONS,
-  IMAGE_GEN_SIZE_OPTIONS,
-  NODE_COUNT_POPOVER_CLASS,
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  NODE_TEXT_CONTROL_ICON_CLASS,
-  NODE_TEXT_CONTROL_TRIGGER_CLASS,
-  CAMERA_PICKER_POPOVER_WIDTH,
-  CameraPickerPopover,
-  StylePickerPopover,
-  resolveNearestImageGenAspectOption,
-} from '@/modules/creative_canvas/public';
-import type {
-  ImageGenNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { IMAGE_GEN_ASPECT_OPTIONS, IMAGE_GEN_COUNT_OPTIONS, IMAGE_GEN_QUALITY_OPTIONS, IMAGE_GEN_SIZE_OPTIONS, NODE_COUNT_POPOVER_CLASS, NODE_FLOATING_PANEL_SURFACE_CLASS, NODE_TEXT_CONTROL_ICON_CLASS, NODE_TEXT_CONTROL_TRIGGER_CLASS, CAMERA_PICKER_POPOVER_WIDTH, CameraPickerPopover, StylePickerPopover, resolveNearestImageGenAspectOption, type ImageGenNodeData } from '@/modules/creative_canvas/public';
+;
 import type {
   ImageGenCount,
   ImageGenCameraSelectionData,

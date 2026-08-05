@@ -4,25 +4,8 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import {
-  CANVAS_NODE_TOOLBAR_CARD_CLASS,
-  CANVAS_UPSCALE_IMAGE_SIZES,
-  CANVAS_UPSCALE_SCALE_FACTORS,
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_TOOLBAR_CLASS,
-  ProviderModelPicker,
-  ZoomScaledToolbar,
-  generateCanvasUpscale,
-  generationTaskDescriptor,
-  resolveCanvasUpscaleImageSize,
-  resolveCanvasUpscaleScaleFactor,
-  useCanvasImageModels,
-  type CanvasUpscaleImageSize,
-  type CanvasUpscaleScaleFactor,
-} from '@/modules/creative_canvas/public';
+;
+import { CANVAS_NODE_TOOLBAR_CARD_CLASS, CANVAS_UPSCALE_IMAGE_SIZES, CANVAS_UPSCALE_SCALE_FACTORS, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ProviderModelPicker, ZoomScaledToolbar, generateCanvasUpscale, generationTaskDescriptor, resolveCanvasUpscaleImageSize, resolveCanvasUpscaleScaleFactor, useCanvasImageModels, type CanvasUpscaleImageSize, type CanvasUpscaleScaleFactor, type CanvasNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';

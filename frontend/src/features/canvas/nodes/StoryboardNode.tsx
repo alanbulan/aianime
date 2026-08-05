@@ -2,11 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-import type { StoryboardSplitNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useStoryboardNodeController } from '@/features/canvas/hooks/useStoryboardNodeController';
 
 import { StoryboardNodeView } from './StoryboardNodeView';
 
+import type { StoryboardSplitNodeData } from "@/modules/creative_canvas/public";
 type StoryboardNodeProps = NodeProps & {
   projectId: string;
   id: string;

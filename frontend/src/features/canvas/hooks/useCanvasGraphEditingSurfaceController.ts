@@ -1,19 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type { EdgeChange, NodeChange } from '@xyflow/react';
 
-import {
-  cloneCanvasNodeData,
-  createCanvasClipboardControllerHook,
-  getNodeSize,
-  hasRectCollision,
-  useCanvasGraphInteractionController,
-  type CanvasClipboardController,
-  type CanvasClipboardControllerOptions,
-  type CanvasAltDragPositionCommit,
-  type CanvasGraphInteractionController,
-  type CanvasGraphInteractionControllerOptions,
-} from '@/modules/creative_canvas/public';
-import type { CanvasEdge, CanvasNode, CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
+import { cloneCanvasNodeData, createCanvasClipboardControllerHook, getNodeSize, hasRectCollision, useCanvasGraphInteractionController, type CanvasClipboardController, type CanvasClipboardControllerOptions, type CanvasAltDragPositionCommit, type CanvasGraphInteractionController, type CanvasGraphInteractionControllerOptions, type CanvasEdge, type CanvasNode, type CanvasNodeData, type CanvasNodeType } from '@/modules/creative_canvas/public';
+;
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 ;
 

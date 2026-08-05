@@ -3,20 +3,9 @@ import { useCallback, useMemo } from 'react';
 
 import { hydrateAssetDragPayload } from '@/features/canvas/composition';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
-import {
-  spawnCanvasAssetNode,
-  useCanvasHistoryAssetController,
-  useCanvasMediaTransferController,
-  type CanvasAssetDragPayload,
-  type CanvasHistoryAssetController,
-  type CanvasHistoryAssetControllerOptions,
-  type CanvasEventBus,
-  type CanvasAssetNodeSpawnPort,
-  type CanvasMediaPasteEventPort,
-  type CanvasMediaTransferController,
-} from '@/modules/creative_canvas/public';
+import { spawnCanvasAssetNode, useCanvasHistoryAssetController, useCanvasMediaTransferController, type CanvasAssetDragPayload, type CanvasHistoryAssetController, type CanvasHistoryAssetControllerOptions, type CanvasEventBus, type CanvasAssetNodeSpawnPort, type CanvasMediaPasteEventPort, type CanvasMediaTransferController, type CanvasNodeData, type CanvasNodeType } from '@/modules/creative_canvas/public';
 
-import { type CanvasNodeData, type CanvasNodeType } from '../domain/canvasNodes';
+;
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 interface CanvasPosition {

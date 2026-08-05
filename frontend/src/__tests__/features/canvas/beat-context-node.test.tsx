@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 ;
 import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
-import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
-import { setFreezoneCanvasMetadata } from "@/modules/creative_canvas/public";
+;
+import { setFreezoneCanvasMetadata, type BeatContextNodeData } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

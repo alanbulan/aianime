@@ -9,11 +9,8 @@ import {
   uploadCanvasAsset,
   useIsBoxSelecting,
 } from '@/features/canvas/composition';
-import { type AudioNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  canvasEventBus,
-  resolveNodeDisplayName,
-} from '@/modules/creative_canvas/public';
+;
+import { canvasEventBus, resolveNodeDisplayName, type AudioNodeData } from '@/modules/creative_canvas/public';
 import { useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import {
   hasMainlineContexts,

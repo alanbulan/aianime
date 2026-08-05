@@ -1,34 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodes';
+;
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
-import {
-  getNodeSize,
-  useCanvasMinimapVisibility,
-  useCanvasLifecycle,
-  useCanvasAutoLayoutController,
-  useCanvasNodeFocusController,
-  useCanvasSnapAlignment,
-  useCanvasViewportRuntimeController,
-  useSnapAlignStore,
-  useTrackpadPanStore,
-  type CanvasAutoLayoutController,
-  type CanvasAutoLayoutControllerOptions,
-  type CanvasAutoLayoutViewportOptions,
-  type CanvasLifecycleOptions,
-  type CanvasMinimapVisibilityController,
-  type CanvasNodeFocusController,
-  type CanvasNodeFocusControllerOptions,
-  type CanvasNodeFocusRuntimePort,
-  type CanvasSnapAlignmentController,
-  type CanvasSnapAlignmentPort,
-  type CanvasViewportBookmarkStorePort,
-  type CanvasViewportPort,
-  type CanvasViewportRuntimeController,
-  type CanvasViewportRuntimeControllerOptions,
-} from '@/modules/creative_canvas/public';
+import { getNodeSize, useCanvasMinimapVisibility, useCanvasLifecycle, useCanvasAutoLayoutController, useCanvasNodeFocusController, useCanvasSnapAlignment, useCanvasViewportRuntimeController, useSnapAlignStore, useTrackpadPanStore, type CanvasAutoLayoutController, type CanvasAutoLayoutControllerOptions, type CanvasAutoLayoutViewportOptions, type CanvasLifecycleOptions, type CanvasMinimapVisibilityController, type CanvasNodeFocusController, type CanvasNodeFocusControllerOptions, type CanvasNodeFocusRuntimePort, type CanvasSnapAlignmentController, type CanvasSnapAlignmentPort, type CanvasViewportBookmarkStorePort, type CanvasViewportPort, type CanvasViewportRuntimeController, type CanvasViewportRuntimeControllerOptions, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,

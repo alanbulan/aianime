@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
+;
 import { useNodeManagementToolbarController } from "@/features/canvas/hooks/useNodeManagementToolbarController";
-import { NodeManagementToolbarActionsView } from "@/modules/creative_canvas/public";
+import { NodeManagementToolbarActionsView, type CanvasNode } from "@/modules/creative_canvas/public";
 
 export interface NodeManagementToolbarActionsProps {
   node: CanvasNode;

@@ -1,13 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
-import {
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '@/features/canvas/domain/canvasNodes';
-import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
+;
+import type { StoryboardFrameItem, CanvasEdge, CanvasNode, CanvasNodeData, CanvasNodeType } from '@/modules/creative_canvas/public';
 import {
   canvasNodeDefaultDataGateway,
   canvasNodeFactory,

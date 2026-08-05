@@ -19,13 +19,8 @@ import {
 } from 'lucide-react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import {
-  collectBatchDeletableIds,
-  DEFAULT_CANVAS_NODE_WIDTH,
-  ZoomScaledToolbar,
-  computeAutoLayout,
-} from '@/modules/creative_canvas/public';
+;
+import { collectBatchDeletableIds, DEFAULT_CANVAS_NODE_WIDTH, ZoomScaledToolbar, computeAutoLayout, type CanvasNode } from '@/modules/creative_canvas/public';
 
 // 合并分镜组只接受图片类节点。
 const STORYBOARD_IMAGE_NODE_TYPES = new Set<string>([

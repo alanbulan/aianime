@@ -4,8 +4,8 @@ import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { isExportImageNode, isImageEditNode, isImageGenNode, isPano360ViewerNode, isUploadNode, isVideoNode, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasExportResultKind } from '@/modules/creative_canvas/public';
+import { isExportImageNode, isImageEditNode, isImageGenNode, isPano360ViewerNode, isUploadNode, isVideoNode } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasExportResultKind, CanvasNode } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
   DEFAULT_CANVAS_NODE_WIDTH,

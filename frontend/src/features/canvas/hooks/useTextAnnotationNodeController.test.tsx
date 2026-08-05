@@ -2,8 +2,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type CanvasNode, type TextAnnotationNodeData } from '@/features/canvas/domain/canvasNodes';
-import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT } from '@/modules/creative_canvas/public';
+;
+import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT, type CanvasNode, type TextAnnotationNodeData } from '@/modules/creative_canvas/public';
 
 import { useTextAnnotationNodeController } from './useTextAnnotationNodeController';
 

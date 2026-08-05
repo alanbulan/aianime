@@ -2,11 +2,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type CanvasNode, type CanvasNodeType } from "@/features/canvas/domain/canvasNodes";
+;
 
 import { useNodeManagementToolbarController } from "./useNodeManagementToolbarController";
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES, type CanvasNode, type CanvasNodeType } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   deleteNode: vi.fn(),
   publish: vi.fn(),

@@ -21,24 +21,8 @@ import {
   X,
 } from 'lucide-react';
 
-import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import {
-  CANVAS_NODE_TOOLBAR_PILL_CLASS,
-  NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_GENERATE_BUTTON_BASE_CLASS,
-  NODE_GENERATE_BUTTON_ENABLED_CLASS,
-  NODE_TOOLBAR_CLASS,
-  DEFAULT_CANVAS_NODE_WIDTH,
-  CANVAS_REDRAW_IMAGE_SIZES,
-  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  generationTaskDescriptor,
-  generateCanvasRedraw,
-  useCanvasImageModels,
-  type CanvasRedrawAspectRatio,
-  type CanvasRedrawImageSize,
-} from '@/modules/creative_canvas/public';
+;
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, DEFAULT_CANVAS_NODE_WIDTH, CANVAS_REDRAW_IMAGE_SIZES, DEFAULT_CANVAS_REDRAW_IMAGE_SIZE, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, generationTaskDescriptor, generateCanvasRedraw, useCanvasImageModels, type CanvasRedrawAspectRatio, type CanvasRedrawImageSize, type CanvasNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { CreditCostPill } from '@/components/credits/credit-visual';

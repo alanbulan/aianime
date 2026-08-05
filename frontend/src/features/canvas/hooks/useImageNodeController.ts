@@ -11,8 +11,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
-import { type CanvasNodeType, type ExportImageNodeData, type ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+;
+import { resolveNodeDisplayName, type CanvasNodeType, type ExportImageNodeData, type ImageEditNodeData } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
   EXPORT_RESULT_NODE_MIN_HEIGHT,

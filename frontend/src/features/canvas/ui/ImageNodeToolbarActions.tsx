@@ -1,12 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { memo } from "react";
 
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import {
-  ImageGridToolbarActions,
-  ImageNodeToolbarActionsView,
-  type GridActionRequest,
-} from "@/modules/creative_canvas/public";
+;
+import { ImageGridToolbarActions, ImageNodeToolbarActionsView, type GridActionRequest, type CanvasNode } from "@/modules/creative_canvas/public";
 import { useImageNodeToolbarController } from "@/features/canvas/hooks/useImageNodeToolbarController";
 
 import { ImageEditToolbarActions } from "./ImageEditToolbarActions";

@@ -2,10 +2,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { VideoStoryNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 
 import { useVideoStoryNodeController } from './useVideoStoryNodeController';
 
+import type { VideoStoryNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),

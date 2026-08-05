@@ -1,16 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo } from 'react';
 
-import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { useUpstreamContents } from '@/features/canvas/composition';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  buildCanvasAudioPrompt,
-  generateCanvasAudio,
-  generationTaskDescriptor,
-  joinUpstreamText,
-  useNodeGenerationTaskState,
-} from '@/modules/creative_canvas/public';
+import { buildCanvasAudioPrompt, generateCanvasAudio, generationTaskDescriptor, joinUpstreamText, useNodeGenerationTaskState, type AudioNodeData } from '@/modules/creative_canvas/public';
 
 export interface AudioGenerationOptions {
   projectId: string;

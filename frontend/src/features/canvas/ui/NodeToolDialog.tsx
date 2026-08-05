@@ -4,29 +4,14 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
-import {
-  canvasEventBus,
-  canvasToolProcessor,
-  AnnotateToolEditor,
-  CropToolEditor,
-  EXPORT_RESULT_DISPLAY_NAME,
-  FormToolEditor,
-  getToolPlugin,
-  inheritMainlineFields,
-  NODE_TOOL_TYPES,
-  resolveCanvasNodeSourceImageUrl,
-  resolveImageDisplayUrl,
-  SplitStoryboardToolEditor,
-  type ToolOptions,
-  type NodeToolType,
-} from '@/modules/creative_canvas/public';
+import { canvasEventBus, canvasToolProcessor, AnnotateToolEditor, CropToolEditor, EXPORT_RESULT_DISPLAY_NAME, FormToolEditor, getToolPlugin, inheritMainlineFields, NODE_TOOL_TYPES, resolveCanvasNodeSourceImageUrl, resolveImageDisplayUrl, SplitStoryboardToolEditor, type ToolOptions, type NodeToolType, type CanvasNodeData } from '@/modules/creative_canvas/public';
 import {
   prepareNodeImage,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import { UiButton, UiModal } from '@/components/ui';
 import { UI_DIALOG_TRANSITION_MS } from '@/components/ui/motion';
 

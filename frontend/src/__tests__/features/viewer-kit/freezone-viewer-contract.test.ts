@@ -425,6 +425,9 @@ describe("freezone viewer contracts", () => {
 
   it("lets canvas ThreeDWorldNode open pano360 image sources when explicitly connected", () => {
     const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
+    const canvasNodeData = read(
+      "src/modules/creative_canvas/domain/canvasNodeData.ts",
+    );
     const model = read(
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
@@ -434,8 +437,8 @@ describe("freezone viewer contracts", () => {
     const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
     const implementation = `${model}\n${controller}\n${view}`;
 
-    expect(canvasNodes).toContain("panoUrl?: string | null");
-    expect(canvasNodes).toContain("sources?: DirectorWorldSource[]");
+    expect(canvasNodeData).toContain("panoUrl?: string | null");
+    expect(canvasNodeData).toContain("sources?: DirectorWorldSource[]");
     expect(model).toContain("source_type: sourceType");
     expect(model).toContain("sourceType = data.plyUrl ? 'sog' : 'pano360'");
     expect(model).toContain("directorPanoSourceFromCanvasNode");

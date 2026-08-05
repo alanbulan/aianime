@@ -9,33 +9,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  createSkillRunNonce,
-  directorControlBundleFromMeta,
-  directorControlBundleImageUrl,
-  directorManifestWithScenePanoSource,
-  mergeSkillManifestWithBeatContext,
-  numericSkillField,
-  projectSkillInputHandleIds,
-  projectSkillOutputHandleIds,
-  projectSkillOutputPositions,
-  projectSkillReferenceInputHandles,
-  resolveSkillBeatTarget,
-  resolveSkillNodeWidth,
-  sceneAssetsFromSkillData,
-  selectedBackgroundTarget,
-  skillBeatContextReferences,
-  skillInputRoleFromEdge,
-  skillInputSignature,
-  skillNodeErrorMessage,
-  skillOutputRoleFromEdge,
-  skillRecordValue,
-  skillRunIdempotencyKey,
-  skillTaskStatusLabelKey,
-  SKILL_TASK_RECORD_GRACE_MS,
-  type SkillCropSource,
-  type SkillDirectorWorldDestination,
-} from '@/modules/creative_canvas/public';
+import { createSkillRunNonce, directorControlBundleFromMeta, directorControlBundleImageUrl, directorManifestWithScenePanoSource, mergeSkillManifestWithBeatContext, numericSkillField, projectSkillInputHandleIds, projectSkillOutputHandleIds, projectSkillOutputPositions, projectSkillReferenceInputHandles, resolveSkillBeatTarget, resolveSkillNodeWidth, sceneAssetsFromSkillData, selectedBackgroundTarget, skillBeatContextReferences, skillInputRoleFromEdge, skillInputSignature, skillNodeErrorMessage, skillOutputRoleFromEdge, skillRecordValue, skillRunIdempotencyKey, skillTaskStatusLabelKey, SKILL_TASK_RECORD_GRACE_MS, type SkillCropSource, type SkillDirectorWorldDestination, type CanvasNode, type CanvasNodeData, type SkillNodeData } from '@/modules/creative_canvas/public';
 import {
   awaitCanvasGenerationTaskCompletion,
   awaitCanvasSkillRunResult,
@@ -45,11 +19,7 @@ import {
   startCanvasSkillRun,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
-import {
-  type CanvasNode,
-  type CanvasNodeData,
-  type SkillNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+;
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   isSkillRunFailureStatus,

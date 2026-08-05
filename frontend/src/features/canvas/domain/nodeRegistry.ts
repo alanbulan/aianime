@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { type BeatContextNodeData, type AudioNodeData, type CanvasNodeData, type CanvasNodeType, type ExportImageNodeData, type GroupNodeData, type ImageEditNodeData, type ImageGenNodeData, type Pano360ViewerNodeData, type ScriptNodeData, type SkillNodeData, type StoryboardSplitNodeData, type StoryboardGenNodeData, type TextAnnotationNodeData, type ThreeDWorldNodeData, type UploadImageNodeData, type VideoComposeNodeData, type VideoNodeData, type VideoStoryNodeData } from './canvasNodes';
-import { DEFAULT_NODE_DISPLAY_NAME } from '@/modules/creative_canvas/public';
+;
+import { DEFAULT_NODE_DISPLAY_NAME, type BeatContextNodeData, type AudioNodeData, type CanvasNodeData, type CanvasNodeType, type ExportImageNodeData, type GroupNodeData, type ImageEditNodeData, type ImageGenNodeData, type Pano360ViewerNodeData, type ScriptNodeData, type SkillNodeData, type StoryboardSplitNodeData, type StoryboardGenNodeData, type TextAnnotationNodeData, type ThreeDWorldNodeData, type UploadImageNodeData, type VideoComposeNodeData, type VideoNodeData, type VideoStoryNodeData } from '@/modules/creative_canvas/public';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   DEFAULT_ASPECT_RATIO,

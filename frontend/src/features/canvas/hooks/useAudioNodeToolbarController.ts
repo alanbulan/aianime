@@ -3,14 +3,9 @@ import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import {
-  projectAudioNodeToolbar,
-  resolveAudioNodeDownloadFilename,
-  type AudioNodeToolbarFormat,
-  resolveImageDisplayUrl,
-} from "@/modules/creative_canvas/public";
+import { projectAudioNodeToolbar, resolveAudioNodeDownloadFilename, type AudioNodeToolbarFormat, resolveImageDisplayUrl, type AudioNodeData } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
+;
 import {
   downloadBlobAsFile,
   downloadUrlAsFile,

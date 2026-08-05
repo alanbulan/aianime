@@ -18,6 +18,7 @@ import {
   isPresetManagedEdge,
   isPresetManagedNode,
   NODE_SELECTION_MENU_ADD_NODE_TYPES,
+  type CanvasNodeType,
   useCanvasCommandSurfaceController,
   useCanvasRenderSurfaceController,
   useCanvasSelectionSurfaceController,
@@ -27,7 +28,6 @@ import {
 import { useAppStore } from '@/stores/app-store';
 import {
   isUploadNode,
-  type CanvasNodeType,
 } from './domain/canvasNodes';
 import { getNodeDefinition } from './domain/nodeRegistry';
 import { CanvasStageView } from './ui/CanvasStageView';

@@ -2,10 +2,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
+;
 
 import { useAudioNodeToolbarController } from "./useAudioNodeToolbarController";
 
+import type { AudioNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
   downloadBlob: vi.fn(),

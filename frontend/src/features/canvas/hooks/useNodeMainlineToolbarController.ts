@@ -2,8 +2,8 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { type BeatContextNodeData, type CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import { DEFAULT_CANVAS_NODE_WIDTH } from "@/modules/creative_canvas/public";
+;
+import { DEFAULT_CANVAS_NODE_WIDTH, type BeatContextNodeData, type CanvasNode } from "@/modules/creative_canvas/public";
 import {
   buildNodeActionBeatContextData,
   extractMainlineContextsFromNode,

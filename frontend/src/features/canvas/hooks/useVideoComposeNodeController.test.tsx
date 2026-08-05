@@ -2,8 +2,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
-import { type CanvasNode, type VideoComposeNodeData } from '@/features/canvas/domain/canvasNodes';
+import type { ComposeTimelineState, CanvasNode, VideoComposeNodeData } from '@/modules/creative_canvas/public';
+;
 
 import { useVideoComposeNodeController } from './useVideoComposeNodeController';
 

@@ -2,8 +2,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type CanvasNode, type StoryboardSplitNodeData } from '@/features/canvas/domain/canvasNodes';
-import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
+;
+import type { StoryboardFrameItem, CanvasNode, StoryboardSplitNodeData } from '@/modules/creative_canvas/public';
 
 import { useStoryboardNodeController } from './useStoryboardNodeController';
 

@@ -10,21 +10,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import {
-  buildLocalThreeDWorldDirectorManifest,
-  buildThreeDWorldClearScenePatch,
-  buildThreeDWorldSaveScenePatch,
-  directorSourcesForNode,
-  pickThreeDWorldPlyUrl,
-  projectThreeDWorldPanoSources,
-  projectThreeDWorldPreview,
-  projectThreeDWorldReferences,
-  resolveThreeDWorldBeatContext,
-  resolveThreeDWorldImageSourceKind,
-  resolveThreeDWorldNodeSize,
-  resolveThreeDWorldTitle,
-  usableDirectorWorldPreviewUrl,
-} from '@/modules/creative_canvas/public';
+import { buildLocalThreeDWorldDirectorManifest, buildThreeDWorldClearScenePatch, buildThreeDWorldSaveScenePatch, directorSourcesForNode, pickThreeDWorldPlyUrl, projectThreeDWorldPanoSources, projectThreeDWorldPreview, projectThreeDWorldReferences, resolveThreeDWorldBeatContext, resolveThreeDWorldImageSourceKind, resolveThreeDWorldNodeSize, resolveThreeDWorldTitle, usableDirectorWorldPreviewUrl, type ThreeDWorldNodeData } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   getCanvasBeatDirectorManifest,
@@ -35,7 +21,7 @@ import {
   useDetachUpstream,
   useUpstreamNodes,
 } from '@/features/canvas/composition';
-import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
+;
 import {
   generateCanvasImageTo3d,
   generationTaskDescriptor,
