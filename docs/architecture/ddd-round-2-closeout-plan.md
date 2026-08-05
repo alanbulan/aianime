@@ -6,7 +6,7 @@
 >
 > 最近复核：2026-08-05（第二轮 GOAL 保持执行中）
 >
-> 代码基线：`refactor/ddd-modular-monolith` 第 886 批提交后 HEAD
+> 代码基线：`refactor/ddd-modular-monolith` 第 887 批提交后 HEAD
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
@@ -106,6 +106,7 @@
 | 第 884 批前端检查点 | Skill 节点参数与叠卡画册计数回归 1 个文件 5 项、Canvas 控制器与行为回归 19 个文件 97 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `skillNodeParameters` 与其测试迁入 Creative Canvas domain、`albumPendingTotals` 迁入 presentation，Skill 节点控制器与图片生成/视频控制器统一经模块 public 使用唯一实现；删除旧生产/测试路径，不保留第二套实现。Canvas TS/TSX 上限收紧到 180。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 885 批前端检查点 | 引用同步 Hook 回归 1 个文件 4 项、ImageEdit 控制器与 mock 回归 1 个文件 5 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `useReferenceMentionSync` 与其测试迁入 Creative Canvas presentation，引用重映射直接相对依赖本域 `referenceMentions`；图片编辑/图片生成/视频控制器统一经模块 public 使用唯一实现，测试 mock 同步切换到 public 出口。旧生产/测试路径直接删除，不保留第二套实现。Canvas TS/TSX 上限收紧到 179。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 886 批前端检查点 | 上下文提示词调色板回归 1 个文件 7 项、ImageGen 上下文回归与颜色门禁 2 个文件 2 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `contextPromptPalette` 与其测试迁入 Creative Canvas domain，提示词插入文本/调色板构建直接相对依赖本域 Mainline 与当前 Beat 上下文合同；调色板按钮与图片生成/视频控制器统一经模块 public 使用唯一实现，颜色字面量门禁路径同步迁移。旧生产/测试路径直接删除，不保留第二套实现。Canvas TS/TSX 上限收紧到 178。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
+| 第 887 批前端检查点 | 提示词引用编辑器回归 3 个文件 11 项、Canvas 行为回归 13 个文件 72 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `PromptMentionEditor` 与其 3 个测试整体迁入 Creative Canvas presentation，引用 chip 构建/展示、替换与音频播放交互只依赖 React；图片生成/视频视图与控制器统一经模块 public 使用唯一实现。旧生产/测试路径直接删除，不保留第二套实现。Canvas TS/TSX 上限收紧到 177。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 
 当前主仓库已经具备以下事实能力：
 
@@ -126,7 +127,7 @@
 
 | 区域 | 当前事实 | 未满足的退出条件 |
 | --- | --- | --- |
-| 前端 Creative Canvas | `modules/creative_canvas` 已有 1081 个 TS/TSX 文件；`features/canvas` 仍有 178 个 TS/TSX 文件且 CSS 已归零，`features/freezone` 已归零并删除 | 第 851 批已收进认证模型选择器及测试，第 852 批把 Canvas/Creative Canvas 对 viewer-kit 的深路径依赖统一改走既有 public，第 853 批收紧旧 `canvasNodes.ts` 的无引用导出面，第 854 批把模型参数控件整体收进 presentation，第 855-880 批分别把 Skill 输出投影、上传节点模型、节点动作 Beat 上下文、节点动作工具栏投影、工具输出上传用例、画布资产上传用例、上游图内容/图片投影、Skill 执行用例、节点默认数据用例、Beat 上下文刷新投影、全景查看器节点模型、当前背景槽位用例、全景捕获创建用例、节点复制用例、节点类型转换用例、脚本节点模型、节点创建用例、画布水合用例、画布数据规范化用例、派生节点创建用例、导演世界来源域、资产拖拽水合用例、Beat 上下文节点模型、视频节点模型、3D 世界节点模型、Skill 节点模型与节点工厂迁入模块，第 881-882 批清除无引用 `CanvasToolbar`/`CommitTargetHint` 残留，第 883 批把 `imageGenPrompt`/`referenceMentions` 迁入模块 domain 并删除无引用 `nodes/config.ts`，第 884 批把 `skillNodeParameters`/`albumPendingTotals` 迁入模块，第 885 批把 `useReferenceMentionSync` 迁入 presentation，第 886 批把 `contextPromptPalette` 迁入 domain。模块内部仍禁止自身 public 回绕和旧 Canvas 反向依赖；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
+| 前端 Creative Canvas | `modules/creative_canvas` 已有 1085 个 TS/TSX 文件；`features/canvas` 仍有 177 个 TS/TSX 文件且 CSS 已归零，`features/freezone` 已归零并删除 | 第 851 批已收进认证模型选择器及测试，第 852 批把 Canvas/Creative Canvas 对 viewer-kit 的深路径依赖统一改走既有 public，第 853 批收紧旧 `canvasNodes.ts` 的无引用导出面，第 854 批把模型参数控件整体收进 presentation，第 855-880 批分别把 Skill 输出投影、上传节点模型、节点动作 Beat 上下文、节点动作工具栏投影、工具输出上传用例、画布资产上传用例、上游图内容/图片投影、Skill 执行用例、节点默认数据用例、Beat 上下文刷新投影、全景查看器节点模型、当前背景槽位用例、全景捕获创建用例、节点复制用例、节点类型转换用例、脚本节点模型、节点创建用例、画布水合用例、画布数据规范化用例、派生节点创建用例、导演世界来源域、资产拖拽水合用例、Beat 上下文节点模型、视频节点模型、3D 世界节点模型、Skill 节点模型与节点工厂迁入模块，第 881-882 批清除无引用 `CanvasToolbar`/`CommitTargetHint` 残留，第 883 批把 `imageGenPrompt`/`referenceMentions` 迁入模块 domain 并删除无引用 `nodes/config.ts`，第 884 批把 `skillNodeParameters`/`albumPendingTotals` 迁入模块，第 885 批把 `useReferenceMentionSync` 迁入 presentation，第 886 批把 `contextPromptPalette` 迁入 domain，第 887 批把 `PromptMentionEditor` 迁入 presentation。模块内部仍禁止自身 public 回绕和旧 Canvas 反向依赖；App Shell 对旧 Canvas 的私有入口仍为 4 个，R1-C 至 R1-E 的其余 Canvas 所有权待迁移 |
 | Canvas 网关方向 | `freezoneAiGateway.ts` 已改为显式依赖注入，不再读取 URL 或导入 Freezone；R1-B 十四个切片已把 Freezone 路由持有的 `projectId/canvasId` 显式传到 Canvas project controller、编辑浮层、顶部工具栏、节点 controller、生成/素材历史、上传/导出/重试/轮询和目录查询，生产代码中的 `readUrl()` 从 38 个文件、89 处降到 0；上下文查询、预设元数据和浏览器 Canvas 存储回收迁移后，旧 `features/freezone/public.ts` 及其生产消费者均为 0 | R1-B 路由上下文和旧聚合 public 已关闭；R1-C 至 R1-E 仍需按所有权切片收敛两个旧 feature 中的剩余实现 |
 | 后端 Creative Canvas | 已有 `modules/creative_canvas`；视觉、文件锁、路径、项目媒体解析、静态 URL 投影、生成历史、Slot、Canvas Store、Audio、预设和任务执行已有唯一所有者，模块内对旧 `ai_anime.freezone.*` 的生产导入为 0；模块外对 Creative Canvas infrastructure 的直接导入也为 0 | Creative Canvas 本域 job 与跨域提交/本地恢复边界已收敛；云端 Invocation 恢复单列在 R6 |
 | 后端 Freezone | 旧 `freezone` 包的 Python 源文件已全部删除；任务 runner 和测试对 `freezone.jobs` 的导入为 0，旧包对 `ai_anime.generators.*` 的导入为 0 | 无后端生产实现残余；后续门禁持续禁止旧包回流 |

@@ -7,7 +7,7 @@ import {
   mentionChipLabel,
   truncateChipLabel,
   type MentionCandidate,
-} from "@/features/canvas/nodes/PromptMentionEditor";
+} from "./PromptMentionEditor";
 
 const audioCandidate: MentionCandidate = {
   key: "A",

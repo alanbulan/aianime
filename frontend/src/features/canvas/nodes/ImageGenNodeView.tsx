@@ -55,6 +55,7 @@ import {
   NodeSideActionRail,
   OperationPanelShell,
   PanelExpandButton,
+  PromptMentionEditor,
   ProviderModelPicker,
   RegenerateButton,
   ReferenceTextChip,
@@ -68,7 +69,6 @@ import {
   StyleChip,
 } from '@/features/canvas/nodes/ImageGenNodeControls';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
-import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

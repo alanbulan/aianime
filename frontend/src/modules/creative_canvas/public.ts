@@ -984,6 +984,16 @@ export {
 export type { MentionFamily } from "@/modules/creative_canvas/domain/referenceMentions";
 export { useReferenceMentionSync } from "@/modules/creative_canvas/presentation/useReferenceMentionSync";
 export type { ReferenceMentionFamilyInput } from "@/modules/creative_canvas/presentation/useReferenceMentionSync";
+export { PromptMentionEditor } from "@/modules/creative_canvas/presentation/PromptMentionEditor";
+export {
+  mentionChipLabel,
+  mentionDisplayLabel,
+  truncateChipLabel,
+} from "@/modules/creative_canvas/presentation/PromptMentionEditor";
+export type {
+  MentionCandidate,
+  PromptMentionEditorHandle,
+} from "@/modules/creative_canvas/presentation/PromptMentionEditor";
 export { createUseUpstreamGraph } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
 export type {
   UpstreamGraphDependencies,

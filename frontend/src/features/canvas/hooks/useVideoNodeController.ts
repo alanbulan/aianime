@@ -59,13 +59,11 @@ import {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
 } from '@/modules/creative_canvas/public';
-import type {
-  MentionCandidate,
-  PromptMentionEditorHandle,
-} from '@/features/canvas/nodes/PromptMentionEditor';
 import {
   sortUpstreamByReferenceOrder,
   type ContextPromptPaletteEntry,
+  type MentionCandidate,
+  type PromptMentionEditorHandle,
   upstreamNodesInEdgeOrder,
   useReferenceMentionSync,
 } from '@/modules/creative_canvas/public';

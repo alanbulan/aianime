@@ -5,7 +5,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import {
   PromptMentionEditor,
   type MentionCandidate,
-} from "@/features/canvas/nodes/PromptMentionEditor";
+} from "./PromptMentionEditor";
 
 // jsdom 未实现 scrollIntoView（弹层高亮行的 ref 回调会用到）。
 beforeAll(() => {

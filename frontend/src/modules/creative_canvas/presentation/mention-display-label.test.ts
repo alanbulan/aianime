@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { mentionDisplayLabel } from "@/features/canvas/nodes/PromptMentionEditor";
+import { mentionDisplayLabel } from "./PromptMentionEditor";
 
 describe("mentionDisplayLabel", () => {
   it("strips the trailing number so 图片1/图片2/... all show as 图片", () => {

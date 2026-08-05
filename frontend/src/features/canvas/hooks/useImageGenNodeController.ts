@@ -71,6 +71,8 @@ import {
   type ContextPromptPaletteEntry,
   type CanvasGenerationHistoryRecord,
   type CanvasImageMode,
+  type MentionCandidate,
+  type PromptMentionEditorHandle,
   resolveImageDisplayUrl,
   resolveNodeDisplayName,
   setAlbumPendingTotal,
@@ -88,10 +90,6 @@ import {
 import {
   describeCameraSelection,
 } from '@/features/canvas/nodes/CameraPickerPopover';
-import type {
-  MentionCandidate,
-  PromptMentionEditorHandle,
-} from '@/features/canvas/nodes/PromptMentionEditor';
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import type {
   DirectorControlFrameBundle,

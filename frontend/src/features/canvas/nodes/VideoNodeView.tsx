@@ -44,12 +44,12 @@ import {
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
   OperationPanelShell,
+  PromptMentionEditor,
   ProviderModelPicker,
   VideoUploadActionRail,
   VideoUploadingState,
 } from '@/modules/creative_canvas/public';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
-import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
