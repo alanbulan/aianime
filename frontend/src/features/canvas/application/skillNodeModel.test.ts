@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { CanvasEdge, CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import type {
   DirectorStageManifest,
-} from '@/features/viewer-kit/three-d/directorManifest';
+} from '@/features/viewer-kit/public';
 import {
   directorManifestWithScenePanoSource,
   projectSkillInputHandleIds,

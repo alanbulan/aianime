@@ -43,10 +43,7 @@ import {
   uploadDirectorCaptureBundle,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
-import type {
-  DirectorStageManifest,
-} from '@/features/viewer-kit/three-d/directorManifest';
+import type { DirectorStageManifest, ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/public';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export interface UploadNodeControllerOptions {

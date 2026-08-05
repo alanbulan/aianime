@@ -16,8 +16,7 @@ import {
   isNodeUsingDefaultDisplayName,
   resolveNodeDisplayName,
 } from '@/modules/creative_canvas/public';
-import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
-import type { DirectorControlFrameBundle } from '@/features/viewer-kit/three-d/directorManifest';
+import type { DirectorControlFrameBundle, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 
 export type UploadMediaKind = 'image' | 'video' | 'audio';
 

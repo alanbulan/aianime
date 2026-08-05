@@ -4,7 +4,7 @@ import type {
   DirectorControlFrameBundle,
   DirectorObjectLayer,
   DirectorWorldSource,
-} from '@/features/viewer-kit/three-d/directorManifest';
+} from '@/features/viewer-kit/public';
 import type {
   AudioVoiceRef,
   Seedance2SceneOptimize,

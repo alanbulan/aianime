@@ -2513,6 +2513,44 @@ describe("round 2 residual architecture boundaries", () => {
     ).toBe(0);
   });
 
+  it("routes every Canvas viewer-kit dependency through the viewer-kit public entry", () => {
+    const roots = ["features/canvas", "modules/creative_canvas"];
+    const deepImports = roots.flatMap((root) =>
+      sourceFiles(resolve(SRC_ROOT, root)).flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/features/viewer-kit/") &&
+              specifier !== "@/features/viewer-kit/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      ),
+    );
+
+    expect(deepImports.sort()).toEqual([]);
+
+    const viewerKitPublic = readFileSync(
+      resolve(SRC_ROOT, "features/viewer-kit/public.ts"),
+      "utf8",
+    );
+    for (const exported of [
+      "DirectorControlFrameBundle",
+      "DirectorObjectLayer",
+      "DirectorStageManifest",
+      "DirectorStageSourceKind",
+      "DirectorStageSourceType",
+      "DirectorWorldSource",
+      "ThreeDDirectorCaptureMeta",
+      "ThreeDDirectorDialog",
+      "ThreeDSceneSnapshot",
+      "buildStandaloneWorldManifest",
+      "isImmersiveViewerActive",
+      "useViewerImmersiveBody",
+    ]) {
+      expect(viewerKitPublic, exported).toContain(exported);
+    }
+  });
+
   it("uses the authenticated catalog as the only Canvas model source", () => {
     const legacyModelRoot = resolve(SRC_ROOT, "features/canvas/models");
     const catalogConsumers = [

@@ -13,7 +13,7 @@ import type {
   DirectorStageSourceKind,
   DirectorStageSourceType,
   DirectorWorldSource,
-} from "@/features/viewer-kit/three-d/directorManifest";
+} from "@/features/viewer-kit/public";
 import { directorSourceIdentityUrl } from "@/modules/asset_world/public";
 
 export function canvasNodeLabel(node: CanvasNode): string {

@@ -21,3 +21,16 @@ export {
   waitFrames as waitPanoFrames,
   zoomToFov as panoZoomToFov,
 } from "./pano/panoCapture";
+export { buildStandaloneWorldManifest } from "./three-d/directorManifest";
+export type {
+  DirectorControlFrameBundle,
+  DirectorObjectLayer,
+  DirectorStageManifest,
+  DirectorStageSourceKind,
+  DirectorStageSourceType,
+  DirectorWorldSource,
+} from "./three-d/directorManifest";
+export { ThreeDDirectorDialog } from "./three-d/ThreeDDirectorDialog";
+export type { ThreeDDirectorCaptureMeta } from "./three-d/ThreeDDirectorDialog";
+export type { ThreeDSceneSnapshot } from "./three-d/engine/viewerApp";
+export { isImmersiveViewerActive, useViewerImmersiveBody } from "./useViewerImmersiveBody";

@@ -80,7 +80,7 @@ import {
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
-} from '@/features/viewer-kit/three-d/directorManifest';
+} from '@/features/viewer-kit/public';
 import { isActive as isActiveTask } from '@/modules/task_execution/public';
 import { useTaskCenterStore } from '@/modules/task_execution/public';
 

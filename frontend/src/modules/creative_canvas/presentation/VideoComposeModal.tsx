@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
+import { useViewerImmersiveBody } from "@/features/viewer-kit/public";
 import {
   hasExportableClips,
   overlappingVideoClipIds,

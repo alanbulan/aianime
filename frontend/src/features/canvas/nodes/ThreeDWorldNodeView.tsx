@@ -28,7 +28,7 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
+import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

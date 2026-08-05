@@ -76,7 +76,7 @@ import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
+import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 export interface ImageGenNodeViewProps {
   controller: ImageGenNodeController;

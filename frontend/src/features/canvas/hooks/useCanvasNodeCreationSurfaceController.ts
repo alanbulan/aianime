@@ -17,7 +17,7 @@ import {
   type CanvasNodeMenuStateController,
   type CanvasNodeMenuTypes,
 } from '@/modules/creative_canvas/public';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 
 import { nodeCatalog } from '../application/nodeCatalog';
 import {

@@ -17,7 +17,7 @@ import type {
   CanvasNode,
   CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import { isCeRuntime } from '@/lib/runtime-config';
 
 import { createCanvasNodeTypes } from '../nodes';

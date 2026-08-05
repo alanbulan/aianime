@@ -58,12 +58,7 @@ import {
   type DirectorCaptureAssetUploader,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
-import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
-import type {
-  DirectorStageManifest,
-  DirectorWorldSource,
-} from '@/features/viewer-kit/three-d/directorManifest';
-import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
+import type { DirectorStageManifest, DirectorWorldSource, ThreeDDirectorCaptureMeta, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 
 export interface ThreeDWorldNodeControllerOptions {
   id: string;

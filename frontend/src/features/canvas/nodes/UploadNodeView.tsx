@@ -23,7 +23,7 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
+import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 export function UploadNodeView({
   controller,

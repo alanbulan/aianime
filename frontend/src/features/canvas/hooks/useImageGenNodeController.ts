@@ -100,7 +100,7 @@ import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMen
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
-} from '@/features/viewer-kit/three-d/directorManifest';
+} from '@/features/viewer-kit/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';

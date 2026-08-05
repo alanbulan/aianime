@@ -3,8 +3,7 @@ import {
   directorWorldSourcesFromManifest,
 } from "@/features/canvas/domain/directorWorldSources";
 import type { CanvasAssetDragPayload } from "@/modules/creative_canvas/public";
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
+import type { DirectorStageManifest, ThreeDSceneSnapshot } from "@/features/viewer-kit/public";
 
 const SCENE_DIRECTOR_WORLD_ROLE = "scene_director_world";
 

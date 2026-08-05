@@ -20,11 +20,7 @@ import {
   type CanvasImageTo3dVisibleSourceKind,
   type MainlineContext,
 } from '@/modules/creative_canvas/public';
-import type {
-  DirectorStageManifest,
-  DirectorWorldSource,
-} from '@/features/viewer-kit/three-d/directorManifest';
-import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
+import type { DirectorStageManifest, DirectorWorldSource, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 
 export const THREE_D_WORLD_NODE_SIZE_LIMITS = {
   defaultWidth: 340,

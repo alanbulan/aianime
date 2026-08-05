@@ -2,7 +2,7 @@
 import { useCallback, useMemo } from 'react';
 
 import { hydrateAssetDragPayload } from '@/features/canvas/composition';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import {
   spawnCanvasAssetNode,
   useCanvasHistoryAssetController,

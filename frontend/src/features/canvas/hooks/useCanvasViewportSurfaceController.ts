@@ -7,7 +7,7 @@ import {
   type CanvasNode,
 } from '../domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import {
   getNodeSize,
   useCanvasMinimapVisibility,

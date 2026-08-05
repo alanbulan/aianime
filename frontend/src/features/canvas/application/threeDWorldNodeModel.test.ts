@@ -7,7 +7,7 @@ import {
   type ThreeDWorldNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import type { MainlineContext } from '@/modules/creative_canvas/public';
-import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
+import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 import {
   buildLocalThreeDWorldDirectorManifest,
   buildThreeDWorldClearScenePatch,

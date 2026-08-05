@@ -7,8 +7,7 @@ import {
   type CanvasNode,
   type ThreeDWorldNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import type { ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
-import type { ThreeDSceneSnapshot } from '@/features/viewer-kit/three-d/engine/viewerApp';
+import type { ThreeDDirectorCaptureMeta, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 import { useThreeDWorldNodeController } from './useThreeDWorldNodeController';
 
 const mocks = vi.hoisted(() => ({
@@ -50,6 +49,7 @@ const NODE_CONTEXT = {
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
 vi.mock('react-i18next', () => ({

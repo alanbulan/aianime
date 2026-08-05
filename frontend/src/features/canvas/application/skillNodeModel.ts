@@ -14,7 +14,7 @@ import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
   DirectorWorldSource,
-} from '@/features/viewer-kit/three-d/directorManifest';
+} from '@/features/viewer-kit/public';
 
 export const SKILL_NODE_DEFAULT_WIDTH = 380;
 export const SKILL_OUTPUT_X_OFFSET = 460;

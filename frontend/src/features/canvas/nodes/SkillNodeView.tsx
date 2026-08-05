@@ -32,7 +32,7 @@ import {
   translateSkillRequirement,
   type SkillProvider,
 } from '@/modules/creative_canvas/public';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
+import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 const PROVIDER_LABELS: Record<SkillProvider, string> = {
   freezone_mainline: '主线技能',

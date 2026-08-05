@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
-import type { DirectorControlFrameBundle } from '@/features/viewer-kit/three-d/directorManifest';
+import type { DirectorControlFrameBundle } from '@/features/viewer-kit/public';
 
 import {
   directorControlBundleFromData,

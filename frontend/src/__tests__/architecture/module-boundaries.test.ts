@@ -9714,6 +9714,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(selectionSurface).toContain("isImmersiveViewerActive,");
     expect(canvasView).toContain(
+      "@/features/viewer-kit/public",
+    );
+    expect(canvasView).not.toContain(
       "@/features/viewer-kit/useViewerImmersiveBody",
     );
     expect(canvasView).toContain("isImmersiveViewerActive,");
@@ -9814,7 +9817,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/composition",
-        "@/features/viewer-kit/useViewerImmersiveBody",
+        "@/features/viewer-kit/public",
         "@/modules/creative_canvas/public",
         "../domain/canvasNodes",
       ]),

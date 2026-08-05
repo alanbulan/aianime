@@ -13,8 +13,7 @@ import {
   ImageViewerModal,
   VideoViewerModal,
 } from '@/modules/creative_canvas/public';
-import { buildStandaloneWorldManifest } from '@/features/viewer-kit/three-d/directorManifest';
-import { ThreeDDirectorDialog } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
+import { ThreeDDirectorDialog, buildStandaloneWorldManifest } from '@/features/viewer-kit/public';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { resolveMediaUrl } from '@/lib/media-url';
 
