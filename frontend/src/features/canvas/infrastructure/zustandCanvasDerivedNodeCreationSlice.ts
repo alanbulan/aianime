@@ -23,16 +23,19 @@ import {
   type CanvasDerivedExportNodeOptions,
 } from '../application/canvasDerivedNodeCreation';
 import {
-  duplicateCanvasNodeAsSibling,
-  duplicateCanvasNodesAsSiblings,
-} from '../application/canvasNodeDuplication';
-import {
   createPanoCaptureNodes,
   type CanvasPanoCapture,
   type CanvasPanoCaptureOptions,
   type PanoCaptureGraphEdge,
   type PanoCaptureGraphNode,
   type PanoCaptureNodeFactory,
+} from '@/modules/creative_canvas/public';
+import {
+  duplicateCanvasNodeAsSibling,
+  duplicateCanvasNodesAsSiblings,
+  type DuplicationGraphEdge,
+  type DuplicationGraphNode,
+  type DuplicationNodeFactory,
 } from '@/modules/creative_canvas/public';
 import type { NodeFactory } from '../application/ports';
 
@@ -121,20 +124,20 @@ export function createZustandCanvasDerivedNodeCreationSlice(
     duplicateNodeAsSibling(sourceNodeId, index, dataOverrides = {}) {
       const state = dependencies.getState();
       const result = duplicateCanvasNodeAsSibling(
-        state.nodes,
-        state.edges,
+        state.nodes as unknown as DuplicationGraphNode[],
+        state.edges as unknown as DuplicationGraphEdge[],
         sourceNodeId,
         index,
         dataOverrides,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as DuplicationNodeFactory,
       );
       if (!result) {
         return null;
       }
 
       dependencies.setState({
-        nodes: result.nodes,
-        edges: result.edges,
+        nodes: result.nodes as unknown as CanvasNode[],
+        edges: result.edges as unknown as CanvasEdge[],
         history: {
           past: pushSnapshot(
             state.history.past,
@@ -151,18 +154,18 @@ export function createZustandCanvasDerivedNodeCreationSlice(
     duplicateNodesAsSiblings(nodeIds) {
       const state = dependencies.getState();
       const result = duplicateCanvasNodesAsSiblings(
-        state.nodes,
-        state.edges,
+        state.nodes as unknown as DuplicationGraphNode[],
+        state.edges as unknown as DuplicationGraphEdge[],
         nodeIds,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as DuplicationNodeFactory,
       );
       if (result.createdIds.length === 0) {
         return [];
       }
 
       dependencies.setState({
-        nodes: result.nodes,
-        edges: result.edges,
+        nodes: result.nodes as unknown as CanvasNode[],
+        edges: result.edges as unknown as CanvasEdge[],
         selectedNodeId: result.createdIds.length === 1
           ? result.createdIds[0]
           : null,

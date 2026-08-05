@@ -16675,7 +16675,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node duplication out of the Zustand store", () => {
     const duplicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeDuplication.ts",
+      "modules/creative_canvas/application/canvasNodeDuplication.ts",
     );
     const duplicationModel = readFileSync(duplicationPath, "utf8");
     const canvasStore = readFileSync(
@@ -16718,12 +16718,15 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasNodeDuplication.ts",
+      "modules/creative_canvas/application/canvasNodeDuplication.ts",
     ]);
     expect(duplicationModel).toContain(singleDeclaration);
     expect(duplicationModel).toContain(batchDeclaration);
-    expect(duplicationModel).toContain("nodeFactory: NodeFactory");
+    expect(duplicationModel).toContain("nodeFactory: DuplicationNodeFactory");
     expect(derivedNodeCreationSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(derivedNodeCreationSlice).not.toContain(
       "../application/canvasNodeDuplication",
     );
     expect(derivedNodeCreationSlice).toContain("dependencies.nodeFactory,");
@@ -28160,7 +28163,6 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
       "../application/canvasDerivedNodeCreation",
-      "../application/canvasNodeDuplication",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");

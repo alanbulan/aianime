@@ -1956,6 +1956,17 @@ export type {
   PanoCaptureNodeFactory,
 } from "@/modules/creative_canvas/application/panoCaptureNodes";
 export {
+  duplicateCanvasNodeAsSibling,
+  duplicateCanvasNodesAsSiblings,
+} from "@/modules/creative_canvas/application/canvasNodeDuplication";
+export type {
+  CanvasNodeDuplicationResult,
+  DuplicationCreatedNode,
+  DuplicationGraphEdge,
+  DuplicationGraphNode,
+  DuplicationNodeFactory,
+} from "@/modules/creative_canvas/application/canvasNodeDuplication";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

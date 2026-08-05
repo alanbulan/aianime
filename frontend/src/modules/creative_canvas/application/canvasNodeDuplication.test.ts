@@ -2,31 +2,29 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
-import {
   duplicateCanvasNodeAsSibling,
   duplicateCanvasNodesAsSiblings,
+  type DuplicationCreatedNode,
+  type DuplicationGraphEdge,
+  type DuplicationGraphNode,
+  type DuplicationNodeFactory,
 } from './canvasNodeDuplication';
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<DuplicationGraphNode> = {},
+): DuplicationGraphNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'textAnnotationNode',
     position: { x: 10, y: 20 },
     measured: { width: 320, height: 100 },
     data: { content: id },
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function factory(...ids: string[]): NodeFactory {
+function factory(...ids: string[]): DuplicationNodeFactory {
   let index = 0;
   return {
     createNode: (type, position, data = {}) => ({
@@ -34,7 +32,7 @@ function factory(...ids: string[]): NodeFactory {
       type,
       position,
       data,
-    }) as CanvasNode,
+    }) as DuplicationCreatedNode,
   };
 }
 
@@ -42,7 +40,7 @@ describe('Canvas node duplication', () => {
   it('duplicates one sibling with indexed offset, overrides, and mirrored incoming edges', () => {
     const source = node('source');
     const upstream = node('upstream');
-    const edges: CanvasEdge[] = [
+    const edges: DuplicationGraphEdge[] = [
       {
         id: 'incoming',
         source: upstream.id,
@@ -102,7 +100,7 @@ describe('Canvas node duplication', () => {
       measured: undefined,
       data: { displayName: 'Second' },
     });
-    const edges: CanvasEdge[] = [
+    const edges: DuplicationGraphEdge[] = [
       { id: 'external-first', source: external.id, target: first.id },
       { id: 'first-second', source: first.id, target: second.id },
     ];
@@ -153,7 +151,7 @@ describe('Canvas node duplication', () => {
   it('returns the original graph when no batch source exists', () => {
     const source = node('source');
     const nodes = [source];
-    const edges: CanvasEdge[] = [];
+    const edges: DuplicationGraphEdge[] = [];
 
     expect(
       duplicateCanvasNodesAsSiblings(nodes, edges, ['missing'], factory('copy')),

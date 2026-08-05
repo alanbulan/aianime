@@ -1,44 +1,80 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
+export interface DuplicationGraphNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  selected?: boolean;
+  width?: number;
+  height?: number;
+  measured?: { width?: number; height?: number };
+  parentId?: string;
+  extent?: string;
+  [key: string]: unknown;
+}
+
+export interface DuplicationGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  type?: string | null;
+  [key: string]: unknown;
+}
+
+export interface DuplicationCreatedNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data?: Record<string, unknown> | null;
+  parentId?: string;
+  extent?: string;
+  selected?: boolean;
+  [key: string]: unknown;
+}
+
+export interface DuplicationNodeFactory {
+  createNode: (
+    type: unknown,
+    position: unknown,
+    data?: unknown,
+  ) => DuplicationCreatedNode;
+}
 
 export interface CanvasNodeDuplicationResult {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+  nodes: DuplicationCreatedNode[];
+  edges: DuplicationGraphEdge[];
   createdIds: string[];
 }
 
-function sourceNodeHeight(source: CanvasNode): number {
+function sourceNodeHeight(source: DuplicationGraphNode): number {
   return source.measured?.height
-    ?? (typeof source.height === 'number' ? source.height : 360);
+    ?? (typeof source.height === "number" ? source.height : 360);
 }
 
 function cloneIncomingEdge(
-  edge: CanvasEdge,
+  edge: DuplicationGraphEdge,
   source: string,
   target: string,
-): CanvasEdge {
+): DuplicationGraphEdge {
   return {
     id: `e-${source}-${target}`,
     source,
     target,
-    sourceHandle: edge.sourceHandle ?? 'source',
-    targetHandle: edge.targetHandle ?? 'target',
-    type: 'disconnectableEdge',
+    sourceHandle: edge.sourceHandle ?? "source",
+    targetHandle: edge.targetHandle ?? "target",
+    type: "disconnectableEdge",
   };
 }
 
 export function duplicateCanvasNodeAsSibling(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
+  nodes: DuplicationGraphNode[],
+  edges: DuplicationGraphEdge[],
   sourceNodeId: string,
   index: number,
-  dataOverrides: Partial<CanvasNodeData>,
-  nodeFactory: NodeFactory,
+  dataOverrides: Record<string, unknown>,
+  nodeFactory: DuplicationNodeFactory,
 ): CanvasNodeDuplicationResult | null {
   const source = nodes.find((node) => node.id === sourceNodeId);
   if (!source) {
@@ -52,7 +88,7 @@ export function duplicateCanvasNodeAsSibling(
       y: source.position.y + (sourceNodeHeight(source) + 24) * index,
     },
     {
-      ...(source.data as Partial<CanvasNodeData>),
+      ...source.data,
       ...dataOverrides,
     },
   );
@@ -69,13 +105,13 @@ export function duplicateCanvasNodeAsSibling(
 }
 
 export function duplicateCanvasNodesAsSiblings(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
+  nodes: DuplicationGraphNode[],
+  edges: DuplicationGraphEdge[],
   nodeIds: string[],
-  nodeFactory: NodeFactory,
+  nodeFactory: DuplicationNodeFactory,
 ): CanvasNodeDuplicationResult {
   const sourceSet = new Set(nodeIds);
-  const newNodes: CanvasNode[] = [];
+  const newNodes: DuplicationCreatedNode[] = [];
   const createdIds: string[] = [];
   const idMap = new Map<string, string>();
 
@@ -85,12 +121,12 @@ export function duplicateCanvasNodesAsSiblings(
       continue;
     }
 
-    const sourceData = source.data as Record<string, unknown>;
+    const sourceData = source.data;
     const nameOverrides: Record<string, unknown> = {};
-    if (typeof sourceData.displayName === 'string' && sourceData.displayName) {
+    if (typeof sourceData.displayName === "string" && sourceData.displayName) {
       nameOverrides.displayName = `${sourceData.displayName} - 副本`;
     }
-    if (typeof sourceData.label === 'string' && sourceData.label) {
+    if (typeof sourceData.label === "string" && sourceData.label) {
       nameOverrides.label = `${sourceData.label} - 副本`;
     }
 
@@ -101,8 +137,8 @@ export function duplicateCanvasNodesAsSiblings(
         y: source.position.y + sourceNodeHeight(source) + 24,
       },
       {
-        ...(source.data as Partial<CanvasNodeData>),
-        ...(nameOverrides as Partial<CanvasNodeData>),
+        ...sourceData,
+        ...nameOverrides,
       },
     );
     if (source.parentId) {
@@ -119,7 +155,7 @@ export function duplicateCanvasNodesAsSiblings(
     return { nodes, edges, createdIds };
   }
 
-  const newEdges: CanvasEdge[] = [];
+  const newEdges: DuplicationGraphEdge[] = [];
   for (const edge of edges) {
     const newTarget = idMap.get(edge.target);
     if (!newTarget) {
