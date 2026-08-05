@@ -20721,7 +20721,7 @@ describe("frontend architecture boundaries", () => {
     );
     const voiceModalEntryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VoiceSelectionModal.tsx",
+      "modules/creative_canvas/presentation/VoiceSelectionModal.tsx",
     );
     const voiceModalModelPath = resolve(
       SRC_ROOT,
@@ -20733,19 +20733,19 @@ describe("frontend architecture boundaries", () => {
     );
     const voiceModalControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVoiceSelectionModalController.ts",
+      "modules/creative_canvas/presentation/useVoiceSelectionModalController.ts",
     );
     const voiceModalControllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVoiceSelectionModalController.test.tsx",
+      "modules/creative_canvas/presentation/useVoiceSelectionModalController.test.tsx",
     );
     const voiceModalViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VoiceSelectionModalView.tsx",
+      "modules/creative_canvas/presentation/VoiceSelectionModalView.tsx",
     );
     const voiceModalViewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VoiceSelectionModalView.test.tsx",
+      "modules/creative_canvas/presentation/VoiceSelectionModalView.test.tsx",
     );
     const audioOperationsControllerPath = resolve(
       SRC_ROOT,
@@ -20890,8 +20890,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(voiceModalEntryPath))).toEqual(
       new Set([
         "react",
-        "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useVoiceSelectionModalController",
+        "../application/voiceSelectionModel",
+        "./useVoiceSelectionModalController",
         "./VoiceSelectionModalView",
       ]),
     );
@@ -20923,13 +20923,13 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalViewSource).toContain("createPortal(");
     expect(voiceModalViewSource).toContain("<FolderOpen");
     expect(voiceModalDeclarationOwners).toEqual([
-      ["features/canvas/nodes/VoiceSelectionModal.tsx"],
+      ["modules/creative_canvas/presentation/VoiceSelectionModal.tsx"],
       ["modules/creative_canvas/application/voiceSelectionModel.ts"],
-      ["features/canvas/hooks/useVoiceSelectionModalController.ts"],
-      ["features/canvas/nodes/VoiceSelectionModalView.tsx"],
+      ["modules/creative_canvas/presentation/useVoiceSelectionModalController.ts"],
+      ["modules/creative_canvas/presentation/VoiceSelectionModalView.tsx"],
     ]);
     expect(voiceModalAsyncOwners).toEqual([
-      "features/canvas/hooks/useVoiceSelectionModalController.ts",
+      "modules/creative_canvas/presentation/useVoiceSelectionModalController.ts",
     ]);
     expect(voiceDescriptionOwners).toEqual([
       "modules/creative_canvas/application/audioVoiceCatalog.ts",

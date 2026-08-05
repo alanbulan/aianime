@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from 'react';
 
-import type { VoicePickResult } from '@/modules/creative_canvas/public';
+import type { VoicePickResult } from '../application/voiceSelectionModel';
 import {
   useVoiceSelectionModalController,
   type VoiceSelectionModalControllerOptions,
-} from '@/features/canvas/hooks/useVoiceSelectionModalController';
+} from './useVoiceSelectionModalController';
 
 import { VoiceSelectionModalView } from './VoiceSelectionModalView';
 

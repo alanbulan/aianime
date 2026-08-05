@@ -11,12 +11,12 @@ import {
 } from 'lucide-react';
 
 import {
-  CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   VOICE_SELECTION_PAGE_SIZE,
   type VoiceSelectionPage,
   type VoiceSelectionRow,
-} from '@/modules/creative_canvas/public';
-import type { VoiceSelectionModalController } from '@/features/canvas/hooks/useVoiceSelectionModalController';
+} from "../application/voiceSelectionModel";
+import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS } from "./canvasNodeFrameStyles";
+import type { VoiceSelectionModalController } from "./useVoiceSelectionModalController";
 
 export interface VoiceSelectionModalViewProps {
   controller: VoiceSelectionModalController;

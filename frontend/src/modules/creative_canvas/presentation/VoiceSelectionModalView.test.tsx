@@ -3,7 +3,7 @@ import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { VoiceSelectionModalController } from '@/features/canvas/hooks/useVoiceSelectionModalController';
+import type { VoiceSelectionModalController } from './useVoiceSelectionModalController';
 
 import { VoiceSelectionModalView } from './VoiceSelectionModalView';
 

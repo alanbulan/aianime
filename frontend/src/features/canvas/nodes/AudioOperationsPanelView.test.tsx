@@ -7,7 +7,10 @@ import type { AudioOperationsPanelController } from '@/features/canvas/hooks/use
 
 import { AudioOperationsPanelView } from './AudioOperationsPanelView';
 
-vi.mock('./VoiceSelectionModal', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/modules/creative_canvas/public')
+  >()),
   VoiceSelectionModal: ({
     projectId,
     open,

@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { VoiceSelectionModal } from './VoiceSelectionModal';
+import { VoiceSelectionModal } from '@/modules/creative_canvas/public';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

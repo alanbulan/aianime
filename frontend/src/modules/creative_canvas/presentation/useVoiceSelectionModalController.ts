@@ -9,9 +9,12 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 
+import { loadCanvasAudioReferences, createCanvasAudioVoice } from "../audioVoiceCatalogComposition";
+import type { CanvasAudioReference } from "../application/audioVoiceCatalog";
+import type { AudioVoiceRef } from "../domain/audioVoice";
 import {
+  VOICE_CLONE_FILE_ACCEPT,
   customVoiceReferences,
-  createCanvasAudioVoice,
   filterCustomVoiceReferences,
   filterLibraryVoiceReferences,
   paginateVoiceReferences,
@@ -19,16 +22,12 @@ import {
   projectLibraryVoiceRows,
   resolveVoicePaginationJump,
   sanitizeVoicePaginationInput,
-  loadCanvasAudioReferences,
   voiceCloneFileStem,
   voiceCloneFileValidationError,
   voiceCloneUploadError,
-  VOICE_CLONE_FILE_ACCEPT,
   type VoicePickResult,
   type VoiceSelectionTab,
-  type AudioVoiceRef,
-  type CanvasAudioReference,
-} from '@/modules/creative_canvas/public';
+} from "../application/voiceSelectionModel";
 
 export interface VoiceSelectionModalControllerOptions {
   projectId: string;

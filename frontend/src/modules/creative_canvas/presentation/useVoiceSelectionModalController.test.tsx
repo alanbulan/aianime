@@ -13,12 +13,8 @@ const mocks = vi.hoisted(() => ({
   toastError: vi.fn(),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('@/modules/creative_canvas/public')
-  >();
+vi.mock('../audioVoiceCatalogComposition', () => {
   return {
-    ...actual,
     loadCanvasAudioReferences: (project: string) =>
       mocks.loadReferences(project),
     createCanvasAudioVoice: (
