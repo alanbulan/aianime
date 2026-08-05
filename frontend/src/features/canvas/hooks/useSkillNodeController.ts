@@ -37,12 +37,6 @@ import {
   type SkillDirectorWorldDestination,
 } from '@/features/canvas/application/skillNodeModel';
 import {
-  nodeDataForOutput,
-  nodeTypeForOutput,
-  outputLabel,
-  outputText,
-} from '@/features/canvas/application/skillOutputProjection';
-import {
   awaitCanvasGenerationTaskCompletion,
   awaitCanvasSkillRunResult,
   getCanvasBeatDirectorManifest,
@@ -66,6 +60,10 @@ import {
   isSkillReadyToSubmit,
   isSystemManagedNodeData,
   loadCanvasSkillRegistry,
+  nodeDataForOutput,
+  nodeTypeForOutput,
+  outputLabel,
+  outputText,
   publishCanvasCommitRequested,
   resolveInputsForSkill,
   skillRunErrorMessage,

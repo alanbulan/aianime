@@ -21411,6 +21411,10 @@ describe("frontend architecture boundaries", () => {
     );
     const outputProjectionPath = resolve(
       SRC_ROOT,
+      "modules/creative_canvas/application/skillOutputProjection.ts",
+    );
+    const legacyOutputProjectionPath = resolve(
+      SRC_ROOT,
       "features/canvas/application/skillOutputProjection.ts",
     );
     const legacyOutputModelPath = resolve(
@@ -21474,9 +21478,16 @@ describe("frontend architecture boundaries", () => {
     );
     expect(existsSync(legacyOutputModelPath)).toBe(false);
     expect(new Set(importSpecifiers(outputProjectionPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public", "../domain/canvasNodes"]),
+      new Set(["../domain/skillExecution"]),
     );
+    expect(readFileSync(outputProjectionPath, "utf8")).not.toContain(
+      "@/features/canvas",
+    );
+    expect(existsSync(legacyOutputProjectionPath)).toBe(false);
     expect(imports).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(imports).not.toContain(
       "@/features/canvas/application/skillOutputProjection",
     );
     expect(imports).not.toContain(

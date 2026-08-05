@@ -1284,6 +1284,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百五十四批将 `ModelParamsControls` 整体迁入 Creative Canvas presentation；组件内部相对依赖本域 `aspectRatio`/`imageModelDefinition` 与共享 UI，不经模块 public 自回绕，也不导入旧 Canvas、Store 或 API。图片编辑与分镜生成节点统一经 Creative Canvas public 使用唯一控件，旧 `features/canvas/ui/ModelParamsControls.tsx` 直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记新 presentation 所有者与旧路径禁回流，Canvas TS/TSX 上限收紧到 236，颜色预算迁移到新路径且颜色值不变。图片编辑/分镜生成节点回归与架构/残余/颜色门禁 5 个文件 356 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1017/236/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百五十五批将 `skillOutputProjection` 与其测试迁入 Creative Canvas application。投影的节点类型与节点数据补丁改用模块自有窄合同 `SkillOutputNodeType`/`SkillOutputNodePatch`，不再导入旧 `canvasNodes` 聚合；`SkillRunOutput` 继续来自本域 `skillExecution`。Skill 控制器统一经 Creative Canvas public 使用唯一投影，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套投影；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 234。同时修复 Skill 控制器测试对 `@xyflow/react` mock 缺 `Position` 导致真实模块 public 加载失败的收集问题。投影、Skill 控制器与架构/残余/颜色门禁 5 个文件 355 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1019/234/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

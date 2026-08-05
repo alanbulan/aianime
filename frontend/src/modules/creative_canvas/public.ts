@@ -1813,6 +1813,16 @@ export type {
   SkillRunResult,
 } from "@/modules/creative_canvas/domain/skillExecution";
 export {
+  nodeDataForOutput,
+  nodeTypeForOutput,
+  outputLabel,
+  outputText,
+} from "@/modules/creative_canvas/application/skillOutputProjection";
+export type {
+  SkillOutputNodePatch,
+  SkillOutputNodeType,
+} from "@/modules/creative_canvas/application/skillOutputProjection";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

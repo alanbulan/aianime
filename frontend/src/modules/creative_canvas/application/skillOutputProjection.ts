@@ -1,11 +1,30 @@
 // Copyright (c) 2026 AI anime
-import type { SkillRunOutput } from "@/modules/creative_canvas/public";
+import type { SkillRunOutput } from "../domain/skillExecution";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from "../domain/canvasNodes";
+export const SKILL_OUTPUT_IMAGE_NODE_TYPE = "imageGenNode" as const;
+export const SKILL_OUTPUT_TEXT_NODE_TYPE = "textAnnotationNode" as const;
+
+export type SkillOutputNodeType =
+  | typeof SKILL_OUTPUT_IMAGE_NODE_TYPE
+  | typeof SKILL_OUTPUT_TEXT_NODE_TYPE;
+
+export interface SkillOutputNodePatch {
+  displayName?: string;
+  user_spawned?: boolean;
+  candidate_origin?: Record<string, unknown> | null;
+  output_role?: string;
+  media_kind?: string;
+  slot_target?: Record<string, unknown> | null;
+  mainline_context?: unknown;
+  director_control_bundle?: Record<string, unknown> | null;
+  imageUrl?: string | null;
+  previewImageUrl?: string | null;
+  aspectRatio?: string;
+  committed_at?: string | null;
+  committed_slot_url?: string | null;
+  content?: string;
+  [key: string]: unknown;
+}
 
 function recordValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? value as Record<string, unknown> : null;
@@ -37,15 +56,17 @@ function imageAspectRatioForOutput(output: SkillRunOutput): string {
   return "16:9";
 }
 
-export function nodeTypeForOutput(output: SkillRunOutput): CanvasNodeType {
-  return output.media_type === "image" ? CANVAS_NODE_TYPES.imageGen : CANVAS_NODE_TYPES.textAnnotation;
+export function nodeTypeForOutput(output: SkillRunOutput): SkillOutputNodeType {
+  return output.media_type === "image"
+    ? SKILL_OUTPUT_IMAGE_NODE_TYPE
+    : SKILL_OUTPUT_TEXT_NODE_TYPE;
 }
 
 export function nodeDataForOutput(
   output: SkillRunOutput,
   skillId: string,
   skillNodeId: string,
-): Partial<CanvasNodeData> {
+): SkillOutputNodePatch {
   const mainlineContext = Array.isArray(output.mainline_context)
     ? output.mainline_context
     : undefined;

@@ -568,6 +568,10 @@ describe("round 2 residual architecture boundaries", () => {
       "freezoneVideoUpscaleGenerationGateway.ts",
       "freezoneVideoUpscaleGenerationGateway.test.ts",
     ];
+    const skillOutputApplicationFiles = [
+      "skillOutputProjection.ts",
+      "skillOutputProjection.test.ts",
+    ];
     const textGenerationApplicationFiles = [
       "generateCanvasStoryScript.ts",
       "generateCanvasStoryScript.test.ts",
@@ -1358,6 +1362,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/ProviderModelPicker.tsx",
       "features/canvas/ui/ProviderModelPicker.test.tsx",
       "features/canvas/ui/ModelParamsControls.tsx",
+      "features/canvas/application/skillOutputProjection.ts",
+      "features/canvas/application/skillOutputProjection.test.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -1387,6 +1393,15 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(true);
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas/infrastructure", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of skillOutputApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
         file,
       ).toBe(false);
     }
@@ -2439,7 +2454,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 236],
+      ["features/canvas", 234],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
