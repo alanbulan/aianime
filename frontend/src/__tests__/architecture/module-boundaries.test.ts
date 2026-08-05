@@ -20572,11 +20572,17 @@ describe("frontend architecture boundaries", () => {
     );
     const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
     const stylePicker = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/StylePickerPopover.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/StylePickerPopover.tsx",
+      ),
       "utf8",
     );
     const cameraPicker = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/nodes/CameraPickerPopover.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/CameraPickerPopover.tsx",
+      ),
       "utf8",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
@@ -20662,9 +20668,8 @@ describe("frontend architecture boundaries", () => {
       expect(source).not.toContain("@/lib/url-params");
       expect(source).not.toContain("readUrl");
     }
-    expect(stylePicker).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(stylePicker).toContain("../generationCatalogComposition");
+    expect(stylePicker).not.toContain("@/modules/creative_canvas/public");
     expect(stylePicker).not.toContain("@/api/ops");
     expect(stylePicker).not.toContain("style_prompt");
     expect(cameraPicker).toContain("options?.cameraBodies");

@@ -994,6 +994,13 @@ export type {
   MentionCandidate,
   PromptMentionEditorHandle,
 } from "@/modules/creative_canvas/presentation/PromptMentionEditor";
+export { StylePickerPopover } from "@/modules/creative_canvas/presentation/StylePickerPopover";
+export { describeStyleSelection } from "@/modules/creative_canvas/presentation/StylePickerPopover";
+export {
+  CAMERA_PICKER_POPOVER_WIDTH,
+  CameraPickerPopover,
+} from "@/modules/creative_canvas/presentation/CameraPickerPopover";
+export { describeCameraSelection } from "@/modules/creative_canvas/presentation/CameraPickerPopover";
 export { createUseUpstreamGraph } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
 export type {
   UpstreamGraphDependencies,

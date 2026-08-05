@@ -59,6 +59,8 @@ import {
   shouldForceNaturalImageSize,
   shouldWriteGenerationError,
   translateCanvasText,
+  describeCameraSelection,
+  describeStyleSelection,
   useCanvasCameraOptions,
   useCanvasImageModels,
   useNodeGenerationHistory,
@@ -87,10 +89,6 @@ import {
   useIsBoxSelecting,
   useUpstreamContents,
 } from '@/features/canvas/composition';
-import {
-  describeCameraSelection,
-} from '@/features/canvas/nodes/CameraPickerPopover';
-import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,

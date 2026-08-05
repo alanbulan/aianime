@@ -2,12 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Aperture, Camera, ChevronDown, Focus, X } from 'lucide-react';
 
-import type { ImageGenCameraSelection } from '@/features/canvas/domain/canvasNodes';
-import {
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
-  useCanvasCameraOptions,
-  type CanvasCameraOptions,
-} from '@/modules/creative_canvas/public';
+import type { CanvasCameraOptions } from "../application/generationCatalog";
+import type { ImageGenCameraSelectionData } from "../domain/imageGenNodeModel";
+import { useCanvasCameraOptions } from "../generationCatalogComposition";
+import { NODE_FLOATING_PANEL_SURFACE_CLASS } from "./canvasNodeControlStyles";
 
 // Wheel geometry keeps the chosen item centered in a compact viewport.
 const ITEM_HEIGHT = 88;
@@ -23,8 +21,8 @@ const CAMERA_PICKER_ARROW_CLASS =
 
 interface CameraPickerPopoverProps {
   projectId: string;
-  selection: ImageGenCameraSelection | null;
-  onConfirm: (selection: ImageGenCameraSelection | null) => void;
+  selection: ImageGenCameraSelectionData | null;
+  onConfirm: (selection: ImageGenCameraSelectionData | null) => void;
   onClose: () => void;
 }
 
@@ -417,7 +415,7 @@ function Thumbnail({ src, label, kind, isSelected }: ThumbnailProps) {
 }
 
 export function describeCameraSelection(
-  selection: ImageGenCameraSelection | null,
+  selection: ImageGenCameraSelectionData | null,
   options: CanvasCameraOptions | null,
 ): string | null {
   if (!selection) return null;
