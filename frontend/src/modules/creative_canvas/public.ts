@@ -3513,6 +3513,8 @@ export { ImageNodeView } from "@/modules/creative_canvas/presentation/ImageNodeV
 export type { ImageNodeController } from "@/modules/creative_canvas/presentation/useImageNodeController";
 export { TextAnnotationNodeView } from "@/modules/creative_canvas/presentation/TextAnnotationNodeView";
 export type { TextAnnotationNodeController } from "@/modules/creative_canvas/presentation/useTextAnnotationNodeController";
+export { StoryboardNodeView } from "@/modules/creative_canvas/presentation/StoryboardNodeView";
+export type { StoryboardNodeController } from "@/modules/creative_canvas/presentation/useStoryboardNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

@@ -14,6 +14,7 @@ import { createUseVideoComposeNodeController } from './presentation/useVideoComp
 import { createUseScriptNodeController } from './presentation/useScriptNodeController';
 import { createUseImageNodeController } from './presentation/useImageNodeController';
 import { createUseTextAnnotationNodeController } from './presentation/useTextAnnotationNodeController';
+import { createUseStoryboardNodeController } from './presentation/useStoryboardNodeController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -252,6 +253,14 @@ export const useTextAnnotationNodeController =
     awaitCanvasGenerationTaskCompletion,
     translateCanvasText,
   });
+export const useStoryboardNodeController = createUseStoryboardNodeController({
+  useStore: useCanvasStore,
+  useUpstreamNodes,
+  exportStoryboardGrid,
+  packStoryboardFrames,
+  prepareNodeImage,
+  uploadLocalImageToBackend,
+});
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

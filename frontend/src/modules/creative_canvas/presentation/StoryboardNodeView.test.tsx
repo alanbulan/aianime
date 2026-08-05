@@ -3,8 +3,7 @@ import { createRef, type InputHTMLAttributes, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { StoryboardNodeController } from '@/features/canvas/hooks/useStoryboardNodeController';
-
+import type { StoryboardNodeController } from './useStoryboardNodeController';
 import { StoryboardNodeView } from './StoryboardNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -12,8 +11,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -26,9 +24,15 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./CanvasNodeImage', () => ({
   CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
     <img src={src} alt={alt} />
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,

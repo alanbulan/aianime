@@ -2140,19 +2140,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useStoryboardNodeController.ts",
+      "modules/creative_canvas/presentation/useStoryboardNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useStoryboardNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useStoryboardNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardNodeView.tsx",
+      "modules/creative_canvas/presentation/StoryboardNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardNodeView.test.tsx",
+      "modules/creative_canvas/presentation/StoryboardNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -2190,7 +2190,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "resolveStoryboardNodeProjection("].join(" "),
       ["export async function", "exportStoryboardGrid("].join(" "),
       ["export async function", "applyStoryboardTextOverlay("].join(" "),
-      ["export function", "useStoryboardNodeController("].join(" "),
+      ["export function", "createUseStoryboardNodeController("].join(" "),
       ["export function", "StoryboardNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -2214,9 +2214,8 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useStoryboardNodeController",
-        "./StoryboardNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -2224,8 +2223,8 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/storyboardNodeModel.ts"],
       ["modules/creative_canvas/application/storyboardExport.ts"],
       ["modules/creative_canvas/infrastructure/browserStoryboardExportRuntime.ts"],
-      ["features/canvas/hooks/useStoryboardNodeController.ts"],
-      ["features/canvas/nodes/StoryboardNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useStoryboardNodeController.ts"],
+      ["modules/creative_canvas/presentation/StoryboardNodeView.tsx"],
     ]);
     expect(typeDeclarationOwners).toEqual(
       typeDeclarations.map(() => [
@@ -2271,7 +2270,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("exportStoryboardGrid(projectId, {");
     expect(controllerSource).toContain("packStoryboardFrames(");
     expect(controllerSource).not.toContain("className=");
@@ -2305,6 +2304,14 @@ describe("frontend architecture boundaries", () => {
       "from './useStoryboardNodeController'",
     );
     expect(viewTestSource).toContain("from './StoryboardNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useStoryboardNodeController.ts",
+      "features/canvas/hooks/useStoryboardNodeController.test.tsx",
+      "features/canvas/nodes/StoryboardNodeView.tsx",
+      "features/canvas/nodes/StoryboardNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas storyboard-generator model, runtime, controller, and view", () => {
@@ -8057,7 +8064,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/ImageEditNodeView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
       "features/canvas/nodes/StoryboardGenNodeView.tsx",
-      "features/canvas/nodes/StoryboardNodeView.tsx",
       "features/canvas/nodes/UploadNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 

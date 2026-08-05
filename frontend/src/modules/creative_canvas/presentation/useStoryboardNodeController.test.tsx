@@ -2,31 +2,18 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import type { StoryboardFrameItem, CanvasNode, StoryboardSplitNodeData } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type {
+  CanvasNode,
+  StoryboardSplitNodeData,
+} from '../domain/canvasNodeData';
+import type { StoryboardFrameItem } from '../domain/storyboard';
+import {
+  createUseStoryboardNodeController,
+  type StoryboardNodeStore,
+  type StoryboardNodeStoreHook,
+} from './useStoryboardNodeController';
 
-import { useStoryboardNodeController } from './useStoryboardNodeController';
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-    const state = () => ({
-      setSelectedNode: mocks.setSelectedNode,
-      reorderStoryboardFrame: mocks.reorderStoryboardFrame,
-      addDerivedExportNode: mocks.addDerivedExportNode,
-      addEdge: mocks.addEdge,
-      updateStoryboardFrame: mocks.updateStoryboardFrame,
-      updateNodeData: mocks.updateNodeData,
-    });
-    const useCanvasStore = Object.assign(
-      (selector: (value: ReturnType<typeof state>) => unknown) =>
-        selector(state()),
-      { getState: state },
-    );
-    return useCanvasStore;
-  })(),
-}));
 const mocks = vi.hoisted(() => ({
   upstreamNodes: [] as CanvasNode[],
   zoom: 1,
@@ -51,17 +38,25 @@ vi.mock('@xyflow/react', () => ({
   NodeToolbar: () => null,
 }));
 
+const useStore = ((
+  selector: (state: StoryboardNodeStore) => unknown,
+) => selector({
+  setSelectedNode: mocks.setSelectedNode,
+  reorderStoryboardFrame: mocks.reorderStoryboardFrame,
+  addDerivedExportNode: mocks.addDerivedExportNode,
+  addEdge: mocks.addEdge,
+  updateStoryboardFrame: mocks.updateStoryboardFrame,
+  updateNodeData: mocks.updateNodeData,
+})) as unknown as StoryboardNodeStoreHook;
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  prepareNodeImage: (...args: unknown[]) => mocks.prepareNodeImage(...args),
-  uploadLocalImageToBackend: (...args: unknown[]) =>
-    mocks.uploadLocalImageToBackend(...args),
-  exportStoryboardGrid: (...args: unknown[]) =>
-    mocks.exportStoryboardGrid(...args),
-  packStoryboardFrames: (...args: unknown[]) =>
-    mocks.packStoryboardFrames(...args),
+const useStoryboardNodeController = createUseStoryboardNodeController({
+  useStore,
   useUpstreamNodes: () => mocks.upstreamNodes,
-}));
+  exportStoryboardGrid: mocks.exportStoryboardGrid,
+  packStoryboardFrames: mocks.packStoryboardFrames,
+  prepareNodeImage: mocks.prepareNodeImage,
+  uploadLocalImageToBackend: mocks.uploadLocalImageToBackend,
+});
 
 function frame(
   id: string,

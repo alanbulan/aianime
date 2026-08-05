@@ -10,26 +10,29 @@ import {
   SquareArrowOutUpRight,
 } from 'lucide-react';
 
+import { CanvasNodeImage } from './CanvasNodeImage';
+import { NodeResizeHandle } from './NodeResizeHandle';
 import {
-  CanvasNodeImage,
-  CANVAS_NODE_PANEL_SURFACE_CLASS,
   NODE_CONTROL_CHIP_CLASS,
   NODE_CONTROL_ICON_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
-  NodeResizeHandle,
+} from './canvasNodeControlStyles';
+import {
+  CANVAS_NODE_PANEL_SURFACE_CLASS,
+  canvasNodeFrameClass,
+} from './canvasNodeFrameStyles';
+import {
   STORYBOARD_GRID_GAP_PX,
   STORYBOARD_NODE_SIZE_LIMITS,
-  canvasNodeFrameClass,
-  resolveImageDisplayUrl,
-  type StoryboardExportOptions,
-  type StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
-import type { StoryboardNodeController } from '@/features/canvas/hooks/useStoryboardNodeController';
+} from '../domain/storyboardNodeModel';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type {
+  StoryboardExportOptions,
+  StoryboardFrameItem,
+} from '../domain/storyboard';
+import type { StoryboardNodeController } from './useStoryboardNodeController';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 
 const STORYBOARD_SPLIT_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_SPLIT_ICON_ADJUST = { x: 0, y: 0, scale: 1 };
