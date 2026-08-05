@@ -1803,11 +1803,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/scriptNodeModel.ts",
+      "modules/creative_canvas/application/scriptNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/scriptNodeModel.test.ts",
+      "modules/creative_canvas/application/scriptNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -1861,13 +1861,27 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ScriptNode.tsx"],
-      ["features/canvas/application/scriptNodeModel.ts"],
+      ["modules/creative_canvas/application/scriptNodeModel.ts"],
       ["features/canvas/hooks/useScriptNodeController.ts"],
       ["features/canvas/nodes/ScriptNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/scriptNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/scriptNodeModel",
+    );
     expect(registrySource).toContain(
       "import { ScriptNode } from './ScriptNode'",
     );
@@ -21177,7 +21191,7 @@ describe("frontend architecture boundaries", () => {
     );
     const scriptModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/scriptNodeModel.ts",
+      "modules/creative_canvas/application/scriptNodeModel.ts",
     );
     const scriptControllerPath = resolve(
       SRC_ROOT,

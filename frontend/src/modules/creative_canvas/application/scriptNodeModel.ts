@@ -1,24 +1,34 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  isAudioNode,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isTextAnnotationNode,
-  isUploadNode,
-  isVideoNode,
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeType,
-  type ScriptGenAction,
-  type ScriptNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   isCanvasStoryScriptResult,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptResult,
-} from '@/modules/creative_canvas/public';
+} from "./generateCanvasStoryScript";
+
+export type ScriptGenAction = "fromScript" | "fromVideoRef" | "fromCharacter";
+
+export interface ScriptGraphNode {
+  id: string;
+  type?: string | null;
+  position: { x?: number; y?: number } | null;
+  data: Record<string, unknown>;
+  measured?: { width?: number; height?: number };
+  width?: number;
+  height?: number;
+  [key: string]: unknown;
+}
+
+export interface ScriptGraphEdge {
+  id?: string;
+  source: string;
+  target: string;
+  [key: string]: unknown;
+}
+
+export interface ScriptNodeModelData {
+  prompt?: unknown;
+  [key: string]: unknown;
+}
 
 export const SCRIPT_NODE_SIZE_LIMITS = {
   minWidth: 360,
@@ -33,13 +43,13 @@ export interface ScriptNodeAction {
 }
 
 export const SCRIPT_NODE_ACTIONS: readonly ScriptNodeAction[] = [
-  { key: 'fromScript', label: '剧本生成分镜脚本' },
-  { key: 'fromVideoRef', label: '视频参考生成分镜脚本' },
-  { key: 'fromCharacter', label: '角色生成分镜脚本' },
+  { key: "fromScript", label: "剧本生成分镜脚本" },
+  { key: "fromVideoRef", label: "视频参考生成分镜脚本" },
+  { key: "fromCharacter", label: "角色生成分镜脚本" },
 ];
 
 export interface ScriptNodeSpawnItem {
-  type: CanvasNodeType;
+  type: "textAnnotationNode" | "videoNode" | "uploadNode";
   position: { x: number; y: number };
   data: Record<string, unknown>;
 }
@@ -63,66 +73,79 @@ const SPAWN_GAP_X = 40;
 const SPAWN_GAP_Y = 24;
 
 export function classifyCanvasStoryScriptReference(
-  node: CanvasNode,
+  node: ScriptGraphNode,
 ): CanvasStoryScriptReference | null {
-  if (isTextAnnotationNode(node)) {
+  const data = node.data ?? {};
+  const displayName =
+    typeof data.displayName === "string" && data.displayName.length > 0
+      ? data.displayName
+      : null;
+  if (node.type === "textAnnotationNode") {
     return {
       nodeId: node.id,
-      kind: 'text',
-      text: typeof node.data.content === 'string' ? node.data.content : '',
-      displayName: node.data.displayName ?? null,
+      kind: "text",
+      text: typeof data.content === "string" ? data.content : "",
+      displayName,
     };
   }
-  if (isVideoNode(node)) {
+  if (node.type === "videoNode") {
     const videoUrl =
-      typeof node.data.videoUrl === 'string' && node.data.videoUrl.length > 0
-        ? node.data.videoUrl
+      typeof data.videoUrl === "string" && data.videoUrl.length > 0
+        ? data.videoUrl
         : null;
     const thumbUrl =
-      (typeof node.data.previewImageUrl === 'string' &&
-        node.data.previewImageUrl) ||
+      (typeof data.previewImageUrl === "string" &&
+        data.previewImageUrl) ||
       null;
     const durationSec =
-      typeof node.data.durationMs === 'number' && node.data.durationMs > 0
-        ? node.data.durationMs / 1000
+      typeof data.durationMs === "number" && data.durationMs > 0
+        ? data.durationMs / 1000
         : null;
     return {
       nodeId: node.id,
-      kind: 'video',
+      kind: "video",
       thumbUrl,
       videoUrl,
       durationSec,
-      displayName: node.data.displayName ?? null,
+      displayName,
     };
   }
-  if (isAudioNode(node)) {
+  if (node.type === "audioNode") {
     return {
       nodeId: node.id,
-      kind: 'audio',
-      displayName: node.data.displayName ?? null,
+      kind: "audio",
+      displayName,
     };
   }
-  if (isImageGenNode(node)) {
-    const data = node.data;
+  if (node.type === "imageGenNode") {
     const referenceImageUrl =
-      typeof data.referenceImageUrl === 'string' &&
+      typeof data.referenceImageUrl === "string" &&
       data.referenceImageUrl.length > 0
         ? data.referenceImageUrl
         : null;
     return {
       nodeId: node.id,
-      kind: 'image',
-      thumbUrl: data.previewImageUrl || data.imageUrl || referenceImageUrl,
-      displayName: data.displayName ?? null,
+      kind: "image",
+      thumbUrl:
+        (typeof data.previewImageUrl === "string" && data.previewImageUrl) ||
+        (typeof data.imageUrl === "string" && data.imageUrl) ||
+        referenceImageUrl,
+      displayName,
     };
   }
-  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
-    const data = node.data;
+  if (
+    node.type === "uploadNode" ||
+    node.type === "imageNode" ||
+    node.type === "exportImageNode"
+  ) {
     return {
       nodeId: node.id,
-      kind: 'image',
-      thumbUrl: data.previewImageUrl || data.imageUrl || null,
-      displayName: data.displayName ?? null,
+      kind: "image",
+      thumbUrl:
+        (typeof data.previewImageUrl === "string" && data.previewImageUrl) ||
+        (typeof data.imageUrl === "string" && data.imageUrl) ||
+        null,
+      displayName,
     };
   }
   return null;
@@ -163,10 +186,10 @@ export function updateScriptResultCell(
   if (!existing) return null;
   const previousRaw = existing[columnKey];
   const previous =
-    typeof previousRaw === 'string'
+    typeof previousRaw === "string"
       ? previousRaw
       : previousRaw == null
-        ? ''
+        ? ""
         : String(previousRaw);
   if (previous === nextValue) return null;
 
@@ -179,7 +202,7 @@ export function updateScriptResultCell(
 }
 
 export function resolveScriptNodeReferences(
-  upstreamNodes: readonly CanvasNode[],
+  upstreamNodes: readonly ScriptGraphNode[],
 ): CanvasStoryScriptReference[] {
   return [...upstreamNodes]
     .sort((left, right) =>
@@ -192,8 +215,8 @@ export function resolveScriptNodeReferences(
     );
 }
 
-export function scriptPromptHasContent(data: ScriptNodeData): boolean {
-  return typeof data.prompt === 'string' && data.prompt.trim().length > 0;
+export function scriptPromptHasContent(data: ScriptNodeModelData): boolean {
+  return typeof data.prompt === "string" && data.prompt.trim().length > 0;
 }
 
 export function hasScriptGenerationSource(
@@ -204,10 +227,10 @@ export function hasScriptGenerationSource(
     prompt.trim().length > 0 ||
     references.some(
       (reference) =>
-        (reference.kind === 'text' &&
-          (reference.text ?? '').trim().length > 0) ||
-        (reference.kind === 'video' && Boolean(reference.videoUrl)) ||
-        (reference.kind === 'image' && Boolean(reference.thumbUrl)),
+        (reference.kind === "text" &&
+          (reference.text ?? "").trim().length > 0) ||
+        (reference.kind === "video" && Boolean(reference.videoUrl)) ||
+        (reference.kind === "image" && Boolean(reference.thumbUrl)),
     )
   );
 }
@@ -216,24 +239,24 @@ export function hasScriptReferencePreview(
   reference: CanvasStoryScriptReference,
 ): boolean {
   return (
-    (reference.kind === 'image' && Boolean(reference.thumbUrl)) ||
-    (reference.kind === 'video' &&
+    (reference.kind === "image" && Boolean(reference.thumbUrl)) ||
+    (reference.kind === "video" &&
       Boolean(reference.videoUrl || reference.thumbUrl))
   );
 }
 
 function nodeSize(
-  node: CanvasNode,
+  node: ScriptGraphNode,
   fallbackWidth: number,
   fallbackHeight: number,
 ) {
   return {
     width:
       node.measured?.width ??
-      (typeof node.width === 'number' ? node.width : fallbackWidth),
+      (typeof node.width === "number" ? node.width : fallbackWidth),
     height:
       node.measured?.height ??
-      (typeof node.height === 'number' ? node.height : fallbackHeight),
+      (typeof node.height === "number" ? node.height : fallbackHeight),
   };
 }
 
@@ -258,42 +281,42 @@ export function resolveScriptNodeSpawnPlan({
   fallbackHeight,
 }: {
   action: ScriptGenAction;
-  self: CanvasNode;
-  nodes: readonly CanvasNode[];
-  edges: readonly CanvasEdge[];
+  self: ScriptGraphNode;
+  nodes: readonly ScriptGraphNode[];
+  edges: readonly ScriptGraphEdge[];
   fallbackHeight: number;
 }): ScriptNodeSpawnPlan {
   const actionDefinition = SCRIPT_NODE_ACTIONS.find(
     (candidate) => candidate.key === action,
   );
-  const groupLabel = `${actionDefinition?.label ?? ''}组`;
+  const groupLabel = `${actionDefinition?.label ?? ""}组`;
   const selfHeight = self.height ?? fallbackHeight;
-  const centerY = self.position.y + selfHeight / 2;
+  const centerY = (self.position?.y ?? 0) + selfHeight / 2;
 
-  if (action === 'fromScript') {
+  if (action === "fromScript") {
     return {
       groupLabel,
       items: [
         {
-          type: CANVAS_NODE_TYPES.textAnnotation,
+          type: "textAnnotationNode",
           position: {
-            x: self.position.x - SPAWN_TEXT_WIDTH - SPAWN_GAP_X,
+            x: (self.position?.x ?? 0) - SPAWN_TEXT_WIDTH - SPAWN_GAP_X,
             y: centerY - SPAWN_TEXT_HEIGHT / 2,
           },
-          data: { referenceOnly: true, displayName: '剧本' },
+          data: { referenceOnly: true, displayName: "剧本" },
         },
       ],
     };
   }
 
-  if (action === 'fromVideoRef') {
+  if (action === "fromVideoRef") {
     return {
       groupLabel,
       items: [
         {
-          type: CANVAS_NODE_TYPES.video,
+          type: "videoNode",
           position: {
-            x: self.position.x - SPAWN_VIDEO_WIDTH - SPAWN_GAP_X,
+            x: (self.position?.x ?? 0) - SPAWN_VIDEO_WIDTH - SPAWN_GAP_X,
             y: centerY - SPAWN_VIDEO_HEIGHT / 2,
           },
           data: { referenceOnly: true },
@@ -302,12 +325,12 @@ export function resolveScriptNodeSpawnPlan({
     };
   }
 
-  const baseX = self.position.x - SPAWN_UPLOAD_WIDTH - SPAWN_GAP_X;
-  const seeds = [{ displayName: '角色 1' }, { displayName: '角色 2' }];
+  const baseX = (self.position?.x ?? 0) - SPAWN_UPLOAD_WIDTH - SPAWN_GAP_X;
+  const seeds = [{ displayName: "角色 1" }, { displayName: "角色 2" }];
   const stepY = SPAWN_UPLOAD_HEIGHT + SPAWN_GAP_Y;
   const totalHeight =
     SPAWN_UPLOAD_HEIGHT * seeds.length + SPAWN_GAP_Y * (seeds.length - 1);
-  const preferredStartY = self.position.y + (selfHeight - totalHeight) / 2;
+  const preferredStartY = (self.position?.y ?? 0) + (selfHeight - totalHeight) / 2;
   const upstreamIds = new Set(
     edges.filter((edge) => edge.target === self.id).map((edge) => edge.source),
   );
@@ -315,12 +338,14 @@ export function resolveScriptNodeSpawnPlan({
     .filter(
       (node) =>
         upstreamIds.has(node.id) &&
-        node.type === CANVAS_NODE_TYPES.upload &&
-        Math.abs(node.position.x - baseX) < 8,
+        node.type === "uploadNode" &&
+        Math.abs((node.position?.x ?? 0) - baseX) < 8,
     )
     .reduce<number | null>(
       (maximum, node) =>
-        maximum === null ? node.position.y : Math.max(maximum, node.position.y),
+        maximum === null
+          ? (node.position?.y ?? 0)
+          : Math.max(maximum, node.position?.y ?? 0),
       null,
     );
   let y =
@@ -332,8 +357,8 @@ export function resolveScriptNodeSpawnPlan({
     .map((node) => {
       const size = nodeSize(node, SPAWN_UPLOAD_WIDTH, SPAWN_UPLOAD_HEIGHT);
       return {
-        x: node.position.x,
-        y: node.position.y,
+        x: node.position?.x ?? 0,
+        y: node.position?.y ?? 0,
         width: size.width,
         height: size.height,
       };
@@ -356,7 +381,7 @@ export function resolveScriptNodeSpawnPlan({
       height: SPAWN_UPLOAD_HEIGHT,
     });
     const item: ScriptNodeSpawnItem = {
-      type: CANVAS_NODE_TYPES.upload,
+      type: "uploadNode",
       position: { x: baseX, y },
       data: seed,
     };

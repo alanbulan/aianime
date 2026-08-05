@@ -2,25 +2,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 
+import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   SCRIPT_NODE_ACTIONS,
+  buildCanvasStoryScriptCommand,
+  generateCanvasStoryScript,
+  generationTaskDescriptor,
   hasScriptGenerationSource,
   hasScriptReferencePreview,
+  isCanvasStoryScriptResult,
   resolveScriptNodeReferences,
   resolveScriptNodeResult,
   resolveScriptNodeSize,
   resolveScriptNodeSpawnPlan,
   scriptPromptHasContent,
-  updateScriptResultCell,
-} from '@/features/canvas/application/scriptNodeModel';
-import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
-import {
-  buildCanvasStoryScriptCommand,
-  generateCanvasStoryScript,
-  generationTaskDescriptor,
-  isCanvasStoryScriptResult,
   STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
   translateCanvasText,
+  updateScriptResultCell,
   useNodeGenerationHistory,
   useNodeGenerationTaskState,
   type CanvasGenerationHistoryRecord,

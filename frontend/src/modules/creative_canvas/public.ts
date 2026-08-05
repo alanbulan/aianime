@@ -1976,6 +1976,28 @@ export type {
   ConversionNodeCatalog,
 } from "@/modules/creative_canvas/application/canvasNodeConversion";
 export {
+  SCRIPT_NODE_ACTIONS,
+  SCRIPT_NODE_SIZE_LIMITS,
+  classifyCanvasStoryScriptReference,
+  hasScriptGenerationSource,
+  hasScriptReferencePreview,
+  resolveScriptNodeReferences,
+  resolveScriptNodeResult,
+  resolveScriptNodeSize,
+  resolveScriptNodeSpawnPlan,
+  scriptPromptHasContent,
+  updateScriptResultCell,
+} from "@/modules/creative_canvas/application/scriptNodeModel";
+export type {
+  ScriptGenAction,
+  ScriptGraphEdge,
+  ScriptGraphNode,
+  ScriptNodeAction,
+  ScriptNodeModelData,
+  ScriptNodeSpawnItem,
+  ScriptNodeSpawnPlan,
+} from "@/modules/creative_canvas/application/scriptNodeModel";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

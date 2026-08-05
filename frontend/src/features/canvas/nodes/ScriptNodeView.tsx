@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { SCRIPT_NODE_SIZE_LIMITS } from '@/features/canvas/application/scriptNodeModel';
 import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_INPUT_FRAME_CLASS,
@@ -39,6 +38,7 @@ import {
   OperationPanelShell,
   PanelExpandButton,
   RegenerateButton,
+  SCRIPT_NODE_SIZE_LIMITS,
   canvasNodeFrameClass,
   type CanvasStoryScriptReference,
   type CanvasStoryScriptRow,

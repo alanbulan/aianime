@@ -1,13 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-  type ScriptNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import type { CanvasStoryScriptResult } from '@/modules/creative_canvas/public';
+import type { CanvasStoryScriptResult } from './generateCanvasStoryScript';
 
 import {
   hasScriptGenerationSource,
@@ -18,6 +12,9 @@ import {
   resolveScriptNodeSpawnPlan,
   scriptPromptHasContent,
   updateScriptResultCell,
+  type ScriptGraphEdge,
+  type ScriptGraphNode,
+  type ScriptNodeModelData,
 } from './scriptNodeModel';
 
 function node({
@@ -30,13 +27,13 @@ function node({
   data = {},
 }: {
   id: string;
-  type: CanvasNode['type'];
+  type: string;
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   data?: Record<string, unknown>;
-}): CanvasNode {
+}): ScriptGraphNode {
   return {
     id,
     type,
@@ -44,7 +41,7 @@ function node({
     width,
     height,
     data,
-  } as CanvasNode;
+  };
 }
 
 describe('scriptNodeModel', () => {
@@ -83,17 +80,17 @@ describe('scriptNodeModel', () => {
     const references = resolveScriptNodeReferences([
       node({
         id: 'video-a',
-        type: CANVAS_NODE_TYPES.video,
+        type: 'videoNode',
         y: 200,
         data: { videoUrl: '/video.mp4' },
       }),
       node({
         id: 'text-a',
-        type: CANVAS_NODE_TYPES.textAnnotation,
+        type: 'textAnnotationNode',
         y: 50,
         data: { content: '剧情正文' },
       }),
-      node({ id: 'script-a', type: CANVAS_NODE_TYPES.script, y: 0 }),
+      node({ id: 'script-a', type: 'scriptNode', y: 0 }),
     ]);
 
     expect(references.map((reference) => reference.nodeId)).toEqual([
@@ -119,8 +116,8 @@ describe('scriptNodeModel', () => {
     expect(hasScriptGenerationSource('', references)).toBe(true);
     expect(hasScriptGenerationSource(' 本地剧情 ', [])).toBe(true);
     expect(hasScriptGenerationSource('', [{ nodeId: 'audio-a', kind: 'audio' }])).toBe(false);
-    expect(scriptPromptHasContent({ prompt: ' 内容 ' } as ScriptNodeData)).toBe(true);
-    expect(scriptPromptHasContent({ prompt: ' ' } as ScriptNodeData)).toBe(false);
+    expect(scriptPromptHasContent({ prompt: ' 内容 ' } as ScriptNodeModelData)).toBe(true);
+    expect(scriptPromptHasContent({ prompt: ' ' } as ScriptNodeModelData)).toBe(false);
     expect(
       hasScriptReferencePreview({
         nodeId: 'video-a',
@@ -133,7 +130,7 @@ describe('scriptNodeModel', () => {
   it('places text and video references to the left of the script node', () => {
     const self = node({
       id: 'script-a',
-      type: CANVAS_NODE_TYPES.script,
+      type: 'scriptNode',
       x: 1000,
       y: 200,
       height: 400,
@@ -150,7 +147,7 @@ describe('scriptNodeModel', () => {
       groupLabel: '剧本生成分镜脚本组',
       items: [
         {
-          type: CANVAS_NODE_TYPES.textAnnotation,
+          type: 'textAnnotationNode',
           position: { x: 520, y: 240 },
           data: { referenceOnly: true, displayName: '剧本' },
         },
@@ -165,7 +162,7 @@ describe('scriptNodeModel', () => {
         fallbackHeight: 320,
       }).items[0],
     ).toEqual({
-      type: CANVAS_NODE_TYPES.video,
+      type: 'videoNode',
       position: { x: 380, y: 210 },
       data: { referenceOnly: true },
     });
@@ -174,21 +171,21 @@ describe('scriptNodeModel', () => {
   it('stacks character uploads below occupied upstream slots', () => {
     const self = node({
       id: 'script-a',
-      type: CANVAS_NODE_TYPES.script,
+      type: 'scriptNode',
       x: 1000,
       y: 200,
       height: 400,
     });
     const existing = node({
       id: 'upload-existing',
-      type: CANVAS_NODE_TYPES.upload,
+      type: 'uploadNode',
       x: 640,
       y: 220,
       width: 320,
       height: 350,
     });
-    const edges: CanvasEdge[] = [
-      { id: 'edge-a', source: existing.id, target: self.id } as CanvasEdge,
+    const edges: ScriptGraphEdge[] = [
+      { id: 'edge-a', source: existing.id, target: self.id },
     ];
     const plan = resolveScriptNodeSpawnPlan({
       action: 'fromCharacter',
@@ -201,12 +198,12 @@ describe('scriptNodeModel', () => {
     expect(plan.groupLabel).toBe('角色生成分镜脚本组');
     expect(plan.items).toEqual([
       {
-        type: CANVAS_NODE_TYPES.upload,
+        type: 'uploadNode',
         position: { x: 640, y: 594 },
         data: { displayName: '角色 1' },
       },
       {
-        type: CANVAS_NODE_TYPES.upload,
+        type: 'uploadNode',
         position: { x: 640, y: 968 },
         data: { displayName: '角色 2' },
       },
