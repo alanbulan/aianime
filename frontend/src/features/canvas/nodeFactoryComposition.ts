@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 
-import type { NodeFactory } from './application/ports';
-import { CanvasNodeFactory, uuidGenerator, type CanvasNodeDefaultDataCatalog, type CanvasNodeDefaultDataGateway, nodeCatalog } from '@/modules/creative_canvas/public';
+
+import { CanvasNodeFactory, uuidGenerator, type CanvasNodeDefaultDataCatalog, type CanvasNodeDefaultDataGateway, nodeCatalog, type NodeFactory } from '@/modules/creative_canvas/public';
 import {
   browserCanvasNodeDefaultDataGateway,
   rememberLastVideoModel as rememberLastVideoModelInBrowser,

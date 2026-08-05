@@ -1,8 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 
-import type { CanvasGraphGateway } from '../application/ports';
 
+
+import type { CanvasGraphGateway } from "@/modules/creative_canvas/public";
 export const zustandCanvasGraphGateway: CanvasGraphGateway = {
   getSnapshot() {
     const state = useCanvasStore.getState();

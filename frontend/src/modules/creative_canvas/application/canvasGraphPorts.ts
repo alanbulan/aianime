@@ -5,7 +5,8 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
   CanvasPosition,
-} from "@/modules/creative_canvas/public";
+} from '../domain/canvasNodeData';
+
 export interface CanvasGraphSnapshot {
   nodes: readonly CanvasNode[];
   edges: readonly CanvasEdge[];
@@ -32,10 +33,6 @@ export interface CanvasGraphGateway {
     nodeId: string,
     data: Partial<CanvasNodeData>,
   ) => void;
-}
-
-export interface CanvasNodeDefaultDataGateway {
-  getOverrides: (type: CanvasNodeType) => Partial<CanvasNodeData>;
 }
 
 export interface NodeFactory {

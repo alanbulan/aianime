@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createSnapshot, isDeleteToEmpty, normalizeHistory, pushSnapshot, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, nodeCatalog } from '@/modules/creative_canvas/public';
+import { createSnapshot, isDeleteToEmpty, normalizeHistory, pushSnapshot, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, nodeCatalog, type CanvasNodeDefaultDataGateway } from '@/modules/creative_canvas/public';
 import {
   normalizeCanvasData,
   type CanvasNodeDefaultDataCatalog,
@@ -9,7 +9,7 @@ import {
 } from '@/modules/creative_canvas/public';
 ;
 
-import type { CanvasNodeDefaultDataGateway } from '../application/ports';
+
 
 export interface CanvasDraftHydration {
   nodes: CanvasNode[];

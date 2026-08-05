@@ -1023,6 +1023,10 @@ export {
 export type { CanvasNodeDefinition } from "@/modules/creative_canvas/domain/canvasNodeRegistry";
 export { nodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
 export type { NodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
+export type {
+  CanvasGraphGateway,
+  NodeFactory,
+} from "@/modules/creative_canvas/application/canvasGraphPorts";
 export {
   setAlbumPendingTotal,
   useAlbumPendingTotal,

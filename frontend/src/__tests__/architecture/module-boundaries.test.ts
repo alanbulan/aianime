@@ -3837,10 +3837,6 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/application/imagePreparation.ts",
     );
     const imagePreparation = readFileSync(imagePreparationPath, "utf8");
-    const canvasApplicationPorts = readFileSync(
-      resolve(applicationRoot, "ports.ts"),
-      "utf8",
-    );
     const legacyImagePreparationPaths = [
       "features/canvas/application/imagePreparation.ts",
       "__tests__/features/canvas/image-preparation.test.ts",
@@ -4122,20 +4118,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(imagePreparationPath)).toEqual([
       "../domain/imageData",
     ]);
-    for (const legacyDeclaration of [
-      "export interface CanvasImageDimensions",
-      "export interface CanvasImagePreviewData",
-      "export interface CanvasImageRuntimeGateway",
-      "export interface GenerationRuntimeDiagnostics",
-      "export interface GenerationRuntimeGateway",
-      "export interface ImageSplitGateway",
-      "export interface CanvasStoryboardImageMetadata",
-      "export interface CanvasToolImageGateway",
-      "export interface ToolProcessorResult",
-      "export interface ToolProcessor",
-    ]) {
-      expect(canvasApplicationPorts).not.toContain(legacyDeclaration);
-    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/application/ports.ts")),
+    ).toBe(false);
     for (const retiredToolPath of [
       "features/canvas/application/toolProcessor.ts",
       "__tests__/features/canvas/tool-processor.test.ts",
@@ -7647,7 +7632,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeFactorySource).not.toContain("@/features/canvas/");
     expect(nodeFactorySource).not.toContain("@/modules/creative_canvas/public");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/modules/creative_canvas/public", "../application/ports"]),
+      new Set(["@/modules/creative_canvas/public", "@/modules/creative_canvas/public"]),
     );
     expect(adapterSource).toContain(
       'const LAST_VIDEO_MODEL_STORAGE_KEY = "canvas.lastVideoModel"',
@@ -14996,10 +14981,6 @@ describe("frontend architecture boundaries", () => {
           .filter((specifier) => ownedSpecifiers.includes(specifier))
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       );
-    const portsSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/application/ports.ts"),
-      "utf8",
-    );
     const resumeSource = readFileSync(
       resolve(moduleRoot, "application/resumeGeneration.ts"),
       "utf8",
@@ -15010,14 +14991,9 @@ describe("frontend architecture boundaries", () => {
     for (const specifier of ownedSpecifiers) {
       expect(publicImports).toContain(specifier);
     }
-    for (const legacyDeclaration of [
-      "export interface AiGateway",
-      "export interface CanvasGenerationScope",
-      "export interface CanvasGenerationTaskGateway",
-      "export interface GenerateImagePayload",
-    ]) {
-      expect(portsSource).not.toContain(legacyDeclaration);
-    }
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/application/ports.ts")),
+    ).toBe(false);
     expect(resumeSource).not.toContain("@/features/canvas/");
     expect(resumeSource.match(/isCurrentGenerationTask\(/g)?.length).toBe(5);
   });
@@ -21259,10 +21235,6 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/textGenerationComposition.ts",
     );
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
-    const portsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/ports.ts",
-    );
     const legacyCompositionPath = resolve(
       SRC_ROOT,
       "features/canvas/composition.ts",
@@ -21280,7 +21252,6 @@ describe("frontend architecture boundaries", () => {
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
-    const portsSource = readFileSync(portsPath, "utf8");
     const legacyCompositionSource = readFileSync(
       legacyCompositionPath,
       "utf8",
@@ -21343,8 +21314,9 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain(
       "freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway",
     );
-    expect(portsSource).not.toContain("export interface CanvasStoryScriptRow");
-    expect(portsSource).not.toContain("export interface CanvasStoryScriptResult");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/application/ports.ts")),
+    ).toBe(false);
     expect(importSpecifiers(compositionPath)).toEqual(
       expect.arrayContaining([
         "@/modules/model_usage/public",
@@ -26167,10 +26139,6 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/application/regenerateExportNode.ts",
     );
-    const portsPath = resolve(
-      SRC_ROOT,
-      "features/canvas/application/ports.ts",
-    );
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const pipelineEditorPath = resolve(
       SRC_ROOT,
@@ -26194,7 +26162,6 @@ describe("frontend architecture boundaries", () => {
     );
     const overlaySource = readFileSync(overlayPath, "utf8");
     const retrySource = readFileSync(retryPath, "utf8");
-    const portsSource = readFileSync(portsPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
     const pipelineEditorSource = readFileSync(pipelineEditorPath, "utf8");
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -26271,8 +26238,9 @@ describe("frontend architecture boundaries", () => {
     expect(retrySource).toContain("dependencies.generateRedraw");
     expect(retrySource).not.toContain("completeCanvasMediaGenerationTask(");
     expect(retrySource).not.toContain("CanvasRedrawTaskGateway");
-    expect(portsSource).not.toContain("CanvasRedrawCommand");
-    expect(portsSource).not.toContain("CanvasRedrawTaskGateway");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/application/ports.ts")),
+    ).toBe(false);
     expect(endpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneRedrawGenerationGateway.ts",
     ]);
@@ -27722,9 +27690,7 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(canvasNodesPath, "utf8")).not.toContain(
       "ActiveToolDialog",
     );
-    expect(readFileSync(legacyPortsPath, "utf8")).not.toContain(
-      "interface CanvasEventBus",
-    );
+    expect(existsSync(legacyPortsPath)).toBe(false);
     for (const legacyPath of [
       "features/canvas/application/eventBus.ts",
       "features/canvas/application/canvasServices.ts",
@@ -28020,7 +27986,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasHistorySlice");
@@ -28130,7 +28096,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");
     expect(canvasStore).toContain(
@@ -28194,7 +28160,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");
     expect(canvasStore).toContain(
@@ -28245,7 +28211,7 @@ describe("frontend architecture boundaries", () => {
       "@xyflow/react",
       "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");
     expect(canvasStore).toContain(
@@ -28331,7 +28297,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasGroupLifecycleSlice");
     expect(canvasStore).toContain(
@@ -28376,7 +28342,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/ports",
+      "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasStoryboardGroupSlice");
     expect(canvasStore).toContain(

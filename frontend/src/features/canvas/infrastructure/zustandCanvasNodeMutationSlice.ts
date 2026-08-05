@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createSnapshot, elevateCanvasNodes, maybeApplyImageAutoResize, pushSnapshot, reorderStoryboardFrameInGraph, setCanvasNodePositions, trackEdit, updateCanvasNodeSize, updateCanvasNodeData, updateStoryboardFrameInGraph, updateCanvasNodePosition, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasNodeSizeUpdateOptions, type CanvasNodeDataUpdatePorts, type StoryboardFrameItem, type StoryboardFrameGraphPorts, type CanvasEdge, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardSplitNode, nodeCatalog } from '@/modules/creative_canvas/public';
+import { createSnapshot, elevateCanvasNodes, maybeApplyImageAutoResize, pushSnapshot, reorderStoryboardFrameInGraph, setCanvasNodePositions, trackEdit, updateCanvasNodeSize, updateCanvasNodeData, updateStoryboardFrameInGraph, updateCanvasNodePosition, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasNodeSizeUpdateOptions, type CanvasNodeDataUpdatePorts, type StoryboardFrameItem, type StoryboardFrameGraphPorts, type CanvasEdge, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardSplitNode, nodeCatalog, type CanvasNodeDefaultDataGateway, type NodeFactory } from '@/modules/creative_canvas/public';
 
 
 import {
@@ -12,10 +12,7 @@ import {
   createCanvasNode,
   type CreationNodeFactory,
 } from '@/modules/creative_canvas/public';
-import type {
-  CanvasNodeDefaultDataGateway,
-  NodeFactory,
-} from '../application/ports';
+
 
 const storyboardFrameGraphPorts = {
   projectNode(node) {
