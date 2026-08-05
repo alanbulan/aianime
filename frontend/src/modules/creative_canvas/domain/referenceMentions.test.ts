@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   remapReferenceMentions,
   sameOrder,
-} from "@/features/canvas/nodes/referenceMentions";
+} from "./referenceMentions";
 
 const imageFamily = (prevIds: string[], nextIds: string[]) => ({
   prefix: "图片",

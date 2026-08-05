@@ -962,6 +962,12 @@ export {
   sortUpstreamByReferenceOrder,
   upstreamNodesInEdgeOrder,
 } from "@/modules/creative_canvas/domain/referenceOrdering";
+export { hasImageGenPromptOverride } from "@/modules/creative_canvas/domain/imageGenPrompt";
+export {
+  remapReferenceMentions,
+  sameOrder,
+} from "@/modules/creative_canvas/domain/referenceMentions";
+export type { MentionFamily } from "@/modules/creative_canvas/domain/referenceMentions";
 export { createUseUpstreamGraph } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
 export type {
   UpstreamGraphDependencies,

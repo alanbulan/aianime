@@ -21,6 +21,7 @@ import {
   CanvasNodeImage,
   CandidateBindingBadges,
   hasCompletedHistoryRecords,
+  hasImageGenPromptOverride,
   historyRecordOutputUrl,
   IMAGE_GEN_NODE_MAX_HEIGHT,
   IMAGE_GEN_NODE_MAX_WIDTH,
@@ -67,7 +68,6 @@ import {
   StyleChip,
 } from '@/features/canvas/nodes/ImageGenNodeControls';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
-import { hasImageGenPromptOverride } from '@/features/canvas/nodes/imageGenPrompt';
 import { PromptMentionEditor } from '@/features/canvas/nodes/PromptMentionEditor';
 import {
   NodeHeader,

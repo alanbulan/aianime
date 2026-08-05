@@ -1339,6 +1339,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 第八百八十一批全仓检索确认 `features/canvas/CanvasToolbar.tsx` 只有文件自身引用，没有任何生产或测试消费者；作为无引用迁移残留直接移除，不改变运行时行为。架构/残余/颜色门禁 3 个文件 351 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/186/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
 第八百八十二批全仓检索确认 `features/canvas/ui/CommitTargetHint.tsx` 只有文件自身引用，没有任何生产或测试消费者；作为无引用迁移残留直接移除，不改变运行时行为。架构/残余/颜色门禁 3 个文件 351 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/185/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+第八百八十三批将 `features/canvas/nodes/imageGenPrompt.ts` 与 `referenceMentions.ts` 及其测试迁入 Creative Canvas domain，图片生成视图与引用同步 Hook 统一经模块 public 使用唯一实现；同时全仓确认 `features/canvas/nodes/config.ts` 的 `nodeConfig`/`toolbarConfig` 没有任何生产或测试消费者，作为无引用死代码直接删除，不保留 facade、re-export 或第二套实现。新增迁移测试 2 个文件 10 项，完整模块边界与残余门禁 2 个文件 350 项、颜色门禁与 ImageGen 上下文回归 2 个文件 2 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1074/182/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
 任务：
 

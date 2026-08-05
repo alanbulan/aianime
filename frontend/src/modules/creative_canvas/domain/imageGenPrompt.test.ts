@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { hasImageGenPromptOverride } from "@/features/canvas/nodes/imageGenPrompt";
+import { hasImageGenPromptOverride } from "./imageGenPrompt";
 
 describe("image generation prompt helpers", () => {
   it("treats blank prompt text as no manual override", () => {
