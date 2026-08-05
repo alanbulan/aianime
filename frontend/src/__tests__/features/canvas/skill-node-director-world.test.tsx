@@ -9,7 +9,7 @@ const entrySource = readFileSync(
   "utf8",
 );
 const modelSource = readFileSync(
-  resolve(process.cwd(), "src/features/canvas/application/skillNodeModel.ts"),
+  resolve(process.cwd(), "src/modules/creative_canvas/application/skillNodeModel.ts"),
   "utf8",
 );
 const controllerSource = readFileSync(

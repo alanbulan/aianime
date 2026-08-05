@@ -3207,11 +3207,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/skillNodeModel.ts",
+      "modules/creative_canvas/application/skillNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/skillNodeModel.test.ts",
+      "modules/creative_canvas/application/skillNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -3262,7 +3262,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/SkillNode.tsx"],
-      ["features/canvas/application/skillNodeModel.ts"],
+      ["modules/creative_canvas/application/skillNodeModel.ts"],
       ["features/canvas/hooks/useSkillNodeController.ts"],
       ["features/canvas/nodes/SkillNodeView.tsx"],
     ]);
@@ -3271,6 +3271,20 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/skillNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/skillNodeModel",
+    );
     expect(registrySource).toContain(
       "import { SkillNode } from './SkillNode'",
     );

@@ -13,7 +13,7 @@ import {
   resolveSkillInputPreviewUrl,
   resolveSkillInputSourceLabel,
   SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
-} from '@/features/canvas/application/skillNodeModel';
+} from '@/modules/creative_canvas/public';
 import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
 import {

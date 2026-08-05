@@ -1332,6 +1332,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百七十八批将 `threeDWorldNodeModel` 与其测试迁入 Creative Canvas application。节点/数据输入改用模块内局部窄类型（`ThreeDWorldNodeData`/`CanvasNode` 仅文件内可见），直接复用本域 `mainlineContext`、`nodeDisplay`、`imageTo3d`、`directorWorldSources` 与素材库合同，不再依赖旧 `canvasNodes` 与旧 `ports`；上游引用/全景来源/PLY 选择、尺寸/标题、候选/场景判定、本地清单构建、预览 URL/来源种类、预览投影与保存/清空补丁规则全部保留。控制器、视图与缩略图统一经 Creative Canvas public 使用唯一模型，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套模型；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 191，Viewer 契约与三个外置测试同步指向新所有者。模型、控制器、视图、缩略图与 Viewer 契约 6 个文件 51 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1065/191/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百七十九批将 `skillNodeModel` 与其测试迁入 Creative Canvas application。节点/边输入改用模块内局部窄类型（`CanvasNode`/`CanvasEdge` 仅文件内可见），直接复用本域 `currentBeatContext`、`sceneAssets`、`skillContract` 与 `skillExecution` 合同，不再依赖旧 `canvasNodes` 与旧 `ports`；输入签名/幂等键、边角色、引用预览/来源标签、绑定边、Beat 目标/引用、手柄投影、清单合并、场景资产、Director 控制包/清单与输出摆放规则全部保留。控制器、视图与 Director 契约统一经 Creative Canvas public 使用唯一模型，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套模型；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 189，Director 契约测试同步指向新所有者。模型、控制器、视图与 Director 契约 4 个文件 24 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1067/189/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

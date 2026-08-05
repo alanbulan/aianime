@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasEdge, CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import type {
   DirectorStageManifest,
 } from '@/features/viewer-kit/public';
@@ -17,18 +16,38 @@ import {
   skillRunIdempotencyKey,
 } from './skillNodeModel';
 
+type TestEdge = {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  data?: Record<string, unknown>;
+};
+
+type TestNode = {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  width?: number | null;
+  height?: number | null;
+  [key: string]: unknown;
+};
+
 function edge(
   id: string,
   targetHandle: string,
   sourceHandle = 'source',
-): CanvasEdge {
+): TestEdge {
   return {
     id,
     source: `source-${id}`,
     target: 'skill',
     sourceHandle,
     targetHandle,
-  } as CanvasEdge;
+  };
 }
 
 describe('skillNodeModel', () => {
@@ -53,7 +72,8 @@ describe('skillNodeModel', () => {
         detectedProps: ['Sword', '__NO_PROP__'],
         content: 'Night street',
       },
-    } as unknown as CanvasNode;
+      position: { x: 0, y: 0 },
+    } as TestNode;
 
     expect(resolveSkillBeatTarget(node)).toEqual({ episode: 2, beat: 3 });
     expect(skillBeatContextReferences(node)).toEqual({

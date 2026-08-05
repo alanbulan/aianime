@@ -35,7 +35,7 @@ import {
   SKILL_TASK_RECORD_GRACE_MS,
   type SkillCropSource,
   type SkillDirectorWorldDestination,
-} from '@/features/canvas/application/skillNodeModel';
+} from '@/modules/creative_canvas/public';
 import {
   awaitCanvasGenerationTaskCompletion,
   awaitCanvasSkillRunResult,

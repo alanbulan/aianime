@@ -1,20 +1,38 @@
 // Copyright (c) 2026 AI anime
+import { getCurrentBeatContextFromNode } from "../domain/currentBeatContext";
+import type { SceneAssetsForBeat } from "../domain/sceneAssets";
 import type {
-  CanvasEdge,
-  CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-import {
-  type SkillDefinition,
-  type SkillInputRole,
-  type SkillRunOutput,
-} from '@/modules/creative_canvas/public';
-import { getCurrentBeatContextFromNode } from '@/modules/creative_canvas/public';
-import type { SceneAssetsForBeat } from '@/modules/creative_canvas/public';
+  SkillDefinition,
+  SkillInputRole,
+} from "../domain/skillContract";
+import type { SkillRunOutput } from "../domain/skillExecution";
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
   DirectorWorldSource,
 } from '@/features/viewer-kit/public';
+
+type CanvasEdge = {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  data?: Record<string, unknown>;
+  [key: string]: any;
+};
+
+type CanvasNode = {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, any>;
+  measured?: { width?: number; height?: number };
+  width?: number | null;
+  height?: number | null;
+  [key: string]: any;
+};
 
 export const SKILL_NODE_DEFAULT_WIDTH = 380;
 export const SKILL_OUTPUT_X_OFFSET = 460;
@@ -178,7 +196,7 @@ export function resolveSkillInputSourceLabel(
       return value.trim();
     }
   }
-  return node.type;
+  return node.type ?? "";
 }
 
 export function findSkillBoundEdges(
