@@ -15,7 +15,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
   type ImageGenNodeData,
-  type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   aspectRatioFromImageDimensions,
@@ -61,6 +60,7 @@ import {
   translateCanvasText,
   describeCameraSelection,
   describeStyleSelection,
+  type ImageSize,
   useCanvasCameraOptions,
   useCanvasImageModels,
   useNodeGenerationHistory,

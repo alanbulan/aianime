@@ -14,9 +14,11 @@ import { useTranslation } from 'react-i18next';
 import {
   CANVAS_NODE_TYPES,
   type ImageEditNodeData,
-  type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+import {
+  resolveNodeDisplayName,
+  type ImageSize,
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CURRENT_RUNTIME_SESSION_ID,

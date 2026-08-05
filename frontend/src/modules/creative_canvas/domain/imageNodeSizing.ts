@@ -161,3 +161,6 @@ export function ensureAtLeastOneMinEdge(
 
   return resolveMinSizeByRatio(ratio, { minWidth, minHeight });
 }
+export const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
+
+export type ImageSize = (typeof IMAGE_SIZES)[number];

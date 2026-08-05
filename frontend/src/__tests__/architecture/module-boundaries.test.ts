@@ -33252,9 +33252,6 @@ describe("frontend architecture boundaries", () => {
       expect(source, declaration).not.toContain(declaration);
     }
     expect(source).not.toContain("IMAGE_ASPECT_RATIOS");
-    expect(source).toContain(
-      "const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;",
-    );
     expect(source).toContain("interface NodeDisplayData {");
     expect(source).toContain("interface NodeImageData extends NodeDisplayData {");
   });

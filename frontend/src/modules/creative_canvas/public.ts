@@ -1186,6 +1186,7 @@ export type {
 export {
   aspectRatioFromImageDimensions,
   ensureAtLeastOneMinEdge,
+  IMAGE_SIZES,
   resolveAspectRatioValue,
   resolveImageNodeDimension,
   resolveMinEdgeFittedSize,
@@ -1194,6 +1195,7 @@ export {
   shouldForceNaturalImageSize,
 } from "@/modules/creative_canvas/domain/imageNodeSizing";
 export type {
+  ImageSize,
   ImageNodeMinSize,
   ImageNodeSize,
 } from "@/modules/creative_canvas/domain/imageNodeSizing";

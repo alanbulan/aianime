@@ -19,12 +19,12 @@ import {
 } from '@/modules/creative_canvas/public';
 import type {
   ImageGenNodeData,
-  ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import type {
   ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
+  ImageSize,
 } from '@/modules/creative_canvas/public';
 
 const IMAGE_PARAM_POPOVER_CLASS =

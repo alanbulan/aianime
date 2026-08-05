@@ -11,6 +11,7 @@ import type {
   ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
+  ImageSize,
   ScriptGenAction,
   Seedance2SceneOptimize,
   VideoGenCount,
@@ -47,10 +48,6 @@ export const CANVAS_NODE_TYPES = {
 } as const;
 
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES];
-
-const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
-
-export type ImageSize = (typeof IMAGE_SIZES)[number];
 
 interface NodeDisplayData {
   displayName?: string;

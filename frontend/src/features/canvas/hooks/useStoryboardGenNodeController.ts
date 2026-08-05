@@ -22,12 +22,12 @@ import {
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  type ImageSize,
   type StoryboardGenNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
+  type ImageSize,
 } from '@/modules/creative_canvas/public';
 import {
   AUTO_REQUEST_ASPECT_RATIO,

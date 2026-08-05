@@ -3,7 +3,6 @@ import {
   CANVAS_NODE_TYPES,
   type BeatContextNodeData,
   type AudioNodeData,
-  type ImageSize,
   type CanvasNodeData,
   type CanvasNodeType,
   type ExportImageNodeData,
@@ -30,6 +29,7 @@ import {
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
   SKILL_SCHEMA_VERSION,
+  type ImageSize,
 } from '@/modules/creative_canvas/public';
 
 type MenuIconKey = 'upload' | 'sparkles' | 'layout' | 'text' | 'video' | 'audio' | 'script' | 'pano360' | 'threeDWorld' | 'videoCompose';
