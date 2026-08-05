@@ -32,7 +32,7 @@ import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasMediaSurfaceController } from '@/modules/creative_canvas/canvasComposition';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
-import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
+import { useCanvasViewportSurfaceController } from '@/modules/creative_canvas/canvasComposition';
 import {
   useCanvasConnectionGestureSurfaceController,
   useCanvasProjectSurfaceController,

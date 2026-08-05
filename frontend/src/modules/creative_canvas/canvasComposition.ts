@@ -21,6 +21,7 @@ import { createUseNodeOutputToolbarController } from './presentation/useNodeOutp
 import { createUseNodeManagementToolbarController } from './presentation/useNodeManagementToolbarController';
 import { createUseImageNodeToolbarController } from './presentation/useImageNodeToolbarController';
 import { createUseCanvasMediaSurfaceController } from './presentation/useCanvasMediaSurfaceController';
+import { createUseCanvasViewportSurfaceController } from './presentation/useCanvasViewportSurfaceController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -322,6 +323,10 @@ export const useAudioOperationsPanelController =
 export const useCanvasMediaSurfaceController =
   createUseCanvasMediaSurfaceController({
     hydrateAssetDragPayload,
+  });
+export const useCanvasViewportSurfaceController =
+  createUseCanvasViewportSurfaceController({
+    useCanvasStore,
   });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

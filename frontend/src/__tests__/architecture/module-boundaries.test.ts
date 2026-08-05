@@ -8721,7 +8721,7 @@ describe("frontend architecture boundaries", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
@@ -8740,7 +8740,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declaration = [
       "export function",
-      "useCanvasViewportSurfaceController(",
+      "createUseCanvasViewportSurfaceController(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -8755,13 +8755,13 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasViewportSurfaceController.ts",
     ]);
     for (const moduleController of moduleControllers) {
       expect(controllerSource).toContain(moduleController);
       expect(canvasView).not.toContain(moduleController);
     }
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).toContain("useCanvasMinimapVisibility({");
     expect(controllerSource).toContain("useTrackpadPanStore(");
     expect(controllerSource).not.toContain("../trackpad-pan/");
@@ -8781,11 +8781,17 @@ describe("frontend architecture boundaries", () => {
         "@/modules/creative_canvas/presentation/useCanvasAutoLayoutController",
       ]),
     );
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("useTrackpadPanStore");
     expect(canvasView).not.toContain("useSnapAlignStore");
     expect(canvasView).not.toContain("CANVAS_SNAP_ALIGNMENT_PORT");
     expect(canvasView).not.toContain("fitAutoLayoutViewport");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+      "features/canvas/hooks/useCanvasViewportSurfaceController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas minimap visibility state in one presentation hook", () => {
@@ -8818,7 +8824,7 @@ describe("frontend architecture boundaries", () => {
     const viewportSurface = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasViewportSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8856,7 +8862,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
     ]);
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasMinimapVisibility");
     expect(canvasView).not.toContain("const [minimapPinned,");
     expect(canvasView).not.toContain("const [minimapHovered,");
@@ -9368,7 +9374,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("scheduleAfterLayout(");
     expect(hookModel).toContain("duration: 240");
     expect(hookModel).toContain("padding: 0.2");
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasAutoLayoutController");
     expect(canvasView).not.toContain("computeAutoLayout(");
     expect(canvasView).not.toContain("const handleOrganizeCanvas = useCallback");
@@ -9612,7 +9618,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("VIEWPORT_COMMIT_INTERVAL_MS = 120");
     expect(viewportController).toContain("./useCanvasViewportCommit");
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportRuntimeController");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportCommit");
     expect(canvasView).not.toContain("lastViewportCommitRef");
@@ -10877,7 +10883,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("resolveCanvasOriginViewport(");
     expect(hookModel).toContain("return closeImageViewer;");
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasLifecycle");
     expect(canvasView).not.toContain("useEffect(");
     expect(canvasView).not.toContain("resolveCanvasOriginViewport(");
@@ -11202,7 +11208,7 @@ describe("frontend architecture boundaries", () => {
         retiredSnapAlignmentPath,
       ).toBe(false);
     }
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasSnapAlignment");
     expect(graphChangeController).toContain("alignNodeChanges({");
     expect(canvasView).not.toContain("alignNodeChanges({");
@@ -11902,7 +11908,7 @@ describe("frontend architecture boundaries", () => {
     const surfaceController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasViewportSurfaceController.ts",
       ),
       "utf8",
     );
@@ -11956,8 +11962,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("runtimePort.getInternalNode(nodeId)");
     expect(controllerModel).toContain("runtimePort.setCenter(");
     expect(surfaceController).toContain("resolveNodeSize: getNodeSize");
-    expect(surfaceController).toContain("@/modules/creative_canvas/public");
-    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(surfaceController).not.toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasNodeFocusController");
     expect(canvasView).not.toContain("./hooks/useCanvasPendingNodeFocus");
     expect(canvasView).not.toContain("nodeFocusViewportPort");

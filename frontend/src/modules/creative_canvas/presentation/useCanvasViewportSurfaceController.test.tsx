@@ -4,13 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasAutoLayoutControllerOptions,
-  CanvasNodeFocusControllerOptions,
-  CanvasSnapAlignmentPort,
-  CanvasViewportRuntimeControllerOptions,
-} from '@/modules/creative_canvas/public';
-
+} from './useCanvasAutoLayoutController';
+import type { CanvasNodeFocusControllerOptions } from './useCanvasNodeFocusController';
+import type { CanvasSnapAlignmentPort } from './useCanvasSnapAlignment';
+import type { CanvasViewportRuntimeControllerOptions } from './useCanvasViewportRuntimeController';
 import {
-  useCanvasViewportSurfaceController,
+  createUseCanvasViewportSurfaceController,
   type CanvasViewportSurfaceControllerOptions,
 } from './useCanvasViewportSurfaceController';
 
@@ -28,7 +27,7 @@ const controllerMocks = vi.hoisted(() => {
     handleEdgeClick: vi.fn(),
   };
   const snapAlignmentController = {
-    alignNodeChanges: vi.fn(({ changes }) => changes),
+    alignNodeChanges: vi.fn(({ changes }: { changes: unknown }) => changes),
     clearSnapAlignment: vi.fn(),
   };
   const focusController = { centerViewport: vi.fn() };
@@ -77,27 +76,58 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  getNodeSize: controllerMocks.getNodeSize,
-  useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
-  useCanvasLifecycle: controllerMocks.useLifecycle,
+vi.mock('./useCanvasMinimapVisibility', () => ({
   useCanvasMinimapVisibility: controllerMocks.useMinimapVisibility,
+}));
+
+vi.mock('./useCanvasViewportRuntimeController', () => ({
+  useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
+}));
+
+vi.mock('./useCanvasLifecycle', () => ({
+  useCanvasLifecycle: controllerMocks.useLifecycle,
+}));
+
+vi.mock('./useCanvasSnapAlignment', () => ({
+  useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
+}));
+
+vi.mock('./useCanvasNodeFocusController', () => ({
   useCanvasNodeFocusController: controllerMocks.useNodeFocus,
+}));
+
+vi.mock('./useCanvasAutoLayoutController', () => ({
+  useCanvasAutoLayoutController: controllerMocks.useAutoLayout,
+}));
+
+vi.mock('./snapAlignStore', () => ({
   useSnapAlignStore: {
     getState: () => controllerMocks.snapState,
   },
-  useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
-  useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
-  useCanvasStore: {
-    getState: () => controllerMocks.canvasState,
-  },
+}));
+
+vi.mock('./trackpadPanStore', () => ({
   useTrackpadPanStore: (
     selector: (state: { enabled: boolean }) => unknown,
   ) => selector(controllerMocks.trackpadState),
 }));
-vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
+
+vi.mock('../domain/canvasGeometry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/canvasGeometry')>()),
+  getNodeSize: controllerMocks.getNodeSize,
+}));
+
+vi.mock('@/features/viewer-kit/public', () => ({
   isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
 }));
+
+const useCanvasViewportSurfaceController =
+  createUseCanvasViewportSurfaceController({
+    useCanvasStore: {
+      getState: () => controllerMocks.canvasState,
+    } as never,
+  });
+
 function createOptions(): CanvasViewportSurfaceControllerOptions {
   return {
     wrapperRef: { current: null },
