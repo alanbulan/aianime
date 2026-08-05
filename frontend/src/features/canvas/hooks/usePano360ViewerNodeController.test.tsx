@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
 vi.mock('@photo-sphere-viewer/core', () => ({

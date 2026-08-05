@@ -12,7 +12,7 @@ describe("freezone viewer contracts", () => {
   it("keeps Pano360ViewerNode as a compatible freezone canvas tool", () => {
     const entry = read("src/features/canvas/nodes/Pano360ViewerNode.tsx");
     const model = read(
-      "src/features/canvas/application/pano360ViewerNodeModel.ts",
+      "src/modules/creative_canvas/application/pano360ViewerNodeModel.ts",
     );
     const controller = read(
       "src/features/canvas/hooks/usePano360ViewerNodeController.ts",

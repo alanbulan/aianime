@@ -1912,6 +1912,24 @@ export type {
   BeatContextNodeRefreshPatch,
 } from "@/modules/creative_canvas/application/beatContextRefreshProjection";
 export {
+  PANO_DIRECTION_OFFSETS,
+  PANO_GRID_2X2_FRAMES,
+  PANO_GRID_4X3_FRAMES,
+  PANO_VIEWER_SIZE_LIMITS,
+  buildPanoCorrectionEntry,
+  clampPanoPitch,
+  resolvePanoCorrectionAxis,
+  resolvePanoUpstreamSource,
+  resolvePanoViewerNodeSize,
+} from "@/modules/creative_canvas/application/pano360ViewerNodeModel";
+export type {
+  PanoCaptureFrameSpec,
+  PanoCorrectionNodeData,
+  PanoDirection,
+  PanoUpstreamGraphNode,
+  PanoUpstreamSource,
+} from "@/modules/creative_canvas/application/pano360ViewerNodeModel";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

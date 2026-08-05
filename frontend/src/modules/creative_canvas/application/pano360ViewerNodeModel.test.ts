@@ -2,11 +2,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type Pano360ViewerNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import {
   clampPanoFov,
   normalizePanoDegrees,
   panoFovToZoom,
@@ -21,6 +16,8 @@ import {
   resolvePanoCorrectionAxis,
   resolvePanoUpstreamSource,
   resolvePanoViewerNodeSize,
+  type PanoCorrectionNodeData,
+  type PanoUpstreamGraphNode,
 } from './pano360ViewerNodeModel';
 
 function node({
@@ -30,21 +27,21 @@ function node({
   data,
 }: {
   id: string;
-  type: CanvasNode['type'];
+  type: string;
   y: number;
   data: Record<string, unknown>;
-}): CanvasNode {
+}): PanoUpstreamGraphNode {
   return {
     id,
     type,
     position: { x: 0, y },
     data,
-  } as CanvasNode;
+  };
 }
 
 function panoData(
-  patch: Partial<Pano360ViewerNodeData> = {},
-): Pano360ViewerNodeData {
+  patch: Partial<PanoCorrectionNodeData> = {},
+): PanoCorrectionNodeData {
   return {
     imageUrl: '/pano.png',
     sphereCorrectionDeg: { roll: 10, pitch: -20, yaw: 30 },
@@ -74,19 +71,19 @@ describe('pano360ViewerNodeModel', () => {
     const source = resolvePanoUpstreamSource([
       node({
         id: 'upload-late',
-        type: CANVAS_NODE_TYPES.upload,
+        type: 'uploadNode',
         y: 200,
         data: { imageUrl: '/late.png' },
       }),
       node({
         id: 'unsupported',
-        type: CANVAS_NODE_TYPES.script,
+        type: 'scriptNode',
         y: 10,
         data: {},
       }),
       node({
         id: 'generated-first',
-        type: CANVAS_NODE_TYPES.imageGen,
+        type: 'imageGenNode',
         y: 50,
         data: { imageUrl: null, referenceImageUrl: '/reference.png' },
       }),

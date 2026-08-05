@@ -10,24 +10,24 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { CONSTANTS, Viewer } from '@photo-sphere-viewer/core';
 
 import { dataUrlToBlob } from '@/shared/media/data-url';
+import { useCanvasStore } from '@/features/canvas/canvasStore';
+import {
+  CANVAS_NODE_TYPES,
+  type Pano360ViewerNodeData,
+} from '@/features/canvas/domain/canvasNodes';
 import {
   PANO_DIRECTION_OFFSETS,
   PANO_GRID_2X2_FRAMES,
   PANO_GRID_4X3_FRAMES,
   buildPanoCorrectionEntry,
   clampPanoPitch,
+  resolveNodeDisplayName,
   resolvePanoCorrectionAxis,
   resolvePanoUpstreamSource,
   resolvePanoViewerNodeSize,
   type PanoCaptureFrameSpec,
   type PanoDirection,
-} from '@/features/canvas/application/pano360ViewerNodeModel';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type Pano360ViewerNodeData,
-} from '@/features/canvas/domain/canvasNodes';
-import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/public';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadLocalImageToBackend,

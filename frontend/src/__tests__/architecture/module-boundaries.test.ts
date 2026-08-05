@@ -1913,11 +1913,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/pano360ViewerNodeModel.ts",
+      "modules/creative_canvas/application/pano360ViewerNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/pano360ViewerNodeModel.test.ts",
+      "modules/creative_canvas/application/pano360ViewerNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -1976,7 +1976,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/Pano360ViewerNode.tsx"],
-      ["features/canvas/application/pano360ViewerNodeModel.ts"],
+      ["modules/creative_canvas/application/pano360ViewerNodeModel.ts"],
       ["features/canvas/hooks/usePano360ViewerNodeController.ts"],
       ["features/canvas/nodes/Pano360ViewerNodeView.tsx"],
     ]);
@@ -1984,8 +1984,22 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("className=");
     expect(modelSource).not.toContain("new Viewer(");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
     expect(importSpecifiers(modelPath)).toContain(
       "@/features/viewer-kit/public",
+    );
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/pano360ViewerNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/pano360ViewerNodeModel",
     );
     expect(importSpecifiers(modelPath)).not.toContain(
       "@/features/viewer-kit/pano/panoCapture",
