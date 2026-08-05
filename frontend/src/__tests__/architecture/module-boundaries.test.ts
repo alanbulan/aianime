@@ -9072,7 +9072,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).not.toContain("CanvasNodeType");
     expect(hookModel).not.toContain("CanvasNodeData");
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
@@ -9172,7 +9172,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasNodeClickController",
     );
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
@@ -9555,7 +9555,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasQuickAddController",
     );
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
@@ -10629,7 +10629,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasNodeMenuSelectionController",
     );
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
@@ -11336,7 +11336,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasNodeMenuShortcut",
     );
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
@@ -11631,7 +11631,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController.ts",
     );
     const skillNodePath = resolve(
       SRC_ROOT,
@@ -11749,7 +11749,7 @@ describe("frontend architecture boundaries", () => {
     expect(skillNodeModel).not.toContain("getSkillRegistry");
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain("./hooks/useCanvasNodeCatalogController");
     expect(canvasView).not.toContain("./hooks/useCanvasSkillRegistry");
@@ -17259,7 +17259,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasConnectionController",
     );
     expect(canvasView).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain("./hooks/useCanvasConnectionController");
     expect(canvasView).not.toContain("const connectSkillRoleBinding");
@@ -26766,7 +26766,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node-creation assembly in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasSource = readFileSync(
@@ -26796,27 +26796,23 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController.ts",
     ]);
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).toContain("useCanvasNodeInteractionController,");
-    expect(controllerSource).not.toContain(
-      "./useCanvasNodeInteractionController",
-    );
+    expect(controllerSource).toContain("./useCanvasNodeInteractionController");
     expect(controllerSource).toContain("nodeTypes: CANVAS_NODE_MENU_TYPES");
     expect(controllerSource).toContain("skillNodeType: CANVAS_NODE_TYPES.skill");
     expect(controllerSource).toContain("isStoryboardGroupNode,");
     expect(controllerSource).toContain("isImmersiveViewerActive,");
     expect(controllerSource).toContain("useCanvasConnectionController,");
-    expect(controllerSource).not.toContain("./useCanvasConnectionController");
+    expect(controllerSource).toContain("./useCanvasConnectionController");
     expect(controllerSource).toContain("useCanvasNodeCatalogController<");
-    expect(controllerSource).not.toContain("./useCanvasNodeCatalogController");
+    expect(controllerSource).toContain("./useCanvasNodeCatalogController");
     expect(controllerSource).toContain(
       "useCanvasNodeMenuStateController<CanvasNodeType>()",
     );
-    expect(controllerSource).not.toContain(
-      "./useCanvasNodeMenuStateController",
-    );
+    expect(controllerSource).toContain("./useCanvasNodeMenuStateController");
     expect(controllerSource).toContain("skillById: catalog.skillById");
     expect(controllerSource).toContain(
       "bindSkill: connection.bindSingleBeatContextInput",
@@ -26825,7 +26821,7 @@ describe("frontend architecture boundaries", () => {
       "connectSpawnedNode: connection.connectSpawnedNode",
     );
     expect(canvasSource).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasSource).not.toContain("skillById");
     expect(canvasSource).not.toContain("resolvePlacementLabel");
@@ -26837,6 +26833,12 @@ describe("frontend architecture boundaries", () => {
     for (const retiredPath of [
       "features/canvas/hooks/useCanvasNodeInteractionController.ts",
       "features/canvas/hooks/useCanvasNodeInteractionController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
     }
@@ -26852,7 +26854,7 @@ describe("frontend architecture boundaries", () => {
     const creationSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController.ts",
       ),
       "utf8",
     );
@@ -26891,7 +26893,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "dismissNodeMenuForPaneClick: resetActiveConnectionMenu",
     );
-    expect(creationSource).toContain("@/modules/creative_canvas/public");
+    expect(creationSource).not.toContain("@/modules/creative_canvas/public");
     expect(creationSource).toContain(
       "useCanvasNodeMenuStateController<CanvasNodeType>()",
     );
@@ -26899,7 +26901,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/useCanvasNodeMenuStateController",
     );
     expect(canvasSource).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasSource).not.toContain(
       "./hooks/useCanvasNodeMenuStateController",
@@ -27011,7 +27013,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(nodeInteractionSource).toContain("selectNode(null)");
     expect(canvasSource).toContain(
-      "./hooks/useCanvasNodeCreationSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasSource).not.toContain(
       "./hooks/useCanvasNodeInteractionController",

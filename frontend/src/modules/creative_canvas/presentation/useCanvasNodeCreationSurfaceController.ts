@@ -1,13 +1,40 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import { useCanvasNodeCatalogController, useCanvasConnectionController, useCanvasNodeInteractionController, useCanvasNodeMenuStateController, loadCanvasSkillRegistry, type CanvasConnectionController, type CanvasConnectionControllerOptions, type CanvasNodeInteractionController, type CanvasNodeInteractionControllerOptions, type CanvasNodeCatalogController, type CanvasNodeCatalogControllerOptions, type CanvasNodeMenuCreationData, type CanvasNodeMenuStateController, type CanvasNodeMenuTypes, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardGroupNode, nodeCatalog } from '@/modules/creative_canvas/public';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
+import { loadCanvasSkillRegistry } from '../skillCatalogComposition';
+import { nodeCatalog } from '../application/canvasNodeCatalog';
+import type {
+  CanvasNodeMenuCreationData,
+  CanvasNodeMenuTypes,
+} from '../application/canvasNodeMenuSelection';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type {
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+} from '../domain/canvasNodeData';
+import { isStoryboardGroupNode } from '../domain/canvasNodePredicates';
+import {
+  useCanvasNodeCatalogController,
+  type CanvasNodeCatalogController,
+  type CanvasNodeCatalogControllerOptions,
+} from './useCanvasNodeCatalogController';
+import {
+  useCanvasConnectionController,
+  type CanvasConnectionController,
+  type CanvasConnectionControllerOptions,
+} from './useCanvasConnectionController';
+import {
+  useCanvasNodeInteractionController,
+  type CanvasNodeInteractionController,
+  type CanvasNodeInteractionControllerOptions,
+} from './useCanvasNodeInteractionController';
+import {
+  useCanvasNodeMenuStateController,
+  type CanvasNodeMenuStateController,
+} from './useCanvasNodeMenuStateController';
 
-
-
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 type NodeInteractionControllerOptions = CanvasNodeInteractionControllerOptions<
   CanvasNodeType,
   CanvasNodeData,

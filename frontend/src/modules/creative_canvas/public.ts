@@ -3528,6 +3528,7 @@ export type { AudioOperationsPanelController } from "@/modules/creative_canvas/p
 export type { CanvasMediaSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasMediaSurfaceController";
 export type { CanvasViewportSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewportSurfaceController";
 export type { CanvasGraphEditingSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController";
+export type { CanvasNodeCreationSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

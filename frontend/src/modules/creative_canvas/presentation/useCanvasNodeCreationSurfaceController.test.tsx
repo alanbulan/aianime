@@ -2,8 +2,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
-
 import {
   useCanvasNodeCreationSurfaceController,
   type CanvasNodeCreationSurfaceControllerOptions,
@@ -31,7 +29,7 @@ const controllerMocks = vi.hoisted(() => {
     closeNodeMenu: vi.fn(),
     hideNodeMenuForPlacement: vi.fn(),
   };
-  const skill = { id: 'freezone.test' } as SkillDefinition;
+  const skill = { id: 'freezone.test' } as { id: string };
   const nodeCatalog = {
     skills: [skill],
     skillById: new Map([[skill.id, skill]]),
@@ -72,15 +70,32 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('../domain/canvasNodePredicates', () => ({
   isStoryboardGroupNode: () => false,
-  getMenuNodeDefinitions: () => [],
-  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
+}));
+
+vi.mock('../skillCatalogComposition', () => ({
   loadCanvasSkillRegistry: vi.fn(),
+}));
+
+vi.mock('./useCanvasConnectionController', () => ({
   useCanvasConnectionController: controllerMocks.useConnection,
+}));
+
+vi.mock('./useCanvasNodeInteractionController', () => ({
   useCanvasNodeInteractionController: controllerMocks.useNodeInteraction,
+}));
+
+vi.mock('./useCanvasNodeMenuStateController', () => ({
   useCanvasNodeMenuStateController: controllerMocks.useNodeMenu,
+}));
+
+vi.mock('./useCanvasNodeCatalogController', () => ({
   useCanvasNodeCatalogController: controllerMocks.useNodeCatalog,
+}));
+
+vi.mock('@/features/viewer-kit/public', () => ({
+  isImmersiveViewerActive: () => false,
 }));
 
 function createOptions(): CanvasNodeCreationSurfaceControllerOptions {
