@@ -7,6 +7,7 @@ import type {
 } from '@/features/viewer-kit/public';
 import type {
   AudioVoiceRef,
+  ImageGenCameraSelectionData,
   Seedance2SceneOptimize,
   VideoGenQuality,
   VideoGenMode,
@@ -300,13 +301,6 @@ interface ImageGenFocusRegion {
   aspectRatio?: string;
 }
 
-export interface ImageGenCameraSelection {
-  cameraBodyId?: string | null;
-  lensId?: string | null;
-  focalLengthMm?: number | null;
-  aperture?: string | null;
-}
-
 export interface ImageGenNodeData extends NodeImageData {
   prompt: string;
   model: string;
@@ -323,7 +317,7 @@ export interface ImageGenNodeData extends NodeImageData {
   count?: ImageGenCount;
   styleTemplateId?: string | null;
   focusRegion?: ImageGenFocusRegion | null;
-  cameraSelection?: ImageGenCameraSelection | null;
+  cameraSelection?: ImageGenCameraSelectionData | null;
   /** User-uploaded reference image, fed into the generation request. */
   referenceImageUrl?: string | null;
   /** Present/mainline workflow nodes can auto-commit their generated image to slot_target. */

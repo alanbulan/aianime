@@ -14,7 +14,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  type ImageGenCameraSelection,
   type ImageGenCount,
   type ImageGenNodeData,
   type ImageQuality,
@@ -29,6 +28,7 @@ import {
   hasEffectiveImageGenPrompt,
   hasImageGenCameraSelection,
   imageGenAlbumUrls,
+  type ImageGenCameraSelectionData,
   IMAGE_GEN_DEFAULT_QUALITY,
   IMAGE_GEN_NODE_DEFAULT_HEIGHT,
   IMAGE_GEN_NODE_DEFAULT_WIDTH,
@@ -179,7 +179,7 @@ export function useImageGenNodeController({
     typeof data.generationErrorRequestId === 'string' && data.generationErrorRequestId.length > 0
       ? data.generationErrorRequestId
       : null;
-  const cameraSelection = (data.cameraSelection ?? null) as ImageGenCameraSelection | null;
+  const cameraSelection = (data.cameraSelection ?? null) as ImageGenCameraSelectionData | null;
   const styleTemplateId =
     typeof data.styleTemplateId === 'string' && data.styleTemplateId.length > 0
       ? data.styleTemplateId

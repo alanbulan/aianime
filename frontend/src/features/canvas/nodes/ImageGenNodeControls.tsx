@@ -18,12 +18,12 @@ import {
   resolveNearestImageGenAspectOption,
 } from '@/modules/creative_canvas/public';
 import type {
-  ImageGenCameraSelection,
   ImageGenCount,
   ImageGenNodeData,
   ImageQuality,
   ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
+import type { ImageGenCameraSelectionData } from '@/modules/creative_canvas/public';
 
 const IMAGE_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
@@ -250,9 +250,9 @@ export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOp
 
 interface CameraChipProps {
   projectId: string;
-  selection: ImageGenCameraSelection | null;
+  selection: ImageGenCameraSelectionData | null;
   summary: string | null;
-  onChange: (next: ImageGenCameraSelection | null) => void;
+  onChange: (next: ImageGenCameraSelectionData | null) => void;
 }
 
 export function CameraChip({ projectId, selection, summary, onChange }: CameraChipProps) {
