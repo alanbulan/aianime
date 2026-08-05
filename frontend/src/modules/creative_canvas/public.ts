@@ -150,6 +150,16 @@ export {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from "@/modules/creative_canvas/domain/mainlineContext";
+export {
+  buildContextPromptPalette,
+  buildContextPromptPaletteForNode,
+  contextPromptPaletteInsertionText,
+} from "@/modules/creative_canvas/domain/contextPromptPalette";
+export type {
+  ContextPromptPalette,
+  ContextPromptPaletteEntry,
+  ContextPromptPaletteEntryKind,
+} from "@/modules/creative_canvas/domain/contextPromptPalette";
 export type {
   BeatContextResolution,
   CandidateBinding,

@@ -6,12 +6,10 @@ import { useTranslation } from "react-i18next";
 
 import {
   buildContextPromptPaletteForNode,
-  type ContextPromptPalette,
-  type ContextPromptPaletteEntry,
-} from "@/features/canvas/nodes/contextPromptPalette";
-import {
   NODE_CONTEXT_CONTROL_TRIGGER_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
+  type ContextPromptPalette,
+  type ContextPromptPaletteEntry,
 } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 

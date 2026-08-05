@@ -1,13 +1,15 @@
 // Copyright (c) 2026 AI anime
 import {
   collectNodeMainlineContexts,
-  currentBeatContextToMainlineContext,
   extractMainlineContextsFromNode,
-  getCurrentBeatContextFromNode,
   type MainlineContext,
   type MainlineContextEdgeLike,
   type MainlineContextNodeLike,
-} from "@/modules/creative_canvas/public";
+} from "./mainlineContext";
+import {
+  currentBeatContextToMainlineContext,
+  getCurrentBeatContextFromNode,
+} from "./currentBeatContext";
 
 export type ContextPromptPaletteEntryKind = "actor" | "prop";
 

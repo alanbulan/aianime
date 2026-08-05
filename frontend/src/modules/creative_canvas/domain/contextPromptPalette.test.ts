@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { MainlineContext } from "@/modules/creative_canvas/public";
+import type { MainlineContext } from "./mainlineContext";
 import {
   buildContextPromptPalette,
   buildContextPromptPaletteForNode,
   contextPromptPaletteInsertionText,
-} from "@/features/canvas/nodes/contextPromptPalette";
+} from "./contextPromptPalette";
 
 function beatContext(overrides: Partial<MainlineContext> = {}): MainlineContext {
   return {

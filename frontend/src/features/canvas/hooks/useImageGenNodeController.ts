@@ -65,8 +65,10 @@ import {
   useNodeGenerationTaskState,
   useCanvasStyleTemplates,
   canvasNodeFrameClass,
+  contextPromptPaletteInsertionText,
   orderedReferenceUrlsWithOwnFirst,
   type CanvasAssetLibrarySelection,
+  type ContextPromptPaletteEntry,
   type CanvasGenerationHistoryRecord,
   type CanvasImageMode,
   resolveImageDisplayUrl,
@@ -86,10 +88,6 @@ import {
 import {
   describeCameraSelection,
 } from '@/features/canvas/nodes/CameraPickerPopover';
-import {
-  type ContextPromptPaletteEntry,
-  contextPromptPaletteInsertionText,
-} from '@/features/canvas/nodes/contextPromptPalette';
 import type {
   MentionCandidate,
   PromptMentionEditorHandle,

@@ -52,22 +52,20 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   canvasEventBus,
+  contextPromptPaletteInsertionText,
   extractUpstreamContent,
   joinUpstreamText,
   resolveNodeDisplayName,
   setAlbumPendingTotal,
   useAlbumPendingTotal,
 } from '@/modules/creative_canvas/public';
-import {
-  type ContextPromptPaletteEntry,
-  contextPromptPaletteInsertionText,
-} from '@/features/canvas/nodes/contextPromptPalette';
 import type {
   MentionCandidate,
   PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
 import {
   sortUpstreamByReferenceOrder,
+  type ContextPromptPaletteEntry,
   upstreamNodesInEdgeOrder,
   useReferenceMentionSync,
 } from '@/modules/creative_canvas/public';
