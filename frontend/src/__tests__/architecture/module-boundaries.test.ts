@@ -15185,7 +15185,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas graph hydration in the application layer", () => {
     const hydrationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeHydration.ts",
+      "modules/creative_canvas/application/canvasNodeHydration.ts",
     );
     const normalizationPath = resolve(
       SRC_ROOT,
@@ -15247,17 +15247,19 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hydrationModel).toContain("export function normalizeCanvasNodes(");
     expect(normalizationModel).toContain(normalizationDeclaration);
-    expect(normalizationModel).toContain(
-      "normalizeCanvasNodes(scoped.nodes, nodeDefaultDataGateway)",
-    );
+    expect(normalizationModel).toContain("normalizeCanvasNodes(");
+    expect(normalizationModel).toContain("nodeCatalog");
     expect(normalizationModel).toContain(
       "normalizeEdgesWithNodes(scoped.edges, nodes)",
     );
     expect(storyboardModel).toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
-    expect(importSpecifiers(hydrationPath)).toContain(
+    expect(importSpecifiers(hydrationPath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(hydrationPath)).toContain(
+      "../domain/canvasConnection",
     );
     expect(hydrationModel).not.toContain(
       "export function createDefaultStoryboardExportOptions(",

@@ -1,88 +1,90 @@
 // Copyright (c) 2026 AI anime
+import { DEFAULT_ASPECT_RATIO } from "../domain/aspectRatio";
+import { CANVAS_CONNECTION_NODE_TYPES } from "../domain/canvasConnection";
+import type {
+  StoryboardExportOptions,
+  StoryboardFrameItem,
+} from "../domain/storyboard";
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+  createDefaultStoryboardExportOptions,
+} from "../domain/storyboardNodeModel";
 import {
-  DEFAULT_ASPECT_RATIO,
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
-  createDefaultStoryboardExportOptions,
-  type StoryboardExportOptions,
-  type StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
-import { nodeCatalog } from './nodeCatalog';
-import type { CanvasNodeDefaultDataGateway } from './ports';
-import { createCanvasNodeDefaultData } from '@/modules/creative_canvas/public';
+} from "./canvasNodeCreation";
+import {
+  createCanvasNodeDefaultData,
+  type CanvasNodeDefaultDataCatalog,
+  type CanvasNodeDefaultDataGateway,
+} from "./canvasNodeDefaultData";
 
-function isNoReferenceNode(node: CanvasNode): boolean {
-  const data = node.data as {
-    label?: unknown;
-    displayName?: unknown;
-    content?: unknown;
-    prompt?: unknown;
-    reference_target?: unknown;
-    __freezone_source?: unknown;
-  };
+export interface HydrationGraphNode {
+  id: string;
+  type?: string | null;
+  parentId?: string;
+  extent?: string;
+  measured?: { width?: number; height?: number } | null;
+  data: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+function isNoReferenceNode(node: HydrationGraphNode): boolean {
+  const data = node.data ?? {};
   if (
-    data.label === '__NO_CHARACTER__'
-    || data.label === '__NO_PROP__'
-    || data.displayName === '__NO_CHARACTER__'
-    || data.displayName === '__NO_PROP__'
-    || data.content === '__NO_CHARACTER__'
-    || data.content === '__NO_PROP__'
-    || data.prompt === '__NO_CHARACTER__'
-    || data.prompt === '__NO_PROP__'
+    data.label === "__NO_CHARACTER__"
+    || data.label === "__NO_PROP__"
+    || data.displayName === "__NO_CHARACTER__"
+    || data.displayName === "__NO_PROP__"
+    || data.content === "__NO_CHARACTER__"
+    || data.content === "__NO_PROP__"
+    || data.prompt === "__NO_CHARACTER__"
+    || data.prompt === "__NO_PROP__"
   ) {
     return true;
   }
   const referenceTarget =
     data.reference_target
-    && typeof data.reference_target === 'object'
+    && typeof data.reference_target === "object"
     && !Array.isArray(data.reference_target)
       ? (data.reference_target as Record<string, unknown>)
       : null;
   if (
-    referenceTarget?.identity_id === '__NO_CHARACTER__'
-    || referenceTarget?.prop_id === '__NO_PROP__'
+    referenceTarget?.identity_id === "__NO_CHARACTER__"
+    || referenceTarget?.prop_id === "__NO_PROP__"
   ) {
     return true;
   }
   const freezoneSource =
     data.__freezone_source
-    && typeof data.__freezone_source === 'object'
+    && typeof data.__freezone_source === "object"
     && !Array.isArray(data.__freezone_source)
       ? (data.__freezone_source as Record<string, unknown>)
       : null;
   const meta =
     freezoneSource?.meta
-    && typeof freezoneSource.meta === 'object'
+    && typeof freezoneSource.meta === "object"
     && !Array.isArray(freezoneSource.meta)
       ? (freezoneSource.meta as Record<string, unknown>)
       : null;
-  return meta?.identity_id === '__NO_CHARACTER__' || meta?.prop_id === '__NO_PROP__';
+  return meta?.identity_id === "__NO_CHARACTER__" || meta?.prop_id === "__NO_PROP__";
 }
 
-function nodeHydratePriority(node: CanvasNode): number {
-  const data = node.data && typeof node.data === 'object' && !Array.isArray(node.data)
-    ? (node.data as Record<string, unknown>)
-    : {};
+function nodeHydratePriority(node: HydrationGraphNode): number {
+  const data = node.data ?? {};
   if (
     data.preset_managed === true
     || data.projection_archived === true
-    || (typeof data.projection_key === 'string' && data.projection_key.trim())
+    || (typeof data.projection_key === "string" && data.projection_key.trim())
   ) {
     return 2;
   }
   return 1;
 }
 
-function dedupeNodesById(nodes: CanvasNode[]): CanvasNode[] {
+function dedupeNodesById(nodes: HydrationGraphNode[]): HydrationGraphNode[] {
   const order: string[] = [];
   const indexById = new Map<string, number>();
-  const deduped: CanvasNode[] = [];
+  const deduped: HydrationGraphNode[] = [];
   for (const node of nodes) {
     const existingIndex = indexById.get(node.id);
     if (existingIndex === undefined) {
@@ -99,7 +101,7 @@ function dedupeNodesById(nodes: CanvasNode[]): CanvasNode[] {
   return order.map((id) => deduped[indexById.get(id)!]);
 }
 
-function detachMissingParents(nodes: CanvasNode[]): CanvasNode[] {
+function detachMissingParents(nodes: HydrationGraphNode[]): HydrationGraphNode[] {
   const nodeIds = new Set(nodes.map((node) => node.id));
   return nodes.map((node) => {
     if (!node.parentId || nodeIds.has(node.parentId)) {
@@ -113,14 +115,14 @@ function detachMissingParents(nodes: CanvasNode[]): CanvasNode[] {
   });
 }
 
-function sortParentNodesBeforeChildren(nodes: CanvasNode[]): CanvasNode[] {
+function sortParentNodesBeforeChildren(nodes: HydrationGraphNode[]): HydrationGraphNode[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
   const originalIndex = new Map(nodes.map((node, index) => [node.id, index] as const));
   const visited = new Set<string>();
   const visiting = new Set<string>();
-  const sorted: CanvasNode[] = [];
+  const sorted: HydrationGraphNode[] = [];
 
-  const visit = (node: CanvasNode) => {
+  const visit = (node: HydrationGraphNode) => {
     if (visited.has(node.id)) return;
     if (visiting.has(node.id)) {
       sorted.push(node);
@@ -151,52 +153,57 @@ function sortParentNodesBeforeChildren(nodes: CanvasNode[]): CanvasNode[] {
 }
 
 export function normalizeCanvasNodes(
-  rawNodes: CanvasNode[],
-  nodeDefaultDataGateway?: CanvasNodeDefaultDataGateway,
-): CanvasNode[] {
+  rawNodes: HydrationGraphNode[],
+  nodeDefaultDataGateway: CanvasNodeDefaultDataGateway | undefined,
+  nodeCatalog: CanvasNodeDefaultDataCatalog,
+): HydrationGraphNode[] {
   const normalizedNodes = rawNodes
     .map((node) => {
-      if (!Object.values(CANVAS_NODE_TYPES).includes(node.type as CanvasNodeType)) {
+      if (
+        !Object.values(CANVAS_CONNECTION_NODE_TYPES).includes(
+          node.type as (typeof CANVAS_CONNECTION_NODE_TYPES)[keyof typeof CANVAS_CONNECTION_NODE_TYPES],
+        )
+      ) {
         return null;
       }
 
       const mergedData = {
         ...createCanvasNodeDefaultData(
-          node.type as CanvasNodeType,
+          node.type as string,
           nodeCatalog,
           nodeDefaultDataGateway,
         ),
-        ...(node.data as Partial<CanvasNodeData>),
-      } as CanvasNodeData;
+        ...node.data,
+      } as Record<string, unknown>;
 
-      if (node.type === CANVAS_NODE_TYPES.storyboardSplit) {
-        const frames = (mergedData as { frames?: StoryboardFrameItem[] }).frames ?? [];
+      if (node.type === CANVAS_CONNECTION_NODE_TYPES.storyboardSplit) {
+        const frames = (mergedData.frames as StoryboardFrameItem[] | undefined) ?? [];
         const firstFrameAspectRatio = frames.find(
-          (frame) => typeof frame.aspectRatio === 'string',
+          (frame) => typeof frame.aspectRatio === "string",
         )?.aspectRatio;
         const normalizedFrameAspectRatio =
-          (typeof (mergedData as { frameAspectRatio?: unknown }).frameAspectRatio === 'string'
-            ? (mergedData as { frameAspectRatio?: string }).frameAspectRatio
+          (typeof mergedData.frameAspectRatio === "string"
+            ? mergedData.frameAspectRatio
             : null)
           ?? firstFrameAspectRatio
           ?? DEFAULT_ASPECT_RATIO;
 
-        (mergedData as { frameAspectRatio: string }).frameAspectRatio = normalizedFrameAspectRatio;
-        (mergedData as { frames: StoryboardFrameItem[] }).frames = frames.map((frame, index) => ({
+        mergedData.frameAspectRatio = normalizedFrameAspectRatio;
+        mergedData.frames = frames.map((frame, index) => ({
           id: frame.id,
           imageUrl: frame.imageUrl ?? null,
           previewImageUrl: frame.previewImageUrl ?? null,
           aspectRatio:
-            typeof frame.aspectRatio === 'string'
+            typeof frame.aspectRatio === "string"
               ? frame.aspectRatio
               : normalizedFrameAspectRatio,
-          note: frame.note ?? '',
+          note: frame.note ?? "",
           order: Number.isFinite(frame.order) ? frame.order : index,
         }));
 
-        const rawExportOptions = (mergedData as {
-          exportOptions?: Partial<StoryboardExportOptions>;
-        }).exportOptions;
+        const rawExportOptions = mergedData.exportOptions as
+          | Partial<StoryboardExportOptions>
+          | undefined;
         const defaultExportOptions = createDefaultStoryboardExportOptions();
         const rawFontSize = Number.isFinite(rawExportOptions?.fontSize)
           ? Number(rawExportOptions?.fontSize)
@@ -204,34 +211,34 @@ export function normalizeCanvasNodes(
         const normalizedFontSize = rawFontSize > 20
           ? Math.round(rawFontSize / 6)
           : rawFontSize;
-        (mergedData as { exportOptions: StoryboardExportOptions }).exportOptions = {
+        mergedData.exportOptions = {
           ...defaultExportOptions,
           ...(rawExportOptions ?? {}),
           fontSize: Math.max(1, Math.min(20, Math.round(normalizedFontSize))),
         };
       }
 
-      if ('aspectRatio' in mergedData && !mergedData.aspectRatio) {
+      if ("aspectRatio" in mergedData && !mergedData.aspectRatio) {
         mergedData.aspectRatio = DEFAULT_ASPECT_RATIO;
       }
 
       // Interrupted generation is recoverable only when a persisted task handle exists.
-      if ('isGenerating' in mergedData && mergedData.isGenerating) {
+      if ("isGenerating" in mergedData && mergedData.isGenerating) {
         const generationJobId =
-          typeof (mergedData as { generationJobId?: unknown }).generationJobId === 'string'
-            ? (mergedData as { generationJobId?: string }).generationJobId?.trim() ?? ''
-            : '';
+          typeof mergedData.generationJobId === "string"
+            ? mergedData.generationJobId.trim() ?? ""
+            : "";
         const generationTaskKey =
-          typeof (mergedData as { generationTaskKey?: unknown }).generationTaskKey === 'string'
-            ? (mergedData as { generationTaskKey?: string }).generationTaskKey?.trim() ?? ''
-            : '';
+          typeof mergedData.generationTaskKey === "string"
+            ? mergedData.generationTaskKey.trim() ?? ""
+            : "";
         const skillRunId =
-          typeof (mergedData as { skillRunId?: unknown }).skillRunId === 'string'
-            ? (mergedData as { skillRunId?: string }).skillRunId?.trim() ?? ''
-            : '';
+          typeof mergedData.skillRunId === "string"
+            ? mergedData.skillRunId.trim() ?? ""
+            : "";
         if (!generationJobId && !generationTaskKey && !skillRunId) {
           mergedData.isGenerating = false;
-          if ('generationStartedAt' in mergedData) {
+          if ("generationStartedAt" in mergedData) {
             mergedData.generationStartedAt = null;
           }
         }
@@ -239,19 +246,22 @@ export function normalizeCanvasNodes(
 
       const normalizedNode = {
         ...node,
-        type: node.type as CanvasNodeType,
+        type: node.type as string,
         data: mergedData,
-      } as CanvasNode;
+      } as HydrationGraphNode;
 
-      if (node.type === CANVAS_NODE_TYPES.skill && !node.measured) {
+      if (node.type === CANVAS_CONNECTION_NODE_TYPES.skill && !node.measured) {
         normalizedNode.measured = SKILL_NODE_DEFAULT_MEASURED;
-      } else if (node.type === CANVAS_NODE_TYPES.beatContext && !node.measured) {
+      } else if (
+        node.type === CANVAS_CONNECTION_NODE_TYPES.beatContext &&
+        !node.measured
+      ) {
         normalizedNode.measured = BEAT_CONTEXT_NODE_DEFAULT_MEASURED;
       }
 
       return isNoReferenceNode(normalizedNode) ? null : normalizedNode;
     })
-    .filter((node): node is CanvasNode => Boolean(node));
+    .filter((node): node is HydrationGraphNode => Boolean(node));
 
   return sortParentNodesBeforeChildren(
     detachMissingParents(dedupeNodesById(normalizedNodes)),

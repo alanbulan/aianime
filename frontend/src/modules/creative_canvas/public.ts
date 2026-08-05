@@ -2007,6 +2007,12 @@ export type {
   CreationNodeFactory,
 } from "@/modules/creative_canvas/application/canvasNodeCreation";
 export {
+  normalizeCanvasNodes,
+} from "@/modules/creative_canvas/application/canvasNodeHydration";
+export type {
+  HydrationGraphNode,
+} from "@/modules/creative_canvas/application/canvasNodeHydration";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

@@ -1,31 +1,40 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
-import type { CanvasNodeDefaultDataGateway } from './ports';
-import { normalizeCanvasNodes } from './canvasNodeHydration';
+import {
+  normalizeCanvasNodes,
+  type HydrationGraphNode,
+} from './canvasNodeHydration';
 import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeCreation';
+import type {
+  CanvasNodeDefaultDataCatalog,
+  CanvasNodeDefaultDataGateway,
+} from './canvasNodeDefaultData';
 
 function node(
   id: string,
-  type: CanvasNode['type'],
+  type: string,
   data: Record<string, unknown> = {},
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
-  return { id, type, position: { x: 0, y: 0 }, data, ...overrides } as CanvasNode;
+  overrides: Partial<HydrationGraphNode> = {},
+): HydrationGraphNode {
+  return { id, type, data, ...overrides };
 }
+
+const catalog: CanvasNodeDefaultDataCatalog = {
+  getDefinition: () => ({ createDefaultData: () => ({}) }),
+};
 
 describe('Canvas node hydration', () => {
   it('merges defaults, restores measured sizes, and drops placeholders', () => {
     const normalized = normalizeCanvasNodes([
-      node('skill', CANVAS_NODE_TYPES.skill, { skill_id: 'freezone.test' }),
-      node('beat', CANVAS_NODE_TYPES.beatContext),
-      node('placeholder', CANVAS_NODE_TYPES.upload, { label: '__NO_PROP__' }),
-      node('unknown', 'unknown' as CanvasNode['type']),
-    ]);
+      node('skill', 'skillNode', { skill_id: 'freezone.test' }),
+      node('beat', 'beatContextNode'),
+      node('placeholder', 'uploadNode', { label: '__NO_PROP__' }),
+      node('unknown', 'unknown'),
+    ], undefined, catalog);
 
     expect(normalized.map((item) => item.id)).toEqual(['skill', 'beat']);
     expect(normalized[0]?.measured).toEqual(SKILL_NODE_DEFAULT_MEASURED);
@@ -35,16 +44,16 @@ describe('Canvas node hydration', () => {
 
   it('stops unrecoverable generation but preserves a persisted task', () => {
     const normalized = normalizeCanvasNodes([
-      node('stopped', CANVAS_NODE_TYPES.imageGen, {
+      node('stopped', 'imageGenNode', {
         isGenerating: true,
         generationStartedAt: 123,
       }),
-      node('recoverable', CANVAS_NODE_TYPES.imageGen, {
+      node('recoverable', 'imageGenNode', {
         isGenerating: true,
         generationStartedAt: 456,
         generationTaskKey: 'task-key',
       }),
-    ]);
+    ], undefined, catalog);
 
     expect(normalized[0]?.data).toMatchObject({
       isGenerating: false,
@@ -62,11 +71,11 @@ describe('Canvas node hydration', () => {
       getOverrides: () => ({ model: 'remembered-model' }),
     };
     const normalized = normalizeCanvasNodes([
-      node('preferred', CANVAS_NODE_TYPES.video),
-      node('persisted', CANVAS_NODE_TYPES.video, {
+      node('preferred', 'videoNode'),
+      node('persisted', 'videoNode', {
         model: 'persisted-model',
       }),
-    ], gateway);
+    ], gateway, catalog);
 
     expect(normalized[0]?.data).toMatchObject({ model: 'remembered-model' });
     expect(normalized[1]?.data).toMatchObject({ model: 'persisted-model' });
@@ -74,19 +83,19 @@ describe('Canvas node hydration', () => {
 
   it('keeps the projected duplicate and orders a parent before its child', () => {
     const normalized = normalizeCanvasNodes([
-      node('child', CANVAS_NODE_TYPES.beatContext, { content: 'child' }, {
+      node('child', 'beatContextNode', { content: 'child' }, {
         parentId: 'group',
         extent: 'parent',
       }),
-      node('group', CANVAS_NODE_TYPES.group, { label: 'group' }),
-      node('child', CANVAS_NODE_TYPES.beatContext, {
+      node('group', 'groupNode', { label: 'group' }),
+      node('child', 'beatContextNode', {
         projection_key: 'beat:1:1',
         content: 'projected',
       }, {
         parentId: 'group',
         extent: 'parent',
       }),
-    ]);
+    ], undefined, catalog);
 
     expect(normalized.map((item) => item.id)).toEqual(['group', 'child']);
     expect(normalized[1]?.data).toMatchObject({ content: 'projected' });
@@ -94,14 +103,14 @@ describe('Canvas node hydration', () => {
 
   it('detaches an orphan and normalizes legacy storyboard export data', () => {
     const normalized = normalizeCanvasNodes([
-      node('orphan', CANVAS_NODE_TYPES.storyboardSplit, {
+      node('orphan', 'storyboardNode', {
         frames: [{ id: 'frame', imageUrl: null, note: '', order: 0 }],
         exportOptions: { fontSize: 48 },
       }, {
         parentId: 'missing',
         extent: 'parent',
       }),
-    ]);
+    ], undefined, catalog);
     const orphan = normalized[0];
 
     expect(orphan?.parentId).toBeUndefined();
