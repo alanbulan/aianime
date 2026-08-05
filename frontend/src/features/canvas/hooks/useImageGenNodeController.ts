@@ -72,6 +72,7 @@ import {
   resolveImageDisplayUrl,
   resolveNodeDisplayName,
   setAlbumPendingTotal,
+  useReferenceMentionSync,
   useAlbumPendingTotal,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
@@ -94,7 +95,6 @@ import type {
   PromptMentionEditorHandle,
 } from '@/features/canvas/nodes/PromptMentionEditor';
 import { describeStyleSelection } from '@/features/canvas/nodes/StylePickerPopover';
-import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,

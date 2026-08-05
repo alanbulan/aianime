@@ -5,7 +5,7 @@ import {
   remapReferenceMentions,
   sameOrder,
   type MentionFamily,
-} from "@/modules/creative_canvas/public";
+} from "../domain/referenceMentions";
 
 export interface ReferenceMentionFamilyInput {
   /** mention 前缀，如 "图片"（视频 / ImageGen）/ "图"（ImageEdit）/ "音频"。 */

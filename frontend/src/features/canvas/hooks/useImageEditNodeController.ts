@@ -28,7 +28,6 @@ import {
   useUpstreamContents,
   useUpstreamImages,
 } from '@/features/canvas/composition';
-import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
 import {
   AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -67,6 +66,7 @@ import {
   resolveReferenceAwareDeleteRange,
   selectImageModel,
   useCanvasImageModels,
+  useReferenceMentionSync,
   type CanvasAssetLibrarySelection,
   type GenerationCapability,
   type GenerationDebugContext,

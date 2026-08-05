@@ -972,6 +972,8 @@ export {
   sameOrder,
 } from "@/modules/creative_canvas/domain/referenceMentions";
 export type { MentionFamily } from "@/modules/creative_canvas/domain/referenceMentions";
+export { useReferenceMentionSync } from "@/modules/creative_canvas/presentation/useReferenceMentionSync";
+export type { ReferenceMentionFamilyInput } from "@/modules/creative_canvas/presentation/useReferenceMentionSync";
 export { createUseUpstreamGraph } from "@/modules/creative_canvas/presentation/useUpstreamGraph";
 export type {
   UpstreamGraphDependencies,

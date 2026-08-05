@@ -120,10 +120,6 @@ vi.mock('@/stores/settingsStore', () => ({
   ) => selector(mocks.settings),
 }));
 
-vi.mock('@/features/canvas/nodes/useReferenceMentionSync', () => ({
-  useReferenceMentionSync: () => undefined,
-}));
-
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
@@ -152,6 +148,7 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     mocks.resolvePickerAnchor(...args),
   useCanvasImageModels: (...args: unknown[]) =>
     mocks.useCanvasImageModels(...args),
+  useReferenceMentionSync: () => undefined,
 }));
 
 vi.mock('@/features/canvas/composition', () => ({

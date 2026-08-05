@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 
-import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMentionSync";
+import { useReferenceMentionSync } from "./useReferenceMentionSync";
 
 type Props = {
   prompt: string;
