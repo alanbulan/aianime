@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  NodeToolbar: () => null,
 }));
 
 vi.mock('@/features/canvas/canvasStore', () => ({

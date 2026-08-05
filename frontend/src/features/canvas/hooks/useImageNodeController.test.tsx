@@ -33,6 +33,7 @@ vi.mock('@xyflow/react', () => ({
   useStore: (selector: (state: { transform: [number, number, number] }) => unknown) =>
     selector({ transform: [0, 0, mocks.zoom] }),
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  NodeToolbar: () => null,
 }));
 
 vi.mock('zustand/react/shallow', () => ({

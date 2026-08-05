@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  NodeToolbar: () => null,
 }));
 
 vi.mock('react-i18next', () => ({

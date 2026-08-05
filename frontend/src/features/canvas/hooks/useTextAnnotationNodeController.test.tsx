@@ -43,6 +43,7 @@ vi.mock('@xyflow/react', () => ({
     getInternalNode: mocks.getInternalNode,
     setCenter: mocks.setCenter,
   }),
+  NodeToolbar: () => null,
 }));
 
 vi.mock('react-i18next', () => ({

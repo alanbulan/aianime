@@ -32,6 +32,7 @@ vi.mock('@xyflow/react', () => ({
     selector: (state: { transform: [number, number, number] }) => unknown,
   ) => selector({ transform: [0, 0, mocks.zoom] }),
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  NodeToolbar: () => null,
 }));
 
 vi.mock('@/features/canvas/canvasStore', () => {
