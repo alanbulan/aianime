@@ -1336,6 +1336,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百八十批将 `nodeFactory` 与其测试迁入 Creative Canvas application。目录/网关/ID 端口改用模块自有 `CanvasNodeDefaultDataCatalog`/`CanvasNodeDefaultDataGateway`/`CanvasNodeFactoryIdGenerator` 窄合同，直接复用节点默认数据用例，不再依赖旧 `ports` 与旧节点聚合；运行时默认优先、显式覆盖与稳定 ID 规则全部保留。组合边界统一经 Creative Canvas public 实例化唯一 `CanvasNodeFactory` 并适配旧 `NodeFactory` 合同，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套工厂；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 187。工厂与 Store 切片 5 个文件 18 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；首次模块边界单测因机器负载出现 4 个 5 秒超时且无断言失败，以 30 秒 testTimeout 重跑 338 项通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/187/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百八十一批全仓检索确认 `features/canvas/CanvasToolbar.tsx` 只有文件自身引用，没有任何生产或测试消费者；作为无引用迁移残留直接移除，不改变运行时行为。架构/残余/颜色门禁 3 个文件 351 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/186/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
