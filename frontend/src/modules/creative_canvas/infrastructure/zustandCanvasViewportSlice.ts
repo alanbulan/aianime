@@ -1,8 +1,22 @@
 // Copyright (c) 2026 AI anime
 import type { Viewport } from '@xyflow/react';
 
-import { createClosedCanvasImageViewer, createEmptyBookmarks, findAvailableNodePosition, navigateCanvasImageViewer, normalizeBookmarks, openCanvasImageViewer, replaceViewportBookmark, type CanvasImageViewerDirection, type CanvasImageViewerState, type ViewportBookmark, type ViewportBookmarks, type CanvasNode } from '@/modules/creative_canvas/public';
-;
+import { findAvailableNodePosition } from '../domain/canvasGeometry';
+import {
+  createClosedCanvasImageViewer,
+  navigateCanvasImageViewer,
+  openCanvasImageViewer,
+  type CanvasImageViewerDirection,
+  type CanvasImageViewerState,
+} from '../domain/canvasImageViewer';
+import {
+  createEmptyBookmarks,
+  normalizeBookmarks,
+  replaceViewportBookmark,
+  type ViewportBookmark,
+  type ViewportBookmarks,
+} from '../domain/viewportBookmarks';
+import type { CanvasNode } from '../domain/canvasNodeData';
 
 export interface CanvasViewportSlice {
   currentViewport: Viewport;

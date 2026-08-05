@@ -10,11 +10,11 @@ import {
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasViewportSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasViewportSlice';
 import {
   createZustandCanvasTransientInteractionSlice,
   type CanvasTransientInteractionSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasTransientInteractionSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasTransientInteractionSlice';
 import {
   createZustandCanvasHistorySlice,
   type CanvasHistorySlice,
@@ -50,7 +50,7 @@ import {
 import {
   createZustandCanvasSelectionSlice,
   type CanvasSelectionSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasSelectionSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasSelectionSlice';
 
 export type {
   CanvasEdge,

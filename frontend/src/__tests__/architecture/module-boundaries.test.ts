@@ -7982,7 +7982,7 @@ describe("frontend architecture boundaries", () => {
     const viewportSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
       ),
       "utf8",
     );
@@ -8094,7 +8094,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(viewerModel).toContain("export function openCanvasImageViewer(");
     expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
-    expect(viewportSlice).toContain("@/modules/creative_canvas/public");
+    expect(viewportSlice).toContain("../domain/canvasImageViewer");
     expect(viewportSlice).not.toContain("../application/canvasImageViewer");
     expect(viewportSlice).toContain(
       "imageViewer: createClosedCanvasImageViewer()",
@@ -8233,7 +8233,7 @@ describe("frontend architecture boundaries", () => {
     const viewportSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
       ),
       "utf8",
     );
@@ -8348,7 +8348,7 @@ describe("frontend architecture boundaries", () => {
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
     expect(geometryModel).toContain(placementDeclaration);
-    expect(viewportSlice).toContain("@/modules/creative_canvas/public");
+    expect(viewportSlice).toContain("../domain/canvasGeometry");
     expect(viewportSlice).toContain("return findAvailableNodePosition({");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGeometry",
@@ -16113,7 +16113,7 @@ describe("frontend architecture boundaries", () => {
     const viewportSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
       ),
       "utf8",
     );
@@ -27867,7 +27867,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas viewport infrastructure in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -27892,13 +27892,16 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
       ]);
     }
 
     expect(importSpecifiers(slicePath)).toEqual([
       "@xyflow/react",
-      "@/modules/creative_canvas/public",
+      "../domain/canvasGeometry",
+      "../domain/canvasImageViewer",
+      "../domain/viewportBookmarks",
+      "../domain/canvasNodeData",
     ]);
     expect(canvasStore).toMatch(
       /interface CanvasState[\s\S]*?CanvasViewportSlice/,
@@ -27913,7 +27916,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas transient interaction state in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -27936,7 +27939,7 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
       ]);
     }
 
@@ -28354,7 +28357,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas selection state in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasSelectionSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasSelectionSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -28376,12 +28379,12 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasSelectionSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasSelectionSlice.ts",
       ]);
     }
 
     expect(importSpecifiers(slicePath)).toEqual([
-      "@/modules/creative_canvas/public",
+      "../domain/canvasNodeTool",
     ]);
     expect(canvasStateHeader).toContain("CanvasSelectionSlice");
     expect(canvasStore).toContain(

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type {
   CanvasToolDialogRequest as ActiveToolDialog,
-} from '@/modules/creative_canvas/public';
+} from '../domain/canvasNodeTool';
 
 export interface CanvasSelectionSlice {
   selectedNodeId: string | null;
