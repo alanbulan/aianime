@@ -2,21 +2,18 @@
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Image as ImageIcon, Sparkles } from 'lucide-react';
 
-import type { ImageNodeController } from '@/features/canvas/hooks/useImageNodeController';
+import type { ImageNodeController } from './useImageNodeController';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { CanvasNodeImage } from './CanvasNodeImage';
+import { CandidateBindingBadges } from './NodeContextBadges';
+import { DirectorControlBundleBadge } from './DirectorControlBundleBadge';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { RegenerateButton } from './RegenerateButton';
 import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
-import {
-  CanvasNodeImage,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  CandidateBindingBadges,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  RegenerateButton,
-  DirectorControlBundleBadge,
   canvasNodeFrameClass,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
 
 export function ImageNodeView({
   controller,

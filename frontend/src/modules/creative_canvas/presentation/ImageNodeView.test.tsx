@@ -2,8 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ImageNodeController } from '@/features/canvas/hooks/useImageNodeController';
-
+import type { ImageNodeController } from './useImageNodeController';
 import { ImageNodeView } from './ImageNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -11,7 +10,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -24,6 +23,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./CanvasNodeImage', () => ({
   CanvasNodeImage: ({
     src,
     alt,
@@ -37,16 +39,34 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       image:{src}:{alt}
     </button>
   ),
+}));
+
+vi.mock('./DirectorControlBundleBadge', () => ({
   DirectorControlBundleBadge: () => <div>director-badge</div>,
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('./RegenerateButton', () => ({
   RegenerateButton: ({ onClick }: { onClick(): void }) => (
     <button type="button" onClick={onClick}>retry</button>
   ),
+}));
+
+vi.mock('./canvasNodeFrameStyles', () => ({
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
   canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('./NodeContextBadges', () => ({
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>bindings:{roles.join(',')}</div>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: () => <div>resize-handle</div>,
 }));
 

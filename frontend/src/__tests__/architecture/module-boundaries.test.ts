@@ -918,19 +918,19 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageNodeController.ts",
+      "modules/creative_canvas/presentation/useImageNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useImageNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageNodeView.test.tsx",
+      "modules/creative_canvas/presentation/ImageNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -950,7 +950,7 @@ describe("frontend architecture boundaries", () => {
       ["export const", "ImageNode", "=", "memo("].join(" "),
       ["export function", "resolveImageNodeDimension("].join(" "),
       ["export function", "parseAspectRatio("].join(" "),
-      ["export function", "useImageNodeController("].join(" "),
+      ["export function", "createUseImageNodeController("].join(" "),
       ["export function", "ImageNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -964,17 +964,16 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useImageNodeController",
-        "./ImageNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageNode.tsx"],
       ["modules/creative_canvas/domain/imageNodeSizing.ts"],
       ["modules/creative_canvas/domain/aspectRatio.ts"],
-      ["features/canvas/hooks/useImageNodeController.ts"],
-      ["features/canvas/nodes/ImageNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useImageNodeController.ts"],
+      ["modules/creative_canvas/presentation/ImageNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { ImageNode } from './ImageNode'");
     expect(registrySource).toContain(
@@ -1016,6 +1015,14 @@ describe("frontend architecture boundaries", () => {
       "from './useImageNodeController'",
     );
     expect(viewTestSource).toContain("from './ImageNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useImageNodeController.ts",
+      "features/canvas/hooks/useImageNodeController.test.tsx",
+      "features/canvas/nodes/ImageNodeView.tsx",
+      "features/canvas/nodes/ImageNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas video-compose inputs, controller, and view", () => {
@@ -8042,7 +8049,6 @@ describe("frontend architecture boundaries", () => {
     const nodeImageConsumers = [
       "features/canvas/nodes/ImageEditNodeView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
-      "features/canvas/nodes/ImageNodeView.tsx",
       "features/canvas/nodes/StoryboardGenNodeView.tsx",
       "features/canvas/nodes/StoryboardNodeView.tsx",
       "features/canvas/nodes/UploadNodeView.tsx",

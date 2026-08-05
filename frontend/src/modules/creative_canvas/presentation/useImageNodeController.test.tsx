@@ -3,11 +3,14 @@ import type { SyntheticEvent } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type { ImageEditNodeData } from '../domain/canvasNodeData';
+import {
+  createUseImageNodeController,
+  type ImageNodeStore,
+  type ImageNodeStoreHook,
+} from './useImageNodeController';
 
-import { useImageNodeController } from './useImageNodeController';
-
-import { CANVAS_NODE_TYPES, type ImageEditNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -42,7 +45,6 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
-
 vi.mock('@/shared/media/image-cache', () => ({
   withImageCacheBust: (
     url: string,
@@ -50,30 +52,45 @@ vi.mock('@/shared/media/image-cache', () => ({
   ) => token == null ? url : `${url}?stamp=${token}`,
 }));
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  regenerateExportImageNode: (params: unknown) =>
-    mocks.regenerateExportImageNode(params),
+vi.mock('../domain/imageData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/imageData')>()),
+  resolveImageDisplayUrl: (url: string) => `display:${url}`,
+  shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      updateNodeSize: mocks.updateNodeSize,
-      edges: mocks.edges,
-    }),
-  canRegenerateExportImageNode: () => mocks.canRetry,
+vi.mock('../domain/mainlineContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/mainlineContext')>()),
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),
   hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-  shouldUseOriginalImageByZoom: (zoom: number) => zoom >= 1.45,
+}));
+
+vi.mock('../application/regenerateExportNode', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('../application/regenerateExportNode')
+  >()),
+  canRegenerateExportImageNode: () => mocks.canRetry,
+}));
+
+vi.mock('./useNodeGenerationTaskState', () => ({
   useNodeGenerationTaskState: () => ({
     isGenerating: mocks.isGenerating,
   }),
 }));
+
+const useStore = ((
+  selector: (state: ImageNodeStore) => unknown,
+) => selector({
+  setSelectedNode: mocks.setSelectedNode,
+  updateNodeData: mocks.updateNodeData,
+  updateNodeSize: mocks.updateNodeSize,
+  edges: mocks.edges,
+})) as unknown as ImageNodeStoreHook;
+
+const useImageNodeController = createUseImageNodeController({
+  useStore,
+  regenerateExportImageNode: (params) => mocks.regenerateExportImageNode(params),
+});
 
 function data(patch: Partial<ImageEditNodeData> = {}): ImageEditNodeData {
   return {

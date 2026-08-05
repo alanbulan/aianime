@@ -12,6 +12,7 @@ import { createUseVideoStoryNodeController } from './presentation/useVideoStoryN
 import { createUseCanvasViewerSurfaceController } from './presentation/useCanvasViewerSurfaceController';
 import { createUseVideoComposeNodeController } from './presentation/useVideoComposeNodeController';
 import { createUseScriptNodeController } from './presentation/useScriptNodeController';
+import { createUseImageNodeController } from './presentation/useImageNodeController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -229,6 +230,10 @@ export const useScriptNodeController = createUseScriptNodeController({
   useUpstreamNodes,
   generateCanvasStoryScript,
   translateCanvasText,
+});
+export const useImageNodeController = createUseImageNodeController({
+  useStore: useCanvasStore,
+  regenerateExportImageNode,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
