@@ -1840,6 +1840,15 @@ export type {
   UploadNodeModelData,
 } from "@/modules/creative_canvas/application/uploadNodeModel";
 export {
+  buildNodeActionBeatContextData,
+  isSameNodeActionBeatContext,
+  resolveNodeActionBeatContext,
+} from "@/modules/creative_canvas/application/nodeActionBeatContext";
+export type {
+  BeatContextActionNode,
+  NodeActionBeatContext,
+} from "@/modules/creative_canvas/application/nodeActionBeatContext";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

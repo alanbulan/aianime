@@ -23324,11 +23324,11 @@ describe("frontend architecture boundaries", () => {
   it("keeps node-action Beat context projection in one pure application module", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionBeatContext.ts",
+      "modules/creative_canvas/application/nodeActionBeatContext.ts",
     );
     const applicationTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeActionBeatContext.test.ts",
+      "modules/creative_canvas/application/nodeActionBeatContext.test.ts",
     );
     const beatContextModelPath = resolve(
       SRC_ROOT,
@@ -23354,10 +23354,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set([
-        "@/features/canvas/domain/canvasNodes",
-        "@/modules/creative_canvas/public",
-      ]),
+      new Set(["../domain/mainlineContext"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("window");
@@ -23367,7 +23364,12 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(applicationSource).not.toContain("@/features/canvas/composition");
+    expect(applicationSource).not.toContain("@/features/canvas/");
+    expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
     expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/nodeActionBeatContext",
     );
     expect(importSpecifiers(controllerPath)).toContain(
@@ -23384,7 +23386,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("BEAT_CONTEXT_SOURCE_KINDS");
     expect(declarationOwners).toEqual(
       declarations.map(() => [
-        "features/canvas/application/nodeActionBeatContext.ts",
+        "modules/creative_canvas/application/nodeActionBeatContext.ts",
       ]),
     );
     expect(applicationTestSource).toContain(
@@ -23447,7 +23449,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/features/canvas/application/beatContextNodeModel",
-        "@/features/canvas/application/nodeActionBeatContext",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",

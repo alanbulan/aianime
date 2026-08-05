@@ -1,23 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { MainlineContext } from "@/modules/creative_canvas/public";
+import type { MainlineContext } from "../domain/mainlineContext";
 
 import {
   buildNodeActionBeatContextData,
   isSameNodeActionBeatContext,
   resolveNodeActionBeatContext,
+  type BeatContextActionNode,
   type NodeActionBeatContext,
 } from "./nodeActionBeatContext";
 
-function node(data: Record<string, unknown>): CanvasNode {
+function node(data: Record<string, unknown>): BeatContextActionNode {
   return {
     id: "node-a",
-    type: "videoNode",
-    position: { x: 0, y: 0 },
     data,
-  } as CanvasNode;
+  };
 }
 
 describe("nodeActionBeatContext", () => {

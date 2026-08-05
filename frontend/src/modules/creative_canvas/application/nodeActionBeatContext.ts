@@ -1,9 +1,13 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import {
   extractMainlineContextsFromNode,
   type MainlineContext,
-} from "@/modules/creative_canvas/public";
+} from "../domain/mainlineContext";
+
+export interface BeatContextActionNode {
+  id: string;
+  data: Record<string, unknown>;
+}
 
 export type NodeActionBeatContext = MainlineContext & {
   projectId: string;
@@ -106,7 +110,7 @@ function beatContextFromParts(
 }
 
 export function resolveNodeActionBeatContext(
-  node: CanvasNode,
+  node: BeatContextActionNode,
   routeProjectId?: string | null,
 ): NodeActionBeatContext | null {
   const data = recordOrNull(node.data) ?? {};
