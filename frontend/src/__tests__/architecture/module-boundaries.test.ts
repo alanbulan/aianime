@@ -1824,19 +1824,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useScriptNodeController.ts",
+      "modules/creative_canvas/presentation/useScriptNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useScriptNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useScriptNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ScriptNodeView.tsx",
+      "modules/creative_canvas/presentation/ScriptNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ScriptNodeView.test.tsx",
+      "modules/creative_canvas/presentation/ScriptNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -1853,7 +1853,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "ScriptNode", "=", "memo("].join(" "),
       ["export function", "resolveScriptNodeSize("].join(" "),
-      ["export function", "useScriptNodeController("].join(" "),
+      ["export function", "createUseScriptNodeController("].join(" "),
       ["export function", "ScriptNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -1867,29 +1867,28 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useScriptNodeController",
-        "./ScriptNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ScriptNode.tsx"],
       ["modules/creative_canvas/application/scriptNodeModel.ts"],
-      ["features/canvas/hooks/useScriptNodeController.ts"],
-      ["features/canvas/nodes/ScriptNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useScriptNodeController.ts"],
+      ["modules/creative_canvas/presentation/ScriptNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("className=");
     expect(modelSource).not.toContain("@/features/canvas/");
     expect(modelSource).not.toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/scriptNodeModel",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
@@ -1908,7 +1907,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state) =>");
     expect(controllerSource).toContain("generateCanvasStoryScript(");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("useNodeGenerationHistory(");
@@ -1931,6 +1930,14 @@ describe("frontend architecture boundaries", () => {
       "from './useScriptNodeController'",
     );
     expect(viewTestSource).toContain("from './ScriptNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useScriptNodeController.ts",
+      "features/canvas/hooks/useScriptNodeController.test.tsx",
+      "features/canvas/nodes/ScriptNodeView.tsx",
+      "features/canvas/nodes/ScriptNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas pano-viewer model, controller, and view", () => {
@@ -21040,7 +21047,7 @@ describe("frontend architecture boundaries", () => {
     );
     const scriptControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useScriptNodeController.ts",
+      "modules/creative_canvas/presentation/useScriptNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -21152,7 +21159,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(scriptControllerPath)).not.toContain("@/api/tasks");
-    expect(importSpecifiers(scriptControllerPath)).toContain(
+    expect(importSpecifiers(scriptControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(scriptControllerSource).toContain(
@@ -31025,7 +31032,6 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/hooks/useAudioOperationsPanelController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/useScriptNodeController.ts",
       "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -31856,7 +31862,6 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerPaths = [
       resolve(SRC_ROOT, "features/canvas/hooks/useImageGenNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/hooks/useScriptNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNodeView.tsx"),
@@ -32711,7 +32716,6 @@ describe("frontend architecture boundaries", () => {
     const operationPanelConsumers = [
       "features/canvas/nodes/AudioOperationsPanelView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
-      "features/canvas/nodes/ScriptNodeView.tsx",
       "features/canvas/nodes/VideoNodeView.tsx",
     ];
     const fpsMeterConsumers = ["features/canvas/ui/CanvasStageView.tsx"];

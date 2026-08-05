@@ -18,38 +18,38 @@ import {
 } from 'lucide-react';
 
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import type { ScriptGenAction } from '@/modules/creative_canvas/public';
+import type { ScriptGenAction } from '../application/scriptNodeModel';
 import {
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  EditableTableCell,
+} from './canvasNodeFrameStyles';
+import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  hasCompletedHistoryRecords,
-  NodeGenerationHistory,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  OperationPanelShell,
-  PanelExpandButton,
-  RegenerateButton,
-  SCRIPT_NODE_SIZE_LIMITS,
-  canvasNodeFrameClass,
-  type CanvasStoryScriptReference,
-  type CanvasStoryScriptRow,
-  isRenderableImageSrc,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
-import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeControlStyles';
+import { EditableTableCell } from './EditableTableCell';
+import { hasCompletedHistoryRecords } from '../domain/generationHistoryRecord';
+import { NodeGenerationHistory } from './NodeGenerationHistory';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { OperationPanelShell } from './OperationPanelShell';
+import { PanelExpandButton } from './PanelExpandButton';
+import { RegenerateButton } from './RegenerateButton';
+import { SCRIPT_NODE_SIZE_LIMITS } from '../application/scriptNodeModel';
+import { canvasNodeFrameClass } from './canvasNodeFrameStyles';
+import type {
+  CanvasStoryScriptReference,
+  CanvasStoryScriptRow,
+} from '../application/generateCanvasStoryScript';
+import { isRenderableImageSrc, resolveImageDisplayUrl } from '../domain/imageData';
+import type { ScriptNodeController } from './useScriptNodeController';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

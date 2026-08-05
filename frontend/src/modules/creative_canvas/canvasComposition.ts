@@ -11,6 +11,7 @@ import { createUseCanvasProjectSurfaceController } from './presentation/useCanva
 import { createUseVideoStoryNodeController } from './presentation/useVideoStoryNodeController';
 import { createUseCanvasViewerSurfaceController } from './presentation/useCanvasViewerSurfaceController';
 import { createUseVideoComposeNodeController } from './presentation/useVideoComposeNodeController';
+import { createUseScriptNodeController } from './presentation/useScriptNodeController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -35,6 +36,10 @@ import { resolveCurrentShotMetadataPrompt } from './shotMetadataComposition';
 import { resolvePromptReferenceRoles } from './domain/referenceRoles';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
+import {
+  generateCanvasStoryScript,
+  translateCanvasText,
+} from './textGenerationComposition';
 import { extractUpstreamContent } from './application/graphContentResolver';
 import { extractUpstreamImages } from './application/graphImageResolver';
 import { CANVAS_NODE_TYPES } from './domain/canvasConnection';
@@ -218,6 +223,12 @@ export const {
 export const useVideoComposeNodeController = createUseVideoComposeNodeController({
   useStore: useCanvasStore,
   useUpstreamNodes,
+});
+export const useScriptNodeController = createUseScriptNodeController({
+  useStore: useCanvasStore,
+  useUpstreamNodes,
+  generateCanvasStoryScript,
+  translateCanvasText,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

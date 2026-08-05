@@ -3,8 +3,7 @@ import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ScriptNodeController } from '@/features/canvas/hooks/useScriptNodeController';
-
+import type { ScriptNodeController } from './useScriptNodeController';
 import { ScriptNodeView } from './ScriptNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -12,8 +11,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -26,7 +24,13 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('./RegenerateButton', () => ({
   RegenerateButton: ({
     label,
     onClick,
@@ -38,6 +42,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       regenerate:{label}
     </button>
   ),
+}));
+
+vi.mock('./EditableTableCell', () => ({
   EditableTableCell: ({
     value,
     onCommit,
@@ -49,6 +56,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       edit:{value}
     </button>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -56,12 +66,21 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     minWidth: number;
     minHeight: number;
   }) => <div>resize:{minWidth}:{minHeight}</div>,
+}));
+
+vi.mock('./OperationPanelShell', () => ({
   OperationPanelShell: ({ children }: { children: ReactNode }) => (
     <section>{children}</section>
   ),
+}));
+
+vi.mock('./PanelExpandButton', () => ({
   PanelExpandButton: ({ onToggle }: { onToggle(): void }) => (
     <button type="button" onClick={onToggle}>expand-panel</button>
   ),
+}));
+
+vi.mock('./NodeGenerationHistory', () => ({
   NodeGenerationHistory: ({
     onRestore,
     records,

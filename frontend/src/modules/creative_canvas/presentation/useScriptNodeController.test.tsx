@@ -2,11 +2,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  ScriptNodeData,
+} from '../domain/canvasNodeData';
+import {
+  createUseScriptNodeController,
+  type ScriptNodeStore,
+  type ScriptNodeStoreHook,
+} from './useScriptNodeController';
 
-import { useScriptNodeController } from './useScriptNodeController';
-
-import { CANVAS_NODE_TYPES, type CanvasEdge, type CanvasNode, type ScriptNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   nodes: [] as CanvasNode[],
   edges: [] as CanvasEdge[],
@@ -31,11 +38,6 @@ vi.mock('@xyflow/react', () => ({
   Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
-
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
 vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: (kind: string) => {
     mocks.generationCreditCost(kind);
@@ -43,46 +45,51 @@ vi.mock('@/modules/model_usage/public', () => ({
   },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('@/modules/creative_canvas/public')
-  >();
-  return {
-    ...actual,
-    useCanvasStore: (() => {
-  const state = () => ({
-    nodes: mocks.nodes,
-    edges: mocks.edges,
-    selectedNodeId: mocks.selectedNodeId,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    addNode: mocks.addNode,
-    addEdge: mocks.addEdge,
-    autoGroupSpawn: mocks.autoGroupSpawn,
-  });
-  const useCanvasStore = Object.assign(
-    (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-    { getState: state },
-  );
+vi.mock('./useNodeGenerationHistory', () => ({
+  useNodeGenerationHistory: () => ({
+    records: mocks.historyRecords,
+    isLoading: false,
+    refresh: mocks.refreshHistory,
+  }),
+}));
 
-  return useCanvasStore;
-})(),
-    useNodeGenerationHistory: () => ({
-      records: mocks.historyRecords,
-      isLoading: false,
-      refresh: mocks.refreshHistory,
+vi.mock('./useNodeGenerationTaskState', () => ({
+  useNodeGenerationTaskState: () => ({
+    isGenerating: mocks.isGenerating,
+  }),
+}));
+
+const useStore = Object.assign(
+  (selector: (state: ScriptNodeStore) => unknown) =>
+    selector({
+      nodes: mocks.nodes,
+      edges: mocks.edges,
+      selectedNodeId: mocks.selectedNodeId,
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      autoGroupSpawn: mocks.autoGroupSpawn,
     }),
-    useNodeGenerationTaskState: () => ({
-      isGenerating: mocks.isGenerating,
+  {
+    getState: () => ({
+      nodes: mocks.nodes,
+      edges: mocks.edges,
+      selectedNodeId: mocks.selectedNodeId,
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      autoGroupSpawn: mocks.autoGroupSpawn,
     }),
-    generateCanvasStoryScript: (
-      command: unknown,
-      onTaskSubmitted: (task: unknown) => void,
-    ) => mocks.generateCanvasStoryScript(command, onTaskSubmitted),
-    translateCanvasText: (command: unknown) =>
-      mocks.translateCanvasText(command),
-  };
+  },
+) as unknown as ScriptNodeStoreHook;
+
+const useScriptNodeController = createUseScriptNodeController({
+  useStore,
+  useUpstreamNodes: () => mocks.upstreamNodes,
+  generateCanvasStoryScript: mocks.generateCanvasStoryScript,
+  translateCanvasText: mocks.translateCanvasText,
 });
 
 const NODE_CONTEXT = {
