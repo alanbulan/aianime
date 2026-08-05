@@ -33,7 +33,10 @@ import {
   type ConversionGraphNode,
   type ConversionNodeCatalog,
 } from '@/modules/creative_canvas/public';
-import { createCanvasNode } from '../application/canvasNodeCreation';
+import {
+  createCanvasNode,
+  type CreationNodeFactory,
+} from '@/modules/creative_canvas/public';
 import type {
   CanvasNodeDefaultDataGateway,
   NodeFactory,
@@ -127,10 +130,11 @@ export function createZustandCanvasNodeMutationSlice(
         type,
         position,
         data,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as CreationNodeFactory,
       );
+      const canvasNode = node as unknown as CanvasNode;
       dependencies.setState({
-        nodes: [...state.nodes, node],
+        nodes: [...state.nodes, canvasNode],
         history: {
           past: pushSnapshot(
             state.history.past,
@@ -141,7 +145,7 @@ export function createZustandCanvasNodeMutationSlice(
         dragHistorySnapshot: null,
         ...trackEdit(state),
       });
-      return node.id;
+      return canvasNode.id;
     },
 
     convertNodeType(nodeId, newType, dataOverrides = {}) {

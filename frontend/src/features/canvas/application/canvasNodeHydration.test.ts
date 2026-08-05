@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 import type { CanvasNodeDefaultDataGateway } from './ports';
+import { normalizeCanvasNodes } from './canvasNodeHydration';
 import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
-  normalizeCanvasNodes,
-} from './canvasNodeHydration';
+} from '@/modules/creative_canvas/public';
 
 function node(
   id: string,

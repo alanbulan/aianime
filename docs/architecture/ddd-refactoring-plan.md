@@ -1316,6 +1316,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百七十批将 `scriptNodeModel` 与其测试迁入 Creative Canvas application。节点/边/数据输入改用模块自有 `ScriptGraphNode`/`ScriptGraphEdge`/`ScriptNodeModelData` 窄合同，`ScriptGenAction` 改为模块自有联合、故事脚本合同继续来自本域 `generateCanvasStoryScript`，不再依赖旧 `canvasNodes` 与旧 `ports`；尺寸、结果校验、表格单元格更新、上游引用抽取、生成源判定与文本/视频/角色三种生成摆放规则全部保留。脚本控制器与视图统一经 Creative Canvas public 使用唯一模型，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套模型；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 207。同时修复脚本控制器测试对 `@xyflow/react` mock 缺 `Position` 的收集问题。模型、控制器与视图 3 个文件 13 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1048/207/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百七十一批将 `canvasNodeCreation` 与其测试迁入 Creative Canvas application。节点输入与节点工厂改用模块自有 `CreationGraphNode`/`CreationNodeFactory` 窄合同，`SKILL_NODE_DEFAULT_MEASURED`/`BEAT_CONTEXT_NODE_DEFAULT_MEASURED` 成为模块唯一所有者；自动媒体尺寸、Skill/Beat 默认测量与工厂实测保留规则全部保留。旧 `canvasNodeHydration` 删除重复常量声明并统一经 Creative Canvas public 使用唯一常量。Zustand 变更切片在组合边界把旧工厂适配到模块窄合同，统一经 Creative Canvas public 使用唯一用例，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套创建实现；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 205，布局消费者清单同步指向新所有者。创建用例、水合与 Store 变更切片 4 个文件 11 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1050/205/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

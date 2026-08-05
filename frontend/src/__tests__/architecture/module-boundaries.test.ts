@@ -16243,7 +16243,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/imageNodeLayout.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const layoutConsumers = [
-      resolve(SRC_ROOT, "features/canvas/application/canvasNodeCreation.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/canvasNodeCreation.ts",
+      ),
       resolve(SRC_ROOT, "features/canvas/application/canvasDerivedNodeCreation.ts"),
       resolve(
         SRC_ROOT,
@@ -16336,7 +16339,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node creation in the application layer", () => {
     const creationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeCreation.ts",
+      "modules/creative_canvas/application/canvasNodeCreation.ts",
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
@@ -16376,12 +16379,15 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasNodeCreation.ts",
+      "modules/creative_canvas/application/canvasNodeCreation.ts",
     ]);
     expect(creationModel).toContain(creationDeclaration);
-    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("nodeFactory: CreationNodeFactory");
     expect(creationModel).toContain("maybeApplyImageAutoResize(");
     expect(nodeMutationSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(nodeMutationSlice).not.toContain(
       "../application/canvasNodeCreation",
     );
     expect(canvasStore).not.toContain(
@@ -28126,7 +28132,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasNodeCreation",
       "../application/nodeCatalog",
       "../application/ports",
     ]));

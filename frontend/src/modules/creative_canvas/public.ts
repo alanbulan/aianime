@@ -1998,6 +1998,15 @@ export type {
   ScriptNodeSpawnPlan,
 } from "@/modules/creative_canvas/application/scriptNodeModel";
 export {
+  BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
+  SKILL_NODE_DEFAULT_MEASURED,
+  createCanvasNode,
+} from "@/modules/creative_canvas/application/canvasNodeCreation";
+export type {
+  CreationGraphNode,
+  CreationNodeFactory,
+} from "@/modules/creative_canvas/application/canvasNodeCreation";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

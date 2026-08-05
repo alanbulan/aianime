@@ -2,27 +2,23 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-} from '../domain/canvasNodes';
-import { resolveAutoImageNodeDimensions } from '@/modules/creative_canvas/public';
-import { createCanvasNode } from './canvasNodeCreation';
-import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
-} from './canvasNodeHydration';
-import type { NodeFactory } from './ports';
+  createCanvasNode,
+  type CreationGraphNode,
+  type CreationNodeFactory,
+} from './canvasNodeCreation';
+import { resolveAutoImageNodeDimensions } from '../domain/imageNodeLayout';
 
-function factory(overrides: Partial<CanvasNode> = {}): NodeFactory {
+function factory(overrides: Partial<CreationGraphNode> = {}): CreationNodeFactory {
   return {
-    createNode: (type, position, data: Partial<CanvasNodeData> = {}) => ({
+    createNode: (type, position, data = {}) => ({
       id: 'created',
       type,
       position,
-      data: data as CanvasNodeData,
+      data: data as Record<string, unknown>,
       ...overrides,
-    } as CanvasNode),
+    }) as CreationGraphNode,
   };
 }
 
@@ -33,7 +29,7 @@ describe('Canvas node creation', () => {
       aspectRatio: '16:9',
     };
     const created = createCanvasNode(
-      CANVAS_NODE_TYPES.upload,
+      'uploadNode',
       { x: 10, y: 20 },
       data,
       factory(),
@@ -52,13 +48,13 @@ describe('Canvas node creation', () => {
 
   it('adds default measured sizes for skill and Beat context nodes', () => {
     const skill = createCanvasNode(
-      CANVAS_NODE_TYPES.skill,
+      'skillNode',
       { x: 0, y: 0 },
       {},
       factory(),
     );
     const beat = createCanvasNode(
-      CANVAS_NODE_TYPES.beatContext,
+      'beatContextNode',
       { x: 0, y: 0 },
       {},
       factory(),
@@ -71,7 +67,7 @@ describe('Canvas node creation', () => {
   it('preserves a measured size supplied by the factory', () => {
     const measured = { width: 640, height: 480 };
     const created = createCanvasNode(
-      CANVAS_NODE_TYPES.skill,
+      'skillNode',
       { x: 0, y: 0 },
       {},
       factory({ measured }),
