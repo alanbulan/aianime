@@ -14,16 +14,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  directorControlBundleFromData,
-  resolveDirectorControlBundleSourceId,
-  resolveDroppedMediaFile,
-  resolveUploadMediaKind,
-  resolveUploadNodeDirectorSource,
-  resolveUploadNodeLayout,
-  resolveUploadNodeTitle,
-  sceneSnapshotFromDirectorControlBundle,
-} from '@/features/canvas/application/uploadNodeModel';
 import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   getCanvasBeatDirectorManifest,
@@ -35,10 +25,18 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   canvasEventBus,
   collectCandidateBindingsForNode,
+  directorControlBundleFromData,
   directorCaptureBlobToDataUrl,
   hasMainlineContexts,
   readDirectorCaptureImageSize,
+  resolveDirectorControlBundleSourceId,
+  resolveDroppedMediaFile,
   resolveImageDisplayUrl,
+  resolveUploadMediaKind,
+  resolveUploadNodeDirectorSource,
+  resolveUploadNodeLayout,
+  resolveUploadNodeTitle,
+  sceneSnapshotFromDirectorControlBundle,
   shouldUseOriginalImageByZoom,
   uploadDirectorCaptureBundle,
 } from '@/modules/creative_canvas/public';

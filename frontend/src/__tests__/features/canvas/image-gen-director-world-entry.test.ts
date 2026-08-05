@@ -35,7 +35,7 @@ describe("ImageGenNode director combined world entry", () => {
 
   it("lets dragged director bundle upload nodes open Director World", () => {
     const modelSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/application/uploadNodeModel.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/application/uploadNodeModel.ts"),
       "utf8",
     );
     const controllerSource = readFileSync(
@@ -48,7 +48,7 @@ describe("ImageGenNode director combined world entry", () => {
     );
 
     expect(controllerSource).toContain("getCanvasBeatDirectorManifest");
-    expect(modelSource).toContain("role === 'director_combined'");
+    expect(modelSource).toContain('role === "director_combined"');
     expect(viewSource).toContain("onSubmitDirectorCombined={controller.submitDirectorCombined}");
     expect(viewSource).toContain("onCaptureCanvasNode={controller.captureDirectorCanvasNode}");
     expect(controllerSource).not.toContain("autoCommitDirectorCombined");
@@ -88,7 +88,7 @@ describe("ImageGenNode director combined world entry", () => {
 
   it("restores the bundle source when opening Director World from a dragged upload node", () => {
     const modelSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/application/uploadNodeModel.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/application/uploadNodeModel.ts"),
       "utf8",
     );
     const controllerSource = readFileSync(

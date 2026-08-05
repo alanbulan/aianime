@@ -1823,6 +1823,23 @@ export type {
   SkillOutputNodeType,
 } from "@/modules/creative_canvas/application/skillOutputProjection";
 export {
+  directorControlBundleFromData,
+  resolveDirectorControlBundleSourceId,
+  resolveDroppedMediaFile,
+  resolveUploadMediaKind,
+  resolveUploadNodeDirectorSource,
+  resolveUploadNodeLayout,
+  resolveUploadNodeTitle,
+  sceneSnapshotFromDirectorControlBundle,
+  UPLOAD_NODE_TYPE,
+} from "@/modules/creative_canvas/application/uploadNodeModel";
+export type {
+  UploadDropData,
+  UploadMediaKind,
+  UploadNodeDirectorSource,
+  UploadNodeModelData,
+} from "@/modules/creative_canvas/application/uploadNodeModel";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

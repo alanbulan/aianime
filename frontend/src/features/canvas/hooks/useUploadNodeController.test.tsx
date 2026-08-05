@@ -29,6 +29,7 @@ vi.mock('@xyflow/react', () => ({
   useStore: (selector: (state: { transform: [number, number, number] }) => unknown) =>
     selector({ transform: [0, 0, 1] }),
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
+  Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
 vi.mock('react-i18next', () => ({

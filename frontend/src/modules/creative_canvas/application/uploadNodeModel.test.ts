@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import type { DirectorControlFrameBundle } from '@/features/viewer-kit/public';
 
 import {
@@ -12,11 +11,12 @@ import {
   resolveUploadNodeLayout,
   resolveUploadNodeTitle,
   sceneSnapshotFromDirectorControlBundle,
+  type UploadNodeModelData,
 } from './uploadNodeModel';
 
 function data(
-  patch: Partial<UploadImageNodeData> = {},
-): UploadImageNodeData {
+  patch: Partial<UploadNodeModelData> = {},
+): UploadNodeModelData {
   return {
     label: '上传资源',
     displayName: '上传资源',

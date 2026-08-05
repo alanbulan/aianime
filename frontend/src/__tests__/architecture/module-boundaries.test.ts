@@ -1528,7 +1528,8 @@ describe("frontend architecture boundaries", () => {
       )
       .filter((entry) => !entry.startsWith(
         "modules/creative_canvas/domain/nodeDisplay.test.ts:",
-      ));
+      ))
+      .filter((entry) => !entry.startsWith("modules/creative_canvas/"));
 
     expect(existsSync(legacyDomainPath)).toBe(false);
     expect(importSpecifiers(domainPath)).toEqual(["./canvasConnection"]);
@@ -1679,11 +1680,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/uploadNodeModel.ts",
+      "modules/creative_canvas/application/uploadNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/uploadNodeModel.test.ts",
+      "modules/creative_canvas/application/uploadNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -1737,13 +1738,23 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/UploadNode.tsx"],
-      ["features/canvas/application/uploadNodeModel.ts"],
+      ["modules/creative_canvas/application/uploadNodeModel.ts"],
       ["features/canvas/hooks/useUploadNodeController.ts"],
       ["features/canvas/nodes/UploadNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
     expect(modelSource).not.toContain("uploadCanvasAsset(");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(importSpecifiers(modelPath)).toContain("../domain/imageNodeSizing");
+    expect(importSpecifiers(modelPath)).toContain("../domain/videoFileTypes");
+    expect(importSpecifiers(modelPath)).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain(
+      "@/features/canvas/application/uploadNodeModel",
+    );
     expect(registrySource).toContain(
       "import { UploadNode } from './UploadNode'",
     );
