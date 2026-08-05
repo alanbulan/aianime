@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import { useCanvasNodeCatalogController, useCanvasConnectionController, useCanvasNodeInteractionController, useCanvasNodeMenuStateController, loadCanvasSkillRegistry, type CanvasConnectionController, type CanvasConnectionControllerOptions, type CanvasNodeInteractionController, type CanvasNodeInteractionControllerOptions, type CanvasNodeCatalogController, type CanvasNodeCatalogControllerOptions, type CanvasNodeMenuCreationData, type CanvasNodeMenuStateController, type CanvasNodeMenuTypes, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardGroupNode } from '@/modules/creative_canvas/public';
+import { useCanvasNodeCatalogController, useCanvasConnectionController, useCanvasNodeInteractionController, useCanvasNodeMenuStateController, loadCanvasSkillRegistry, type CanvasConnectionController, type CanvasConnectionControllerOptions, type CanvasNodeInteractionController, type CanvasNodeInteractionControllerOptions, type CanvasNodeCatalogController, type CanvasNodeCatalogControllerOptions, type CanvasNodeMenuCreationData, type CanvasNodeMenuStateController, type CanvasNodeMenuTypes, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardGroupNode, nodeCatalog } from '@/modules/creative_canvas/public';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 
-import { nodeCatalog } from '../application/nodeCatalog';
+
 
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

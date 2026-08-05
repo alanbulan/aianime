@@ -16756,9 +16756,6 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeConversion",
     );
-    expect(canvasStore).not.toContain(
-      "@/features/canvas/application/nodeCatalog",
-    );
     expect(canvasStore).not.toContain("definition.createDefaultData()");
     expect(canvasStore).not.toContain("target.type === newType");
   });
@@ -28022,7 +28019,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/nodeCatalog",
+      "@/modules/creative_canvas/public",
       "../application/ports",
       "@/modules/creative_canvas/public",
     ]));
@@ -28132,7 +28129,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/nodeCatalog",
+      "@/modules/creative_canvas/public",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");
@@ -28196,7 +28193,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/nodeCatalog",
+      "@/modules/creative_canvas/public",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");

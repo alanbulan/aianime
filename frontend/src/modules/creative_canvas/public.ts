@@ -1021,6 +1021,8 @@ export {
   getNodeDefinition,
 } from "@/modules/creative_canvas/domain/canvasNodeRegistry";
 export type { CanvasNodeDefinition } from "@/modules/creative_canvas/domain/canvasNodeRegistry";
+export { nodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
+export type { NodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
 export {
   setAlbumPendingTotal,
   useAlbumPendingTotal,

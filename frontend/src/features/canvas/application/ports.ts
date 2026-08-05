@@ -1,11 +1,8 @@
 // Copyright (c) 2026 AI anime
-;
-
 import type {
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
-  CanvasNodeDefinition,
   CanvasNodeType,
   CanvasPosition,
 } from "@/modules/creative_canvas/public";
@@ -35,11 +32,6 @@ export interface CanvasGraphGateway {
     nodeId: string,
     data: Partial<CanvasNodeData>,
   ) => void;
-}
-
-export interface NodeCatalog {
-  getDefinition: (type: CanvasNodeType) => CanvasNodeDefinition;
-  getMenuDefinitions: () => CanvasNodeDefinition[];
 }
 
 export interface CanvasNodeDefaultDataGateway {
