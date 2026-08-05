@@ -2882,7 +2882,6 @@ describe("round 2 residual architecture boundaries", () => {
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/Canvas",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/canvasStore",
       "app/creative-canvas-shell-composition.tsx: @/features/canvas/composition",
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/domain/canvasNodes",
     ]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>

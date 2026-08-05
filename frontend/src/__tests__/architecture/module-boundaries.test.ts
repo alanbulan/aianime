@@ -373,7 +373,6 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/Canvas",
         "@/features/canvas/canvasStore",
         "@/features/canvas/composition",
-        "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
         "@/lib/app-router",

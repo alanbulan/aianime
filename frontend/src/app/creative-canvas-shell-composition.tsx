@@ -15,9 +15,7 @@ import {
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
 import {
-  CANVAS_NODE_TYPES,
-} from "@/features/canvas/domain/canvasNodes";
-import {
+  CANVAS_CONNECTION_NODE_TYPES,
   DEFAULT_CANVAS_NODE_WIDTH,
   createCanvasCommitControllerHook,
   createCanvasSyncHook,
@@ -97,7 +95,7 @@ function useTranslate() {
 
 function addMaskResultNode(url: string, label: string): void {
   useCanvasStore.getState().addNode(
-    CANVAS_NODE_TYPES.upload,
+    CANVAS_CONNECTION_NODE_TYPES.upload,
     { x: 100, y: 1100 },
     {
       displayName: `${label} (mask)`,
