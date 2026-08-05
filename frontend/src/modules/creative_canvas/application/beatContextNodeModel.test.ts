@@ -1,12 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type {
-  BeatContextNodeData,
-  CanvasEdge,
-  CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import {
   addBeatContextSelection,
   BEAT_CONTEXT_NO_CHARACTER_MARKER,
@@ -23,15 +17,18 @@ import {
   resolveBeatContextTitle,
   resolveBeatContextWorkbenchTarget,
   toggleBeatContextSelection,
+  type BeatContextGraphEdge,
+  type BeatContextGraphNode,
+  type BeatContextNodeModelData,
 } from './beatContextNodeModel';
 
 function node(
   id: string,
   data: Record<string, unknown> = {},
-): CanvasNode {
+): BeatContextGraphNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.textAnnotation,
+    type: 'textAnnotationNode',
     position: { x: 0, y: 0 },
     data: { content: '', ...data },
   };
@@ -42,8 +39,8 @@ function edge(
   source: string,
   target: string,
   data: Record<string, unknown> = {},
-): CanvasEdge {
-  return { id, source, target, data } as CanvasEdge;
+): BeatContextGraphEdge {
+  return { id, source, target, data };
 }
 
 describe('beatContextNodeModel', () => {
@@ -78,7 +75,7 @@ describe('beatContextNodeModel', () => {
   });
 
   it('projects standalone markers and builds a synchronized standalone patch', () => {
-    const data: BeatContextNodeData = {
+    const data: BeatContextNodeModelData = {
       context_scope: 'standalone',
       content: '旧描述',
       beat_context: {
@@ -144,7 +141,7 @@ describe('beatContextNodeModel', () => {
   });
 
   it('merges local Beat edits and rebuilds the database update payload', () => {
-    const data: BeatContextNodeData = {
+    const data: BeatContextNodeModelData = {
       content: '旧描述',
       snapshot: {
         sceneId: '旧场景',
@@ -181,18 +178,18 @@ describe('beatContextNodeModel', () => {
 
   it('resolves stable titles, workbench targets, and persisted node size', () => {
     expect(
-      resolveBeatContextTitle({ episode: 2, beat: 7 } as BeatContextNodeData),
+      resolveBeatContextTitle({ episode: 2, beat: 7 } as BeatContextNodeModelData),
     ).toBe('EP2 / Beat 7');
     expect(
       resolveBeatContextTitle({
         context_scope: 'standalone',
         displayName: 'EP2 / Beat 7',
-      } as BeatContextNodeData),
+      } as BeatContextNodeModelData),
     ).toBe('自定义镜头上下文');
     expect(
       resolveBeatContextWorkbenchTarget({
         workbench_target: { scope: 'beat', episode: 2, beat: 7 },
-      } as BeatContextNodeData),
+      } as BeatContextNodeModelData),
     ).toEqual({ scope: 'beat', episode: 2, beat: 7 });
     expect(resolveBeatContextNodeSize(undefined, 700)).toEqual({
       width: 420,

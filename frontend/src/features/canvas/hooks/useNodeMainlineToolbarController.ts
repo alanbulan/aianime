@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo, useState } from "react";
 
-import { resolveBeatContextWorkbenchTarget } from "@/features/canvas/application/beatContextNodeModel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import {
   CANVAS_NODE_TYPES,
@@ -15,6 +14,7 @@ import {
   isSameNodeActionBeatContext,
   openPresetProjectionInMyCanvas,
   resolveNodeActionBeatContext,
+  resolveBeatContextWorkbenchTarget,
 } from "@/modules/creative_canvas/public";
 
 export interface NodeMainlineToolbarControllerOptions {

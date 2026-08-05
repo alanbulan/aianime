@@ -15,6 +15,8 @@ import {
   areBeatContextListsEqual,
   BEAT_CONTEXT_NO_CHARACTER_MARKER,
   BEAT_CONTEXT_NO_PROP_MARKER,
+  type BeatContextGraphEdge,
+  type BeatContextGraphNode,
   buildBeatUpdatePayloadFromNodeData,
   buildLocalBeatContextPatch,
   buildStandaloneBeatContextPatch,
@@ -32,7 +34,7 @@ import {
   type BeatContextMentionCandidate,
   type BeatContextMentionContext,
   type StandaloneBeatContextPatch,
-} from '@/features/canvas/application/beatContextNodeModel';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type {
   BeatContextNodeData,
@@ -122,15 +124,15 @@ async function restoreCurrentMainlinePresetCanvas(
         remoteEdges,
         localNodes,
         localEdges,
-      ),
+      ) as unknown as { nodes: CanvasNode[]; edges: CanvasEdge[] },
   );
   if (!appliedBySyncRuntime) {
     const merged = mergeRestoredBeatContextCanvas(
-      (remote.nodes ?? []) as CanvasNode[],
-      (remote.edges ?? []) as CanvasEdge[],
-      localNodes,
-      localEdges,
-    );
+      (remote.nodes ?? []) as unknown as BeatContextGraphNode[],
+      (remote.edges ?? []) as unknown as BeatContextGraphEdge[],
+      localNodes as unknown as BeatContextGraphNode[],
+      localEdges as unknown as BeatContextGraphEdge[],
+    ) as unknown as { nodes: CanvasNode[]; edges: CanvasEdge[] };
     useCanvasStore.getState().setCanvasData(merged.nodes, merged.edges);
   }
   return true;

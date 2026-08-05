@@ -56,6 +56,10 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@xyflow/react', () => ({
+  Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
+}));
+
 vi.mock('@/features/canvas/canvasStore', () => {
   const state = () => ({
     nodes: mocks.storeNodes,
@@ -72,7 +76,8 @@ vi.mock('@/features/canvas/canvasStore', () => {
   return { useCanvasStore };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   applyRemoteFreezoneCanvas: (...args: unknown[]) =>
     mocks.applyRemoteCanvas(...args),
   buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>

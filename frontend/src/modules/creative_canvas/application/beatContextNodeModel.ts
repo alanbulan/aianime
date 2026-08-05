@@ -1,17 +1,69 @@
 // Copyright (c) 2026 AI anime
 import type { BeatUpdate } from '@/modules/narrative_planning/public';
+import { extractMainlineContextsFromNode } from '../domain/mainlineContext';
 import {
-  type BeatContextNodeData,
-  type CanvasEdge,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
-import {
-  extractMainlineContextsFromNode,
   isPresetManagedEdge,
   isPresetManagedNode,
-  parseBeatContextVisualMarkers,
-} from '@/modules/creative_canvas/public';
+} from '../domain/mainlineNodeFlags';
+import { parseBeatContextVisualMarkers } from '../domain/currentBeatContext';
 import { sceneNameToRef } from '@/lib/scene-ref';
+
+export interface BeatContextGraphNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  measured?: { width?: number; height?: number };
+  width?: number | null;
+  height?: number | null;
+  parentId?: string | null;
+  extent?: unknown;
+  [key: string]: unknown;
+}
+
+export interface BeatContextGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  data?: unknown;
+  [key: string]: unknown;
+}
+
+export interface BeatContextNodeModelData {
+  prompt?: unknown;
+  content?: unknown;
+  displayName?: unknown;
+  episode?: unknown;
+  beat?: unknown;
+  workbench_target?: unknown;
+  context_scope?: unknown;
+  beat_context?: unknown;
+  snapshot?: BeatContextNodeSnapshot | null;
+  beat_edit_fields?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface BeatContextNodeSnapshot {
+  visualDescription?: string;
+  narrationSegment?: string;
+  sceneId?: string;
+  sceneVariantId?: string;
+  timeOfDay?: string;
+  detectedIdentities?: string[];
+  detectedProps?: string[];
+  sketchColors?: Record<string, string>;
+  propMarkerColors?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export type BeatContextNodePatch = Record<string, unknown> & {
+  beat_context?: unknown;
+  content?: string;
+  snapshot?: BeatContextNodeSnapshot | null;
+  syncStatus?: 'fresh' | 'stale' | 'syncing' | 'error';
+  errorMessage?: string;
+  beat_edit_fields?: Record<string, unknown>;
+};
 
 export const BEAT_CONTEXT_NODE_SIZE_LIMITS = {
   defaultWidth: 420,
@@ -137,7 +189,7 @@ export function detectBeatContextMention(
 }
 
 export function isStandaloneBeatContextData(
-  data: BeatContextNodeData,
+  data: BeatContextNodeModelData,
 ): boolean {
   const hasMainlineBeat = extractMainlineContextsFromNode({ data }).some(
     (context) => context.kind === 'beat',
@@ -150,8 +202,8 @@ export function isStandaloneBeatContextData(
 }
 
 export function resolveBeatContextSnapshot(
-  data: BeatContextNodeData,
-): NonNullable<BeatContextNodeData['snapshot']> {
+  data: BeatContextNodeModelData,
+): BeatContextNodeSnapshot {
   const snapshot = data.snapshot ?? {};
   const beatContext = optionalDataRecord(data.beat_context);
   if (!beatContext || !isStandaloneBeatContextData(data)) return snapshot;
@@ -181,9 +233,9 @@ export function resolveBeatContextSnapshot(
 }
 
 export function buildStandaloneBeatContextPatch(
-  data: BeatContextNodeData,
+  data: BeatContextNodeModelData,
   patch: StandaloneBeatContextPatch,
-): Partial<BeatContextNodeData> {
+): BeatContextNodePatch {
   const currentBeatContext = optionalDataRecord(data.beat_context) ?? {};
   const nextBeatContext = {
     ...currentBeatContext,
@@ -210,27 +262,29 @@ export function buildStandaloneBeatContextPatch(
   }
   return {
     beat_context: nextBeatContext,
-    content: patch.visual_description ?? data.content,
+    content:
+      patch.visual_description ??
+      (typeof data.content === "string" ? data.content : undefined),
     snapshot,
     syncStatus: 'fresh',
     errorMessage: '',
   };
 }
 
-function isBadAutoProjectionNode(node: CanvasNode): boolean {
+function isBadAutoProjectionNode(node: BeatContextGraphNode): boolean {
   return dataRecord(node.data).autoBeatContextProjection === true;
 }
 
-function isBadAutoProjectionEdge(edge: CanvasEdge): boolean {
+function isBadAutoProjectionEdge(edge: BeatContextGraphEdge): boolean {
   return dataRecord(edge.data).autoBeatContextProjection === true;
 }
 
 export function mergeRestoredBeatContextCanvas(
-  remoteNodes: CanvasNode[],
-  remoteEdges: CanvasEdge[],
-  localNodes: CanvasNode[],
-  localEdges: CanvasEdge[],
-): { nodes: CanvasNode[]; edges: CanvasEdge[] } {
+  remoteNodes: BeatContextGraphNode[],
+  remoteEdges: BeatContextGraphEdge[],
+  localNodes: BeatContextGraphNode[],
+  localEdges: BeatContextGraphEdge[],
+): { nodes: BeatContextGraphNode[]; edges: BeatContextGraphEdge[] } {
   const remoteNodeIds = new Set(remoteNodes.map((node) => node.id));
   const remoteEdgeIds = new Set(remoteEdges.map((edge) => edge.id));
   const preservedNodes = localNodes.filter(
@@ -257,9 +311,9 @@ export function mergeRestoredBeatContextCanvas(
 }
 
 export function mergeBeatContextRefreshPatch(
-  refreshPatch: Partial<BeatContextNodeData>,
+  refreshPatch: BeatContextNodePatch,
   localPatch?: BeatUpdate,
-): Partial<BeatContextNodeData> {
+): BeatContextNodePatch {
   if (!localPatch) return refreshPatch;
   const snapshot = { ...(refreshPatch.snapshot ?? {}) };
   const beatEditFields = { ...(refreshPatch.beat_edit_fields ?? {}) };
@@ -294,12 +348,12 @@ export function mergeBeatContextRefreshPatch(
 }
 
 export function buildLocalBeatContextPatch(
-  data: BeatContextNodeData,
+  data: BeatContextNodeModelData,
   localPatch: BeatUpdate,
-): Partial<BeatContextNodeData> {
+): BeatContextNodePatch {
   return mergeBeatContextRefreshPatch(
     {
-      content: data.content,
+      content: typeof data.content === "string" ? data.content : undefined,
       snapshot: { ...(data.snapshot ?? {}) },
       beat_edit_fields: { ...(data.beat_edit_fields ?? {}) },
       syncStatus: 'stale',
@@ -310,7 +364,7 @@ export function buildLocalBeatContextPatch(
 }
 
 export function buildBeatUpdatePayloadFromNodeData(
-  data: BeatContextNodeData,
+  data: BeatContextNodeModelData,
 ): BeatUpdate {
   const snapshot = data.snapshot ?? {};
   const editFields = data.beat_edit_fields ?? {};
@@ -347,7 +401,7 @@ function looksLikeEpBeatTitle(value: string): boolean {
   return /^EP(?:\d+|\?)\s*\/\s*Beat\s*(?:\d+|\?)$/iu.test(value);
 }
 
-export function resolveBeatContextTitle(data: BeatContextNodeData): string {
+export function resolveBeatContextTitle(data: BeatContextNodeModelData): string {
   const customTitle =
     typeof data.displayName === 'string' ? data.displayName.trim() : '';
   if (isStandaloneBeatContextData(data)) {
@@ -375,7 +429,7 @@ export function resolveBeatContextTitle(data: BeatContextNodeData): string {
 }
 
 export function resolveBeatContextWorkbenchTarget(
-  data: BeatContextNodeData,
+  data: BeatContextNodeModelData,
 ): { scope: 'beat'; episode: number; beat: number } | null {
   const raw = data.workbench_target;
   if (!raw || typeof raw !== 'object') return null;

@@ -16,7 +16,7 @@ import {
   BEAT_CONTEXT_NO_PROP_MARKER,
   projectBeatContextSelectableTokens,
   type BeatContextMentionKind,
-} from '@/features/canvas/application/beatContextNodeModel';
+} from '@/modules/creative_canvas/public';
 import type { BeatContextNodeController } from '@/features/canvas/hooks/useBeatContextNodeController';
 import {
   NodeHeader,

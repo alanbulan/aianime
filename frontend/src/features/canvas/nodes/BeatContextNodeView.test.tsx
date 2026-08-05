@@ -8,7 +8,7 @@ import { BeatContextNodeView } from './BeatContextNodeView';
 
 vi.mock('@xyflow/react', () => ({
   Handle: ({ id }: { id: string }) => <div>handle:{id}</div>,
-  Position: { Right: 'right' },
+  Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -20,7 +20,8 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,

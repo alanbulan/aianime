@@ -2660,11 +2660,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/beatContextNodeModel.ts",
+      "modules/creative_canvas/application/beatContextNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/beatContextNodeModel.test.ts",
+      "modules/creative_canvas/application/beatContextNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -2715,7 +2715,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/BeatContextNode.tsx"],
-      ["features/canvas/application/beatContextNodeModel.ts"],
+      ["modules/creative_canvas/application/beatContextNodeModel.ts"],
       ["features/canvas/hooks/useBeatContextNodeController.ts"],
       ["features/canvas/nodes/BeatContextNodeView.tsx"],
     ]);
@@ -2724,6 +2724,20 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/beatContextNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/beatContextNodeModel",
+    );
     expect(registrySource).toContain(
       "import { BeatContextNode } from './BeatContextNode'",
     );
@@ -23427,7 +23441,7 @@ describe("frontend architecture boundaries", () => {
     );
     const beatContextModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/beatContextNodeModel.ts",
+      "modules/creative_canvas/application/beatContextNodeModel.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -23468,7 +23482,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/application/nodeActionBeatContext",
     );
     expect(importSpecifiers(controllerPath)).toContain(
-      "@/features/canvas/application/beatContextNodeModel",
+      "@/modules/creative_canvas/public",
     );
     expect(controllerSource).toContain("resolveNodeActionBeatContext(node,");
     expect(controllerSource).toContain("isSameNodeActionBeatContext(");
@@ -23543,7 +23557,6 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/application/beatContextNodeModel",
         "@/features/canvas/canvasStore",
         "@/features/canvas/domain/canvasNodes",
         "@/modules/creative_canvas/public",
