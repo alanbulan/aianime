@@ -3505,6 +3505,8 @@ export { NodeResizeHandle } from "@/modules/creative_canvas/presentation/NodeRes
 export type { NodeResizeHandleProps } from "@/modules/creative_canvas/presentation/NodeResizeHandle";
 export { VideoStoryNodeView } from "@/modules/creative_canvas/presentation/VideoStoryNodeView";
 export type { VideoStoryNodeController } from "@/modules/creative_canvas/presentation/useVideoStoryNodeController";
+export { VideoComposeNodeView } from "@/modules/creative_canvas/presentation/VideoComposeNodeView";
+export type { VideoComposeNodeController } from "@/modules/creative_canvas/presentation/useVideoComposeNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

@@ -2,9 +2,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
-import type { VideoComposeNodeController } from '@/features/canvas/hooks/useVideoComposeNodeController';
-
+import type { ComposeTimelineState } from '../domain/videoComposeTimeline';
+import type { VideoComposeNodeController } from './useVideoComposeNodeController';
 import { VideoComposeNodeView } from './VideoComposeNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -12,8 +11,16 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./canvasNodeFrameStyles', () => ({
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
+  canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('../domain/imageData', () => ({
+  resolveImageDisplayUrl: (url: string) => url,
+}));
+
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -26,8 +33,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       title:{titleText}
     </button>
   ),
-  canvasNodeFrameClass: () => 'frame-class',
-  resolveImageDisplayUrl: (url: string) => url,
+}));
+
+vi.mock('./VideoComposeModal', () => ({
   VideoComposeModal: ({
     project,
     canvasId,

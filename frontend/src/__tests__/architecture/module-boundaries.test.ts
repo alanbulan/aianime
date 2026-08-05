@@ -1033,19 +1033,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeNodeController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoComposeNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoComposeNodeView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoComposeNodeView.test.tsx",
+      "modules/creative_canvas/presentation/VideoComposeNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -1062,7 +1062,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "VideoComposeNode", "=", "memo("].join(" "),
       ["export function", "projectVideoComposeInputs("].join(" "),
-      ["export function", "useVideoComposeNodeController("].join(" "),
+      ["export function", "createUseVideoComposeNodeController("].join(" "),
       ["export function", "VideoComposeNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -1076,16 +1076,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useVideoComposeNodeController",
-        "./VideoComposeNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/VideoComposeNode.tsx"],
       ["modules/creative_canvas/domain/videoComposeInputs.ts"],
-      ["features/canvas/hooks/useVideoComposeNodeController.ts"],
-      ["features/canvas/nodes/VideoComposeNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useVideoComposeNodeController.ts"],
+      ["modules/creative_canvas/presentation/VideoComposeNodeView.tsx"],
     ]);
     expect(importSpecifiers(domainPath)).toEqual(["./videoComposeTimeline"]);
     expect(domainSource).not.toContain("react");
@@ -1110,11 +1109,11 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "sourceMedia: inputProjection.sourceMedia",
     );
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).not.toContain(
       "@/features/canvas/domain/videoComposeInputs",
     );
-    expect(controllerSource).toContain("useCanvasStore.getState()");
+    expect(controllerSource).toContain("useStore.getState()");
     expect(controllerSource).toContain("store.findNodePosition(id, 580, 380)");
     expect(controllerSource).toContain(
       "store.addNode(CANVAS_NODE_TYPES.video",
@@ -1133,6 +1132,14 @@ describe("frontend architecture boundaries", () => {
       "from './useVideoComposeNodeController'",
     );
     expect(viewTestSource).toContain("from './VideoComposeNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useVideoComposeNodeController.ts",
+      "features/canvas/hooks/useVideoComposeNodeController.test.tsx",
+      "features/canvas/nodes/VideoComposeNodeView.tsx",
+      "features/canvas/nodes/VideoComposeNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas group-node controller and view", () => {
@@ -29568,11 +29575,11 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoComposeNodeController.ts",
+      "modules/creative_canvas/presentation/useVideoComposeNodeController.ts",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoComposeNodeView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeNodeView.tsx",
     );
     const oldTimelinePath = resolve(
       SRC_ROOT,
@@ -30148,7 +30155,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoComposeNodeView.tsx",
+      "modules/creative_canvas/presentation/VideoComposeNodeView.tsx",
     );
     const modalSource = readFileSync(modalPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
@@ -30203,7 +30210,7 @@ describe("frontend architecture boundaries", () => {
     expect(coverProjectionSource).not.toContain("react");
     expect(coverProjectionSource).not.toContain("document.");
     expect(coverRuntimeSource).toContain('document.createElement("canvas")');
-    expect(importSpecifiers(nodeViewPath)).toContain(
+    expect(importSpecifiers(nodeViewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(nodeViewPath)).not.toContain(

@@ -2,34 +2,18 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ComposeTimelineState, CanvasNode, VideoComposeNodeData } from '@/modules/creative_canvas/public';
-;
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type {
+  CanvasNode,
+  VideoComposeNodeData,
+} from '../domain/canvasNodeData';
+import type { ComposeTimelineState } from '../domain/videoComposeTimeline';
+import {
+  createUseVideoComposeNodeController,
+  type VideoComposeNodeStore,
+  type VideoComposeNodeStoreHook,
+} from './useVideoComposeNodeController';
 
-import { useVideoComposeNodeController } from './useVideoComposeNodeController';
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-  const useCanvasStore = Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) => selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-    }),
-    {
-      getState: () => ({
-        findNodePosition: mocks.findNodePosition,
-        addNode: mocks.addNode,
-        addEdge: mocks.addEdge,
-        setSelectedNode: mocks.setResultSelectedNode,
-        requestFocusNode: mocks.requestFocusNode,
-      }),
-    },
-  );
-  
-  return useCanvasStore;
-})(),
-}));
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -53,10 +37,31 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
+const useStore = Object.assign(
+  (selector: (state: VideoComposeNodeStore) => unknown) =>
+    selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      findNodePosition: mocks.findNodePosition,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      requestFocusNode: mocks.requestFocusNode,
+    }),
+  {
+    getState: () => ({
+      findNodePosition: mocks.findNodePosition,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      setSelectedNode: mocks.setResultSelectedNode,
+      requestFocusNode: mocks.requestFocusNode,
+    }),
+  },
+) as unknown as VideoComposeNodeStoreHook;
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
+const useVideoComposeNodeController = createUseVideoComposeNodeController({
+  useStore,
   useUpstreamNodes: () => mocks.upstreamNodes,
-}));
+});
 
 function data(patch: Partial<VideoComposeNodeData> = {}): VideoComposeNodeData {
   return { displayName: '视频合成', ...patch };

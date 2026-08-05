@@ -10,6 +10,7 @@ import { createUseCanvasGenerationRecoveryController } from './presentation/useC
 import { createUseCanvasProjectSurfaceController } from './presentation/useCanvasProjectSurfaceController';
 import { createUseVideoStoryNodeController } from './presentation/useVideoStoryNodeController';
 import { createUseCanvasViewerSurfaceController } from './presentation/useCanvasViewerSurfaceController';
+import { createUseVideoComposeNodeController } from './presentation/useVideoComposeNodeController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -213,6 +214,10 @@ export const {
   useStore: useCanvasStore,
   projectContent: extractUpstreamContent,
   projectImages: extractUpstreamImages,
+});
+export const useVideoComposeNodeController = createUseVideoComposeNodeController({
+  useStore: useCanvasStore,
+  useUpstreamNodes,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
