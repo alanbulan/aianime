@@ -92,12 +92,12 @@ import {
   type StartCanvasSkillRunParams,
 } from './application/skillExecution';
 import {
-  uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
-} from './application/uploadToolOutput';
-import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
+import {
+  uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
+} from '@/modules/creative_canvas/public';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';

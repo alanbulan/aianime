@@ -3611,8 +3611,15 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const uploadToolOutput = readFileSync(
-      resolve(applicationRoot, "uploadToolOutput.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/uploadToolOutput.ts",
+      ),
       "utf8",
+    );
+    const legacyUploadToolOutputPath = resolve(
+      applicationRoot,
+      "uploadToolOutput.ts",
     );
     const referenceOrderingPath = resolve(
       SRC_ROOT,
@@ -3868,6 +3875,11 @@ describe("frontend architecture boundaries", () => {
       "projectId: string | null | undefined",
     );
     expect(uploadToolOutput).toContain("assetSourceGateway.read(trimmed)");
+    expect(existsSync(legacyUploadToolOutputPath)).toBe(false);
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/application/uploadToolOutput.ts",
+    ))).toEqual([]);
     expect(referenceOrdering).toContain(
       "export function upstreamNodesInEdgeOrder",
     );

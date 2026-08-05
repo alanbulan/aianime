@@ -1,8 +1,29 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasAssetGateway,
-  CanvasAssetSourceGateway,
-} from './ports';
+export interface CanvasToolAssetUploadOptions {
+  disableTimeout?: boolean;
+}
+
+export interface CanvasToolAssetUploadResult {
+  readonly url: string;
+  readonly filename: string;
+  readonly size: number;
+}
+
+export interface CanvasToolAssetGateway {
+  upload: (
+    projectId: string,
+    file: File | Blob,
+    filename: string,
+    options?: CanvasToolAssetUploadOptions,
+  ) => Promise<CanvasToolAssetUploadResult>;
+}
+
+export interface CanvasToolAssetSourceGateway {
+  read: (
+    source: string,
+    options?: { includeCredentials?: boolean },
+  ) => Promise<Blob>;
+}
 
 /**
  * Locally-produced images (crop / annotate / split frames / 360 captures /
@@ -15,8 +36,8 @@ import type {
  * upload optimization) and log a warning.
  */
 export async function uploadLocalImageToBackend(
-  assetGateway: CanvasAssetGateway,
-  assetSourceGateway: CanvasAssetSourceGateway,
+  assetGateway: CanvasToolAssetGateway,
+  assetSourceGateway: CanvasToolAssetSourceGateway,
   projectId: string | null | undefined,
   localImageUrl: string,
   filename: string

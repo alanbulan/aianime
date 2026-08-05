@@ -1,19 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
-import type {
-  CanvasAssetGateway,
-  CanvasAssetSourceGateway,
-} from '@/features/canvas/application/ports';
+import {
+  uploadLocalImageToBackend,
+  type CanvasToolAssetGateway,
+  type CanvasToolAssetSourceGateway,
+} from './uploadToolOutput';
 
 const uploadAsset = vi.fn();
 const readAsset = vi.fn();
-const assetGateway: CanvasAssetGateway = {
+const assetGateway: CanvasToolAssetGateway = {
   upload: (projectId, file, filename, options) =>
     uploadAsset(projectId, file, filename, options),
 };
-const assetSourceGateway: CanvasAssetSourceGateway = {
+const assetSourceGateway: CanvasToolAssetSourceGateway = {
   read: (source, options) => readAsset(source, options),
 };
 

@@ -1860,6 +1860,15 @@ export type {
   NodeActionToolbarNode,
 } from "@/modules/creative_canvas/application/nodeActionToolbarModel";
 export {
+  uploadLocalImageToBackend,
+} from "@/modules/creative_canvas/application/uploadToolOutput";
+export type {
+  CanvasToolAssetGateway,
+  CanvasToolAssetSourceGateway,
+  CanvasToolAssetUploadOptions,
+  CanvasToolAssetUploadResult,
+} from "@/modules/creative_canvas/application/uploadToolOutput";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,
