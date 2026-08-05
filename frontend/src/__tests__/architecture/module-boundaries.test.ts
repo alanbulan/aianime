@@ -16618,7 +16618,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node type conversion out of the Zustand store", () => {
     const conversionPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeConversion.ts",
+      "modules/creative_canvas/application/canvasNodeConversion.ts",
     );
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
@@ -16655,11 +16655,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasNodeConversion.ts",
+      "modules/creative_canvas/application/canvasNodeConversion.ts",
     ]);
     expect(conversionModel).toContain(conversionDeclaration);
     expect(conversionModel).toContain("createCanvasNodeDefaultData(");
     expect(nodeMutationSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(nodeMutationSlice).not.toContain(
       "../application/canvasNodeConversion",
     );
     expect(canvasStore).not.toContain(
@@ -28109,8 +28112,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasNodeConversion",
       "../application/canvasNodeCreation",
+      "../application/nodeCatalog",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");

@@ -26,7 +26,13 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from '../domain/canvasNodes';
-import { convertCanvasNodeType } from '../application/canvasNodeConversion';
+import { nodeCatalog } from '../application/nodeCatalog';
+import {
+  convertCanvasNodeType,
+  type ConversionDefaultDataGateway,
+  type ConversionGraphNode,
+  type ConversionNodeCatalog,
+} from '@/modules/creative_canvas/public';
 import { createCanvasNode } from '../application/canvasNodeCreation';
 import type {
   CanvasNodeDefaultDataGateway,
@@ -141,17 +147,18 @@ export function createZustandCanvasNodeMutationSlice(
     convertNodeType(nodeId, newType, dataOverrides = {}) {
       const state = dependencies.getState();
       const result = convertCanvasNodeType(
-        state.nodes,
+        state.nodes as unknown as ConversionGraphNode[],
         nodeId,
         newType,
+        nodeCatalog as unknown as ConversionNodeCatalog,
         dataOverrides,
-        dependencies.nodeDefaultDataGateway,
+        dependencies.nodeDefaultDataGateway as unknown as ConversionDefaultDataGateway,
       );
       if (!result.changed) {
         return false;
       }
       dependencies.setState({
-        nodes: result.nodes,
+        nodes: result.nodes as unknown as CanvasNode[],
         history: {
           past: pushSnapshot(
             state.history.past,

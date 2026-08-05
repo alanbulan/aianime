@@ -1,21 +1,28 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
-import { convertCanvasNodeType } from './canvasNodeConversion';
-import type { CanvasNodeDefaultDataGateway } from './ports';
+import {
+  convertCanvasNodeType,
+  type ConversionDefaultDataGateway,
+  type ConversionGraphNode,
+  type ConversionNodeCatalog,
+} from './canvasNodeConversion';
 
-function uploadNode(): CanvasNode {
+const catalog: ConversionNodeCatalog = {
+  getDefinition: () => ({ createDefaultData: () => ({}) }),
+};
+
+function uploadNode(): ConversionGraphNode {
   return {
     id: 'upload',
-    type: CANVAS_NODE_TYPES.upload,
+    type: 'uploadNode',
     position: { x: 10, y: 20 },
     measured: { width: 320, height: 350 },
     width: 320,
     height: 350,
     style: { width: 320, height: 350, opacity: 0.5 },
     data: { imageUrl: '/old.png', legacyOnly: true },
-  } as CanvasNode;
+  };
 }
 
 describe('Canvas node type conversion', () => {
@@ -24,7 +31,8 @@ describe('Canvas node type conversion', () => {
     const result = convertCanvasNodeType(
       [source],
       source.id,
-      CANVAS_NODE_TYPES.video,
+      'videoNode',
+      catalog,
       {
         videoUrl: '/video.mp4',
         displayName: 'Video',
@@ -34,7 +42,7 @@ describe('Canvas node type conversion', () => {
     expect(result.changed).toBe(true);
     expect(result.nodes[0]).toMatchObject({
       id: source.id,
-      type: CANVAS_NODE_TYPES.video,
+      type: 'videoNode',
       position: source.position,
       measured: undefined,
       width: undefined,
@@ -53,29 +61,31 @@ describe('Canvas node type conversion', () => {
     const nodes = [source];
 
     expect(
-      convertCanvasNodeType(nodes, 'missing', CANVAS_NODE_TYPES.video),
+      convertCanvasNodeType(nodes, 'missing', 'videoNode', catalog),
     ).toEqual({ nodes, changed: false });
     expect(
-      convertCanvasNodeType(nodes, source.id, CANVAS_NODE_TYPES.upload),
+      convertCanvasNodeType(nodes, source.id, 'uploadNode', catalog),
     ).toEqual({ nodes, changed: false });
   });
 
   it('applies runtime defaults before explicit conversion overrides', () => {
     const source = uploadNode();
-    const gateway: CanvasNodeDefaultDataGateway = {
+    const gateway: ConversionDefaultDataGateway = {
       getOverrides: () => ({ model: 'remembered-model' }),
     };
     const preferred = convertCanvasNodeType(
       [source],
       source.id,
-      CANVAS_NODE_TYPES.video,
+      'videoNode',
+      catalog,
       {},
       gateway,
     );
     const explicit = convertCanvasNodeType(
       [source],
       source.id,
-      CANVAS_NODE_TYPES.video,
+      'videoNode',
+      catalog,
       { model: 'explicit-model' },
       gateway,
     );

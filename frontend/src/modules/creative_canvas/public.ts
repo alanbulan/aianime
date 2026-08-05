@@ -1967,6 +1967,15 @@ export type {
   DuplicationNodeFactory,
 } from "@/modules/creative_canvas/application/canvasNodeDuplication";
 export {
+  convertCanvasNodeType,
+} from "@/modules/creative_canvas/application/canvasNodeConversion";
+export type {
+  CanvasNodeConversionResult,
+  ConversionDefaultDataGateway,
+  ConversionGraphNode,
+  ConversionNodeCatalog,
+} from "@/modules/creative_canvas/application/canvasNodeConversion";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,
