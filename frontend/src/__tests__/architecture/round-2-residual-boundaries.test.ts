@@ -659,6 +659,10 @@ describe("round 2 residual architecture boundaries", () => {
       "beatContextNodeModel.ts",
       "beatContextNodeModel.test.ts",
     ];
+    const videoModelApplicationFiles = [
+      "videoNodeModel.ts",
+      "videoNodeModel.test.ts",
+    ];
     const textGenerationApplicationFiles = [
       "generateCanvasStoryScript.ts",
       "generateCanvasStoryScript.test.ts",
@@ -1490,6 +1494,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/domain/directorWorldSources.ts",
       "features/canvas/application/beatContextNodeModel.ts",
       "features/canvas/application/beatContextNodeModel.test.ts",
+      "features/canvas/application/videoNodeModel.ts",
+      "features/canvas/application/videoNodeModel.test.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -1719,6 +1725,15 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(false);
     }
     for (const file of beatModelApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of videoModelApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
       );
@@ -2776,7 +2791,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 195],
+      ["features/canvas", 193],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

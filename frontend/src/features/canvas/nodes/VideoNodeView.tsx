@@ -17,7 +17,7 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
-} from '@/features/canvas/application/videoNodeModel';
+} from '@/modules/creative_canvas/public';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
 import {

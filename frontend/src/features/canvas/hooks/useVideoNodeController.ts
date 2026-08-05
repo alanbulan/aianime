@@ -33,7 +33,7 @@ import {
   VIDEO_NODE_DEFAULT_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
-} from '@/features/canvas/application/videoNodeModel';
+} from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,

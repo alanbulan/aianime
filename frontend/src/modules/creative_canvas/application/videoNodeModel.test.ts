@@ -17,19 +17,16 @@ import {
   resolveVideoNodePosterSource,
   resolveVideoNodeSource,
   resolveVideoNodeSubmitAspectRatio,
+  type VideoGraphNode,
 } from './videoNodeModel';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
 
 function node(
   id: string,
   type: string,
   data: Record<string, unknown>,
   position = { x: 0, y: 0 },
-): CanvasNode {
-  return { id, type, data, position } as CanvasNode;
+): VideoGraphNode {
+  return { id, type, data, position } as VideoGraphNode;
 }
 
 describe('videoNodeModel', () => {
@@ -104,17 +101,17 @@ describe('videoNodeModel', () => {
 
   it('projects ordered media and distinguishes available media from node types', () => {
     const upstream = [
-      node('video-a', CANVAS_NODE_TYPES.video, {
+      node('video-a', 'videoNode', {
         videoUrl: '/video.mp4',
         previewImageUrl: '/poster.png',
       }),
-      node('audio-a', CANVAS_NODE_TYPES.audio, {
+      node('audio-a', 'audioNode', {
         audioUrl: '/audio.mp3',
       }),
-      node('image-a', CANVAS_NODE_TYPES.imageGen, {
+      node('image-a', 'imageGenNode', {
         imageUrl: '/image.png',
       }),
-      node('empty-image', CANVAS_NODE_TYPES.upload, {}),
+      node('empty-image', 'uploadNode', {}),
     ];
 
     expect(projectVideoReferenceMedia(upstream)).toEqual([
@@ -137,14 +134,14 @@ describe('videoNodeModel', () => {
   it('plans collision-aware frame sources and the matching mode patch', () => {
     const target = node(
       'video-target',
-      CANVAS_NODE_TYPES.video,
+      'videoNode',
       {},
       { x: 1000, y: 200 },
     );
     target.height = 380;
     const blockingNode = node(
       'blocking',
-      CANVAS_NODE_TYPES.imageGen,
+      'imageGenNode',
       {},
       { x: 380, y: 210 },
     );
@@ -161,7 +158,7 @@ describe('videoNodeModel', () => {
 
     expect(plan.nodes).toEqual([
       expect.objectContaining({
-        type: CANVAS_NODE_TYPES.imageGen,
+        type: 'imageGenNode',
         position: { x: 380, y: 594 },
       }),
     ]);
@@ -186,15 +183,15 @@ describe('videoNodeModel', () => {
       }),
     ).toEqual([
       expect.objectContaining({
-        type: CANVAS_NODE_TYPES.upload,
+        type: 'uploadNode',
         position: { x: 640, y: 6 },
       }),
       expect.objectContaining({
-        type: CANVAS_NODE_TYPES.video,
+        type: 'videoNode',
         data: expect.objectContaining({ referenceOnly: true }),
       }),
       expect.objectContaining({
-        type: CANVAS_NODE_TYPES.audio,
+        type: 'audioNode',
         position: { x: 640, y: 534 },
       }),
     ]);

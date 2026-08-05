@@ -3081,11 +3081,11 @@ describe("frontend architecture boundaries", () => {
     );
     const modelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoNodeModel.ts",
+      "modules/creative_canvas/application/videoNodeModel.ts",
     );
     const modelTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoNodeModel.test.ts",
+      "modules/creative_canvas/application/videoNodeModel.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -3126,7 +3126,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/VideoNode.tsx"],
-      ["features/canvas/application/videoNodeModel.ts"],
+      ["modules/creative_canvas/application/videoNodeModel.ts"],
       ["features/canvas/hooks/useVideoNodeController.ts"],
       ["features/canvas/nodes/VideoNodeView.tsx"],
     ]);
@@ -3135,6 +3135,20 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("window.");
     expect(modelSource).not.toContain("document.");
     expect(modelSource).not.toContain("className=");
+    expect(modelSource).not.toContain("@/features/canvas/");
+    expect(modelSource).not.toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(controllerPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/features/canvas/application/videoNodeModel",
+    );
+    expect(importSpecifiers(viewPath)).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
+      "@/features/canvas/application/videoNodeModel",
+    );
     expect(modelTestSource).toContain("from './videoNodeModel'");
     expect(registrySource).toContain(
       "import { VideoNode } from './VideoNode'",
@@ -31738,7 +31752,7 @@ describe("frontend architecture boundaries", () => {
     );
     const videoNodeModelPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/videoNodeModel.ts",
+      "modules/creative_canvas/application/videoNodeModel.ts",
     );
     const videoNodeViewPath = resolve(
       SRC_ROOT,
@@ -31923,8 +31937,11 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(videoNodeControllerPath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(videoNodeModelPath)).toContain(
+    expect(importSpecifiers(videoNodeModelPath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(videoNodeModelPath)).toContain(
+      "../domain/videoReferenceMedia",
     );
     expect(importSpecifiers(videoNodeControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",

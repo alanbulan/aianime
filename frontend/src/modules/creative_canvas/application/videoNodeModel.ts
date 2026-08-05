@@ -1,27 +1,52 @@
 // Copyright (c) 2026 AI anime
+import type { CanvasAssetLibrarySelection } from "../domain/assetLibrary";
+import type { CanvasConnectionNodeType } from "../domain/canvasConnection";
 import {
-  CANVAS_NODE_TYPES,
-  isAudioNode,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isStoryboardGenNode,
-  isUploadNode,
-  isVideoNode,
-  type CanvasEdge,
-  type CanvasNode,
-  type VideoGenCount,
-  type VideoNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+  VIDEO_GENERATION_ASPECT_RATIOS,
+  snapToAllowedAspectRatio,
+} from "../domain/imageData";
+import type { VideoGenerationAspectRatio } from "./submitVideoGeneration";
+import type { VideoReferenceItem } from "../domain/videoReferenceLimits";
 import {
   referenceImageUrl,
   referenceVideoUrl,
-  type CanvasAssetLibrarySelection,
-  type VideoGenerationAspectRatio,
-  type VideoReferenceItem,
-  VIDEO_GENERATION_ASPECT_RATIOS,
-  snapToAllowedAspectRatio,
-} from '@/modules/creative_canvas/public';
+} from "../domain/videoReferenceMedia";
+
+export type VideoNodeGenerationCount = 1 | 2 | 4;
+
+export interface VideoGraphNode {
+  id: string;
+  type: CanvasConnectionNodeType;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  measured?: { width?: number; height?: number };
+  width?: number | null;
+  height?: number | null;
+  [key: string]: unknown;
+}
+
+export interface VideoGraphEdge {
+  id?: string;
+  source: string;
+  target: string;
+  [key: string]: unknown;
+}
+
+export interface VideoNodeModelData {
+  widthPx?: unknown;
+  heightPx?: unknown;
+  aspectRatio?: unknown;
+  audioUrl?: unknown;
+  displayName?: unknown;
+  previewImageUrl?: unknown;
+  [key: string]: unknown;
+}
+
+export type VideoNodeDerivedNodeType =
+  | "audioNode"
+  | "imageGenNode"
+  | "uploadNode"
+  | "videoNode";
 
 export const VIDEO_NODE_DEFAULT_WIDTH = 580;
 export const VIDEO_NODE_DEFAULT_HEIGHT = 380;
@@ -49,7 +74,11 @@ export const VIDEO_NODE_ASPECT_RATIOS: ReadonlyArray<VideoGenerationAspectRatio>
   '9:16',
   '21:9',
 ];
-export const VIDEO_NODE_COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
+export const VIDEO_NODE_COUNT_OPTIONS: ReadonlyArray<VideoNodeGenerationCount> = [
+  1,
+  2,
+  4,
+];
 
 export interface VideoNodeModelOption {
   id: string;
@@ -70,11 +99,7 @@ export interface VideoNodeDisplayedRect {
 }
 
 export interface VideoNodeDerivedNodePlan {
-  type:
-    | typeof CANVAS_NODE_TYPES.audio
-    | typeof CANVAS_NODE_TYPES.imageGen
-    | typeof CANVAS_NODE_TYPES.upload
-    | typeof CANVAS_NODE_TYPES.video;
+  type: VideoNodeDerivedNodeType;
   position: { x: number; y: number };
   data: Record<string, unknown>;
 }
@@ -82,7 +107,7 @@ export interface VideoNodeDerivedNodePlan {
 export interface VideoFrameSourcePlan {
   nodes: VideoNodeDerivedNodePlan[];
   groupLabel: string;
-  videoPatch: Partial<VideoNodeData>;
+  videoPatch: Record<string, unknown>;
 }
 
 export function resolveVideoNodeModel<T extends VideoNodeModelOption>(
@@ -115,7 +140,7 @@ export function resolveVideoNodeAspectRatio(
 }
 
 export function resolveVideoNodeSubmitAspectRatio(
-  data: Pick<VideoNodeData, 'widthPx' | 'heightPx'>,
+  data: Pick<VideoNodeModelData, "widthPx" | "heightPx">,
   aspectRatio: VideoGenerationAspectRatio,
 ): VideoGenerationAspectRatio {
   if (aspectRatio !== 'auto') return aspectRatio;
@@ -252,7 +277,7 @@ export function resolveVideoFrameSeekSeconds(input: {
 }
 
 export function projectVideoReferenceMedia(
-  sortedUpstreamNodes: readonly CanvasNode[],
+  sortedUpstreamNodes: readonly VideoGraphNode[],
 ): VideoReferenceItem[] {
   const items: VideoReferenceItem[] = [];
   for (const node of sortedUpstreamNodes) {
@@ -271,7 +296,7 @@ export function projectVideoReferenceMedia(
       });
       continue;
     }
-    if (isAudioNode(node)) {
+    if (node.type === "audioNode") {
       const audioUrl =
         typeof node.data.audioUrl === 'string' && node.data.audioUrl.length > 0
           ? node.data.audioUrl
@@ -281,7 +306,10 @@ export function projectVideoReferenceMedia(
           kind: 'audio',
           nodeId: node.id,
           audioUrl,
-          displayName: node.data.displayName ?? null,
+          displayName:
+            typeof node.data.displayName === 'string'
+              ? node.data.displayName
+              : null,
         });
       }
       continue;
@@ -293,7 +321,9 @@ export function projectVideoReferenceMedia(
         nodeId: node.id,
         imageUrl,
         displayName:
-          (node.data as { displayName?: string | null }).displayName ?? null,
+          typeof node.data.displayName === 'string'
+            ? node.data.displayName
+            : null,
       });
     }
   }
@@ -301,13 +331,13 @@ export function projectVideoReferenceMedia(
 }
 
 export function countVideoUpstreamMedia(
-  upstreamNodes: readonly CanvasNode[],
+  upstreamNodes: readonly VideoGraphNode[],
 ): VideoNodeMediaCounts {
   const counts: VideoNodeMediaCounts = { images: 0, videos: 0, audios: 0 };
   for (const node of upstreamNodes) {
     if (referenceVideoUrl(node)) {
       counts.videos += 1;
-    } else if (isAudioNode(node)) {
+    } else if (node.type === "audioNode") {
       if (typeof node.data.audioUrl === 'string' && node.data.audioUrl) {
         counts.audios += 1;
       }
@@ -319,20 +349,20 @@ export function countVideoUpstreamMedia(
 }
 
 export function countVideoUpstreamNodeTypes(
-  upstreamNodes: readonly CanvasNode[],
+  upstreamNodes: readonly VideoGraphNode[],
 ): VideoNodeMediaCounts {
   const counts: VideoNodeMediaCounts = { images: 0, videos: 0, audios: 0 };
   for (const node of upstreamNodes) {
-    if (isVideoNode(node) || referenceVideoUrl(node)) {
+    if (node.type === "videoNode" || referenceVideoUrl(node)) {
       counts.videos += 1;
-    } else if (isAudioNode(node)) {
+    } else if (node.type === "audioNode") {
       counts.audios += 1;
     } else if (
-      isImageGenNode(node) ||
-      isUploadNode(node) ||
-      isImageEditNode(node) ||
-      isExportImageNode(node) ||
-      isStoryboardGenNode(node)
+      node.type === "imageGenNode" ||
+      node.type === "uploadNode" ||
+      node.type === "imageNode" ||
+      node.type === "exportImageNode" ||
+      node.type === "storyboardGenNode"
     ) {
       counts.images += 1;
     }
@@ -341,7 +371,7 @@ export function countVideoUpstreamNodeTypes(
 }
 
 function canvasNodeSize(
-  node: CanvasNode,
+  node: VideoGraphNode,
   fallbackWidth: number,
   fallbackHeight: number,
 ): { width: number; height: number } {
@@ -370,9 +400,9 @@ function overlapsWithMargin(
 
 export function planVideoFrameSources(input: {
   mode: 'firstFrame' | 'firstLastFrame';
-  targetNode: CanvasNode;
-  nodes: readonly CanvasNode[];
-  edges: readonly CanvasEdge[];
+  targetNode: VideoGraphNode;
+  nodes: readonly VideoGraphNode[];
+  edges: readonly VideoGraphEdge[];
   prompt: string;
 }): VideoFrameSourcePlan {
   const isFirstFrame = input.mode === 'firstFrame';
@@ -397,8 +427,8 @@ export function planVideoFrameSources(input: {
     .filter(
       (node) =>
         upstreamIds.has(node.id) &&
-        (node.type === CANVAS_NODE_TYPES.upload ||
-          node.type === CANVAS_NODE_TYPES.imageGen) &&
+        (node.type === "uploadNode" ||
+          node.type === "imageGenNode") &&
         Math.abs(node.position.x - baseX) < 8,
     )
     .reduce<number | null>(
@@ -440,7 +470,7 @@ export function planVideoFrameSources(input: {
     return {
       nodes: [
         {
-          type: CANVAS_NODE_TYPES.imageGen,
+          type: "imageGenNode",
           position: { x: baseX, y },
           data: { displayName: '首帧' },
         },
@@ -462,12 +492,12 @@ export function planVideoFrameSources(input: {
   return {
     nodes: [
       {
-        type: CANVAS_NODE_TYPES.upload,
+        type: "uploadNode",
         position: { x: baseX, y: firstY },
         data: { displayName: '首帧' },
       },
       {
-        type: CANVAS_NODE_TYPES.upload,
+        type: "uploadNode",
         position: { x: baseX, y: lastY },
         data: { displayName: '尾帧' },
       },
@@ -481,7 +511,7 @@ export function planVideoAssetReferences(input: {
   selections: readonly CanvasAssetLibrarySelection[];
   targetPosition: { x: number; y: number };
   targetHeight: number | undefined;
-  aspectRatio: VideoNodeData['aspectRatio'];
+  aspectRatio: string;
 }): VideoNodeDerivedNodePlan[] {
   const width = 320;
   const height = 240;
@@ -498,14 +528,14 @@ export function planVideoAssetReferences(input: {
     const displayName = selection.name || undefined;
     if (selection.media === 'audio') {
       return {
-        type: CANVAS_NODE_TYPES.audio,
+        type: "audioNode",
         position,
         data: { audioUrl: selection.url, displayName },
       };
     }
     if (selection.media === 'video') {
       return {
-        type: CANVAS_NODE_TYPES.video,
+        type: "videoNode",
         position,
         data: {
           videoUrl: selection.url,
@@ -516,7 +546,7 @@ export function planVideoAssetReferences(input: {
       };
     }
     return {
-      type: CANVAS_NODE_TYPES.upload,
+      type: "uploadNode",
       position,
       data: {
         imageUrl: selection.url,
