@@ -30,7 +30,10 @@ import {
   createPanoCaptureNodes,
   type CanvasPanoCapture,
   type CanvasPanoCaptureOptions,
-} from '../application/panoCaptureNodes';
+  type PanoCaptureGraphEdge,
+  type PanoCaptureGraphNode,
+  type PanoCaptureNodeFactory,
+} from '@/modules/creative_canvas/public';
 import type { NodeFactory } from '../application/ports';
 
 export interface CanvasDerivedNodeCreationSlice {
@@ -180,20 +183,20 @@ export function createZustandCanvasDerivedNodeCreationSlice(
     addPanoCaptureGroup(sourceNodeId, captures, options) {
       const state = dependencies.getState();
       const result = createPanoCaptureNodes(
-        state.nodes,
-        state.edges,
+        state.nodes as unknown as PanoCaptureGraphNode[],
+        state.edges as unknown as PanoCaptureGraphEdge[],
         sourceNodeId,
         captures,
         options,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as PanoCaptureNodeFactory,
       );
       if (!result) {
         return null;
       }
 
       dependencies.setState({
-        nodes: result.nodes,
-        edges: result.edges,
+        nodes: result.nodes as unknown as CanvasNode[],
+        edges: result.edges as unknown as CanvasEdge[],
         selectedNodeId: result.selectedNodeId,
         history: {
           past: pushSnapshot(

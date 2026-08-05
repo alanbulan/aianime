@@ -1944,6 +1944,18 @@ export type {
   UploadSelectedBackgroundCandidateOptions,
 } from "@/modules/creative_canvas/application/selectedBackgroundSlot";
 export {
+  createPanoCaptureNodes,
+} from "@/modules/creative_canvas/application/panoCaptureNodes";
+export type {
+  CanvasPanoCapture,
+  CanvasPanoCaptureOptions,
+  CanvasPanoCaptureResult,
+  PanoCaptureCreatedNode,
+  PanoCaptureGraphEdge,
+  PanoCaptureGraphNode,
+  PanoCaptureNodeFactory,
+} from "@/modules/creative_canvas/application/panoCaptureNodes";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

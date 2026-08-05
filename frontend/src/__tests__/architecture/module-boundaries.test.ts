@@ -16231,7 +16231,10 @@ describe("frontend architecture boundaries", () => {
     const layoutConsumers = [
       resolve(SRC_ROOT, "features/canvas/application/canvasNodeCreation.ts"),
       resolve(SRC_ROOT, "features/canvas/application/canvasDerivedNodeCreation.ts"),
-      resolve(SRC_ROOT, "features/canvas/application/panoCaptureNodes.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/panoCaptureNodes.ts",
+      ),
       resolve(
         SRC_ROOT,
         "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
@@ -16274,9 +16277,15 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/application/imageNodeLayout",
     );
     for (const consumerPath of layoutConsumers) {
-      expect(importSpecifiers(consumerPath)).toContain(
-        "@/modules/creative_canvas/public",
-      );
+      if (relativeSource(consumerPath).startsWith("modules/creative_canvas/")) {
+        expect(importSpecifiers(consumerPath)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+      } else {
+        expect(importSpecifiers(consumerPath)).toContain(
+          "@/modules/creative_canvas/public",
+        );
+      }
       expect(importSpecifiers(consumerPath)).not.toContain(
         "../application/imageNodeLayout",
       );
@@ -16729,7 +16738,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas pano capture creation out of the Zustand store", () => {
     const capturePath = resolve(
       SRC_ROOT,
-      "features/canvas/application/panoCaptureNodes.ts",
+      "modules/creative_canvas/application/panoCaptureNodes.ts",
     );
     const captureModel = readFileSync(capturePath, "utf8");
     const canvasStore = readFileSync(
@@ -16777,14 +16786,17 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/panoCaptureNodes.ts",
+      "modules/creative_canvas/application/panoCaptureNodes.ts",
     ]);
     expect(contractOwners).toEqual([
-      "features/canvas/application/panoCaptureNodes.ts",
+      "modules/creative_canvas/application/panoCaptureNodes.ts",
     ]);
     expect(captureModel).toContain(creationDeclaration);
-    expect(captureModel).toContain("nodeFactory: NodeFactory");
+    expect(captureModel).toContain("nodeFactory: PanoCaptureNodeFactory");
     expect(derivedNodeCreationSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(derivedNodeCreationSlice).not.toContain(
       "../application/panoCaptureNodes",
     );
     expect(canvasStore).not.toContain(
@@ -28149,7 +28161,6 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasNodes",
       "../application/canvasDerivedNodeCreation",
       "../application/canvasNodeDuplication",
-      "../application/panoCaptureNodes",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");

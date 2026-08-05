@@ -2,26 +2,26 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import type { NodeFactory } from './ports';
-import { createPanoCaptureNodes } from './panoCaptureNodes';
+  createPanoCaptureNodes,
+  type PanoCaptureCreatedNode,
+  type PanoCaptureGraphNode,
+  type PanoCaptureNodeFactory,
+} from './panoCaptureNodes';
 
 function node(
   id: string,
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
+  overrides: Partial<PanoCaptureGraphNode> = {},
+): PanoCaptureGraphNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.pano360Viewer,
+    type: 'pano360ViewerNode',
     position: { x: 0, y: 0 },
     data: {},
     ...overrides,
-  } as CanvasNode;
+  };
 }
 
-function factory(...ids: string[]): NodeFactory {
+function factory(...ids: string[]): PanoCaptureNodeFactory {
   let index = 0;
   return {
     createNode: (type, position, data = {}) => ({
@@ -29,7 +29,7 @@ function factory(...ids: string[]): NodeFactory {
       type,
       position,
       data,
-    }) as CanvasNode,
+    }) as PanoCaptureCreatedNode,
   };
 }
 
@@ -53,7 +53,7 @@ describe('Canvas pano capture nodes', () => {
 
   it('creates one selected image at the source absolute position offset', () => {
     const parent = node('parent', {
-      type: CANVAS_NODE_TYPES.group,
+      type: 'groupNode',
       position: { x: 100, y: 200 },
     });
     const source = node('source', {
@@ -84,7 +84,7 @@ describe('Canvas pano capture nodes', () => {
     expect(result?.nodes[1]?.selected).toBe(false);
     expect(result?.nodes[2]).toMatchObject({
       id: 'capture',
-      type: CANVAS_NODE_TYPES.exportImage,
+      type: 'exportImageNode',
       position: { x: 690, y: 220 },
       width: 320,
       height: 160,

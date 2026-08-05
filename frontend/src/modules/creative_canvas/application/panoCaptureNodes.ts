@@ -1,17 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import {
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
+  resolveAutoImageNodeDimensions,
+} from "../domain/imageNodeLayout";
+import {
   getNodeSize,
   resolveAbsolutePosition,
-  resolveAutoImageNodeDimensions,
-} from '@/modules/creative_canvas/public';
-import type { NodeFactory } from './ports';
+} from "../domain/canvasGeometry";
 
 export interface CanvasPanoCapture {
   dataUrl: string;
@@ -27,14 +23,61 @@ export interface CanvasPanoCaptureOptions {
   groupName?: string;
 }
 
+export interface PanoCaptureGraphNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  selected?: boolean;
+  width?: number;
+  height?: number;
+  measured?: { width?: number; height?: number };
+  parentId?: string;
+  extent?: string | null;
+  style?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface PanoCaptureGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  type?: string | null;
+  [key: string]: unknown;
+}
+
+export interface PanoCaptureCreatedNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data?: Record<string, unknown> | null;
+  selected?: boolean;
+  width?: number | null;
+  height?: number | null;
+  style?: Record<string, unknown> | null;
+  parentId?: string | null;
+  extent?: string | null;
+  [key: string]: unknown;
+}
+
+export interface PanoCaptureNodeFactory {
+  createNode: (
+    type: unknown,
+    position: unknown,
+    data?: unknown,
+  ) => PanoCaptureCreatedNode;
+}
+
 export interface CanvasPanoCaptureResult {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+  nodes: PanoCaptureCreatedNode[];
+  edges: PanoCaptureGraphEdge[];
   selectedNodeId: string;
 }
 
 function captureDisplayUrl(capture: CanvasPanoCapture): string {
-  return typeof capture.uploadedUrl === 'string' && capture.uploadedUrl.length > 0
+  return typeof capture.uploadedUrl === "string" && capture.uploadedUrl.length > 0
     ? capture.uploadedUrl
     : capture.dataUrl;
 }
@@ -48,24 +91,24 @@ function captureAspectRatio(capture: CanvasPanoCapture): string {
   return `${Math.round(capture.width / divisor)}:${Math.round(capture.height / divisor)}`;
 }
 
-function captureEdge(sourceNodeId: string, targetNodeId: string): CanvasEdge {
+function captureEdge(sourceNodeId: string, targetNodeId: string): PanoCaptureGraphEdge {
   return {
     id: `e-${sourceNodeId}-${targetNodeId}`,
     source: sourceNodeId,
     target: targetNodeId,
-    sourceHandle: 'source',
-    targetHandle: 'target',
-    type: 'disconnectableEdge',
+    sourceHandle: "source",
+    targetHandle: "target",
+    type: "disconnectableEdge",
   };
 }
 
 export function createPanoCaptureNodes(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
+  nodes: PanoCaptureGraphNode[],
+  edges: PanoCaptureGraphEdge[],
   sourceNodeId: string,
   captures: CanvasPanoCapture[],
   options: CanvasPanoCaptureOptions | undefined,
-  nodeFactory: NodeFactory,
+  nodeFactory: PanoCaptureNodeFactory,
 ): CanvasPanoCaptureResult | null {
   if (captures.length === 0) {
     return null;
@@ -91,7 +134,7 @@ export function createPanoCaptureNodes(
     );
     const displayUrl = captureDisplayUrl(capture);
     const singleNode = nodeFactory.createNode(
-      CANVAS_NODE_TYPES.exportImage,
+      "exportImageNode",
       {
         x: Math.round(sourceAbs.x + sourceSize.width + 80),
         y: Math.round(sourceAbs.y),
@@ -138,7 +181,7 @@ export function createPanoCaptureNodes(
     topPadding + bottomPadding + rows * cellHeight + (rows - 1) * cellGap;
   const groupDisplayName = options?.groupName ?? `全景截图组 (${captures.length} 张)`;
   const groupNode = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.group,
+    "groupNode",
     {
       x: Math.round(sourceAbs.x + sourceSize.width + 80),
       y: Math.round(sourceAbs.y),
@@ -155,7 +198,7 @@ export function createPanoCaptureNodes(
     const row = Math.floor(index / cols);
     const displayUrl = captureDisplayUrl(capture);
     const childNode = nodeFactory.createNode(
-      CANVAS_NODE_TYPES.exportImage,
+      "exportImageNode",
       {
         x: sidePadding + col * (cellWidth + cellGap),
         y: topPadding + row * (cellHeight + cellGap),
@@ -169,7 +212,7 @@ export function createPanoCaptureNodes(
       },
     );
     childNode.parentId = groupNode.id;
-    childNode.extent = 'parent';
+    childNode.extent = "parent";
     childNode.width = cellWidth;
     childNode.height = cellHeight;
     childNode.style = {

@@ -642,7 +642,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/domain/canvasCapturePartners.ts",
     );
     const captureCreation = read(
-      "src/features/canvas/application/panoCaptureNodes.ts",
+      "src/modules/creative_canvas/application/panoCaptureNodes.ts",
     );
 
     expect(purpose).toContain('ViewerPurpose = "mainline" | "freezone" | "asset" | "beat"');
