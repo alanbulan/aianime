@@ -1338,6 +1338,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百八十一批全仓检索确认 `features/canvas/CanvasToolbar.tsx` 只有文件自身引用，没有任何生产或测试消费者；作为无引用迁移残留直接移除，不改变运行时行为。架构/残余/颜色门禁 3 个文件 351 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/186/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百八十二批全仓检索确认 `features/canvas/ui/CommitTargetHint.tsx` 只有文件自身引用，没有任何生产或测试消费者；作为无引用迁移残留直接移除，不改变运行时行为。架构/残余/颜色门禁 3 个文件 351 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/185/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
