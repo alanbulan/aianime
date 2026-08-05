@@ -18,11 +18,11 @@ import {
   resolveNearestImageGenAspectOption,
 } from '@/modules/creative_canvas/public';
 import type {
-  ImageGenCount,
   ImageGenNodeData,
   ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
 import type {
+  ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
 } from '@/modules/creative_canvas/public';

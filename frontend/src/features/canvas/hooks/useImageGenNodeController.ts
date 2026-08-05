@@ -14,7 +14,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   CANVAS_NODE_TYPES,
-  type ImageGenCount,
   type ImageGenNodeData,
   type ImageSize,
 } from '@/features/canvas/domain/canvasNodes';
@@ -27,6 +26,7 @@ import {
   hasEffectiveImageGenPrompt,
   hasImageGenCameraSelection,
   imageGenAlbumUrls,
+  type ImageGenCount,
   type ImageGenCameraSelectionData,
   type ImageQuality,
   IMAGE_GEN_DEFAULT_QUALITY,

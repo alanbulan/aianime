@@ -7,6 +7,7 @@ import type {
 } from '@/features/viewer-kit/public';
 import type {
   AudioVoiceRef,
+  ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
   Seedance2SceneOptimize,
@@ -286,8 +287,6 @@ export interface ImageEditNodeData extends NodeImageData {
   generationStartedAt?: number | null;
   generationDurationMs?: number;
 }
-
-export type ImageGenCount = 1 | 2 | 4;
 
 interface ImageGenFocusRegion {
   /** Normalized 0-1 coordinates against the upstream source image. */
