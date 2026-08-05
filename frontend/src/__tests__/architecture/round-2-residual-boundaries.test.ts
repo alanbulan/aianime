@@ -512,6 +512,10 @@ describe("round 2 residual architecture boundaries", () => {
     const relightPresentationFiles = [
       "LightEditorPanel.tsx",
     ];
+    const catalogPresentationFiles = [
+      "ProviderModelPicker.tsx",
+      "ProviderModelPicker.test.tsx",
+    ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
       "imageTo3d.test.ts",
@@ -1320,6 +1324,9 @@ describe("round 2 residual architecture boundaries", () => {
     for (const file of relightPresentationFiles) {
       expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
     }
+    for (const file of catalogPresentationFiles) {
+      expect(existsSync(resolve(moduleRoot, "presentation", file)), file).toBe(true);
+    }
     expect(
       existsSync(resolve(moduleRoot, "presentation/multi-angle-sphere.css")),
     ).toBe(true);
@@ -1347,6 +1354,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/multi-angle-sphere.css",
       "features/canvas/ui/MultiAngleEditorPanel.tsx",
       "features/canvas/ui/LightEditorPanel.tsx",
+      "features/canvas/ui/ProviderModelPicker.tsx",
+      "features/canvas/ui/ProviderModelPicker.test.tsx",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -2428,7 +2437,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 239],
+      ["features/canvas", 237],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

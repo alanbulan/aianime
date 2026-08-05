@@ -2774,6 +2774,12 @@ export type {
   LightSmartModeDescriptor,
   LightVector,
 } from "@/modules/creative_canvas/presentation/LightEditorPanel";
+export { ProviderModelPicker } from "@/modules/creative_canvas/presentation/ProviderModelPicker";
+export type {
+  ModelOption,
+  ProviderModelDomain,
+  ProviderModelPickerProps,
+} from "@/modules/creative_canvas/presentation/ProviderModelPicker";
 export {
   CANVAS_OUTPAINT_ASPECT_RATIOS,
   CANVAS_OUTPAINT_IMAGE_SIZES,

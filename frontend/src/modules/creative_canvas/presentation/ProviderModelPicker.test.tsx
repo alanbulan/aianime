@@ -6,7 +6,7 @@ const states = vi.hoisted(() => ({
   video: { models: [], isLoading: false, error: null as Error | null },
 }));
 
-vi.mock("@/modules/creative_canvas/public", () => ({
+vi.mock("@/modules/creative_canvas/generationCatalogComposition", () => ({
   useCanvasImageModels: () => states.image,
   useCanvasVideoModels: () => states.video,
 }));
@@ -21,7 +21,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { ProviderModelPicker } from "@/features/canvas/ui/ProviderModelPicker";
+import { ProviderModelPicker } from "./ProviderModelPicker";
 
 describe("ProviderModelPicker catalog states", () => {
   beforeEach(() => {

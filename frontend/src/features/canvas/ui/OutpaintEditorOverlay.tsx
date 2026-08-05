@@ -44,7 +44,7 @@ import {
   type CanvasOutpaintNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
+import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

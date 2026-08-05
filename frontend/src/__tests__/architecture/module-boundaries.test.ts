@@ -4091,7 +4091,7 @@ describe("frontend architecture boundaries", () => {
     );
     const pickerPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ProviderModelPicker.tsx",
+      "modules/creative_canvas/presentation/ProviderModelPicker.tsx",
     );
     const textControllerPath = resolve(
       SRC_ROOT,
@@ -4141,6 +4141,18 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(pickerPath, "utf8")).not.toContain(
       "export const DEFAULT_",
     );
+    expect(importSpecifiers(pickerPath)).toEqual(
+      expect.arrayContaining([
+        "../application/generationCatalog",
+        "../domain/imageModelCapability",
+        "../generationCatalogComposition",
+        "./canvasNodeControlStyles",
+      ]),
+    );
+    expect(importSpecifiers(pickerPath)).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(readFileSync(pickerPath, "utf8")).not.toContain("@/features/canvas/");
     expect(importSpecifiers(textControllerPath)).toContain(
       "@/modules/creative_canvas/public",
     );

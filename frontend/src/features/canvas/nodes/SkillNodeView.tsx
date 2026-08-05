@@ -16,7 +16,7 @@ import {
 } from '@/features/canvas/application/skillNodeModel';
 import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
-import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
+import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import {
   BackgroundCropperDialog,
   NodeHeader,

@@ -7,11 +7,10 @@ import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-  useCanvasImageModels,
-  useCanvasVideoModels,
-  type CanvasCatalogModelOption,
-  type CanvasImageMode,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeControlStyles';
+import { useCanvasImageModels, useCanvasVideoModels } from '../generationCatalogComposition';
+import type { CanvasCatalogModelOption } from '../application/generationCatalog';
+import type { CanvasImageMode } from '../domain/imageModelCapability';
 
 const MODEL_PICKER_POPOVER_WIDTH = 260;
 const MODEL_PICKER_POPOVER_CLASS =
@@ -40,7 +39,7 @@ interface ProviderModelPickerBaseProps {
   getOptionDisabledReason?: (model: ModelOption) => string | null;
 }
 
-type ProviderModelPickerProps = ProviderModelPickerBaseProps &
+export type ProviderModelPickerProps = ProviderModelPickerBaseProps &
   (
     | { models: ModelOption[]; projectId?: never }
     | { models?: undefined; projectId: string }

@@ -45,9 +45,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   NodeGenerationOverlay: ({ durationMs }: { durationMs: number }) => (
     <div>generation-overlay:{durationMs}</div>
   ),
-}));
-
-vi.mock('@/features/canvas/ui/ProviderModelPicker', () => ({
   ProviderModelPicker: ({
     selectedModelId,
     onChange,
