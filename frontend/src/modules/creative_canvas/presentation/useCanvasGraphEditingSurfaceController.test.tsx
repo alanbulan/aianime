@@ -37,12 +37,22 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
-  cloneCanvasNodeData: (data: unknown) => data,
+vi.mock('../canvasClipboardComposition', () => ({
   createCanvasClipboardControllerHook: controllerMocks.createClipboardHook,
+}));
+
+vi.mock('../application/canvasNodeData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../application/canvasNodeData')>()),
+  cloneCanvasNodeData: (data: unknown) => data,
+}));
+
+vi.mock('../domain/canvasGeometry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/canvasGeometry')>()),
   getNodeSize: () => ({ width: 320, height: 200 }),
   hasRectCollision: () => false,
+}));
+
+vi.mock('./useCanvasGraphInteractionController', () => ({
   useCanvasGraphInteractionController: controllerMocks.useGraphInteraction,
 }));
 
@@ -61,7 +71,9 @@ function createOptions(): CanvasGraphEditingSurfaceControllerOptions {
     queueSnapshotPaste: vi.fn(),
     elevateNodes: vi.fn(),
     fitGroupToChildren: vi.fn(),
-    alignNodeChanges: vi.fn(({ changes }) => changes),
+    alignNodeChanges: vi.fn(
+      ({ changes }: { changes: unknown }) => changes,
+    ) as unknown as CanvasGraphEditingSurfaceControllerOptions['alignNodeChanges'],
     applyEdgeChanges: vi.fn(),
     deleteEdge: vi.fn(),
     clearSnapAlignment: vi.fn(),

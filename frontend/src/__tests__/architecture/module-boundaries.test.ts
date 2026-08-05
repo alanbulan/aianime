@@ -8246,7 +8246,7 @@ describe("frontend architecture boundaries", () => {
     const clipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8354,7 +8354,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const collides =");
     expect(canvasStore).not.toContain("const overflowAmount =");
     expect(clipboardDuplicationPlanner).not.toContain("canvasGeometry");
-    expect(clipboardController).toContain("@/modules/creative_canvas/public");
+    expect(clipboardController).not.toContain("@/modules/creative_canvas/public");
     expect(clipboardController).toContain(
       "hasRectCollision(candidateRect, nodes, noIgnoredCanvasNodeIds)",
     );
@@ -8408,7 +8408,7 @@ describe("frontend architecture boundaries", () => {
     const graphInteractionController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -8446,7 +8446,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(linkedDragController).not.toContain("CANVAS_NODE_TYPES.group");
-    expect(graphInteractionController).toContain(
+    expect(graphInteractionController).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(graphInteractionController).toContain("CANVAS_NODE_TYPES.group");
@@ -10007,7 +10007,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas graph-editing assembly in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
@@ -10035,16 +10035,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
     ]);
     expect(controllerSource).toContain(
       "createCanvasClipboardControllerHook<",
     );
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).toContain("useCanvasGraphInteractionController<");
-    expect(controllerSource).not.toContain(
-      "./useCanvasGraphInteractionController",
-    );
+    expect(controllerSource).toContain("./useCanvasGraphInteractionController");
     expect(controllerSource).toContain("CANVAS_NODE_TYPES.group");
     expect(controllerSource).toContain("mapCanvasPositionCommit");
     expect(
@@ -10059,7 +10057,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("...clipboard");
     expect(controllerSource).toContain("duplicateNodes,");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
@@ -10068,6 +10066,12 @@ describe("frontend architecture boundaries", () => {
     for (const retiredPath of [
       "features/canvas/hooks/useCanvasGraphInteractionController.ts",
       "features/canvas/hooks/useCanvasGraphInteractionController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.test.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
     }
@@ -10109,7 +10113,7 @@ describe("frontend architecture boundaries", () => {
     const graphControllerModel = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -10192,9 +10196,9 @@ describe("frontend architecture boundaries", () => {
     expect(graphControllerModel).toContain(
       "data: cloneCanvasNodeData(node.data)",
     );
-    expect(graphControllerModel).toContain("@/modules/creative_canvas/public");
+    expect(graphControllerModel).not.toContain("@/modules/creative_canvas/public");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain("./hooks/useCanvasClipboardController");
     expect(canvasView).not.toContain("./hooks/useCanvasNodeClipboard");
@@ -10420,7 +10424,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("disableOffsetIteration: true");
     expect(hookModel).toContain("selectNode(state.copiedNodeIds[0])");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
@@ -10486,7 +10490,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("if (altKey)");
     expect(hookModel).toContain("fitGroupToChildren(groupId)");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
@@ -10552,7 +10556,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("partner && !partner.parentId");
     expect(hookModel).toContain("dragging: true as const");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
@@ -11122,7 +11126,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("deleteEdge(edge.id)");
     expect(hookModel).not.toContain("isPresetManagedEdge(");
     expect(canvasView).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
@@ -16525,7 +16529,7 @@ describe("frontend architecture boundaries", () => {
     const clipboardController = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -16574,8 +16578,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
     expect(clipboardDuplicationPlanner).not.toContain("canvasNodeData");
-    expect(clipboardController).toContain("@/modules/creative_canvas/public");
-    expect(clipboardController).not.toContain("../application/canvasNodeData");
+    expect(clipboardController).not.toContain("@/modules/creative_canvas/public");
+    expect(clipboardController).toContain("../application/canvasNodeData");
     expect(clipboardController).toContain("cloneNodeData: cloneCanvasNodeData");
     expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasNodeData",
@@ -26635,7 +26639,7 @@ describe("frontend architecture boundaries", () => {
     const graphEditingSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController.ts",
       ),
       "utf8",
     );
@@ -26724,13 +26728,13 @@ describe("frontend architecture boundaries", () => {
     expect(graphInteractionSource).toContain(
       "isCopyDragActive: altDragCopy.isCopyDragActive",
     );
-    expect(graphEditingSource).toContain(
+    expect(graphEditingSource).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(graphEditingSource).toContain("mapCanvasPositionCommit");
     expect(graphEditingSource).toContain("CANVAS_NODE_TYPES.group");
     expect(canvasSource).toContain(
-      "./hooks/useCanvasGraphEditingSurfaceController",
+      "@/modules/creative_canvas/canvasComposition",
     );
     expect(canvasSource).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
