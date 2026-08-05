@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/features/app/errorDialogEvents', () => ({
+vi.mock('@/modules/creative_canvas/infrastructure/errorDialogEvents', () => ({
   openGlobalErrorDialog: vi.fn(),
 }));
 
-import { openGlobalErrorDialog } from '@/features/app/errorDialogEvents';
-import { showErrorDialog } from '@/features/canvas/infrastructure/globalErrorDialog';
+import { openGlobalErrorDialog } from '@/modules/creative_canvas/infrastructure/errorDialogEvents';
+import { showErrorDialog } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';
 
 const openDialog = vi.mocked(openGlobalErrorDialog);
 

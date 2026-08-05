@@ -252,7 +252,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "@tanstack/react-router",
         "@/components/GlobalErrorDialog",
-        "@/features/app/errorDialogEvents",
+        "@/modules/creative_canvas/infrastructure/errorDialogEvents",
         "./creative-canvas-shell-composition",
         "@/lib/url-params",
         "@/modules/creative_canvas/public",
@@ -3805,7 +3805,7 @@ describe("frontend architecture boundaries", () => {
     const videoTranscode = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/videoTranscode.ts",
+        "modules/creative_canvas/infrastructure/videoTranscode.ts",
       ),
       "utf8",
     );
@@ -3864,7 +3864,7 @@ describe("frontend architecture boundaries", () => {
     const globalErrorDialog = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/globalErrorDialog.ts",
+        "modules/creative_canvas/infrastructure/globalErrorDialog.ts",
       ),
       "utf8",
     );
@@ -3917,7 +3917,7 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("browserImageRuntimeGateway");
     expect(composition).toContain("prepareNodeImageUseCase(");
     expect(composition).toContain(
-      "export { showErrorDialog } from './infrastructure/globalErrorDialog';",
+      "export { showErrorDialog } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';",
     );
     expect(composition).toContain("platformCanvasAssetGateway");
     expect(composition).not.toContain("migrateCanvasClipboardAssets");
@@ -4076,7 +4076,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(composition).toContain("ensureWebSafeVideo");
     expect(videoNode).not.toContain(
-      "@/features/canvas/infrastructure/videoTranscode",
+      "@/modules/creative_canvas/infrastructure/videoTranscode",
     );
     expect(toolProcessor).toContain("CanvasToolImageGateway");
     expect(toolProcessor).not.toContain("@/features/");
@@ -32161,7 +32161,7 @@ describe("frontend architecture boundaries", () => {
     );
     const infrastructurePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/browserVideoFrameCapture.ts",
+      "modules/creative_canvas/infrastructure/browserVideoFrameCapture.ts",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
@@ -32182,7 +32182,7 @@ describe("frontend architecture boundaries", () => {
       "@/shared/media/cross-origin",
     ]);
     expect(implementationOwners).toEqual([
-      "features/canvas/infrastructure/browserVideoFrameCapture.ts",
+      "modules/creative_canvas/infrastructure/browserVideoFrameCapture.ts",
     ]);
     expect(infrastructureSource).not.toContain("react");
     expect(infrastructureSource).not.toContain("@/stores/");
@@ -32191,11 +32191,11 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain('document.createElement("canvas")');
     expect(infrastructureSource).toContain("mediaNeedsCrossOrigin(source)");
     expect(compositionSource).toContain(
-      "./infrastructure/browserVideoFrameCapture",
+      "@/modules/creative_canvas/infrastructure/browserVideoFrameCapture",
     );
     expect(compositionSource).toContain("captureVideoFrameBlob");
     expect(videoNode).not.toContain(
-      "@/features/canvas/infrastructure/browserVideoFrameCapture",
+      "@/modules/creative_canvas/infrastructure/browserVideoFrameCapture",
     );
     expect(videoNode).toContain("captureVideoFrameBlob(src, seekSec)");
     expect(videoNode).not.toContain("function captureVideoFrameBlob(");

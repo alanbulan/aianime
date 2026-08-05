@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { useRouterState } from "@tanstack/react-router";
 
 import { GlobalErrorDialog } from "@/components/GlobalErrorDialog";
-import { subscribeOpenGlobalErrorDialog } from "@/features/app/errorDialogEvents";
+import { subscribeOpenGlobalErrorDialog } from "@/modules/creative_canvas/infrastructure/errorDialogEvents";
 import { readLastCanvas, writeUrl } from "@/lib/url-params";
 import {
   createUseFreezoneProjectPageController,

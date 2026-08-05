@@ -95,12 +95,12 @@ import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
   type UploadCanvasAssetOptions,
 } from '@/modules/creative_canvas/public';
-import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
+import { captureVideoFrameBlob } from '@/modules/creative_canvas/infrastructure/browserVideoFrameCapture';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
-import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
+import { ensureWebSafeVideo } from '@/modules/creative_canvas/infrastructure/videoTranscode';
 import { zustandCanvasGraphGateway } from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphGateway';
-import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
+import { showErrorDialog as showErrorDialogInfrastructure } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';
 
 import { useCanvasStore } from "@/modules/creative_canvas/public";
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
@@ -200,7 +200,7 @@ function resumePendingGenerationNode({
   });
 }
 
-export { showErrorDialog } from './infrastructure/globalErrorDialog';
+export { showErrorDialog } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';
 export {
   captureVideoFrameBlob,
   ensureWebSafeVideo,

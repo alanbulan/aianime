@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { openGlobalErrorDialog } from '@/features/app/errorDialogEvents';
+import { openGlobalErrorDialog } from './errorDialogEvents';
 
 export async function showErrorDialog(
   text: string,
