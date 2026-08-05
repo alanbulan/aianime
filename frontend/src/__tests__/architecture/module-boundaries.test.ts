@@ -4908,7 +4908,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const gatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     );
     const gatewayImports = importSpecifiers(gatewayPath);
     const canvasCompositionPath = resolve(
@@ -4974,7 +4974,7 @@ describe("frontend architecture boundaries", () => {
     );
     const gatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const gatewayImports = importSpecifiers(gatewayPath);
@@ -5031,7 +5031,7 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/application/canvasMetadataState.ts",
     );
     const readerPaths = [
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
       "features/canvas/hooks/useBeatContextNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/usePano360ViewerNodeController.ts",
@@ -5101,7 +5101,7 @@ describe("frontend architecture boundaries", () => {
     );
     const gatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     );
     const moduleInternalConsumerPath = resolve(
       SRC_ROOT,
@@ -5791,7 +5791,7 @@ describe("frontend architecture boundaries", () => {
     );
     const aiGatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     );
     const propGatewayPath = resolve(
       SRC_ROOT,
@@ -5900,7 +5900,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(propGatewaySource).toContain("uploadFreezoneAsset(");
     expect(propGatewaySource).not.toContain("}/freezone/upload`");
-    expect(importSpecifiers(aiGatewayPath)).toContain(
+    expect(importSpecifiers(aiGatewayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(readFileSync(aiGatewayPath, "utf8")).not.toContain(
@@ -21316,7 +21316,7 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneSkillExecutionGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -21364,7 +21364,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
-        "@/modules/creative_canvas/public",
+        "../application/skillExecution",
+        "../domain/skillExecution",
       ]),
     );
     expect(domainSource).toContain("isSkillRunTerminalStatus(");
@@ -21372,7 +21373,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("window.");
     expect(adapterSource).toContain("encodeURIComponent(skillId)");
     expect(endpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneSkillExecutionGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway.ts",
     ]);
     expect(imports).toContain("@/features/canvas/composition");
     expect(imports).not.toContain("@/api/skills");
@@ -22288,7 +22289,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyGatewayPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     );
     const moduleCompositionPath = resolve(
       SRC_ROOT,
@@ -22393,7 +22394,7 @@ describe("frontend architecture boundaries", () => {
       "./freezoneGenerationTaskGateway",
     );
     expect(legacyGatewaySource).not.toContain("platformCanvasAssetGateway");
-    expect(importSpecifiers(legacyGatewayPath)).toContain(
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(legacyGatewayPath)).toContain(
@@ -22411,7 +22412,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(legacyGatewaySource).toContain("submitImageEdit(projectId, {");
     expect(editEndpointOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAiGateway.ts",
+      "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     ]);
     expect(legacyGatewaySource).not.toContain("submitFreezoneGen");
     expect(legacyGatewaySource).not.toContain("fetchFreezoneJobResult");

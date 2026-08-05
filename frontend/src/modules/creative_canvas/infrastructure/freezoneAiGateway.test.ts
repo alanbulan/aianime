@@ -2,20 +2,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
-import {
-  prepareCanvasImageSource,
-  prepareCanvasImageSources,
-} from "@/modules/creative_canvas/public";
-
 const awaitCompletion = vi.hoisted(() => vi.fn());
 const fetchResultUrl = vi.hoisted(() => vi.fn());
 const submitImageGeneration = vi.hoisted(() => vi.fn());
+const prepareCanvasImageSource = vi.hoisted(() => vi.fn());
+const prepareCanvasImageSources = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("@/modules/creative_canvas/public", () => ({
+vi.mock("../infrastructure/freezoneGenerationTaskGateway", () => ({
   freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
-  prepareCanvasImageSource: vi.fn(),
-  prepareCanvasImageSources: vi.fn(),
+}));
+vi.mock("../mediaOperationGenerationComposition", () => ({
+  prepareCanvasImageSource,
+  prepareCanvasImageSources,
+}));
+vi.mock("../application/completeCanvasMediaGenerationTask", () => ({
   readEmbeddedCanvasGenerationOutputUrl: (result: { output_url?: string } | null) =>
     result?.output_url ?? null,
 }));

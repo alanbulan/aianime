@@ -96,8 +96,8 @@ import {
   type UploadCanvasAssetOptions,
 } from '@/modules/creative_canvas/public';
 import { captureVideoFrameBlob } from '@/modules/creative_canvas/infrastructure/browserVideoFrameCapture';
-import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
-import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
+import { createFreezoneAiGateway } from '@/modules/creative_canvas/infrastructure/freezoneAiGateway';
+import { freezoneSkillExecutionGateway } from '@/modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway';
 import { ensureWebSafeVideo } from '@/modules/creative_canvas/infrastructure/videoTranscode';
 import { zustandCanvasGraphGateway } from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from '@/modules/creative_canvas/infrastructure/globalErrorDialog';

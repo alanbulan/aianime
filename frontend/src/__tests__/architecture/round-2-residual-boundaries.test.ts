@@ -2898,14 +2898,14 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("keeps Canvas infrastructure independent from routes and Freezone features", () => {
     const gateway = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/infrastructure/freezoneAiGateway.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/infrastructure/freezoneAiGateway.ts"),
       "utf8",
     );
 
     expect(gateway.match(/readUrl\(\)/g)?.length ?? 0).toBe(0);
     expect(
       importSpecifiers(
-        resolve(SRC_ROOT, "features/canvas/infrastructure/freezoneAiGateway.ts"),
+        resolve(SRC_ROOT, "modules/creative_canvas/infrastructure/freezoneAiGateway.ts"),
       ).filter((specifier) => specifier === "@/features/freezone/public").length,
     ).toBe(0);
   });

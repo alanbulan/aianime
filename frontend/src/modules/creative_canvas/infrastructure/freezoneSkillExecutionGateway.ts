@@ -1,10 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { apiRequest } from "@/shared/api/client";
-import type {
-  CanvasSkillExecutionGateway,
-  SkillRunResponse,
-  SkillRunResult,
-} from "@/modules/creative_canvas/public";
+import type { CanvasSkillExecutionGateway } from "../application/skillExecution";
+import type { SkillRunResponse, SkillRunResult } from "../domain/skillExecution";
 
 export const freezoneSkillExecutionGateway: CanvasSkillExecutionGateway = {
   async startRun(projectId, skillId, request) {

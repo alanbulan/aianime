@@ -1,17 +1,12 @@
 // Copyright (c) 2026 AI anime
+import { freezoneGenerationTaskGateway } from '../infrastructure/freezoneGenerationTaskGateway';
+import { prepareCanvasImageSource, prepareCanvasImageSources } from '../mediaOperationGenerationComposition';
+import { readEmbeddedCanvasGenerationOutputUrl, type CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import { type CanvasImageJobGateway, type CanvasImageJobPayload, type CanvasImageJobScope } from '../application/canvasImageJob';
+import { type CanvasImageGenerationCommand } from '../application/generateCanvasImage';
 import { apiCall } from "@/shared/api/client";
 
-import {
-  freezoneGenerationTaskGateway,
-  prepareCanvasImageSource,
-  prepareCanvasImageSources,
-  readEmbeddedCanvasGenerationOutputUrl,
-  type CanvasImageJobGateway,
-  type CanvasImageJobPayload,
-  type CanvasImageJobScope,
-  type CanvasImageGenerationCommand,
-  type CanvasGenerationTaskRef,
-} from "@/modules/creative_canvas/public";
+
 
 interface ComposedCapabilityJob {
   readonly prompt: string;
