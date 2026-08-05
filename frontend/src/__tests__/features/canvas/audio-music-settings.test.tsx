@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 ;
 ;
-import { AudioOperationsPanel } from "@/features/canvas/nodes/AudioOperationsPanel";
+import { AudioOperationsPanel } from "@/modules/creative_canvas/public";
 
 import { queryKeys } from "@/lib/query-keys";
 

@@ -2,21 +2,18 @@
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Music2 } from 'lucide-react';
 
-import type { AudioNodeController } from '@/features/canvas/hooks/useAudioNodeController';
-import { AudioOperationsPanel } from '@/features/canvas/nodes/AudioOperationsPanel';
+import type { AudioNodeController } from './useAudioNodeController';
+import { AudioOperationsPanel } from './AudioOperationsPanel';
+import { AudioWaveformPlayer } from './AudioWaveformPlayer';
+import { NodeContextBadges } from './NodeContextBadges';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { RegenerateButton } from './RegenerateButton';
 import {
-  AudioWaveformPlayer,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  NodeContextBadges,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  RegenerateButton,
   canvasNodeFrameClass,
-} from '@/modules/creative_canvas/public';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 
 export function AudioNodeView({
   controller,

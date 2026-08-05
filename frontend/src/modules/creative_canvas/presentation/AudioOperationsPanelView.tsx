@@ -12,20 +12,20 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 
+import { MUSIC_LENGTH_PRESETS } from '../application/audioOperationsPanelModel';
 import {
-  CANVAS_NODE_OPS_PANEL_CLASS,
-  MUSIC_LENGTH_PRESETS,
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  OperationPanelShell,
-  PanelExpandButton,
-  ReferenceTextChip,
-} from '@/modules/creative_canvas/public';
-import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
+} from './canvasNodeControlStyles';
+import { CANVAS_NODE_OPS_PANEL_CLASS } from './canvasNodeFrameStyles';
+import { OperationPanelShell } from './OperationPanelShell';
+import { PanelExpandButton } from './PanelExpandButton';
+import { ReferenceTextChip } from './ReferenceTextChip';
+import type { AudioOperationsPanelController } from './useAudioOperationsPanelController';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { UiSelect } from '@/components/ui';
 import {
@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { VoiceSelectionModal } from '@/modules/creative_canvas/public';
+import { VoiceSelectionModal } from './VoiceSelectionModal';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;

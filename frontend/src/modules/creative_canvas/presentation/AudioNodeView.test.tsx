@@ -2,8 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { AudioNodeController } from '@/features/canvas/hooks/useAudioNodeController';
-
+import type { AudioNodeController } from './useAudioNodeController';
 import { AudioNodeView } from './AudioNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -11,7 +10,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -24,7 +23,13 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('./RegenerateButton', () => ({
   RegenerateButton: ({
     onClick,
     label,
@@ -34,10 +39,22 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   }) => (
     <button type="button" onClick={onClick}>{label}</button>
   ),
+}));
+
+vi.mock('./NodeContextBadges', () => ({
   NodeContextBadges: () => <div>context-badges</div>,
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: () => <div>resize-handle</div>,
+}));
+
+vi.mock('./canvasNodeFrameStyles', () => ({
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
   canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('./AudioWaveformPlayer', () => ({
   AudioWaveformPlayer: ({
     src,
     onLoadedDuration,
@@ -51,7 +68,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   ),
 }));
 
-vi.mock('@/features/canvas/nodes/AudioOperationsPanel', () => ({
+vi.mock('./AudioOperationsPanel', () => ({
   AudioOperationsPanel: ({
     projectId,
     canvasId,

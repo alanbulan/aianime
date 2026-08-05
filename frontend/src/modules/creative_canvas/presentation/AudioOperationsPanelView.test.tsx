@@ -3,14 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { AudioOperationsPanelController } from '@/features/canvas/hooks/useAudioOperationsPanelController';
-
+import type { AudioOperationsPanelController } from './useAudioOperationsPanelController';
 import { AudioOperationsPanelView } from './AudioOperationsPanelView';
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<
-    typeof import('@/modules/creative_canvas/public')
-  >()),
+vi.mock('./VoiceSelectionModal', () => ({
   VoiceSelectionModal: ({
     projectId,
     open,

@@ -20,6 +20,9 @@ import { createUseNodeMainlineToolbarController } from './presentation/useNodeMa
 import { createUseNodeOutputToolbarController } from './presentation/useNodeOutputToolbarController';
 import { createUseNodeManagementToolbarController } from './presentation/useNodeManagementToolbarController';
 import { createUseImageNodeToolbarController } from './presentation/useImageNodeToolbarController';
+import { createUseAudioNodeController } from './presentation/useAudioNodeController';
+import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
+import { createUseAudioGeneration } from './presentation/useAudioGeneration';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -59,6 +62,8 @@ import {
   generateCanvasStoryScript,
   translateCanvasText,
 } from './textGenerationComposition';
+import { generateCanvasAudio } from './audioGenerationComposition';
+import { loadCanvasAudioReferences } from './audioVoiceCatalogComposition';
 import { extractUpstreamContent } from './application/graphContentResolver';
 import { extractUpstreamImages } from './application/graphImageResolver';
 import { CANVAS_NODE_TYPES } from './domain/canvasConnection';
@@ -292,6 +297,27 @@ export const useNodeManagementToolbarController =
 export const useImageNodeToolbarController = createUseImageNodeToolbarController({
   eventPort: canvasEventBus,
 });
+export const useAudioGeneration = createUseAudioGeneration({
+  useStore: useCanvasStore,
+  useUpstreamContents,
+  generateCanvasAudio,
+});
+export const useAudioNodeController = createUseAudioNodeController({
+  useStore: useCanvasStore,
+  useIsBoxSelecting,
+  uploadCanvasAsset,
+  eventPort: canvasEventBus,
+  useAudioGeneration,
+  loadCanvasAudioReferences,
+});
+export const useAudioOperationsPanelController =
+  createUseAudioOperationsPanelController({
+    useStore: useCanvasStore,
+    useAudioGeneration,
+    useUpstreamContents,
+    useDetachUpstream,
+    translateCanvasText,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

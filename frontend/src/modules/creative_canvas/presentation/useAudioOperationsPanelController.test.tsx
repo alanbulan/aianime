@@ -2,11 +2,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import {
+  createUseAudioOperationsPanelController,
+  type AudioOperationsPanelStore,
+  type AudioOperationsPanelStoreHook,
+} from './useAudioOperationsPanelController';
 
-import { useAudioOperationsPanelController } from './useAudioOperationsPanelController';
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
   generate: vi.fn(),
@@ -24,30 +26,6 @@ const mocks = vi.hoisted(() => ({
   translate: vi.fn(),
 }));
 
-
-vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
-  useAudioGeneration: (...args: unknown[]) =>
-    mocks.useAudioGeneration(...args),
-}));
-
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  useDetachUpstream: () => mocks.detachUpstream,
-  useUpstreamContents: () => mocks.upstreamContents,
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('@/modules/creative_canvas/public')
-  >();
-  return {
-    ...actual,
-    useCanvasStore: (
-      selector: (state: { updateNodeData: typeof mocks.updateNodeData }) => unknown,
-    ) => selector({ updateNodeData: mocks.updateNodeData }),
-    translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
-  };
-});
-
 vi.mock('@/modules/model_usage/public', async (importOriginal) => {
   const actual = await importOriginal<
     typeof import('@/modules/model_usage/public')
@@ -58,6 +36,19 @@ vi.mock('@/modules/model_usage/public', async (importOriginal) => {
     useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
   };
 });
+
+const useStore = ((
+  selector: (state: AudioOperationsPanelStore) => unknown,
+) => selector({ updateNodeData: mocks.updateNodeData })) as unknown as AudioOperationsPanelStoreHook;
+
+const useAudioOperationsPanelController =
+  createUseAudioOperationsPanelController({
+    useStore,
+    useAudioGeneration: (options) => mocks.useAudioGeneration(options),
+    useUpstreamContents: () => mocks.upstreamContents,
+    useDetachUpstream: () => mocks.detachUpstream,
+    translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
+  });
 
 describe('useAudioOperationsPanelController', () => {
   beforeEach(() => {

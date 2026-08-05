@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from 'react';
 
-import {
-  useAudioOperationsPanelController,
-  type AudioOperationsPanelControllerOptions,
-} from '@/features/canvas/hooks/useAudioOperationsPanelController';
+import { useAudioOperationsPanelController } from '../canvasComposition';
+import type { AudioOperationsPanelControllerOptions } from './useAudioOperationsPanelController';
 
 import { AudioOperationsPanelView } from './AudioOperationsPanelView';
 

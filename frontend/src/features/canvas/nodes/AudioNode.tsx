@@ -2,12 +2,11 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useAudioNodeController } from '@/features/canvas/hooks/useAudioNodeController';
-
-import { AudioNodeView } from './AudioNodeView';
-
-import type { AudioNodeData } from "@/modules/creative_canvas/public";
+import { useAudioNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  AudioNodeView,
+  type AudioNodeData,
+} from '@/modules/creative_canvas/public';
 type AudioNodeProps = NodeProps & {
   projectId: string;
   canvasId: string;

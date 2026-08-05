@@ -3520,6 +3520,11 @@ export type { NodeMainlineToolbarController } from "@/modules/creative_canvas/pr
 export type { NodeOutputToolbarController } from "@/modules/creative_canvas/presentation/useNodeOutputToolbarController";
 export type { NodeManagementToolbarController } from "@/modules/creative_canvas/presentation/useNodeManagementToolbarController";
 export type { ImageNodeToolbarController } from "@/modules/creative_canvas/presentation/useImageNodeToolbarController";
+export { AudioNodeView } from "@/modules/creative_canvas/presentation/AudioNodeView";
+export type { AudioNodeController } from "@/modules/creative_canvas/presentation/useAudioNodeController";
+export { AudioOperationsPanel } from "@/modules/creative_canvas/presentation/AudioOperationsPanel";
+export { AudioOperationsPanelView } from "@/modules/creative_canvas/presentation/AudioOperationsPanelView";
+export type { AudioOperationsPanelController } from "@/modules/creative_canvas/presentation/useAudioOperationsPanelController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

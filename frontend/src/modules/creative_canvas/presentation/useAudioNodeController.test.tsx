@@ -3,11 +3,13 @@ import { StrictMode, type ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import type { AudioNodeData } from '../domain/canvasNodeData';
+import {
+  createUseAudioNodeController,
+  type AudioNodeStore,
+  type AudioNodeStoreHook,
+} from './useAudioNodeController';
 
-import { useAudioNodeController } from './useAudioNodeController';
-
-import type { AudioNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -41,47 +43,59 @@ vi.mock('sonner', () => ({
   toast: { error: mocks.toastError },
 }));
 
-
-vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
-  useAudioGeneration: (...args: unknown[]) =>
-    mocks.useAudioGeneration(...args),
-}));
-
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  uploadCanvasAsset: (project: string, file: File, filename: string) =>
-    mocks.uploadCanvasAsset(project, file, filename),
-  useIsBoxSelecting: () => mocks.isBoxSelecting,
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
-  useCanvasStore: (() => {
-  const useCanvasStore = Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) => selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      nodes: mocks.nodes,
-    }),
-    { getState: () => ({ nodes: mocks.nodes }) },
-  );
-
-  return useCanvasStore;
-})(),
-  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
-  canvasEventBus: {
-    subscribe: (type: string, handler: unknown) =>
-      mocks.subscribe(type, handler),
-  },
-  hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
+vi.mock('../domain/audioFileTypes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/audioFileTypes')>()),
   isAudioFile: (file: File) => mocks.isAudioFile(file),
-  loadCanvasAudioReferences: (project: string) =>
-    mocks.loadCanvasAudioReferences(project),
+}));
+
+vi.mock('../domain/imageData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/imageData')>()),
+  resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
+}));
+
+vi.mock('../domain/mainlineContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/mainlineContext')>()),
+  hasMainlineContexts: (contexts: unknown) => Boolean(contexts),
+}));
+
+vi.mock('../domain/nodeDisplay', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/nodeDisplay')>()),
   resolveNodeDisplayName: (
     _nodeType: string,
     data: { displayName?: string },
   ) => data.displayName ?? '音频节点',
-  resolveImageDisplayUrl: (url: string) => `resolved:${url}`,
+}));
+
+vi.mock('./useNodeGenerationTaskState', () => ({
   useNodeGenerationTaskState: () => mocks.taskState,
 }));
+
+const useStore = Object.assign(
+  (selector: (state: AudioNodeStore) => unknown) =>
+    selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      nodes: mocks.nodes as unknown as readonly import('../domain/canvasNodeData').CanvasNode[],
+    }),
+  {
+    getState: () => ({
+      nodes: mocks.nodes as unknown as readonly import('../domain/canvasNodeData').CanvasNode[],
+    }),
+  },
+) as unknown as AudioNodeStoreHook;
+
+const useAudioNodeController = createUseAudioNodeController({
+  useStore,
+  useIsBoxSelecting: () => mocks.isBoxSelecting,
+  uploadCanvasAsset: (project, file, filename) =>
+    mocks.uploadCanvasAsset(project, file, filename),
+  eventPort: {
+    subscribe: (event, handler) => mocks.subscribe(event, handler),
+  },
+  useAudioGeneration: (options) => mocks.useAudioGeneration(options),
+  loadCanvasAudioReferences: (project) =>
+    mocks.loadCanvasAudioReferences(project),
+});
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {
   return {
