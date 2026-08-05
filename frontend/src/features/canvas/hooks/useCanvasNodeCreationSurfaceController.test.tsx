@@ -74,6 +74,7 @@ const controllerMocks = vi.hoisted(() => {
 
 vi.mock('@/modules/creative_canvas/public', () => ({
   isStoryboardGroupNode: () => false,
+  getMenuNodeDefinitions: () => [],
   CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   loadCanvasSkillRegistry: vi.fn(),
   useCanvasConnectionController: controllerMocks.useConnection,

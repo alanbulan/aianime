@@ -27,7 +27,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/domain/canvasNodePredicates.ts",
     );
     const canvasNodes = `${canvasNodeData}\n${canvasNodePredicates}`;
-    const registry = read("src/features/canvas/domain/nodeRegistry.ts");
+    const registry = read("src/modules/creative_canvas/domain/canvasNodeRegistry.ts");
     const nodeSelectionMenuModel = read(
       "src/modules/creative_canvas/domain/nodeSelectionMenuModel.ts",
     );

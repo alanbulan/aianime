@@ -4194,7 +4194,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeRegistryPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/nodeRegistry.ts",
+      "modules/creative_canvas/domain/canvasNodeRegistry.ts",
     );
     const modelRegistryPath = resolve(
       SRC_ROOT,
@@ -4231,10 +4231,10 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/domain/modelDefaults.ts",
     ]);
-    expect(importSpecifiers(nodeRegistryPath)).toContain(
+    expect(importSpecifiers(nodeRegistryPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(nodeRegistryPath)).not.toContain("./modelDefaults");
+    expect(importSpecifiers(nodeRegistryPath)).toContain("./modelDefaults");
     expect(importSpecifiers(nodeRegistryPath)).not.toContain("../models");
     expect(importSpecifiers(nodeRegistryPath)).not.toContain(
       "../ui/ProviderModelPicker",
@@ -4288,7 +4288,7 @@ describe("frontend architecture boundaries", () => {
     const legacyPath = resolve(freezoneRoot, "context/skillRoles.ts");
     const nodeRegistryPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/nodeRegistry.ts",
+      "modules/creative_canvas/domain/canvasNodeRegistry.ts",
     );
     const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -4383,7 +4383,7 @@ describe("frontend architecture boundaries", () => {
     expect(creativeCanvasContractBypasses).toEqual([]);
     expect(internalPublicConsumers).toEqual([]);
     expect(modulePublicBypasses).toEqual([]);
-    expect(importSpecifiers(nodeRegistryPath)).toContain(
+    expect(importSpecifiers(nodeRegistryPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
   });
@@ -7565,7 +7565,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/nodeRegistry.ts",
+      "modules/creative_canvas/domain/canvasNodeRegistry.ts",
     );
     const defaultDataPath = resolve(
       SRC_ROOT,
@@ -17001,7 +17001,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const nodeRegistryModel = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/domain/nodeRegistry.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/canvasNodeRegistry.ts"),
       "utf8",
     );
     const canvasStore = readFileSync(

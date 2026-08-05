@@ -1,17 +1,35 @@
 // Copyright (c) 2026 AI anime
-;
-import { DEFAULT_NODE_DISPLAY_NAME, type BeatContextNodeData, type AudioNodeData, type CanvasNodeData, type CanvasNodeType, type ExportImageNodeData, type GroupNodeData, type ImageEditNodeData, type ImageGenNodeData, type Pano360ViewerNodeData, type ScriptNodeData, type SkillNodeData, type StoryboardSplitNodeData, type StoryboardGenNodeData, type TextAnnotationNodeData, type ThreeDWorldNodeData, type UploadImageNodeData, type VideoComposeNodeData, type VideoNodeData, type VideoStoryNodeData } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TYPES } from './canvasConnection';
+import type {
+  AudioNodeData,
+  BeatContextNodeData,
+  CanvasNodeData,
+  CanvasNodeType,
+  ExportImageNodeData,
+  GroupNodeData,
+  ImageEditNodeData,
+  ImageGenNodeData,
+  Pano360ViewerNodeData,
+  ScriptNodeData,
+  SkillNodeData,
+  StoryboardGenNodeData,
+  StoryboardSplitNodeData,
+  TextAnnotationNodeData,
+  ThreeDWorldNodeData,
+  UploadImageNodeData,
+  VideoComposeNodeData,
+  VideoNodeData,
+  VideoStoryNodeData,
+} from './canvasNodeData';
+import { AUTO_REQUEST_ASPECT_RATIO, DEFAULT_ASPECT_RATIO } from './aspectRatio';
+import type { ImageSize } from './imageNodeSizing';
 import {
-  AUTO_REQUEST_ASPECT_RATIO,
-  DEFAULT_ASPECT_RATIO,
   DEFAULT_IMAGE_MODEL_ID,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
-  SKILL_SCHEMA_VERSION,
-  type ImageSize,
-} from '@/modules/creative_canvas/public';
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+} from './modelDefaults';
+import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
+import { SKILL_SCHEMA_VERSION } from './skillContract';
 type MenuIconKey = 'upload' | 'sparkles' | 'layout' | 'text' | 'video' | 'audio' | 'script' | 'pano360' | 'threeDWorld' | 'videoCompose';
 
 interface CanvasNodeCapabilities {

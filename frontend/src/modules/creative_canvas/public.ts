@@ -1016,6 +1016,12 @@ export {
   isVideoNode,
 } from "@/modules/creative_canvas/domain/canvasNodePredicates";
 export {
+  canvasNodeDefinitions,
+  getMenuNodeDefinitions,
+  getNodeDefinition,
+} from "@/modules/creative_canvas/domain/canvasNodeRegistry";
+export type { CanvasNodeDefinition } from "@/modules/creative_canvas/domain/canvasNodeRegistry";
+export {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
 } from "@/modules/creative_canvas/presentation/albumPendingTotals";

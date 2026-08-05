@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   canvasNodeDefinitions,
   getMenuNodeDefinitions,
-} from "@/features/canvas/domain/nodeRegistry";
+} from "@/modules/creative_canvas/public";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 describe("canvas node registry", () => {
