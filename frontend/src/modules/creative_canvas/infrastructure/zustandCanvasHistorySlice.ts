@@ -1,12 +1,15 @@
 // Copyright (c) 2026 AI anime
-import { normalizeCanvasData, navigateCanvasHistory, normalizeHistory, type CanvasHistoryDirection, type CanvasHistoryNavigationState, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, nodeCatalog, type CanvasNodeDefaultDataGateway } from '@/modules/creative_canvas/public';
+import { normalizeCanvasData, type HydrationGraphEdge } from '../application/canvasDataNormalization';
+import { navigateCanvasHistory, type CanvasHistoryDirection, type CanvasHistoryNavigationState } from '../application/canvasHistoryNavigation';
+import { normalizeHistory, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+import { nodeCatalog } from '../application/canvasNodeCatalog';
+import { type CanvasNodeDefaultDataGateway, type CanvasNodeDefaultDataCatalog, type CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway } from '../application/canvasNodeDefaultData';
+import { type HydrationGraphNode } from '../application/canvasNodeHydration';
 
-import type {
-  CanvasNodeDefaultDataCatalog,
-  CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway,
-  HydrationGraphEdge,
-  HydrationGraphNode,
-} from '@/modules/creative_canvas/public';
+
+
 
 ;
 

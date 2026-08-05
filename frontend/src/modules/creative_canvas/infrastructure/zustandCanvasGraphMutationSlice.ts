@@ -1,4 +1,14 @@
 // Copyright (c) 2026 AI anime
+import { applyCanvasEdgeChangeEffects } from '../application/canvasEdgeChangeEffects';
+import { applyCanvasNodeChangeEffects, type CanvasNodeChangeEffectState } from '../application/canvasNodeChangeEffects';
+import { createCanvasDataEdge, createCanvasProgrammaticEdge, prepareCanvasReactFlowConnection, type CanvasDataEdgeCreationOptions } from '../application/canvasEdgeCreation';
+import { createSnapshot, pushSnapshot } from '../domain/canvasHistory';
+import { deleteCanvasEdge } from '../domain/canvasEdgeDeletion';
+import { normalizeEdgesWithNodes } from '../domain/canvasEdgeNormalization';
+import { trackEdit } from '../domain/canvasMutation';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+
 import {
   addEdge,
   applyEdgeChanges,
@@ -8,7 +18,6 @@ import {
   type NodeChange,
 } from '@xyflow/react';
 
-import { applyCanvasEdgeChangeEffects, applyCanvasNodeChangeEffects, createCanvasDataEdge, createCanvasProgrammaticEdge, createSnapshot, deleteCanvasEdge, normalizeEdgesWithNodes, prepareCanvasReactFlowConnection, pushSnapshot, trackEdit, type CanvasDataEdgeCreationOptions, type CanvasNodeChangeEffectState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
 ;
 
 export interface CanvasGraphMutationSlice {

@@ -18,15 +18,15 @@ import {
 import {
   createZustandCanvasHistorySlice,
   type CanvasHistorySlice,
-} from '@/features/canvas/infrastructure/zustandCanvasHistorySlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasHistorySlice';
 import {
   createZustandCanvasGraphMutationSlice,
   type CanvasGraphMutationSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasGraphMutationSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice';
 import {
   createZustandCanvasDocumentLifecycleSlice,
   type CanvasDocumentLifecycleSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice';
 import {
   createZustandCanvasNodeMutationSlice,
   type CanvasNodeMutationSlice,
@@ -38,7 +38,7 @@ import {
 import {
   createZustandCanvasNodeDeletionSlice,
   type CanvasNodeDeletionSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasNodeDeletionSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice';
 import {
   createZustandCanvasGroupLifecycleSlice,
   type CanvasGroupLifecycleSlice,

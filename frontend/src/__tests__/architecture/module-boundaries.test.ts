@@ -7671,7 +7671,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const historySlicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasHistorySlice.ts",
     );
     const historyModel = readFileSync(historyPath, "utf8");
     const navigationModel = readFileSync(navigationPath, "utf8");
@@ -7759,7 +7759,7 @@ describe("frontend architecture boundaries", () => {
     expect(navigationModel).toContain(navigationDeclaration);
     expect(navigationModel).toContain("undoHistory(state.history, current)");
     expect(navigationModel).toContain("redoHistory(state.history, current)");
-    expect(historySlice).toContain("@/modules/creative_canvas/public");
+    expect(historySlice).toContain("../application/canvasHistoryNavigation");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
@@ -7768,7 +7768,6 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function redoHistory(");
     expect(canvasStore).not.toContain("undoHistory(");
     expect(canvasStore).not.toContain("redoHistory(");
-    expect(historySlice).not.toContain("../application/canvasHistoryNavigation");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasHistoryNavigation",
     );
@@ -7815,7 +7814,7 @@ describe("frontend architecture boundaries", () => {
     const graphMutationSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
       ),
       "utf8",
     );
@@ -7928,13 +7927,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
-    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
-    expect(graphMutationSlice).not.toContain(
-      "../application/canvasNodeChangeEffects",
-    );
-    expect(graphMutationSlice).not.toContain(
-      "../application/canvasEdgeChangeEffects",
-    );
+    expect(graphMutationSlice).toContain("../application/canvasNodeChangeEffects");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeChangeEffects",
     );
@@ -8158,7 +8151,7 @@ describe("frontend architecture boundaries", () => {
     const nodeDeletionSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
       ),
       "utf8",
     );
@@ -8199,7 +8192,7 @@ describe("frontend architecture boundaries", () => {
     ).toBe(false);
     expect(mutationModel).toContain("export function trackEdit(");
     expect(mutationModel).toContain("export function isDeleteToEmpty(");
-    expect(nodeDeletionSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeDeletionSlice).toContain("../domain/canvasMutation");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasMutation",
     );
@@ -15171,7 +15164,7 @@ describe("frontend architecture boundaries", () => {
     const graphMutationSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
       ),
       "utf8",
     );
@@ -15197,7 +15190,7 @@ describe("frontend architecture boundaries", () => {
       "export function normalizeEdgesWithNodes<",
     );
     expect(normalizationModel).toContain("export function normalizeHandleId(");
-    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(graphMutationSlice).toContain("../domain/canvasEdgeNormalization");
     expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toContain(
       "@/modules/creative_canvas/domain/canvasEdgeNormalization",
     );
@@ -15228,7 +15221,7 @@ describe("frontend architecture boundaries", () => {
     const documentLifecycleSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
       ),
       "utf8",
     );
@@ -15291,12 +15284,7 @@ describe("frontend architecture boundaries", () => {
     expect(hydrationModel).not.toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
-    expect(documentLifecycleSlice).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(documentLifecycleSlice).not.toContain(
-      "../application/canvasDataNormalization",
-    );
+    expect(documentLifecycleSlice).toContain("../application/canvasNodeDefaultData");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasDataNormalization",
     );
@@ -15328,7 +15316,7 @@ describe("frontend architecture boundaries", () => {
     const nodeDeletionSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
       ),
       "utf8",
     );
@@ -15414,10 +15402,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/creative_canvas/domain/canvasGroupRemoval",
       ]),
     );
-    expect(nodeDeletionSlice).toContain(
-      "@/modules/creative_canvas/public",
-    );
-    expect(nodeDeletionSlice).toContain("@/modules/creative_canvas/public");
+    expect(nodeDeletionSlice).toContain("../domain/canvasNodeDeletion");
     expect(multiSelectionToolbar).toContain(
       "@/modules/creative_canvas/public",
     );
@@ -17296,7 +17281,7 @@ describe("frontend architecture boundaries", () => {
     const graphMutationSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
       ),
       "utf8",
     );
@@ -17342,7 +17327,7 @@ describe("frontend architecture boundaries", () => {
     expect(creationModel).toContain("applySkillRoleBindingConnection({");
     expect(creationModel).toContain("validatePropagatingEdgeCandidate(");
     expect(creationModel).toContain("validateCandidateBindingRoleCandidate(");
-    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
+    expect(graphMutationSlice).toContain("../application/canvasEdgeCreation");
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasEdgeCreation",
     );
@@ -17640,7 +17625,7 @@ describe("frontend architecture boundaries", () => {
     const graphMutationSlice = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
       ),
       "utf8",
     );
@@ -17706,9 +17691,10 @@ describe("frontend architecture boundaries", () => {
     expect(
       readFileSync(resolve(SRC_ROOT, "modules/creative_canvas/public.ts"), "utf8"),
     ).toContain("deleteCanvasEdge,");
-    expect(graphMutationSlice).toContain("deleteCanvasEdge,");
-    expect(graphMutationSlice).toContain("@/modules/creative_canvas/public");
-    expect(graphMutationSlice).not.toContain("../domain/canvasEdgeDeletion");
+    expect(graphMutationSlice).toContain(
+      "deleteCanvasEdge } from '../domain/canvasEdgeDeletion'",
+    );
+    expect(graphMutationSlice).toContain("../domain/canvasEdgeDeletion");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasEdgeDeletion",
     );
@@ -27957,7 +27943,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas history state and commands in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasHistorySlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -27979,15 +27965,19 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasHistorySlice.ts",
       ]);
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
+      "../application/canvasDataNormalization",
+      "../application/canvasHistoryNavigation",
+      "../domain/canvasHistory",
+      "../domain/canvasNodeTool",
+      "../domain/canvasNodeData",
+      "../application/canvasNodeCatalog",
+      "../application/canvasNodeDefaultData",
+      "../application/canvasNodeHydration",
     ]));
     expect(canvasStateHeader).toContain("CanvasHistorySlice");
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
@@ -27999,7 +27989,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas graph mutations in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -28035,18 +28025,25 @@ describe("frontend architecture boundaries", () => {
         implementation.startsWith("addEdgeWithData")
           ? [
               "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
-              "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+              "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
             ]
           : [
-              "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+              "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
             ],
       );
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../application/canvasEdgeChangeEffects",
+      "../application/canvasEdgeCreation",
+      "../application/canvasNodeChangeEffects",
       "@xyflow/react",
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
+      "../domain/canvasEdgeDeletion",
+      "../domain/canvasEdgeNormalization",
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodeData",
+      "../domain/canvasNodeTool",
     ]));
     expect(canvasStateHeader).toContain("CanvasGraphMutationSlice");
     expect(canvasStore).toContain(
@@ -28065,7 +28062,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas document lifecycle in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -28089,14 +28086,19 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
       ]);
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
+      "../application/canvasDataNormalization",
+      "../application/canvasNodeCatalog",
+      "../application/canvasNodeDefaultData",
+      "../application/canvasNodeHydration",
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodeData",
+      "../domain/canvasNodeTool",
     ]));
     expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");
     expect(canvasStore).toContain(
@@ -28158,8 +28160,6 @@ describe("frontend architecture boundaries", () => {
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");
@@ -28226,7 +28226,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas node deletion in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+      "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
@@ -28247,13 +28247,17 @@ describe("frontend architecture boundaries", () => {
         .map(relativeSource)
         .sort();
       expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
       ]);
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
-      "@/modules/creative_canvas/public",
-      "@/modules/creative_canvas/public",
+      "../domain/canvasGeometry",
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodeData",
+      "../domain/canvasNodeDeletion",
+      "../domain/canvasNodeTool",
     ]));
     expect(canvasStateHeader).toContain("CanvasNodeDeletionSlice");
     expect(canvasStore).toContain(

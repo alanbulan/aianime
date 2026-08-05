@@ -1,14 +1,15 @@
 // Copyright (c) 2026 AI anime
-import { createSnapshot, isDeleteToEmpty, normalizeHistory, pushSnapshot, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, nodeCatalog, type CanvasNodeDefaultDataGateway } from '@/modules/creative_canvas/public';
-import {
-  normalizeCanvasData,
-  type CanvasNodeDefaultDataCatalog,
-  type CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway,
-  type HydrationGraphEdge,
-  type HydrationGraphNode,
-} from '@/modules/creative_canvas/public';
-;
+import { createSnapshot, normalizeHistory, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { isDeleteToEmpty, trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+import { nodeCatalog } from '../application/canvasNodeCatalog';
+import { type CanvasNodeDefaultDataGateway, type CanvasNodeDefaultDataCatalog, type CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway } from '../application/canvasNodeDefaultData';
+import { normalizeCanvasData, type HydrationGraphEdge } from '../application/canvasDataNormalization';
+import { type HydrationGraphNode } from '../application/canvasNodeHydration';
 
+
+;
 
 
 export interface CanvasDraftHydration {

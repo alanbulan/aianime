@@ -1,5 +1,12 @@
 // Copyright (c) 2026 AI anime
-import { createSnapshot, deleteCanvasNodes, isDeleteToEmpty, pushSnapshot, resolveAbsolutePosition, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationSource, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
+import { createSnapshot, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { deleteCanvasNodes } from '../domain/canvasNodeDeletion';
+import { isDeleteToEmpty, trackEdit, type CanvasMutationSource, type CanvasMutationState } from '../domain/canvasMutation';
+import { resolveAbsolutePosition } from '../domain/canvasGeometry';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+
+
 ;
 
 export interface CanvasNodeDeletionSlice {
