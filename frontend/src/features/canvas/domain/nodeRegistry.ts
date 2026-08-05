@@ -32,9 +32,9 @@ import {
   SKILL_SCHEMA_VERSION,
 } from '@/modules/creative_canvas/public';
 
-export type MenuIconKey = 'upload' | 'sparkles' | 'layout' | 'text' | 'video' | 'audio' | 'script' | 'pano360' | 'threeDWorld' | 'videoCompose';
+type MenuIconKey = 'upload' | 'sparkles' | 'layout' | 'text' | 'video' | 'audio' | 'script' | 'pano360' | 'threeDWorld' | 'videoCompose';
 
-export interface CanvasNodeCapabilities {
+interface CanvasNodeCapabilities {
   toolbar: boolean;
   promptInput: boolean;
 }
