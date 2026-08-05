@@ -9284,7 +9284,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("DROPPED_FILE_OFFSET = 36");
     expect(hookModel).toContain("scheduleAfterMount(");
     expect(transferController).toContain("./useCanvasMediaDropController");
-    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasMediaTransferController");
     expect(canvasView).not.toContain("./hooks/useCanvasMediaDropController");
     expect(canvasView).not.toContain("const handleCanvasDrop = useCallback");
@@ -9477,7 +9477,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("createCanvasHistoryAssetPayload(asset)");
     expect(hookModel).toContain("resolveCanvasHistoryAssetPosition(");
     expect(hookModel).toContain("selectNode(nodeId)");
-    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("./hooks/useCanvasHistoryAssetController");
     expect(canvasView).not.toContain("const handleUseHistoryAsset = useCallback");
     expect(canvasView).not.toContain("const handleDeleteHistoryNode = useCallback");
@@ -9891,7 +9891,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas media surface assembly in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasMediaSurfaceController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
@@ -9905,7 +9905,7 @@ describe("frontend architecture boundaries", () => {
     const moduleControllerSource = readFileSync(moduleControllerPath, "utf8");
     const declaration = [
       "export function",
-      "useCanvasMediaSurfaceController(",
+      "createUseCanvasMediaSurfaceController(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -9914,14 +9914,19 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/modules/creative_canvas/canvasComposition",
         "@/features/viewer-kit/public",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
+        "../application/canvasAssetNodeSpawning",
+        "../application/canvasEventBus",
+        "../domain/assetDrag",
+        "../domain/canvasConnection",
+        "../domain/canvasNodeData",
+        "./useCanvasHistoryAssetController",
+        "./useCanvasMediaPaste",
+        "./useCanvasMediaTransferController",
       ]),
     );
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasMediaSurfaceController.ts",
     ]);
     expect(controllerSource).toContain("useCanvasMediaTransferController({");
     expect(controllerSource).toContain("spawnCanvasAssetNode(");
@@ -9934,8 +9939,14 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("'spawnAsset'");
     expect(controllerSource).toContain("...mediaTransfer");
     expect(controllerSource).toContain("spawnAsset,");
-    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).toContain("@/modules/creative_canvas/canvasComposition");
     expect(canvasView).not.toContain("spawnTransferredAsset");
+    for (const retiredPath of [
+      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+      "features/canvas/hooks/useCanvasMediaSurfaceController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Canvas media paste coordination in Creative Canvas presentation", () => {
@@ -27632,7 +27643,7 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+      "modules/creative_canvas/presentation/useCanvasMediaSurfaceController.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -27701,7 +27712,7 @@ describe("frontend architecture boundaries", () => {
     const transferAdapter = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+        "modules/creative_canvas/presentation/useCanvasMediaSurfaceController.ts",
       ),
       "utf8",
     );

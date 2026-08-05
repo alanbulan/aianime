@@ -30,7 +30,7 @@ import {
 import { useAppStore } from '@/stores/app-store';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
-import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
+import { useCanvasMediaSurfaceController } from '@/modules/creative_canvas/canvasComposition';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 import {

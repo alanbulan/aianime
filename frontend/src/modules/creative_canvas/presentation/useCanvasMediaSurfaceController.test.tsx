@@ -4,15 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasHistoryAssetControllerOptions,
-  CanvasMediaTransferControllerOptions,
-} from '@/modules/creative_canvas/public';
-;
+} from './useCanvasHistoryAssetController';
+import type { CanvasMediaTransferControllerOptions } from './useCanvasMediaTransferController';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import {
-  useCanvasMediaSurfaceController,
+  createUseCanvasMediaSurfaceController,
   type CanvasMediaSurfaceControllerOptions,
 } from './useCanvasMediaSurfaceController';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const controllerMocks = vi.hoisted(() => {
   const mediaTransfer = {
     queueSnapshotPaste: vi.fn(),
@@ -30,7 +29,7 @@ const controllerMocks = vi.hoisted(() => {
   return {
     mediaTransfer,
     historyAssets,
-    hydrateAsset: vi.fn(async (payload) => payload),
+    hydrateAsset: vi.fn(async (payload: unknown) => payload),
     isImmersiveViewerActive: vi.fn(() => false),
     spawnCanvasAssetNode: vi.fn(() => 'spawned-asset-node'),
     useMediaTransfer: vi.fn(
@@ -42,18 +41,31 @@ const controllerMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
-  spawnCanvasAssetNode: controllerMocks.spawnCanvasAssetNode,
-  useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
+vi.mock('./useCanvasMediaTransferController', () => ({
   useCanvasMediaTransferController: controllerMocks.useMediaTransfer,
 }));
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  hydrateAssetDragPayload: controllerMocks.hydrateAsset,
+
+vi.mock('./useCanvasHistoryAssetController', () => ({
+  useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
 }));
-vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
+
+vi.mock('../application/canvasAssetNodeSpawning', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('../application/canvasAssetNodeSpawning')
+  >()),
+  spawnCanvasAssetNode: controllerMocks.spawnCanvasAssetNode,
+}));
+
+vi.mock('@/features/viewer-kit/public', () => ({
   isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,
 }));
+
+const useCanvasMediaSurfaceController =
+  createUseCanvasMediaSurfaceController({
+    hydrateAssetDragPayload: controllerMocks.hydrateAsset as (
+      payload: import('../domain/assetDrag').CanvasAssetDragPayload,
+    ) => Promise<import('../domain/assetDrag').CanvasAssetDragPayload>,
+  });
 
 function createOptions(): CanvasMediaSurfaceControllerOptions {
   return {
