@@ -36,6 +36,7 @@ import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  ProviderModelPicker,
   generationTaskDescriptor,
   generateCanvasRedraw,
   inheritMainlineFields,
@@ -46,7 +47,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

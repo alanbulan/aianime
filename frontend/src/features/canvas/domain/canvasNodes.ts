@@ -42,27 +42,19 @@ export const CANVAS_NODE_TYPES = {
 
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES];
 
-export const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
-export const IMAGE_ASPECT_RATIOS = [
-  '1:1',
-  '16:9',
-  '9:16',
-  '4:3',
-  '3:4',
-  '21:9',
-] as const;
+const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;
 
 export type ImageSize = (typeof IMAGE_SIZES)[number];
 
 /** Image quality preset, only honored by image2 models (gpt-image-2). */
 export type ImageQuality = 'low' | 'medium' | 'high';
 
-export interface NodeDisplayData {
+interface NodeDisplayData {
   displayName?: string;
   [key: string]: unknown;
 }
 
-export interface NodeImageData extends NodeDisplayData {
+interface NodeImageData extends NodeDisplayData {
   imageUrl: string | null;
   previewImageUrl?: string | null;
   aspectRatio: string;
@@ -298,7 +290,7 @@ export interface ImageEditNodeData extends NodeImageData {
 
 export type ImageGenCount = 1 | 2 | 4;
 
-export interface ImageGenFocusRegion {
+interface ImageGenFocusRegion {
   /** Normalized 0-1 coordinates against the upstream source image. */
   sourceUrl: string;
   x: number;
@@ -377,7 +369,7 @@ export interface StoryboardGenNodeData {
   [key: string]: unknown;
 }
 
-export type AudioTextSegment =
+type AudioTextSegment =
   | { type: 'text'; value: string }
   | { type: 'pause'; durationSec: number }
   | { type: 'filler'; token: string };
@@ -582,19 +574,6 @@ export interface CanvasPosition {
   y: number;
 }
 
-export interface NodeCreationDto {
-  type: CanvasNodeType;
-  position: CanvasPosition;
-  data?: Partial<CanvasNodeData>;
-}
-
-export interface StoryboardNodeCreationDto {
-  position: CanvasPosition;
-  rows: number;
-  cols: number;
-  frames: StoryboardFrameItem[];
-}
-
 export function isUploadNode(
   node: CanvasNode | null | undefined
 ): node is Node<UploadImageNodeData, typeof CANVAS_NODE_TYPES.upload> {
@@ -617,12 +596,6 @@ export function isExportImageNode(
   node: CanvasNode | null | undefined
 ): node is Node<ExportImageNodeData, typeof CANVAS_NODE_TYPES.exportImage> {
   return node?.type === CANVAS_NODE_TYPES.exportImage;
-}
-
-export function isBeatContextNode(
-  node: CanvasNode | null | undefined
-): node is Node<BeatContextNodeData, typeof CANVAS_NODE_TYPES.beatContext> {
-  return node?.type === CANVAS_NODE_TYPES.beatContext;
 }
 
 export function isGroupNode(
@@ -680,58 +653,14 @@ export function isAudioNode(
   return node?.type === CANVAS_NODE_TYPES.audio;
 }
 
-export function isSkillNode(
-  node: CanvasNode | null | undefined
-): node is Node<SkillNodeData, typeof CANVAS_NODE_TYPES.skill> {
-  return node?.type === CANVAS_NODE_TYPES.skill;
-}
-
-export function isVideoStoryNode(
-  node: CanvasNode | null | undefined
-): node is Node<VideoStoryNodeData, typeof CANVAS_NODE_TYPES.videoStory> {
-  return node?.type === CANVAS_NODE_TYPES.videoStory;
-}
-
 export function isScriptNode(
   node: CanvasNode | null | undefined
 ): node is Node<ScriptNodeData, typeof CANVAS_NODE_TYPES.script> {
   return node?.type === CANVAS_NODE_TYPES.script;
 }
 
-export function isVideoComposeNode(
-  node: CanvasNode | null | undefined
-): node is Node<VideoComposeNodeData, typeof CANVAS_NODE_TYPES.videoCompose> {
-  return node?.type === CANVAS_NODE_TYPES.videoCompose;
-}
-
 export function isPano360ViewerNode(
   node: CanvasNode | null | undefined
 ): node is Node<Pano360ViewerNodeData, typeof CANVAS_NODE_TYPES.pano360Viewer> {
   return node?.type === CANVAS_NODE_TYPES.pano360Viewer;
-}
-
-export function isThreeDWorldNode(
-  node: CanvasNode | null | undefined
-): node is Node<ThreeDWorldNodeData, typeof CANVAS_NODE_TYPES.threeDWorld> {
-  return node?.type === CANVAS_NODE_TYPES.threeDWorld;
-}
-
-export function nodeHasImage(node: CanvasNode | null | undefined): boolean {
-  if (!node) {
-    return false;
-  }
-
-  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
-    return Boolean(node.data.imageUrl);
-  }
-
-  if (isStoryboardSplitNode(node)) {
-    return node.data.frames.some((frame) => Boolean(frame.imageUrl));
-  }
-
-  if (isStoryboardGenNode(node)) {
-    return Boolean(node.data.imageUrl);
-  }
-
-  return false;
 }

@@ -33020,4 +33020,38 @@ describe("frontend architecture boundaries", () => {
       "edgeTypes={canvasEdgeTypes}",
     );
   });
+
+  it("keeps the legacy Canvas node aggregate free of retired exports", () => {
+    const canvasNodesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodes.ts",
+    );
+    const source = readFileSync(canvasNodesPath, "utf8");
+    const retiredDeclarations = [
+      "export const IMAGE_SIZES",
+      "export const IMAGE_ASPECT_RATIOS",
+      "export interface NodeDisplayData",
+      "export interface NodeImageData",
+      "export interface ImageGenFocusRegion",
+      "export type AudioTextSegment",
+      "export interface NodeCreationDto",
+      "export interface StoryboardNodeCreationDto",
+      "export function isBeatContextNode",
+      "export function isSkillNode",
+      "export function isVideoStoryNode",
+      "export function isVideoComposeNode",
+      "export function isThreeDWorldNode",
+      "export function nodeHasImage",
+    ];
+
+    for (const declaration of retiredDeclarations) {
+      expect(source, declaration).not.toContain(declaration);
+    }
+    expect(source).not.toContain("IMAGE_ASPECT_RATIOS");
+    expect(source).toContain(
+      "const IMAGE_SIZES = ['0.5K', '1K', '2K', '4K'] as const;",
+    );
+    expect(source).toContain("interface NodeDisplayData {");
+    expect(source).toContain("interface NodeImageData extends NodeDisplayData {");
+  });
 });

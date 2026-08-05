@@ -34,6 +34,7 @@ import {
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_TOOLBAR_CLASS,
+  ProviderModelPicker,
   calculateCanvasOutpaintFrame,
   generateCanvasOutpaint,
   generationTaskDescriptor,
@@ -44,7 +45,6 @@ import {
   type CanvasOutpaintNumImages,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 

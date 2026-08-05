@@ -1276,6 +1276,12 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百五十批将 `MultiAngleEditorPanel` 与 `LightEditorPanel` 整体迁入 Creative Canvas presentation。面板内部改为相对依赖本域 `multiAngle`/`relight`、目录组合根、`MultiAngleSphere` 和节点样式，不经模块 public 自回绕，也不导入旧 Canvas、Store 或 API；两个旧 Overlay 统一经 Creative Canvas public 使用唯一面板和类型合同。旧面板路径直接删除，不保留 facade、re-export 或第二套实现；残余门禁登记两个新 presentation 所有者和两个旧路径禁回流，Canvas TS/TSX 上限收紧到 239，光影颜色预算迁移到新路径且颜色值不变。架构/残余/颜色门禁 3 个文件 349 项、相关多角度/光影领域回归 4 个文件 6 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1014/239/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。R1-C/R1-D/R1-E、阶段 8、阶段 10、R4-R7 与第二轮 GOAL 仍未完成。
 
+第八百五十一批将 `ProviderModelPicker` 与行为测试整体迁入 Creative Canvas presentation；组件内部相对依赖本域 generation catalog、图片能力、目录组合根和节点控件样式，不经模块 public 自回绕，也不持有静态模型回退。图片生成、Skill、视频、文字标注四个节点 View 与外扩、重绘、放大三个覆盖层共 7 个消费者统一经 Creative Canvas public 使用唯一选择器，旧组件和旧测试路径直接删除，不保留 facade、re-export 或第二套实现。选择器回归 3 项、完整模块边界 337 项、残余/颜色/主题门禁 16 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 实测为 1016/237/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
+第八百五十二批为后续 Canvas 纵向迁移先清除 viewer-kit 深路径依赖：`features/viewer-kit/public.ts` 增补 12 个既有符号出口，24 个 Canvas 文件和 1 个 Creative Canvas 文件统一改经 public 使用，不复制实现、不改变 viewer-kit 所有权，也不新增兼容 facade。残余门禁固定 Canvas/Creative Canvas 对 viewer-kit 深路径导入为 0，并修复 `useThreeDWorldNodeController.test.tsx` 缺失 React Flow `Position` mock 导致的收集失败。受影响回归 10 个文件 31 项、完整模块边界 337 项、残余/颜色/主题门禁 17 项、前端 TypeScript 和 `git diff --check` 全部通过；文件数保持 1016/237/0。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
+第八百五十三批基于全仓 TypeScript 引用核对收紧旧 `canvasNodes.ts` 聚合出口：五个仅文件内部使用的合同改为私有，删除无引用的 `IMAGE_ASPECT_RATIOS`、两个创建 DTO、五个旧节点谓词和 `nodeHasImage`；`isBeatContextNode` 的唯一真实所有者继续位于 Creative Canvas `mainlineContext`。同步合并第 851 批 7 个消费者遗留的重复 Creative Canvas public import，并清理另一工作流留下但未纳入 Git、无生产引用的一次性依赖图文件。新增模块边界门禁固定 14 个退役导出不得回流；节点/选择器回归 5 个文件 15 项、完整模块边界 338 项、前端 TypeScript 和 `git diff --check` 全部通过，文件数保持 1016/237/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

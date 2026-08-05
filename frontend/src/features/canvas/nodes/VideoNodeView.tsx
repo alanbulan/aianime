@@ -44,6 +44,7 @@ import {
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
   OperationPanelShell,
+  ProviderModelPicker,
   VideoUploadActionRail,
   VideoUploadingState,
 } from '@/modules/creative_canvas/public';
@@ -53,7 +54,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import {
   AssetLibraryModal,
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,

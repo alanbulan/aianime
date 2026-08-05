@@ -54,6 +54,7 @@ import {
   NodeSideActionRail,
   OperationPanelShell,
   PanelExpandButton,
+  ProviderModelPicker,
   RegenerateButton,
   ReferenceTextChip,
   resolveImageDisplayUrl,
@@ -72,7 +73,6 @@ import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';

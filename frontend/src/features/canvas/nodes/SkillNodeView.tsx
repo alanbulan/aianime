@@ -16,11 +16,11 @@ import {
 } from '@/features/canvas/application/skillNodeModel';
 import type { CanvasEdge } from '@/features/canvas/domain/canvasNodes';
 import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import {
   BackgroundCropperDialog,
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
+  ProviderModelPicker,
 } from '@/modules/creative_canvas/public';
 import {
   NODE_INLINE_ERROR_MESSAGE_CLASS,

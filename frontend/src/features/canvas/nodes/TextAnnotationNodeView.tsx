@@ -32,13 +32,13 @@ import {
   NODE_INLINE_ICON_BUTTON_CLASS,
   NodeGenerationOverlay,
   NodeResizeHandle,
+  ProviderModelPicker,
   type TextNodeMode,
 } from '@/modules/creative_canvas/public';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 
 const PICKER_INSET = 32;
 const OPS_PANEL_HEIGHT = 140;

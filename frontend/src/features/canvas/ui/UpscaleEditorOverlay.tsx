@@ -13,6 +13,7 @@ import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_TOOLBAR_CLASS,
+  ProviderModelPicker,
   ZoomScaledToolbar,
   generateCanvasUpscale,
   generationTaskDescriptor,
@@ -23,7 +24,6 @@ import {
   type CanvasUpscaleScaleFactor,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { ProviderModelPicker } from '@/modules/creative_canvas/public';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
