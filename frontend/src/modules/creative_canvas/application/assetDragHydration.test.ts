@@ -4,15 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import {
   hydrateAssetDragPayload,
   type CanvasSceneDirectorManifestGateway,
-} from "@/features/canvas/application/assetDragHydration";
+} from "./assetDragHydration";
 import {
   spawnCanvasAssetNode,
   type CanvasAssetDragPayload,
   type CanvasAssetNodeSpawnPort,
 } from "@/modules/creative_canvas/public";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
+import type {
+  DirectorStageManifest,
+  ThreeDSceneSnapshot,
+} from "@/features/viewer-kit/public";
 
 describe("hydrateAssetDragPayload", () => {
   it("copies a scene director world manifest into a user-imported canvas payload", async () => {
@@ -150,7 +151,7 @@ describe("spawnCanvasAssetNode — 还原链路 model/genMode", () => {
 
     spawnCanvasAssetNode(store, payload, { x: 0, y: 0 });
 
-    expect(created[0]?.type).toBe(CANVAS_NODE_TYPES.video);
+    expect(created[0]?.type).toBe("videoNode");
     expect(created[0]?.data.model).toBe("happyhouse_1_0");
     expect(created[0]?.data.genMode).toBe("firstLastFrame");
   });
@@ -185,7 +186,7 @@ describe("spawnCanvasAssetNode — 还原链路 model/genMode", () => {
 
     // imageEdit('imageNode') 是纯生成编辑器,不渲染 data.imageUrl,还原会空白 —— 故成品图
     // 还原走 imageGen('imageGenNode'):它读 data.imageUrl 直接展示、可编辑、带 data.model。
-    expect(created[0]?.type).toBe(CANVAS_NODE_TYPES.imageGen);
+    expect(created[0]?.type).toBe("imageGenNode");
     expect(created[0]?.data.imageUrl).toBe("/static/p/i.png");
     expect(created[0]?.data.model).toBe("seedream_4_0");
   });

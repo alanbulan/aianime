@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-import {
-  directorWorldSourcesFromManifest,
-} from "@/features/canvas/domain/directorWorldSources";
-import type { CanvasAssetDragPayload } from "@/modules/creative_canvas/public";
+import { directorWorldSourcesFromManifest } from "../domain/directorWorldSources";
+import type { CanvasAssetDragPayload } from "../domain/assetDrag";
 import type { DirectorStageManifest, ThreeDSceneSnapshot } from "@/features/viewer-kit/public";
 
 const SCENE_DIRECTOR_WORLD_ROLE = "scene_director_world";

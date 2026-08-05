@@ -2031,6 +2031,28 @@ export type {
   DerivedNodeFactory,
 } from "@/modules/creative_canvas/application/canvasDerivedNodeCreation";
 export {
+  canvasNodeLabel,
+  directorPanoSourceFromCanvasNode,
+  directorSourceUrl,
+  directorWorldSourcesFromManifest,
+  imageUrlFromCanvasNode,
+  isCanvasImageNode,
+  isPanoAspectRatio,
+  isPanoImageCanvasNode,
+  mergeDirectorSavedSceneMaps,
+  mergeDirectorStageManifestSources,
+  mergeDirectorWorldSources,
+} from "@/modules/creative_canvas/domain/directorWorldSources";
+export type {
+  DirectorCanvasNodeLike,
+} from "@/modules/creative_canvas/domain/directorWorldSources";
+export {
+  hydrateAssetDragPayload,
+} from "@/modules/creative_canvas/application/assetDragHydration";
+export type {
+  CanvasSceneDirectorManifestGateway,
+} from "@/modules/creative_canvas/application/assetDragHydration";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

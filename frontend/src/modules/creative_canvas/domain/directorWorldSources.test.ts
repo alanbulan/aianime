@@ -7,23 +7,22 @@ import {
   mergeDirectorStageManifestSources,
   mergeDirectorSavedSceneMaps,
   mergeDirectorWorldSources,
-} from "@/features/canvas/domain/directorWorldSources";
-import { CANVAS_NODE_TYPES, type CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
+  type DirectorCanvasNodeLike,
+} from "./directorWorldSources";
+import type { DirectorStageManifest } from "@/features/viewer-kit/public";
 
-function node(type: CanvasNode["type"], data: Record<string, unknown>): CanvasNode {
+function node(type: string, data: Record<string, unknown>): DirectorCanvasNodeLike {
   return {
     id: String(data.id ?? "node-1"),
     type,
-    position: { x: 0, y: 0 },
     data,
-  } as CanvasNode;
+  };
 }
 
 describe("directorWorldSources", () => {
   it("classifies legacy pano viewer nodes as raw pano360 sources", () => {
     const source = directorPanoSourceFromCanvasNode(
-      node(CANVAS_NODE_TYPES.pano360Viewer, {
+      node("pano360ViewerNode", {
         id: "pano-viewer-1",
         imageUrl: "/static/demo/pano.png",
         displayName: "老 360 查看器",
@@ -42,7 +41,7 @@ describe("directorWorldSources", () => {
 
   it("classifies generated 360 image nodes as raw pano360 sources", () => {
     const source = directorPanoSourceFromCanvasNode(
-      node(CANVAS_NODE_TYPES.exportImage, {
+      node("exportImageNode", {
         id: "generated-360",
         imageUrl: "/static/demo/generated_360.png",
         output_role: "scene_360_candidate",
@@ -58,7 +57,7 @@ describe("directorWorldSources", () => {
 
   it("does not classify ordinary 16:9 images as raw pano360 sources", () => {
     const source = directorPanoSourceFromCanvasNode(
-      node(CANVAS_NODE_TYPES.exportImage, {
+      node("exportImageNode", {
         id: "ordinary-image",
         imageUrl: "/static/demo/frame.png",
         aspectRatio: "16:9",
@@ -69,7 +68,7 @@ describe("directorWorldSources", () => {
   });
 
   it("classifies unmarked 2:1 uploads as pano360 sources", () => {
-    const upload = node(CANVAS_NODE_TYPES.upload, {
+    const upload = node("uploadNode", {
       id: "upload-2x1",
       imageUrl: "/static/demo/user-upload.png",
       aspectRatio: "2:1",
@@ -85,7 +84,7 @@ describe("directorWorldSources", () => {
   });
 
   it("can create a pano source from an explicitly marked panorama image even when aspect ratio is not 2:1", () => {
-    const upload = node(CANVAS_NODE_TYPES.upload, {
+    const upload = node("uploadNode", {
       id: "upload-marked-pano",
       imageUrl: "/static/demo/user-upload.png",
       aspectRatio: "16:9",

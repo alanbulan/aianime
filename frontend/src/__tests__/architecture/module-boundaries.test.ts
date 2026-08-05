@@ -20426,7 +20426,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas asset hydration behind the composition root", () => {
     const hydrationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/assetDragHydration.ts",
+      "modules/creative_canvas/application/assetDragHydration.ts",
     );
     const hydrationSource = readFileSync(hydrationPath, "utf8");
     const compositionSource = readFileSync(
@@ -21945,7 +21945,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasSourcesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/directorWorldSources.ts",
+      "modules/creative_canvas/domain/directorWorldSources.ts",
     );
     const assetLibraryModelPath = resolve(
       SRC_ROOT,
@@ -22340,7 +22340,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyDirectorWorldDomainPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/directorWorldSources.ts",
+      "modules/creative_canvas/domain/directorWorldSources.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,

@@ -647,6 +647,14 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasDerivedNodeCreation.ts",
       "canvasDerivedNodeCreation.test.ts",
     ];
+    const directorWorldApplicationFiles = [
+      "assetDragHydration.ts",
+      "assetDragHydration.test.ts",
+    ];
+    const directorWorldDomainFiles = [
+      "directorWorldSources.ts",
+      "directorWorldSources.test.ts",
+    ];
     const textGenerationApplicationFiles = [
       "generateCanvasStoryScript.ts",
       "generateCanvasStoryScript.test.ts",
@@ -1474,6 +1482,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/application/canvasDataNormalization.test.ts",
       "features/canvas/application/canvasDerivedNodeCreation.ts",
       "features/canvas/application/canvasDerivedNodeCreation.test.ts",
+      "features/canvas/application/assetDragHydration.ts",
+      "features/canvas/domain/directorWorldSources.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -1683,6 +1693,22 @@ describe("round 2 residual architecture boundaries", () => {
       );
       expect(
         existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of directorWorldApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of directorWorldDomainFiles) {
+      expect(existsSync(resolve(moduleRoot, "domain", file)), file).toBe(true);
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/domain", file)),
         file,
       ).toBe(false);
     }
@@ -2735,7 +2761,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 199],
+      ["features/canvas", 197],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

@@ -1,13 +1,4 @@
 // Copyright (c) 2026 AI anime
-import {
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isPano360ViewerNode,
-  isStoryboardGenNode,
-  isUploadNode,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
 import type {
   DirectorStageManifest,
   DirectorStageSourceKind,
@@ -16,40 +7,44 @@ import type {
 } from "@/features/viewer-kit/public";
 import { directorSourceIdentityUrl } from "@/modules/asset_world/public";
 
-export function canvasNodeLabel(node: CanvasNode): string {
-  const displayName = (node.data as { displayName?: unknown }).displayName;
-  return typeof displayName === "string" && displayName.trim() ? displayName : node.type ?? node.id;
+export interface DirectorCanvasNodeLike {
+  id: string;
+  type?: string | null;
+  data: Record<string, unknown>;
 }
 
-export function imageUrlFromCanvasNode(node: CanvasNode): string | null {
-  const data = node.data as { imageUrl?: unknown; previewImageUrl?: unknown; referenceImageUrl?: unknown };
+export function canvasNodeLabel(node: DirectorCanvasNodeLike): string {
+  const displayName = node.data?.displayName;
+  return typeof displayName === "string" && displayName.trim()
+    ? displayName
+    : node.type ?? node.id;
+}
+
+export function imageUrlFromCanvasNode(node: DirectorCanvasNodeLike): string | null {
+  const data = node.data ?? {};
   if (typeof data.imageUrl === "string" && data.imageUrl.length > 0) return data.imageUrl;
   if (typeof data.previewImageUrl === "string" && data.previewImageUrl.length > 0) return data.previewImageUrl;
   if (typeof data.referenceImageUrl === "string" && data.referenceImageUrl.length > 0) return data.referenceImageUrl;
   return null;
 }
 
-export function isCanvasImageNode(node: CanvasNode): boolean {
+export function isCanvasImageNode(node: DirectorCanvasNodeLike): boolean {
   return (
-    isImageGenNode(node) ||
-    isUploadNode(node) ||
-    isImageEditNode(node) ||
-    isExportImageNode(node) ||
-    isStoryboardGenNode(node)
+    node.type === "imageGenNode" ||
+    node.type === "uploadNode" ||
+    node.type === "imageNode" ||
+    node.type === "exportImageNode" ||
+    node.type === "storyboardGenNode"
   );
 }
 
-export function isPanoAspectRatio(node: CanvasNode): boolean {
-  const data = node.data as { aspectRatio?: unknown };
-  return data.aspectRatio === "2:1";
+export function isPanoAspectRatio(node: DirectorCanvasNodeLike): boolean {
+  return node.data?.aspectRatio === "2:1";
 }
 
-export function isPanoImageCanvasNode(node: CanvasNode): boolean {
-  if (isPano360ViewerNode(node)) return true;
-  const data = node.data as {
-    output_role?: unknown;
-    media_kind?: unknown;
-  };
+export function isPanoImageCanvasNode(node: DirectorCanvasNodeLike): boolean {
+  if (node.type === "pano360ViewerNode") return true;
+  const data = node.data ?? {};
   const role = typeof data.output_role === "string" ? data.output_role : "";
   if (role === "scene_360" || role === "scene_360_candidate" || role === "scene_director_pano_360") {
     return true;
@@ -58,7 +53,9 @@ export function isPanoImageCanvasNode(node: CanvasNode): boolean {
   return isPanoAspectRatio(node);
 }
 
-export function directorPanoSourceFromCanvasNode(node: CanvasNode): DirectorWorldSource | null {
+export function directorPanoSourceFromCanvasNode(
+  node: DirectorCanvasNodeLike,
+): DirectorWorldSource | null {
   if (!isPanoImageCanvasNode(node)) return null;
   const url = imageUrlFromCanvasNode(node);
   if (!url) return null;

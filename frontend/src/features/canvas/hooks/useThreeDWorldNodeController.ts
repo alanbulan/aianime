@@ -35,18 +35,16 @@ import {
   useDetachUpstream,
   useUpstreamNodes,
 } from '@/features/canvas/composition';
-import {
-  imageUrlFromCanvasNode,
-  isPanoImageCanvasNode,
-  mergeDirectorStageManifestSources,
-  mergeDirectorSavedSceneMaps,
-  mergeDirectorWorldSources,
-} from '@/features/canvas/domain/directorWorldSources';
 import type { ThreeDWorldNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   generateCanvasImageTo3d,
   generationTaskDescriptor,
   directorCaptureBlobToDataUrl,
+  imageUrlFromCanvasNode,
+  isPanoImageCanvasNode,
+  mergeDirectorSavedSceneMaps,
+  mergeDirectorStageManifestSources,
+  mergeDirectorWorldSources,
   readDirectorCaptureImageSize,
   resolveCanvasImageTo3dSourceKind,
   setDirectorWorldSceneSaveHandler,

@@ -72,10 +72,6 @@ import {
 import { useCanvasStore } from './canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
-  hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
-  type CanvasSceneDirectorManifestGateway,
-} from './application/assetDragHydration';
-import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,
 } from './domain/canvasNodes';
@@ -84,6 +80,10 @@ import {
   startCanvasSkillRun as startCanvasSkillRunUseCase,
   type AwaitCanvasSkillRunResultParams,
   type StartCanvasSkillRunParams,
+} from '@/modules/creative_canvas/public';
+import {
+  hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
+  type CanvasSceneDirectorManifestGateway,
 } from '@/modules/creative_canvas/public';
 import {
   stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
