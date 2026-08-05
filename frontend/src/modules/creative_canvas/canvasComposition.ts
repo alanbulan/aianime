@@ -18,6 +18,7 @@ import { createUseStoryboardNodeController } from './presentation/useStoryboardN
 import { createUseAudioNodeToolbarController } from './presentation/useAudioNodeToolbarController';
 import { createUseNodeMainlineToolbarController } from './presentation/useNodeMainlineToolbarController';
 import { createUseNodeOutputToolbarController } from './presentation/useNodeOutputToolbarController';
+import { createUseNodeManagementToolbarController } from './presentation/useNodeManagementToolbarController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -44,6 +45,10 @@ import { matteImageInBrowserWorker, preloadBrowserMatteWorker } from './infrastr
 import { platformCanvasAssetGateway } from './assetTransferComposition';
 import { pollExportImageGeneration as pollExportImageGenerationUseCase, type PollExportImageGenerationParams } from './application/pollExportImageGeneration';
 import { publishCanvasCommitRequested } from './application/canvasCommitEvents';
+import {
+  publishCanvasProjectionRemovalRequested,
+  publishCanvasProjectionSyncRequested,
+} from './application/canvasProjectionCommandEvents';
 import { regenerateExportImageNode as regenerateExportImageNodeUseCase, type RegenerateExportImageNodeParams } from './application/regenerateExportNode';
 import { resolveCurrentShotMetadataPrompt } from './shotMetadataComposition';
 import { resolvePromptReferenceRoles } from './domain/referenceRoles';
@@ -276,6 +281,13 @@ export const useNodeMainlineToolbarController =
 export const useNodeOutputToolbarController = createUseNodeOutputToolbarController({
   useSettingsStore,
 });
+export const useNodeManagementToolbarController =
+  createUseNodeManagementToolbarController({
+    useStore: useCanvasStore,
+    publishCanvasCommitRequested,
+    publishCanvasProjectionRemovalRequested,
+    publishCanvasProjectionSyncRequested,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

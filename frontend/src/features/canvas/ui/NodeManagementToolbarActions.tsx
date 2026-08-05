@@ -2,7 +2,7 @@
 import { memo } from "react";
 
 ;
-import { useNodeManagementToolbarController } from "@/features/canvas/hooks/useNodeManagementToolbarController";
+import { useNodeManagementToolbarController } from "@/modules/creative_canvas/canvasComposition";
 import { NodeManagementToolbarActionsView, type CanvasNode } from "@/modules/creative_canvas/public";
 
 export interface NodeManagementToolbarActionsProps {

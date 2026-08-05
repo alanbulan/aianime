@@ -2,11 +2,17 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-;
+import { CANVAS_NODE_TYPES } from "../domain/canvasConnection";
+import type {
+  CanvasNode,
+  CanvasNodeType,
+} from "../domain/canvasNodeData";
+import {
+  createUseNodeManagementToolbarController,
+  type NodeManagementToolbarStore,
+  type NodeManagementToolbarStoreHook,
+} from "./useNodeManagementToolbarController";
 
-import { useNodeManagementToolbarController } from "./useNodeManagementToolbarController";
-
-import { CANVAS_NODE_TYPES, type CanvasNode, type CanvasNodeType } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   deleteNode: vi.fn(),
   publish: vi.fn(),
@@ -20,16 +26,21 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mocks.t }),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
-  useCanvasStore: (
-    selector: (state: { deleteNode: typeof mocks.deleteNode }) => unknown,
-  ) => selector({ deleteNode: mocks.deleteNode }),
-  publishCanvasCommitRequested: mocks.publish,
-  publishCanvasProjectionRemovalRequested: mocks.publishProjectionRemoval,
-  publishCanvasProjectionSyncRequested: mocks.publishProjectionSync,
+vi.mock("./useCanvasProjectionStatus", () => ({
   useCanvasProjectionStatus: () => mocks.projectionStatus.current,
 }));
+
+const useStore = ((
+  selector: (state: NodeManagementToolbarStore) => unknown,
+) => selector({ deleteNode: mocks.deleteNode })) as unknown as NodeManagementToolbarStoreHook;
+
+const useNodeManagementToolbarController =
+  createUseNodeManagementToolbarController({
+    useStore,
+    publishCanvasCommitRequested: mocks.publish,
+    publishCanvasProjectionRemovalRequested: mocks.publishProjectionRemoval,
+    publishCanvasProjectionSyncRequested: mocks.publishProjectionSync,
+  });
 
 function node(
   type: CanvasNodeType,

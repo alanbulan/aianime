@@ -123,7 +123,9 @@ describe("freezone viewer contracts", () => {
       "src/features/canvas/hooks/useCanvasMediaSurfaceController.ts",
     );
     const hydrate = read("src/modules/creative_canvas/application/assetDragHydration.ts");
-    const composition = read("src/features/canvas/composition.ts");
+    const composition = read(
+      "src/modules/creative_canvas/canvasComposition.ts",
+    );
 
     expect(assetLibraryModel).toContain(
       ["export const", "SCENE_DIRECTOR_WORLD_ROLE"].join(" "),
@@ -225,7 +227,9 @@ describe("freezone viewer contracts", () => {
     const worldController = read(
       "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
     );
-    const canvasComposition = read("src/features/canvas/composition.ts");
+    const canvasComposition = read(
+      "src/modules/creative_canvas/canvasComposition.ts",
+    );
     const skillNode = [
       read("src/modules/creative_canvas/application/skillNodeModel.ts"),
       read("src/features/canvas/hooks/useSkillNodeController.ts"),
@@ -572,7 +576,7 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/domain/nodeManagementToolbarModel.ts",
     );
     const managementController = read(
-      "src/features/canvas/hooks/useNodeManagementToolbarController.ts",
+      "src/modules/creative_canvas/presentation/useNodeManagementToolbarController.ts",
     );
     const shell = read(
       "src/modules/creative_canvas/presentation/useFreezoneShellController.ts",

@@ -6444,9 +6444,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/useGroupNodeController.ts",
     );
-    const canvasConsumerPaths = [
-      "features/canvas/hooks/useNodeManagementToolbarController.ts",
-    ].map((path) => resolve(SRC_ROOT, path));
+    const canvasConsumerPaths: string[] = [];
     const stateSource = readFileSync(statePath, "utf8");
 
     expect(existsSync(legacyPath)).toBe(false);
@@ -23864,11 +23862,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeManagementToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeManagementToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useNodeManagementToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -23889,7 +23887,7 @@ describe("frontend architecture boundaries", () => {
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const declarations = [
       ["export function", "projectNodeManagementToolbar("].join(" "),
-      ["export function", "useNodeManagementToolbarController("].join(" "),
+      ["export function", "createUseNodeManagementToolbarController("].join(" "),
       ["export const", "NodeManagementToolbarActions ="].join(" "),
       ["export function", "NodeManagementToolbarActionsView("].join(" "),
     ];
@@ -23935,8 +23933,11 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
+        "../domain/canvasCommitSource",
+        "../domain/canvasNodeData",
+        "../domain/canvasNodePredicates",
+        "../domain/nodeManagementToolbarModel",
+        "./useCanvasProjectionStatus",
       ]),
     );
     expect(controllerSource).toContain("useCanvasProjectionStatus(");
@@ -23946,7 +23947,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useNodeManagementToolbarController",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -24004,11 +24005,11 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(commandOwners).toEqual([
-      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeManagementToolbarController.ts",
     ]);
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/nodeManagementToolbarModel.ts"],
-      ["features/canvas/hooks/useNodeManagementToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useNodeManagementToolbarController.ts"],
       ["features/canvas/ui/NodeManagementToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeManagementToolbarActionsView.tsx"],
     ]);
@@ -24018,6 +24019,12 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeManagementToolbarController"',
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+      "features/canvas/hooks/useNodeManagementToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/nodeManagementToolbarModel.ts",
@@ -25458,7 +25465,7 @@ describe("frontend architecture boundaries", () => {
     );
     const managementControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeManagementToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeManagementToolbarController.ts",
     );
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const outputControllerSource = readFileSync(outputControllerPath, "utf8");
