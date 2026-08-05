@@ -6349,7 +6349,6 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPaths = [
       "features/canvas/hooks/useBeatContextNodeController.ts",
-      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
       "modules/asset_world/composition.ts",
       "modules/narrative_planning/composition.ts",
       "modules/production/render-section-composition.ts",
@@ -23278,7 +23277,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeMainlineToolbarController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const applicationTestSource = readFileSync(applicationTestPath, "utf8");
@@ -23308,13 +23307,13 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/nodeActionBeatContext",
     );
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(controllerSource).toContain("resolveNodeActionBeatContext(node,");
@@ -23342,11 +23341,11 @@ describe("frontend architecture boundaries", () => {
   it("separates node mainline toolbar commands, composition, and view", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeMainlineToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeMainlineToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useNodeMainlineToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -23365,7 +23364,7 @@ describe("frontend architecture boundaries", () => {
     const viewSource = readFileSync(viewPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const declarations = [
-      ["export function", "useNodeMainlineToolbarController("].join(" "),
+      ["export function", "createUseNodeMainlineToolbarController("].join(" "),
       ["export const", "NodeMainlineToolbarActions ="].join(" "),
       ["export function", "NodeMainlineToolbarActionsView("].join(" "),
     ];
@@ -23390,10 +23389,12 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
+        "../application/beatContextNodeModel",
+        "../application/nodeActionBeatContext",
+        "../domain/canvasConnection",
+        "../domain/canvasGeometry",
+        "../domain/canvasNodeData",
+        "../domain/mainlineContext",
       ]),
     );
     expect(controllerSource).not.toContain("readUrl");
@@ -23403,7 +23404,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useNodeMainlineToolbarController",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -23463,16 +23464,22 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(commandOwners).toEqual([
-      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeMainlineToolbarController.ts",
     ]);
     expect(declarationOwners).toEqual([
-      ["features/canvas/hooks/useNodeMainlineToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useNodeMainlineToolbarController.ts"],
       ["features/canvas/ui/NodeMainlineToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeMainlineToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeMainlineToolbarController"',
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useNodeMainlineToolbarController.ts",
+      "features/canvas/hooks/useNodeMainlineToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps node-action toolbar projections in one pure application model", () => {

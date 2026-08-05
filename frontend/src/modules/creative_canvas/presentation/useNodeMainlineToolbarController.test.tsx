@@ -2,11 +2,17 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-;
+import { CANVAS_NODE_TYPES } from "../domain/canvasConnection";
+import type {
+  CanvasNode,
+  CanvasNodeType,
+} from "../domain/canvasNodeData";
+import {
+  createUseNodeMainlineToolbarController,
+  type NodeMainlineToolbarStore,
+  type NodeMainlineToolbarStoreHook,
+} from "./useNodeMainlineToolbarController";
 
-import { useNodeMainlineToolbarController } from "./useNodeMainlineToolbarController";
-
-import { CANVAS_NODE_TYPES, type CanvasNode, type CanvasNodeType } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   addNode: vi.fn(() => "context-new"),
   nodes: [] as CanvasNode[],
@@ -15,29 +21,29 @@ const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
-  useCanvasStore: (() => {
-    const state = {
+const useStore = Object.assign(
+  (selector: (state: NodeMainlineToolbarStore) => unknown) =>
+    selector({
       addNode: mocks.addNode,
       requestFocusNode: mocks.requestFocusNode,
       setSelectedNode: mocks.setSelectedNode,
-    };
-    return Object.assign(
-      (selector: (value: typeof state) => unknown) => selector(state),
-      { getState: () => ({ nodes: mocks.nodes }) },
-    );
-  })(),
-  openPresetProjectionInMyCanvas: (
-    projectId: string,
-    input: {
-      scope: "beat";
-      episode: number;
-      beat: number;
-      primary_slot: string;
-    },
-  ) => mocks.openWorkbench(projectId, input),
-}));
+      nodes: mocks.nodes,
+    }),
+  {
+    getState: () => ({
+      addNode: mocks.addNode,
+      requestFocusNode: mocks.requestFocusNode,
+      setSelectedNode: mocks.setSelectedNode,
+      nodes: mocks.nodes,
+    }),
+  },
+) as unknown as NodeMainlineToolbarStoreHook;
+
+const useNodeMainlineToolbarController = createUseNodeMainlineToolbarController({
+  useStore,
+  openPresetProjectionInMyCanvas: (projectId, input) =>
+    mocks.openWorkbench(projectId, input),
+});
 
 function node(
   type: CanvasNodeType,

@@ -16,6 +16,7 @@ import { createUseImageNodeController } from './presentation/useImageNodeControl
 import { createUseTextAnnotationNodeController } from './presentation/useTextAnnotationNodeController';
 import { createUseStoryboardNodeController } from './presentation/useStoryboardNodeController';
 import { createUseAudioNodeToolbarController } from './presentation/useAudioNodeToolbarController';
+import { createUseNodeMainlineToolbarController } from './presentation/useNodeMainlineToolbarController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -32,6 +33,7 @@ import {
 } from './mediaOperationGenerationComposition';
 import { submitVideoGeneration } from './videoGenerationComposition';
 import { useCanvasVideoModels } from './generationCatalogComposition';
+import { openPresetProjectionInMyCanvas } from './presetProjectionComposition';
 import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, type CanvasBeatDirectorManifestGateway, type GetCanvasBeatDirectorManifestParams } from './application/beatDirectorManifest';
 import { getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase, type GetCanvasDirectorStagePaletteParams } from './application/directorStagePalette';
 import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
@@ -265,6 +267,11 @@ export const useStoryboardNodeController = createUseStoryboardNodeController({
 export const useAudioNodeToolbarController = createUseAudioNodeToolbarController({
   useStore: useCanvasStore,
 });
+export const useNodeMainlineToolbarController =
+  createUseNodeMainlineToolbarController({
+    useStore: useCanvasStore,
+    openPresetProjectionInMyCanvas,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(
