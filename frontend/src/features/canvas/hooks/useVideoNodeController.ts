@@ -55,11 +55,9 @@ import {
   extractUpstreamContent,
   joinUpstreamText,
   resolveNodeDisplayName,
-} from '@/modules/creative_canvas/public';
-import {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
-} from '@/features/canvas/nodes/shared/albumPendingTotals';
+} from '@/modules/creative_canvas/public';
 import {
   type ContextPromptPaletteEntry,
   contextPromptPaletteInsertionText,

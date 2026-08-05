@@ -964,6 +964,10 @@ export {
 } from "@/modules/creative_canvas/domain/referenceOrdering";
 export { hasImageGenPromptOverride } from "@/modules/creative_canvas/domain/imageGenPrompt";
 export {
+  setAlbumPendingTotal,
+  useAlbumPendingTotal,
+} from "@/modules/creative_canvas/presentation/albumPendingTotals";
+export {
   remapReferenceMentions,
   sameOrder,
 } from "@/modules/creative_canvas/domain/referenceMentions";
@@ -1787,6 +1791,13 @@ export {
   uploadFreezoneAsset,
 } from "@/modules/creative_canvas/assetTransferComposition";
 export { SKILL_SCHEMA_VERSION } from "@/modules/creative_canvas/domain/skillContract";
+export {
+  normalizedSkillParameters,
+  parameterOptions,
+  selectedParameterValue,
+  skillParameterEntries,
+} from "@/modules/creative_canvas/domain/skillNodeParameters";
+export type { SkillParameterEntry } from "@/modules/creative_canvas/domain/skillNodeParameters";
 export type {
   CandidateOrigin,
   ResolvedSkillInput,

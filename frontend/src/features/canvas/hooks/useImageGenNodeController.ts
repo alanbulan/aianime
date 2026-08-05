@@ -71,6 +71,8 @@ import {
   type CanvasImageMode,
   resolveImageDisplayUrl,
   resolveNodeDisplayName,
+  setAlbumPendingTotal,
+  useAlbumPendingTotal,
 } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import {
@@ -80,10 +82,6 @@ import {
   useIsBoxSelecting,
   useUpstreamContents,
 } from '@/features/canvas/composition';
-import {
-  setAlbumPendingTotal,
-  useAlbumPendingTotal,
-} from '@/features/canvas/nodes/shared/albumPendingTotals';
 import {
   describeCameraSelection,
 } from '@/features/canvas/nodes/CameraPickerPopover';

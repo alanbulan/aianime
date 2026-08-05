@@ -50,22 +50,20 @@ import {
   type CanvasNodeData,
   type SkillNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import {
-  normalizedSkillParameters,
-  skillParameterEntries,
-} from '@/features/canvas/nodes/skillNodeParameters';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
   isSystemManagedNodeData,
   loadCanvasSkillRegistry,
+  normalizedSkillParameters,
   nodeDataForOutput,
   nodeTypeForOutput,
   outputLabel,
   outputText,
   publishCanvasCommitRequested,
   resolveInputsForSkill,
+  skillParameterEntries,
   skillRunErrorMessage,
   translateSkillDescription,
   translateSkillName,

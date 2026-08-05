@@ -2,7 +2,7 @@
 import type {
   SkillDefinition,
   SkillParameterSpec,
-} from '@/modules/creative_canvas/public';
+} from "./skillContract";
 
 const PARAMETER_LABELS: Record<string, string> = {
   aspect_ratio: '比例',

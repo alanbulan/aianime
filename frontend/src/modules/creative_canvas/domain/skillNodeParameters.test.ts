@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizedSkillParameters,
   skillParameterEntries,
-} from '@/features/canvas/nodes/skillNodeParameters';
-import type { SkillDefinition } from '@/modules/creative_canvas/public';
+} from './skillNodeParameters';
+import type { SkillDefinition } from './skillContract';
 
 const skill: SkillDefinition = {
   id: 'freezone.frame_from_context',
