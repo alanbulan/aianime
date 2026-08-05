@@ -33,7 +33,6 @@ import {
   type BeatContextMentionContext,
   type StandaloneBeatContextPatch,
 } from '@/features/canvas/application/beatContextNodeModel';
-import { buildBeatContextNodeRefreshPatch } from '@/features/canvas/application/beatContextRefreshProjection';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import type {
   BeatContextNodeData,
@@ -42,6 +41,7 @@ import type {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   applyRemoteFreezoneCanvas,
+  buildBeatContextNodeRefreshPatch,
   createCanvasFromPreset,
   extractMainlineContextsFromNode,
   flushFreezoneCanvasRuntime,

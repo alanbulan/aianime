@@ -75,6 +75,8 @@ vi.mock('@/features/canvas/canvasStore', () => {
 vi.mock('@/modules/creative_canvas/public', () => ({
   applyRemoteFreezoneCanvas: (...args: unknown[]) =>
     mocks.applyRemoteCanvas(...args),
+  buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>
+    mocks.buildRefreshPatch(...args),
   createCanvasFromPreset: (...args: unknown[]) =>
     mocks.createCanvasFromPreset(...args),
   extractMainlineContextsFromNode: ({ data }: { data: BeatContextNodeData }) =>
@@ -116,11 +118,6 @@ vi.mock('@/modules/narrative_planning/public', () => ({
     mocks.episodeBeats(...args);
     return { data: mocks.beatsData };
   },
-}));
-
-vi.mock('@/features/canvas/application/beatContextRefreshProjection', () => ({
-  buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>
-    mocks.buildRefreshPatch(...args),
 }));
 
 vi.mock('@/lib/query-keys', () => ({

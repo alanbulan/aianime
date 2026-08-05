@@ -1,16 +1,51 @@
 // Copyright (c) 2026 AI anime
-import type {
-  FreezoneBeatContextBeat,
-  MainlineContext,
-} from "@/modules/creative_canvas/public";
+import type { FreezoneBeatContextBeat } from "../domain/beatContext";
+import type { MainlineContext } from "../domain/mainlineContext";
 
-import type { BeatContextNodeData } from "../domain/canvasNodes";
+export interface BeatContextNodeRefreshData {
+  snapshot?: {
+    timeOfDay?: unknown;
+    [key: string]: unknown;
+  } | null;
+  beat_edit_fields?: {
+    time_of_day?: unknown;
+    [key: string]: unknown;
+  } | null;
+}
+
+export interface BeatContextNodeRefreshPatch {
+  projectId?: string;
+  episode?: number;
+  beat?: number;
+  content?: string;
+  snapshot?: {
+    visualDescription?: string;
+    narrationSegment?: string;
+    sceneId?: string;
+    sceneVariantId?: string;
+    timeOfDay?: string;
+    detectedIdentities?: string[];
+    detectedProps?: string[];
+    sketchColors?: Record<string, string>;
+    propMarkerColors?: Record<string, string>;
+    selectedBackgroundExists?: boolean;
+    currentSketchExists?: boolean;
+    currentFrameExists?: boolean;
+    [key: string]: unknown;
+  };
+  snapshotLoadedAt?: string;
+  syncStatus?: "fresh" | "stale" | "syncing" | "error";
+  errorMessage?: string;
+  mainline_context?: MainlineContext[];
+  beat_edit_fields?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
 export function buildBeatContextNodeRefreshPatch(
   projectId: string,
   beat: FreezoneBeatContextBeat,
-  currentData?: Pick<BeatContextNodeData, "snapshot" | "beat_edit_fields">,
-): Partial<BeatContextNodeData> {
+  currentData?: BeatContextNodeRefreshData,
+): BeatContextNodeRefreshPatch {
   const visualDescription = beat.visual_description ?? "";
   const narrationSegment = beat.narration_segment ?? "";
   const sceneId = beat.scene_id ?? "";

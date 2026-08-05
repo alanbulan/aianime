@@ -4420,11 +4420,11 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/beatContextRefreshProjection.ts",
+      "modules/creative_canvas/application/beatContextRefreshProjection.ts",
     );
     const testPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/beatContextRefreshProjection.test.ts",
+      "modules/creative_canvas/application/beatContextRefreshProjection.test.ts",
     );
     const nodePath = resolve(
       SRC_ROOT,
@@ -4449,15 +4449,15 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyPath)).toBe(false);
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/modules/creative_canvas/public",
-        "../domain/canvasNodes",
+        "../domain/beatContext",
+        "../domain/mainlineContext",
       ]),
     );
     expect(declarationOwners).toEqual([
-      "features/canvas/application/beatContextRefreshProjection.ts",
+      "modules/creative_canvas/application/beatContextRefreshProjection.ts",
     ]);
     expect(importSpecifiers(nodePath)).toContain(
-      "@/features/canvas/application/beatContextRefreshProjection",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(testPath)).toEqual([
       "vitest",

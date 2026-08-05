@@ -1905,6 +1905,13 @@ export type {
   CanvasNodeDefaultDataGateway,
 } from "@/modules/creative_canvas/application/canvasNodeDefaultData";
 export {
+  buildBeatContextNodeRefreshPatch,
+} from "@/modules/creative_canvas/application/beatContextRefreshProjection";
+export type {
+  BeatContextNodeRefreshData,
+  BeatContextNodeRefreshPatch,
+} from "@/modules/creative_canvas/application/beatContextRefreshProjection";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,
