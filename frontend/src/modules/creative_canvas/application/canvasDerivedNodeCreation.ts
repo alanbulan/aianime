@@ -1,38 +1,44 @@
 // Copyright (c) 2026 AI anime
+import { DEFAULT_ASPECT_RATIO } from "../domain/aspectRatio";
+import { CANVAS_CONNECTION_NODE_TYPES } from "../domain/canvasConnection";
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeData,
-  type ExportImageNodeResultKind,
-} from '../domain/canvasNodes';
-import {
-  DEFAULT_ASPECT_RATIO,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
-  createDefaultStoryboardExportOptions,
   findAvailableNodePosition,
   getDerivedNodePosition,
   getNodeSize,
-  resolveDerivedAspectRatio,
+} from "../domain/canvasGeometry";
+import {
+  EXPORT_RESULT_NODE_MIN_HEIGHT,
+  EXPORT_RESULT_NODE_MIN_WIDTH,
   resolveAutoImageNodeDimensions,
   resolveGeneratedImageNodeDimensions,
+} from "../domain/imageNodeLayout";
+import { EXPORT_RESULT_DISPLAY_NAME, type CanvasExportResultKind } from "../domain/nodeDisplay";
+import type { StoryboardFrameItem } from "../domain/storyboard";
+import {
+  resolveDerivedAspectRatio,
   resolveStoryboardSplitNodeDimensions,
-  type CanvasNodeSize,
-  type StoryboardFrameItem,
-} from '@/modules/creative_canvas/public';
-import { EXPORT_RESULT_DISPLAY_NAME } from '@/modules/creative_canvas/public';
-import type { NodeFactory } from './ports';
+  createDefaultStoryboardExportOptions,
+  type StoryboardNodeTypeCatalog,
+} from "../domain/storyboardNodeModel";
+
+const STORYBOARD_NODE_TYPES: StoryboardNodeTypeCatalog = {
+  upload: CANVAS_CONNECTION_NODE_TYPES.upload,
+  imageEdit: CANVAS_CONNECTION_NODE_TYPES.imageEdit,
+  exportImage: CANVAS_CONNECTION_NODE_TYPES.exportImage,
+  storyboardGen: CANVAS_CONNECTION_NODE_TYPES.storyboardGen,
+  storyboardSplit: CANVAS_CONNECTION_NODE_TYPES.storyboardSplit,
+};
 
 export interface CanvasDerivedExportNodeOptions {
   defaultTitle?: string;
-  resultKind?: ExportImageNodeResultKind;
-  aspectRatioStrategy?: 'provided' | 'derivedFromSource';
-  sizeStrategy?: 'generated' | 'autoMinEdge' | 'matchSource';
+  resultKind?: CanvasExportResultKind;
+  aspectRatioStrategy?: "provided" | "derivedFromSource";
+  sizeStrategy?: "generated" | "autoMinEdge" | "matchSource";
   matchSourceNodeSize?: boolean;
 }
 
 export interface CanvasDerivedExportNodeInput {
-  nodes: CanvasNode[];
+  nodes: DerivedGraphNode[];
   sourceNodeId: string;
   imageUrl: string;
   aspectRatio: string;
@@ -42,10 +48,41 @@ export interface CanvasDerivedExportNodeInput {
   viewportSize: { width: number; height: number };
 }
 
+export interface DerivedGraphNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  measured?: { width?: number; height?: number };
+  width?: number;
+  height?: number;
+  style?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface DerivedCreatedNode {
+  id: string;
+  type?: string | null;
+  position: { x: number; y: number };
+  data?: Record<string, unknown> | null;
+  style?: Record<string, unknown> | null;
+  width?: number;
+  height?: number;
+  [key: string]: unknown;
+}
+
+export interface DerivedNodeFactory {
+  createNode: (
+    type: unknown,
+    position: unknown,
+    data?: unknown,
+  ) => DerivedCreatedNode;
+}
+
 function withExplicitSize(
-  node: CanvasNode,
-  size: CanvasNodeSize,
-): CanvasNode {
+  node: DerivedCreatedNode,
+  size: { width: number; height: number },
+): DerivedCreatedNode {
   return {
     ...node,
     width: size.width,
@@ -59,21 +96,21 @@ function withExplicitSize(
 }
 
 export function createCanvasDerivedUploadNode(
-  nodes: CanvasNode[],
+  nodes: DerivedGraphNode[],
   sourceNodeId: string,
   imageUrl: string,
   aspectRatio: string,
   previewImageUrl: string | undefined,
-  nodeFactory: NodeFactory,
-): CanvasNode {
+  nodeFactory: DerivedNodeFactory,
+): DerivedCreatedNode {
   const sourceNode = nodes.find((node) => node.id === sourceNodeId);
   const resolvedAspectRatio = resolveDerivedAspectRatio(
     sourceNode,
     aspectRatio,
-    CANVAS_NODE_TYPES,
+    STORYBOARD_NODE_TYPES,
   );
   const node = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.upload,
+    CANVAS_CONNECTION_NODE_TYPES.upload,
     getDerivedNodePosition(nodes, sourceNodeId),
     {
       imageUrl,
@@ -88,20 +125,20 @@ export function createCanvasDerivedUploadNode(
 }
 
 function resolveExportNodeSize(
-  sourceNode: CanvasNode | undefined,
+  sourceNode: DerivedGraphNode | undefined,
   aspectRatio: string,
   options: CanvasDerivedExportNodeOptions | undefined,
-): CanvasNodeSize {
+): { width: number; height: number } {
   const minSize = {
     minWidth: EXPORT_RESULT_NODE_MIN_WIDTH,
     minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT,
   };
   const sizeStrategy = options?.sizeStrategy
-    ?? (options?.matchSourceNodeSize ? 'matchSource' : 'generated');
-  if (sizeStrategy === 'autoMinEdge') {
+    ?? (options?.matchSourceNodeSize ? "matchSource" : "generated");
+  if (sizeStrategy === "autoMinEdge") {
     return resolveAutoImageNodeDimensions(aspectRatio, minSize);
   }
-  if (sizeStrategy === 'matchSource' && sourceNode) {
+  if (sizeStrategy === "matchSource" && sourceNode) {
     const sourceSize = getNodeSize(sourceNode);
     return {
       width: Math.max(1, Math.round(sourceSize.width)),
@@ -116,14 +153,11 @@ function createExportNodeData(
   previewImageUrl: string | undefined,
   aspectRatio: string,
   options: CanvasDerivedExportNodeOptions | undefined,
-): Partial<CanvasNodeData> {
-  const data = {
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
     imageUrl,
     previewImageUrl: previewImageUrl ?? null,
     aspectRatio,
-  } as Partial<CanvasNodeData> & {
-    displayName?: string;
-    resultKind?: ExportImageNodeResultKind;
   };
   if (options?.defaultTitle) {
     data.displayName = options.defaultTitle;
@@ -139,21 +173,21 @@ function createExportNodeData(
 
 export function createCanvasDerivedExportNode(
   input: CanvasDerivedExportNodeInput,
-  nodeFactory: NodeFactory,
-): CanvasNode {
+  nodeFactory: DerivedNodeFactory,
+): DerivedCreatedNode {
   const sourceNode = input.nodes.find((node) => node.id === input.sourceNodeId);
-  const aspectRatioStrategy = input.options?.aspectRatioStrategy ?? 'provided';
-  const resolvedAspectRatio = aspectRatioStrategy === 'derivedFromSource'
+  const aspectRatioStrategy = input.options?.aspectRatioStrategy ?? "provided";
+  const resolvedAspectRatio = aspectRatioStrategy === "derivedFromSource"
     ? resolveDerivedAspectRatio(
         sourceNode,
         input.aspectRatio,
-        CANVAS_NODE_TYPES,
+        STORYBOARD_NODE_TYPES,
       )
     : (input.aspectRatio ||
       resolveDerivedAspectRatio(
         sourceNode,
         DEFAULT_ASPECT_RATIO,
-        CANVAS_NODE_TYPES,
+        STORYBOARD_NODE_TYPES,
       ));
   const size = resolveExportNodeSize(
     sourceNode,
@@ -169,7 +203,7 @@ export function createCanvasDerivedExportNode(
     viewportSize: input.viewportSize,
   });
   const node = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.exportImage,
+    CANVAS_CONNECTION_NODE_TYPES.exportImage,
     position,
     createExportNodeData(
       input.imageUrl,
@@ -182,19 +216,19 @@ export function createCanvasDerivedExportNode(
 }
 
 export function createCanvasStoryboardSplitNode(
-  nodes: CanvasNode[],
+  nodes: DerivedGraphNode[],
   sourceNodeId: string,
   rows: number,
   cols: number,
   frames: StoryboardFrameItem[],
   frameAspectRatio: string | undefined,
-  nodeFactory: NodeFactory,
-): CanvasNode {
+  nodeFactory: DerivedNodeFactory,
+): DerivedCreatedNode {
   const resolvedFrameAspectRatio = frameAspectRatio
-    ?? frames.find((frame) => typeof frame.aspectRatio === 'string')?.aspectRatio
+    ?? frames.find((frame) => typeof frame.aspectRatio === "string")?.aspectRatio
     ?? DEFAULT_ASPECT_RATIO;
   const node = nodeFactory.createNode(
-    CANVAS_NODE_TYPES.storyboardSplit,
+    CANVAS_CONNECTION_NODE_TYPES.storyboardSplit,
     getDerivedNodePosition(nodes, sourceNodeId),
     {
       gridRows: rows,

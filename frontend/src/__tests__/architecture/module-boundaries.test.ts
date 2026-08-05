@@ -15928,7 +15928,7 @@ describe("frontend architecture boundaries", () => {
     );
     const derivedCreationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasDerivedNodeCreation.ts",
+      "modules/creative_canvas/application/canvasDerivedNodeCreation.ts",
     );
     const nodeModel = readFileSync(modelPath, "utf8");
     const derivedCreationModel = readFileSync(derivedCreationPath, "utf8");
@@ -15956,6 +15956,9 @@ describe("frontend architecture boundaries", () => {
       "export function resolveDerivedAspectRatio(",
     );
     expect(derivedCreationModel).toContain(
+      "../domain/storyboardNodeModel",
+    );
+    expect(derivedCreationModel).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(canvasStore).not.toContain(
@@ -16252,7 +16255,10 @@ describe("frontend architecture boundaries", () => {
         SRC_ROOT,
         "modules/creative_canvas/application/canvasNodeCreation.ts",
       ),
-      resolve(SRC_ROOT, "features/canvas/application/canvasDerivedNodeCreation.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/canvasDerivedNodeCreation.ts",
+      ),
       resolve(
         SRC_ROOT,
         "modules/creative_canvas/application/panoCaptureNodes.ts",
@@ -16481,7 +16487,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Canvas derived node creation in the application layer", () => {
     const creationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasDerivedNodeCreation.ts",
+      "modules/creative_canvas/application/canvasDerivedNodeCreation.ts",
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
@@ -16523,14 +16529,17 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/application/canvasDerivedNodeCreation.ts",
+      "modules/creative_canvas/application/canvasDerivedNodeCreation.ts",
     ]);
     for (const declaration of declarations) {
       expect(creationModel).toContain(declaration);
     }
-    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("nodeFactory: DerivedNodeFactory");
     expect(creationModel).toContain("findAvailableNodePosition({");
     expect(derivedNodeCreationSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(derivedNodeCreationSlice).not.toContain(
       "../application/canvasDerivedNodeCreation",
     );
     expect(canvasStore).toContain(
@@ -16757,7 +16766,9 @@ describe("frontend architecture boundaries", () => {
     expect(derivedNodeCreationSlice).not.toContain(
       "../application/canvasNodeDuplication",
     );
-    expect(derivedNodeCreationSlice).toContain("dependencies.nodeFactory,");
+    expect(derivedNodeCreationSlice).toContain(
+      "dependencies.nodeFactory as unknown as",
+    );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeDuplication",
     );
@@ -28189,7 +28200,6 @@ describe("frontend architecture boundaries", () => {
       "@xyflow/react",
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasDerivedNodeCreation",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");

@@ -2019,6 +2019,18 @@ export type {
   HydrationGraphEdge,
 } from "@/modules/creative_canvas/application/canvasDataNormalization";
 export {
+  createCanvasDerivedExportNode,
+  createCanvasDerivedUploadNode,
+  createCanvasStoryboardSplitNode,
+} from "@/modules/creative_canvas/application/canvasDerivedNodeCreation";
+export type {
+  CanvasDerivedExportNodeInput,
+  CanvasDerivedExportNodeOptions,
+  DerivedCreatedNode,
+  DerivedGraphNode,
+  DerivedNodeFactory,
+} from "@/modules/creative_canvas/application/canvasDerivedNodeCreation";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

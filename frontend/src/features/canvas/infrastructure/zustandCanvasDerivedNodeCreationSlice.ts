@@ -17,18 +17,20 @@ import type {
   CanvasNodeData,
 } from '../domain/canvasNodes';
 import {
-  createCanvasDerivedExportNode,
-  createCanvasDerivedUploadNode,
-  createCanvasStoryboardSplitNode,
-  type CanvasDerivedExportNodeOptions,
-} from '../application/canvasDerivedNodeCreation';
-import {
   createPanoCaptureNodes,
   type CanvasPanoCapture,
   type CanvasPanoCaptureOptions,
   type PanoCaptureGraphEdge,
   type PanoCaptureGraphNode,
   type PanoCaptureNodeFactory,
+} from '@/modules/creative_canvas/public';
+import {
+  createCanvasDerivedExportNode,
+  createCanvasDerivedUploadNode,
+  createCanvasStoryboardSplitNode,
+  type CanvasDerivedExportNodeOptions,
+  type DerivedGraphNode,
+  type DerivedNodeFactory,
 } from '@/modules/creative_canvas/public';
 import {
   duplicateCanvasNodeAsSibling,
@@ -218,14 +220,14 @@ export function createZustandCanvasDerivedNodeCreationSlice(
     addDerivedUploadNode(sourceNodeId, imageUrl, aspectRatio, previewImageUrl) {
       const state = dependencies.getState();
       const node = createCanvasDerivedUploadNode(
-        state.nodes,
+        state.nodes as unknown as DerivedGraphNode[],
         sourceNodeId,
         imageUrl,
         aspectRatio,
         previewImageUrl,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as DerivedNodeFactory,
       );
-      return commitCreatedNode(state, node);
+      return commitCreatedNode(state, node as unknown as CanvasNode);
     },
 
     addDerivedExportNode(
@@ -238,7 +240,7 @@ export function createZustandCanvasDerivedNodeCreationSlice(
       const state = dependencies.getState();
       const node = createCanvasDerivedExportNode(
         {
-          nodes: state.nodes,
+          nodes: state.nodes as unknown as DerivedGraphNode[],
           sourceNodeId,
           imageUrl,
           aspectRatio,
@@ -247,9 +249,9 @@ export function createZustandCanvasDerivedNodeCreationSlice(
           viewport: state.currentViewport,
           viewportSize: state.canvasViewportSize,
         },
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as DerivedNodeFactory,
       );
-      return commitCreatedNode(state, node);
+      return commitCreatedNode(state, node as unknown as CanvasNode);
     },
 
     addStoryboardSplitNode(
@@ -261,15 +263,15 @@ export function createZustandCanvasDerivedNodeCreationSlice(
     ) {
       const state = dependencies.getState();
       const node = createCanvasStoryboardSplitNode(
-        state.nodes,
+        state.nodes as unknown as DerivedGraphNode[],
         sourceNodeId,
         rows,
         cols,
         frames,
         frameAspectRatio,
-        dependencies.nodeFactory,
+        dependencies.nodeFactory as unknown as DerivedNodeFactory,
       );
-      return commitCreatedNode(state, node);
+      return commitCreatedNode(state, node as unknown as CanvasNode);
     },
   };
 }

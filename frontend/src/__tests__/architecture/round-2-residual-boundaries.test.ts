@@ -643,6 +643,10 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasDataNormalization.ts",
       "canvasDataNormalization.test.ts",
     ];
+    const derivedCreationApplicationFiles = [
+      "canvasDerivedNodeCreation.ts",
+      "canvasDerivedNodeCreation.test.ts",
+    ];
     const textGenerationApplicationFiles = [
       "generateCanvasStoryScript.ts",
       "generateCanvasStoryScript.test.ts",
@@ -1468,6 +1472,8 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/application/canvasNodeHydration.test.ts",
       "features/canvas/application/canvasDataNormalization.ts",
       "features/canvas/application/canvasDataNormalization.test.ts",
+      "features/canvas/application/canvasDerivedNodeCreation.ts",
+      "features/canvas/application/canvasDerivedNodeCreation.test.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -1663,6 +1669,15 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(false);
     }
     for (const file of dataNormalizationApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of derivedCreationApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
       );
@@ -2720,7 +2735,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 201],
+      ["features/canvas", 199],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
