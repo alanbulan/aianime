@@ -19,6 +19,7 @@ import { createUseAudioNodeToolbarController } from './presentation/useAudioNode
 import { createUseNodeMainlineToolbarController } from './presentation/useNodeMainlineToolbarController';
 import { createUseNodeOutputToolbarController } from './presentation/useNodeOutputToolbarController';
 import { createUseNodeManagementToolbarController } from './presentation/useNodeManagementToolbarController';
+import { createUseImageNodeToolbarController } from './presentation/useImageNodeToolbarController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -288,6 +289,9 @@ export const useNodeManagementToolbarController =
     publishCanvasProjectionRemovalRequested,
     publishCanvasProjectionSyncRequested,
   });
+export const useImageNodeToolbarController = createUseImageNodeToolbarController({
+  eventPort: canvasEventBus,
+});
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

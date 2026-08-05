@@ -25097,11 +25097,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useImageNodeToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageNodeToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useImageNodeToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -25172,7 +25172,7 @@ describe("frontend architecture boundaries", () => {
     }));
     const declarations = [
       ["export function", "projectImageNodeToolbar("].join(" "),
-      ["export function", "useImageNodeToolbarController("].join(" "),
+      ["export function", "createUseImageNodeToolbarController("].join(" "),
       ["export function", "ImageNodeToolbarActionsView("].join(" "),
       ["export function", "NodeToolbarIconChip("].join(" "),
     ];
@@ -25203,7 +25203,13 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
+        "../domain/canvasNodeData",
+        "../domain/canvasNodeImageSource",
+        "../domain/canvasNodePredicates",
+        "../domain/canvasNodeTool",
+        "../domain/canvasToolRegistry",
+        "../domain/gridAction",
+        "../domain/imageNodeToolbarModel",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -25324,7 +25330,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/imageNodeToolbarModel.ts"],
-      ["features/canvas/hooks/useImageNodeToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useImageNodeToolbarController.ts"],
       ["modules/creative_canvas/presentation/ImageNodeToolbarActionsView.tsx"],
       ["modules/creative_canvas/presentation/NodeToolbarIconChip.tsx"],
     ]);
@@ -25334,6 +25340,12 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useImageNodeToolbarController"',
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useImageNodeToolbarController.ts",
+      "features/canvas/hooks/useImageNodeToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/imageNodeToolbarModel.ts",

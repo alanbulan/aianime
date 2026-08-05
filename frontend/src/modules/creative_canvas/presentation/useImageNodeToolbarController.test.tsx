@@ -2,12 +2,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-;
-import { NODE_TOOL_TYPES, type CanvasNode } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES } from "../domain/canvasConnection";
+import { NODE_TOOL_TYPES } from "../domain/canvasNodeTool";
+import type { CanvasNode } from "../domain/canvasNodeData";
+import {
+  createUseImageNodeToolbarController,
+} from "./useImageNodeToolbarController";
 
-import { useImageNodeToolbarController } from "./useImageNodeToolbarController";
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   t: vi.fn((key: string) => `translated:${key}`),
@@ -20,10 +21,9 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
-  canvasEventBus: { publish: mocks.publish },
-}));
+const useImageNodeToolbarController = createUseImageNodeToolbarController({
+  eventPort: { publish: mocks.publish },
+});
 
 function imageNode(): CanvasNode {
   return {
