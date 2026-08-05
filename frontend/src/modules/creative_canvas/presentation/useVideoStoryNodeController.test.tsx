@@ -2,18 +2,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import type { VideoStoryNodeData } from '../domain/canvasNodeData';
+import {
+  createUseVideoStoryNodeController,
+  type VideoStoryNodeStoreHook,
+} from './useVideoStoryNodeController';
 
-import { useVideoStoryNodeController } from './useVideoStoryNodeController';
-
-import type { VideoStoryNodeData } from "@/modules/creative_canvas/public";
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) => selector({
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-  }),
-}));
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -25,6 +19,13 @@ vi.mock('@xyflow/react', () => ({
   NodeToolbar: () => null,
 }));
 
+const useVideoStoryNodeController = createUseVideoStoryNodeController({
+  useStore: ((selector) =>
+    selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+    })) as VideoStoryNodeStoreHook,
+});
 
 function data(patch: Partial<VideoStoryNodeData> = {}): VideoStoryNodeData {
   return {

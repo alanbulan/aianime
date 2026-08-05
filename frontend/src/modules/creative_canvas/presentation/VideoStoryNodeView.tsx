@@ -3,20 +3,17 @@ import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Expand, FileVideo2, X } from 'lucide-react';
 
-import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoStoryNodeController';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type { VideoStoryRow } from '../domain/videoStory';
+import { EditableTableCell } from './EditableTableCell';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  EditableTableCell,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  type VideoStoryRow,
   canvasNodeFrameClass,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import type { VideoStoryNodeController } from './useVideoStoryNodeController';
 
 interface ColumnDef {
   key: keyof VideoStoryRow;

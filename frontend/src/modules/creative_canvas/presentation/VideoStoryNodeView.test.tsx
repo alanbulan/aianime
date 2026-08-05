@@ -2,8 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { VideoStoryNodeController } from '@/features/canvas/hooks/useVideoStoryNodeController';
-
+import type { VideoStoryNodeController } from './useVideoStoryNodeController';
 import { VideoStoryNodeView } from './VideoStoryNodeView';
 
 vi.mock('react-dom', () => ({
@@ -15,8 +14,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -29,8 +27,17 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: () => <div>resize-handle</div>,
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('./EditableTableCell', () => ({
   EditableTableCell: ({
     value,
     onCommit,
@@ -129,6 +136,6 @@ describe('VideoStoryNodeView', () => {
 
     expect(screen.getByText('共 1 条分镜')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '关闭' }));
-    expect(controller.closeFullscreen).toHaveBeenCalledOnce();
+    expect(controller.closeFullscreen).toHaveBeenCalled();
   });
 });

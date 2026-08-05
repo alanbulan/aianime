@@ -669,19 +669,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoStoryNodeController.ts",
+      "modules/creative_canvas/presentation/useVideoStoryNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoStoryNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoStoryNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoStoryNodeView.tsx",
+      "modules/creative_canvas/presentation/VideoStoryNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoStoryNodeView.test.tsx",
+      "modules/creative_canvas/presentation/VideoStoryNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -695,7 +695,7 @@ describe("frontend architecture boundaries", () => {
     const registrySource = readFileSync(registryPath, "utf8");
     const declarations = [
       ["export const", "VideoStoryNode", "=", "memo("].join(" "),
-      ["export function", "useVideoStoryNodeController("].join(" "),
+      ["export function", "createUseVideoStoryNodeController("].join(" "),
       ["export function", "VideoStoryNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -709,15 +709,14 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useVideoStoryNodeController",
-        "./VideoStoryNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/VideoStoryNode.tsx"],
-      ["features/canvas/hooks/useVideoStoryNodeController.ts"],
-      ["features/canvas/nodes/VideoStoryNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useVideoStoryNodeController.ts"],
+      ["modules/creative_canvas/presentation/VideoStoryNodeView.tsx"],
     ]);
     expect(registrySource).toContain("import { VideoStoryNode } from './VideoStoryNode'");
     expect(registrySource).toContain("videoStoryNode: VideoStoryNode");
@@ -744,6 +743,14 @@ describe("frontend architecture boundaries", () => {
       'from \'./useVideoStoryNodeController\'',
     );
     expect(viewTestSource).toContain('from \'./VideoStoryNodeView\'');
+    for (const retiredPath of [
+      "features/canvas/hooks/useVideoStoryNodeController.ts",
+      "features/canvas/hooks/useVideoStoryNodeController.test.tsx",
+      "features/canvas/nodes/VideoStoryNodeView.tsx",
+      "features/canvas/nodes/VideoStoryNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas audio-node domain, controller, and view", () => {

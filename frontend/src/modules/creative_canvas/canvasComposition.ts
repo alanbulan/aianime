@@ -8,6 +8,7 @@ import { createUseCanvasConnectionGestureSurfaceController } from './presentatio
 import { createDisconnectableEdge } from './presentation/DisconnectableEdge';
 import { createUseCanvasGenerationRecoveryController } from './presentation/useCanvasGenerationRecoveryController';
 import { createUseCanvasProjectSurfaceController } from './presentation/useCanvasProjectSurfaceController';
+import { createUseVideoStoryNodeController } from './presentation/useVideoStoryNodeController';
 import { createUseCanvasViewerSurfaceController } from './presentation/useCanvasViewerSurfaceController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
@@ -279,6 +280,9 @@ export const useCanvasProjectSurfaceController =
   createUseCanvasProjectSurfaceController({
     useGenerationRecovery: useCanvasGenerationRecoveryController,
   });
+export const useVideoStoryNodeController = createUseVideoStoryNodeController({
+  useStore: useCanvasStore,
+});
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();
