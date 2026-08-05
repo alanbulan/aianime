@@ -6,7 +6,7 @@
 >
 > 最近复核：2026-08-05（第二轮 GOAL 保持执行中）
 >
-> 代码基线：`refactor/ddd-modular-monolith` 第 903 批提交后 HEAD
+> 代码基线：`refactor/ddd-modular-monolith` 第 904 批提交后 HEAD
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
@@ -123,6 +123,7 @@
 | 第 901 批前端检查点 | Canvas/Store/Freezone 行为回归 102 个文件 417 项、viewer-kit 契约 24 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `CANVAS_NODE_TYPES` 常量值源迁入模块 `canvasConnection`（与 `CANVAS_CONNECTION_NODE_TYPES` 同一对象），经模块 public 发布；旧 `canvasNodes.ts` 不再定义常量，80 个生产/测试消费者统一经模块 public 导入，浏览器默认数据网关改用字面量保持既有边界，六个测试 mock 补齐常量出口；同时修复 viewer-kit 契约测试对已迁移 `skillNodeModel` 的旧路径引用。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 902 批验证记录 | 真实锁定环境（仓库 `.venv`）复验后端架构门禁 3 个文件 184 项全过；契约抽验 M01 鉴权与 M07 任务 2 个文件 16 项通过 | 后端模块边界、残余边界与 OpenAPI 快照在真实 Python 环境可复现，前端完整模块边界/残余门禁 350 项与 features/canvas 160 项继续全绿；本批无代码变更，仅记录验证证据。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 903 批验证记录 | 真实锁定环境复验后端契约门禁全量 82 项通过（1 项既有条件跳过，8 条均为既有依赖弃用告警） | M01 鉴权、M03 剧情/脚本内容、M04-M06 路由、M07 任务、M08 Chat 与 L014 inline 并发契约在真实 Python 环境全部可复现；本批无代码变更，仅记录验证证据。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
+| 第 904 批验证记录 | Electron 商业契约 4 个测试文件 31 项全过（`desktop/tests/*.test.mjs`） | 标准版禁 BYOK、专业版 BYOK 直连、云端模型 JWT/设备 ID/幂等键、本地模型代理、JWT 单飞刷新、登录/登出、密文存储、Hermes 隔离运行时与打包路径契约全部可复现；本批无代码变更，仅记录验证证据。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 
 当前主仓库已经具备以下事实能力：
 
