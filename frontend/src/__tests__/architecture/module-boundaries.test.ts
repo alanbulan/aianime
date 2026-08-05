@@ -7574,7 +7574,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeFactoryPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/nodeFactory.ts",
+      "modules/creative_canvas/application/nodeFactory.ts",
     );
     const adapterPath = resolve(
       SRC_ROOT,
@@ -7645,6 +7645,8 @@ describe("frontend architecture boundaries", () => {
       "nodeDefaultDataGateway?.getOverrides(type)",
     );
     expect(nodeFactorySource).toContain("createCanvasNodeDefaultData(");
+    expect(nodeFactorySource).not.toContain("@/features/canvas/");
+    expect(nodeFactorySource).not.toContain("@/modules/creative_canvas/public");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set(["../domain/canvasNodes", "../application/ports"]),
     );
@@ -7655,7 +7657,7 @@ describe("frontend architecture boundaries", () => {
       "browserCanvasNodeDefaultDataGateway",
     );
     expect(nodeFactoryCompositionSource).toContain(
-      "canvasNodeDefaultDataGateway,",
+      "canvasNodeDefaultDataGateway as unknown as",
     );
     expect(compositionSource).toContain(
       "export { rememberLastVideoModel } from './nodeFactoryComposition';",

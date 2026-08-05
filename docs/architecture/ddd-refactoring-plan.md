@@ -1334,6 +1334,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百七十九批将 `skillNodeModel` 与其测试迁入 Creative Canvas application。节点/边输入改用模块内局部窄类型（`CanvasNode`/`CanvasEdge` 仅文件内可见），直接复用本域 `currentBeatContext`、`sceneAssets`、`skillContract` 与 `skillExecution` 合同，不再依赖旧 `canvasNodes` 与旧 `ports`；输入签名/幂等键、边角色、引用预览/来源标签、绑定边、Beat 目标/引用、手柄投影、清单合并、场景资产、Director 控制包/清单与输出摆放规则全部保留。控制器、视图与 Director 契约统一经 Creative Canvas public 使用唯一模型，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套模型；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 189，Director 契约测试同步指向新所有者。模型、控制器、视图与 Director 契约 4 个文件 24 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1067/189/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百八十批将 `nodeFactory` 与其测试迁入 Creative Canvas application。目录/网关/ID 端口改用模块自有 `CanvasNodeDefaultDataCatalog`/`CanvasNodeDefaultDataGateway`/`CanvasNodeFactoryIdGenerator` 窄合同，直接复用节点默认数据用例，不再依赖旧 `ports` 与旧节点聚合；运行时默认优先、显式覆盖与稳定 ID 规则全部保留。组合边界统一经 Creative Canvas public 实例化唯一 `CanvasNodeFactory` 并适配旧 `NodeFactory` 合同，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套工厂；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 187。工厂与 Store 切片 5 个文件 18 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；首次模块边界单测因机器负载出现 4 个 5 秒超时且无断言失败，以 30 秒 testTimeout 重跑 338 项通过。Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1068/187/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

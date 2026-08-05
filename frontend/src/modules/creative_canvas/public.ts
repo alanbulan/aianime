@@ -2206,6 +2206,13 @@ export type {
   SkillDirectorWorldDestination,
 } from "@/modules/creative_canvas/application/skillNodeModel";
 export {
+  CanvasNodeFactory,
+} from "@/modules/creative_canvas/application/nodeFactory";
+export type {
+  CanvasNodeFactoryCreatedNode,
+  CanvasNodeFactoryIdGenerator,
+} from "@/modules/creative_canvas/application/nodeFactory";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

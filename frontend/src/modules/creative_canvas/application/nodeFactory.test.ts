@@ -1,24 +1,18 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-} from "../domain/canvasNodes";
-import type { CanvasNodeDefinition } from "../domain/nodeRegistry";
-import { CanvasNodeFactory } from "./nodeFactory";
 import type {
   CanvasNodeDefaultDataGateway,
-  NodeCatalog,
-} from "./ports";
+  CanvasNodeDefaultDataCatalog,
+} from "./canvasNodeDefaultData";
+import { CanvasNodeFactory } from "./nodeFactory";
 
-const catalog: NodeCatalog = {
+const catalog: CanvasNodeDefaultDataCatalog = {
   getDefinition: (type) =>
     ({
       type,
       createDefaultData: () => ({ model: "default-model" }),
-    }) as CanvasNodeDefinition,
-  getMenuDefinitions: () => [],
+    }),
 };
 
 describe("CanvasNodeFactory", () => {
@@ -33,13 +27,13 @@ describe("CanvasNodeFactory", () => {
     );
 
     const preferred = factory.createNode(
-      CANVAS_NODE_TYPES.video,
+      "videoNode",
       { x: 10, y: 20 },
     );
     const explicit = factory.createNode(
-      CANVAS_NODE_TYPES.video,
+      "videoNode",
       { x: 30, y: 40 },
-      { model: "explicit-model" } as Partial<CanvasNodeData>,
+      { model: "explicit-model" },
     );
 
     expect(preferred.data).toMatchObject({ model: "remembered-model" });
