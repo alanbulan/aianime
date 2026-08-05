@@ -1,9 +1,23 @@
 // Copyright (c) 2026 AI anime
-import { arrangeCanvasGroupChildren, createSnapshot, createCanvasNodeGroup, fitCanvasGroupToChildren, getNodeSize, planCanvasAutoGroupSpawn, pushSnapshot, resolveAbsolutePosition, trackEdit, ungroupCanvasNode, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasGroupCreationOptions, type CanvasGroupArrangementMode, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, isGroupNode, isProtectedProjectionGroupNode, isStoryboardGroupNode, type NodeFactory } from '@/modules/creative_canvas/public';
+import { arrangeCanvasGroupChildren, type CanvasGroupArrangementMode } from '../domain/canvasGroupArrangement';
+import { createSnapshot, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { createCanvasNodeGroup, type CanvasGroupCreationOptions } from '../application/canvasGroupCreation';
+import { fitCanvasGroupToChildren } from '../domain/canvasGroupFit';
+import { getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
+import { planCanvasAutoGroupSpawn } from '../domain/canvasAutoGrouping';
+import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { ungroupCanvasNode } from '../domain/canvasGroupRemoval';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+import { isGroupNode, isProtectedProjectionGroupNode, isStoryboardGroupNode } from '../domain/canvasNodePredicates';
+import { type NodeFactory } from '../application/canvasGraphPorts';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 
 
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+
+
+
 const canvasGroupLifecyclePorts = {
   isGroupNode,
   isProtectedGroupNode: isProtectedProjectionGroupNode,

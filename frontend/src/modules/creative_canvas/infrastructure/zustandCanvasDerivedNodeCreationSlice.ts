@@ -1,31 +1,21 @@
 // Copyright (c) 2026 AI anime
+import { createSnapshot, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type StoryboardFrameItem } from '../domain/storyboard';
+import { type CanvasEdge, type CanvasNode, type CanvasNodeData } from '../domain/canvasNodeData';
+import { type NodeFactory } from '../application/canvasGraphPorts';
+import { createPanoCaptureNodes, type CanvasPanoCapture, type CanvasPanoCaptureOptions, type PanoCaptureGraphEdge, type PanoCaptureGraphNode, type PanoCaptureNodeFactory } from '../application/panoCaptureNodes';
+import { createCanvasDerivedExportNode, createCanvasDerivedUploadNode, createCanvasStoryboardSplitNode, type CanvasDerivedExportNodeOptions, type DerivedGraphNode, type DerivedNodeFactory } from '../application/canvasDerivedNodeCreation';
+import { duplicateCanvasNodeAsSibling, duplicateCanvasNodesAsSiblings, type DuplicationGraphEdge, type DuplicationGraphNode, type DuplicationNodeFactory } from '../application/canvasNodeDuplication';
+
 import type { Viewport } from '@xyflow/react';
 
-import { createSnapshot, pushSnapshot, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type StoryboardFrameItem, type CanvasEdge, type CanvasNode, type CanvasNodeData, type NodeFactory } from '@/modules/creative_canvas/public';
+
 ;
-import {
-  createPanoCaptureNodes,
-  type CanvasPanoCapture,
-  type CanvasPanoCaptureOptions,
-  type PanoCaptureGraphEdge,
-  type PanoCaptureGraphNode,
-  type PanoCaptureNodeFactory,
-} from '@/modules/creative_canvas/public';
-import {
-  createCanvasDerivedExportNode,
-  createCanvasDerivedUploadNode,
-  createCanvasStoryboardSplitNode,
-  type CanvasDerivedExportNodeOptions,
-  type DerivedGraphNode,
-  type DerivedNodeFactory,
-} from '@/modules/creative_canvas/public';
-import {
-  duplicateCanvasNodeAsSibling,
-  duplicateCanvasNodesAsSiblings,
-  type DuplicationGraphEdge,
-  type DuplicationGraphNode,
-  type DuplicationNodeFactory,
-} from '@/modules/creative_canvas/public';
+
+
+
 
 
 export interface CanvasDerivedNodeCreationSlice {

@@ -1,17 +1,26 @@
 // Copyright (c) 2026 AI anime
-import { createSnapshot, elevateCanvasNodes, maybeApplyImageAutoResize, pushSnapshot, reorderStoryboardFrameInGraph, setCanvasNodePositions, trackEdit, updateCanvasNodeSize, updateCanvasNodeData, updateStoryboardFrameInGraph, updateCanvasNodePosition, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasMutationState, type CanvasNodeSizeUpdateOptions, type CanvasNodeDataUpdatePorts, type StoryboardFrameItem, type StoryboardFrameGraphPorts, type CanvasEdge, type CanvasNode, type CanvasNodeData, type CanvasNodeType, isStoryboardSplitNode, nodeCatalog, type CanvasNodeDefaultDataGateway, type NodeFactory } from '@/modules/creative_canvas/public';
+import { createSnapshot, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { elevateCanvasNodes } from '../domain/canvasNodeLayering';
+import { maybeApplyImageAutoResize } from '../domain/imageNodeLayout';
+import { reorderStoryboardFrameInGraph, updateStoryboardFrameInGraph, type StoryboardFrameGraphPorts } from '../domain/storyboardFrames';
+import { setCanvasNodePositions, updateCanvasNodePosition } from '../domain/canvasNodePositions';
+import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { updateCanvasNodeSize, type CanvasNodeSizeUpdateOptions } from '../application/canvasNodeSize';
+import { updateCanvasNodeData, type CanvasNodeDataUpdatePorts } from '../application/canvasNodeData';
+import { type StoryboardFrameItem } from '../domain/storyboard';
+import { type CanvasEdge, type CanvasNode, type CanvasNodeData, type CanvasNodeType } from '../domain/canvasNodeData';
+import { isStoryboardSplitNode } from '../domain/canvasNodePredicates';
+import { nodeCatalog } from '../application/canvasNodeCatalog';
+import { type CanvasNodeDefaultDataGateway } from '../application/canvasNodeDefaultData';
+import { type NodeFactory } from '../application/canvasGraphPorts';
+import { convertCanvasNodeType, type ConversionDefaultDataGateway, type ConversionGraphNode, type ConversionNodeCatalog } from '../application/canvasNodeConversion';
+import { createCanvasNode, type CreationNodeFactory } from '../application/canvasNodeCreation';
 
 
-import {
-  convertCanvasNodeType,
-  type ConversionDefaultDataGateway,
-  type ConversionGraphNode,
-  type ConversionNodeCatalog,
-} from '@/modules/creative_canvas/public';
-import {
-  createCanvasNode,
-  type CreationNodeFactory,
-} from '@/modules/creative_canvas/public';
+
+
+
+
 
 
 const storyboardFrameGraphPorts = {

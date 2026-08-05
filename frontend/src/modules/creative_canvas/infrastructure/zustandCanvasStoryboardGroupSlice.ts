@@ -1,9 +1,23 @@
 // Copyright (c) 2026 AI anime
-import { addCanvasStoryboardGroupMembers, configureCanvasStoryboardGroup, DEFAULT_CANVAS_NODE_WIDTH, convertCanvasStoryboardGroupToPlain, createSnapshot, createCanvasStoryboardGroup, pushSnapshot, reorderCanvasStoryboardGroupMember, getNodeSize, resolveAbsolutePosition, trackEdit, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasStoryboardMemberImage, type CanvasMutationState, type CanvasStoryboardGroupConfig, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, isStoryboardGroupNode, type NodeFactory } from '@/modules/creative_canvas/public';
+import { addCanvasStoryboardGroupMembers, type CanvasStoryboardMemberImage } from '../application/canvasStoryboardGroupMemberAddition';
+import { configureCanvasStoryboardGroup, type CanvasStoryboardGroupConfig } from '../domain/canvasStoryboardGroupConfig';
+import { DEFAULT_CANVAS_NODE_WIDTH, getNodeSize, resolveAbsolutePosition } from '../domain/canvasGeometry';
+import { convertCanvasStoryboardGroupToPlain } from '../domain/canvasStoryboardGroupConversion';
+import { createSnapshot, pushSnapshot, type CanvasHistorySnapshot, type CanvasHistoryState } from '../domain/canvasHistory';
+import { createCanvasStoryboardGroup } from '../application/canvasStoryboardGroupCreation';
+import { reorderCanvasStoryboardGroupMember } from '../domain/canvasStoryboardGroupMembers';
+import { trackEdit, type CanvasMutationState } from '../domain/canvasMutation';
+import { type CanvasToolDialogRequest as ActiveToolDialog } from '../domain/canvasNodeTool';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodeData';
+import { isStoryboardGroupNode } from '../domain/canvasNodePredicates';
+import { type NodeFactory } from '../application/canvasGraphPorts';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 
 
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+
+
+
 const storyboardGroupPorts = {
   defaultNodeWidth: DEFAULT_CANVAS_NODE_WIDTH,
   getNodeSize,

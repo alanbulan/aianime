@@ -30,11 +30,11 @@ import {
 import {
   createZustandCanvasNodeMutationSlice,
   type CanvasNodeMutationSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasNodeMutationSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice';
 import {
   createZustandCanvasDerivedNodeCreationSlice,
   type CanvasDerivedNodeCreationSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice';
 import {
   createZustandCanvasNodeDeletionSlice,
   type CanvasNodeDeletionSlice,
@@ -42,11 +42,11 @@ import {
 import {
   createZustandCanvasGroupLifecycleSlice,
   type CanvasGroupLifecycleSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasGroupLifecycleSlice';
 import {
   createZustandCanvasStoryboardGroupSlice,
   type CanvasStoryboardGroupSlice,
-} from '@/features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice';
+} from '@/modules/creative_canvas/infrastructure/zustandCanvasStoryboardGroupSlice';
 import {
   createZustandCanvasSelectionSlice,
   type CanvasSelectionSlice,
