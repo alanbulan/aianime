@@ -1930,6 +1930,20 @@ export type {
   PanoUpstreamSource,
 } from "@/modules/creative_canvas/application/pano360ViewerNodeModel";
 export {
+  stageSelectedBackgroundOutputForSkill,
+  uploadAndAutoCommitSelectedBackgroundCandidate,
+} from "@/modules/creative_canvas/application/selectedBackgroundSlot";
+export type {
+  CanvasCommitRequestPublisher,
+  SelectedBackgroundGraphEdge,
+  SelectedBackgroundGraphGateway,
+  SelectedBackgroundGraphNode,
+  SelectedBackgroundGraphSnapshot,
+  SelectedBackgroundTarget,
+  StageSelectedBackgroundOptions,
+  UploadSelectedBackgroundCandidateOptions,
+} from "@/modules/creative_canvas/application/selectedBackgroundSlot";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

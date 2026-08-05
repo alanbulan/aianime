@@ -67,6 +67,7 @@ import {
   type PollExportImageGenerationParams,
   type RegenerateExportImageNodeParams,
   type ResumeNodeGenerationParams,
+  type SelectedBackgroundGraphGateway,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from './canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -79,17 +80,17 @@ import {
   type CanvasNodeData,
 } from './domain/canvasNodes';
 import {
+  awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
+  startCanvasSkillRun as startCanvasSkillRunUseCase,
+  type AwaitCanvasSkillRunResultParams,
+  type StartCanvasSkillRunParams,
+} from '@/modules/creative_canvas/public';
+import {
   stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
   type SelectedBackgroundTarget,
   type StageSelectedBackgroundOptions,
   type UploadSelectedBackgroundCandidateOptions,
-} from './application/selectedBackgroundSlot';
-import {
-  awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
-  startCanvasSkillRun as startCanvasSkillRunUseCase,
-  type AwaitCanvasSkillRunResultParams,
-  type StartCanvasSkillRunParams,
 } from '@/modules/creative_canvas/public';
 import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
@@ -106,6 +107,8 @@ import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructu
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
 };
+const selectedBackgroundGraphGateway =
+  zustandCanvasGraphGateway as unknown as SelectedBackgroundGraphGateway;
 
 const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway<DirectorStageManifest> = {
   getBeatManifest: ({ projectId, episode, beat }) =>
@@ -411,7 +414,7 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
 ) {
   return uploadAndAutoCommitSelectedBackgroundCandidateUseCase(
     platformCanvasAssetGateway,
-    zustandCanvasGraphGateway,
+    selectedBackgroundGraphGateway,
     publishCanvasCommitRequested,
     projectId,
     target,
@@ -427,7 +430,7 @@ export function stageSelectedBackgroundOutputForSkill(
   options: StageSelectedBackgroundOptions,
 ) {
   return stageSelectedBackgroundOutputForSkillUseCase(
-    zustandCanvasGraphGateway,
+    selectedBackgroundGraphGateway,
     target,
     imageUrl,
     options,

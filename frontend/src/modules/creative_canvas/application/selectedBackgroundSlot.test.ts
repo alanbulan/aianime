@@ -2,17 +2,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
-  CanvasAssetGateway,
-  CanvasGraphGateway,
-} from '@/features/canvas/application/ports';
+  CanvasToolAssetGateway,
+} from './uploadToolOutput';
 import {
   stageSelectedBackgroundOutputForSkill,
   uploadAndAutoCommitSelectedBackgroundCandidate,
-} from '@/features/canvas/application/selectedBackgroundSlot';
-import type {
-  CanvasEdge,
-  CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+  type SelectedBackgroundGraphEdge,
+  type SelectedBackgroundGraphGateway,
+  type SelectedBackgroundGraphNode,
+} from './selectedBackgroundSlot';
 
 const addEdgeWithData = vi.fn();
 const addNode = vi.fn();
@@ -20,10 +18,10 @@ const publish = vi.fn();
 const updateNodeData = vi.fn();
 const uploadAsset = vi.fn();
 
-let nodes: CanvasNode[] = [];
-let edges: CanvasEdge[] = [];
+let nodes: SelectedBackgroundGraphNode[] = [];
+let edges: SelectedBackgroundGraphEdge[] = [];
 
-const graphGateway: CanvasGraphGateway = {
+const graphGateway: SelectedBackgroundGraphGateway = {
   addEdgeWithData: (source, target, data, options) =>
     addEdgeWithData(source, target, data, options),
   addNode: (type, position, data) => addNode(type, position, data),
@@ -31,18 +29,18 @@ const graphGateway: CanvasGraphGateway = {
   updateNodeData: (nodeId, data) => updateNodeData(nodeId, data),
 };
 
-const assetGateway: CanvasAssetGateway = {
+const assetGateway: CanvasToolAssetGateway = {
   upload: (projectId, file, filename, options) =>
     uploadAsset(projectId, file, filename, options),
 };
 
-function sourceNode(): CanvasNode {
+function sourceNode(): SelectedBackgroundGraphNode {
   return {
     data: {},
     id: 'source-node',
     position: { x: 20, y: 30 },
     type: 'imageGenNode',
-  } as CanvasNode;
+  };
 }
 
 describe('selected background staging', () => {
@@ -103,7 +101,7 @@ describe('selected background staging', () => {
       id: 'output-node',
       position: { x: 480, y: 70 },
       type: 'imageGenNode',
-    } as CanvasNode;
+    } as SelectedBackgroundGraphNode;
     nodes = [sourceNode(), outputNode];
     edges = [
       {
@@ -111,7 +109,7 @@ describe('selected background staging', () => {
         source: 'source-node',
         sourceHandle: 'selected_background',
         target: 'output-node',
-      } as CanvasEdge,
+      } as SelectedBackgroundGraphEdge,
     ];
 
     expect(

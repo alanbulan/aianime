@@ -224,7 +224,7 @@ describe("director bundle canvas assets", () => {
       "utf8",
     );
     const selectedBackgroundSlot = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/application/selectedBackgroundSlot.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/application/selectedBackgroundSlot.ts"),
       "utf8",
     );
     const zh = readFileSync(

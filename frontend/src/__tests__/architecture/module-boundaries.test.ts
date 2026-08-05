@@ -3621,8 +3621,15 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const selectedBackgroundSlot = readFileSync(
-      resolve(applicationRoot, "selectedBackgroundSlot.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/application/selectedBackgroundSlot.ts",
+      ),
       "utf8",
+    );
+    const legacySelectedBackgroundSlotPath = resolve(
+      applicationRoot,
+      "selectedBackgroundSlot.ts",
     );
     const uploadToolOutput = readFileSync(
       resolve(
@@ -3880,11 +3887,12 @@ describe("frontend architecture boundaries", () => {
     expect(assetSourceGateway).toContain("credentials: 'include'");
     expect(graphGateway).toContain("useCanvasStore.getState()");
     expect(selectedBackgroundSlot).toContain(
-      "graphGateway: CanvasGraphGateway",
+      "graphGateway: SelectedBackgroundGraphGateway",
     );
     expect(selectedBackgroundSlot).toContain(
       "publishCommitRequested: CanvasCommitRequestPublisher",
     );
+    expect(existsSync(legacySelectedBackgroundSlotPath)).toBe(false);
     expect(uploadToolOutput).toContain(
       "projectId: string | null | undefined",
     );
