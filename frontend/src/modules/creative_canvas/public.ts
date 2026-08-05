@@ -996,6 +996,7 @@ export type {
 } from "@/modules/creative_canvas/presentation/PromptMentionEditor";
 export { StylePickerPopover } from "@/modules/creative_canvas/presentation/StylePickerPopover";
 export { describeStyleSelection } from "@/modules/creative_canvas/presentation/StylePickerPopover";
+export { ContextPromptPaletteButton } from "@/modules/creative_canvas/presentation/ContextPromptPaletteButton";
 export {
   CAMERA_PICKER_POPOVER_WIDTH,
   CameraPickerPopover,
