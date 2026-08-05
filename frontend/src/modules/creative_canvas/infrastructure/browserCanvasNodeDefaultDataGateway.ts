@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-;
-
-
-import type { CanvasNodeData, CanvasNodeDefaultDataGateway } from "@/modules/creative_canvas/public";
+import type { CanvasNodeData } from '../domain/canvasNodeData';
+import type { CanvasNodeDefaultDataGateway } from '../application/canvasNodeDefaultData';
 const LAST_VIDEO_MODEL_STORAGE_KEY = "canvas.lastVideoModel";
 // 旧边界基础设施：与模块 CANVAS_CONNECTION_NODE_TYPES.video 保持同一字面量。
 const VIDEO_NODE_TYPE = "videoNode" as const;

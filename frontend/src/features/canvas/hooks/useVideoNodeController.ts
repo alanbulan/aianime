@@ -17,7 +17,6 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,
   ensureWebSafeVideo,
-  rememberLastVideoModel,
   showErrorDialog,
   uploadCanvasAsset,
   useIsBoxSelecting,
@@ -29,6 +28,7 @@ import {
   contextPromptPaletteInsertionText,
   extractUpstreamContent,
   joinUpstreamText,
+  rememberLastVideoModel,
   resolveNodeDisplayName,
   setAlbumPendingTotal,
   type VideoGenCount,

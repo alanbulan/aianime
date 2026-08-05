@@ -1023,6 +1023,11 @@ export {
 export type { CanvasNodeDefinition } from "@/modules/creative_canvas/domain/canvasNodeRegistry";
 export { nodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
 export type { NodeCatalog } from "@/modules/creative_canvas/application/canvasNodeCatalog";
+export {
+  canvasNodeDefaultDataGateway,
+  canvasNodeFactory,
+  rememberLastVideoModel,
+} from "@/modules/creative_canvas/canvasNodeFactoryComposition";
 export type {
   CanvasGraphGateway,
   NodeFactory,

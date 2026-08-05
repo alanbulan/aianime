@@ -6,7 +6,7 @@ import type { StoryboardFrameItem, CanvasEdge, CanvasNode, CanvasNodeData, Canva
 import {
   canvasNodeDefaultDataGateway,
   canvasNodeFactory,
-} from '@/features/canvas/nodeFactoryComposition';
+} from '@/modules/creative_canvas/public';
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
