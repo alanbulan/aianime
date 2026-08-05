@@ -6,7 +6,7 @@
 >
 > 最近复核：2026-08-05（第二轮 GOAL 保持执行中）
 >
-> 代码基线：`refactor/ddd-modular-monolith` 第 902 批提交后 HEAD
+> 代码基线：`refactor/ddd-modular-monolith` 第 903 批提交后 HEAD
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
@@ -122,6 +122,7 @@
 | 第 900 批前端检查点 | Canvas 行为与 App 初始化回归 15 个文件 75 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | App Shell 的 `CANVAS_NODE_TYPES.upload` 改用模块 `CANVAS_CONNECTION_NODE_TYPES.upload`，移除对旧 `canvasNodes` 的最后一个私有入口；App Shell 对旧 Canvas 私有入口由 4 个收紧到 3 个（Canvas/canvasStore/composition），门禁同步更新精确导入与 allowed 列表。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 901 批前端检查点 | Canvas/Store/Freezone 行为回归 102 个文件 417 项、viewer-kit 契约 24 项；架构/残余门禁 2 个文件 350 项、前端 TypeScript 和 `git diff --check` 通过 | `CANVAS_NODE_TYPES` 常量值源迁入模块 `canvasConnection`（与 `CANVAS_CONNECTION_NODE_TYPES` 同一对象），经模块 public 发布；旧 `canvasNodes.ts` 不再定义常量，80 个生产/测试消费者统一经模块 public 导入，浏览器默认数据网关改用字面量保持既有边界，六个测试 mock 补齐常量出口；同时修复 viewer-kit 契约测试对已迁移 `skillNodeModel` 的旧路径引用。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 | 第 902 批验证记录 | 真实锁定环境（仓库 `.venv`）复验后端架构门禁 3 个文件 184 项全过；契约抽验 M01 鉴权与 M07 任务 2 个文件 16 项通过 | 后端模块边界、残余边界与 OpenAPI 快照在真实 Python 环境可复现，前端完整模块边界/残余门禁 350 项与 features/canvas 160 项继续全绿；本批无代码变更，仅记录验证证据。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
+| 第 903 批验证记录 | 真实锁定环境复验后端契约门禁全量 82 项通过（1 项既有条件跳过，8 条均为既有依赖弃用告警） | M01 鉴权、M03 剧情/脚本内容、M04-M06 路由、M07 任务、M08 Chat 与 L014 inline 并发契约在真实 Python 环境全部可复现；本批无代码变更，仅记录验证证据。阶段 8、阶段 10 和第二轮 GOAL 仍未完成 |
 
 当前主仓库已经具备以下事实能力：
 
