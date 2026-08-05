@@ -600,6 +600,9 @@ describe("round 2 residual architecture boundaries", () => {
       "skillExecution.ts",
       "skillExecution.test.ts",
     ];
+    const defaultDataApplicationFiles = [
+      "canvasNodeDefaultData.ts",
+    ];
     const textGenerationApplicationFiles = [
       "generateCanvasStoryScript.ts",
       "generateCanvasStoryScript.test.ts",
@@ -1405,6 +1408,7 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/application/graphImageResolver.ts",
       "features/canvas/application/skillExecution.ts",
       "features/canvas/application/skillExecution.test.ts",
+      "features/canvas/application/canvasNodeDefaultData.ts",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -1501,6 +1505,15 @@ describe("round 2 residual architecture boundaries", () => {
       ).toBe(false);
     }
     for (const file of skillExecutionApplicationFiles) {
+      expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
+        true,
+      );
+      expect(
+        existsSync(resolve(SRC_ROOT, "features/canvas/application", file)),
+        file,
+      ).toBe(false);
+    }
+    for (const file of defaultDataApplicationFiles) {
       expect(existsSync(resolve(moduleRoot, "application", file)), file).toBe(
         true,
       );
@@ -2558,7 +2571,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 222],
+      ["features/canvas", 221],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

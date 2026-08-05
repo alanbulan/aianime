@@ -5,13 +5,13 @@ import type {
   CanvasNodeType,
   CanvasPosition,
 } from '../domain/canvasNodes';
-import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import type {
   CanvasNodeDefaultDataGateway,
   IdGenerator,
   NodeCatalog,
   NodeFactory,
 } from './ports';
+import { createCanvasNodeDefaultData } from '@/modules/creative_canvas/public';
 
 export class CanvasNodeFactory implements NodeFactory {
   constructor(

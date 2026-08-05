@@ -1898,6 +1898,13 @@ export type {
   StartCanvasSkillRunParams,
 } from "@/modules/creative_canvas/application/skillExecution";
 export {
+  createCanvasNodeDefaultData,
+} from "@/modules/creative_canvas/application/canvasNodeDefaultData";
+export type {
+  CanvasNodeDefaultDataCatalog,
+  CanvasNodeDefaultDataGateway,
+} from "@/modules/creative_canvas/application/canvasNodeDefaultData";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

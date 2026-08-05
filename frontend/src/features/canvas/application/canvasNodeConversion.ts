@@ -4,9 +4,9 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
 } from '../domain/canvasNodes';
-import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import { nodeCatalog } from './nodeCatalog';
 import type { CanvasNodeDefaultDataGateway } from './ports';
+import { createCanvasNodeDefaultData } from '@/modules/creative_canvas/public';
 
 export interface CanvasNodeConversionResult {
   nodes: CanvasNode[];

@@ -7481,7 +7481,7 @@ describe("frontend architecture boundaries", () => {
     );
     const defaultDataPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasNodeDefaultData.ts",
+      "modules/creative_canvas/application/canvasNodeDefaultData.ts",
     );
     const nodeFactoryPath = resolve(
       SRC_ROOT,
@@ -7542,8 +7542,16 @@ describe("frontend architecture boundaries", () => {
     expect(registrySource).not.toContain("readLastVideoModel");
     expect(registrySource).toContain("model: DEFAULT_VIDEO_MODEL_ID");
     expect(new Set(importSpecifiers(defaultDataPath))).toEqual(
-      new Set(["../domain/canvasNodes", "./ports"]),
+      new Set([]),
     );
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "features/canvas/application/canvasNodeDefaultData.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(defaultDataSource).toContain(
       "nodeDefaultDataGateway?.getOverrides(type)",
     );

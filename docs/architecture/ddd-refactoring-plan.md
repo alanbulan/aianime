@@ -1300,6 +1300,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百六十二批将 `skillExecution` 应用用例与其测试迁入 Creative Canvas application，直接复用本域 `skillExecution` 的 `SkillRunRequest/Response/Result` 与终态判定，不经模块 public 自回绕；提交与轮询规则、默认轮询参数与超时错误语义全部保留。composition 与旧基础设施网关统一经 Creative Canvas public 装配唯一用例与 `CanvasSkillExecutionGateway` 合同，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套执行用例；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 222。Skill 执行用例、Skill 控制器与网关、架构/残余/颜色门禁 6 个文件 359 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1033/222/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百六十三批将 `canvasNodeDefaultData` 迁入 Creative Canvas application，目录与默认数据网关改用模块自有 `CanvasNodeDefaultDataCatalog`/`CanvasNodeDefaultDataGateway` 宽参窄合同，不再依赖旧 `ports` 与旧节点聚合；默认数据合并规则保持不变。节点工厂、水合与类型转换统一经 Creative Canvas public 使用唯一用例，旧生产路径直接删除，不保留 facade、re-export 或第二套用例；残余门禁登记 application 新所有者与旧路径禁回流，Canvas TS/TSX 上限收紧到 221。节点工厂、水合、类型转换与架构/残余/颜色门禁 6 个文件 360 项、前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1034/221/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。
