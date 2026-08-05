@@ -15,6 +15,7 @@ import {
   canvasEventBus,
   canvasNodeIntersectsSelectionRect,
   CANVAS_NODE_TYPES,
+  isUploadNode,
   isPresetManagedEdge,
   isPresetManagedNode,
   NODE_SELECTION_MENU_ADD_NODE_TYPES,
@@ -26,9 +27,6 @@ import {
   type CanvasCommandHistoryPort,
 } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
-import {
-  isUploadNode,
-} from './domain/canvasNodes';
 import { getNodeDefinition } from './domain/nodeRegistry';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';

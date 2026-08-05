@@ -2140,7 +2140,7 @@ describe("frontend architecture boundaries", () => {
     const registrySource = readFileSync(registryPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const canvasNodesSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/domain/canvasNodes.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/canvasNodeData.ts"),
       "utf8",
     );
     const legacyStoryboardPaths = [
@@ -2345,7 +2345,7 @@ describe("frontend architecture boundaries", () => {
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const registrySource = readFileSync(registryPath, "utf8");
     const canvasNodesSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/domain/canvasNodes.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/domain/canvasNodeData.ts"),
       "utf8",
     );
     const legacyStoryboardGenPaths = [
@@ -16297,7 +16297,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasNodesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasNodes.ts",
+      "modules/creative_canvas/domain/canvasNodeData.ts",
     );
     const canvasNodesModel = readFileSync(canvasNodesPath, "utf8");
     const legacyLayoutPaths = [
@@ -22840,7 +22840,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasNodesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasNodes.ts",
+      "modules/creative_canvas/domain/canvasNodeData.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -22952,9 +22952,6 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("await analyzeCanvasVideoStory({");
     expect(controllerSource).not.toContain("submitFreezoneAnalyzeVideoStory");
     expect(controllerSource).not.toContain("normalizeVideoStoryRows");
-    expect(importSpecifiers(canvasNodesPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
     expect(canvasNodesSource).not.toContain("export interface VideoStoryRow");
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     for (const legacySymbol of [
@@ -23807,7 +23804,6 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/domain/canvasNodes",
         "./AudioNodeToolbarActions",
         "./CanvasGroupNodeToolbarActionsAdapter",
         "./CanvasStoryboardGroupToolbarAdapter",
@@ -23967,7 +23963,6 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/modules/creative_canvas/public",
         "@/lib/browserDownload",
-        "@/features/canvas/domain/canvasNodes",
         "@/stores/settingsStore",
       ]),
     );
@@ -24136,7 +24131,6 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "@/features/canvas/canvasStore",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/domain/canvasNodes",
       ]),
     );
     expect(controllerSource).toContain("useCanvasProjectionStatus(");
@@ -25391,7 +25385,6 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/domain/canvasNodes",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -27672,7 +27665,7 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasNodesPath = resolve(
       SRC_ROOT,
-      "features/canvas/domain/canvasNodes.ts",
+      "modules/creative_canvas/domain/canvasNodeData.ts",
     );
     const legacyPortsPath = resolve(
       SRC_ROOT,
@@ -28203,7 +28196,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
       "../application/nodeCatalog",
       "../application/ports",
     ]));
@@ -28342,7 +28334,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasGroupLifecycleSlice");
@@ -28388,7 +28379,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../domain/canvasNodes",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasStoryboardGroupSlice");
@@ -33227,7 +33217,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/canvasNodes.ts",
     );
-    const source = readFileSync(canvasNodesPath, "utf8");
+    expect(existsSync(canvasNodesPath)).toBe(false);
+    const canvasNodeDataPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/domain/canvasNodeData.ts",
+    );
+    const canvasNodeDataSource = readFileSync(canvasNodeDataPath, "utf8");
     const retiredDeclarations = [
       "export const IMAGE_SIZES",
       "export const IMAGE_ASPECT_RATIOS",
@@ -33246,13 +33241,9 @@ describe("frontend architecture boundaries", () => {
     ];
 
     for (const declaration of retiredDeclarations) {
-      expect(source, declaration).not.toContain(declaration);
+      expect(canvasNodeDataSource, declaration).not.toContain(declaration);
     }
-    expect(source).not.toContain("IMAGE_ASPECT_RATIOS");
-    const canvasNodeDataSource = readFileSync(
-      resolve(SRC_ROOT, "modules/creative_canvas/domain/canvasNodeData.ts"),
-      "utf8",
-    );
+    expect(canvasNodeDataSource).not.toContain("IMAGE_ASPECT_RATIOS");
     expect(canvasNodeDataSource).toContain("interface NodeDisplayData {");
     expect(canvasNodeDataSource).toContain(
       "interface NodeImageData extends NodeDisplayData {",

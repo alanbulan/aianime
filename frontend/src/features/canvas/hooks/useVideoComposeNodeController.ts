@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { MIN_VIDEO_COMPOSE_VIDEOS, projectVideoComposeInputs, type ComposeTimelineState, type VideoComposeInputMedia, type CanvasNode, type CanvasNodeData, type VideoComposeNodeData } from '@/modules/creative_canvas/public';
+import { MIN_VIDEO_COMPOSE_VIDEOS, projectVideoComposeInputs, type ComposeTimelineState, type VideoComposeInputMedia, type CanvasNode, type CanvasNodeData, type VideoComposeNodeData, isAudioNode, isVideoNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { isAudioNode, isVideoNode } from '@/features/canvas/domain/canvasNodes';
+
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useUpstreamNodes } from '@/features/canvas/composition';
 

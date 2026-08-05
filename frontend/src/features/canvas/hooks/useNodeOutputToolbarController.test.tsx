@@ -28,6 +28,8 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/creative_canvas/public", () => ({
+  isImageEditNode: (node: { type?: string } | null | undefined) =>
+    node?.type === 'imageNode',
   CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   buildGenerationErrorReport: ({
     errorMessage,

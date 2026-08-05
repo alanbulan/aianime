@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { arrangeCanvasGroupChildren, createSnapshot, createCanvasNodeGroup, fitCanvasGroupToChildren, getNodeSize, planCanvasAutoGroupSpawn, pushSnapshot, resolveAbsolutePosition, trackEdit, ungroupCanvasNode, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasGroupCreationOptions, type CanvasGroupArrangementMode, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
-import { isGroupNode, isProtectedProjectionGroupNode, isStoryboardGroupNode } from '../domain/canvasNodes';
+import { arrangeCanvasGroupChildren, createSnapshot, createCanvasNodeGroup, fitCanvasGroupToChildren, getNodeSize, planCanvasAutoGroupSpawn, pushSnapshot, resolveAbsolutePosition, trackEdit, ungroupCanvasNode, type CanvasHistorySnapshot, type CanvasHistoryState, type CanvasGroupCreationOptions, type CanvasGroupArrangementMode, type CanvasMutationState, type CanvasToolDialogRequest as ActiveToolDialog, type CanvasEdge, type CanvasNode, isGroupNode, isProtectedProjectionGroupNode, isStoryboardGroupNode } from '@/modules/creative_canvas/public';
+
 import type { NodeFactory } from '../application/ports';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

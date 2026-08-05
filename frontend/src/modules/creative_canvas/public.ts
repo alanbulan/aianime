@@ -1000,6 +1000,22 @@ export type {
   VideoStoryNodeData,
 } from "@/modules/creative_canvas/domain/canvasNodeData";
 export {
+  isAudioNode,
+  isExportImageNode,
+  isGroupNode,
+  isImageEditNode,
+  isImageGenNode,
+  isPano360ViewerNode,
+  isProtectedProjectionGroupNode,
+  isScriptNode,
+  isStoryboardGenNode,
+  isStoryboardGroupNode,
+  isStoryboardSplitNode,
+  isTextAnnotationNode,
+  isUploadNode,
+  isVideoNode,
+} from "@/modules/creative_canvas/domain/canvasNodePredicates";
+export {
   setAlbumPendingTotal,
   useAlbumPendingTotal,
 } from "@/modules/creative_canvas/presentation/albumPendingTotals";

@@ -20,7 +20,13 @@ describe("freezone viewer contracts", () => {
     const view = read(
       "src/features/canvas/nodes/Pano360ViewerNodeView.tsx",
     );
-    const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
+    const canvasNodeData = read(
+      "src/modules/creative_canvas/domain/canvasNodeData.ts",
+    );
+    const canvasNodePredicates = read(
+      "src/modules/creative_canvas/domain/canvasNodePredicates.ts",
+    );
+    const canvasNodes = `${canvasNodeData}\n${canvasNodePredicates}`;
     const registry = read("src/features/canvas/domain/nodeRegistry.ts");
     const nodeSelectionMenuModel = read(
       "src/modules/creative_canvas/domain/nodeSelectionMenuModel.ts",
@@ -424,7 +430,6 @@ describe("freezone viewer contracts", () => {
   });
 
   it("lets canvas ThreeDWorldNode open pano360 image sources when explicitly connected", () => {
-    const canvasNodes = read("src/features/canvas/domain/canvasNodes.ts");
     const canvasNodeData = read(
       "src/modules/creative_canvas/domain/canvasNodeData.ts",
     );

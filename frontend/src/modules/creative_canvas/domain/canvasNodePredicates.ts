@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { Node } from '@xyflow/react';
-import { CANVAS_NODE_TYPES } from '@/modules/creative_canvas/public';
+
+import { CANVAS_NODE_TYPES } from './canvasConnection';
 import type {
   AudioNodeData,
   CanvasNode,
@@ -15,7 +16,7 @@ import type {
   TextAnnotationNodeData,
   UploadImageNodeData,
   VideoNodeData,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeData';
 
 export function isUploadNode(
   node: CanvasNode | null | undefined

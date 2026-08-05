@@ -12,7 +12,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { composeVideoNodePrompt, countVideoUpstreamMedia, countVideoUpstreamNodeTypes, hasVideoNodeGenerationError, planVideoAssetReferences, planVideoFrameSources, projectVideoReferenceMedia, resolveVideoFrameSeekSeconds, resolveVideoNodeAspectRatio, resolveVideoNodeDimensions, resolveVideoNodeDisplayedRect, resolveVideoNodeModel, resolveVideoNodePosterSource, resolveVideoNodeSource, resolveVideoNodeSubmitAspectRatio, videoNodeAlbumUrls, VIDEO_NODE_DEFAULT_HEIGHT, VIDEO_NODE_DEFAULT_WIDTH, VIDEO_NODE_OPERATIONS_PANEL_HEIGHT, VIDEO_NODE_OPERATIONS_PANEL_OVERHANG, type VideoNodeData } from '@/modules/creative_canvas/public';
+import { composeVideoNodePrompt, countVideoUpstreamMedia, countVideoUpstreamNodeTypes, hasVideoNodeGenerationError, planVideoAssetReferences, planVideoFrameSources, projectVideoReferenceMedia, resolveVideoFrameSeekSeconds, resolveVideoNodeAspectRatio, resolveVideoNodeDimensions, resolveVideoNodeDisplayedRect, resolveVideoNodeModel, resolveVideoNodePosterSource, resolveVideoNodeSource, resolveVideoNodeSubmitAspectRatio, videoNodeAlbumUrls, VIDEO_NODE_DEFAULT_HEIGHT, VIDEO_NODE_DEFAULT_WIDTH, VIDEO_NODE_OPERATIONS_PANEL_HEIGHT, VIDEO_NODE_OPERATIONS_PANEL_OVERHANG, type VideoNodeData, isAudioNode } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   captureVideoFrameBlob,
@@ -23,7 +23,7 @@ import {
   useIsBoxSelecting,
   useUpstreamNodes,
 } from '@/features/canvas/composition';
-import { isAudioNode } from '@/features/canvas/domain/canvasNodes';
+
 import {
   canvasEventBus,
   contextPromptPaletteInsertionText,
