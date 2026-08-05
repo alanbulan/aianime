@@ -7,6 +7,7 @@ import type {
 } from '@/features/viewer-kit/public';
 import type {
   AudioVoiceRef,
+  CanvasExportResultKind,
   ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
@@ -175,16 +176,8 @@ export interface VideoComposeNodeData extends NodeDisplayData {
   [key: string]: unknown;
 }
 
-export type ExportImageNodeResultKind =
-  | 'generic'
-  | 'storyboardGenOutput'
-  | 'storyboardSplitExport'
-  | 'storyboardFrameEdit'
-  | 'matte'
-  | 'upscale';
-
 export interface ExportImageNodeData extends NodeImageData {
-  resultKind?: ExportImageNodeResultKind;
+  resultKind?: CanvasExportResultKind;
 }
 
 export interface GroupNodeData extends NodeDisplayData {

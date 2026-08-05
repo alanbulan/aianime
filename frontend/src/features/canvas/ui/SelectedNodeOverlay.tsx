@@ -13,8 +13,8 @@ import {
   isUploadNode,
   isVideoNode,
   type CanvasNode,
-  type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasExportResultKind } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
   DEFAULT_CANVAS_NODE_WIDTH,
@@ -461,7 +461,7 @@ export const SelectedNodeOverlay = memo(({
     if (!selectedNode) return null;
     if (!isExportImageNode(selectedNode)) return null;
     if (
-      (selectedNode.data as { resultKind?: ExportImageNodeResultKind }).resultKind
+      (selectedNode.data as { resultKind?: CanvasExportResultKind }).resultKind
       !== 'upscale'
     ) {
       return null;
