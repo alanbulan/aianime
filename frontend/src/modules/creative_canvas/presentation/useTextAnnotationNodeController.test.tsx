@@ -2,12 +2,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT, type CanvasNode, type TextAnnotationNodeData } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import type {
+  CanvasNode,
+  TextAnnotationNodeData,
+} from '../domain/canvasNodeData';
+import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT } from '../domain/textAnnotationNodeModel';
+import {
+  createUseTextAnnotationNodeController,
+  type TextAnnotationNodeStore,
+  type TextAnnotationNodeStoreHook,
+} from './useTextAnnotationNodeController';
 
-import { useTextAnnotationNodeController } from './useTextAnnotationNodeController';
-
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   nodes: [] as CanvasNode[],
   edges: [] as Array<{ id: string; source: string; target: string }>,
@@ -47,69 +53,91 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-  const state = () => ({
-    nodes: mocks.nodes,
-    edges: mocks.edges,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    deleteEdge: mocks.deleteEdge,
-    addNode: mocks.addNode,
-    addEdge: mocks.addEdge,
-    duplicateNodeAsSibling: mocks.duplicateNodeAsSibling,
-    findNodePosition: mocks.findNodePosition,
-    autoGroupSpawn: mocks.autoGroupSpawn,
-  });
-  const useCanvasStore = Object.assign(
-    (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-    { getState: state },
-  );
-  
-  return useCanvasStore;
-})(),
-  DEFAULT_SHARED_MODEL_ID: '',
-  DEFAULT_VIDEO_MODEL_ID: '',
-  generationTaskDescriptor: (task: { task_key: string }) => ({
-    generationTaskKey: task.task_key,
-  }),
-  generateCanvasReversePrompt: (
-    command: unknown,
-    onTaskSubmitted: (task: unknown) => void,
-  ) => mocks.generateCanvasReversePrompt(command, onTaskSubmitted),
-  translateCanvasText: (command: unknown) =>
-    mocks.translateCanvasText(command),
-  submitVideoGeneration: (command: unknown) =>
-    mocks.submitVideoGeneration(command),
-  resolveGenerationOutputUrl: (result: unknown, kind: string) =>
-    mocks.outputUrl(result, kind),
-  resolveImageDisplayUrl: (url: string) => `display:${url}`,
-  useCanvasVideoModels: () => ({ models: mocks.videoModels }),
-  isSystemManagedNodeData: () => mocks.systemManaged,
-  useNodeGenerationTaskState: () => ({
-    isGenerating: mocks.isGenerating,
-  }),
-}));
-
 vi.mock('@/modules/model_usage/public', () => ({
   useGenerationCreditCost: () => ({
     data: { data: { display: '2 credits' } },
   }),
 }));
 
+vi.mock('../domain/modelDefaults', () => ({
+  DEFAULT_SHARED_MODEL_ID: '',
+  DEFAULT_VIDEO_MODEL_ID: '',
+}));
+
+vi.mock('../domain/imageData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/imageData')>()),
+  resolveImageDisplayUrl: (url: string) => `display:${url}`,
+}));
+
+vi.mock('../domain/mainlineNodeFlags', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/mainlineNodeFlags')>()),
+  isSystemManagedNodeData: () => mocks.systemManaged,
+}));
+
+vi.mock('../application/generationOutputUrl', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../application/generationOutputUrl')>()),
+  resolveGenerationOutputUrl: (result: unknown, kind: string) =>
+    mocks.outputUrl(result, kind),
+}));
+
+vi.mock('../application/resumeGeneration', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../application/resumeGeneration')>()),
+  generationTaskDescriptor: (task: { task_key: string }) => ({
+    generationTaskKey: task.task_key,
+  }),
+}));
+
+vi.mock('./useNodeGenerationTaskState', () => ({
+  useNodeGenerationTaskState: () => ({
+    isGenerating: mocks.isGenerating,
+  }),
+}));
+
+const useStore = Object.assign(
+  (selector: (state: TextAnnotationNodeStore) => unknown) =>
+    selector({
+      nodes: mocks.nodes,
+      edges: mocks.edges,
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      deleteEdge: mocks.deleteEdge,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      duplicateNodeAsSibling: mocks.duplicateNodeAsSibling,
+      findNodePosition: mocks.findNodePosition,
+      autoGroupSpawn: mocks.autoGroupSpawn,
+    }),
+  {
+    getState: () => ({
+      nodes: mocks.nodes,
+      edges: mocks.edges,
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      deleteEdge: mocks.deleteEdge,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      duplicateNodeAsSibling: mocks.duplicateNodeAsSibling,
+      findNodePosition: mocks.findNodePosition,
+      autoGroupSpawn: mocks.autoGroupSpawn,
+    }),
+  },
+) as unknown as TextAnnotationNodeStoreHook;
+
+const useTextAnnotationNodeController = createUseTextAnnotationNodeController({
+  useStore,
+  useIsBoxSelecting: () => mocks.boxSelecting,
+  generateCanvasReversePrompt: mocks.generateCanvasReversePrompt,
+  submitVideoGeneration: mocks.submitVideoGeneration,
+  useCanvasVideoModels: () => ({ models: mocks.videoModels }),
+  awaitCanvasGenerationTaskCompletion:
+    mocks.awaitCanvasGenerationTaskCompletion,
+  translateCanvasText: mocks.translateCanvasText,
+});
+
 const NODE_CONTEXT = {
   projectId: 'project-a',
   canvasId: 'canvas-a',
 } as const;
-
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  awaitCanvasGenerationTaskCompletion: (taskKey: string, project: string) =>
-    mocks.awaitCanvasGenerationTaskCompletion(taskKey, project),
-  useIsBoxSelecting: () => mocks.boxSelecting,
-}));
 
 function data(
   patch: Partial<TextAnnotationNodeData> = {},

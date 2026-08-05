@@ -18,27 +18,26 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import type { TextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
+import type { TextAnnotationNodeController } from './useTextAnnotationNodeController';
 import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
+} from './canvasNodeFrameStyles';
+import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  ProviderModelPicker,
-  type TextNodeMode,
-} from '@/modules/creative_canvas/public';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeControlStyles';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { ProviderModelPicker } from './ProviderModelPicker';
+import type { TextNodeMode } from '../domain/textAnnotationNodeModel';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 
 const PICKER_INSET = 32;
 const OPS_PANEL_HEIGHT = 140;

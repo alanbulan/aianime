@@ -13,6 +13,7 @@ import { createUseCanvasViewerSurfaceController } from './presentation/useCanvas
 import { createUseVideoComposeNodeController } from './presentation/useVideoComposeNodeController';
 import { createUseScriptNodeController } from './presentation/useScriptNodeController';
 import { createUseImageNodeController } from './presentation/useImageNodeController';
+import { createUseTextAnnotationNodeController } from './presentation/useTextAnnotationNodeController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -22,7 +23,13 @@ import { detectAspectRatio as detectAspectRatioUseCase, prepareNodeImage as prep
 import { EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT } from './domain/imageNodeLayout';
 import { exportStoryboardGrid as exportStoryboardGridUseCase, packStoryboardFrames as packStoryboardFramesUseCase, type ExportStoryboardGridCommand } from './application/storyboardExport';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
-import { generateCanvasRedraw, submitCanvasImageGeneration } from './mediaOperationGenerationComposition';
+import {
+  generateCanvasRedraw,
+  generateCanvasReversePrompt,
+  submitCanvasImageGeneration,
+} from './mediaOperationGenerationComposition';
+import { submitVideoGeneration } from './videoGenerationComposition';
+import { useCanvasVideoModels } from './generationCatalogComposition';
 import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, type CanvasBeatDirectorManifestGateway, type GetCanvasBeatDirectorManifestParams } from './application/beatDirectorManifest';
 import { getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase, type GetCanvasDirectorStagePaletteParams } from './application/directorStagePalette';
 import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
@@ -235,6 +242,16 @@ export const useImageNodeController = createUseImageNodeController({
   useStore: useCanvasStore,
   regenerateExportImageNode,
 });
+export const useTextAnnotationNodeController =
+  createUseTextAnnotationNodeController({
+    useStore: useCanvasStore,
+    useIsBoxSelecting,
+    generateCanvasReversePrompt,
+    submitVideoGeneration,
+    useCanvasVideoModels,
+    awaitCanvasGenerationTaskCompletion,
+    translateCanvasText,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

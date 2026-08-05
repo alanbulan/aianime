@@ -1586,19 +1586,19 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useTextAnnotationNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/TextAnnotationNodeView.tsx",
+      "modules/creative_canvas/presentation/TextAnnotationNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/TextAnnotationNodeView.test.tsx",
+      "modules/creative_canvas/presentation/TextAnnotationNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -1615,7 +1615,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "TextAnnotationNode", "=", "memo("].join(" "),
       ["export function", "resolveTextAnnotationMode("].join(" "),
-      ["export function", "useTextAnnotationNodeController("].join(" "),
+      ["export function", "createUseTextAnnotationNodeController("].join(" "),
       ["export function", "TextAnnotationNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -1629,16 +1629,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useTextAnnotationNodeController",
-        "./TextAnnotationNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/TextAnnotationNode.tsx"],
       ["modules/creative_canvas/domain/textAnnotationNodeModel.ts"],
-      ["features/canvas/hooks/useTextAnnotationNodeController.ts"],
-      ["features/canvas/nodes/TextAnnotationNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useTextAnnotationNodeController.ts"],
+      ["modules/creative_canvas/presentation/TextAnnotationNodeView.tsx"],
     ]);
     expect(importSpecifiers(modelPath)).toEqual([]);
     expect(modelSource).not.toContain("react");
@@ -1663,15 +1662,15 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("generateCanvasReversePrompt(");
     expect(controllerSource).toContain("submitVideoGeneration({");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("useIsBoxSelecting()");
     expect(controllerSource).not.toContain("readUrl()");
     expect(controllerSource).not.toContain("@/lib/url-params");
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
-    expect(controllerSource).not.toContain("domain/textAnnotationNodeModel");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).toContain("../domain/textAnnotationNodeModel");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ReactMarkdown");
     expect(viewSource).toContain("<ReactMarkdown");
@@ -1683,7 +1682,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("generateCanvasReversePrompt(");
     expect(viewSource).not.toContain("submitVideoGeneration(");
     expect(viewSource).not.toContain("translateCanvasText(");
-    expect(viewSource).toContain("@/modules/creative_canvas/public");
+    expect(viewSource).not.toContain("@/modules/creative_canvas/public");
     expect(modelTestSource).toContain(
       "from './textAnnotationNodeModel'",
     );
@@ -1691,6 +1690,14 @@ describe("frontend architecture boundaries", () => {
       "from './useTextAnnotationNodeController'",
     );
     expect(viewTestSource).toContain("from './TextAnnotationNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "features/canvas/hooks/useTextAnnotationNodeController.test.tsx",
+      "features/canvas/nodes/TextAnnotationNodeView.tsx",
+      "features/canvas/nodes/TextAnnotationNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas upload-node model, controller, and view", () => {
@@ -4215,7 +4222,7 @@ describe("frontend architecture boundaries", () => {
     );
     const textControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts",
     );
     const defaultNames = [
       "DEFAULT_IMAGE_MODEL_ID",
@@ -4273,7 +4280,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(readFileSync(pickerPath, "utf8")).not.toContain("@/features/canvas/");
-    expect(importSpecifiers(textControllerPath)).toContain(
+    expect(importSpecifiers(textControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(textControllerPath)).not.toContain(
@@ -21211,7 +21218,7 @@ describe("frontend architecture boundaries", () => {
     );
     const textNodeControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -21278,7 +21285,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/api/tasks",
     );
-    expect(importSpecifiers(textNodeControllerPath)).toContain(
+    expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(textNodeControllerSource).toContain(
@@ -31038,7 +31045,6 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/hooks/useAudioOperationsPanelController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationOwners = sourceFiles(SRC_ROOT)
@@ -31178,7 +31184,7 @@ describe("frontend architecture boundaries", () => {
     );
     const textNodeControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -31264,7 +31270,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(videoNodePath)).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(textNodeControllerPath)).toContain(
+    expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(videoNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(5);
@@ -32353,7 +32359,7 @@ describe("frontend architecture boundaries", () => {
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const consumerPaths = [
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
+      "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts",
     ];
     const consumerSources = Object.fromEntries(
       consumerPaths.map((path) => [
@@ -32403,7 +32409,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     for (const source of Object.values(consumerSources)) {
       expect(source).toContain(
-        "@/modules/creative_canvas/public",
+        "../application/generationOutputUrl",
       );
     }
     expect(importSpecifiers(resumePath)).toContain("./generationOutputUrl");
@@ -32422,7 +32428,7 @@ describe("frontend architecture boundaries", () => {
     expect(imageGenNode).not.toContain("function resolveOutputUrl(");
     expect(
       consumerSources[
-        "features/canvas/hooks/useTextAnnotationNodeController.ts"
+        "modules/creative_canvas/presentation/useTextAnnotationNodeController.ts"
       ],
     ).not.toContain("function resolveVideoOutputUrl(");
     expect(videoNode).not.toContain("function resolveOutputUrl(");
@@ -32566,7 +32572,6 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "features/canvas/hooks/useAudioNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/useTextAnnotationNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ];
 

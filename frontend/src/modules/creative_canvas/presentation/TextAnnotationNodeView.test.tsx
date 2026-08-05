@@ -3,8 +3,7 @@ import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TextAnnotationNodeController } from '@/features/canvas/hooks/useTextAnnotationNodeController';
-
+import type { TextAnnotationNodeController } from './useTextAnnotationNodeController';
 import { TextAnnotationNodeView } from './TextAnnotationNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -22,8 +21,7 @@ vi.mock('react-markdown', () => ({
   ),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -38,13 +36,22 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}:{String(editable)}
     </button>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({ minWidth, minHeight }: {
     minWidth: number;
     minHeight: number;
   }) => <div>resize:{minWidth}:{minHeight}</div>,
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: ({ durationMs }: { durationMs: number }) => (
     <div>generation-overlay:{durationMs}</div>
   ),
+}));
+
+vi.mock('./ProviderModelPicker', () => ({
   ProviderModelPicker: ({
     selectedModelId,
     onChange,

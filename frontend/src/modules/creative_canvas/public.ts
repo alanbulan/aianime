@@ -3511,6 +3511,8 @@ export { ScriptNodeView } from "@/modules/creative_canvas/presentation/ScriptNod
 export type { ScriptNodeController } from "@/modules/creative_canvas/presentation/useScriptNodeController";
 export { ImageNodeView } from "@/modules/creative_canvas/presentation/ImageNodeView";
 export type { ImageNodeController } from "@/modules/creative_canvas/presentation/useImageNodeController";
+export { TextAnnotationNodeView } from "@/modules/creative_canvas/presentation/TextAnnotationNodeView";
+export type { TextAnnotationNodeController } from "@/modules/creative_canvas/presentation/useTextAnnotationNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";
