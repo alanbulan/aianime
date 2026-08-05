@@ -15189,7 +15189,7 @@ describe("frontend architecture boundaries", () => {
     );
     const normalizationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/canvasDataNormalization.ts",
+      "modules/creative_canvas/application/canvasDataNormalization.ts",
     );
     const storyboardModelPath = resolve(
       SRC_ROOT,
@@ -15243,15 +15243,15 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(normalizationOwners).toEqual([
-      "features/canvas/application/canvasDataNormalization.ts",
+      "modules/creative_canvas/application/canvasDataNormalization.ts",
     ]);
     expect(hydrationModel).toContain("export function normalizeCanvasNodes(");
     expect(normalizationModel).toContain(normalizationDeclaration);
     expect(normalizationModel).toContain("normalizeCanvasNodes(");
     expect(normalizationModel).toContain("nodeCatalog");
-    expect(normalizationModel).toContain(
-      "normalizeEdgesWithNodes(scoped.edges, nodes)",
-    );
+    expect(normalizationModel).toContain("normalizeEdgesWithNodes(");
+    expect(normalizationModel).toContain("scopeProjectionGraphIds(");
+    expect(normalizationModel).not.toContain("@/modules/creative_canvas/public");
     expect(storyboardModel).toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
@@ -15265,6 +15265,9 @@ describe("frontend architecture boundaries", () => {
       "export function createDefaultStoryboardExportOptions(",
     );
     expect(documentLifecycleSlice).toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(documentLifecycleSlice).not.toContain(
       "../application/canvasDataNormalization",
     );
     expect(canvasStore).not.toContain(
@@ -27958,7 +27961,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
-      "../application/canvasDataNormalization",
+      "../application/nodeCatalog",
       "../application/ports",
       "../domain/canvasNodes",
     ]));
@@ -28069,7 +28072,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@/modules/creative_canvas/public",
       "../domain/canvasNodes",
-      "../application/canvasDataNormalization",
+      "../application/nodeCatalog",
       "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");

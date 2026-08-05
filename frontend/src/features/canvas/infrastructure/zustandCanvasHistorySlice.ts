@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
+  normalizeCanvasData,
   navigateCanvasHistory,
   normalizeHistory,
   type CanvasHistoryDirection,
@@ -8,7 +9,13 @@ import {
   type CanvasHistoryState,
   type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
-import { normalizeCanvasData } from '../application/canvasDataNormalization';
+import { nodeCatalog } from '../application/nodeCatalog';
+import type {
+  CanvasNodeDefaultDataCatalog,
+  CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway,
+  HydrationGraphEdge,
+  HydrationGraphNode,
+} from '@/modules/creative_canvas/public';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodes';
 
@@ -61,10 +68,11 @@ export function createZustandCanvasHistorySlice(
       store.setState({
         history: normalizeHistory(history, (nodes, edges) =>
           normalizeCanvasData(
-            nodes,
-            edges,
-            store.nodeDefaultDataGateway,
-          ),
+            nodes as unknown as HydrationGraphNode[],
+            edges as unknown as HydrationGraphEdge[],
+            store.nodeDefaultDataGateway as unknown as ModuleCanvasNodeDefaultDataGateway,
+            nodeCatalog as unknown as CanvasNodeDefaultDataCatalog,
+          ) as unknown as { nodes: CanvasNode[]; edges: CanvasEdge[] },
         ),
       });
     },

@@ -2013,6 +2013,12 @@ export type {
   HydrationGraphNode,
 } from "@/modules/creative_canvas/application/canvasNodeHydration";
 export {
+  normalizeCanvasData,
+} from "@/modules/creative_canvas/application/canvasDataNormalization";
+export type {
+  HydrationGraphEdge,
+} from "@/modules/creative_canvas/application/canvasDataNormalization";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

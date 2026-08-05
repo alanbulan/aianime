@@ -1,47 +1,55 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { projectionScopedId } from '@/modules/creative_canvas/public';
-
+import { projectionScopedId } from '../domain/projectionGraphIds';
 import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
-import { normalizeCanvasData } from './canvasDataNormalization';
+  normalizeCanvasData,
+  type HydrationGraphEdge,
+} from './canvasDataNormalization';
+import type { HydrationGraphNode } from './canvasNodeHydration';
+import type { CanvasNodeDefaultDataCatalog } from './canvasNodeDefaultData';
 
 function node(
   id: string,
-  type: CanvasNode['type'],
+  type: string,
   data: Record<string, unknown> = {},
-  overrides: Partial<CanvasNode> = {},
-): CanvasNode {
-  return { id, type, position: { x: 0, y: 0 }, data, ...overrides } as CanvasNode;
+  overrides: Partial<HydrationGraphNode> = {},
+): HydrationGraphNode {
+  return { id, type, data, ...overrides };
 }
+
+const catalog: CanvasNodeDefaultDataCatalog = {
+  getDefinition: () => ({ createDefaultData: () => ({}) }),
+};
 
 describe('Canvas data normalization', () => {
   it('scopes projection ids before hydrating nodes and edges', () => {
     const projectionKey = 'beat:1:4';
-    const group = node('group', CANVAS_NODE_TYPES.group, {
+    const group = node('group', 'groupNode', {
       projection_key: projectionKey,
     });
-    const source = node('source', CANVAS_NODE_TYPES.upload, {}, {
+    const source = node('source', 'uploadNode', {}, {
       parentId: group.id,
       extent: 'parent',
     });
-    const target = node('target', CANVAS_NODE_TYPES.skill, {
+    const target = node('target', 'skillNode', {
       skill_id: 'freezone.test',
     }, {
       parentId: group.id,
       extent: 'parent',
     });
-    const edge: CanvasEdge = {
+    const edge: HydrationGraphEdge = {
       id: 'edge',
       source: source.id,
       target: target.id,
     };
 
-    const result = normalizeCanvasData([source, target, group], [edge]);
+    const result = normalizeCanvasData(
+      [source, target, group],
+      [edge],
+      undefined,
+      catalog,
+    );
     const scoped = (id: string) => projectionScopedId(projectionKey, id);
 
     expect(result.nodes.map((item) => item.id)).toEqual([
@@ -66,19 +74,24 @@ describe('Canvas data normalization', () => {
   });
 
   it('normalizes edges against the hydrated node set', () => {
-    const placeholder = node('placeholder', CANVAS_NODE_TYPES.upload, {
+    const placeholder = node('placeholder', 'uploadNode', {
       label: '__NO_PROP__',
     });
-    const target = node('target', CANVAS_NODE_TYPES.skill, {
+    const target = node('target', 'skillNode', {
       skill_id: 'freezone.test',
     });
-    const edge: CanvasEdge = {
+    const edge: HydrationGraphEdge = {
       id: 'placeholder-edge',
       source: placeholder.id,
       target: target.id,
     };
 
-    const result = normalizeCanvasData([placeholder, target], [edge]);
+    const result = normalizeCanvasData(
+      [placeholder, target],
+      [edge],
+      undefined,
+      catalog,
+    );
 
     expect(result.nodes.map((item) => item.id)).toEqual([target.id]);
     expect(result.edges).toEqual([]);

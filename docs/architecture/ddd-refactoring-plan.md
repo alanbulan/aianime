@@ -1320,6 +1320,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第八百七十二批将 `canvasNodeHydration` 与其测试迁入 Creative Canvas application。节点输入改用模块自有 `HydrationGraphNode` 窄合同，节点类型校验改用本域 `CANVAS_CONNECTION_NODE_TYPES`，节点目录与默认数据网关作为 `CanvasNodeDefaultDataCatalog`/`CanvasNodeDefaultDataGateway` 显式依赖注入，不再依赖旧 `canvasNodes` 与旧 `ports`；去重/优先级、孤儿父级分离、父先子后排序、占位节点剔除、Storyboard 导出归一与生成恢复规则全部保留。旧数据规范化统一经 Creative Canvas public 使用唯一水合用例，并在组合边界把旧节点目录适配到模块窄合同，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套水合实现；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 203。水合用例与数据规范化 3 个文件 11 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1052/203/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
 
+第八百七十三批将 `canvasDataNormalization` 与其测试迁入 Creative Canvas application。节点/边输入改用模块自有 `HydrationGraphNode`/`HydrationGraphEdge` 窄合同，直接复用本域 `projectionGraphIds`、`canvasEdgeNormalization` 与 `canvasNodeHydration`，不再依赖旧 `canvasNodes` 与旧 `ports`；投影 ID 作用域、父节点保持、占位剔除与边跟随节点集规范规则全部保留。历史与文档生命周期切片统一经 Creative Canvas public 使用唯一用例，并在组合边界把旧节点目录与网关适配到模块窄合同，旧生产/测试路径直接删除，不保留 facade、re-export 或第二套规范化实现；残余门禁登记两个 application 新所有者与两个旧路径禁回流，Canvas TS/TSX 上限收紧到 201。数据规范化用例与历史/文档生命周期切片 3 个文件 10 项，架构/残余/颜色门禁 3 个文件 351 项，前端 TypeScript 和 `git diff --check` 全部通过；Creative Canvas/Canvas/Freezone 的 TS/TSX 实测为 1054/201/0。未启动 Electron/Vite、未构建、未操作 UI、未调用真实模型；商业 Gateway、登录鉴权、Cloud/BYOK、平台对象存储和 Hermes ACP 边界均未改变。阶段 8、阶段 10 与第二轮 GOAL 仍未完成。
+
 任务：
 
 1. 确认本计划和上下文划分。

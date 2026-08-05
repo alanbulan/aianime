@@ -10,11 +10,18 @@ import {
   type CanvasMutationState,
   type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
+import {
+  normalizeCanvasData,
+  type CanvasNodeDefaultDataCatalog,
+  type CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway,
+  type HydrationGraphEdge,
+  type HydrationGraphNode,
+} from '@/modules/creative_canvas/public';
 import type {
   CanvasEdge,
   CanvasNode,
 } from '../domain/canvasNodes';
-import { normalizeCanvasData } from '../application/canvasDataNormalization';
+import { nodeCatalog } from '../application/nodeCatalog';
 import type { CanvasNodeDefaultDataGateway } from '../application/ports';
 
 export interface CanvasDraftHydration {
@@ -59,7 +66,12 @@ export function createZustandCanvasDocumentLifecycleSlice(
   store: CanvasDocumentLifecycleSliceStore,
 ): CanvasDocumentLifecycleSlice {
   const normalizeData = (nodes: CanvasNode[], edges: CanvasEdge[]) =>
-    normalizeCanvasData(nodes, edges, store.nodeDefaultDataGateway);
+    normalizeCanvasData(
+      nodes as unknown as HydrationGraphNode[],
+      edges as unknown as HydrationGraphEdge[],
+      store.nodeDefaultDataGateway as unknown as ModuleCanvasNodeDefaultDataGateway,
+      nodeCatalog as unknown as CanvasNodeDefaultDataCatalog,
+    ) as unknown as { nodes: CanvasNode[]; edges: CanvasEdge[] };
 
   return {
     userEditsSinceHydrate: 0,
