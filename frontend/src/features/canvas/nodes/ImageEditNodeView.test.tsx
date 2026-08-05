@@ -11,7 +11,8 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
+vi.mock('@/modules/creative_canvas/public', () => ({
+  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   ModelParamsControls: ({
     onModelChange,
     onResolutionChange,
@@ -41,10 +42,6 @@ vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
       </button>
     </div>
   ),
-}));
-
-vi.mock('@/modules/creative_canvas/public', () => ({
-  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
     onTitleChange,

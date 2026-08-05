@@ -515,6 +515,7 @@ describe("round 2 residual architecture boundaries", () => {
     const catalogPresentationFiles = [
       "ProviderModelPicker.tsx",
       "ProviderModelPicker.test.tsx",
+      "ModelParamsControls.tsx",
     ];
     const mediaOperationDomainFiles = [
       "imageTo3d.ts",
@@ -1356,6 +1357,7 @@ describe("round 2 residual architecture boundaries", () => {
       "features/canvas/ui/LightEditorPanel.tsx",
       "features/canvas/ui/ProviderModelPicker.tsx",
       "features/canvas/ui/ProviderModelPicker.test.tsx",
+      "features/canvas/ui/ModelParamsControls.tsx",
       "features/canvas/infrastructure/browserToolImageGateway.ts",
       "features/canvas/infrastructure/idGenerator.ts",
       "features/canvas/infrastructure/webImageSplitGateway.ts",
@@ -2437,7 +2439,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 237],
+      ["features/canvas", 236],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],

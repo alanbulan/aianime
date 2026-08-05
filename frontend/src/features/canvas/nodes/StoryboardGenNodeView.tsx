@@ -10,6 +10,7 @@ import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
+  ModelParamsControls,
   NodePriceBadge,
   NodeResizeHandle,
   STORYBOARD_GEN_FRAME_GRID_GAP_PX,
@@ -17,7 +18,6 @@ import {
   findReferenceTokens,
 } from '@/modules/creative_canvas/public';
 import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
-import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,

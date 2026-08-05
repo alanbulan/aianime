@@ -32939,9 +32939,12 @@ describe("frontend architecture boundaries", () => {
     const consumers = [
       "features/canvas/hooks/useImageEditNodeController.ts",
       "features/canvas/hooks/useStoryboardGenNodeController.ts",
-      "features/canvas/ui/ModelParamsControls.tsx",
       "stores/settingsStore.ts",
     ].map((path) => resolve(SRC_ROOT, path));
+    const controlsPath = resolve(
+      moduleRoot,
+      "presentation/ModelParamsControls.tsx",
+    );
 
     expect(ownerPaths.every((path) => existsSync(path))).toBe(true);
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
@@ -32961,6 +32964,27 @@ describe("frontend architecture boundaries", () => {
     );
     expect(publicSource).toContain(
       "@/modules/creative_canvas/domain/modelPricing",
+    );
+    expect(existsSync(controlsPath)).toBe(true);
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/ui/ModelParamsControls.tsx")),
+    ).toBe(false);
+    expect(new Set(importSpecifiers(controlsPath))).toEqual(
+      new Set([
+        "react",
+        "react-dom",
+        "lucide-react",
+        "react-i18next",
+        "../domain/aspectRatio",
+        "../domain/imageModelDefinition",
+        "@/components/ui",
+      ]),
+    );
+    expect(readFileSync(controlsPath, "utf8")).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(publicSource).toContain(
+      "@/modules/creative_canvas/presentation/ModelParamsControls",
     );
     for (const path of consumers) {
       expect(importSpecifiers(path)).toContain(

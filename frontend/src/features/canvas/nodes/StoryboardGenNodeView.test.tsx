@@ -50,9 +50,6 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
     </div>
   ),
-}));
-
-vi.mock('@/features/canvas/ui/ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
     onResolutionChange,

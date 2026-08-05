@@ -2780,6 +2780,8 @@ export type {
   ProviderModelDomain,
   ProviderModelPickerProps,
 } from "@/modules/creative_canvas/presentation/ProviderModelPicker";
+export { ModelParamsControls } from "@/modules/creative_canvas/presentation/ModelParamsControls";
+export type { ModelParamsControlsProps } from "@/modules/creative_canvas/presentation/ModelParamsControls";
 export {
   CANVAS_OUTPAINT_ASPECT_RATIOS,
   CANVAS_OUTPAINT_IMAGE_SIZES,
