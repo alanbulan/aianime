@@ -23493,7 +23493,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeOutputToolbarController.ts",
     );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const applicationTestSource = readFileSync(applicationTestPath, "utf8");
@@ -23533,7 +23533,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
@@ -23705,11 +23705,11 @@ describe("frontend architecture boundaries", () => {
   it("separates node output toolbar commands, composition, and view", () => {
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeOutputToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeOutputToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useNodeOutputToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -23728,7 +23728,7 @@ describe("frontend architecture boundaries", () => {
     const viewSource = readFileSync(viewPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
     const declarations = [
-      ["export function", "useNodeOutputToolbarController("].join(" "),
+      ["export function", "createUseNodeOutputToolbarController("].join(" "),
       ["export const", "NodeOutputToolbarActions ="].join(" "),
       ["export function", "NodeOutputToolbarActionsView("].join(" "),
     ];
@@ -23758,9 +23758,12 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
+        "../application/nodeActionToolbarModel",
+        "../domain/canvasNodeData",
+        "../domain/canvasNodeImageSource",
+        "../domain/canvasNodePredicates",
+        "../domain/imageData",
         "@/lib/browserDownload",
-        "@/stores/settingsStore",
       ]),
     );
     expect(controllerSource).not.toContain("className=");
@@ -23769,7 +23772,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useNodeOutputToolbarController",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -23832,16 +23835,22 @@ describe("frontend architecture boundaries", () => {
       expect(toolbarSource).not.toContain(legacyInlineLogic);
     }
     expect(commandOwners).toEqual([
-      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeOutputToolbarController.ts",
     ]);
     expect(declarationOwners).toEqual([
-      ["features/canvas/hooks/useNodeOutputToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useNodeOutputToolbarController.ts"],
       ["features/canvas/ui/NodeOutputToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeOutputToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useNodeOutputToolbarController"',
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "features/canvas/hooks/useNodeOutputToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates node management toolbar projection, commands, and view", () => {
@@ -25445,7 +25454,7 @@ describe("frontend architecture boundaries", () => {
     );
     const outputControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "modules/creative_canvas/presentation/useNodeOutputToolbarController.ts",
     );
     const managementControllerPath = resolve(
       SRC_ROOT,

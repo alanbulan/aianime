@@ -2,11 +2,17 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-;
+import { CANVAS_NODE_TYPES } from "../domain/canvasConnection";
+import type {
+  CanvasNode,
+  CanvasNodeType,
+} from "../domain/canvasNodeData";
+import {
+  createUseNodeOutputToolbarController,
+  type NodeOutputToolbarSettingsStore,
+  type NodeOutputToolbarSettingsStoreHook,
+} from "./useNodeOutputToolbarController";
 
-import { useNodeOutputToolbarController } from "./useNodeOutputToolbarController";
-
-import { CANVAS_NODE_TYPES, type CanvasNode, type CanvasNodeType } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   downloadUrl: vi.fn(),
   resolveUrl: vi.fn((url: string) => `resolved:${url}`),
@@ -27,17 +33,12 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/modules/creative_canvas/public", () => ({
+vi.mock("../domain/canvasNodePredicates", () => ({
   isImageEditNode: (node: { type?: string } | null | undefined) =>
     node?.type === 'imageNode',
-  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
-  buildGenerationErrorReport: ({
-    errorMessage,
-    errorDetails,
-  }: {
-    errorMessage: string;
-    errorDetails?: string;
-  }) => [errorMessage, errorDetails].filter(Boolean).join("\n"),
+}));
+
+vi.mock("../application/nodeActionToolbarModel", () => ({
   projectNodeActionGenerationError: (
     node: { data?: Record<string, unknown> },
     fallbackErrorMessage: string,
@@ -96,15 +97,6 @@ vi.mock("@/modules/creative_canvas/public", () => ({
     }
     return { canCopy: false, text: "" };
   },
-  resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
-  resolveCanvasNodeSourceImageUrl: (node: {
-    data?: Record<string, unknown>;
-  }) => {
-    const data = node.data ?? {};
-    return data.imageUrl ?? data.previewImageUrl ?? data.referenceImageUrl ?? null;
-  },
-  sanitizeStoryboardText: (input: string, ignoreAtTag: boolean) =>
-    ignoreAtTag ? input.replace(/@\S+/g, "").trim() : input,
   resolveNodeActionImageDownloadFilename: (
     node: { id: string; data?: Record<string, unknown> },
   ) => {
@@ -121,16 +113,31 @@ vi.mock("@/modules/creative_canvas/public", () => ({
   },
 }));
 
+vi.mock("../domain/canvasNodeImageSource", () => ({
+  resolveCanvasNodeSourceImageUrl: (node: {
+    data?: Record<string, unknown>;
+  }) => {
+    const data = node.data ?? {};
+    return data.imageUrl ?? data.previewImageUrl ?? data.referenceImageUrl ?? null;
+  },
+}));
+
+vi.mock("../domain/imageData", () => ({
+  resolveImageDisplayUrl: (url: string) => mocks.resolveUrl(url),
+}));
+
 vi.mock("@/lib/browserDownload", () => ({
   downloadUrlAsFile: (url: string, filename: string) =>
     mocks.downloadUrl(url, filename),
 }));
 
-vi.mock("@/stores/settingsStore", () => ({
-  useSettingsStore: (
-    selector: (state: typeof mocks.settings) => unknown,
-  ) => selector(mocks.settings),
-}));
+const useSettingsStore = ((
+  selector: (state: NodeOutputToolbarSettingsStore) => unknown,
+) => selector(mocks.settings)) as unknown as NodeOutputToolbarSettingsStoreHook;
+
+const useNodeOutputToolbarController = createUseNodeOutputToolbarController({
+  useSettingsStore,
+});
 
 function node(
   type: CanvasNodeType,

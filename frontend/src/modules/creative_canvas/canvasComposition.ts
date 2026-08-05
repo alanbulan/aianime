@@ -17,6 +17,7 @@ import { createUseTextAnnotationNodeController } from './presentation/useTextAnn
 import { createUseStoryboardNodeController } from './presentation/useStoryboardNodeController';
 import { createUseAudioNodeToolbarController } from './presentation/useAudioNodeToolbarController';
 import { createUseNodeMainlineToolbarController } from './presentation/useNodeMainlineToolbarController';
+import { createUseNodeOutputToolbarController } from './presentation/useNodeOutputToolbarController';
 import { createUseDetachUpstream } from './presentation/useDetachUpstream';
 import { createUseImageEditToolbarController } from './presentation/useImageEditToolbarController';
 import { createUseImageMatteController } from './presentation/useImageMatteController';
@@ -272,6 +273,9 @@ export const useNodeMainlineToolbarController =
     useStore: useCanvasStore,
     openPresetProjectionInMyCanvas,
   });
+export const useNodeOutputToolbarController = createUseNodeOutputToolbarController({
+  useSettingsStore,
+});
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

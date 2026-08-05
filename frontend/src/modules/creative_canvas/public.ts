@@ -3517,6 +3517,7 @@ export { StoryboardNodeView } from "@/modules/creative_canvas/presentation/Story
 export type { StoryboardNodeController } from "@/modules/creative_canvas/presentation/useStoryboardNodeController";
 export type { AudioNodeToolbarController } from "@/modules/creative_canvas/presentation/useAudioNodeToolbarController";
 export type { NodeMainlineToolbarController } from "@/modules/creative_canvas/presentation/useNodeMainlineToolbarController";
+export type { NodeOutputToolbarController } from "@/modules/creative_canvas/presentation/useNodeOutputToolbarController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

@@ -23,7 +23,7 @@ describe("ImageGenNode error notification contract", () => {
       "src/modules/creative_canvas/application/nodeActionToolbarModel.ts",
     );
     const controllerSource = read(
-      "src/features/canvas/hooks/useNodeOutputToolbarController.ts",
+      "src/modules/creative_canvas/presentation/useNodeOutputToolbarController.ts",
     );
 
     expect(modelSource).toContain(

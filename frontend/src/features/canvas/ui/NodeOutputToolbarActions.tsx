@@ -2,7 +2,7 @@
 import { memo } from "react";
 
 ;
-import { useNodeOutputToolbarController } from "@/features/canvas/hooks/useNodeOutputToolbarController";
+import { useNodeOutputToolbarController } from "@/modules/creative_canvas/canvasComposition";
 import { NodeOutputToolbarActionsView, type CanvasNode } from "@/modules/creative_canvas/public";
 
 export interface NodeOutputToolbarActionsProps {
