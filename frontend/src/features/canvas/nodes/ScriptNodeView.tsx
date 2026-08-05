@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import type { ScriptGenAction } from '@/features/canvas/domain/canvasNodes';
+import type { ScriptGenAction } from '@/modules/creative_canvas/public';
 import {
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,

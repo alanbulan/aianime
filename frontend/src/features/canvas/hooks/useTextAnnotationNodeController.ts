@@ -12,13 +12,13 @@ import {
   CANVAS_NODE_TYPES,
   type TextAnnotationNodeData,
   type UploadImageNodeData,
-  type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   generateCanvasReversePrompt,
   generationTaskDescriptor,
+  type VideoGenCount,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
   TEXT_ANNOTATION_IMAGE_TO_PROMPT_DEFAULT_CONTENT,

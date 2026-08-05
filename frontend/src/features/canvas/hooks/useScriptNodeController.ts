@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 
-import { CANVAS_NODE_TYPES, type ScriptGenAction, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
+import { CANVAS_NODE_TYPES, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
+import type { ScriptGenAction } from '@/modules/creative_canvas/public';
 import {
   SCRIPT_NODE_ACTIONS,
   buildCanvasStoryScriptCommand,

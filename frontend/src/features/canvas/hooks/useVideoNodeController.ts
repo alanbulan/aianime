@@ -47,7 +47,6 @@ import {
 import {
   CANVAS_NODE_TYPES,
   isAudioNode,
-  type VideoGenCount,
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import {
@@ -57,6 +56,7 @@ import {
   joinUpstreamText,
   resolveNodeDisplayName,
   setAlbumPendingTotal,
+  type VideoGenCount,
   useAlbumPendingTotal,
 } from '@/modules/creative_canvas/public';
 import {

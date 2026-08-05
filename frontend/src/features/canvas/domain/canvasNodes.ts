@@ -10,7 +10,9 @@ import type {
   ImageGenCount,
   ImageGenCameraSelectionData,
   ImageQuality,
+  ScriptGenAction,
   Seedance2SceneOptimize,
+  VideoGenCount,
   VideoGenQuality,
   VideoGenMode,
   VideoStoryRow,
@@ -74,8 +76,6 @@ export interface UploadImageNodeData extends NodeImageData {
   uploadError?: string | null;
   imageOnly?: boolean;
 }
-
-export type VideoGenCount = 1 | 2 | 4;
 
 export interface VideoNodeData extends NodeDisplayData {
   videoUrl: string | null;
@@ -424,8 +424,6 @@ export interface VideoStoryNodeData extends NodeDisplayData {
   analysisError?: string | null;
   [key: string]: unknown;
 }
-
-export type ScriptGenAction = 'fromScript' | 'fromVideoRef' | 'fromCharacter';
 
 export interface ScriptNodeData extends NodeDisplayData {
   /** 操作区输入的剧情/参考说明文本 */

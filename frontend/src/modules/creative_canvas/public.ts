@@ -54,6 +54,7 @@ export {
 export type {
   Seedance2SceneOptimize,
   VideoDurationBounds,
+  VideoGenCount,
   VideoGenQuality,
   VideoModelCapabilityDescriptor,
 } from "@/modules/creative_canvas/domain/videoGenerationModel";

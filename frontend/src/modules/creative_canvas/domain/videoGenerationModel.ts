@@ -183,3 +183,4 @@ export function normalizeSceneOptimize(
   if (options.length === 0) return undefined;
   return value && options.includes(value) ? value : fallback;
 }
+export type VideoGenCount = 1 | 2 | 4;
