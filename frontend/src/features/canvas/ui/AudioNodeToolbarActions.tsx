@@ -2,7 +2,7 @@
 import { memo } from "react";
 
 ;
-import { useAudioNodeToolbarController } from "@/features/canvas/hooks/useAudioNodeToolbarController";
+import { useAudioNodeToolbarController } from "@/modules/creative_canvas/canvasComposition";
 import { AudioNodeToolbarActionsView, type AudioNodeData } from "@/modules/creative_canvas/public";
 
 export interface AudioNodeToolbarActionsProps {

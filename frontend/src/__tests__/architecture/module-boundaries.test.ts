@@ -24170,11 +24170,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useAudioNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useAudioNodeToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useAudioNodeToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useAudioNodeToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -24202,7 +24202,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export function", "projectAudioNodeToolbar("].join(" "),
       ["export function", "resolveAudioNodeDownloadFilename("].join(" "),
-      ["export function", "useAudioNodeToolbarController("].join(" "),
+      ["export function", "createUseAudioNodeToolbarController("].join(" "),
       ["export function", "AudioNodeToolbarActionsView("].join(" "),
       ["export function", "isAudioFormatPassthrough("].join(" "),
     ];
@@ -24233,9 +24233,9 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "sonner",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
+        "../application/audioNodeToolbarModel",
+        "../domain/canvasNodeData",
+        "../domain/imageData",
         "@/lib/browserDownload",
         "@/lib/audioTranscode",
       ]),
@@ -24285,7 +24285,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
       ["modules/creative_canvas/application/audioNodeToolbarModel.ts"],
-      ["features/canvas/hooks/useAudioNodeToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useAudioNodeToolbarController.ts"],
       ["modules/creative_canvas/presentation/AudioNodeToolbarActionsView.tsx"],
       ["lib/audioTranscode.ts"],
     ]);
@@ -24298,6 +24298,12 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(transcodeTestPath, "utf8")).toContain(
       "isAudioFormatPassthrough",
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useAudioNodeToolbarController.ts",
+      "features/canvas/hooks/useAudioNodeToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates ordinary group toolbar commands from its view", () => {

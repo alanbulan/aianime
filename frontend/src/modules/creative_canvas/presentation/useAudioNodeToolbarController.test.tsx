@@ -2,11 +2,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-;
+import type { AudioNodeData } from "../domain/canvasNodeData";
+import {
+  createUseAudioNodeToolbarController,
+  type AudioNodeToolbarStore,
+  type AudioNodeToolbarStoreHook,
+} from "./useAudioNodeToolbarController";
 
-import { useAudioNodeToolbarController } from "./useAudioNodeToolbarController";
-
-import type { AudioNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
   downloadBlob: vi.fn(),
@@ -26,11 +28,8 @@ vi.mock("sonner", () => ({
   toast: { error: (...args: unknown[]) => mocks.toastError(...args) },
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
-  useCanvasStore: (
-    selector: (state: Record<string, unknown>) => unknown,
-  ) => selector({ updateNodeData: mocks.updateNodeData }),
+vi.mock("../domain/imageData", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../domain/imageData")>()),
   resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
 }));
 
@@ -43,11 +42,16 @@ vi.mock("@/lib/audioTranscode", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/audioTranscode")>();
   return {
     ...actual,
-  useCanvasStore: (
-    selector: (state: Record<string, unknown>) => unknown,
-  ) => selector({ updateNodeData: mocks.updateNodeData }),
     transcodeAudio: (...args: unknown[]) => mocks.transcode(...args),
   };
+});
+
+const useStore = ((
+  selector: (state: AudioNodeToolbarStore) => unknown,
+) => selector({ updateNodeData: mocks.updateNodeData })) as unknown as AudioNodeToolbarStoreHook;
+
+const useAudioNodeToolbarController = createUseAudioNodeToolbarController({
+  useStore,
 });
 
 function data(patch: Partial<AudioNodeData> = {}): AudioNodeData {
