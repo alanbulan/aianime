@@ -1869,6 +1869,13 @@ export type {
   CanvasToolAssetUploadResult,
 } from "@/modules/creative_canvas/application/uploadToolOutput";
 export {
+  uploadCanvasAsset,
+} from "@/modules/creative_canvas/application/uploadCanvasAsset";
+export type {
+  UploadCanvasAssetOptions,
+  UploadCanvasAssetParams,
+} from "@/modules/creative_canvas/application/uploadCanvasAsset";
+export {
   inputAcceptsNode,
   isSkillReadyToSubmit,
   resolveInputsForSkill,

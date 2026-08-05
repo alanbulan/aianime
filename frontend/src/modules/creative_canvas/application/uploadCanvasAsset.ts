@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type {
-  CanvasAssetGateway,
-  CanvasAssetUploadResult,
-} from "./ports";
+  CanvasToolAssetGateway,
+  CanvasToolAssetUploadResult,
+} from "./uploadToolOutput";
 
 export interface UploadCanvasAssetOptions {
   readonly disableTimeout?: boolean;
@@ -17,8 +17,8 @@ export interface UploadCanvasAssetParams {
 
 export async function uploadCanvasAsset(
   params: UploadCanvasAssetParams,
-  assetGateway: CanvasAssetGateway,
-): Promise<CanvasAssetUploadResult> {
+  assetGateway: CanvasToolAssetGateway,
+): Promise<CanvasToolAssetUploadResult> {
   return await assetGateway.upload(
     params.projectId,
     params.file,

@@ -93,10 +93,8 @@ import {
 } from './application/skillExecution';
 import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
-  type UploadCanvasAssetOptions,
-} from './application/uploadCanvasAsset';
-import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
+  type UploadCanvasAssetOptions,
 } from '@/modules/creative_canvas/public';
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';

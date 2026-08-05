@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasAssetGateway } from "./ports";
+import type { CanvasToolAssetGateway } from "./uploadToolOutput";
 import { uploadCanvasAsset } from "./uploadCanvasAsset";
 
 describe("uploadCanvasAsset", () => {
   it("uploads an asset and returns its stable URL", async () => {
-    const gateway: CanvasAssetGateway = {
+    const gateway: CanvasToolAssetGateway = {
       upload: vi.fn().mockResolvedValue({
         url: "/static/upload.png",
         filename: "upload.png",
@@ -38,7 +38,7 @@ describe("uploadCanvasAsset", () => {
   });
 
   it("preserves the disabled-timeout policy used for large assets", async () => {
-    const gateway: CanvasAssetGateway = {
+    const gateway: CanvasToolAssetGateway = {
       upload: vi.fn().mockResolvedValue({
         url: "/static/upload.mp4",
         filename: "upload.mp4",

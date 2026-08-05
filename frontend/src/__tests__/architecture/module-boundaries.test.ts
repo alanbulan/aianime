@@ -31428,7 +31428,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps canvas asset uploads behind one application use case", () => {
     const applicationPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/uploadCanvasAsset.ts",
+      "modules/creative_canvas/application/uploadCanvasAsset.ts",
     );
     const directorCapturePath = resolve(
       SRC_ROOT,
@@ -31490,12 +31490,12 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
+    expect(importSpecifiers(applicationPath)).toEqual(["./uploadToolOutput"]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/stores/");
     expect(implementationOwners).toEqual([
-      "features/canvas/application/uploadCanvasAsset.ts",
+      "modules/creative_canvas/application/uploadCanvasAsset.ts",
     ]);
     expect(adapterSource).toContain("uploadFreezoneAsset(");
     expect(adapterSource).toContain("platformCanvasAssetGateway");
