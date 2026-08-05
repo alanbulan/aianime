@@ -18,7 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import { collectBatchDeletableIds, DEFAULT_CANVAS_NODE_WIDTH, ZoomScaledToolbar, computeAutoLayout, type CanvasNode } from '@/modules/creative_canvas/public';
 
@@ -33,6 +33,7 @@ const STORYBOARD_MAX_NODES = 25;
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 // Gap (in flow units) kept between nodes when arranging.
 const ARRANGE_GAP = 32;
 // Fallback height when a node has not been measured yet.

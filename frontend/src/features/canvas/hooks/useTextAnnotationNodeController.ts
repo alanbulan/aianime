@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   awaitCanvasGenerationTaskCompletion,
   useIsBoxSelecting,
@@ -39,6 +39,7 @@ import {
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const SPAWN_UPLOAD_WIDTH = 320;
 const EDIT_VIEW_ZOOM = 1.4;
 

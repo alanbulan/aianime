@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { describeAudioVoiceRef, deriveAudioText, filterAudioUpstreamTextContents, isAudioSubmitDisabled, musicBillingSecondsFromMs, resolveAudioMusicSettings, resolveAudioVoiceSettings, translateCanvasText, type VoicePickResult, type AudioNodeData } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   useDetachUpstream,
   useUpstreamContents,
@@ -15,6 +15,7 @@ import {
   audioModelOptionsForMode,
 } from '@/modules/model_usage/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface AudioOperationsPanelControllerOptions {
   projectId: string;
   canvasId: string;

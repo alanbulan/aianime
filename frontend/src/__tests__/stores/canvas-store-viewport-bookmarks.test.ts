@@ -1,12 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 import {
   BOOKMARK_SLOT_COUNT,
   createEmptyBookmarks,
 } from "@/modules/creative_canvas/public";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 describe("canvasStore viewport bookmarks", () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData([], []);

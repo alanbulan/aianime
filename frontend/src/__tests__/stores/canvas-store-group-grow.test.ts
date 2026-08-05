@@ -1,8 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 ;
 
 /**

@@ -26,7 +26,8 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mocks.t }),
 }));
 
-vi.mock("@/features/canvas/canvasStore", () => ({
+vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   useCanvasStore: (
     selector: (state: Record<string, unknown>) => unknown,
   ) =>
@@ -38,10 +39,6 @@ vi.mock("@/features/canvas/canvasStore", () => ({
       setSelectedNode: mocks.setSelectedNode,
       updateNodeData: mocks.updateNodeData,
     }),
-}));
-
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
   analyzeCanvasVideoStory: (...args: unknown[]) => mocks.analyze(...args),
   canvasEventBus: { publish: (...args: unknown[]) => mocks.publish(...args) },
   resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),

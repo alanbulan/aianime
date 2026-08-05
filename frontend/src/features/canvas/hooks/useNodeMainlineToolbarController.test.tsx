@@ -17,6 +17,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+  useCanvasStore: (() => {
+    const state = {
+      addNode: mocks.addNode,
+      requestFocusNode: mocks.requestFocusNode,
+      setSelectedNode: mocks.setSelectedNode,
+    };
+    return Object.assign(
+      (selector: (value: typeof state) => unknown) => selector(state),
+      { getState: () => ({ nodes: mocks.nodes }) },
+    );
+  })(),
   openPresetProjectionInMyCanvas: (
     projectId: string,
     input: {
@@ -27,19 +38,6 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
     },
   ) => mocks.openWorkbench(projectId, input),
 }));
-
-vi.mock("@/features/canvas/canvasStore", () => {
-  const state = {
-    addNode: mocks.addNode,
-    requestFocusNode: mocks.requestFocusNode,
-    setSelectedNode: mocks.setSelectedNode,
-  };
-  const useCanvasStore = Object.assign(
-    (selector: (value: typeof state) => unknown) => selector(state),
-    { getState: () => ({ nodes: mocks.nodes }) },
-  );
-  return { useCanvasStore };
-});
 
 function node(
   type: CanvasNodeType,

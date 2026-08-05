@@ -31,24 +31,6 @@ vi.mock('@xyflow/react', () => ({
   Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const state = () => ({
-    nodes: mocks.nodes,
-    edges: mocks.edges,
-    selectedNodeId: mocks.selectedNodeId,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    addNode: mocks.addNode,
-    addEdge: mocks.addEdge,
-    autoGroupSpawn: mocks.autoGroupSpawn,
-  });
-  const useCanvasStore = Object.assign(
-    (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-    { getState: state },
-  );
-  return { useCanvasStore };
-});
 
 vi.mock('@/features/canvas/composition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,
@@ -67,6 +49,25 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
   >();
   return {
     ...actual,
+    useCanvasStore: (() => {
+  const state = () => ({
+    nodes: mocks.nodes,
+    edges: mocks.edges,
+    selectedNodeId: mocks.selectedNodeId,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    addNode: mocks.addNode,
+    addEdge: mocks.addEdge,
+    autoGroupSpawn: mocks.autoGroupSpawn,
+  });
+  const useCanvasStore = Object.assign(
+    (selector: (value: ReturnType<typeof state>) => unknown) =>
+      selector(state()),
+    { getState: state },
+  );
+
+  return useCanvasStore;
+})(),
     useNodeGenerationHistory: () => ({
       records: mocks.historyRecords,
       isLoading: false,

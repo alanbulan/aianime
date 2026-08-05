@@ -4,11 +4,12 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position, useStore } from '@xyflow
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 
 import { getDownstreamSpawnTypes, nodeHasSourceHandle, nodeHasTargetHandle, type CanvasNodeType, isScriptNode, isVideoNode } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 type SpawnDirection = 'right' | 'left';
 
 interface PlusButtonProps {

@@ -16,11 +16,12 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS, DEFAULT_CANVAS_NODE_WIDTH, DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, CANVAS_OUTPAINT_IMAGE_SIZES, CANVAS_OUTPAINT_NUM_IMAGES, DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO, DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE, DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_DISABLED_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ProviderModelPicker, calculateCanvasOutpaintFrame, generateCanvasOutpaint, generationTaskDescriptor, inheritMainlineFields, useCanvasImageModels, type CanvasOutpaintAspectRatio, type CanvasOutpaintImageSize, type CanvasOutpaintNumImages, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
 

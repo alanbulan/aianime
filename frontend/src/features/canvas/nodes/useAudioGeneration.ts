@@ -3,9 +3,10 @@ import { useCallback, useMemo } from 'react';
 
 ;
 import { useUpstreamContents } from '@/features/canvas/composition';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { buildCanvasAudioPrompt, generateCanvasAudio, generationTaskDescriptor, joinUpstreamText, useNodeGenerationTaskState, type AudioNodeData } from '@/modules/creative_canvas/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface AudioGenerationOptions {
   projectId: string;
   nodeId: string;

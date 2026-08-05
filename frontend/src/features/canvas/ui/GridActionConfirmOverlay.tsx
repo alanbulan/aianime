@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS, NODE_TOOLBAR_CLASS, DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, generationTaskDescriptor, generateCanvasGridAction, useCanvasImageModels, type GridActionKey, type GridActionRequest, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   const normalized = String(apiModel ?? '').trim().toLowerCase();
   return (

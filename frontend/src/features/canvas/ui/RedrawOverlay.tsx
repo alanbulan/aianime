@@ -22,12 +22,13 @@ import {
 
 ;
 import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS, NODE_CREDIT_PILL_FLAT_CLASS, DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, CANVAS_REDRAW_ASPECT_RATIOS, CANVAS_REDRAW_IMAGE_SIZES, CANVAS_REDRAW_NUM_IMAGES, DEFAULT_CANVAS_REDRAW_ASPECT_RATIO, DEFAULT_CANVAS_REDRAW_IMAGE_SIZE, DEFAULT_CANVAS_REDRAW_NUM_IMAGES, ProviderModelPicker, generationTaskDescriptor, generateCanvasRedraw, inheritMainlineFields, useCanvasImageModels, type CanvasRedrawAspectRatio, type CanvasRedrawImageSize, type CanvasRedrawNumImages, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 interface RedrawOverlayProps {
   projectId: string;
   node: CanvasNode;

@@ -6,10 +6,11 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { CANVAS_NODE_TOOLBAR_CARD_CLASS, CANVAS_UPSCALE_IMAGE_SIZES, CANVAS_UPSCALE_SCALE_FACTORS, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ProviderModelPicker, ZoomScaledToolbar, generateCanvasUpscale, generationTaskDescriptor, resolveCanvasUpscaleImageSize, resolveCanvasUpscaleScaleFactor, useCanvasImageModels, type CanvasUpscaleImageSize, type CanvasUpscaleScaleFactor, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;
   const normalized = apiModel.toLowerCase();

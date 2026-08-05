@@ -8,6 +8,25 @@ import type { StoryboardFrameItem, CanvasNode, StoryboardSplitNodeData } from '@
 import { useStoryboardNodeController } from './useStoryboardNodeController';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
+    const state = () => ({
+      setSelectedNode: mocks.setSelectedNode,
+      reorderStoryboardFrame: mocks.reorderStoryboardFrame,
+      addDerivedExportNode: mocks.addDerivedExportNode,
+      addEdge: mocks.addEdge,
+      updateStoryboardFrame: mocks.updateStoryboardFrame,
+      updateNodeData: mocks.updateNodeData,
+    });
+    const useCanvasStore = Object.assign(
+      (selector: (value: ReturnType<typeof state>) => unknown) =>
+        selector(state()),
+      { getState: state },
+    );
+    return useCanvasStore;
+  })(),
+}));
 const mocks = vi.hoisted(() => ({
   upstreamNodes: [] as CanvasNode[],
   zoom: 1,
@@ -32,20 +51,6 @@ vi.mock('@xyflow/react', () => ({
   NodeToolbar: () => null,
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const state = () => ({
-    setSelectedNode: mocks.setSelectedNode,
-    reorderStoryboardFrame: mocks.reorderStoryboardFrame,
-    addDerivedExportNode: mocks.addDerivedExportNode,
-    addEdge: mocks.addEdge,
-    updateStoryboardFrame: mocks.updateStoryboardFrame,
-    updateNodeData: mocks.updateNodeData,
-  });
-  return {
-    useCanvasStore: (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-  };
-});
 
 vi.mock('@/features/canvas/composition', () => ({
   prepareNodeImage: (...args: unknown[]) => mocks.prepareNodeImage(...args),

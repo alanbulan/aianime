@@ -8,6 +8,28 @@ import type { ComposeTimelineState, CanvasNode, VideoComposeNodeData } from '@/m
 import { useVideoComposeNodeController } from './useVideoComposeNodeController';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
+  const useCanvasStore = Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) => selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+    }),
+    {
+      getState: () => ({
+        findNodePosition: mocks.findNodePosition,
+        addNode: mocks.addNode,
+        addEdge: mocks.addEdge,
+        setSelectedNode: mocks.setResultSelectedNode,
+        requestFocusNode: mocks.requestFocusNode,
+      }),
+    },
+  );
+  
+  return useCanvasStore;
+})(),
+}));
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -31,24 +53,6 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const useCanvasStore = Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) => selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-    }),
-    {
-      getState: () => ({
-        findNodePosition: mocks.findNodePosition,
-        addNode: mocks.addNode,
-        addEdge: mocks.addEdge,
-        setSelectedNode: mocks.setResultSelectedNode,
-        requestFocusNode: mocks.requestFocusNode,
-      }),
-    },
-  );
-  return { useCanvasStore };
-});
 
 vi.mock('@/features/canvas/composition', () => ({
   useUpstreamNodes: () => mocks.upstreamNodes,

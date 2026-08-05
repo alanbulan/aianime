@@ -45,19 +45,6 @@ vi.mock('zustand/react/shallow', () => ({
   useShallow: (selector: unknown) => selector,
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const state = () => ({
-    edges: mocks.edges,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    convertNodeType: mocks.convertNodeType,
-    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
-  });
-  return {
-    useCanvasStore: (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-  };
-});
 
 vi.mock('@/stores/settingsStore', () => ({
   useSettingsStore: (
@@ -69,11 +56,24 @@ vi.mock('@/stores/settingsStore', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', async () => {
+  const state = () => ({
+    edges: mocks.edges,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    convertNodeType: mocks.convertNodeType,
+    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
+  });
+  const useCanvasStore = Object.assign(
+    (selector: (value: ReturnType<typeof state>) => unknown) =>
+      selector(state()),
+    { getState: state },
+  );
   const actual = await vi.importActual<typeof import('@/modules/creative_canvas/public')>(
     '@/modules/creative_canvas/public',
   );
   return {
     ...actual,
+    useCanvasStore,
     canvasEventBus: {
       subscribe: (topic: string, subscriber: (payload: unknown) => void) => {
         const subscribers = mocks.subscribers.get(topic) ?? new Set();

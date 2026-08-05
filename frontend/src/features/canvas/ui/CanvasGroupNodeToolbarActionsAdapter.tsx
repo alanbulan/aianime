@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 import {
   GroupNodeToolbarActionsView,
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
@@ -11,6 +11,7 @@ import {
   useGroupNodeToolbarController,
 } from "@/modules/creative_canvas/public";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   menuItem: NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,

@@ -9,7 +9,7 @@ import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { regenerateExportImageNode } from '@/features/canvas/composition';
 ;
 import { resolveNodeDisplayName, type CanvasNodeType, type ExportImageNodeData, type ImageEditNodeData } from '@/modules/creative_canvas/public';
@@ -33,6 +33,7 @@ import {
 import { withImageCacheBust } from '@/shared/media/image-cache';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface ImageNodeControllerOptions {
   projectId: string;
   canvasId: string;

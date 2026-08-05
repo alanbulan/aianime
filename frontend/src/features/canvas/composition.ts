@@ -71,7 +71,7 @@ import {
   type SelectedBackgroundGraphGateway,
   type CanvasNodeData,
 } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from './canvasStore';
+
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
@@ -99,9 +99,10 @@ import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
-import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
+import { zustandCanvasGraphGateway } from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
 };

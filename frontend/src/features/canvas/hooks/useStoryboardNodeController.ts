@@ -9,7 +9,7 @@ import {
 import { useStore, useUpdateNodeInternals } from '@xyflow/react';
 
 import { DEFAULT_ASPECT_RATIO, resolveImageDisplayUrl, resolveStoryboardIncomingImages, resolveStoryboardNodeProjection, shouldUseOriginalImageByZoom, type StoryboardIncomingImage, type StoryboardExportOptions, type StoryboardFrameItem, type StoryboardSplitNodeData } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import {
   EXPORT_RESULT_DISPLAY_NAME,
@@ -24,6 +24,7 @@ import {
 } from '@/features/canvas/composition';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface StoryboardPickerState {
   frameId: string;
   x: number;

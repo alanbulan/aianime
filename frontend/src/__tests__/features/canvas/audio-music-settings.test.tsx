@@ -6,10 +6,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 ;
 ;
 import { AudioOperationsPanel } from "@/features/canvas/nodes/AudioOperationsPanel";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 import { queryKeys } from "@/lib/query-keys";
 
 import { CANVAS_NODE_TYPES, type AudioNodeData } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 function seedAudioCatalog(queryClient: QueryClient) {
   queryClient.setQueryData(queryKeys.commercialModels("AUDIO"), {
     catalogVersion: "test",

@@ -24,11 +24,6 @@ const mocks = vi.hoisted(() => ({
   translate: vi.fn(),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: (
-    selector: (state: { updateNodeData: typeof mocks.updateNodeData }) => unknown,
-  ) => selector({ updateNodeData: mocks.updateNodeData }),
-}));
 
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
   useAudioGeneration: (...args: unknown[]) =>
@@ -46,6 +41,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => {
   >();
   return {
     ...actual,
+    useCanvasStore: (
+      selector: (state: { updateNodeData: typeof mocks.updateNodeData }) => unknown,
+    ) => selector({ updateNodeData: mocks.updateNodeData }),
     translateCanvasText: (...args: unknown[]) => mocks.translate(...args),
   };
 });

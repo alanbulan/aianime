@@ -3,10 +3,11 @@ import { memo, useCallback } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 
 ;
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { DEFAULT_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, LightEditorPanel, NODE_TOOLBAR_CLASS, ZoomScaledToolbar, generationTaskDescriptor, generateCanvasRelight, inheritMainlineFields, type LightEditorSubmitPayload, type LightMainLightDescriptor, type LightSmartModeDescriptor, type CanvasNode } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface LightEditorRequestPayload {
   sourceNodeId: string;
   imageSource: string;

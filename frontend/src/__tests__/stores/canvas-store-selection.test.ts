@@ -2,8 +2,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { NODE_TOOL_TYPES } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 
+
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 describe('canvasStore selection state', () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData([], []);

@@ -2,10 +2,11 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 
 import { deriveNodeDropInfo, projectNodeManagementToolbar, publishCanvasCommitRequested, publishCanvasProjectionRemovalRequested, publishCanvasProjectionSyncRequested, useCanvasProjectionStatus, type CanvasNode, isAudioNode, isImageGenNode, isProtectedProjectionGroupNode, isVideoNode } from "@/modules/creative_canvas/public";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface NodeManagementToolbarControllerOptions {
   node: CanvasNode;
 }

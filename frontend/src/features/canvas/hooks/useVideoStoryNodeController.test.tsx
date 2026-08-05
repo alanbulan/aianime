@@ -7,6 +7,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useVideoStoryNodeController } from './useVideoStoryNodeController';
 
 import type { VideoStoryNodeData } from "@/modules/creative_canvas/public";
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) => selector({
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+  }),
+}));
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -18,12 +25,6 @@ vi.mock('@xyflow/react', () => ({
   NodeToolbar: () => null,
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) => selector({
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-  }),
-}));
 
 function data(patch: Partial<VideoStoryNodeData> = {}): VideoStoryNodeData {
   return {

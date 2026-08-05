@@ -47,7 +47,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
+
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
   const state = () => ({
     nodes: mocks.nodes,
     edges: mocks.edges,
@@ -65,11 +68,9 @@ vi.mock('@/features/canvas/canvasStore', () => {
       selector(state()),
     { getState: state },
   );
-  return { useCanvasStore };
-});
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  
+  return useCanvasStore;
+})(),
   DEFAULT_SHARED_MODEL_ID: '',
   DEFAULT_VIDEO_MODEL_ID: '',
   generationTaskDescriptor: (task: { task_key: string }) => ({

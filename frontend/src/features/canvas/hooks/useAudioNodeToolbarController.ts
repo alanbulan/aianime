@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { projectAudioNodeToolbar, resolveAudioNodeDownloadFilename, type AudioNodeToolbarFormat, resolveImageDisplayUrl, type AudioNodeData } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 ;
 import {
   downloadBlobAsFile,
@@ -18,6 +18,7 @@ import {
   transcodeAudio,
 } from "@/lib/audioTranscode";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface AudioNodeToolbarControllerOptions {
   nodeId: string;
   data: AudioNodeData;

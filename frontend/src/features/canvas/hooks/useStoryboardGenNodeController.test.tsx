@@ -73,19 +73,6 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const state = () => ({
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    addNode: mocks.addNode,
-    addEdge: mocks.addEdge,
-    findNodePosition: mocks.findNodePosition,
-  });
-  return {
-    useCanvasStore: (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-  };
-});
 
 vi.mock('@/stores/settingsStore', () => ({
   useSettingsStore: (
@@ -95,6 +82,21 @@ vi.mock('@/stores/settingsStore', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
+    const state = () => ({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      addNode: mocks.addNode,
+      addEdge: mocks.addEdge,
+      findNodePosition: mocks.findNodePosition,
+    });
+    const useCanvasStore = Object.assign(
+      (selector: (value: ReturnType<typeof state>) => unknown) =>
+        selector(state()),
+      { getState: state },
+    );
+    return useCanvasStore;
+  })(),
   STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
   buildGenerationErrorReport: () => '错误报告',
   createReferenceImagePlaceholders: (count: number) =>

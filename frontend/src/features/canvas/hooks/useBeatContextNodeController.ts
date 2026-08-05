@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { addBeatContextSelection, areBeatContextListsEqual, BEAT_CONTEXT_NO_CHARACTER_MARKER, BEAT_CONTEXT_NO_PROP_MARKER, type BeatContextGraphEdge, type BeatContextGraphNode, buildBeatUpdatePayloadFromNodeData, buildLocalBeatContextPatch, buildStandaloneBeatContextPatch, coerceBeatContextStringList, detectBeatContextMention, filterBeatContextMentionCandidates, isStandaloneBeatContextData, mergeRestoredBeatContextCanvas, projectBeatContextMentionCandidates, resolveBeatContextNodeSize, resolveBeatContextSnapshot, resolveBeatContextTitle, resolveBeatContextWorkbenchTarget, toggleBeatContextSelection, type BeatContextMentionCandidate, type BeatContextMentionContext, type StandaloneBeatContextPatch, type BeatContextNodeData, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import {
   applyRemoteFreezoneCanvas,
@@ -37,6 +37,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { sceneNameToRef, sceneRefToName } from '@/lib/scene-ref';
 import { timeOfDayOptions } from '@/lib/time-of-day';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface BeatContextNodeControllerOptions {
   id: string;
   data: BeatContextNodeData;

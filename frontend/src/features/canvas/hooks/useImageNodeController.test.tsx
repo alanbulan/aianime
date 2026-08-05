@@ -42,15 +42,6 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      updateNodeSize: mocks.updateNodeSize,
-      edges: mocks.edges,
-    }),
-}));
 
 vi.mock('@/shared/media/image-cache', () => ({
   withImageCacheBust: (
@@ -66,6 +57,13 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      updateNodeSize: mocks.updateNodeSize,
+      edges: mocks.edges,
+    }),
   canRegenerateExportImageNode: () => mocks.canRetry,
   collectCandidateBindingsForNode: (edges: unknown, nodeId: string) =>
     mocks.collectCandidateBindingsForNode(edges, nodeId),

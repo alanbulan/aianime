@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 ;
 import { GroupNodeView, NodeResizeHandle, canvasNodeFrameClass, computeSnapAlign, getStoryboardCellPreview, resolveNodeDisplayName, resolveCanvasNodeSourceImageUrl, useGroupNodeController, useSnapAlignStore, type GroupNodeControllerPorts, type GroupNodeViewBindings, type StoryboardCellPreviewPorts, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
@@ -16,6 +16,7 @@ import {
 } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
   types: {
     video: [

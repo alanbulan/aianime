@@ -23,12 +23,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => ({
-  useCanvasStore: (selector: (state: { nodes: CanvasNode[] }) => unknown) =>
-    selector({ nodes: mocks.nodes }),
-}));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasStore: (selector: (state: { nodes: CanvasNode[] }) => unknown) =>
+    selector({ nodes: mocks.nodes }),
   CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   extractCanvasAssets: (...args: unknown[]) => {
     mocks.extractLive(...args);

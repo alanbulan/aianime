@@ -1028,6 +1028,12 @@ export {
   canvasNodeFactory,
   rememberLastVideoModel,
 } from "@/modules/creative_canvas/canvasNodeFactoryComposition";
+export {
+  useCanvasStore,
+} from "@/modules/creative_canvas/canvasStoreComposition";
+export type {
+  CanvasState,
+} from "@/modules/creative_canvas/canvasStoreComposition";
 export type {
   CanvasGraphGateway,
   NodeFactory,

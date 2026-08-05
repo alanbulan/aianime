@@ -4,10 +4,11 @@ import { NodeToolbar as ReactFlowNodeToolbar } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import { NODE_TOOLBAR_ALIGN, NODE_TOOLBAR_CLASS, NODE_TOOLBAR_OFFSET, NODE_TOOLBAR_POSITION, StoryboardGroupToolbarView, ZoomScaledToolbar, useStoryboardGroupToolbarController, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const toolbarStyles = {
   panel:
     'flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4',

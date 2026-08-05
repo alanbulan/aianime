@@ -2,7 +2,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useCanvasStore } from "./canvasStore";
+
 import { useCanvasGenerationRecoveryController } from "./composition";
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import type {
@@ -10,6 +10,7 @@ import type {
   CanvasNodeType,
 } from "@/modules/creative_canvas/public";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const generationMocks = vi.hoisted(() => ({
   pollExportImageGeneration: vi.fn(),
   resumeNodeGeneration: vi.fn(),

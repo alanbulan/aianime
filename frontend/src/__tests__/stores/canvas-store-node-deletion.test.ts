@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 ;
 import { NODE_TOOL_TYPES, type CanvasEdge, type CanvasNode } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 describe("canvasStore node deletion", () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData([], []);

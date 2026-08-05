@@ -2,10 +2,11 @@
 import { useCallback } from 'react';
 
 ;
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import { getNodeSize, useCanvasMinimapVisibility, useCanvasLifecycle, useCanvasAutoLayoutController, useCanvasNodeFocusController, useCanvasSnapAlignment, useCanvasViewportRuntimeController, useSnapAlignStore, useTrackpadPanStore, type CanvasAutoLayoutController, type CanvasAutoLayoutControllerOptions, type CanvasAutoLayoutViewportOptions, type CanvasLifecycleOptions, type CanvasMinimapVisibilityController, type CanvasNodeFocusController, type CanvasNodeFocusControllerOptions, type CanvasNodeFocusRuntimePort, type CanvasSnapAlignmentController, type CanvasSnapAlignmentPort, type CanvasViewportBookmarkStorePort, type CanvasViewportPort, type CanvasViewportRuntimeController, type CanvasViewportRuntimeControllerOptions, type CanvasEdge, type CanvasNode } from '@/modules/creative_canvas/public';
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   isExcludedNode: (node) => node.type === CANVAS_NODE_TYPES.group,

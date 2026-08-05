@@ -11,7 +11,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import { aspectRatioFromImageDimensions, buildImageGenerationSuccessPatch, collectCandidateBindingsForNode, filterCanvasImageModels, generationTaskDescriptor, hasEffectiveImageGenPrompt, hasImageGenCameraSelection, imageGenAlbumUrls, type ImageGenCount, type ImageGenCameraSelectionData, type ImageQuality, IMAGE_GEN_DEFAULT_QUALITY, IMAGE_GEN_NODE_DEFAULT_HEIGHT, IMAGE_GEN_NODE_DEFAULT_WIDTH, IMAGE_GEN_NODE_MIN_HEIGHT, IMAGE_GEN_NODE_MIN_WIDTH, IMAGE_GEN_OPERATIONS_PANEL_HEIGHT, IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH, isImage2Model, joinUpstreamText, extractRequestId, generateCanvasImage, getFreezoneCanvasMetadata, historyRecordOutputUrl, isSystemManagedNodeData, isStaleGenerationTask, mainlineNodeVisualState, nodeMainlineFlags, publishCanvasAssetsUpdated, publishCanvasCommitRequested, resolveMinEdgeFittedSize, resolveImageGenEffectivePrompt, resolveImageGenModel, resolveImageGenNaturalSize, resolveImageGenNodeDimensions, resolveImageGenPreviewUrl, resolveImageGenReferencePreviewPosition, snapImageGenAspectRatio, shouldForceNaturalImageSize, shouldWriteGenerationError, translateCanvasText, describeCameraSelection, describeStyleSelection, type ImageSize, useCanvasCameraOptions, useCanvasImageModels, useNodeGenerationHistory, useNodeGenerationTaskState, useCanvasStyleTemplates, canvasNodeFrameClass, contextPromptPaletteInsertionText, orderedReferenceUrlsWithOwnFirst, type CanvasAssetLibrarySelection, type ContextPromptPaletteEntry, type CanvasGenerationHistoryRecord, type CanvasImageMode, type MentionCandidate, type PromptMentionEditorHandle, resolveImageDisplayUrl, resolveNodeDisplayName, setAlbumPendingTotal, useReferenceMentionSync, useAlbumPendingTotal, type ImageGenNodeData } from '@/modules/creative_canvas/public';
 import { withImageCacheBust } from '@/shared/media/image-cache';
@@ -32,6 +32,7 @@ import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface ImageGenNodeControllerOptions {
   id: string;
   data: ImageGenNodeData;

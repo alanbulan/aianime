@@ -1,13 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { useReactFlow } from '@xyflow/react';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   CanvasMinimapBookmarksOverlay,
   captureCurrentViewport,
   jumpToBookmark,
 } from '@/modules/creative_canvas/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface CanvasMinimapBookmarksOverlayAdapterProps {
   onHoverChange?: (hovered: boolean) => void;
 }

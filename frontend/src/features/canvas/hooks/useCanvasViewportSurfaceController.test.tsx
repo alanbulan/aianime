@@ -88,14 +88,12 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   },
   useCanvasSnapAlignment: controllerMocks.useSnapAlignment,
   useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
-  useTrackpadPanStore: (
-    selector: (state: { enabled: boolean }) => unknown,
-  ) => selector(controllerMocks.trackpadState),
-}));
-vi.mock('@/features/canvas/canvasStore', () => ({
   useCanvasStore: {
     getState: () => controllerMocks.canvasState,
   },
+  useTrackpadPanStore: (
+    selector: (state: { enabled: boolean }) => unknown,
+  ) => selector(controllerMocks.trackpadState),
 }));
 vi.mock('@/features/viewer-kit/useViewerImmersiveBody', () => ({
   isImmersiveViewerActive: controllerMocks.isImmersiveViewerActive,

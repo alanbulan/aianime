@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { CANVAS_NODE_OPS_PANEL_CLASS, CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS, CANVAS_VIDEO_UPSCALE_RESOLUTIONS, CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_DISABLED_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ZoomScaledToolbar, generateCanvasVideoUpscale, generationTaskDescriptor, resolveCanvasVideoUpscaleDenoise, resolveCanvasVideoUpscaleResolution, type CanvasVideoUpscaleDenoise, type CanvasVideoUpscaleResolution, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 
+
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 interface VideoUpscalePersistedFields {
   upscaleSourceUrl?: string;
   upscaleResolution?: CanvasVideoUpscaleResolution;

@@ -1,8 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
 
+
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 describe("canvasStore image viewer", () => {
   beforeEach(() => {
     useCanvasStore.getState().closeImageViewer();

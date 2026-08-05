@@ -2,8 +2,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { NodeChange } from "@xyflow/react";
 
-import { useCanvasStore, type CanvasNode } from "@/features/canvas/canvasStore";
+
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
+import type { CanvasNode } from "@/modules/creative_canvas/public";
 ;
 
 describe("canvasStore undo history — 创建节点后一次撤销即可移除", () => {

@@ -4,7 +4,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   uploadCanvasAsset,
   useIsBoxSelecting,
@@ -23,6 +23,7 @@ import {
 } from '@/modules/creative_canvas/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 210;
 const MIN_WIDTH = 360;

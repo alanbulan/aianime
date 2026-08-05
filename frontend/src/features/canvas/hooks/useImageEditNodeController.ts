@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { resolveNodeDisplayName, type ImageSize, type ImageEditNodeData } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
@@ -75,6 +75,7 @@ import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface ImageEditNodeControllerOptions {
   projectId: string;
   canvasId: string;

@@ -27,13 +27,13 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/features/canvas/canvasStore", () => ({
-  useCanvasStore: (
-    selector: (state: Record<string, unknown>) => unknown,
-  ) => selector({ updateNodeData: mocks.updateNodeData }),
 }));
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+  useCanvasStore: (
+    selector: (state: Record<string, unknown>) => unknown,
+  ) => selector({ updateNodeData: mocks.updateNodeData }),
   resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
 }));
 
@@ -46,6 +46,9 @@ vi.mock("@/lib/audioTranscode", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/audioTranscode")>();
   return {
     ...actual,
+  useCanvasStore: (
+    selector: (state: Record<string, unknown>) => unknown,
+  ) => selector({ updateNodeData: mocks.updateNodeData }),
     transcodeAudio: (...args: unknown[]) => mocks.transcode(...args),
   };
 });

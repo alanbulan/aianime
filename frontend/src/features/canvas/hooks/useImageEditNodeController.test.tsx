@@ -97,7 +97,16 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
+
+vi.mock('@/stores/settingsStore', () => ({
+  useSettingsStore: (
+    selector: (value: typeof mocks.settings) => unknown,
+  ) => selector(mocks.settings),
+}));
+
+vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
   const state = () => ({
     nodes: mocks.storeNodes,
     edges: mocks.storeEdges,
@@ -112,17 +121,9 @@ vi.mock('@/features/canvas/canvasStore', () => {
     selector: (value: ReturnType<typeof state>) => unknown,
   ) => selector(state());
   useCanvasStore.getState = state;
-  return { useCanvasStore };
-});
 
-vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: (
-    selector: (value: typeof mocks.settings) => unknown,
-  ) => selector(mocks.settings),
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  return useCanvasStore;
+})(),
   IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
   buildGenerationErrorReport: () => '错误报告',
   collectUpstreamReferenceUrls: () => mocks.upstreamReferenceUrls,

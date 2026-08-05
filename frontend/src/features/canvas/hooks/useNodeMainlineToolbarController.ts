@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo, useState } from "react";
 
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 ;
 import { DEFAULT_CANVAS_NODE_WIDTH, type BeatContextNodeData, type CanvasNode } from "@/modules/creative_canvas/public";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/modules/creative_canvas/public";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface NodeMainlineToolbarControllerOptions {
   projectId: string;
   node: CanvasNode;

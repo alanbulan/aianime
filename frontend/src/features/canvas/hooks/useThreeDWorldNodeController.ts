@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { buildLocalThreeDWorldDirectorManifest, buildThreeDWorldClearScenePatch, buildThreeDWorldSaveScenePatch, directorSourcesForNode, pickThreeDWorldPlyUrl, projectThreeDWorldPanoSources, projectThreeDWorldPreview, projectThreeDWorldReferences, resolveThreeDWorldBeatContext, resolveThreeDWorldImageSourceKind, resolveThreeDWorldNodeSize, resolveThreeDWorldTitle, usableDirectorWorldPreviewUrl, type ThreeDWorldNodeData } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   getCanvasBeatDirectorManifest,
   getCanvasDirectorStagePalette,
@@ -44,6 +44,7 @@ import {
 import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { DirectorStageManifest, DirectorWorldSource, ThreeDDirectorCaptureMeta, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface ThreeDWorldNodeControllerOptions {
   id: string;
   data: ThreeDWorldNodeData;

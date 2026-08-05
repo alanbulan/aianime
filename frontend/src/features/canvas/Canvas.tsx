@@ -9,7 +9,7 @@ import {
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import {
   canvasEventBus,
@@ -39,6 +39,7 @@ import {
   useCanvasViewerSurfaceController,
 } from './composition';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 interface CanvasProps {
   projectId: string;
   canvasId: string;

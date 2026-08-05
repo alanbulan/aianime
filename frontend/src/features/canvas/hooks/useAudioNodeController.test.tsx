@@ -41,17 +41,6 @@ vi.mock('sonner', () => ({
   toast: { error: mocks.toastError },
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const useCanvasStore = Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) => selector({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      nodes: mocks.nodes,
-    }),
-    { getState: () => ({ nodes: mocks.nodes }) },
-  );
-  return { useCanvasStore };
-});
 
 vi.mock('@/features/canvas/nodes/useAudioGeneration', () => ({
   useAudioGeneration: (...args: unknown[]) =>
@@ -65,6 +54,18 @@ vi.mock('@/features/canvas/composition', () => ({
 }));
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  useCanvasStore: (() => {
+  const useCanvasStore = Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) => selector({
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData: mocks.updateNodeData,
+      nodes: mocks.nodes,
+    }),
+    { getState: () => ({ nodes: mocks.nodes }) },
+  );
+
+  return useCanvasStore;
+})(),
   CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   canvasEventBus: {
     subscribe: (type: string, handler: unknown) =>

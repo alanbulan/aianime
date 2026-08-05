@@ -371,7 +371,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "react-i18next",
         "@/features/canvas/Canvas",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/composition",
         "@/modules/creative_canvas/public",
         "@/modules/project_workspace/public",
@@ -1287,7 +1287,7 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "sonner",
         "zustand/react/shallow",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/features/canvas/composition",
         "@/modules/creative_canvas/public",
         "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
@@ -3567,7 +3567,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const directCanvasStoreUsers = sourceFiles(applicationRoot)
       .filter((path) =>
-        importSpecifiers(path).includes("@/features/canvas/canvasStore"),
+        importSpecifiers(path).includes("@/modules/creative_canvas/public"),
       )
       .map(relativeSource)
       .sort();
@@ -3648,7 +3648,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const assetTransferComposition = readFileSync(
@@ -3668,7 +3668,7 @@ describe("frontend architecture boundaries", () => {
     const graphGateway = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
       ),
       "utf8",
     );
@@ -3905,9 +3905,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeFactoryComposition).toContain("new CanvasNodeFactory(");
     expect(nodeFactoryComposition).toContain("uuidGenerator");
     expect(nodeFactoryComposition).toContain("nodeCatalog");
-    expect(canvasStore).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(canvasStore).not.toContain("@/modules/creative_canvas/public");
     expect(canvasStore).not.toContain("@/features/canvas/composition");
     expect(composition).not.toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
@@ -5273,7 +5271,7 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("owns the Canvas Store inside Creative Canvas", () => {
-    const storePath = resolve(SRC_ROOT, "features/canvas/canvasStore.ts");
+    const storePath = resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts");
     const legacyStorePath = resolve(SRC_ROOT, "stores/canvasStore.ts");
     const declaration = "export const useCanvasStore = create<CanvasState>";
     const owners = sourceFiles(SRC_ROOT)
@@ -5290,7 +5288,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(existsSync(storePath)).toBe(true);
     expect(existsSync(legacyStorePath)).toBe(false);
-    expect(owners).toEqual(["features/canvas/canvasStore.ts"]);
+    expect(owners).toEqual(["modules/creative_canvas/canvasStoreComposition.ts"]);
     expect(legacyImports).toEqual([]);
   });
 
@@ -7260,7 +7258,7 @@ describe("frontend architecture boundaries", () => {
       specifier === "react" || specifier.startsWith("../") || specifier.startsWith("./")
     )).toBe(true);
     expect(importSpecifiers(compositionPath)).not.toContain(
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
     );
     expect(compositionSource).toContain("canvasCommitEvents");
     expect(compositionSource).toContain("useCommittedTargetInvalidator");
@@ -7574,7 +7572,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useVideoNodeController.ts",
     );
-    const canvasStorePath = resolve(SRC_ROOT, "features/canvas/canvasStore.ts");
+    const canvasStorePath = resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts");
     const registrySource = readFileSync(registryPath, "utf8");
     const defaultDataSource = readFileSync(defaultDataPath, "utf8");
     const nodeFactorySource = readFileSync(nodeFactoryPath, "utf8");
@@ -7669,15 +7667,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasHistoryNavigation.ts",
       "features/canvas/application/canvasHistoryNavigation.test.ts",
     ].map((path) => resolve(SRC_ROOT, path));
-    const historySlicePath = resolve(
-      SRC_ROOT,
-      "modules/creative_canvas/infrastructure/zustandCanvasHistorySlice.ts",
-    );
     const historyModel = readFileSync(historyPath, "utf8");
     const navigationModel = readFileSync(navigationPath, "utf8");
-    const historySlice = readFileSync(historySlicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasSync = readFileSync(
@@ -7811,16 +7804,9 @@ describe("frontend architecture boundaries", () => {
     const changeIntent = readFileSync(changeIntentPath, "utf8");
     const changeEffects = readFileSync(changeEffectsPath, "utf8");
     const edgeEffects = readFileSync(edgeEffectsPath, "utf8");
-    const graphMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
-      ),
-      "utf8",
-    );
     const historyModel = readFileSync(historyPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -7972,15 +7958,8 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/VideoViewerModal.tsx",
     );
-    const viewportSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
-      ),
-      "utf8",
-    );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStagePath = resolve(
@@ -8087,11 +8066,6 @@ describe("frontend architecture boundaries", () => {
     }
     expect(viewerModel).toContain("export function openCanvasImageViewer(");
     expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
-
-
-    expect(viewportSlice).toContain(
-      "imageViewer: createClosedCanvasImageViewer()",
-    );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasImageViewer",
     );
@@ -8145,14 +8119,7 @@ describe("frontend architecture boundaries", () => {
     );
     const mutationModel = readFileSync(mutationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeDeletionSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasSyncCore = readFileSync(
@@ -8220,14 +8187,7 @@ describe("frontend architecture boundaries", () => {
     );
     const geometryModel = readFileSync(geometryPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const viewportSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -8851,7 +8811,7 @@ describe("frontend architecture boundaries", () => {
     expect(stageView).toContain("CanvasMinimapButton");
     expect(importSpecifiers(adapterPath)).toEqual([
       "@xyflow/react",
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
     ]);
     expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
@@ -11389,7 +11349,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new ResizeObserver(");
     expect(importSpecifiers(viewportControllerPath)).not.toEqual(
       expect.arrayContaining([
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/features/viewer-kit/useViewerImmersiveBody",
       ]),
     );
@@ -12628,7 +12588,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/features/") ||
-        specifier === "@/features/canvas/canvasStore" ||
+        specifier === "@/modules/creative_canvas/public" ||
         specifier === "@/features/canvas/assetDropStore" ||
         specifier === "@/features/freezone/composition" ||
         specifier.startsWith("@/features/freezone/infrastructure/") ||
@@ -12803,7 +12763,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(controllerSource).not.toContain("zustand");
     expect(controllerSource).not.toContain("useAssetDropStore");
-    expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
     expect(controllerSource).not.toContain("@/shared/api/");
     expect(controllerSource).toContain("projectAssetsQuery.refetch()");
@@ -13097,7 +13057,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("deleteFreezoneCanvas(project");
     expect(controllerSource).toContain("writeUrl({");
     expect(controllerSource).not.toContain("zustand");
-    expect(controllerSource).not.toContain("@/features/canvas/canvasStore");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).not.toContain("@/features/freezone/infrastructure/");
     expect(importSpecifiers(tabPath)).toContain(
       "../canvasBrowserComposition",
@@ -13328,7 +13288,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(viewSource).not.toContain("zustand");
     expect(viewSource).not.toContain("useAssetDropStore");
-    expect(viewSource).not.toContain("@/features/canvas/canvasStore");
+    expect(viewSource).not.toContain("@/modules/creative_canvas/public");
     expect(viewSource).not.toContain("@/features/freezone/composition");
     expect(viewSource).not.toContain("@/features/freezone/hooks/");
     expect(viewSource).not.toContain("@/features/freezone/application/");
@@ -13439,7 +13399,7 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/features/");
     expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
     expect(presentationSource).not.toContain("zustand");
-    expect(presentationSource).not.toContain("@/features/canvas/canvasStore");
+    expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
     expect(presentationSource).not.toContain("@/features/canvas/composition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
@@ -13521,7 +13481,7 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
     expect(presentationSource).not.toContain("zustand");
     expect(presentationSource).not.toContain("useAssetDropStore");
-    expect(presentationSource).not.toContain("@/features/canvas/canvasStore");
+    expect(presentationSource).not.toContain("@/modules/creative_canvas/public");
     expect(presentationSource).not.toContain("@/features/canvas/composition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
@@ -13761,7 +13721,7 @@ describe("frontend architecture boundaries", () => {
       "../assetLibraryCanvasInsertionComposition",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(panelPath)).not.toContain(
       "@/features/canvas/composition",
@@ -13905,7 +13865,7 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasHydrateFlights",
     );
     expect(importSpecifiers(compositionPath)).not.toContain(
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
     );
     expect(lifecycleSource).not.toContain("const hydrateFlights");
     expect(lifecycleSource).not.toContain("function acquireHydrateFlight(");
@@ -15090,14 +15050,7 @@ describe("frontend architecture boundaries", () => {
     );
     const positionsModel = readFileSync(positionsPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(positionsPath).filter(
@@ -15133,7 +15086,6 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(positionsModel).toContain(singleDeclaration);
     expect(positionsModel).toContain(batchDeclaration);
-    expect(nodeMutationSlice).not.toContain("@/modules/creative_canvas/public");
 
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasNodePositions",
@@ -15158,14 +15110,7 @@ describe("frontend architecture boundaries", () => {
     );
     const normalizationModel = readFileSync(normalizationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const graphMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(normalizationPath).filter(
@@ -15218,15 +15163,8 @@ describe("frontend architecture boundaries", () => {
     const hydrationModel = readFileSync(hydrationPath, "utf8");
     const normalizationModel = readFileSync(normalizationPath, "utf8");
     const storyboardModel = readFileSync(storyboardModelPath, "utf8");
-    const documentLifecycleSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
-      ),
-      "utf8",
-    );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = [hydrationPath, normalizationPath].flatMap((path) =>
@@ -15310,14 +15248,7 @@ describe("frontend architecture boundaries", () => {
     const storyboardModel = readFileSync(storyboardPath, "utf8");
     const removalModel = readFileSync(removalPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeDeletionSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const groupLifecycleSlice = readFileSync(
@@ -15469,7 +15400,7 @@ describe("frontend architecture boundaries", () => {
     const autoGroupingModel = readFileSync(autoGroupingPath, "utf8");
     const storyboardCreationModel = readFileSync(storyboardCreationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const groupLifecycleSlice = readFileSync(
@@ -15636,7 +15567,7 @@ describe("frontend architecture boundaries", () => {
     const membersModel = readFileSync(membersPath, "utf8");
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const storyboardGroupSlice = readFileSync(
@@ -15754,7 +15685,7 @@ describe("frontend architecture boundaries", () => {
     const membersModel = readFileSync(membersPath, "utf8");
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const storyboardGroupSlice = readFileSync(
@@ -15832,7 +15763,7 @@ describe("frontend architecture boundaries", () => {
     const fitModel = readFileSync(fitPath, "utf8");
     const arrangementModel = readFileSync(arrangementPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const groupLifecycleSlice = readFileSync(
@@ -15929,7 +15860,7 @@ describe("frontend architecture boundaries", () => {
     const nodeModel = readFileSync(modelPath, "utf8");
     const derivedCreationModel = readFileSync(derivedCreationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(modelPath).filter(
@@ -15991,14 +15922,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const framesModel = readFileSync(framesPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(framesPath).filter(
@@ -16039,7 +15963,6 @@ describe("frontend architecture boundaries", () => {
     }
     expect(framesModel).toContain(updateDeclaration);
     expect(framesModel).toContain(reorderDeclaration);
-    expect(nodeMutationSlice).not.toContain("@/modules/creative_canvas/public");
 
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/storyboardFrames",
@@ -16079,16 +16002,9 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionModel = readFileSync(selectionPath, "utf8");
     const viewportModel = readFileSync(viewportPath, "utf8");
-    const viewportSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasViewportSlice.ts",
-      ),
-      "utf8",
-    );
     const historyNavigationModel = readFileSync(historyNavigationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -16195,9 +16111,6 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasSelection",
     );
-    expect(viewportSlice).toContain(
-      "replaceViewportBookmark(current, index, bookmark)",
-    );
     expect(canvasStore).not.toContain("replaceViewportBookmark(");
     expect(lifecycleView).toContain(
       "@/modules/creative_canvas/domain/viewportBookmarks",
@@ -16234,7 +16147,7 @@ describe("frontend architecture boundaries", () => {
       "application/canvasNodeChangeEffects.ts",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasNodesPath = resolve(
@@ -16350,14 +16263,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(creationPath).filter(
@@ -16482,14 +16388,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const derivedNodeCreationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(creationPath).filter(
@@ -16530,7 +16429,7 @@ describe("frontend architecture boundaries", () => {
 
 
     expect(canvasStore).toContain(
-      "@/modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice",
+      "./infrastructure/zustandCanvasDerivedNodeCreationSlice",
     );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasDerivedNodeCreation",
@@ -16551,14 +16450,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const nodeDataModel = readFileSync(nodeDataPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -16616,7 +16508,6 @@ describe("frontend architecture boundaries", () => {
     expect(nodeDataModel).toContain(cloneDeclaration);
     expect(nodeDataModel).toContain("ports.applyMergedNodeData(");
     expect(nodeDataModel).not.toContain("maybeApplyImageAutoResize(");
-    expect(nodeMutationSlice).not.toContain("@/modules/creative_canvas/public");
 
 
     expect(canvasStore).not.toContain(
@@ -16642,14 +16533,7 @@ describe("frontend architecture boundaries", () => {
     );
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(conversionPath).filter(
@@ -16695,14 +16579,7 @@ describe("frontend architecture boundaries", () => {
     );
     const duplicationModel = readFileSync(duplicationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const derivedNodeCreationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(duplicationPath).filter(
@@ -16739,11 +16616,6 @@ describe("frontend architecture boundaries", () => {
     expect(duplicationModel).toContain(singleDeclaration);
     expect(duplicationModel).toContain(batchDeclaration);
     expect(duplicationModel).toContain("nodeFactory: DuplicationNodeFactory");
-
-
-    expect(derivedNodeCreationSlice).toContain(
-      "dependencies.nodeFactory as unknown as",
-    );
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeDuplication",
     );
@@ -16759,14 +16631,7 @@ describe("frontend architecture boundaries", () => {
     );
     const captureModel = readFileSync(capturePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const derivedNodeCreationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(capturePath).filter(
@@ -16827,14 +16692,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeSizeModel = readFileSync(nodeSizePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(nodeSizePath).filter(
@@ -16921,7 +16779,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasView = readFileSync(
@@ -17236,14 +17094,7 @@ describe("frontend architecture boundaries", () => {
     );
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const graphMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(creationPath).filter(
@@ -17580,14 +17431,7 @@ describe("frontend architecture boundaries", () => {
     );
     const deletionModel = readFileSync(deletionPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const graphMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const graphChangeController = readFileSync(
@@ -17652,9 +17496,6 @@ describe("frontend architecture boundaries", () => {
     expect(
       readFileSync(resolve(SRC_ROOT, "modules/creative_canvas/public.ts"), "utf8"),
     ).toContain("deleteCanvasEdge,");
-    expect(graphMutationSlice).toContain(
-      "deleteCanvasEdge } from '../domain/canvasEdgeDeletion'",
-    );
 
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasEdgeDeletion",
@@ -21129,9 +20970,6 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("lucide-react");
     expect(controllerSource).not.toContain("<VoiceSelectionModal");
     expect(importSpecifiers(viewPath)).not.toContain(
-      "@/features/canvas/canvasStore",
-    );
-    expect(importSpecifiers(viewPath)).not.toContain(
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(viewPath)).not.toContain("@/lib/url-params");
@@ -23512,7 +23350,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
@@ -23558,7 +23396,6 @@ describe("frontend architecture boundaries", () => {
     for (const forbiddenParentDependency of [
       "@/features/canvas/application/beatContextNodeModel",
       "@/features/canvas/application/nodeActionBeatContext",
-      "@/features/canvas/canvasStore",
       "@/features/canvas/hooks/useNodeMainlineToolbarController",
       "@/features/freezone/public",
       "@/lib/url-params",
@@ -24042,7 +23879,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
       ]),
     );
@@ -24206,7 +24043,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/lib/browserDownload",
         "@/modules/creative_canvas/public",
@@ -24357,7 +24194,7 @@ describe("frontend architecture boundaries", () => {
         "react-i18next",
         "sonner",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/lib/browserDownload",
         "@/lib/audioTranscode",
@@ -24488,7 +24325,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(componentPath))).toEqual(new Set([
       "react",
       "react-i18next",
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
       "@/modules/creative_canvas/public",
     ]));
     expect(componentSource).toContain("useGroupNodeToolbarController({");
@@ -24612,7 +24449,7 @@ describe("frontend architecture boundaries", () => {
         "@xyflow/react",
         "react-i18next",
         "sonner",
-        "@/features/canvas/canvasStore",
+        "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/public",
       ]),
@@ -26440,7 +26277,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(cardSource).toContain("<audio");
     expect(cardSource).toContain("requestAnimationFrame(tick)");
-    expect(cardSource).not.toContain("@/features/canvas/canvasStore");
+    expect(cardSource).not.toContain("@/modules/creative_canvas/public");
     expect(cardSource).not.toContain("useCanvasGenerationHistory(");
     expect(cardSource).not.toContain("downloadUrlAsFile(");
     expect(cardSource).not.toContain("readUrl(");
@@ -27483,14 +27320,7 @@ describe("frontend architecture boundaries", () => {
     );
     const layeringSource = readFileSync(layeringPath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
-      "utf8",
-    );
-    const nodeMutationSlice = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-      ),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasSource = readFileSync(
@@ -27533,9 +27363,6 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/domain/canvasNodeLayering.ts",
     ]);
     expect(layeringSource).toContain("style: { ...(node.style ?? {}), zIndex }");
-    expect(nodeMutationSlice).toContain(
-      "elevateCanvasNodes(state.nodes, nodeIds, zIndex)",
-    );
     expect(canvasStore).not.toContain("elevateCanvasNodes(");
     expect(altDragController).toContain(
       "elevateNodes(copiedNodeIds, ALT_DRAG_COPY_Z_INDEX)",
@@ -27543,7 +27370,6 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).toContain("state.elevateNodes");
     expect(canvasSource).not.toContain("useCanvasStore.setState");
     expect(canvasSource).not.toContain("const nodeIdSet = new Set(nodeIds)");
-    expect(nodeMutationSlice).not.toContain("@/modules/creative_canvas/public");
 
     expect(importSpecifiers(resolve(
       SRC_ROOT,
@@ -27818,7 +27644,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const implementations = [
@@ -27857,7 +27683,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("currentViewport: { x: 0, y: 0, zoom: 1 }");
     expect(canvasStore).not.toContain("viewportBookmarks: createEmptyBookmarks()");
     expect(canvasStore).not.toContain("imageViewer: createClosedCanvasImageViewer()");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas transient interaction state in one Zustand slice", () => {
@@ -27867,7 +27693,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -27898,7 +27724,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("activeOverlayNodeId: null");
     expect(canvasStore).not.toContain("hoveredNodeId: null");
     expect(canvasStore).not.toContain("pendingFocusNodeId: null");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas history state and commands in one Zustand slice", () => {
@@ -27908,7 +27734,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -27944,7 +27770,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
     expect(canvasStore).not.toContain("history: { past: [], future: [] }");
     expect(canvasStore).not.toContain("navigateCanvasHistory(state");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas graph mutations in one Zustand slice", () => {
@@ -27954,13 +27780,13 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const graphGateway = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
       ),
       "utf8",
     );
@@ -27985,7 +27811,7 @@ describe("frontend architecture boundaries", () => {
       expect(owners).toEqual(
         implementation.startsWith("addEdgeWithData")
           ? [
-              "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+              "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
               "modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
             ]
           : [
@@ -28017,7 +27843,7 @@ describe("frontend architecture boundaries", () => {
     expect(graphGateway).toContain(
       ".addEdgeWithData(source, target, data, options)",
     );
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas document lifecycle in one Zustand slice", () => {
@@ -28027,7 +27853,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28068,7 +27894,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("userEditsSinceHydrate: 0");
     expect(canvasStore).not.toContain("pendingClearIntent: false");
     expect(canvasStore).not.toContain("normalizeCanvasData(");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas node mutations in one Zustand slice", () => {
@@ -28078,13 +27904,13 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const graphGateway = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+        "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
       ),
       "utf8",
     );
@@ -28111,7 +27937,7 @@ describe("frontend architecture boundaries", () => {
       expect(owners).toEqual(
         implementation.startsWith("updateNodeData")
           ? [
-              "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+              "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
               "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
             ]
           : [
@@ -28148,7 +27974,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas derived node creation in one Zustand slice", () => {
@@ -28158,7 +27984,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28202,7 +28028,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas node deletion in one Zustand slice", () => {
@@ -28212,7 +28038,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28247,7 +28073,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("deleteCanvasNodes(");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas group lifecycle in one Zustand slice", () => {
@@ -28257,7 +28083,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28303,7 +28129,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas storyboard group mutations in one Zustand slice", () => {
@@ -28313,7 +28139,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28359,7 +28185,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps Canvas selection state in one Zustand slice", () => {
@@ -28369,7 +28195,7 @@ describe("frontend architecture boundaries", () => {
     );
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/canvasStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasStoreComposition.ts"),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -28401,7 +28227,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("selectedNodeId: null");
     expect(canvasStore).not.toContain("activeToolDialog: null");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
-    expect(sliceSource).not.toContain("@/features/canvas/canvasStore");
+    expect(sliceSource).not.toContain("@/modules/creative_canvas/public");
   });
 
   it("keeps VideoNode subtitle-erase controls in one presentation view", () => {
@@ -29819,7 +29645,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/infrastructure/browserVideoComposeMediaRuntime",
     );
     expect(importSpecifiers(modalPath)).not.toContain(
-      "@/features/canvas/canvasStore",
+      "@/modules/creative_canvas/public",
     );
     expect(sessionControllerSource).toContain(
       "resolveVideoComposeInitialTimeline({",

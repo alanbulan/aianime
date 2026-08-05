@@ -21,13 +21,13 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/features/canvas/canvasStore", () => ({
-  useCanvasStore: (
-    selector: (state: { deleteNode: typeof mocks.deleteNode }) => unknown,
-  ) => selector({ deleteNode: mocks.deleteNode }),
 }));
 
 vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
+  useCanvasStore: (
+    selector: (state: { deleteNode: typeof mocks.deleteNode }) => unknown,
+  ) => selector({ deleteNode: mocks.deleteNode }),
   publishCanvasCommitRequested: mocks.publish,
   publishCanvasProjectionRemovalRequested: mocks.publishProjectionRemoval,
   publishCanvasProjectionSyncRequested: mocks.publishProjectionSync,

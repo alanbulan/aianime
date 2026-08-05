@@ -60,19 +60,6 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const state = () => ({
-    nodes: mocks.storeNodes,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
-  });
-  const useCanvasStore = (
-    selector: (value: ReturnType<typeof state>) => unknown,
-  ) => selector(state());
-  useCanvasStore.getState = state;
-  return { useCanvasStore };
-});
 
 vi.mock('@/features/canvas/composition', () => ({
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
@@ -90,6 +77,20 @@ vi.mock('@/features/canvas/composition', () => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
+  const state = () => ({
+    nodes: mocks.storeNodes,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
+  });
+  const useCanvasStore = (
+    selector: (value: ReturnType<typeof state>) => unknown,
+  ) => selector(state());
+  useCanvasStore.getState = state;
+  
+  return useCanvasStore;
+})(),
   useNodeGenerationHistory: () => ({
     records: mocks.historyRecords,
     isLoading: false,

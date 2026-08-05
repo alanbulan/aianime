@@ -48,29 +48,6 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/features/canvas/canvasStore', () => {
-  const updateNodeData = (id: string, patch: Record<string, unknown>) => {
-    mocks.updateNodeData(id, patch);
-    const node = mocks.nodes.find((item) => item.id === id);
-    if (node) {
-      node.data = { ...node.data, ...patch } as never;
-    }
-  };
-  const state = () => ({
-    nodes: mocks.nodes,
-    edges: mocks.edges,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData,
-    addNode: mocks.addNode,
-    addEdgeWithData: mocks.addEdgeWithData,
-    deleteNode: mocks.deleteNode,
-  });
-  const useCanvasStore = (
-    selector: (value: ReturnType<typeof state>) => unknown,
-  ) => selector(state());
-  useCanvasStore.getState = state;
-  return { useCanvasStore };
-});
 
 vi.mock('@/features/canvas/composition', () => ({
   startCanvasSkillRun: (...args: unknown[]) => mocks.startRun(...args),
@@ -96,6 +73,30 @@ vi.mock('@/modules/task_execution/public', async (importOriginal) => ({
 
 vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+  useCanvasStore: (() => {
+    const updateNodeData = (id: string, patch: Record<string, unknown>) => {
+      mocks.updateNodeData(id, patch);
+      const node = mocks.nodes.find((item) => item.id === id);
+      if (node) {
+        node.data = { ...node.data, ...patch } as never;
+      }
+    };
+    const state = () => ({
+      nodes: mocks.nodes,
+      edges: mocks.edges,
+      setSelectedNode: mocks.setSelectedNode,
+      updateNodeData,
+      addNode: mocks.addNode,
+      addEdgeWithData: mocks.addEdgeWithData,
+      deleteNode: mocks.deleteNode,
+    });
+    const useCanvasStore = (
+      selector: (value: ReturnType<typeof state>) => unknown,
+    ) => selector(state());
+    useCanvasStore.getState = state;
+
+    return useCanvasStore;
+  })(),
   loadCanvasSkillRegistry: vi.fn(),
   publishCanvasCommitRequested: (...args: unknown[]) => mocks.publish(...args),
   useCanvasSkillRegistry: () => ({

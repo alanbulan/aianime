@@ -8,8 +8,9 @@ import {
   getTopLevelCanvasBounds,
   hasVisibleTopLevelCanvasNode,
 } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
 
+
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 /** 「回到节点」时的固定缩放比例（10%）。 */
 const BACK_TO_NODES_ZOOM = 0.1;
 

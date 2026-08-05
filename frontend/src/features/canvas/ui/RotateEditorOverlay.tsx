@@ -13,9 +13,10 @@ import { useTranslation } from 'react-i18next';
 
 ;
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS, DEFAULT_CANVAS_NODE_WIDTH, NODE_TOOLBAR_CLASS, loadImageElement, type CanvasNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 interface RotateEditorOverlayProps {
   projectId: string;
   node: CanvasNode;

@@ -1,56 +1,61 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
-;
-import type { StoryboardFrameItem, CanvasEdge, CanvasNode, CanvasNodeData, CanvasNodeType } from '@/modules/creative_canvas/public';
+import type { StoryboardFrameItem } from './domain/storyboard';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+} from './domain/canvasNodeData';
 import {
   canvasNodeDefaultDataGateway,
   canvasNodeFactory,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFactoryComposition';
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasViewportSlice';
+} from './infrastructure/zustandCanvasViewportSlice';
 import {
   createZustandCanvasTransientInteractionSlice,
   type CanvasTransientInteractionSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasTransientInteractionSlice';
+} from './infrastructure/zustandCanvasTransientInteractionSlice';
 import {
   createZustandCanvasHistorySlice,
   type CanvasHistorySlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasHistorySlice';
+} from './infrastructure/zustandCanvasHistorySlice';
 import {
   createZustandCanvasGraphMutationSlice,
   type CanvasGraphMutationSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasGraphMutationSlice';
+} from './infrastructure/zustandCanvasGraphMutationSlice';
 import {
   createZustandCanvasDocumentLifecycleSlice,
   type CanvasDocumentLifecycleSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasDocumentLifecycleSlice';
+} from './infrastructure/zustandCanvasDocumentLifecycleSlice';
 import {
   createZustandCanvasNodeMutationSlice,
   type CanvasNodeMutationSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice';
+} from './infrastructure/zustandCanvasNodeMutationSlice';
 import {
   createZustandCanvasDerivedNodeCreationSlice,
   type CanvasDerivedNodeCreationSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice';
+} from './infrastructure/zustandCanvasDerivedNodeCreationSlice';
 import {
   createZustandCanvasNodeDeletionSlice,
   type CanvasNodeDeletionSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasNodeDeletionSlice';
+} from './infrastructure/zustandCanvasNodeDeletionSlice';
 import {
   createZustandCanvasGroupLifecycleSlice,
   type CanvasGroupLifecycleSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasGroupLifecycleSlice';
+} from './infrastructure/zustandCanvasGroupLifecycleSlice';
 import {
   createZustandCanvasStoryboardGroupSlice,
   type CanvasStoryboardGroupSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasStoryboardGroupSlice';
+} from './infrastructure/zustandCanvasStoryboardGroupSlice';
 import {
   createZustandCanvasSelectionSlice,
   type CanvasSelectionSlice,
-} from '@/modules/creative_canvas/infrastructure/zustandCanvasSelectionSlice';
+} from './infrastructure/zustandCanvasSelectionSlice';
 
 export type {
   CanvasEdge,
@@ -60,7 +65,7 @@ export type {
   StoryboardFrameItem,
 };
 
-interface CanvasState
+export interface CanvasState
   extends CanvasViewportSlice,
     CanvasTransientInteractionSlice,
     CanvasHistorySlice,

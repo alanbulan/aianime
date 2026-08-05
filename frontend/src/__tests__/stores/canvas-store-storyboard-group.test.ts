@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 
 import { resolveStoryboardCols, isStoryboardGroupNode } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/features/canvas/canvasStore";
+
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 function seedImageNodes(count: number) {
   const nodes = Array.from({ length: count }, (_, index) => ({
     id: `n${index}`,

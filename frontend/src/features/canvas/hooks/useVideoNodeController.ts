@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { composeVideoNodePrompt, countVideoUpstreamMedia, countVideoUpstreamNodeTypes, hasVideoNodeGenerationError, planVideoAssetReferences, planVideoFrameSources, projectVideoReferenceMedia, resolveVideoFrameSeekSeconds, resolveVideoNodeAspectRatio, resolveVideoNodeDimensions, resolveVideoNodeDisplayedRect, resolveVideoNodeModel, resolveVideoNodePosterSource, resolveVideoNodeSource, resolveVideoNodeSubmitAspectRatio, videoNodeAlbumUrls, VIDEO_NODE_DEFAULT_HEIGHT, VIDEO_NODE_DEFAULT_WIDTH, VIDEO_NODE_OPERATIONS_PANEL_HEIGHT, VIDEO_NODE_OPERATIONS_PANEL_OVERHANG, type VideoNodeData, isAudioNode } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   captureVideoFrameBlob,
   ensureWebSafeVideo,
@@ -101,6 +101,7 @@ import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface VideoNodeControllerOptions {
   id: string;
   data: VideoNodeData;

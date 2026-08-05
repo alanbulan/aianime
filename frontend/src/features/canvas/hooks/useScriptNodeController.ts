@@ -25,12 +25,13 @@ import {
   type CanvasGenerationHistoryRecord,
   type CanvasStoryScriptReference,
 } from '@/modules/creative_canvas/public';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useUpstreamNodes } from '@/features/canvas/composition';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const REFERENCE_PREVIEW_WIDTH = 240;
 const REFERENCE_PREVIEW_OFFSET = 10;
 

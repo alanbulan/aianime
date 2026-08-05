@@ -20,7 +20,7 @@ import {
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 ;
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 import {
   isSkillRunFailureStatus,
   isSkillReadyToSubmit,
@@ -50,6 +50,7 @@ import type {
 import { isActive as isActiveTask } from '@/modules/task_execution/public';
 import { useTaskCenterStore } from '@/modules/task_execution/public';
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface SkillNodeControllerOptions {
   id: string;
   data: SkillNodeData;

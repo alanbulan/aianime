@@ -4,12 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useReactFlow } from "@xyflow/react";
 
 import { Canvas } from "@/features/canvas/Canvas";
-import {
-  useCanvasStore,
-  type CanvasEdge,
-  type CanvasNode,
-  type CanvasNodeData,
-} from "@/features/canvas/canvasStore";
+
 import {
   hydrateAssetDragPayload,
   uploadCanvasAsset,
@@ -46,6 +41,8 @@ import { isCeRuntime } from "@/lib/runtime-config";
 import { rememberLastCanvas, writeUrl } from "@/lib/url-params";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 
+import { useCanvasStore } from "@/modules/creative_canvas/public";
+import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/modules/creative_canvas/public";
 interface FreezoneShellProps {
   project: ProjectSummary;
   canvasId: string;

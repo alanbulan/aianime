@@ -589,7 +589,6 @@ describe("freezone viewer contracts", () => {
     const statusLifecycle = read(
       "src/modules/creative_canvas/canvasProjectionStatusLifecycleComposition.ts",
     );
-    const ports = read("src/features/canvas/application/ports.ts");
     const groupNodeController = read(
       "src/modules/creative_canvas/presentation/useGroupNodeController.ts",
     );
@@ -627,8 +626,6 @@ describe("freezone viewer contracts", () => {
     expect(groupNodeView).toContain("projection-stale-frame");
     expect(groupNodeView).toContain("projection-stale-banner");
     expect(groupNodeView).toContain("freezone.projections.staleBadge");
-    expect(ports).not.toContain("'freezone/projection-sync'");
-    expect(ports).not.toContain("'freezone/projection-remove'");
   });
 
   it("uses the backend scene Director World manifest as the single source of truth", () => {

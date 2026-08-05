@@ -2,9 +2,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 ;
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 function node(id: string, type: CanvasNode['type']): CanvasNode {
   return { id, type, position: { x: 0, y: 0 }, data: {} } as CanvasNode;
 }

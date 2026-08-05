@@ -10,7 +10,7 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { CONSTANTS, Viewer } from '@photo-sphere-viewer/core';
 
 import { dataUrlToBlob } from '@/shared/media/data-url';
-import { useCanvasStore } from '@/features/canvas/canvasStore';
+
 ;
 import { PANO_DIRECTION_OFFSETS, PANO_GRID_2X2_FRAMES, PANO_GRID_4X3_FRAMES, buildPanoCorrectionEntry, clampPanoPitch, resolveNodeDisplayName, resolvePanoCorrectionAxis, resolvePanoUpstreamSource, resolvePanoViewerNodeSize, type PanoCaptureFrameSpec, type PanoDirection, type Pano360ViewerNodeData } from '@/modules/creative_canvas/public';
 import {
@@ -36,6 +36,7 @@ import {
 } from '@/features/viewer-kit/public';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/public";
 const {
   ROTATE_UP,
   ROTATE_DOWN,
