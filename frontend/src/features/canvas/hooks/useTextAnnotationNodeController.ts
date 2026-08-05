@@ -8,12 +8,7 @@ import {
   awaitCanvasGenerationTaskCompletion,
   useIsBoxSelecting,
 } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  type TextAnnotationNodeData,
-  type UploadImageNodeData,
-  type VideoNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type TextAnnotationNodeData, type UploadImageNodeData, type VideoNodeData } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import {
   generateCanvasReversePrompt,
@@ -43,6 +38,7 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const SPAWN_UPLOAD_WIDTH = 320;
 const EDIT_VIEW_ZOOM = 1.4;
 

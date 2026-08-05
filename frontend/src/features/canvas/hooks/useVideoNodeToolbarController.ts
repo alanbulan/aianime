@@ -14,12 +14,10 @@ import {
   type VideoSubtitleEraseMode,
   resolveImageDisplayUrl,
 } from "@/modules/creative_canvas/public";
-import {
-  CANVAS_NODE_TYPES,
-  type VideoNodeData,
-} from "@/features/canvas/domain/canvasNodes";
+import { type VideoNodeData } from "@/features/canvas/domain/canvasNodes";
 import { downloadUrlAsFile } from "@/lib/browserDownload";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface VideoNodeToolbarControllerOptions {
   projectId: string;
   nodeId: string;

@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-  isStoryboardGroupNode,
-} from "@/features/canvas/domain/canvasNodes";
+import { isStoryboardGroupNode } from "@/features/canvas/domain/canvasNodes";
 import { resolveStoryboardCols } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 function seedImageNodes(count: number) {
   const nodes = Array.from({ length: count }, (_, index) => ({
     id: `n${index}`,

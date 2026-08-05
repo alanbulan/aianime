@@ -18,14 +18,10 @@ import {
   type CanvasStoryboardGroupConfig,
   type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
-import {
-  CANVAS_NODE_TYPES,
-  isStoryboardGroupNode,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import { isStoryboardGroupNode, type CanvasEdge, type CanvasNode } from '../domain/canvasNodes';
 import type { NodeFactory } from '../application/ports';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const storyboardGroupPorts = {
   defaultNodeWidth: DEFAULT_CANVAS_NODE_WIDTH,
   getNodeSize,

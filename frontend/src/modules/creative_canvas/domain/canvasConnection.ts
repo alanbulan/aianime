@@ -20,6 +20,8 @@ export const CANVAS_CONNECTION_NODE_TYPES = {
   skill: 'skillNode',
 } as const;
 
+export const CANVAS_NODE_TYPES = CANVAS_CONNECTION_NODE_TYPES;
+
 const NODE_TYPE = CANVAS_CONNECTION_NODE_TYPES;
 
 export type CanvasConnectionNodeType =

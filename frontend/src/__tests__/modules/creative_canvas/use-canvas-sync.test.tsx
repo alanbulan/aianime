@@ -26,13 +26,14 @@ import {
   removeLocalFreezoneProjection,
 } from "@/modules/creative_canvas/public";
 import { shotMetadataState } from "@/modules/creative_canvas/public";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import {
   useCanvasStore,
   type CanvasEdge,
   type CanvasNode,
 } from "@/features/canvas/canvasStore";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const { readDraft: readCanvasDraft, writeDraft: writeCanvasDraft } =
   canvasDraftStorageGateway;
 

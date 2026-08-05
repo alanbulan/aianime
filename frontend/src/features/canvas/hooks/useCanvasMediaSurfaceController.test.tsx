@@ -6,12 +6,13 @@ import type {
   CanvasHistoryAssetControllerOptions,
   CanvasMediaTransferControllerOptions,
 } from '@/modules/creative_canvas/public';
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
+;
 import {
   useCanvasMediaSurfaceController,
   type CanvasMediaSurfaceControllerOptions,
 } from './useCanvasMediaSurfaceController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const controllerMocks = vi.hoisted(() => {
   const mediaTransfer = {
     queueSnapshotPaste: vi.fn(),
@@ -42,6 +43,7 @@ const controllerMocks = vi.hoisted(() => {
 });
 
 vi.mock('@/modules/creative_canvas/public', () => ({
+  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   spawnCanvasAssetNode: controllerMocks.spawnCanvasAssetNode,
   useCanvasHistoryAssetController: controllerMocks.useHistoryAssets,
   useCanvasMediaTransferController: controllerMocks.useMediaTransfer,

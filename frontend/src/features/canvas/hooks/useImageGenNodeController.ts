@@ -12,10 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type ImageGenNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type ImageGenNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   aspectRatioFromImageDimensions,
   buildImageGenerationSuccessPatch,
@@ -98,6 +95,7 @@ import { formatCreditCost } from '@/components/credits/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface ImageGenNodeControllerOptions {
   id: string;
   data: ImageGenNodeData;

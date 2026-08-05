@@ -44,11 +44,7 @@ import {
   useIsBoxSelecting,
   useUpstreamNodes,
 } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  isAudioNode,
-  type VideoNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { isAudioNode, type VideoNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   canvasEventBus,
   contextPromptPaletteInsertionText,
@@ -125,6 +121,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface VideoNodeControllerOptions {
   id: string;
   data: VideoNodeData;

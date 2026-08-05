@@ -1,9 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 describe("canvasStore node conversion", () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData(

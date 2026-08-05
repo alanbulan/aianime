@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CANVAS_NODE_TYPES, type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
+import { type UploadImageNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   getCanvasBeatDirectorManifest,
   prepareNodeImageFromFile,
@@ -44,6 +44,7 @@ import { withImageCacheBust } from '@/shared/media/image-cache';
 import type { DirectorStageManifest, ThreeDDirectorCaptureMeta } from '@/features/viewer-kit/public';
 import { useSettingsStore } from '@/stores/settingsStore';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface UploadNodeControllerOptions {
   id: string;
   data: UploadImageNodeData;

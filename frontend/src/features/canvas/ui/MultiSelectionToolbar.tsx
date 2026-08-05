@@ -19,10 +19,7 @@ import {
 } from 'lucide-react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   collectBatchDeletableIds,
   DEFAULT_CANVAS_NODE_WIDTH,
@@ -40,6 +37,7 @@ const STORYBOARD_IMAGE_NODE_TYPES = new Set<string>([
 const STORYBOARD_MAX_NODES = 25;
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 // Gap (in flow units) kept between nodes when arranging.
 const ARRANGE_GAP = 32;
 // Fallback height when a node has not been measured yet.

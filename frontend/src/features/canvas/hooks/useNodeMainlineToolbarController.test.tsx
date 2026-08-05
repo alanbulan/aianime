@@ -2,14 +2,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from "@/features/canvas/domain/canvasNodes";
+import { type CanvasNode, type CanvasNodeType } from "@/features/canvas/domain/canvasNodes";
 
 import { useNodeMainlineToolbarController } from "./useNodeMainlineToolbarController";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   addNode: vi.fn(() => "context-new"),
   nodes: [] as CanvasNode[],

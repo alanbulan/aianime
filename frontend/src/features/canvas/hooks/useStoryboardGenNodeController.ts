@@ -20,10 +20,7 @@ import {
   uploadLocalImageToBackend,
   useUpstreamImages,
 } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  type StoryboardGenNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type StoryboardGenNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
@@ -74,6 +71,7 @@ import {
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface StoryboardGenNodeControllerOptions {
   id: string;
   projectId: string;

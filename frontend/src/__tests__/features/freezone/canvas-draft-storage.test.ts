@@ -6,7 +6,7 @@ import {
   canvasDraftStorageGateway,
   canvasDraftSignature,
 } from "@/modules/creative_canvas/public";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import { safeLocalStorageSet } from "@/lib/localStorageQuota";
 import {
   FREEZONE_CANVAS_TTL_MS,
@@ -15,6 +15,7 @@ import {
 } from "@/modules/creative_canvas/public";
 import * as storageReclaimer from "@/modules/creative_canvas/infrastructure/browserCanvasStorageReclaimer";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const {
   readDraft: readCanvasDraft,
   writeDraft: writeCanvasDraft,

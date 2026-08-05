@@ -2,15 +2,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type TextAnnotationNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode, type TextAnnotationNodeData } from '@/features/canvas/domain/canvasNodes';
 import { TEXT_ANNOTATION_MUSIC_DEFAULT_CONTENT } from '@/modules/creative_canvas/public';
 
 import { useTextAnnotationNodeController } from './useTextAnnotationNodeController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   nodes: [] as CanvasNode[],
   edges: [] as Array<{ id: string; source: string; target: string }>,

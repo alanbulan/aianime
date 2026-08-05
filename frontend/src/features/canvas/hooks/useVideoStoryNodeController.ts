@@ -3,13 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type VideoStoryNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type VideoStoryNodeData } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import type { VideoStoryRow } from '@/modules/creative_canvas/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const DEFAULT_WIDTH = 720;
 const DEFAULT_HEIGHT = 360;
 const MIN_WIDTH = 480;

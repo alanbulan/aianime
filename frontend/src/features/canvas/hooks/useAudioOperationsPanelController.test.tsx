@@ -2,10 +2,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
+;
 
 import { useAudioOperationsPanelController } from './useAudioOperationsPanelController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
   generate: vi.fn(),

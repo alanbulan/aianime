@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+;
 
 /**
  * 拖动组内成员松手后的收尾 fitGroupToChildren（libtv 式：按成员最终落点重新包住）。

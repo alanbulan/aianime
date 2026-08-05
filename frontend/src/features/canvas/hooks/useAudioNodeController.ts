@@ -9,10 +9,7 @@ import {
   uploadCanvasAsset,
   useIsBoxSelecting,
 } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  type AudioNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type AudioNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   canvasEventBus,
   resolveNodeDisplayName,
@@ -28,6 +25,7 @@ import {
   useNodeGenerationTaskState,
 } from '@/modules/creative_canvas/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 210;
 const MIN_WIDTH = 360;

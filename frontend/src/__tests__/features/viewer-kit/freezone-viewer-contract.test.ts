@@ -221,7 +221,7 @@ describe("freezone viewer contracts", () => {
     );
     const canvasComposition = read("src/features/canvas/composition.ts");
     const skillNode = [
-      read("src/features/canvas/application/skillNodeModel.ts"),
+      read("src/modules/creative_canvas/application/skillNodeModel.ts"),
       read("src/features/canvas/hooks/useSkillNodeController.ts"),
       read("src/features/canvas/nodes/SkillNodeView.tsx"),
     ].join("\n");

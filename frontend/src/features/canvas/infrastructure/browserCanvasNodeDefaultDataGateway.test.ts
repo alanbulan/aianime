@@ -1,12 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "../domain/canvasNodes";
+;
 import {
   browserCanvasNodeDefaultDataGateway,
   rememberLastVideoModel,
 } from "./browserCanvasNodeDefaultDataGateway";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 describe("browserCanvasNodeDefaultDataGateway", () => {
   beforeEach(() => {
     window.localStorage.clear();

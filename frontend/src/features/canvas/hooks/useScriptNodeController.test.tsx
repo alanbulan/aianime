@@ -2,15 +2,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-  type ScriptNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasEdge, type CanvasNode, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 
 import { useScriptNodeController } from './useScriptNodeController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   nodes: [] as CanvasNode[],
   edges: [] as CanvasEdge[],

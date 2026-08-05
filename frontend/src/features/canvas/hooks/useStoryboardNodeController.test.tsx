@@ -2,15 +2,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type StoryboardSplitNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode, type StoryboardSplitNodeData } from '@/features/canvas/domain/canvasNodes';
 import type { StoryboardFrameItem } from '@/modules/creative_canvas/public';
 
 import { useStoryboardNodeController } from './useStoryboardNodeController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   upstreamNodes: [] as CanvasNode[],
   zoom: 1,

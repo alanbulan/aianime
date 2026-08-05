@@ -2,10 +2,7 @@
 import { memo, useCallback } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import {
   DEFAULT_ASPECT_RATIO,
@@ -22,6 +19,7 @@ import {
   type LightSmartModeDescriptor,
 } from '@/modules/creative_canvas/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface LightEditorRequestPayload {
   sourceNodeId: string;
   imageSource: string;

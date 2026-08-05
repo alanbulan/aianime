@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+;
 
 /**
  * 缩放图片节点结束后，节点框必须吸附回图片真实比例（aspectRatio），否则 object-contain

@@ -13,13 +13,9 @@ import {
   type CanvasGraphInteractionController,
   type CanvasGraphInteractionControllerOptions,
 } from '@/modules/creative_canvas/public';
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeData,
-  CanvasNodeType,
-} from '../domain/canvasNodes';
-import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
+import type { CanvasEdge, CanvasNode, CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+;
 
 type ClipboardControllerOptions = CanvasClipboardControllerOptions<
   CanvasNode,

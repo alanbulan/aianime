@@ -3,12 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import type { AudioNodeData } from "@/features/canvas/domain/canvasNodes";
 import { AudioOperationsPanel } from "@/features/canvas/nodes/AudioOperationsPanel";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { queryKeys } from "@/lib/query-keys";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 function seedAudioCatalog(queryClient: QueryClient) {
   queryClient.setQueryData(queryKeys.commercialModels("AUDIO"), {
     catalogVersion: "test",

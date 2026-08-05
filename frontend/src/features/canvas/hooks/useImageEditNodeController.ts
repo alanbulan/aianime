@@ -11,10 +11,7 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  CANVAS_NODE_TYPES,
-  type ImageEditNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type ImageEditNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   resolveNodeDisplayName,
   type ImageSize,
@@ -80,6 +77,7 @@ import {
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useSettingsStore } from '@/stores/settingsStore';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface ImageEditNodeControllerOptions {
   projectId: string;
   canvasId: string;

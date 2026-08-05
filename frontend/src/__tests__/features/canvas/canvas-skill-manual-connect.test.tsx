@@ -4,10 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Connection, FinalConnectionState, OnConnectStartParams } from "@xyflow/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 import { Canvas } from "@/features/canvas/Canvas";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 // Canvas 用 useQueryClient()(beats/episodeDetail 预取),渲染需包 QueryClientProvider。
 function renderCanvas() {
   const queryClient = new QueryClient({

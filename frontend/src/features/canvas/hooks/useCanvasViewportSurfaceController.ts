@@ -1,11 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback } from 'react';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import { type CanvasEdge, type CanvasNode } from '../domain/canvasNodes';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import {
@@ -33,6 +29,7 @@ import {
   type CanvasViewportRuntimeController,
   type CanvasViewportRuntimeControllerOptions,
 } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   isExcludedNode: (node) => node.type === CANVAS_NODE_TYPES.group,

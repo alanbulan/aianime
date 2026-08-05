@@ -11,10 +11,7 @@ import { CONSTANTS, Viewer } from '@photo-sphere-viewer/core';
 
 import { dataUrlToBlob } from '@/shared/media/data-url';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type Pano360ViewerNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type Pano360ViewerNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   PANO_DIRECTION_OFFSETS,
   PANO_GRID_2X2_FRAMES,
@@ -50,6 +47,7 @@ import {
   waitPanoFrames,
 } from '@/features/viewer-kit/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const {
   ROTATE_UP,
   ROTATE_DOWN,

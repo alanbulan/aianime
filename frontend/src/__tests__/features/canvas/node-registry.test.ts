@@ -1,12 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import {
   canvasNodeDefinitions,
   getMenuNodeDefinitions,
 } from "@/features/canvas/domain/nodeRegistry";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 describe("canvas node registry", () => {
   it("creates standalone shot context nodes from the menu with local schema data", () => {
     const definition = canvasNodeDefinitions[CANVAS_NODE_TYPES.beatContext];

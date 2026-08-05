@@ -2,14 +2,11 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type Pano360ViewerNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode, type Pano360ViewerNodeData } from '@/features/canvas/domain/canvasNodes';
 
 import { usePano360ViewerNodeController } from './usePano360ViewerNodeController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   upstreamNodes: [] as CanvasNode[],
   selectedNodeId: null as string | null,

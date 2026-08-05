@@ -17,16 +17,10 @@ import {
   type CanvasMutationState,
   type CanvasToolDialogRequest as ActiveToolDialog,
 } from '@/modules/creative_canvas/public';
-import {
-  CANVAS_NODE_TYPES,
-  isGroupNode,
-  isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../domain/canvasNodes';
+import { isGroupNode, isProtectedProjectionGroupNode, isStoryboardGroupNode, type CanvasEdge, type CanvasNode } from '../domain/canvasNodes';
 import type { NodeFactory } from '../application/ports';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const canvasGroupLifecyclePorts = {
   isGroupNode,
   isProtectedGroupNode: isProtectedProjectionGroupNode,

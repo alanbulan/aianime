@@ -57,6 +57,7 @@ import {
   freezoneSceneAssetsGateway,
   extractUpstreamContent,
   extractUpstreamImages,
+  CANVAS_NODE_TYPES,
   type CanvasAssetDragPayload,
   type CanvasBeatDirectorManifestGateway,
   NODE_TOOL_TYPES,
@@ -72,7 +73,6 @@ import {
 import { useCanvasStore } from './canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
-  CANVAS_NODE_TYPES,
   type CanvasNodeData,
 } from './domain/canvasNodes';
 import {

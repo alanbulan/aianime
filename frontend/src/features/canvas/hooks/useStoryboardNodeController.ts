@@ -19,10 +19,7 @@ import {
   type StoryboardFrameItem,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  type StoryboardSplitNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type StoryboardSplitNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   EXPORT_RESULT_DISPLAY_NAME,
   resolveNodeDisplayName,
@@ -35,6 +32,7 @@ import {
   useUpstreamNodes,
 } from '@/features/canvas/composition';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface StoryboardPickerState {
   frameId: string;
   x: number;

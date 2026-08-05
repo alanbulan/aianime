@@ -202,6 +202,7 @@ export type {
   CanvasEdgeDeletionLike,
 } from "@/modules/creative_canvas/domain/canvasEdgeDeletion";
 export {
+  CANVAS_NODE_TYPES,
   CANVAS_CONNECTION_NODE_TYPES,
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,

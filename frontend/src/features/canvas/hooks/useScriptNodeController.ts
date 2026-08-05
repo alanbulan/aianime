@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 
-import { CANVAS_NODE_TYPES, type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
+import { type ScriptNodeData } from '@/features/canvas/domain/canvasNodes';
 import type { ScriptGenAction } from '@/modules/creative_canvas/public';
 import {
   SCRIPT_NODE_ACTIONS,
@@ -30,6 +30,7 @@ import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useUpstreamNodes } from '@/features/canvas/composition';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const REFERENCE_PREVIEW_WIDTH = 240;
 const REFERENCE_PREVIEW_OFFSET = 10;
 

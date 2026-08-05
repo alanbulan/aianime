@@ -14,10 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
   DEFAULT_CANVAS_NODE_WIDTH,
@@ -48,6 +45,7 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
 

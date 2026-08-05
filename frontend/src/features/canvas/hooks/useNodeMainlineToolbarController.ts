@@ -2,11 +2,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import {
-  CANVAS_NODE_TYPES,
-  type BeatContextNodeData,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
+import { type BeatContextNodeData, type CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import { DEFAULT_CANVAS_NODE_WIDTH } from "@/modules/creative_canvas/public";
 import {
   buildNodeActionBeatContextData,
@@ -17,6 +13,7 @@ import {
   resolveBeatContextWorkbenchTarget,
 } from "@/modules/creative_canvas/public";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 export interface NodeMainlineToolbarControllerOptions {
   projectId: string;
   node: CanvasNode;

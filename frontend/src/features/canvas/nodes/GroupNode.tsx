@@ -7,11 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type GroupNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode, type GroupNodeData } from '@/features/canvas/domain/canvasNodes';
 import {
   GroupNodeView,
   NodeResizeHandle,
@@ -32,6 +28,7 @@ import {
   NODE_HEADER_FLOATING_POSITION_CLASS,
 } from '@/modules/creative_canvas/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
   types: {
     video: [

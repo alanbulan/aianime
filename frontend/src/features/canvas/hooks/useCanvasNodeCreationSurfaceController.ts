@@ -20,14 +20,9 @@ import {
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 
 import { nodeCatalog } from '../application/nodeCatalog';
-import {
-  CANVAS_NODE_TYPES,
-  isStoryboardGroupNode,
-  type CanvasNode,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+import { isStoryboardGroupNode, type CanvasNode, type CanvasNodeData, type CanvasNodeType } from '../domain/canvasNodes';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 type NodeInteractionControllerOptions = CanvasNodeInteractionControllerOptions<
   CanvasNodeType,
   CanvasNodeData,

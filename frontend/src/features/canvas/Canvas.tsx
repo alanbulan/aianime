@@ -14,6 +14,7 @@ import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import {
   canvasEventBus,
   canvasNodeIntersectsSelectionRect,
+  CANVAS_NODE_TYPES,
   isPresetManagedEdge,
   isPresetManagedNode,
   NODE_SELECTION_MENU_ADD_NODE_TYPES,
@@ -25,7 +26,6 @@ import {
 } from '@/modules/creative_canvas/public';
 import { useAppStore } from '@/stores/app-store';
 import {
-  CANVAS_NODE_TYPES,
   isUploadNode,
   type CanvasNodeType,
 } from './domain/canvasNodes';

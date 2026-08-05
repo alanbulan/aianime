@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
+;
 import {
   CanvasHistoryAssetsModal,
   extractCanvasAssets,
@@ -17,6 +17,7 @@ import { ThreeDDirectorDialog, buildStandaloneWorldManifest } from '@/features/v
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { resolveMediaUrl } from '@/lib/media-url';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
   CANVAS_NODE_TYPES.imageGen,
   CANVAS_NODE_TYPES.imageEdit,

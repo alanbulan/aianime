@@ -16,12 +16,9 @@ import {
   type CanvasMediaTransferController,
 } from '@/modules/creative_canvas/public';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-  type CanvasNodeType,
-} from '../domain/canvasNodes';
+import { type CanvasNodeData, type CanvasNodeType } from '../domain/canvasNodes';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 interface CanvasPosition {
   x: number;
   y: number;

@@ -4,16 +4,7 @@ import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isPano360ViewerNode,
-  isUploadNode,
-  isVideoNode,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { isExportImageNode, isImageEditNode, isImageGenNode, isPano360ViewerNode, isUploadNode, isVideoNode, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasExportResultKind } from '@/modules/creative_canvas/public';
 import {
   DEFAULT_ASPECT_RATIO,
@@ -36,6 +27,7 @@ import { OutpaintEditorOverlay } from './OutpaintEditorOverlay';
 import { RotateEditorOverlay } from './RotateEditorOverlay';
 import { GridActionConfirmOverlay } from './GridActionConfirmOverlay';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 // Image/video nodes only need the floating action toolbar once they actually
 // have a resource to act on. While the node is empty (no upload, no generated
 // output), the toolbar entries (剪辑 / 高清 / 智能去字幕 / ...) are all no-ops,

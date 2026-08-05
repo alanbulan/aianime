@@ -1,11 +1,10 @@
 // Copyright (c) 2026 AI anime
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNodeData,
-} from "../domain/canvasNodes";
+import { type CanvasNodeData } from "../domain/canvasNodes";
 import type { CanvasNodeDefaultDataGateway } from "../application/ports";
 
 const LAST_VIDEO_MODEL_STORAGE_KEY = "canvas.lastVideoModel";
+// 旧边界基础设施：与模块 CANVAS_CONNECTION_NODE_TYPES.video 保持同一字面量。
+const VIDEO_NODE_TYPE = "videoNode" as const;
 
 function readLastVideoModel(): string | null {
   if (typeof window === "undefined") return null;
@@ -19,7 +18,7 @@ function readLastVideoModel(): string | null {
 
 export const browserCanvasNodeDefaultDataGateway: CanvasNodeDefaultDataGateway = {
   getOverrides(type) {
-    if (type !== CANVAS_NODE_TYPES.video) return {};
+    if (type !== VIDEO_NODE_TYPE) return {};
     const model = readLastVideoModel();
     return model ? ({ model } as Partial<CanvasNodeData>) : {};
   },

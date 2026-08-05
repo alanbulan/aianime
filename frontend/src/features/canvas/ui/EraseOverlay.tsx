@@ -21,10 +21,7 @@ import {
   X,
 } from 'lucide-react';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
   NODE_CREDIT_PILL_FLAT_CLASS,
@@ -47,6 +44,7 @@ import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 interface EraseOverlayProps {
   projectId: string;
   node: CanvasNode;

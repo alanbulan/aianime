@@ -10,17 +10,11 @@ import {
   type VideoComposeInputMedia,
 } from '@/modules/creative_canvas/public';
 import { useCanvasStore } from '@/features/canvas/canvasStore';
-import {
-  CANVAS_NODE_TYPES,
-  isAudioNode,
-  isVideoNode,
-  type CanvasNode,
-  type CanvasNodeData,
-  type VideoComposeNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { isAudioNode, isVideoNode, type CanvasNode, type CanvasNodeData, type VideoComposeNodeData } from '@/features/canvas/domain/canvasNodes';
 import { resolveNodeDisplayName } from '@/modules/creative_canvas/public';
 import { useUpstreamNodes } from '@/features/canvas/composition';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 136;
 

@@ -2,14 +2,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type CanvasNodeType,
-} from "@/features/canvas/domain/canvasNodes";
+import { type CanvasNode, type CanvasNodeType } from "@/features/canvas/domain/canvasNodes";
 
 import { useNodeOutputToolbarController } from "./useNodeOutputToolbarController";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   downloadUrl: vi.fn(),
   resolveUrl: vi.fn((url: string) => `resolved:${url}`),
@@ -31,6 +28,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/creative_canvas/public", () => ({
+  CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },
   buildGenerationErrorReport: ({
     errorMessage,
     errorDetails,

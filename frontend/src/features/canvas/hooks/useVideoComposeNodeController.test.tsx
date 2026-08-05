@@ -3,14 +3,11 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ComposeTimelineState } from '@/modules/creative_canvas/public';
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-  type VideoComposeNodeData,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode, type VideoComposeNodeData } from '@/features/canvas/domain/canvasNodes';
 
 import { useVideoComposeNodeController } from './useVideoComposeNodeController';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),

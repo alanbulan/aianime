@@ -4,10 +4,7 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Image as ImageIcon, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from '@/features/canvas/domain/canvasNodes';
+import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   CANVAS_NODE_TOOLBAR_PILL_CLASS,
   NODE_TOOLBAR_CLASS,
@@ -24,6 +21,7 @@ import { useCanvasStore } from '@/features/canvas/canvasStore';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   const normalized = String(apiModel ?? '').trim().toLowerCase();
   return (

@@ -8,13 +8,14 @@ import {
   spawnCanvasAssetNode,
   type CanvasAssetNodeSpawnPort,
 } from "@/modules/creative_canvas/public";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import { usableDirectorWorldPreviewUrl } from "@/modules/creative_canvas/public";
 import {
   deriveNodeDropInfo,
   directorControlBundleFromAssetSource,
 } from "@/modules/creative_canvas/public";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 describe("director bundle canvas assets", () => {
   it("keeps director control bundle on nodes spawned from library assets", () => {
     const bundle = {

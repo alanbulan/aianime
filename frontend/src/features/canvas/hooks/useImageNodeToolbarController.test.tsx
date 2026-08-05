@@ -2,14 +2,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-  type CanvasNode,
-} from "@/features/canvas/domain/canvasNodes";
+import { type CanvasNode } from "@/features/canvas/domain/canvasNodes";
 import { NODE_TOOL_TYPES } from "@/modules/creative_canvas/public";
 
 import { useImageNodeToolbarController } from "./useImageNodeToolbarController";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   t: vi.fn((key: string) => `translated:${key}`),

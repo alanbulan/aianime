@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+;
 
 function incomingTo(target: string) {
   return useCanvasStore.getState().edges.filter((edge) => edge.target === target);

@@ -1,12 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import {
-  CANVAS_NODE_TYPES,
-} from "@/features/canvas/domain/canvasNodes";
+;
 import type { StoryboardFrameItem } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const frames: StoryboardFrameItem[] = [
   { id: "first", imageUrl: "first.png", note: "first", order: 0 },
   { id: "second", imageUrl: "second.png", note: "second", order: 1 },

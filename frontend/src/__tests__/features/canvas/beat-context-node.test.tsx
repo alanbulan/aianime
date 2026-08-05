@@ -5,12 +5,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+;
 import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
 import type { BeatContextNodeData } from "@/features/canvas/domain/canvasNodes";
 import { setFreezoneCanvasMetadata } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
 
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 const updateBeat = vi.fn().mockResolvedValue({ ok: true, data: null });
 const listFreezoneBeatContext = vi.fn();
 const createCanvasFromPreset = vi.fn();
