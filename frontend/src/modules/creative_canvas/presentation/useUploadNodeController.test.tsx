@@ -2,11 +2,16 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import type { UploadImageNodeData } from '../domain/canvasNodeData';
+import type { CanvasEdge } from '../domain/canvasNodeData';
+import {
+  createUseUploadNodeController,
+  type UploadNodeStore,
+  type UploadNodeStoreHook,
+  type UploadNodeSettingsStore,
+  type UploadNodeSettingsStoreHook,
+} from './useUploadNodeController';
 
-import { useUploadNodeController } from './useUploadNodeController';
-
-import type { UploadImageNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   edges: [] as Array<{ source: string; target: string }>,
   subscribers: new Map<string, Set<(payload: unknown) => void>>(),
@@ -45,69 +50,54 @@ vi.mock('zustand/react/shallow', () => ({
   useShallow: (selector: unknown) => selector,
 }));
 
-
-vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: (
-    selector: (state: { useUploadFilenameAsNodeTitle: boolean }) => unknown,
-  ) =>
-    selector({
-      useUploadFilenameAsNodeTitle: mocks.useUploadFilenameAsNodeTitle,
-    }),
+vi.mock('../domain/mainlineContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/mainlineContext')>()),
+  hasMainlineContexts: (value: unknown) => Array.isArray(value) && value.length > 0,
 }));
 
-vi.mock('@/modules/creative_canvas/public', async () => {
-  const state = () => ({
-    edges: mocks.edges,
+const useStore = ((
+  selector: (state: UploadNodeStore) => unknown,
+) =>
+  selector({
+    edges: mocks.edges as unknown as readonly CanvasEdge[],
     setSelectedNode: mocks.setSelectedNode,
     updateNodeData: mocks.updateNodeData,
     convertNodeType: mocks.convertNodeType,
     addPanoCaptureGroup: mocks.addPanoCaptureGroup,
-  });
-  const useCanvasStore = Object.assign(
-    (selector: (value: ReturnType<typeof state>) => unknown) =>
-      selector(state()),
-    { getState: state },
-  );
-  const actual = await vi.importActual<typeof import('@/modules/creative_canvas/public')>(
-    '@/modules/creative_canvas/public',
-  );
-  return {
-    ...actual,
-    useCanvasStore,
-    canvasEventBus: {
-      subscribe: (topic: string, subscriber: (payload: unknown) => void) => {
-        const subscribers = mocks.subscribers.get(topic) ?? new Set();
-        subscribers.add(subscriber);
-        mocks.subscribers.set(topic, subscribers);
-        return () => subscribers.delete(subscriber);
-      },
-      publish: vi.fn((topic: string, payload: unknown) => {
-        for (const subscriber of mocks.subscribers.get(topic) ?? []) {
-          subscriber(payload);
-        }
-      }),
-    },
-    hasMainlineContexts: (value: unknown) => Array.isArray(value) && value.length > 0,
-  };
-});
+  })) as unknown as UploadNodeStoreHook;
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  prepareNodeImageFromFile: (file: File) =>
-    mocks.prepareNodeImageFromFile(file),
-  uploadCanvasAsset: (
-    projectId: string,
-    file: Blob,
-    filename: string,
-    options?: unknown,
-  ) => mocks.uploadCanvasAsset(projectId, file, filename, options),
-  uploadLocalImageToBackend: (
-    projectId: string,
-    dataUrl: string,
-    filename: string,
-  ) => mocks.uploadLocalImageToBackend(projectId, dataUrl, filename),
-  getCanvasBeatDirectorManifest: (command: unknown) =>
-    mocks.getCanvasBeatDirectorManifest(command),
-}));
+const useSettingsStore = ((
+  selector: (state: UploadNodeSettingsStore) => unknown,
+) =>
+  selector({
+    useUploadFilenameAsNodeTitle: mocks.useUploadFilenameAsNodeTitle,
+  })) as unknown as UploadNodeSettingsStoreHook;
+
+const eventPort = {
+  publish: vi.fn((topic: string, payload: unknown) => {
+    for (const subscriber of mocks.subscribers.get(topic) ?? []) {
+      subscriber(payload);
+    }
+  }),
+  subscribe: (topic: string, subscriber: (payload: unknown) => void) => {
+    const subscribers = mocks.subscribers.get(topic) ?? new Set();
+    subscribers.add(subscriber);
+    mocks.subscribers.set(topic, subscribers);
+    return () => subscribers.delete(subscriber);
+  },
+} as unknown as Parameters<typeof createUseUploadNodeController>[0]['eventPort'];
+
+const useUploadNodeController = createUseUploadNodeController({
+  useStore,
+  useSettingsStore,
+  eventPort,
+  uploadCanvasAsset: mocks.uploadCanvasAsset,
+  prepareNodeImageFromFile: mocks.prepareNodeImageFromFile,
+  uploadLocalImageToBackend: mocks.uploadLocalImageToBackend,
+  getCanvasBeatDirectorManifest: mocks.getCanvasBeatDirectorManifest,
+  directorCaptureBlobToDataUrl: vi.fn(async (blob: Blob) => `data:${blob.size}`),
+  readDirectorCaptureImageSize: vi.fn(async () => ({ width: 1920, height: 1080 })),
+});
 
 function data(
   patch: Partial<UploadImageNodeData> = {},

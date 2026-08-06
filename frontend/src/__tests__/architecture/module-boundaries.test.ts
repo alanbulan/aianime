@@ -1720,19 +1720,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useUploadNodeController.ts",
+      "modules/creative_canvas/presentation/useUploadNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useUploadNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useUploadNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/UploadNodeView.tsx",
+      "modules/creative_canvas/presentation/UploadNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/UploadNodeView.test.tsx",
+      "modules/creative_canvas/presentation/UploadNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -1749,7 +1749,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "UploadNode", "=", "memo("].join(" "),
       ["export function", "resolveUploadNodeLayout("].join(" "),
-      ["export function", "useUploadNodeController("].join(" "),
+      ["export function", "createUseUploadNodeController("].join(" "),
       ["export function", "UploadNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -1763,16 +1763,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useUploadNodeController",
-        "./UploadNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/UploadNode.tsx"],
       ["modules/creative_canvas/application/uploadNodeModel.ts"],
-      ["features/canvas/hooks/useUploadNodeController.ts"],
-      ["features/canvas/nodes/UploadNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useUploadNodeController.ts"],
+      ["modules/creative_canvas/presentation/UploadNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -1783,7 +1782,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(modelPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(controllerSource).toContain("@/modules/creative_canvas/public");
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(controllerSource).not.toContain(
       "@/features/canvas/application/uploadNodeModel",
     );
@@ -1799,9 +1798,9 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("uploadCanvasAsset(");
-    expect(controllerSource).toContain("canvasEventBus.subscribe(");
+    expect(controllerSource).toContain("eventPort.subscribe(");
     expect(controllerSource).toContain("getCanvasBeatDirectorManifest(");
     expect(controllerSource).toContain("captureCanvasNodeBusyRef");
     expect(controllerSource).not.toContain("readUrl()");
@@ -1826,6 +1825,14 @@ describe("frontend architecture boundaries", () => {
       "from './useUploadNodeController'",
     );
     expect(viewTestSource).toContain("from './UploadNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useUploadNodeController.ts",
+      "features/canvas/hooks/useUploadNodeController.test.tsx",
+      "features/canvas/nodes/UploadNodeView.tsx",
+      "features/canvas/nodes/UploadNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas script-node model, controller, and view", () => {
@@ -8066,7 +8073,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/ImageEditNodeView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
       "features/canvas/nodes/StoryboardGenNodeView.tsx",
-      "features/canvas/nodes/UploadNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 
     expect(forbiddenImports).toEqual([]);
@@ -21635,7 +21641,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
-      "features/canvas/hooks/useUploadNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
     const assetGatewaySource = readFileSync(assetGatewayPath, "utf8");
@@ -28775,7 +28780,6 @@ describe("frontend architecture boundaries", () => {
       [
         "features/canvas/nodes/VideoNodeView.tsx",
         "features/canvas/nodes/ImageGenNodeView.tsx",
-        "features/canvas/nodes/UploadNodeView.tsx",
         "features/canvas/ui/AssetCommitHandle.tsx",
       ].map((relativePath) => [
         relativePath,
@@ -28833,9 +28837,6 @@ describe("frontend architecture boundaries", () => {
     expect(
       consumerSources.get("features/canvas/nodes/ImageGenNodeView.tsx"),
     ).toContain("nodeHovered={uploadRailNodeHovered}");
-    expect(
-      consumerSources.get("features/canvas/nodes/UploadNodeView.tsx"),
-    ).toContain("<NodeSideActionRail");
     expect(
       consumerSources.get("features/canvas/ui/AssetCommitHandle.tsx"),
     ).toContain("<NodeSideActionRail");
@@ -31496,7 +31497,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
       "features/canvas/hooks/useThreeDWorldNodeController.ts",
-      "features/canvas/hooks/useUploadNodeController.ts",
+      "modules/creative_canvas/presentation/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
       "features/canvas/ui/RedrawOverlay.tsx",
@@ -31575,7 +31576,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(consumerPaths[4])).toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(consumerPaths[5])).toContain(
+    expect(importSpecifiers(consumerPaths[5])).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(consumerSources[4]).not.toContain(

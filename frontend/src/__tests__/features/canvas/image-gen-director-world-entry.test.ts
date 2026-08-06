@@ -39,11 +39,11 @@ describe("ImageGenNode director combined world entry", () => {
       "utf8",
     );
     const controllerSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/useUploadNodeController.ts"),
       "utf8",
     );
     const viewSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/UploadNodeView.tsx"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/UploadNodeView.tsx"),
       "utf8",
     );
 
@@ -78,7 +78,7 @@ describe("ImageGenNode director combined world entry", () => {
       "utf8",
     );
     const uploadSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/useUploadNodeController.ts"),
       "utf8",
     );
 
@@ -92,11 +92,11 @@ describe("ImageGenNode director combined world entry", () => {
       "utf8",
     );
     const controllerSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/hooks/useUploadNodeController.ts"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/useUploadNodeController.ts"),
       "utf8",
     );
     const viewSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/UploadNodeView.tsx"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/UploadNodeView.tsx"),
       "utf8",
     );
 

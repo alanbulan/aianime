@@ -3,8 +3,7 @@ import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { UploadNodeController } from '@/features/canvas/hooks/useUploadNodeController';
-
+import type { UploadNodeController } from './useUploadNodeController';
 import { UploadNodeView } from './UploadNodeView';
 
 const mocks = vi.hoisted(() => ({
@@ -20,7 +19,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -33,24 +32,50 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./CanvasNodeImage', () => ({
   CanvasNodeImage: ({ src }: { src: string }) => (
     <img src={src} alt="uploaded" />
   ),
+}));
+
+vi.mock('./DirectorControlBundleBadge', () => ({
   DirectorControlBundleBadge: () => <div>bundle-badge</div>,
+}));
+
+vi.mock('./canvasNodeFrameStyles', () => ({
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS: 'body-frame',
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS: 'selected-frame',
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('./canvasNodeControlStyles', () => ({
   NODE_SIDE_ACTION_BUTTON_CLASS: 'side-action',
   NODE_SIDE_ACTION_ICON_CLASS: 'side-icon',
+}));
+
+vi.mock('../domain/videoFileTypes', () => ({
   VIDEO_FILE_ACCEPT: 'video/*',
-  canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('./NodeContextBadges', () => ({
   CandidateBindingBadges: ({ roles }: { roles: string[] }) => (
     <div>roles:{roles.join(',')}</div>
   ),
+}));
+
+vi.mock('./NodeSideActionRail', () => ({
+  NODE_SIDE_ACTION_BUTTON_CLASS: 'side-action',
+  NODE_SIDE_ACTION_ICON_CLASS: 'side-icon',
   NodeSideActionRail: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -60,7 +85,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   }) => <div>resize:{minWidth}:{minHeight}</div>,
 }));
 
-vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({
+vi.mock('@/features/viewer-kit/public', () => ({
   ThreeDDirectorDialog: (props: Record<string, unknown>) => {
     mocks.directorDialogProps = props;
     return <div>director-dialog</div>;

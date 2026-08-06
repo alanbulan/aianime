@@ -25,6 +25,7 @@ import { createUseCanvasViewportSurfaceController } from './presentation/useCanv
 import { useCanvasGraphEditingSurfaceController } from './presentation/useCanvasGraphEditingSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './presentation/useCanvasNodeCreationSurfaceController';
 import { createUseVideoNodeToolbarController } from './presentation/useVideoNodeToolbarController';
+import { createUseUploadNodeController } from './presentation/useUploadNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -71,6 +72,10 @@ import {
 } from './textGenerationComposition';
 import { generateCanvasAudio } from './audioGenerationComposition';
 import { loadCanvasAudioReferences } from './audioVoiceCatalogComposition';
+import {
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
+} from './infrastructure/browserDirectorCaptureRuntime';
 import { extractUpstreamContent } from './application/graphContentResolver';
 import { extractUpstreamImages } from './application/graphImageResolver';
 import { CANVAS_NODE_TYPES } from './domain/canvasConnection';
@@ -340,6 +345,17 @@ export const useVideoNodeToolbarController = createUseVideoNodeToolbarController
   eventPort: canvasEventBus,
   analyzeCanvasVideoStory,
   separateCanvasAudioVideo,
+});
+export const useUploadNodeController = createUseUploadNodeController({
+  useStore: useCanvasStore,
+  useSettingsStore,
+  eventPort: canvasEventBus,
+  uploadCanvasAsset,
+  prepareNodeImageFromFile,
+  uploadLocalImageToBackend,
+  getCanvasBeatDirectorManifest,
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
