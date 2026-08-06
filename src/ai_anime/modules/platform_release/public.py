@@ -23,11 +23,11 @@ from ai_anime.modules.platform_release.domain import (
 
 def build_local_release_feed(adapter_name: str) -> ReleaseFeedPort:
     from ai_anime.modules.platform_release.infrastructure import (
-        MockReleaseFeed,
         NoOpReleaseFeed,
     )
 
-    return MockReleaseFeed() if adapter_name == "mock" else NoOpReleaseFeed()
+    _ = adapter_name
+    return NoOpReleaseFeed()
 
 
 def project_file_queries() -> ProjectFileQueries:

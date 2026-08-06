@@ -17973,24 +17973,6 @@ describe("frontend architecture boundaries", () => {
       readFileSync(
         resolve(
           moduleRoot,
-          "infrastructure/http-release-notification-gateway.ts",
-        ),
-        "utf8",
-      ),
-    ).toContain("api/v1/release-notifications");
-    expect(
-      readFileSync(
-        resolve(
-          moduleRoot,
-          "infrastructure/browser-release-notification-storage.ts",
-        ),
-        "utf8",
-      ),
-    ).toContain("ai-anime:release-seen:");
-    expect(
-      readFileSync(
-        resolve(
-          moduleRoot,
           "infrastructure/browser-version-update-watch.ts",
         ),
         "utf8",

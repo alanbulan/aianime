@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "@tanstack/react-router";
@@ -40,9 +40,8 @@ import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/modules/model_usage/public";
 import {
-  markUpgradeSeen,
-  shouldShowUpgradeNudge,
-  useReleaseNotifications,
+  useCommercialAnnouncements,
+  useCommercialRelease,
 } from "@/modules/platform_release/public";
 import {
   ProjectHeaderNavigation,
@@ -56,7 +55,6 @@ export function Header() {
   const params = useParams({ strict: false }) as { project?: string };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [releaseNotificationStateVersion, setReleaseNotificationStateVersion] = useState(0);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [accountPanelVisible, setAccountPanelVisible] = useState(false);
@@ -97,10 +95,12 @@ export function Header() {
     ? "zh"
     : "en";
   const modelGatewayConfig = useModelGatewayConfig(ceRuntime);
-  const releaseNotifications = useReleaseNotifications(i18n.resolvedLanguage ?? i18n.language);
-  const releaseFeed = releaseNotifications.data;
-  void releaseNotificationStateVersion;
-  const hasUnreadNotification = shouldShowUpgradeNudge(releaseFeed);
+  const commercialEnabled = Boolean(window.aiAnimeDesktop?.commercial);
+  const commercialAnnouncements = useCommercialAnnouncements(commercialEnabled);
+  const commercialRelease = useCommercialRelease(commercialEnabled);
+  const hasUnreadNotification =
+    (commercialAnnouncements.data?.items.length ?? 0) > 0 ||
+    Boolean(commercialRelease.data?.available);
   const gatewayConfig = modelGatewayConfig.data?.data;
   const hasSettingsWarning = Boolean(
     ceRuntime &&
@@ -199,14 +199,8 @@ export function Header() {
 
   const openNotifications = () => {
     closeAccountPanelNow();
-    markUpgradeSeen(releaseFeed?.latest_tag);
-    setReleaseNotificationStateVersion((version) => version + 1);
     setNotificationOpen(true);
   };
-
-  const handleUpgradeStateChange = useCallback(() => {
-    setReleaseNotificationStateVersion((version) => version + 1);
-  }, []);
 
   const openAvatarDialog = () => {
     closeAccountPanelNow();
@@ -371,7 +365,6 @@ export function Header() {
       <NotificationDrawer
         open={notificationOpen}
         onOpenChange={setNotificationOpen}
-        onUpgradeStateChange={handleUpgradeStateChange}
       />
       {ceRuntime ? <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} /> : null}
       {settingsWarningBubble

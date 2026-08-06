@@ -39,7 +39,8 @@ def test_desktop_environment_uses_isolated_local_directories(
     assert (tmp_path / "output").is_dir()
     assert (tmp_path / "runtime").is_dir()
     assert __import__("os").environ["AI_ANIME_EDITION"] == "ce"
-    assert __import__("os").environ["AI_ANIME_CLOUD_ADAPTER"] == "mock"
+    assert "AI_ANIME_CLOUD_ADAPTER" not in __import__("os").environ
+    assert "AI_ANIME_RELEASE_FEED_ADAPTER" not in __import__("os").environ
     assert "AI_ANIME_CONTROL_PLANE_DSN" not in __import__("os").environ
 
 

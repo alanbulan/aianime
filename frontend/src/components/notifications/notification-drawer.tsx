@@ -5,14 +5,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, Megaphone, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  markUpgradeSeen,
-  markUpgradeSkipped,
-  useCommercialAnnouncements,
-  useReleaseNotifications,
-  type CommercialAnnouncement,
-  type ReleaseItem,
-} from "@/modules/platform_release/public";
+import { useCommercialAnnouncements } from "@/modules/platform_release/public";
 
 type NotificationTone = "update" | "notice";
 
@@ -30,46 +23,32 @@ const DRAWER_TRANSITION_MS = 260;
 export function NotificationDrawer({
   open,
   onOpenChange,
-  onUpgradeStateChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpgradeStateChange?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? i18n.language;
-  const releaseNotifications = useReleaseNotifications(locale);
   const commercialAnnouncements = useCommercialAnnouncements(
     Boolean(window.aiAnimeDesktop?.commercial),
   );
-  const feed = releaseNotifications.data;
   const [shouldRender, setShouldRender] = useState(open);
   const [visible, setVisible] = useState(false);
-  const notifications = buildNotifications({
-    announcements: commercialAnnouncements.data?.items ?? [],
-    currentItems: feed?.current_items ?? [],
-    latestItems: feed?.update_items ?? [],
-    latestTag: feed?.latest_tag ?? null,
-    updateAvailable: feed?.update_available ?? false,
-    releaseUrl: feed?.release_url ?? null,
-    publishedAt: feed?.latest_published_at ?? null,
-    locale,
-    t,
-    onSkip: () => {
-      markUpgradeSkipped(feed?.latest_tag);
-      onUpgradeStateChange?.();
-    },
-    onOpenRelease: () => {
-      markUpgradeSeen(feed?.latest_tag);
-      onUpgradeStateChange?.();
-    },
-  });
+  const notifications = (commercialAnnouncements.data?.items ?? []).map(
+    (item) => ({
+      id: `announcement:${item.id}`,
+      tone: "notice" as const,
+      title: item.title,
+      body: item.body,
+      time: formatReleaseTime(item.publishAt, locale),
+    }),
+  );
   const loading =
     notifications.length === 0 &&
-    (releaseNotifications.isLoading || commercialAnnouncements.isLoading);
+    commercialAnnouncements.isLoading;
   const loadFailed =
     notifications.length === 0 &&
-    Boolean(releaseNotifications.error || commercialAnnouncements.error);
+    Boolean(commercialAnnouncements.error);
 
   useEffect(() => {
     if (open) {
@@ -89,12 +68,6 @@ export function NotificationDrawer({
     const timer = window.setTimeout(() => setShouldRender(false), DRAWER_TRANSITION_MS);
     return () => window.clearTimeout(timer);
   }, [open]);
-
-  useEffect(() => {
-    if (!open || !feed?.update_available || !feed.latest_tag) return;
-    markUpgradeSeen(feed.latest_tag);
-    onUpgradeStateChange?.();
-  }, [feed?.latest_tag, feed?.update_available, onUpgradeStateChange, open]);
 
   useEffect(() => {
     if (!shouldRender) return;
@@ -189,89 +162,6 @@ function NotificationRow({ item }: { item: NotificationItem }) {
       </div>
     </article>
   );
-}
-
-function buildNotifications({
-  announcements,
-  currentItems,
-  latestItems,
-  latestTag,
-  updateAvailable,
-  releaseUrl,
-  publishedAt,
-  locale,
-  t,
-  onSkip,
-  onOpenRelease,
-}: {
-  announcements: CommercialAnnouncement[];
-  currentItems: ReleaseItem[];
-  latestItems: ReleaseItem[];
-  latestTag: string | null;
-  updateAvailable: boolean;
-  releaseUrl: string | null;
-  publishedAt: string | null;
-  locale: string;
-  t: (key: string, options?: Record<string, string>) => string;
-  onSkip: () => void;
-  onOpenRelease: () => void;
-}): NotificationItem[] {
-  const rows: NotificationItem[] = announcements.map((item) => ({
-    id: `announcement:${item.id}`,
-    tone: "notice",
-    title: item.title,
-    body: item.body,
-    time: formatReleaseTime(item.publishAt, locale),
-  }));
-  if (updateAvailable && latestTag) {
-    rows.push({
-      id: `release-upgrade:${latestTag}`,
-      tone: "notice",
-      title: t("notifications.upgrade.title", { version: latestTag }),
-      body: t("notifications.upgrade.body"),
-      time: formatReleaseTime(publishedAt, locale),
-      actions: (
-        <>
-          {releaseUrl ? (
-            <a
-              className="rounded-[6px] border border-border px-2 py-1 text-[11px] font-medium leading-none text-primary transition-colors hover:bg-muted"
-              href={releaseUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={onOpenRelease}
-            >
-              {t("notifications.upgrade.open")}
-            </a>
-          ) : null}
-          <button
-            type="button"
-            className="rounded-[6px] px-2 py-1 text-[11px] font-medium leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            onClick={onSkip}
-          >
-            {t("notifications.upgrade.skip")}
-          </button>
-        </>
-      ),
-    });
-    for (const item of latestItems) {
-      rows.push({
-        id: item.id,
-        tone: "notice",
-        title: item.title,
-        body: item.body,
-      });
-    }
-  }
-
-  for (const item of currentItems) {
-    rows.push({
-      id: item.id,
-      tone: "update",
-      title: item.title,
-      body: item.body,
-    });
-  }
-  return rows;
 }
 
 function formatReleaseTime(value: string | null, locale: string): string | undefined {

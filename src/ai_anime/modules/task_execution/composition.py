@@ -6,8 +6,6 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
-from ai_anime.modules.task_execution.application.cloud_tasks import CloudAdapter
-from ai_anime.modules.task_execution.application.ports import TaskBackend
 from ai_anime.modules.task_execution.application.project_tasks import (
     ProjectTaskUseCases,
 )
@@ -380,37 +378,12 @@ def run_project_model_subprocess(
     )
 
 
-def build_mock_cloud_adapter(
-    *,
-    step_delay_seconds: float | None = None,
-) -> CloudAdapter:
-    from ai_anime.modules.task_execution.infrastructure.mock_cloud_adapter import (
-        MockCloudAdapter,
-    )
-
-    return MockCloudAdapter(step_delay_seconds=step_delay_seconds)
-
-
-def build_mock_cloud_task_backend(
-    *,
-    step_delay_seconds: float | None = None,
-) -> TaskBackend:
-    from ai_anime.modules.task_execution.infrastructure.mock_cloud_backend import (
-        MockCloudTaskBackend,
-    )
-
-    return MockCloudTaskBackend(
-        build_mock_cloud_adapter(step_delay_seconds=step_delay_seconds)
-    )
-
 __all__ = [
     "active_subprocess_count",
     "await_envelope_with_cancel_watch",
     "await_with_cancel_watch",
     "build_in_memory_cancellation_store",
     "build_inline_task_backend",
-    "build_mock_cloud_adapter",
-    "build_mock_cloud_task_backend",
     "create_project_task_limit_use_cases",
     "create_project_task_use_cases",
     "get_project_task_runner",

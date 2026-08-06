@@ -166,7 +166,7 @@ modules/identity_access/public.ts
 - 模型调用只有两条入口：普通版 Cloud 由云端中转；专业版 BYOK 由用户自填标准模型接口，客户端只做请求不中转。对象存储统一走平台云端，不提供用户 BYOK 存储入口。
 - Agent 执行使用 Electron 内置的 Hermes ACP（`desktop/hermes-runtime`），模型仍只走上面两条入口。
 
-发布通知位于 `modules/platform_release`。桌面启动器当前设置 `AI_ANIME_RELEASE_FEED_ADAPTER=mock`；后续服务器适配器只需实现 `ReleaseFeedPort` 并替换组合根注册，前端继续使用 `/api/v1/release-notifications`、版本更新弹窗、强制升级页和 Chunk 恢复监听。
+通知中心与版本更新只走真实商业链路：公告来自网关 `/api/v1/client/announcements/active`，版本检查/强制升级来自 `/api/v1/client/releases/check`，均由 Electron 主进程经 IPC 提供给渲染层。后端 `/api/v1/release-notifications` 已移除 mock feed，返回空 feed（`source=none`），前端不再消费本地模拟发布数据。
 
 ## 6. 云生成任务适配
 
@@ -176,7 +176,7 @@ modules/identity_access/public.ts
 - `CloudAdapter.run_task()` 执行任务、上报进度并响应取消。
 - `CloudTaskResult` 返回供应商任务 ID、provider、model、kind 和本地化结果。
 
-桌面启动器默认 `AI_ANIME_CLOUD_ADAPTER=mock`，mock 适配器位于 `modules/task_execution/infrastructure/mock_cloud_adapter.py`、`mock_cloud_backend.py`，由 `shared/ports/local/__init__.py` 按环境变量注册。真实适配器应在一次用例内完成提交、轮询、取消和结果下载；React 不直接理解供应商协议，也不直接连接云端。
+桌面任务后端不再使用 mock cloud adapter：`mock_cloud_adapter.py`/`mock_cloud_backend.py` 已删除，`shared/ports/local` 默认注册 inline 本地任务后端（真实执行）。真实商业模型调用由 Electron 主进程的商业模型代理按普通版 Cloud / 专业版 BYOK 两条入口发出；React 不直接理解供应商协议，也不直接连接云端。
 
 真实商业模型调用不经过 CloudAdapter，由 Electron 主进程的商业模型代理按普通版 Cloud / 专业版 BYOK 两条入口发出（见第 5 节）。
 

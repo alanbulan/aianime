@@ -545,8 +545,6 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
         module / "domain" / "task_cancellation.py",
         module / "infrastructure" / "admission_policy.py",
         module / "infrastructure" / "inline_backend.py",
-        module / "infrastructure" / "mock_cloud_adapter.py",
-        module / "infrastructure" / "mock_cloud_backend.py",
         module / "infrastructure" / "project_tasks.py",
         module / "infrastructure" / "project_subprocesses.py",
         module / "infrastructure" / "project_task_capacity.py",
@@ -653,7 +651,6 @@ def test_task_restart_recovery_rules_are_owned_by_task_execution() -> None:
     composition = module / "composition.py"
     task_state = PACKAGE_ROOT / "task_state.py"
     inline_backend = module / "infrastructure" / "inline_backend.py"
-    mock_backend = module / "infrastructure" / "mock_cloud_backend.py"
 
     domain_source = domain.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -674,7 +671,7 @@ def test_task_restart_recovery_rules_are_owned_by_task_execution() -> None:
         'TERMINAL_TASK_STATUSES = {',
     ):
         assert moved_rule not in task_state_source
-    for backend in (inline_backend, mock_backend):
+    for backend in (inline_backend,):
         source = backend.read_text(encoding="utf-8")
         assert "task_execution.domain.task_restart_recovery" in source
         assert "from ai_anime.task_state import ACTIVE_PROJECT_TASK_STATUSES" not in source

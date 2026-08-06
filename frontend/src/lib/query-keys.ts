@@ -117,5 +117,4 @@ export const queryKeys = {
   commercialRelease: () => ["commercial", "release"] as const,
   commercialAnnouncements: (limit: number) =>
     ["commercial", "announcements", limit] as const,
-  releaseNotifications: (locale: string) => ["release-notifications", locale] as const,
 };

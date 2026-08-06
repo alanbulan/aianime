@@ -1,35 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   downloadCommercialArtifact,
-  ensureReleaseNotifications,
   installCommercialArtifact,
-  markCurrentReleaseSeen,
-  shouldAutoShowCurrentRelease,
   subscribeOpenVersionUpdateDialog,
   useCommercialRelease,
-  useReleaseNotifications,
 } from "@/modules/platform_release/composition";
-import { normalizeReleaseLocale } from "@/modules/platform_release/domain/release-notifications";
 
 const UPDATE_HERO_VIDEO_URL = "/video/login-community-preview.mp4";
 
 export function VersionUpdateDialog() {
-  const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
-  const locale = normalizeReleaseLocale(
-    i18n.resolvedLanguage ?? i18n.language,
-  );
-  const releaseNotifications = useReleaseNotifications(locale);
+  const { t } = useTranslation();
   const commercialEnabled = Boolean(window.aiAnimeDesktop?.commercial);
   const commercialRelease = useCommercialRelease(commercialEnabled);
   const refetchCommercialRelease = commercialRelease.refetch;
-  const feed = releaseNotifications.data;
-  const items = feed?.current_items ?? [];
   const commercialUpdateAvailable = Boolean(
     commercialRelease.data?.available && !commercialRelease.data.required,
   );
@@ -37,7 +24,6 @@ export function VersionUpdateDialog() {
   const [installState, setInstallState] = useState<
     "idle" | "downloading" | "installing" | "error"
   >("idle");
-  const autoOpenedTagRef = useRef<string | null>(null);
   const autoOpenedCommercialRef = useRef(false);
   const artifactId = commercialRelease.data?.artifactId ?? null;
   const isInstalling =
@@ -58,20 +44,6 @@ export function VersionUpdateDialog() {
   }, [artifactId, isInstalling]);
 
   useEffect(() => {
-    const tag = feed?.current_tag ?? null;
-    if (
-      !tag ||
-      autoOpenedTagRef.current === tag ||
-      !shouldAutoShowCurrentRelease(feed)
-    ) {
-      return;
-    }
-    autoOpenedTagRef.current = tag;
-    markCurrentReleaseSeen(tag);
-    setOpen(true);
-  }, [feed]);
-
-  useEffect(() => {
     if (!commercialUpdateAvailable || autoOpenedCommercialRef.current) return;
     autoOpenedCommercialRef.current = true;
     setOpen(true);
@@ -80,15 +52,13 @@ export function VersionUpdateDialog() {
   useEffect(
     () =>
       subscribeOpenVersionUpdateDialog(() => {
-        const commercialCheck = commercialEnabled
-          ? refetchCommercialRelease()
-          : Promise.resolve();
-        void Promise.all([
-          ensureReleaseNotifications(queryClient, locale),
-          commercialCheck,
-        ]).finally(() => setOpen(true));
+        if (commercialEnabled) {
+          void refetchCommercialRelease().finally(() => setOpen(true));
+        } else {
+          setOpen(true);
+        }
       }),
-    [commercialEnabled, locale, queryClient, refetchCommercialRelease],
+    [commercialEnabled, refetchCommercialRelease],
   );
 
   return (
@@ -127,17 +97,9 @@ export function VersionUpdateDialog() {
               <p className="m-0">
                 {t("app.commercialUpdate.availableDescription")}
               </p>
-            ) : null}
-            {items.length > 0 ? (
-              items.map((item, index) => (
-                <p key={item.id} className="m-0">
-                  {index + 1}. {item.title}
-                  {item.body ? `: ${item.body}` : ""}
-                </p>
-              ))
-            ) : !commercialUpdateAvailable ? (
+            ) : (
               <p className="m-0">{t("app.versionUpdate.empty")}</p>
-            ) : null}
+            )}
           </div>
           {commercialUpdateAvailable && artifactId !== null ? (
             <div className="mt-7 space-y-2">
