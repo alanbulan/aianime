@@ -161,7 +161,7 @@ def _text_sha256(text: str) -> str:
 
 @pytest.mark.asyncio
 async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -228,7 +228,7 @@ async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_pa
 
 @pytest.mark.asyncio
 async def test_indextts2_runner_generates_manual_narration_and_dialogue(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -284,7 +284,7 @@ async def test_indextts2_runner_generates_manual_narration_and_dialogue(tmp_path
 
 @pytest.mark.asyncio
 async def test_indextts2_runner_treats_missing_audio_type_as_narration(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -325,7 +325,7 @@ async def test_indextts2_runner_treats_missing_audio_type_as_narration(tmp_path,
 async def test_indextts2_drama_narration_uses_beat_uploaded_audio_before_project_narrator(
     tmp_path, monkeypatch
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         collect_indextts2_voice_prereq_errors,
         run_indextts2_beat_audio_generation,
     )
@@ -369,7 +369,7 @@ async def test_indextts2_drama_narration_uses_beat_uploaded_audio_before_project
 async def test_indextts2_narrated_project_ignores_beat_uploaded_narration_voice(
     tmp_path, monkeypatch
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         collect_indextts2_voice_prereq_errors,
     )
 
@@ -397,7 +397,7 @@ async def test_indextts2_narrated_project_ignores_beat_uploaded_narration_voice(
 async def test_indextts2_drama_narration_ignores_first_person_protagonist_for_fallback(
     tmp_path, monkeypatch
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
     from ai_anime.project_config import update_project_config_file
@@ -443,7 +443,7 @@ async def test_indextts2_drama_narration_ignores_first_person_protagonist_for_fa
 
 @pytest.mark.asyncio
 async def test_indextts2_runner_treats_legacy_action_audio_type_as_silence(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -483,7 +483,7 @@ async def test_indextts2_runner_treats_legacy_action_audio_type_as_silence(tmp_p
 
 @pytest.mark.asyncio
 async def test_indextts2_runner_skips_silence_audio_type(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -524,7 +524,7 @@ async def test_indextts2_runner_skips_silence_audio_type(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_indextts2_selected_runner_missing_only_skips_existing(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -557,7 +557,7 @@ async def test_indextts2_selected_runner_missing_only_skips_existing(tmp_path, m
 
 @pytest.mark.asyncio
 async def test_indextts2_sync_changed_skips_current_existing_audio(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
     from ai_anime.modules.seedance2_i2v.voice_audio_records import (
@@ -605,7 +605,7 @@ async def test_indextts2_sync_changed_skips_current_existing_audio(tmp_path, mon
 
 @pytest.mark.asyncio
 async def test_indextts2_runner_logs_skipped_breakdown(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
     from ai_anime.modules.seedance2_i2v.voice_audio_records import (
@@ -662,7 +662,7 @@ async def test_indextts2_runner_logs_skipped_breakdown(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
     from ai_anime.modules.seedance2_i2v.voice_audio_records import (
@@ -719,7 +719,7 @@ async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(tmp_pat
 
 @pytest.mark.asyncio
 async def test_indextts2_selected_runner_records_missing_voice_and_continues(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -756,7 +756,7 @@ async def test_indextts2_selected_runner_records_missing_voice_and_continues(tmp
 async def test_indextts2_voice_prereq_check_reports_missing_dialogue_before_task(
     tmp_path, monkeypatch
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         collect_indextts2_voice_prereq_errors,
     )
 
@@ -786,7 +786,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_dialogue_before_task
 async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task(
     tmp_path, monkeypatch
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         collect_indextts2_voice_prereq_errors,
     )
 
@@ -818,7 +818,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
 async def test_indextts2_voice_prereq_check_skips_existing_in_missing_only(
     tmp_path,
 ):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         collect_indextts2_voice_prereq_errors,
     )
 
@@ -843,7 +843,7 @@ async def test_indextts2_voice_prereq_check_skips_existing_in_missing_only(
 
 @pytest.mark.asyncio
 async def test_indextts2_selected_runner_records_generator_failure(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 
@@ -889,7 +889,7 @@ async def test_indextts2_selected_runner_records_generator_failure(tmp_path, mon
 
 @pytest.mark.asyncio
 async def test_indextts2_selected_runner_reraises_insufficient_credit(tmp_path, monkeypatch):
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
 

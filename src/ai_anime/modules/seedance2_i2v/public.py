@@ -6,6 +6,10 @@ from ai_anime.modules.seedance2_i2v.assets import (
     selected_reference_paths,
 )
 from ai_anime.modules.seedance2_i2v import panel_service
+from ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task import (
+    collect_indextts2_voice_prereq_errors,
+    run_indextts2_beat_audio_generation,
+)
 from ai_anime.modules.seedance2_i2v.models import (
     Seedance2I2VMode,
     dump_seedance2_config,
@@ -35,6 +39,7 @@ __all__ = [
     "append_seedance2_user_reference_assets",
     "build_reference_audio_url",
     "build_seedance2_project_assets",
+    "collect_indextts2_voice_prereq_errors",
     "dialogue_voice_reference_rows",
     "dump_seedance2_config",
     "file_sha256",
@@ -47,5 +52,6 @@ __all__ = [
     "resolve_character_voice",
     "resolve_narrator_reference_status",
     "resolve_narrator_source",
+    "run_indextts2_beat_audio_generation",
     "selected_reference_paths",
 ]

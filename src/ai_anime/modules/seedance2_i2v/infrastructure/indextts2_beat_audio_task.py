@@ -13,6 +13,7 @@ from ai_anime.audio_request_usage import (
     update_audio_generation_attempt,
 )
 from ai_anime.config import INDEXTTS2_RECORD_PROVIDER
+from ai_anime.modules.generators.public import IndexTTS2Client
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.project_config import (
     is_narrated_project,
@@ -369,8 +370,6 @@ async def run_indextts2_beat_audio_generation(
     if not model_name:
         raise ValueError("audio model is required")
     if generator is None:
-        from ai_anime.modules.generators.indextts2 import IndexTTS2Client
-
         generator = IndexTTS2Client(model=model_name)
 
     normalized_mode = _normalize_mode(mode)

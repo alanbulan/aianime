@@ -25,7 +25,7 @@ async def _run_indextts2_audio(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.audio.indextts2_beat_audio_task import (
+    from ai_anime.modules.production.public import (
         run_indextts2_beat_audio_generation,
     )
     from ai_anime.sqlite_store import SQLiteStore

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_anime.audio.indextts2_beat_audio_task import (
+from ai_anime.modules.seedance2_i2v.public import (
     collect_indextts2_voice_prereq_errors,
 )
 from ai_anime.modules.production.application.episode_audio import (

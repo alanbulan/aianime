@@ -107,7 +107,7 @@ def test_indextts2_beat_audio_task_module_imports():
     """C5 unblocks top-level import of indextts2_beat_audio_task."""
     import importlib
 
-    mod = importlib.import_module("ai_anime.audio.indextts2_beat_audio_task")
+    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task")
     assert hasattr(mod, "run_indextts2_beat_audio_generation")
 
 
