@@ -49,6 +49,7 @@ import { createMultiAngleEditorOverlay } from './presentation/MultiAngleEditorOv
 import { createVideoUpscaleEditorOverlay } from './presentation/VideoUpscaleEditorOverlay';
 import { createNodeToolDialog } from './presentation/NodeToolDialog';
 import { createNodeSpawnPlusOverlay } from './presentation/NodeSpawnPlusOverlay';
+import { createGridActionConfirmOverlay } from './presentation/GridActionConfirmOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -72,6 +73,7 @@ import {
   generateCanvasRelight,
   generateCanvasMultiAngle,
   generateCanvasVideoUpscale,
+  generateCanvasGridAction,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import {
@@ -621,6 +623,11 @@ export const NodeToolDialog = createNodeToolDialog({
 });
 export const NodeSpawnPlusOverlay = createNodeSpawnPlusOverlay({
   useCanvasStore,
+});
+export const GridActionConfirmOverlay = createGridActionConfirmOverlay({
+  useStore: useCanvasStore,
+  useCanvasImageModels,
+  generateCanvasGridAction,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

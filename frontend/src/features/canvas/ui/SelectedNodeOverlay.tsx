@@ -26,7 +26,7 @@ import { UpscaleEditorOverlay } from '@/modules/creative_canvas/canvasCompositio
 import { VideoUpscaleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { OutpaintEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { RotateEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
-import { GridActionConfirmOverlay } from './GridActionConfirmOverlay';
+import { GridActionConfirmOverlay } from '@/modules/creative_canvas/canvasComposition';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/modules/creative_canvas/public";

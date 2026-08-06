@@ -25702,7 +25702,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/GridActionConfirmOverlay.tsx",
+      "modules/creative_canvas/presentation/GridActionConfirmOverlay.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
@@ -25769,7 +25769,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneGridActionGenerationGateway",
     );
     expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
