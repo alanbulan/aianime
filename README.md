@@ -19,7 +19,7 @@ flowchart LR
     App --> Infra[Infrastructure 适配器]
     Infra --> Local[SQLite / 本地文件 / FFmpeg]
     Infra --> Mock[本地认证、发布通知和云任务模拟器]
-    Infra -. 后续 .-> Cloud[真实云端服务]
+    Electron -->|商业登录/许可/模型代理| Cloud[真实云端 Gateway]
 ```
 
 桌面启动顺序：
@@ -31,6 +31,8 @@ flowchart LR
 5. Electron 为该后端地址的请求注入 `X-AI-Anime-Desktop-Token`。
 6. 开发模式启动 Vite 并加载 `http://127.0.0.1:5173`；发布模式由 FastAPI 在随机地址托管 SPA。
 7. 窗口退出时，Electron 调用 `/__desktop/shutdown` 并回收后端进程。
+
+开发模式启动前会自动对 `desktop/hermes-runtime` 执行锁定同步，Hermes ACP 以隐藏子进程启动，用户无需单独安装 Hermes 环境。
 
 桌面进程令牌和用户会话是两套独立机制：
 
@@ -67,6 +69,7 @@ ai-anime-desktop/
 │  ├─ src/backend.ts               FastAPI sidecar 启停、令牌与健康检查
 │  ├─ scripts/dev.mjs              FastAPI + Vite + Electron 直接开发模式
 │  ├─ backend/                     PyInstaller 入口和 spec
+│  ├─ hermes-runtime/             独立 Hermes ACP 运行时（锁定依赖）
 │  └─ electron-builder.yml         NSIS 和应用图标配置
 ├─ frontend/
 │  ├─ public/                      Logo、登录背景和主题初始化脚本
@@ -156,17 +159,26 @@ modules/identity_access/public.ts
 
 当前模拟会话格式不具备正式云端会话的签名、刷新和跨设备撤销能力。接入真实服务时保持 `/api/v1/auth/*` 与 `CurrentUser` 前端合同不变，在 `modules/identity_access/application/ports.py` 定义稳定能力，在 `infrastructure` 新增远程适配器，并由进程组合根选择实现。云端令牌必须保留在 FastAPI 或 Windows 安全存储中。
 
+商业云端链路由 Electron 主进程承担（`desktop/src/commercial.ts`、`commercial-device.ts`、`commercial-lease.ts`、`commercial-model-proxy.ts`、`secure-file-store.ts`），固定 Gateway 为 `https://aianime.122-193-11-199.sslip.io`：
+
+- 登录/刷新/退出、设备身份、软件许可与离线租约验签、额度与模型目录、公告与版本检查全部经主进程访问 Gateway。
+- 渲染进程只持有可展示的会话摘要和业务 DTO；JWT、设备私钥、BYOK 持久化密文、离线租约与更新制品不进入 React。
+- 模型调用只有两条入口：普通版 Cloud 由云端中转；专业版 BYOK 由用户自填标准模型接口，客户端只做请求不中转。对象存储统一走平台云端，不提供用户 BYOK 存储入口。
+- Agent 执行使用 Electron 内置的 Hermes ACP（`desktop/hermes-runtime`），模型仍只走上面两条入口。
+
 发布通知位于 `modules/platform_release`。桌面启动器当前设置 `AI_ANIME_RELEASE_FEED_ADAPTER=mock`；后续服务器适配器只需实现 `ReleaseFeedPort` 并替换组合根注册，前端继续使用 `/api/v1/release-notifications`、版本更新弹窗、强制升级页和 Chunk 恢复监听。
 
 ## 6. 云生成任务适配
 
-进程级云任务协议仍位于 `src/ai_anime/ports/cloud.py`：
+进程级云任务协议位于 `src/ai_anime/modules/task_execution/application/cloud_tasks.py`：
 
 - `CloudTaskRequest` 定义 task ID、类型、媒体 kind、项目、剧集、Beat、scope、payload 和输出目录。
 - `CloudAdapter.run_task()` 执行任务、上报进度并响应取消。
 - `CloudTaskResult` 返回供应商任务 ID、provider、model、kind 和本地化结果。
 
-桌面启动器当前固定 `AI_ANIME_CLOUD_ADAPTER=mock`，`ports/local/__init__.py` 注册 `MockCloudAdapter` 和 `MockCloudTaskBackend`。真实适配器应在一次用例内完成提交、轮询、取消和结果下载；React 不直接理解供应商协议，也不直接连接云端。
+桌面启动器默认 `AI_ANIME_CLOUD_ADAPTER=mock`，mock 适配器位于 `modules/task_execution/infrastructure/mock_cloud_adapter.py`、`mock_cloud_backend.py`，由 `shared/ports/local/__init__.py` 按环境变量注册。真实适配器应在一次用例内完成提交、轮询、取消和结果下载；React 不直接理解供应商协议，也不直接连接云端。
+
+真实商业模型调用不经过 CloudAdapter，由 Electron 主进程的商业模型代理按普通版 Cloud / 专业版 BYOK 两条入口发出（见第 5 节）。
 
 ## 7. 本地开发
 
@@ -196,6 +208,7 @@ uv run ruff check src tests
 pnpm --dir frontend exec vitest run --maxWorkers=1 --no-file-parallelism
 pnpm --dir frontend typecheck
 pnpm --dir desktop typecheck
+pnpm --dir desktop test
 ```
 
 Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行；Vitest 使用单 worker，避免多个 Node 进程同时占用大量内存。日常重构不执行生产构建，发布门禁才运行：
@@ -209,7 +222,7 @@ pnpm --dir desktop package:win
 | 门禁 | 文件 | 约束 |
 | --- | --- | --- |
 | 后端依赖方向 | `tests/architecture/test_layer_boundaries.py` | 非 API 不反向依赖 API、route 不互相导入、跨上下文只经 public |
-| OpenAPI 合同 | `tests/architecture/test_openapi_contract_snapshot.py` | 浏览器 293、桌面 295 个规范化操作合同保持稳定 |
+| OpenAPI 合同 | `tests/architecture/test_openapi_contract_snapshot.py` | 浏览器 280、桌面 282 个规范化操作合同保持稳定 |
 | 前端模块边界 | `frontend/src/__tests__/architecture/module-boundaries.test.ts` | route、domain、application、infrastructure、presentation 和 public 边界 |
 | SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.test.ts` | Agent、消息、存储、WebSocket 和视图职责唯一 |
 | 颜色字面量 | `frontend/src/__tests__/architecture/ui-color-literals.test.ts` | UI chrome 不新增硬编码颜色，领域/媒体颜色使用精确预算 |
