@@ -1,7 +1,7 @@
-export { MentionTextarea } from "@/features/mention-textarea/MentionTextarea";
+export { MentionTextarea } from "@/modules/mention_textarea/MentionTextarea";
 export type {
   MentionTextareaProps,
-} from "@/features/mention-textarea/MentionTextarea";
+} from "@/modules/mention_textarea/MentionTextarea";
 export {
   buildMentionSegments,
   detectMentionQuery,
@@ -10,11 +10,11 @@ export {
   insertMentionText,
   mentionPreviewPosition,
   replaceMentionText,
-} from "@/features/mention-textarea/domain/mention-text";
+} from "@/modules/mention_textarea/domain/mention-text";
 export type {
   MentionQuery,
   MentionRange,
   MentionSegment,
   MentionTextEdit,
   MentionToken,
-} from "@/features/mention-textarea/domain/mention-text";
+} from "@/modules/mention_textarea/domain/mention-text";

@@ -8,7 +8,7 @@ import {
   insertMentionText,
   mentionPreviewPosition,
   replaceMentionText,
-} from "@/features/mention-textarea/public";
+} from "@/modules/mention_textarea/public";
 
 describe("mention textarea domain", () => {
   it("segments known mentions with longest-label matching", () => {

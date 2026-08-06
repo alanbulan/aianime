@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type { ComponentProps } from "react";
 
-import { useMentionTextareaController } from "@/features/mention-textarea/application/use-mention-textarea-controller";
-import { MentionTextareaView } from "@/features/mention-textarea/presentation/MentionTextareaView";
+import { useMentionTextareaController } from "@/modules/mention_textarea/application/use-mention-textarea-controller";
+import { MentionTextareaView } from "@/modules/mention_textarea/presentation/MentionTextareaView";
 
 export interface MentionTextareaProps
   extends Omit<ComponentProps<"textarea">, "value"> {

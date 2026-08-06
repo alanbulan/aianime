@@ -2,7 +2,7 @@
 import { Fragment, type ComponentProps } from "react";
 import { createPortal } from "react-dom";
 
-import type { MentionTextareaController } from "@/features/mention-textarea/application/use-mention-textarea-controller";
+import type { MentionTextareaController } from "@/modules/mention_textarea/application/use-mention-textarea-controller";
 import { cn } from "@/lib/utils";
 
 type MentionTextareaNativeProps = Omit<

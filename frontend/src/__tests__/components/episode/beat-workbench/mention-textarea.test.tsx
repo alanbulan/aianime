@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useState } from "react";
 
-import { MentionTextarea } from "@/features/mention-textarea/public";
+import { MentionTextarea } from "@/modules/mention_textarea/public";
 
 function ControlledMentionTextarea() {
   const [value, setValue] = useState("");

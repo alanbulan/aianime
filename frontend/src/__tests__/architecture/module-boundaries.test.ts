@@ -17731,31 +17731,31 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/mention-textarea.tsx",
     );
     const componentSource = readFileSync(
-      resolve(SRC_ROOT, "features/mention-textarea/MentionTextarea.tsx"),
+      resolve(SRC_ROOT, "modules/mention_textarea/MentionTextarea.tsx"),
       "utf8",
     );
     const controllerSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/mention-textarea/application/use-mention-textarea-controller.ts",
+        "modules/mention_textarea/application/use-mention-textarea-controller.ts",
       ),
       "utf8",
     );
     const domainSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/mention-textarea/domain/mention-text.ts",
+        "modules/mention_textarea/domain/mention-text.ts",
       ),
       "utf8",
     );
     const publicSource = readFileSync(
-      resolve(SRC_ROOT, "features/mention-textarea/public.ts"),
+      resolve(SRC_ROOT, "modules/mention_textarea/public.ts"),
       "utf8",
     );
     const viewSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/mention-textarea/presentation/MentionTextareaView.tsx",
+        "modules/mention_textarea/presentation/MentionTextareaView.tsx",
       ),
       "utf8",
     );
@@ -17769,14 +17769,16 @@ describe("frontend architecture boundaries", () => {
     const externalInternalImports = sourceFiles(SRC_ROOT)
       .filter(
         (path) =>
-          !relativeSource(path).startsWith("features/mention-textarea/"),
+          !relativeSource(path).startsWith("modules/mention_textarea/"),
       )
       .flatMap((path) =>
         importSpecifiers(path)
           .filter(
             (specifier) =>
-              specifier.startsWith("@/features/mention-textarea/") &&
-              specifier !== "@/features/mention-textarea/public",
+              (specifier.startsWith("@/features/mention-textarea/") &&
+                specifier !== "@/features/mention-textarea/public") ||
+              (specifier.startsWith("@/modules/mention_textarea/") &&
+                specifier !== "@/modules/mention_textarea/public"),
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       );

@@ -5,7 +5,7 @@ import { fireEvent, render } from "@testing-library/react";
 import {
   findMentionTokenAtSelection,
   MentionTextarea,
-} from "@/features/mention-textarea/public";
+} from "@/modules/mention_textarea/public";
 
 describe("findMentionTokenAtSelection", () => {
   const text = "参考 @图片1 收尾"; // @图片1 在 [3,7)

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 
-import { MentionTextarea } from "@/features/mention-textarea/public";
+import { MentionTextarea } from "@/modules/mention_textarea/public";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

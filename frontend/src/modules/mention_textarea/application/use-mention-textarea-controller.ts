@@ -28,7 +28,7 @@ import {
   type MentionQuery,
   type MentionRange,
   type MentionSegment,
-} from "@/features/mention-textarea/domain/mention-text";
+} from "@/modules/mention_textarea/domain/mention-text";
 import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
 
 const MENTION_PREVIEW_SIZE = 200;
