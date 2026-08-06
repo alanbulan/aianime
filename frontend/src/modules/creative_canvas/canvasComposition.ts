@@ -33,6 +33,7 @@ import {
 import { createUsePano360ViewerNodeController } from './presentation/usePano360ViewerNodeController';
 import { createUseBeatContextNodeController } from './presentation/useBeatContextNodeController';
 import { createUseSkillNodeController } from './presentation/useSkillNodeController';
+import { createUseStoryboardGenNodeController } from './presentation/useStoryboardGenNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -443,6 +444,19 @@ export const useSkillNodeController = createUseSkillNodeController({
   loadCanvasSkillRegistry,
   useCanvasImageModels,
 });
+export const useStoryboardGenNodeController =
+  createUseStoryboardGenNodeController({
+    useStore: useCanvasStore,
+    useSettingsStore,
+    canvasAiGateway,
+    CURRENT_RUNTIME_SESSION_ID,
+    detectAspectRatio,
+    getRuntimeDiagnostics,
+    showErrorDialog: showErrorDialogInfrastructure,
+    uploadLocalImageToBackend,
+    useUpstreamImages,
+    useCanvasImageModels,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

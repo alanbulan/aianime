@@ -3540,6 +3540,8 @@ export { BeatContextNodeView } from "@/modules/creative_canvas/presentation/Beat
 export type { BeatContextNodeController } from "@/modules/creative_canvas/presentation/useBeatContextNodeController";
 export { SkillNodeView } from "@/modules/creative_canvas/presentation/SkillNodeView";
 export type { SkillNodeController } from "@/modules/creative_canvas/presentation/useSkillNodeController";
+export { StoryboardGenNodeView } from "@/modules/creative_canvas/presentation/StoryboardGenNodeView";
+export type { StoryboardGenNodeController } from "@/modules/creative_canvas/presentation/useStoryboardGenNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

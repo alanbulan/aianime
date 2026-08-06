@@ -3,7 +3,7 @@ import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
+import type { StoryboardGenNodeController } from './useStoryboardGenNodeController';
 
 import { StoryboardGenNodeView } from './StoryboardGenNodeView';
 
@@ -12,8 +12,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -31,10 +30,19 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       {rightSlot}
     </div>
   ),
+}));
+
+vi.mock('./CanvasNodeImage', () => ({
   CanvasNodeImage: ({ src, alt }: { src: string; alt: string }) => (
     <img src={src} alt={alt} />
   ),
+}));
+
+vi.mock('./NodePriceBadge', () => ({
   NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -50,6 +58,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}
     </div>
   ),
+}));
+
+vi.mock('./ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
     onResolutionChange,

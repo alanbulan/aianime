@@ -2376,19 +2376,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useStoryboardGenNodeController.ts",
+      "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useStoryboardGenNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useStoryboardGenNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardGenNodeView.tsx",
+      "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardGenNodeView.test.tsx",
+      "modules/creative_canvas/presentation/StoryboardGenNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -2425,7 +2425,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "resolveStoryboardGenLayout("].join(" "),
       ["export function", "generateStoryboardGridImageDataUrl("].join(" "),
       ["export function", "measureTextareaCaretOffset("].join(" "),
-      ["export function", "useStoryboardGenNodeController("].join(" "),
+      ["export function", "createUseStoryboardGenNodeController("].join(" "),
       ["export function", "StoryboardGenNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -2439,9 +2439,8 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useStoryboardGenNodeController",
-        "./StoryboardGenNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -2449,8 +2448,8 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
       ["modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts"],
       ["modules/creative_canvas/infrastructure/browserTextareaCaret.ts"],
-      ["features/canvas/hooks/useStoryboardGenNodeController.ts"],
-      ["features/canvas/nodes/StoryboardGenNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useStoryboardGenNodeController.ts"],
+      ["modules/creative_canvas/presentation/StoryboardGenNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -2487,13 +2486,13 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("useSettingsStore(");
     expect(controllerSource).toContain(
       "canvasAiGateway.submitGenerateImageJob(",
     );
     expect(controllerSource).toContain("generateStoryboardGridImageDataUrl(");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
@@ -2525,6 +2524,14 @@ describe("frontend architecture boundaries", () => {
       "from './useStoryboardGenNodeController'",
     );
     expect(viewTestSource).toContain("from './StoryboardGenNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useStoryboardGenNodeController.ts",
+      "features/canvas/hooks/useStoryboardGenNodeController.test.tsx",
+      "features/canvas/nodes/StoryboardGenNodeView.tsx",
+      "features/canvas/nodes/StoryboardGenNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     const migratedDeclarations = [
       ["export interface", "StoryboardGenFrameItem"].join(" "),
       ["export type", "StoryboardRatioControlMode"].join(" "),
@@ -8125,7 +8132,7 @@ describe("frontend architecture boundaries", () => {
     const nodeImageConsumers = [
       "features/canvas/nodes/ImageEditNodeView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
-      "features/canvas/nodes/StoryboardGenNodeView.tsx",
+      "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 
     expect(forbiddenImports).toEqual([]);
@@ -8158,9 +8165,19 @@ describe("frontend architecture boundaries", () => {
       "const openImageViewer = useStore((state) => state.openImageViewer)",
     );
     for (const consumerPath of nodeImageConsumers) {
-      expect(importSpecifiers(consumerPath)).toContain(
-        "@/modules/creative_canvas/public",
-      );
+      if (
+        relativeSource(consumerPath) ===
+        "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx"
+      ) {
+        expect(importSpecifiers(consumerPath)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+        expect(importSpecifiers(consumerPath)).toContain("./CanvasNodeImage");
+      } else {
+        expect(importSpecifiers(consumerPath)).toContain(
+          "@/modules/creative_canvas/public",
+        );
+      }
       expect(importSpecifiers(consumerPath)).not.toContain(
         "@/features/canvas/ui/CanvasNodeImage",
       );
@@ -33085,7 +33102,7 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const consumers = [
       "features/canvas/hooks/useImageEditNodeController.ts",
-      "features/canvas/hooks/useStoryboardGenNodeController.ts",
+      "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts",
       "stores/settingsStore.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const controlsPath = resolve(
@@ -33134,9 +33151,21 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/ModelParamsControls",
     );
     for (const path of consumers) {
-      expect(importSpecifiers(path)).toContain(
-        "@/modules/creative_canvas/public",
-      );
+      if (
+        relativeSource(path) ===
+        "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts"
+      ) {
+        expect(importSpecifiers(path)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+        expect(importSpecifiers(path)).toContain(
+          "../application/imageModelCatalogProjection",
+        );
+      } else {
+        expect(importSpecifiers(path)).toContain(
+          "@/modules/creative_canvas/public",
+        );
+      }
       const source = readFileSync(path, "utf8");
       expect(source).not.toContain("@/features/canvas/models");
       expect(source).not.toContain("@/features/canvas/pricing");

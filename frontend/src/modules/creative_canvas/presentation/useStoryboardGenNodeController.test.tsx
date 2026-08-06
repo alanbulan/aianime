@@ -2,10 +2,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import { useStoryboardGenNodeController } from './useStoryboardGenNodeController';
-
-import type { StoryboardGenNodeData } from "@/modules/creative_canvas/public";
+import type { StoryboardGenNodeData } from '../domain/canvasNodeData';
+import {
+  createUseStoryboardGenNodeController,
+  type StoryboardGenNodeSettingsStore,
+  type StoryboardGenNodeSettingsStoreHook,
+  type StoryboardGenNodeStore,
+  type StoryboardGenNodeStoreHook,
+} from './useStoryboardGenNodeController';
 const mocks = vi.hoisted(() => ({
   zoom: 1,
   upstreamImages: [] as string[],
@@ -74,65 +78,73 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: (
-    selector: (value: typeof mocks.settings) => unknown,
-  ) => selector(mocks.settings),
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-    const state = () => ({
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      addNode: mocks.addNode,
-      addEdge: mocks.addEdge,
-      findNodePosition: mocks.findNodePosition,
-    });
-    const useCanvasStore = Object.assign(
-      (selector: (value: ReturnType<typeof state>) => unknown) =>
-        selector(state()),
-      { getState: state },
-    );
-    return useCanvasStore;
-  })(),
+vi.mock('../infrastructure/browserStoryboardGenRuntime', () => ({
   STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  buildGenerationErrorReport: () => '错误报告',
-  createReferenceImagePlaceholders: (count: number) =>
-    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
   generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
     mocks.generateGridImage(...args),
-  imageModelDefinitions: () => [mocks.imageModel],
-  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
-  resolveGenerationErrorDiagnostics: () => ({
-    details: '诊断详情',
-    requestId: 'request-a',
-  }),
   resolveStoryboardPointerAnchor: (...args: unknown[]) =>
     mocks.resolvePointerAnchor(...args),
   resolveStoryboardPickerAnchor: (...args: unknown[]) =>
     mocks.resolvePickerAnchor(...args),
-  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
-  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
-  resolveModelPriceDisplay: () => null,
-  selectImageModel: () => mocks.imageModel,
-  useCanvasImageModels: () => ({ models: [{ id: 'model-a' }] }),
 }));
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
+vi.mock('../application/generationErrorReport', () => ({
+  buildGenerationErrorReport: () => '错误报告',
+  createReferenceImagePlaceholders: (count: number) =>
+    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
+  resolveGenerationErrorDiagnostics: () => ({
+    details: '诊断详情',
+    requestId: 'request-a',
+  }),
+}));
+
+vi.mock('../application/errorDialog', () => ({
+  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
+}));
+
+vi.mock('../application/imageModelCatalogProjection', () => ({
+  imageModelDefinitions: () => [mocks.imageModel],
+  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
+  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
+  selectImageModel: () => mocks.imageModel,
+}));
+
+vi.mock('../application/modelPriceDisplay', () => ({
+  resolveModelPriceDisplay: () => null,
+}));
+
+const useStore = ((selector: (state: StoryboardGenNodeStore) => unknown) =>
+  selector({
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    addNode: mocks.addNode,
+    addEdge: mocks.addEdge,
+    findNodePosition: mocks.findNodePosition,
+  })) as unknown as StoryboardGenNodeStoreHook;
+
+const useSettingsStore = ((selector: (state: StoryboardGenNodeSettingsStore) => unknown) =>
+  selector(mocks.settings as unknown as StoryboardGenNodeSettingsStore)) as unknown as StoryboardGenNodeSettingsStoreHook;
+
+const useStoryboardGenNodeController = createUseStoryboardGenNodeController({
+  useStore,
+  useSettingsStore,
   CURRENT_RUNTIME_SESSION_ID: 'session-a',
   canvasAiGateway: {
     submitGenerateImageJob: (...args: unknown[]) =>
       mocks.submitGenerateImageJob(...args),
-  },
+  } as unknown as Parameters<
+    typeof createUseStoryboardGenNodeController
+  >[0]['canvasAiGateway'],
   detectAspectRatio: (...args: unknown[]) => mocks.detectAspectRatio(...args),
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
   useUpstreamImages: () => mocks.upstreamImages,
-}));
+  useCanvasImageModels: () => ({
+    models: [{ id: 'model-a', apiModel: 'model-a', label: '模型 A' }],
+  }),
+});
 
 vi.mock('@/shared/api/errors', () => ({
   backendErrorToastMessage: (...args: unknown[]) =>

@@ -10,65 +10,146 @@ import {
 import { useUpdateNodeInternals, useViewport } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-
+import type {
+  CanvasNodeData,
+  CanvasNodeType,
+  StoryboardGenNodeData,
+} from '../domain/canvasNodeData';
+import type { ImageSize } from '../domain/imageNodeSizing';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName } from '../domain/nodeDisplay';
+import { AUTO_REQUEST_ASPECT_RATIO, parseAspectRatio } from '../domain/aspectRatio';
 import {
-  canvasAiGateway,
-  CURRENT_RUNTIME_SESSION_ID,
-  detectAspectRatio,
-  getRuntimeDiagnostics,
-  showErrorDialog,
-  uploadLocalImageToBackend,
-  useUpstreamImages,
-} from "@/modules/creative_canvas/canvasComposition";
-;
-import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName, type ImageSize, type StoryboardGenNodeData } from '@/modules/creative_canvas/public';
-import {
-  AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+} from '../domain/imageNodeLayout';
+import {
   STORYBOARD_GEN_AUTO_ASPECT_RATIO_OPTION,
-  STORYBOARD_PICKER_FALLBACK_ANCHOR,
   areStoryboardFrameDraftsEqual,
-  buildGenerationErrorReport,
   buildStoryboardFrameDescriptionDrafts,
   buildStoryboardGenerationPrompt,
-  createReferenceImagePlaceholders,
-  generateStoryboardGridImageDataUrl,
-  imageModelDefinitions,
-  insertReferenceToken,
-  parseAspectRatio,
-  pickClosestAspectRatio,
-  removeTextRange,
   resizeStoryboardGenFrames,
   resolveAutoStoryboardRequestAspectRatio,
-  resolveErrorContent,
-  resolveGenerationErrorDiagnostics,
-  resolveImageDisplayUrl,
-  resolveImageModelResolution,
-  resolveImageModelResolutions,
-  resolveModelPriceDisplay,
-  resolveReferenceAwareDeleteRange,
-  resolveStoryboardPickerAnchor,
-  resolveStoryboardPointerAnchor,
   resolveStoryboardGenAspectRatios,
   resolveStoryboardGenControlAspectRatio,
   resolveStoryboardGenLayout,
   resolveStoryboardGenRatioControlMode,
   resolveStoryboardGenerationFrameNotes,
   resolveStoryboardGridCount,
-  selectImageModel,
   updateStoryboardGenFrameDescription,
-  useCanvasImageModels,
   type StoryboardAspectRatioChoice,
-  type GenerationDebugContext,
-  type StoryboardPickerAnchor,
   type StoryboardRatioControlMode,
-} from '@/modules/creative_canvas/public';
+} from '../domain/storyboardGenNodeModel';
+import {
+  insertReferenceToken,
+  removeTextRange,
+  resolveReferenceAwareDeleteRange,
+} from '../domain/referenceTokenEditing';
+import {
+  pickClosestAspectRatio,
+  resolveImageDisplayUrl,
+} from '../domain/imageData';
+import {
+  imageModelDefinitions,
+  resolveImageModelResolution,
+  resolveImageModelResolutions,
+  selectImageModel,
+} from '../application/imageModelCatalogProjection';
+import { resolveModelPriceDisplay } from '../application/modelPriceDisplay';
+import {
+  buildGenerationErrorReport,
+  createReferenceImagePlaceholders,
+  resolveGenerationErrorDiagnostics,
+  type GenerationDebugContext,
+} from '../application/generationErrorReport';
+import { resolveErrorContent } from '../application/errorDialog';
+import type { CanvasImageJobGateway } from '../application/canvasImageJob';
+import type {
+  GrsaiCreditTierId,
+  PriceDisplayCurrencyMode,
+} from '../domain/modelPricing';
+import {
+  STORYBOARD_PICKER_FALLBACK_ANCHOR,
+  generateStoryboardGridImageDataUrl,
+  resolveStoryboardPickerAnchor,
+  resolveStoryboardPointerAnchor,
+  type StoryboardPickerAnchor,
+} from '../infrastructure/browserStoryboardGenRuntime';
 import { backendErrorToastMessage } from '@/shared/api/errors';
-import { useSettingsStore } from '@/stores/settingsStore';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export interface StoryboardGenNodeStore {
+  setSelectedNode: (id: string | null) => void;
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  addEdge: (source: string, target: string) => void;
+  findNodePosition: (
+    sourceNodeId: string,
+    width: number,
+    height: number,
+  ) => { x: number; y: number };
+}
+
+export type StoryboardGenNodeStoreHook = <TSelected>(
+  selector: (state: StoryboardGenNodeStore) => TSelected,
+) => TSelected;
+
+export interface StoryboardGenNodeSettingsStore {
+  storyboardGenKeepStyleConsistent: boolean;
+  storyboardGenDisableTextInImage: boolean;
+  storyboardGenAutoInferEmptyFrame: boolean;
+  ignoreAtTagWhenCopyingAndGenerating: boolean;
+  enableStoryboardGenGridPreviewShortcut: boolean;
+  showStoryboardGenAdvancedRatioControls: boolean;
+  showNodePrice: boolean;
+  priceDisplayCurrencyMode: PriceDisplayCurrencyMode;
+  usdToCnyRate: number;
+  preferDiscountedPrice: boolean;
+  grsaiCreditTierId: GrsaiCreditTierId;
+}
+
+export type StoryboardGenNodeSettingsStoreHook = <TSelected>(
+  selector: (state: StoryboardGenNodeSettingsStore) => TSelected,
+) => TSelected;
+
+export type StoryboardGenCanvasAiGateway = CanvasImageJobGateway;
+
+export type StoryboardGenDetectAspectRatio = (
+  imageUrl: string,
+) => Promise<string>;
+
+export type StoryboardGenRuntimeDiagnostics = {
+  appVersion?: string;
+  osName?: string;
+  osVersion?: string;
+  osBuild?: string;
+  userAgent?: string;
+};
+
+export type StoryboardGenGetRuntimeDiagnostics = () => Promise<StoryboardGenRuntimeDiagnostics>;
+
+export type StoryboardGenShowErrorDialog = (
+  text: string,
+  title: string,
+  details?: string,
+  copyText?: string,
+) => Promise<void>;
+
+export type StoryboardGenUploadLocalImage = (
+  projectId: string,
+  dataUrl: string,
+  filename: string,
+) => Promise<string>;
+
+export type StoryboardGenUseUpstreamImages = (nodeId: string) => string[];
+
+export type StoryboardGenUseImageModels = (
+  projectId: string,
+  purpose: 'edit',
+) => { models: Array<{ id: string; apiModel: string; label: string }> };
 export interface StoryboardGenNodeControllerOptions {
   id: string;
   projectId: string;
@@ -88,23 +169,46 @@ function createFrameId(): string {
   return `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function useStoryboardGenNodeController({
-  id,
-  projectId,
-  canvasId,
-  data,
-  selected,
-  width,
-  height,
-}: StoryboardGenNodeControllerOptions) {
+export function createUseStoryboardGenNodeController({
+  useStore,
+  useSettingsStore,
+  canvasAiGateway,
+  CURRENT_RUNTIME_SESSION_ID,
+  detectAspectRatio,
+  getRuntimeDiagnostics,
+  showErrorDialog,
+  uploadLocalImageToBackend,
+  useUpstreamImages,
+  useCanvasImageModels,
+}: {
+  useStore: StoryboardGenNodeStoreHook;
+  useSettingsStore: StoryboardGenNodeSettingsStoreHook;
+  canvasAiGateway: StoryboardGenCanvasAiGateway;
+  CURRENT_RUNTIME_SESSION_ID: string;
+  detectAspectRatio: StoryboardGenDetectAspectRatio;
+  getRuntimeDiagnostics: StoryboardGenGetRuntimeDiagnostics;
+  showErrorDialog: StoryboardGenShowErrorDialog;
+  uploadLocalImageToBackend: StoryboardGenUploadLocalImage;
+  useUpstreamImages: StoryboardGenUseUpstreamImages;
+  useCanvasImageModels: StoryboardGenUseImageModels;
+}) {
+  return function useStoryboardGenNodeController({
+    id,
+    projectId,
+    canvasId,
+    data,
+    selected,
+    width,
+    height,
+  }: StoryboardGenNodeControllerOptions) {
   const { t, i18n } = useTranslation();
   const { zoom } = useViewport();
   const updateNodeInternals = useUpdateNodeInternals();
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const addNode = useCanvasStore((state) => state.addNode);
-  const addEdge = useCanvasStore((state) => state.addEdge);
-  const findNodePosition = useCanvasStore((state) => state.findNodePosition);
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const addNode = useStore((state) => state.addNode);
+  const addEdge = useStore((state) => state.addEdge);
+  const findNodePosition = useStore((state) => state.findNodePosition);
   const keepStyleConsistent = useSettingsStore(
     (state) => state.storyboardGenKeepStyleConsistent,
   );
@@ -967,8 +1071,9 @@ export function useStoryboardGenNodeController({
           modifiers.shiftKey,
       ),
   };
+  };
 }
 
 export type StoryboardGenNodeController = ReturnType<
-  typeof useStoryboardGenNodeController
+  ReturnType<typeof createUseStoryboardGenNodeController>
 >;

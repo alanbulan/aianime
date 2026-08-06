@@ -5,23 +5,20 @@ import { Minus, Plus, Sparkles } from 'lucide-react';
 
 import { CreditSparkIcon } from '@/components/credits/credit-visual';
 import { UiButton } from '@/components/ui';
+import { CanvasNodeImage } from './CanvasNodeImage';
 import {
-  CanvasNodeImage,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  NODE_CONTROL_PRIMARY_BUTTON_CLASS,
-  ModelParamsControls,
-  NodePriceBadge,
-  NodeResizeHandle,
-  STORYBOARD_GEN_FRAME_GRID_GAP_PX,
   canvasNodeFrameClass,
-  findReferenceTokens,
-} from '@/modules/creative_canvas/public';
-import type { StoryboardGenNodeController } from '@/features/canvas/hooks/useStoryboardGenNodeController';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
+import { NODE_CONTROL_PRIMARY_BUTTON_CLASS } from './canvasNodeControlStyles';
+import { ModelParamsControls } from './ModelParamsControls';
+import { NodePriceBadge } from './NodePriceBadge';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { STORYBOARD_GEN_FRAME_GRID_GAP_PX } from '../domain/storyboardGenNodeModel';
+import { findReferenceTokens } from '../domain/referenceTokenEditing';
+import type { StoryboardGenNodeController } from './useStoryboardGenNodeController';
 
 const STORYBOARD_GEN_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_GEN_ICON_ADJUST = { x: 0, y: 0, scale: 0.95 };
