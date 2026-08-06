@@ -50,6 +50,7 @@ import { createVideoUpscaleEditorOverlay } from './presentation/VideoUpscaleEdit
 import { createNodeToolDialog } from './presentation/NodeToolDialog';
 import { createNodeSpawnPlusOverlay } from './presentation/NodeSpawnPlusOverlay';
 import { createGridActionConfirmOverlay } from './presentation/GridActionConfirmOverlay';
+import { createMultiSelectionToolbar } from './presentation/MultiSelectionToolbar';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -628,6 +629,9 @@ export const GridActionConfirmOverlay = createGridActionConfirmOverlay({
   useStore: useCanvasStore,
   useCanvasImageModels,
   generateCanvasGridAction,
+});
+export const MultiSelectionToolbar = createMultiSelectionToolbar({
+  useStore: useCanvasStore,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

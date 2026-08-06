@@ -9426,7 +9426,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const multiSelectionToolbar = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/MultiSelectionToolbar.tsx"),
+      resolve(
+        SRC_ROOT,
+        "modules/creative_canvas/presentation/MultiSelectionToolbar.tsx",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9491,7 +9494,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("Object.keys(positions)");
     expect(canvasView).not.toContain("requestAnimationFrame");
     expect(canvasView).not.toContain("duration: 240");
-    expect(multiSelectionToolbar).toContain("@/modules/creative_canvas/public");
+    expect(multiSelectionToolbar).not.toContain("@/modules/creative_canvas/public");
     expect(multiSelectionToolbar).not.toContain(
       "@/features/canvas/application/autoLayout",
     );
@@ -15441,7 +15444,7 @@ describe("frontend architecture boundaries", () => {
     );
     const multiSelectionToolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/MultiSelectionToolbar.tsx",
+      "modules/creative_canvas/presentation/MultiSelectionToolbar.tsx",
     );
     const multiSelectionToolbar = readFileSync(
       multiSelectionToolbarPath,
@@ -15515,7 +15518,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
 
-    expect(multiSelectionToolbar).toContain(
+    expect(multiSelectionToolbar).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(multiSelectionToolbar).not.toContain(
