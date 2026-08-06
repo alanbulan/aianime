@@ -9,7 +9,7 @@ from ai_anime.modules.asset_world.public import runtime_prop_menu_for_episode
 from ai_anime.modules.production.domain.sketch_color import (
     assign_identity_sketch_colors,
 )
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 class DomainSketchColorAssigner:

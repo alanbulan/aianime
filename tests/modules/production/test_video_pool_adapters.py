@@ -32,7 +32,7 @@ def _context(tmp_path: Path) -> ProjectContext:
 
 
 def _configure_roots(monkeypatch, tmp_path: Path) -> tuple[Path, Path]:
-    from ai_anime.utils import state_index_files
+    from ai_anime.shared.utils import state_index_files
 
     output_root = tmp_path / "output"
     state_root = tmp_path / "state"

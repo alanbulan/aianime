@@ -41,7 +41,7 @@ from ai_anime.modules.task_execution.public import (
     selection_scope,
 )
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.utils.ref_image_hash import RefImageHasher
+from ai_anime.shared.utils.ref_image_hash import RefImageHasher
 
 
 class EnvironmentRenderPlanAvailability:

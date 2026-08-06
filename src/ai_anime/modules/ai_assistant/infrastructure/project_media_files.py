@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ai_anime.utils.static_urls import project_static_url
+from ai_anime.shared.utils.static_urls import project_static_url
 
 
 class LocalProjectMediaFiles:

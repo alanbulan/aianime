@@ -34,8 +34,8 @@ from ai_anime.modules.seedance2_i2v.prompt import (
     generate_seedance2_prompt,
 )
 from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
-from ai_anime.utils.media_io import crop_image_to_path, get_audio_duration
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.media_io import crop_image_to_path, get_audio_duration
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES: dict[str, str] = {

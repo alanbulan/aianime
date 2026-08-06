@@ -46,7 +46,7 @@ def _scene_refs_override_from_config(
     refs_config = config.get("canvas_scene_refs")
     if not isinstance(refs_config, list):
         return None
-    from ai_anime.utils.asset_resolver import ResolvedAssetRef
+    from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
     panel_by_beat = {int(beat_num): idx for idx, beat_num in enumerate(beat_numbers, start=1)}
     refs_by_panel: dict[int, list[Any]] = {}
@@ -125,7 +125,7 @@ async def _ensure_scene_refs_for_beats(
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
-    from ai_anime.utils.path_resolver import PathResolver, compute_scene_master_path
+    from ai_anime.shared.utils.path_resolver import PathResolver, compute_scene_master_path
 
     requested_scene_ids: list[str] = []
     seen: set[str] = set()
@@ -212,7 +212,7 @@ def _build_director_blocking_sheet_for_grid(
 
     from PIL import Image, ImageOps
 
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     selected = (
         {int(bn) for bn in director_ref_beat_numbers if bn is not None}
@@ -288,7 +288,7 @@ async def _run_sketch_generation_async(
         sketch_scene_grid_split,
     )
     from ai_anime.modules.generators.public import save_grid_and_split
-    from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
+    from ai_anime.shared.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
     payload = envelope.get("payload") or {}
     task_type = str(envelope.get("task_type") or SKETCH_GENERATION_TASK_TYPE)
@@ -625,7 +625,7 @@ async def _run_control_frame_to_sketch_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.modules.director_world.public import convert_control_frame_to_sketch
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)

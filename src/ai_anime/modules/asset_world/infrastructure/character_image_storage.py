@@ -15,7 +15,7 @@ from ai_anime.modules.asset_world.domain.character_assets import (
 from ai_anime.modules.asset_world.infrastructure.character_asset_history import (
     backup_character_asset,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_identity_costume_path,
     canonical_identity_path,
     canonical_portrait_path,

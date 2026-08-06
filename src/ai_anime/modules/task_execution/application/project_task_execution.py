@@ -249,7 +249,7 @@ def project_task_failure_for_exception(
 
     if not isinstance(exc, Exception):
         raise exc
-    from ai_anime.utils.error_redaction import safe_exception_message
+    from ai_anime.shared.utils.error_redaction import safe_exception_message
 
     return safe_exception_message(exc), {}, False
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
-from ai_anime.utils.async_ops import call_blocking
+from ai_anime.shared.utils.async_ops import call_blocking
 
 
 def decode_uploaded_rgb_image(content: bytes):

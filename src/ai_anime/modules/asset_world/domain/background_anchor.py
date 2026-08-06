@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ai_anime.utils.background_anchor import (
+from ai_anime.shared.utils.background_anchor import (
     ANCHOR_DIRECTOR_ENV_ONLY,
     ANCHOR_MASTER,
     ANCHOR_REVERSE,

@@ -16,7 +16,7 @@ from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     tree_updated_at,
     utc_iso,
 )
-from ai_anime.utils.path_resolver import compute_prop_reference_path
+from ai_anime.shared.utils.path_resolver import compute_prop_reference_path
 
 
 class NovelPropFactory:

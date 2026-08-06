@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 from ai_anime.config import get_pydantic_model
 from ai_anime.modules.knowledge_graph.tools import create_episode_planner_tools
 from ai_anime.shared.env_guard import preserve_st_env
-from ai_anime.utils.logging import log_agent_start, log_agent_end
+from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
 
 if TYPE_CHECKING:
     from ai_anime.modules.knowledge_graph import CogneeStore

@@ -11,7 +11,7 @@ from typing import Optional
 from pydantic_ai import Agent, BinaryContent
 from PIL import Image as PILImage
 
-from ai_anime.utils.logging import log_agent_start, log_agent_end
+from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
 
 
 # 首尾帧过渡提示词生成器指令（英文版 SuperPower）

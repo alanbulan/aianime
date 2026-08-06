@@ -5,13 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.utils.background_anchor import (
+from ai_anime.shared.utils.background_anchor import (
     background_anchor_path,
     copy_to_beat_selected_background,
     crop_to_beat_selected_background,
     infer_selected_background_source,
 )
-from ai_anime.utils.path_resolver import canonical_beat_selected_background_path
+from ai_anime.shared.utils.path_resolver import canonical_beat_selected_background_path
 
 
 class LocalBeatBackgroundAnchorFiles:

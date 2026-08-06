@@ -544,7 +544,7 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
     from ai_anime.modules.narrative_planning.public import (
         generate_and_save_beat_video_prompt,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -601,7 +601,7 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     from ai_anime.modules.narrative_planning.public import (
         generate_and_save_beat_video_prompt,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)

@@ -23,7 +23,7 @@ from typing import Iterable
 
 from PIL import Image, ImageChops, ImageFilter
 
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 RGB_PNG_COMPRESS_LEVEL = 9

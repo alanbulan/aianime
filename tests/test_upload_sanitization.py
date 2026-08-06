@@ -6,7 +6,7 @@ and the NiceGUI ingest page, so sanitization regressions surface in tests.
 
 from pathlib import Path
 
-from ai_anime.utils.upload_safety import is_safe_upload_target, sanitize_upload_filename
+from ai_anime.shared.utils.upload_safety import is_safe_upload_target, sanitize_upload_filename
 
 
 def test_normal_filename() -> None:

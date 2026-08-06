@@ -18,7 +18,7 @@ from ai_anime.modules.verification import convergence_log
 
 
 def _resolve_db_path(project_dir: Path) -> Path:
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     parts = project_dir.resolve().parts
     user, project = parts[-2], parts[-1]

@@ -6,7 +6,7 @@ from ai_anime.modules.production.public import PoolIndex
 
 
 def _configure_roots(monkeypatch, tmp_path):
-    from ai_anime.utils import state_index_files
+    from ai_anime.shared.utils import state_index_files
 
     output_root = tmp_path / "output"
     state_root = tmp_path / "state"

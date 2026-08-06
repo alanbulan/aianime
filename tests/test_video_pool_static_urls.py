@@ -38,7 +38,7 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 
 def _configure_state_roots(monkeypatch: pytest.MonkeyPatch, ctx: ProjectContext) -> None:
-    from ai_anime.utils import state_index_files
+    from ai_anime.shared.utils import state_index_files
 
     monkeypatch.setattr(state_index_files, "OUTPUT_DIR", str(Path(ctx.output_dir).parents[1]))
     monkeypatch.setattr(state_index_files, "STATE_DIR", str(Path(ctx.state_dir).parents[1]))

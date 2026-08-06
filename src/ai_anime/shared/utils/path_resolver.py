@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from ai_anime.modules.task_execution.public import selection_scope
-from ai_anime.utils.state_index_files import resolve_state_index_path
+from ai_anime.shared.utils.state_index_files import resolve_state_index_path
 
 
 def _scene_dir(project_dir: Path, scene_name: str) -> Path:

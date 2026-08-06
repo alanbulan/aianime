@@ -12,7 +12,7 @@ from ai_anime.modules.creative_canvas.application.media import (
     StoreCreativeCanvasUploadCommand,
     StoredCreativeCanvasMedia,
 )
-from ai_anime.utils.static_urls import project_static_url
+from ai_anime.shared.utils.static_urls import project_static_url
 
 
 def _stored_media(

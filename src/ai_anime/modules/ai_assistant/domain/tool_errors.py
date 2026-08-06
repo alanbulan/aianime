@@ -9,7 +9,7 @@ from typing import Any
 from ai_anime.modules.ai_assistant.domain.chat_presentation import (
     json_loads_with_trailing_repair,
 )
-from ai_anime.utils.error_redaction import redact_secrets
+from ai_anime.shared.utils.error_redaction import redact_secrets
 
 
 def _normalize_error_text(text: object) -> str:

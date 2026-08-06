@@ -110,7 +110,7 @@ class CommercialCreativeCanvasImageJobRuntime:
 
         from ai_anime.config import get_grid_generation_config
         from ai_anime.modules.generators.public import generate_reference_edit_image
-        from ai_anime.utils.error_redaction import redact_secrets
+        from ai_anime.shared.utils.error_redaction import redact_secrets
 
         config = get_grid_generation_config(
             model_override=command.model,

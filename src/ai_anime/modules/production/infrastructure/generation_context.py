@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.public import build_character_map_for_grid
-from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
+from ai_anime.shared.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 
 class CompatibleEpisodeSource:

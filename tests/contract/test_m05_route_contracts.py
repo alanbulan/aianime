@@ -493,7 +493,7 @@ def _seed_labels(project_dir: Path) -> None:
 
 def _seed_stage_files(project_dir: Path) -> None:
     from ai_anime.modules.director_world import stage_manifest
-    from ai_anime.utils.path_resolver import canonical_scene_master_path
+    from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
 
     master = canonical_scene_master_path(project_dir, _SCENE)
     master.parent.mkdir(parents=True, exist_ok=True)

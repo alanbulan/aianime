@@ -47,7 +47,7 @@ def get_video_request_usage_db_path(project_output_dir: str | Path) -> Path:
         return (project_output_dir / "data.db").resolve()
     if len(rel.parts) >= 2:
         # Always anchor on user/project, even if a subdirectory was passed.
-        from ai_anime.utils.project_paths import ProjectPaths
+        from ai_anime.shared.utils.project_paths import ProjectPaths
 
         user, project = rel.parts[0], rel.parts[1]
         ProjectPaths(user, project).bootstrap_from_legacy_output()

@@ -368,7 +368,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
         LocalCreativeCanvasTextSourceReader,
     )
-    from ai_anime.utils.path_resolver import (
+    from ai_anime.shared.utils.path_resolver import (
         canonical_beat_director_env_only_path,
         canonical_beat_selected_background_path,
         canonical_identity_path,

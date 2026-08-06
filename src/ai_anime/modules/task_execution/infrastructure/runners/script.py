@@ -86,7 +86,7 @@ async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> d
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     config = dict(payload.get("config") or {})

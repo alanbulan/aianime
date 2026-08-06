@@ -4,8 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from ai_anime.modules.narrative_planning.public import sync_beat_asset_refs
-from ai_anime.utils.asset_resolver import AssetResolver
-from ai_anime.utils.background_anchor import (
+from ai_anime.shared.utils.asset_resolver import AssetResolver
+from ai_anime.shared.utils.background_anchor import (
     background_crop_ratio_choices,
     copy_to_beat_selected_background,
     crop_to_beat_selected_background,

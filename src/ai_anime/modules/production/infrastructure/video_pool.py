@@ -15,7 +15,7 @@ from ai_anime.modules.production.application.video_pool import (
 from ai_anime.modules.production.domain.video_pool import VideoPool, VideoPoolEntry
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared import project_media
-from ai_anime.utils.state_index_files import (
+from ai_anime.shared.utils.state_index_files import (
     ensure_state_index_from_legacy,
     index_file_lock,
     resolve_state_index_path,

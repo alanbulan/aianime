@@ -1,4 +1,4 @@
-"""Unit tests for ``ai_anime.utils.oss_client``.
+"""Unit tests for ``ai_anime.shared.utils.oss_client``.
 
 These tests do not call real OSS. They stub the bucket object used by the
 client and verify the path mapping and presign contract needed by Seedance2
@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from ai_anime import config
-from ai_anime.utils import oss_client
+from ai_anime.shared.utils import oss_client
 
 
 class FakeBucket:

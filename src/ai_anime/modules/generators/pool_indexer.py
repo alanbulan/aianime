@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 from PIL import Image
 
 from ai_anime.modules.generators.grid_splitter import remove_grid_gaps
-from ai_anime.utils.state_index_files import (
+from ai_anime.shared.utils.state_index_files import (
     ensure_state_index_from_legacy,
     index_file_lock,
     resolve_state_index_path,

@@ -11,7 +11,7 @@ from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,
     tree_updated_at,
 )
-from ai_anime.utils.path_resolver import compute_portrait_path
+from ai_anime.shared.utils.path_resolver import compute_portrait_path
 
 
 class NovelCharacterFactory:

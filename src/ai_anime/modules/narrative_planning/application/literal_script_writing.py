@@ -25,8 +25,8 @@ from ai_anime.modules.narrative_planning.application.script_models import (
     VisualBeat,
 )
 from ai_anime.time_of_day import normalize_time_of_day
-from ai_anime.utils.screenplay_quality import check_screenplay_import_quality
-from ai_anime.utils.screenplay_scene_parser import (
+from ai_anime.shared.utils.screenplay_quality import check_screenplay_import_quality
+from ai_anime.shared.utils.screenplay_scene_parser import (
     parse_character_line,
     parse_location_header,
     parse_scene_blocks,

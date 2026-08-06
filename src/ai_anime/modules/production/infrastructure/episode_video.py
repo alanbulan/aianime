@@ -17,7 +17,7 @@ from ai_anime.modules.task_execution.public import (
 )
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 class SqliteEpisodeBeatSource:

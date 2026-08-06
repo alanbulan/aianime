@@ -632,7 +632,7 @@ def test_first_frame_mode_only_sends_current_frame(tmp_path):
 
 
 def test_first_frame_for_video_uses_matching_video_input_override(tmp_path):
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     project_dir = tmp_path / "project"
     paths = PathResolver(project_dir, 1)
@@ -653,7 +653,7 @@ def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
         build_seedance2_project_assets,
         selected_reference_paths,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     project_dir = tmp_path / "project"
     paths = PathResolver(project_dir, 1)
@@ -704,7 +704,7 @@ def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
         build_seedance2_project_assets,
         selected_reference_paths,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     project_dir = tmp_path / "project"
     paths = PathResolver(project_dir, 1)
@@ -739,7 +739,7 @@ async def test_crop_seedance2_asset_to_first_frame_writes_video_input_override(
     monkeypatch,
 ):
     from ai_anime.modules.seedance2_i2v import panel_service
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     project_dir = tmp_path / "project"
     paths = PathResolver(project_dir, 1)

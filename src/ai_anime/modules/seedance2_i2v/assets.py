@@ -39,9 +39,9 @@ from ai_anime.modules.seedance2_i2v.voice_clone import (
     normalize_seedance2_audio_type,
     resolve_character_voice,
 )
-from ai_anime.utils.path_resolver import PathResolver
-from ai_anime.utils.path_resolver import canonical_scene_master_path
-from ai_anime.utils.path_resolver import canonical_prop_reference_path
+from ai_anime.shared.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
+from ai_anime.shared.utils.path_resolver import canonical_prop_reference_path
 
 MIN_REFERENCE_ASPECT_RATIO = 0.4
 MAX_REFERENCE_ASPECT_RATIO = 2.5
@@ -545,7 +545,7 @@ def _character_db_path(project_output: Path) -> Path:
     paths) fall back to `project_output / data.db` unchanged.
     """
     from ai_anime.config import OUTPUT_DIR, STATE_DIR
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     project_output = Path(project_output).resolve()
     output_root = Path(OUTPUT_DIR).resolve()

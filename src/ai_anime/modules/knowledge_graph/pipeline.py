@@ -73,7 +73,7 @@ def _set_cognee_project_context(
     state_dir = project_dir
     parts = project_name.split("/", 1)
     if len(parts) == 2:
-        from ai_anime.utils.project_paths import ProjectPaths
+        from ai_anime.shared.utils.project_paths import ProjectPaths
 
         paths = ProjectPaths(parts[0], parts[1])
         paths.bootstrap_from_legacy_output()

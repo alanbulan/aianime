@@ -37,7 +37,7 @@ from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
     _path_rel_if_inside,
     _rel,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     PathResolver,
     canonical_identity_costume_path,
     canonical_identity_portrait_path,

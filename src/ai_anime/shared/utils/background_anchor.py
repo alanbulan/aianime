@@ -10,7 +10,7 @@ import shutil
 import filecmp
 from pathlib import Path
 
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_beat_selected_background_path,
     compute_beat_director_env_only_path,
     compute_beat_selected_background_path,

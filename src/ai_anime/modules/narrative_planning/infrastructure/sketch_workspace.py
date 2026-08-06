@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 class LocalSketchWorkspace:

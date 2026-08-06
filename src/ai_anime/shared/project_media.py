@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.utils.static_urls import project_static_url
+from ai_anime.shared.utils.static_urls import project_static_url
 
 
 _PROJECT_STATIC_RE = re.compile(

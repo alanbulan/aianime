@@ -16,7 +16,7 @@ from ai_anime.modules.task_execution.domain.task_identity import (
     task_state_key,
 )
 from ai_anime.modules.task_execution.domain.task_time import parse_task_timestamp
-from ai_anime.utils.static_urls import project_static_url
+from ai_anime.shared.utils.static_urls import project_static_url
 
 _TASK_TYPE_LABELS = {
     "ingest_fast": "快速导入",

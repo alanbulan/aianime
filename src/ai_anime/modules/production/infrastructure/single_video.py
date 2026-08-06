@@ -60,8 +60,8 @@ from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmissionUseCases,
 )
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.utils.media_io import get_audio_duration_async
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.media_io import get_audio_duration_async
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 @dataclass(frozen=True)

@@ -264,7 +264,7 @@ def build_test_character_map(
 
         if not ref_path:
             try:
-                from ai_anime.utils.path_resolver import compute_portrait_path
+                from ai_anime.shared.utils.path_resolver import compute_portrait_path
 
                 portrait = compute_portrait_path(project_dir, char_name)
                 if portrait and Path(portrait).exists():
@@ -298,7 +298,7 @@ def build_test_character_map(
                         i_portrait = identity.get("portrait_image", "")
                         if not i_portrait or not Path(i_portrait).exists():
                             try:
-                                from ai_anime.utils.path_resolver import (
+                                from ai_anime.shared.utils.path_resolver import (
                                     compute_identity_portrait_path,
                                 )
                                 i_portrait = compute_identity_portrait_path(

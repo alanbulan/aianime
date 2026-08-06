@@ -36,7 +36,7 @@ from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
 from ai_anime.shared.project_media import make_static_url_for_context
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_beat_director_env_only_path,
     canonical_beat_selected_background_path,
     canonical_identity_costume_path,

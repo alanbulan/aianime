@@ -1047,7 +1047,7 @@ async def test_beat_preset_current_sketch_ignores_pool_fallback(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from ai_anime.utils import state_index_files
+    from ai_anime.shared.utils import state_index_files
 
     monkeypatch.setattr(state_index_files, "OUTPUT_DIR", str(tmp_path))
     monkeypatch.setattr(state_index_files, "STATE_DIR", str(tmp_path / "state"))

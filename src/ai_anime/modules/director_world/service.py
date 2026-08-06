@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 from ai_anime.modules.director_world.paths import fs_url
 
 from .paths import (

@@ -32,7 +32,7 @@ from ai_anime.shared.project_media import (
     make_static_url_for_context,
     resolve_project_media_path,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_identity_path,
     compute_identity_costume_path,
     compute_identity_path,

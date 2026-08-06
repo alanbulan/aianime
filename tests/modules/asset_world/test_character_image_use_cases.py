@@ -18,7 +18,7 @@ from ai_anime.modules.asset_world.application.errors import (
 from ai_anime.modules.asset_world.infrastructure.character_image_storage import (
     LocalCharacterImageFiles,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_identity_costume_path,
     canonical_identity_path,
     canonical_identity_portrait_path,

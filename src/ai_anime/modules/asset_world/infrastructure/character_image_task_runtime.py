@@ -275,7 +275,7 @@ async def _generate_identity_image(
     update,
 ) -> Path:
     from ai_anime.modules.generators.public import generate_identity_image_unified
-    from ai_anime.utils.path_resolver import (
+    from ai_anime.shared.utils.path_resolver import (
         compute_identity_costume_path,
         compute_identity_portrait_path,
     )

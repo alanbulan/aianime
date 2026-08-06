@@ -11,8 +11,8 @@ from typing import Optional
 from pydantic_ai import Agent, BinaryContent
 from PIL import Image as PILImage
 
-from ai_anime.utils.logging import log_agent_start, log_agent_end
-from ai_anime.utils.debug_context import (
+from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
+from ai_anime.shared.utils.debug_context import (
     create_debug_context,
     validate_episode_consistency,
 )

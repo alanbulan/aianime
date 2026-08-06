@@ -35,7 +35,7 @@ from ai_anime.modules.task_execution.public import (
     run_project_model_subprocess,
     run_project_subprocess,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,
     compute_scene_spatial_layout_path,

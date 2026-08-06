@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import re
 
-from ai_anime.utils.screenplay_scene_parser import (
+from ai_anime.shared.utils.screenplay_scene_parser import (
     INTERIOR_EXTERIOR,
     INLINE_LABELED_SCENE_RE,
     LABELED_LOCATION_RE,

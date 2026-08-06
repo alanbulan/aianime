@@ -13,15 +13,15 @@ from ai_anime.modules.story_intake.application.errors import (
     UnsafeStoryDocumentName,
     UnsupportedStoryDocument,
 )
-from ai_anime.utils.document_parsers import (
+from ai_anime.shared.utils.document_parsers import (
     DocumentParseError,
     count_billable_novel_chars,
     is_supported_novel_path,
     load_novel_text,
     supported_novel_extensions_label,
 )
-from ai_anime.utils.screenplay_quality import build_import_format_check
-from ai_anime.utils.upload_safety import (
+from ai_anime.shared.utils.screenplay_quality import build_import_format_check
+from ai_anime.shared.utils.upload_safety import (
     MAX_UPLOAD_BYTES,
     UploadTooLargeError,
     is_safe_upload_target,

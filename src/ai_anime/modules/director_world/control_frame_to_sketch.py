@@ -22,7 +22,7 @@ from ai_anime.modules.generators.public import save_grid_and_split
 from ai_anime.modules.asset_world.public import build_character_map_for_grid
 from ai_anime.project_config import load_project_config_file
 from ai_anime.sqlite_store import SQLiteStore
-from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
+from ai_anime.shared.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
 
 def _json_default(value: Any) -> Any:

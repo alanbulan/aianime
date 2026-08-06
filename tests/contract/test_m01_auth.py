@@ -40,7 +40,7 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     import ai_anime.api.deps as deps
     import ai_anime.config as config
     import ai_anime.project_config as project_config
-    import ai_anime.utils.project_paths as project_paths
+    import ai_anime.shared.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
         monkeypatch.setattr(module, "OUTPUT_DIR", str(output), raising=False)

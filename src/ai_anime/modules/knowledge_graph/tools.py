@@ -13,7 +13,7 @@ import json
 from typing import Callable, List
 
 from ai_anime.modules.knowledge_graph import CogneeStore
-from ai_anime.utils.logging import tool_logger
+from ai_anime.shared.utils.logging import tool_logger
 
 
 def create_script_writer_tools(store: CogneeStore, episode_num: int) -> list[Callable]:

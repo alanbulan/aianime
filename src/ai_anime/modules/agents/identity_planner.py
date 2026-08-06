@@ -1185,7 +1185,7 @@ class IdentityPlanner:
                             f"  复用: {matched.identity_id} (ep{episode_number})"
                         )
             else:
-                from ai_anime.utils.identity_resolver import compute_char_tag
+                from ai_anime.shared.utils.identity_resolver import compute_char_tag
                 identity = CharacterIdentity(
                     identity_id=candidate_id,
                     character_name=char.name,

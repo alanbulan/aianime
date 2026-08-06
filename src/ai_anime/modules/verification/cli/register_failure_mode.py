@@ -86,7 +86,7 @@ async def main_async() -> int:
     args = parse_args()
 
     project_dir = Path(args.project_dir).expanduser().resolve()
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     parts = project_dir.parts
     if len(parts) < 2:

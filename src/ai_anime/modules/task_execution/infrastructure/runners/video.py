@@ -103,7 +103,7 @@ async def _run_single_video_async(
         ShotReference,
         create_video_generator,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     beat = config.get("beat", {})
     frame_path = config.get("frame_path")
@@ -333,7 +333,7 @@ async def _run_video_generation_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
@@ -461,7 +461,7 @@ def run_compose_episode(
     import subprocess
     import tempfile
 
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
@@ -698,7 +698,7 @@ async def _run_global_optimize_video_async(
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)

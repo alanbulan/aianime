@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ai_anime.modules.project_workspace.public import ProjectContext, require_project_home_node
-from ai_anime.utils.project_paths import ProjectPaths
+from ai_anime.shared.utils.project_paths import ProjectPaths
 
 if TYPE_CHECKING:
     from ai_anime.modules.knowledge_graph import CogneeStore

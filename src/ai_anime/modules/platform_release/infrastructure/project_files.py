@@ -25,13 +25,13 @@ def _download_via_oss_enabled() -> bool:
 
 
 def _presign_download(path: Path) -> str | None:
-    from ai_anime.utils.oss_client import maybe_presign_existing_output
+    from ai_anime.shared.utils.oss_client import maybe_presign_existing_output
 
     return maybe_presign_existing_output(path)
 
 
 def _presign_static(path: Path, version_key: int) -> str | None:
-    from ai_anime.utils.oss_client import maybe_presign_static
+    from ai_anime.shared.utils.oss_client import maybe_presign_static
 
     return maybe_presign_static(path, version_key)
 

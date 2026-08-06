@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_anime.utils.derived_scenes import compose_derived_scene_name
+from ai_anime.shared.utils.derived_scenes import compose_derived_scene_name
 
 SCENE_TIME_TOKENS = {
     "清晨",

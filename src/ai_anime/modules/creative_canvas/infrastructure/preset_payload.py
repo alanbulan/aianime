@@ -39,7 +39,7 @@ from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
     _make_url,
     _rel,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_beat_director_env_only_path,
     canonical_scene_master_path,
     canonical_scene_reverse_master_path,

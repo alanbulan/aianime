@@ -12,7 +12,7 @@ from ai_anime.modules.generators.prompt_builder import (
     StyleConfig,
 )
 from ai_anime.modules.director_world.control_frame_to_sketch import _director_augmented_beat
-from ai_anime.utils.asset_resolver import ResolvedAssetRef
+from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
 
 def _build_sketch_prompt(beats: list[dict], rows: int = 1, cols: int = 1) -> str:

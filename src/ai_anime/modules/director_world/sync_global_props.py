@@ -11,7 +11,7 @@ from typing import Any
 
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
-from ai_anime.utils.project_paths import ProjectPaths
+from ai_anime.shared.utils.project_paths import ProjectPaths
 
 
 def _safe_text(value: Any) -> str:

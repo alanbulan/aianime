@@ -9,7 +9,7 @@ from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import get_sqlite_store, resolve_project_scope
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.task_state import get_task_manager
-from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
+from ai_anime.shared.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 router = APIRouter()
 

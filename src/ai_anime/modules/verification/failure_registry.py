@@ -492,7 +492,7 @@ def _resolve_user_verification_db(project_dir: str | None) -> Path | None:
     if not resolved:
         return None
     user, project = resolved
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     try:
         return ProjectPaths(user, project).global_shared_verification_db
@@ -505,7 +505,7 @@ def _resolve_project_db_path(project_dir: str | None) -> Path | None:
     if not resolved:
         return None
     user, project = resolved
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     try:
         paths = ProjectPaths(user, project)

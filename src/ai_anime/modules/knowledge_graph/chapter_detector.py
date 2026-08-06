@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional
 
-from ai_anime.utils.screenplay_quality import extract_screenplay_candidate_lines
+from ai_anime.shared.utils.screenplay_quality import extract_screenplay_candidate_lines
 
 
 @dataclass

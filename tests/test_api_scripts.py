@@ -22,7 +22,7 @@ class _ScriptEpisodeStore:
 def _script_client(monkeypatch, tmp_path, identity_ids: list[str]):
     from ai_anime.api.routes import scripts
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     store = _ScriptEpisodeStore(identity_ids)
     clean_calls = []

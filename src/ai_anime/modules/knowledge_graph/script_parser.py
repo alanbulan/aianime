@@ -10,7 +10,7 @@
 
 from dataclasses import dataclass, field
 
-from ai_anime.utils.screenplay_scene_parser import (
+from ai_anime.shared.utils.screenplay_scene_parser import (
     EPISODE_HEADER_RE,
     chinese_to_int,
     is_scene_start_line,

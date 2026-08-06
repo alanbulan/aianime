@@ -14,7 +14,7 @@ from ai_anime.modules.director_world.public import (
     save_beat_blocking,
 )
 from ai_anime.modules.asset_world.application.dto import DirectorControlFrameExport
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 class LocalBeatDirectorStageFiles:

@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from ai_anime.utils.screenplay_quality import build_import_format_check
-from ai_anime.utils.screenplay_scene_parser import parse_scene_blocks
+from ai_anime.shared.utils.screenplay_quality import build_import_format_check
+from ai_anime.shared.utils.screenplay_scene_parser import parse_scene_blocks
 
 
 STANDARD_DRAMA_PROP_SCRIPT = """第1集 开始

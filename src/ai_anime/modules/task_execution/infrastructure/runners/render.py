@@ -131,7 +131,7 @@ def _asset_refs_override_from_config(
     refs_config = config.get(key)
     if not isinstance(refs_config, list):
         return None
-    from ai_anime.utils.asset_resolver import ResolvedAssetRef
+    from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
     panel_by_beat = {int(beat_num): idx for idx, beat_num in enumerate(beat_numbers, start=1)}
     refs_by_panel: dict[int, list[Any]] = {}
@@ -222,7 +222,7 @@ async def _run_batch_render_async(
         rebuild_pool_index,
         save_pool_index,
     )
-    from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
+    from ai_anime.shared.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})
@@ -426,7 +426,7 @@ async def _run_selected_regen_async(
     from ai_anime.modules.generators.public import save_grid_and_split
     from ai_anime.modules.narrative_planning.public import beat_scene_id
     from ai_anime.modules.task_execution.public import selection_scope
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     if is_sketch:
         from ai_anime.config import get_sketch_generation_config as get_generation_config
@@ -736,7 +736,7 @@ async def _run_grid_regenerate_async(
     from ai_anime.modules.generators.public import create_grid_generator
     from ai_anime.modules.generators.public import build_beat_sketch_paths, save_grid_and_split
     from ai_anime.modules.task_execution.public import selection_scope
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})

@@ -40,7 +40,7 @@ def test_project_config_defaults_to_drama(tmp_path, monkeypatch):
 
     import ai_anime.config as cfg
     import ai_anime.project_config as pc
-    import ai_anime.utils.project_paths as pp
+    import ai_anime.shared.utils.project_paths as pp
 
     importlib.reload(cfg)
     importlib.reload(pp)

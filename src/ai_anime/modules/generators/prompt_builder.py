@@ -498,7 +498,7 @@ class PromptComponents:
         当提供 identity_id 时，hash 基于 identity_id，
         使同一角色的不同身份产生不同 tag。
         """
-        from ai_anime.utils.identity_resolver import compute_char_tag as _compute
+        from ai_anime.shared.utils.identity_resolver import compute_char_tag as _compute
 
         return _compute(char_name, identity_id=identity_id)
 
@@ -2484,7 +2484,7 @@ Show the STARTING pose, NOT the ending result."""
 
         visual_desc = _resolve_prop_marker_tags(visual_desc)
         if ctx.characters:
-            from ai_anime.utils.identity_resolver import (
+            from ai_anime.shared.utils.identity_resolver import (
                 build_identity_to_char_map,
                 resolve_visual_description_markers,
             )
@@ -2717,7 +2717,7 @@ class SketchModeStrategy:
 
         ordered_char_names: list[str] = []
         if ctx.characters:
-            from ai_anime.utils.identity_resolver import compute_char_tag as _compute_tag
+            from ai_anime.shared.utils.identity_resolver import compute_char_tag as _compute_tag
 
             panel_chars = components._collect_char_identity_ids(
                 actual_beats_for_chars,
@@ -3289,12 +3289,12 @@ LAYOUT (CRITICAL - MUST BE EXACT):
             visual_desc = _resolve_prop_marker_tags(visual_desc)
 
             # 草图路径：剥离颜色词（颜色由标记系统控制，避免污染调色盘）
-            from ai_anime.utils.text_utils import strip_color_words
+            from ai_anime.shared.utils.text_utils import strip_color_words
 
             visual_desc = strip_color_words(visual_desc)
 
             # 替换 {{}} 标记为 identity_id（兼容 {{identity_id}} 和 {{角色名}}）
-            from ai_anime.utils.identity_resolver import (
+            from ai_anime.shared.utils.identity_resolver import (
                 resolve_visual_description_markers,
                 build_identity_to_char_map,
             )
@@ -3677,7 +3677,7 @@ class ActionStoryboardStrategy:
         char_names_for_color_law = []
         prop_lines = []
         if ctx.characters:
-            from ai_anime.utils.identity_resolver import compute_char_tag as _compute_tag
+            from ai_anime.shared.utils.identity_resolver import compute_char_tag as _compute_tag
 
             for char_name, char_cfg in ctx.characters.items():
                 body_desc = components.derive_body_descriptor(char_cfg)
@@ -3730,7 +3730,7 @@ COLOR-CODED CHARACTERS:
         # 替换 action_description 中的 {{}} 为 tag
         resolved_action = action_description
         if ctx.characters:
-            from ai_anime.utils.identity_resolver import (
+            from ai_anime.shared.utils.identity_resolver import (
                 resolve_visual_description_markers,
                 build_identity_to_char_map,
             )

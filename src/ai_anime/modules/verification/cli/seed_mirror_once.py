@@ -34,7 +34,7 @@ from pathlib import Path
 import aiosqlite
 
 from ai_anime.config import STATE_DIR
-from ai_anime.utils.project_paths import ProjectPaths
+from ai_anime.shared.utils.project_paths import ProjectPaths
 from ai_anime.modules.verification import failure_registry
 from ai_anime.modules.verification.global_registry_db import open_defs_db
 

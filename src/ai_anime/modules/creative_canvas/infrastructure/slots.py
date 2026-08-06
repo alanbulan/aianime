@@ -10,7 +10,7 @@ from ai_anime.modules.creative_canvas.domain.slot_targets import (
     SCENE_3GS_PLY_TARGETS,
     SlotTarget,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     PathResolver,
     canonical_beat_selected_background_path,
     canonical_identity_costume_path,

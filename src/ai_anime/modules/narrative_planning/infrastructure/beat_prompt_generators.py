@@ -31,7 +31,7 @@ async def generate_single_beat_video_prompt(
         _build_color_appearance_map,
         get_global_video_optimizer,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     beat_num = int(beat.get("beat_number") or 0)
     paths = PathResolver(str(output_dir), episode)
@@ -81,7 +81,7 @@ async def generate_single_beat_keyframe_prompt(
     from ai_anime.modules.narrative_planning.application.script_models import (
         format_beat_narration,
     )
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     beat_num = int(beat.get("beat_number") or 0)
     next_beat_num = int(next_beat.get("beat_number") or beat_num + 1)

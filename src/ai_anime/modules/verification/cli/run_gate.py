@@ -33,7 +33,7 @@ from ai_anime.modules.verification.sketch_visual_gate import gate_candidate_cell
 
 
 def _resolve_paths(project_dir: Path) -> tuple[Path, Path]:
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     parts = project_dir.resolve().parts
     user, project = parts[-2], parts[-1]

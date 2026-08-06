@@ -58,14 +58,14 @@ from ai_anime.modules.production.public import (
     global_prop_marker_colors,
     real_detected_identities,
 )
-from ai_anime.utils.asset_resolver import AssetResolver
+from ai_anime.shared.utils.asset_resolver import AssetResolver
 from ai_anime.image_request_usage import (
     infer_episode_from_path,
     infer_project_output_dir,
     record_image_request,
     update_image_request_status,
 )
-from ai_anime.utils.path_resolver import compute_scoped_grid_filename
+from ai_anime.shared.utils.path_resolver import compute_scoped_grid_filename
 _STANDARD_IMAGE_VALID_QUALITIES = {"low", "medium", "high", "auto"}
 _STANDARD_IMAGE_MIN_PIXELS = 655_360
 _STANDARD_IMAGE_MAX_PIXELS = 8_294_400
@@ -3173,7 +3173,7 @@ class NanoBananaGridGenerator:
                 and director_sheet_path
                 and os.path.exists(director_sheet_path)
             ):
-                from ai_anime.utils.asset_resolver import ResolvedAssetRef
+                from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
                 director_sheet_ref = ResolvedAssetRef(
                     asset_type="scene",
@@ -5119,7 +5119,7 @@ class NanoBananaGridGenerator:
                     if ref_path and os.path.exists(ref_path):
                         panel_char_refs.append(ref_path)
                     # 收集角色描述（使用 [CharTag]）
-                    from ai_anime.utils.identity_resolver import compute_char_tag
+                    from ai_anime.shared.utils.identity_resolver import compute_char_tag
 
                     identity_id = char_identities.get(char_name, None)
                     tag = compute_char_tag(char_name, identity_id=identity_id)
@@ -5129,7 +5129,7 @@ class NanoBananaGridGenerator:
             # 构建单张 Prompt（Render 模式简化版：草图已定义构图，只需角色+环境+风格）
             scene_id = beat_scene_id(beat) or "Scene"
             # 替换 {{}} 标记为 identity_id（兼容 {{identity_id}} 和 {{角色名}}）
-            from ai_anime.utils.identity_resolver import (
+            from ai_anime.shared.utils.identity_resolver import (
                 resolve_visual_description_markers,
                 build_identity_to_char_map,
             )

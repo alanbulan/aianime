@@ -10,7 +10,7 @@ from ai_anime.modules.production.public import (
     extract_char_identities_from_markers,
     real_detected_identities,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     compute_identity_portrait_path,
     compute_portrait_path,
 )

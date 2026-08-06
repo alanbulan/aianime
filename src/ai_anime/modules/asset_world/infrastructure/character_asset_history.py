@@ -16,7 +16,7 @@ from ai_anime.modules.asset_world.domain.character_assets import (
     ensure_character_asset_kind,
     find_character_identity,
 )
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.path_resolver import (
     canonical_identity_costume_path,
     canonical_identity_path,
     canonical_identity_portrait_path,

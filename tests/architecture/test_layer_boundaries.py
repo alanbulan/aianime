@@ -4935,7 +4935,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         / "preset_contexts.py",
         PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py",
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py",
-        PACKAGE_ROOT / "utils" / "asset_resolver.py",
+        PACKAGE_ROOT / "shared" / "utils" / "asset_resolver.py",
     )
 
     for model_name in ("SceneMenuItem", "PropMenuItem"):
@@ -5155,7 +5155,7 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         / "generators"
         / "scene_reference_images.py",
         PACKAGE_ROOT / "sqlite_store.py",
-        PACKAGE_ROOT / "utils" / "asset_resolver.py",
+        PACKAGE_ROOT / "shared" / "utils" / "asset_resolver.py",
     )
     legacy_source = _removed_models_source(legacy_models)
     owner_source = scene_models.read_text(encoding="utf-8")
@@ -6394,7 +6394,7 @@ def test_narrative_episode_route_remains_an_http_adapter() -> None:
     imported_modules = _imports(route)
     source = route.read_text(encoding="utf-8")
 
-    assert "ai_anime.utils.media_io" not in imported_modules
+    assert "ai_anime.shared.utils.media_io" not in imported_modules
     assert "ai_anime.shared.project_media" not in imported_modules
     assert "make_static_url_for_context" not in source
     assert "audio_duration_jobs" not in source

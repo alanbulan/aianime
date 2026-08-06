@@ -285,7 +285,7 @@ class NovelCharacter(BaseModel):
         if self.identities:
             return
 
-        from ai_anime.utils.identity_resolver import compute_char_tag
+        from ai_anime.shared.utils.identity_resolver import compute_char_tag
 
         default_id = f"{self.name}_默认"
         default_identity = CharacterIdentity(
@@ -299,7 +299,7 @@ class NovelCharacter(BaseModel):
 
     def ensure_tag(self) -> None:
         """确保每个 identity 有独立的 tag。"""
-        from ai_anime.utils.identity_resolver import compute_char_tag
+        from ai_anime.shared.utils.identity_resolver import compute_char_tag
 
         identities = self.identities
         if identities:

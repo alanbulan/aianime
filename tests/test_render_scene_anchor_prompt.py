@@ -10,7 +10,7 @@ from ai_anime.modules.generators.prompt_builder import (
     RenderModeStrategy,
     StyleConfig,
 )
-from ai_anime.utils.asset_resolver import ResolvedAssetRef
+from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
 
 pytestmark = pytest.mark.m09

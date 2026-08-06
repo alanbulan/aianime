@@ -7,7 +7,7 @@ from ai_anime.modules.narrative_planning.application.ports import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.project_media import make_static_url_for_context
-from ai_anime.utils.media_io import get_audio_duration_async
+from ai_anime.shared.utils.media_io import get_audio_duration_async
 
 
 _MEDIA_LAYOUT = {

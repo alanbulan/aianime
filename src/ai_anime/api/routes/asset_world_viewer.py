@@ -28,7 +28,7 @@ from ai_anime.modules.asset_world.public import (
     UploadBeatBackgroundCommand,
     beat_viewer_use_cases,
 )
-from ai_anime.utils.media_io import decode_uploaded_rgb_image
+from ai_anime.shared.utils.media_io import decode_uploaded_rgb_image
 
 router = APIRouter()
 

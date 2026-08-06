@@ -38,7 +38,7 @@ from ai_anime.modules.production.application.grid_pool import (
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
-from ai_anime.utils.media_io import decode_uploaded_rgb_image
+from ai_anime.shared.utils.media_io import decode_uploaded_rgb_image
 
 
 def _safe_grid_token(value: str) -> str:

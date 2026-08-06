@@ -28,7 +28,7 @@ from rich.console import Console
 from ai_anime.config import get_newapi_reasoning_kwargs
 from ai_anime.official_defaults import DEFAULT_COGNEE_EMBEDDING_DIM
 from ai_anime.sqlite_store import SQLiteStore
-from ai_anime.utils.document_parsers import load_novel_text
+from ai_anime.shared.utils.document_parsers import load_novel_text
 
 from ai_anime.modules.production.public import (
     complete_detected_refs_from_visual_description,
@@ -63,7 +63,7 @@ def _json_list_payload(values: list[str]) -> str:
 # ============================================================
 # 路径计算工具函数 — canonical implementation lives in utils.path_resolver.
 # ============================================================
-from ai_anime.utils.path_resolver import (  # noqa: F401
+from ai_anime.shared.utils.path_resolver import (  # noqa: F401
     compute_portrait_path,
     compute_scene_reference_path,
     compute_prop_reference_path,
@@ -131,7 +131,7 @@ class CogneeStore:
         if sqlite_state_dir:
             default_state_dir = Path(sqlite_state_dir)
         elif "/" in project_name:
-            from ai_anime.utils.project_paths import ProjectPaths
+            from ai_anime.shared.utils.project_paths import ProjectPaths
 
             parts = project_name.split("/", 1)
             paths = ProjectPaths(parts[0], parts[1])

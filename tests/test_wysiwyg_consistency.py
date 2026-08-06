@@ -230,7 +230,7 @@ def build_test_character_map(
 
         if not ref_path:
             # Try portrait
-            from ai_anime.utils.path_resolver import compute_portrait_path
+            from ai_anime.shared.utils.path_resolver import compute_portrait_path
             portrait = compute_portrait_path(project_dir, char_name)
             if portrait and Path(portrait).exists():
                 ref_path = portrait
@@ -245,7 +245,7 @@ def build_test_character_map(
         identity_ref_images: Dict[str, str] = {}
         identity_face_prompts_map: Dict[str, str] = {}
         if identity_ids:
-            from ai_anime.utils.path_resolver import compute_identity_portrait_path
+            from ai_anime.shared.utils.path_resolver import compute_identity_portrait_path
             for iid in identity_ids:
                 if iid == identity_id:
                     continue

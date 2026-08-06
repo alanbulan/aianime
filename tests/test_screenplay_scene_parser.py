@@ -1,6 +1,6 @@
 from ai_anime.modules.knowledge_graph.script_parser import parse_scenes
-from ai_anime.utils.screenplay_quality import check_screenplay_import_quality
-from ai_anime.utils.screenplay_scene_parser import parse_scene_blocks
+from ai_anime.shared.utils.screenplay_quality import check_screenplay_import_quality
+from ai_anime.shared.utils.screenplay_scene_parser import parse_scene_blocks
 from ai_anime.modules.narrative_planning.public import LiteralScriptWritingWorkflow
 
 

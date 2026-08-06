@@ -18,7 +18,7 @@ from ai_anime.modules.asset_world.application.dto import (
 from ai_anime.modules.asset_world.infrastructure.background_anchor import (
     LocalBeatBackgroundAnchorFiles,
 )
-from ai_anime.utils.background_anchor import (
+from ai_anime.shared.utils.background_anchor import (
     ANCHOR_MASTER,
     ANCHOR_REVERSE,
     ANCHOR_SELECTED_BACKGROUND,

@@ -98,7 +98,7 @@ async def test_status_projects_panel_state_and_closes_store(
     tmp_path: Path,
 ) -> None:
     from ai_anime.modules.production.infrastructure import seedance2_panel
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     context = _context(tmp_path)
     beat = {

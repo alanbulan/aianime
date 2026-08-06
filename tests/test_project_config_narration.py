@@ -22,7 +22,7 @@ def narration_env(tmp_path, monkeypatch):
 
     import importlib
     import ai_anime.config as cfg
-    import ai_anime.utils.project_paths as pp
+    import ai_anime.shared.utils.project_paths as pp
     import ai_anime.project_config as pc
 
     importlib.reload(cfg)

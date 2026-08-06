@@ -86,7 +86,7 @@ async def _open_training_db_for_handle(handle: TraceHandle) -> aiosqlite.Connect
 
 
 def _resolve_project_paths(project_dir: Path) -> tuple[Path, Path, str, str] | None:
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     parts = Path(project_dir).resolve().parts
     if len(parts) < 2:

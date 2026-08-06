@@ -6,9 +6,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from ai_anime.utils.async_ops import call_blocking
-from ai_anime.utils.media_io import get_audio_duration_async
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.async_ops import call_blocking
+from ai_anime.shared.utils.media_io import get_audio_duration_async
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 def _format_srt_time(seconds: float) -> str:

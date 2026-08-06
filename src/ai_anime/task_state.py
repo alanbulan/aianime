@@ -139,7 +139,7 @@ def utc_now_iso() -> str:
 
 def get_project_task_db_path(username: str, project: str) -> Path:
     """获取项目级 task state SQLite 路径。"""
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     ProjectPaths(username, project).bootstrap_from_legacy_output()
     return (Path(STATE_DIR) / username / project / "data.db").resolve()

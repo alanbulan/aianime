@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ai_anime.time_of_day import LlmTimeOfDay, normalize_time_of_day
-from ai_anime.utils.screenplay_scene_parser import TIME_TOKEN_RE
+from ai_anime.shared.utils.screenplay_scene_parser import TIME_TOKEN_RE
 
 SceneType = Literal["interior", "exterior", "nature"]
 InteriorExterior = Literal["内", "外", "无"]

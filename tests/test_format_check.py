@@ -7,7 +7,7 @@ from fastapi import UploadFile
 
 from ai_anime.api.deps import ProjectResolution
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.utils.screenplay_quality import build_import_format_check
+from ai_anime.shared.utils.screenplay_quality import build_import_format_check
 
 
 def _codes(result: dict) -> set[str]:

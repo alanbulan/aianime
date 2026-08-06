@@ -59,8 +59,8 @@ from ai_anime.shared.project_media import (
     resolve_project_media_path,
 )
 from ai_anime.task_state import get_task_manager
-from ai_anime.utils.background_anchor import copy_to_beat_selected_background
-from ai_anime.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.background_anchor import copy_to_beat_selected_background
+from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 logger = logging.getLogger(__name__)
@@ -226,7 +226,7 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
             UnifiedPromptBuilder,
             create_prompt_context,
         )
-        from ai_anime.utils.asset_resolver import ResolvedAssetRef
+        from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
         beat_context = input_item.beat_context or {}
         beat_payload = dict(beat_context_as_prompt_beat(beat_context))

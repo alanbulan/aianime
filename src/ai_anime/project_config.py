@@ -43,7 +43,7 @@ except ImportError:  # pragma: no cover
 
 
 def get_project_config_path(username: str, project: str) -> Path:
-    from ai_anime.utils.project_paths import ProjectPaths
+    from ai_anime.shared.utils.project_paths import ProjectPaths
 
     # Read the module-level OUTPUT_DIR (alias of STATE_DIR) so tests that
     # monkeypatch ``ai_anime.project_config.OUTPUT_DIR`` redirect the root.

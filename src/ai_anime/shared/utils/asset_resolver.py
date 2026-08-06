@@ -29,8 +29,8 @@ from ai_anime.modules.asset_world.public import (
     resolve_scene_plate_from_records,
     resolve_scene_record_name,
 )
-from ai_anime.utils.background_anchor import background_anchor_label, background_anchor_path
-from ai_anime.utils.path_resolver import (
+from ai_anime.shared.utils.background_anchor import background_anchor_label, background_anchor_path
+from ai_anime.shared.utils.path_resolver import (
     PathResolver,
     compute_prop_reference_path,
     compute_scene_master_path,

@@ -334,7 +334,7 @@ async def test_add_scene_concurrent_same_name_keeps_single_row(tmp_path):
 
 
 def test_compose_derived_scene_name_uses_ascii_underscore():
-    from ai_anime.utils.derived_scenes import (
+    from ai_anime.shared.utils.derived_scenes import (
         compose_derived_scene_name,
         derived_scene_ids,
         resolve_base_of,

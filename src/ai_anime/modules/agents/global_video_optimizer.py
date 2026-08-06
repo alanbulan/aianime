@@ -607,7 +607,7 @@ def prepare_global_optimizer_input(
     2. 构建颜色映射: build_character_map_for_grid() →
        提取 identity_sketch_colors + identity_appearances
     """
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.shared.utils.path_resolver import PathResolver
 
     resolver = PathResolver(output_dir, episode)
     total_beats = len(beats)
