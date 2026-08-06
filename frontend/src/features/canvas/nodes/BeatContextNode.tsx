@@ -2,12 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useBeatContextNodeController } from '@/features/canvas/hooks/useBeatContextNodeController';
+import { useBeatContextNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  BeatContextNodeView,
+  type BeatContextNodeData,
+} from '@/modules/creative_canvas/public';
 
-import { BeatContextNodeView } from './BeatContextNodeView';
-
-import type { BeatContextNodeData } from "@/modules/creative_canvas/public";
 type BeatContextNodeProps = NodeProps & {
   id: string;
   data: BeatContextNodeData;

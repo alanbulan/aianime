@@ -3536,6 +3536,8 @@ export { ThreeDWorldNodeView } from "@/modules/creative_canvas/presentation/Thre
 export type { ThreeDWorldNodeController } from "@/modules/creative_canvas/presentation/useThreeDWorldNodeController";
 export { Pano360ViewerNodeView } from "@/modules/creative_canvas/presentation/Pano360ViewerNodeView";
 export type { Pano360ViewerNodeController } from "@/modules/creative_canvas/presentation/usePano360ViewerNodeController";
+export { BeatContextNodeView } from "@/modules/creative_canvas/presentation/BeatContextNodeView";
+export type { BeatContextNodeController } from "@/modules/creative_canvas/presentation/useBeatContextNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

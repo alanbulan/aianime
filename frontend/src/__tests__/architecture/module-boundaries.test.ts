@@ -2728,19 +2728,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNodeView.tsx",
+      "modules/creative_canvas/presentation/BeatContextNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNodeView.test.tsx",
+      "modules/creative_canvas/presentation/BeatContextNodeView.test.tsx",
     );
     const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -2754,7 +2754,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "BeatContextNode", "=", "memo("].join(" "),
       ["export function", "resolveBeatContextSnapshot("].join(" "),
-      ["export function", "useBeatContextNodeController("].join(" "),
+      ["export function", "createUseBeatContextNodeController("].join(" "),
       ["export function", "BeatContextNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -2768,16 +2768,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useBeatContextNodeController",
-        "./BeatContextNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/BeatContextNode.tsx"],
       ["modules/creative_canvas/application/beatContextNodeModel.ts"],
-      ["features/canvas/hooks/useBeatContextNodeController.ts"],
-      ["features/canvas/nodes/BeatContextNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useBeatContextNodeController.ts"],
+      ["modules/creative_canvas/presentation/BeatContextNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -2786,13 +2785,13 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("className=");
     expect(modelSource).not.toContain("@/features/canvas/");
     expect(modelSource).not.toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/beatContextNodeModel",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
@@ -2811,7 +2810,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("useEpisodeDetail(");
     expect(controllerSource).toContain("updateBeat(");
     expect(controllerSource).toContain(
@@ -2833,6 +2832,14 @@ describe("frontend architecture boundaries", () => {
       "from './useBeatContextNodeController'",
     );
     expect(viewTestSource).toContain("from './BeatContextNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "features/canvas/hooks/useBeatContextNodeController.test.tsx",
+      "features/canvas/nodes/BeatContextNodeView.tsx",
+      "features/canvas/nodes/BeatContextNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas Director World model, capture use case, runtime, controller, and view", () => {
@@ -4561,7 +4568,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const declaration = [
       "export function",
@@ -4589,8 +4596,11 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/application/beatContextRefreshProjection.ts",
     ]);
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "../application/beatContextRefreshProjection",
     );
     expect(importSpecifiers(testPath)).toEqual([
       "vitest",
@@ -4623,7 +4633,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const declaration = [
       "export function",
@@ -4648,8 +4658,11 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       "modules/creative_canvas/domain/beatContextRoleBindings.ts",
     ]);
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "../domain/beatContextRoleBindings",
     );
     expect(importSpecifiers(nodePath)).not.toContain(
       "@/features/canvas/domain/beatContextRoleBindings",
@@ -5096,7 +5109,7 @@ describe("frontend architecture boundaries", () => {
     );
     const readerPaths = [
       "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -5126,8 +5139,9 @@ describe("frontend architecture boundaries", () => {
       const readerSource = readFileSync(readerPath, "utf8");
       const imports = importSpecifiers(readerPath);
       if (
-        relativeSource(readerPath) ===
-        "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts"
+        relativeSource(readerPath).startsWith(
+          "modules/creative_canvas/presentation/",
+        )
       ) {
         expect(readerSource).toContain("getFreezoneCanvasMetadata(");
         expect(imports).toContain("../application/canvasMetadataState");
@@ -5464,7 +5478,7 @@ describe("frontend architecture boundaries", () => {
     );
     const beatContextNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const apiProjectsPath = resolve(SRC_ROOT, "api/projects.ts");
@@ -5527,7 +5541,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(beatContextNodePath)).not.toContain(
       "@/modules/creative_canvas/canvasComposition",
     );
-    expect(importSpecifiers(beatContextNodePath)).toContain(
+    expect(importSpecifiers(beatContextNodePath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(beatContextNodePath)).toContain(
@@ -5535,6 +5549,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(beatContextNodeSource).not.toContain("@/api/canvas");
     expect(beatContextNodeSource).not.toContain("@/api/projects");
+    expect(beatContextNodeSource).toContain("getFreezoneCanvas(");
+    expect(importSpecifiers(beatContextNodePath)).toContain(
+      "../application/canvasRuntimeState",
+    );
     expect(canvasCompositionSource).toContain(
       "httpFreezoneCanvasStorageGateway",
     );
@@ -6031,7 +6049,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const migratedConsumerPaths = [
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     ];
     const canvasesTabPath = resolve(
       SRC_ROOT,
@@ -6087,8 +6105,9 @@ describe("frontend architecture boundaries", () => {
     for (const consumerPath of migratedConsumerPaths) {
       const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
       expect(source).not.toContain("@/api/canvas");
-      expect(source).toContain("@/modules/creative_canvas/public");
+      expect(source).not.toContain("@/modules/creative_canvas/public");
       expect(source).not.toContain("@/modules/creative_canvas/canvasComposition");
+      expect(source).toContain("getFreezoneCanvas(");
     }
     expect(importSpecifiers(canvasesTabPath)).toContain(
       "../canvasBrowserComposition",
@@ -6379,7 +6398,7 @@ describe("frontend architecture boundaries", () => {
     );
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPaths = [
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
       "modules/asset_world/composition.ts",
       "modules/narrative_planning/composition.ts",
       "modules/production/render-section-composition.ts",
@@ -6437,7 +6456,15 @@ describe("frontend architecture boundaries", () => {
     ]);
     for (const consumerPath of canvasConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/modules/creative_canvas/public");
+      if (
+        relativeSource(consumerPath) ===
+        "modules/creative_canvas/presentation/useBeatContextNodeController.ts"
+      ) {
+        expect(imports).not.toContain("@/modules/creative_canvas/public");
+        expect(imports).toContain("../application/openPresetProjection");
+      } else {
+        expect(imports).toContain("@/modules/creative_canvas/public");
+      }
       expect(imports).not.toContain(
         "@/features/freezone/openPresetProjection",
       );
@@ -13983,7 +14010,7 @@ describe("frontend architecture boundaries", () => {
     );
     const beatNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const parserSource = readFileSync(parserPath, "utf8");
@@ -14016,8 +14043,11 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(controllerPath)).toContain(
       "../application/canvasPresetRefresh",
     );
-    expect(importSpecifiers(beatNodePath)).toContain(
+    expect(importSpecifiers(beatNodePath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(beatNodePath)).toContain(
+      "../application/canvasPreset",
     );
     expect(refreshSource).not.toContain(declaration);
     expect(hookSource).not.toContain(declaration);
@@ -14456,7 +14486,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useBeatContextNodeController.ts",
+      "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
     );
     const stateSource = readFileSync(statePath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
@@ -14479,7 +14509,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       existsSync(resolve(SRC_ROOT, "features/freezone/public.ts")),
     ).toBe(false);
-    expect(canvasConsumerImports).toContain("@/modules/creative_canvas/public");
+    expect(canvasConsumerImports).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(canvasConsumerImports).toContain(
+      "../application/canvasRuntimeState",
+    );
     expect(canvasConsumerImports).not.toContain(
       "@/features/freezone/canvasSyncRuntime",
     );

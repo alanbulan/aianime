@@ -3,7 +3,7 @@ import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BeatContextNodeController } from '@/features/canvas/hooks/useBeatContextNodeController';
+import type { BeatContextNodeController } from './useBeatContextNodeController';
 import { BeatContextNodeView } from './BeatContextNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -20,8 +20,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -34,7 +33,13 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./NodeContextBadges', () => ({
   NodeContextBadges: () => <div>context-badges</div>,
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,

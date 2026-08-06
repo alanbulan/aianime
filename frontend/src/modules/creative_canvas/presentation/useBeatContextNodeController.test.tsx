@@ -2,10 +2,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import { useBeatContextNodeController } from './useBeatContextNodeController';
-
-import type { BeatContextNodeData } from "@/modules/creative_canvas/public";
+import type { BeatContextNodeData } from '../domain/canvasNodeData';
+import type { CanvasEdge, CanvasNode } from '../domain/canvasNodeData';
+import {
+  createUseBeatContextNodeController,
+  type BeatContextNodeStore,
+  type BeatContextNodeStoreHook,
+} from './useBeatContextNodeController';
 const mocks = vi.hoisted(() => ({
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -62,45 +65,28 @@ vi.mock('@xyflow/react', () => ({
 }));
 
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-  const state = () => ({
-    nodes: mocks.storeNodes,
-    edges: mocks.storeEdges,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    replaceEdges: mocks.replaceEdges,
-    setCanvasData: mocks.setCanvasData,
-  });
-  const useCanvasStore = (
-    selector: (value: ReturnType<typeof state>) => unknown,
-  ) => selector(state());
-  useCanvasStore.getState = state;
-
-  return useCanvasStore;
-})(),
+vi.mock('../application/canvasRuntimeState', () => ({
   applyRemoteFreezoneCanvas: (...args: unknown[]) =>
     mocks.applyRemoteCanvas(...args),
-  buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>
-    mocks.buildRefreshPatch(...args),
-  createCanvasFromPreset: (...args: unknown[]) =>
-    mocks.createCanvasFromPreset(...args),
-  extractMainlineContextsFromNode: ({ data }: { data: BeatContextNodeData }) =>
-    Array.isArray(data.mainline_context) ? data.mainline_context : [],
   flushFreezoneCanvasRuntime: (...args: unknown[]) =>
     mocks.flushRuntime(...args),
-  getFreezoneCanvas: (...args: unknown[]) => mocks.getCanvas(...args),
+}));
+
+vi.mock('../application/beatContextRefreshProjection', () => ({
+  buildBeatContextNodeRefreshPatch: (...args: unknown[]) =>
+    mocks.buildRefreshPatch(...args),
+}));
+
+vi.mock('../application/canvasMetadataState', () => ({
   getFreezoneCanvasMetadata: () => mocks.getMetadata(),
-  isCanonicalPushTarget: () => false,
-  isPresetManagedEdge: (edge: { data?: { preset_managed?: unknown } }) =>
-    edge.data?.preset_managed === true,
-  isPresetManagedNode: (node: { data?: { preset_managed?: unknown } }) =>
-    node.data?.preset_managed === true,
-  listFreezoneBeatContext: (...args: unknown[]) =>
-    mocks.listBeatContext(...args),
-  openPresetProjectionInMyCanvas: (...args: unknown[]) =>
-    mocks.openWorkbench(...args),
+}));
+
+vi.mock('../application/canvasPreset', () => ({
+  presetRequestFromMetadata: (...args: unknown[]) =>
+    mocks.presetRequest(...args),
+}));
+
+vi.mock('../domain/currentBeatContext', () => ({
   parseBeatContextVisualMarkers: (value: string) => ({
     identities: Array.from(value.matchAll(/\{\{([^}]+)\}\}/g)).map(
       (match) => match[1],
@@ -109,11 +95,49 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       (match) => match[1],
     ),
   }),
-  presetRequestFromMetadata: (...args: unknown[]) =>
-    mocks.presetRequest(...args),
+}));
+
+vi.mock('../domain/beatContextRoleBindings', () => ({
   syncBeatContextMainlineEdges: (...args: unknown[]) =>
     mocks.syncMainlineEdges(...args),
 }));
+
+vi.mock('../domain/mainlineContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/mainlineContext')>()),
+  extractMainlineContextsFromNode: ({
+    data,
+  }: {
+    data: BeatContextNodeData;
+  }) =>
+    Array.isArray(data.mainline_context) ? data.mainline_context : [],
+}));
+
+const useStore = ((selector: (state: BeatContextNodeStore) => unknown) =>
+  selector({
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    replaceEdges: mocks.replaceEdges,
+    setCanvasData: mocks.setCanvasData,
+  })) as unknown as BeatContextNodeStoreHook;
+
+const useBeatContextNodeController = createUseBeatContextNodeController({
+  useStore,
+  getFreezoneCanvas: (...args: unknown[]) => mocks.getCanvas(...args),
+  createCanvasFromPreset: (...args: unknown[]) =>
+    mocks.createCanvasFromPreset(...args),
+  listFreezoneBeatContext: (...args: unknown[]) =>
+    mocks.listBeatContext(...args),
+  openPresetProjectionInMyCanvas: (...args: unknown[]) =>
+    mocks.openWorkbench(...args),
+  readGraph: () => ({
+    nodes: mocks.storeNodes as unknown as CanvasNode[],
+    edges: mocks.storeEdges as unknown as CanvasEdge[],
+  }),
+  readNodeData: (nodeId: string) =>
+    mocks.storeNodes.find((node) => node.id === nodeId)?.data as
+      | BeatContextNodeData
+      | undefined,
+});
 
 vi.mock('@/modules/narrative_planning/public', () => ({
   updateBeat: (...args: unknown[]) => mocks.updateBeat(...args),

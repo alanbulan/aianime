@@ -31,6 +31,7 @@ import {
   type ThreeDWorldNodeCanvasNode,
 } from './presentation/useThreeDWorldNodeController';
 import { createUsePano360ViewerNodeController } from './presentation/usePano360ViewerNodeController';
+import { createUseBeatContextNodeController } from './presentation/useBeatContextNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -52,6 +53,11 @@ import {
 import { submitVideoGeneration } from './videoGenerationComposition';
 import { useCanvasVideoModels } from './generationCatalogComposition';
 import { openPresetProjectionInMyCanvas } from './presetProjectionComposition';
+import {
+  createCanvasFromPreset,
+  getFreezoneCanvas,
+} from './canvasStorageComposition';
+import { listFreezoneBeatContext } from './contextQueryComposition';
 import { analyzeCanvasVideoStory } from './videoStoryAnalysisComposition';
 import { separateCanvasAudioVideo } from './audioSeparationComposition';
 import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, type CanvasBeatDirectorManifestGateway, type GetCanvasBeatDirectorManifestParams } from './application/beatDirectorManifest';
@@ -88,7 +94,12 @@ import { CANVAS_NODE_TYPES } from './domain/canvasConnection';
 import { type CanvasAssetDragPayload } from './domain/assetDrag';
 import { NODE_TOOL_TYPES } from './domain/canvasNodeTool';
 import { type SelectedBackgroundGraphGateway, stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase, uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase, type StageSelectedBackgroundOptions, type UploadSelectedBackgroundCandidateOptions } from './application/selectedBackgroundSlot';
-import { type CanvasNodeData } from './domain/canvasNodeData';
+import type {
+  BeatContextNodeData,
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+} from './domain/canvasNodeData';
 import { awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase, startCanvasSkillRun as startCanvasSkillRunUseCase, type AwaitCanvasSkillRunResultParams, type StartCanvasSkillRunParams } from './application/skillExecution';
 import { hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase, type CanvasSceneDirectorManifestGateway } from './application/assetDragHydration';
 import { type SelectedBackgroundTarget } from './application/selectedBackgroundSlot';
@@ -389,6 +400,23 @@ export const usePano360ViewerNodeController =
     uploadLocalImageToBackend,
     uploadAndAutoCommitSelectedBackgroundCandidate,
   });
+export const useBeatContextNodeController = createUseBeatContextNodeController({
+  useStore: useCanvasStore,
+  getFreezoneCanvas,
+  createCanvasFromPreset,
+  listFreezoneBeatContext,
+  openPresetProjectionInMyCanvas,
+  readGraph: () =>
+    useCanvasStore.getState() as unknown as {
+      nodes: CanvasNode[];
+      edges: CanvasEdge[];
+    },
+  readNodeData: (nodeId) =>
+    useCanvasStore
+      .getState()
+      .nodes.find((node) => node.id === nodeId)
+      ?.data as BeatContextNodeData | undefined,
+});
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

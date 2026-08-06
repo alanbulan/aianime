@@ -16,16 +16,11 @@ import {
   BEAT_CONTEXT_NO_PROP_MARKER,
   projectBeatContextSelectableTokens,
   type BeatContextMentionKind,
-} from '@/modules/creative_canvas/public';
-import type { BeatContextNodeController } from '@/features/canvas/hooks/useBeatContextNodeController';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
-import {
-  NodeContextBadges,
-  NodeResizeHandle,
-} from '@/modules/creative_canvas/public';
+} from '../application/beatContextNodeModel';
+import type { BeatContextNodeController } from './useBeatContextNodeController';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { NodeContextBadges } from './NodeContextBadges';
+import { NodeResizeHandle } from './NodeResizeHandle';
 import { UiSelect } from '@/components/ui';
 import { parseColorValue } from '@/lib/sketch-colors';
 import { timeOfDayLabel } from '@/lib/time-of-day';
