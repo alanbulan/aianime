@@ -35,7 +35,7 @@ def _write_valid_labels(project_dir, episode_num: int = 1) -> None:
 @pytest.mark.asyncio
 async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeypatch):
     from ai_anime.api.routes import verification as routes
-    from ai_anime.verification.schemas import SketchEditExecuteRequest
+    from ai_anime.modules.verification.schemas import SketchEditExecuteRequest
 
     _write_valid_labels(tmp_path)
     ctx = SimpleNamespace(

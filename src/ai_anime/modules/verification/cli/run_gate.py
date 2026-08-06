@@ -1,7 +1,7 @@
 """CLI: run the visual gate against the latest sketch_edit_execute_summary.
 
 Usage:
-    uv run python -m ai_anime.verification.cli.run_gate \
+    uv run python -m ai_anime.modules.verification.cli.run_gate \
         <project_dir> --episode-num 1 [--summary-name sketch_edit_execute_summary.json]
 
 Emits stdout JSON summary, writes an audit file under
@@ -27,9 +27,9 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
-from ai_anime.verification import convergence_log, failure_registry
-from ai_anime.verification.global_registry_db import open_defs_db
-from ai_anime.verification.sketch_visual_gate import gate_candidate_cells
+from ai_anime.modules.verification import convergence_log, failure_registry
+from ai_anime.modules.verification.global_registry_db import open_defs_db
+from ai_anime.modules.verification.sketch_visual_gate import gate_candidate_cells
 
 
 def _resolve_paths(project_dir: Path) -> tuple[Path, Path]:
@@ -119,7 +119,7 @@ async def main_async() -> int:
         summary_payload = _json.loads(Path(summary_path).read_text(encoding="utf-8"))
         source_run_id = summary_payload.get("source_run_id")
         if source_run_id:
-            from ai_anime.verification import replay_capture as _trace_mod
+            from ai_anime.modules.verification import replay_capture as _trace_mod
 
             resolved = _trace_mod._resolve_project_paths(project_dir)
             if resolved is not None:

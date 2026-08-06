@@ -11,8 +11,8 @@ from typing import Any
 
 from ai_anime.modules.task_execution.public import task_config_scope
 from ai_anime.task_state import get_task_manager
-from ai_anime.verification.sketch_edit_execute import resolve_labels_jsonl
-from ai_anime.verification.sketch_edit_label_validation import validate_labels_jsonl
+from ai_anime.modules.verification.sketch_edit_execute import resolve_labels_jsonl
+from ai_anime.modules.verification.sketch_edit_label_validation import validate_labels_jsonl
 
 
 def load_project_skill_env(project_dir: Path) -> dict[str, str]:

@@ -1,7 +1,7 @@
 """CLI: print the convergence_rounds table as markdown.
 
 Usage:
-    uv run python -m ai_anime.verification.cli.show_trend \
+    uv run python -m ai_anime.modules.verification.cli.show_trend \
         <project_dir> [--episode-num 1]
 """
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import aiosqlite
 
-from ai_anime.verification import convergence_log
+from ai_anime.modules.verification import convergence_log
 
 
 def _resolve_db_path(project_dir: Path) -> Path:

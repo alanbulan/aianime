@@ -1,7 +1,7 @@
 """CLI: copy candidate cells back to formal sketches, but only gate-passed beats.
 
 Usage:
-    uv run python -m ai_anime.verification.cli.copy_back_passed \
+    uv run python -m ai_anime.modules.verification.cli.copy_back_passed \
         <project_dir> --episode-num 1
 
 Reads the most recent `gate_*.json` under `verify_reports/ep{NNN}/
@@ -33,7 +33,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _latest_gate_audit(episode_dir: Path, summary_name: str) -> Path | None:
-    from ai_anime.verification.sketch_edit_execute import derive_audit_dir_name
+    from ai_anime.modules.verification.sketch_edit_execute import derive_audit_dir_name
 
     audit_dir = episode_dir / derive_audit_dir_name(summary_name)
     if not audit_dir.exists():
@@ -93,7 +93,7 @@ def main() -> int:
     # source_run_id on older summaries silently skips the hook.
     try:
         import asyncio as _asyncio
-        from ai_anime.verification import replay_capture as _trace_mod
+        from ai_anime.modules.verification import replay_capture as _trace_mod
 
         source_run_id = summary.get("source_run_id")
         if source_run_id:

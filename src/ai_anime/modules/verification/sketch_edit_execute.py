@@ -18,7 +18,7 @@ from ai_anime.generators.nanobanana_grid import (
 )
 from ai_anime.generators.pool_indexer import save_grid_and_split
 from ai_anime.config import get_grid_generation_config
-from ai_anime.verification.sketch_edit_label_validation import (
+from ai_anime.modules.verification.sketch_edit_label_validation import (
     LabelsValidationError,
     validate_labels_jsonl,
 )
@@ -428,7 +428,7 @@ def execute_sketch_edit_batches(
     ts = datetime.now().strftime("%Y%m%d%H%M%S")
 
     import asyncio as _asyncio_registry
-    from ai_anime.verification.failure_registry import (
+    from ai_anime.modules.verification.failure_registry import (
         load_negative_clause_for_project,
     )
 
@@ -511,7 +511,7 @@ def execute_sketch_edit_batches(
         # Director-OS phase 2: per-beat-attempt trace capture (stage 1).
         # One TraceHandle per beat in the batch; they share source_run_id
         # + prompt_text + input grid but have distinct trace_ids.
-        from ai_anime.verification import replay_capture as _trace_mod
+        from ai_anime.modules.verification import replay_capture as _trace_mod
 
         trace_handles: list[_trace_mod.TraceHandle] = []
         for row in batch_rows:

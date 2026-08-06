@@ -965,7 +965,7 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         PACKAGE_ROOT / "director_world" / "block_world_builder.py",
         PACKAGE_ROOT / "director_world" / "scene_overlap_analyzer.py",
         PACKAGE_ROOT / "director_world" / "scene_spatial_contract.py",
-        PACKAGE_ROOT / "verification" / "sketch_visual_gate.py",
+        PACKAGE_ROOT / "modules" / "verification" / "sketch_visual_gate.py",
         PACKAGE_ROOT
         / "modules"
         / "model_usage"

@@ -25,8 +25,8 @@ Rerunning the migration is safe; it will no-op on rows that have
 already landed in the global DB.
 
 Usage:
-    uv run python -m ai_anime.verification.cli.migrate_to_global_shared
-    uv run python -m ai_anime.verification.cli.migrate_to_global_shared --dry-run
+    uv run python -m ai_anime.modules.verification.cli.migrate_to_global_shared
+    uv run python -m ai_anime.modules.verification.cli.migrate_to_global_shared --dry-run
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ async def _merge_verification_db(src: Path, dst: Path, dry_run: bool) -> tuple[i
     dst.parent.mkdir(parents=True, exist_ok=True)
 
     # Ensure destination has schema
-    from ai_anime.verification.global_registry_db import DEFS_SCHEMA_SQL
+    from ai_anime.modules.verification.global_registry_db import DEFS_SCHEMA_SQL
 
     async with aiosqlite.connect(str(dst)) as db_dst:
         await db_dst.executescript(DEFS_SCHEMA_SQL)
@@ -141,7 +141,7 @@ async def _merge_training_db(src: Path, dst: Path, dry_run: bool) -> dict[str, i
         return {}
     dst.parent.mkdir(parents=True, exist_ok=True)
 
-    from ai_anime.verification.training_db import TRAINING_SCHEMA_SQL
+    from ai_anime.modules.verification.training_db import TRAINING_SCHEMA_SQL
 
     async with aiosqlite.connect(str(dst)) as db_dst:
         await db_dst.executescript(TRAINING_SCHEMA_SQL)

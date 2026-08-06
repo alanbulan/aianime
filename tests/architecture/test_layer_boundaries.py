@@ -112,7 +112,7 @@ def test_verification_http_adapter_lives_in_api_layer() -> None:
     assert not LEGACY_VERIFICATION_ROUTE.exists()
     assert "ai_anime.api.auth" in _imports(route)
     assert "ai_anime.api.deps" in _imports(route)
-    assert "ai_anime.verification" in route.read_text(encoding="utf-8")
+    assert "ai_anime.modules.verification" in route.read_text(encoding="utf-8")
     assert "verification.router" in api_router.read_text(encoding="utf-8")
 
 

@@ -46,7 +46,7 @@ from typing import Any
 
 import aiosqlite
 
-from ai_anime.verification import artifact_store, failure_registry, trace_ids, training_db, version_hash
+from ai_anime.modules.verification import artifact_store, failure_registry, trace_ids, training_db, version_hash
 
 
 @dataclass

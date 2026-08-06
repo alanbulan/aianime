@@ -31,7 +31,7 @@ from ai_anime.model_access_policy import (
 )
 from ai_anime.model_text_transport import request_model_chat_content
 from ai_anime.official_defaults import DEFAULT_FREEZONE_VISION_MODEL
-from ai_anime.verification import failure_registry
+from ai_anime.modules.verification import failure_registry
 
 
 DEFAULT_GATE_MODEL = DEFAULT_FREEZONE_VISION_MODEL
@@ -293,7 +293,7 @@ async def gate_candidate_cells(
     if not model_access_configured():
         raise RuntimeError("Visual gate model access is not configured")
 
-    from ai_anime.verification.sketch_edit_execute import derive_audit_dir_name
+    from ai_anime.modules.verification.sketch_edit_execute import derive_audit_dir_name
 
     audit_dir = summary_path.parent / derive_audit_dir_name(summary_path.name)
     audit_dir.mkdir(parents=True, exist_ok=True)

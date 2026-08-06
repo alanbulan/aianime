@@ -48,7 +48,7 @@ async def _resolve_trace_id(
         return args.trace_id
     if not args.beat:
         return None
-    from ai_anime.verification import replay_capture
+    from ai_anime.modules.verification import replay_capture
 
     mapping = await replay_capture.find_traces_for_run(
         project_dir=project_dir, source_run_id=args.source_run_id,
@@ -64,7 +64,7 @@ async def main_async() -> int:
         print(json.dumps({"ok": False, "error": "could not resolve trace_id"}))
         return 2
 
-    from ai_anime.verification import replay_capture
+    from ai_anime.modules.verification import replay_capture
 
     try:
         await replay_capture.record_override(

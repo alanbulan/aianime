@@ -39,7 +39,7 @@ from typing import Any
 
 import aiosqlite
 
-from ai_anime.verification.global_registry_db import (
+from ai_anime.modules.verification.global_registry_db import (
     ensure_defs_seeded,
     open_defs_db,
 )
@@ -556,7 +556,7 @@ def load_negative_clause_for_project_sync(project_dir: str | None, layer: str) -
         import sqlite3
 
         from ai_anime.sqlite_pragmas import configure_sqlite_connection
-        from ai_anime.verification.global_registry_db import DEFS_SCHEMA_SQL
+        from ai_anime.modules.verification.global_registry_db import DEFS_SCHEMA_SQL
 
         db_path.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(db_path))

@@ -13,7 +13,7 @@ partial.
 
 Usage (first insert):
 
-    uv run python -m ai_anime.verification.cli.register_failure_mode \\
+    uv run python -m ai_anime.modules.verification.cli.register_failure_mode \\
       --project-dir /Users/.../xuanchuanpian \\
       --code shot_scale_angle_mismatch \\
       --layer director \\
@@ -25,7 +25,7 @@ Usage (first insert):
 
 Later update (any subset):
 
-    uv run python -m ai_anime.verification.cli.register_failure_mode \\
+    uv run python -m ai_anime.modules.verification.cli.register_failure_mode \\
       --project-dir /Users/.../xuanchuanpian \\
       --code shot_scale_angle_mismatch \\
       --gate-enabled 1
@@ -95,8 +95,8 @@ async def main_async() -> int:
     user, project = parts[-2], parts[-1]
     db_path = ProjectPaths(user, project).global_shared_verification_db
 
-    from ai_anime.verification import failure_registry, version_hash
-    from ai_anime.verification.global_registry_db import open_defs_db
+    from ai_anime.modules.verification import failure_registry, version_hash
+    from ai_anime.modules.verification.global_registry_db import open_defs_db
 
     db = await open_defs_db(db_path)
     try:

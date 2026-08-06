@@ -17,10 +17,10 @@ across projects.
 
 Usage::
 
-    uv run python -m ai_anime.verification.cli.seed_mirror_once \
+    uv run python -m ai_anime.modules.verification.cli.seed_mirror_once \
         --user admin
     # or auto-detect all users under STATE_DIR:
-    uv run python -m ai_anime.verification.cli.seed_mirror_once --all-users
+    uv run python -m ai_anime.modules.verification.cli.seed_mirror_once --all-users
 """
 
 from __future__ import annotations
@@ -35,8 +35,8 @@ import aiosqlite
 
 from ai_anime.config import STATE_DIR
 from ai_anime.utils.project_paths import ProjectPaths
-from ai_anime.verification import failure_registry
-from ai_anime.verification.global_registry_db import open_defs_db
+from ai_anime.modules.verification import failure_registry
+from ai_anime.modules.verification.global_registry_db import open_defs_db
 
 
 def parse_args() -> argparse.Namespace:

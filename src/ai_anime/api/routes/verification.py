@@ -15,22 +15,22 @@ from ai_anime.modules.production.public import (
     production_image_settings_use_cases,
     sketch_edit_execution_use_cases,
 )
-from ai_anime.verification.consistency_verifier import ConsistencyVerifier
-from ai_anime.verification.continuity_verifier import ContinuityVerifier
-from ai_anime.verification.episode_reviewer import EpisodeReviewer
-from ai_anime.verification.frame_verifier import FrameVerifier
-from ai_anime.verification.image_verifier import (
+from ai_anime.modules.verification.consistency_verifier import ConsistencyVerifier
+from ai_anime.modules.verification.continuity_verifier import ContinuityVerifier
+from ai_anime.modules.verification.episode_reviewer import EpisodeReviewer
+from ai_anime.modules.verification.frame_verifier import FrameVerifier
+from ai_anime.modules.verification.image_verifier import (
     ImageVerifier,
     resolve_verification_scene_context,
 )
-from ai_anime.verification.report_formatter import (
+from ai_anime.modules.verification.report_formatter import (
     format_color_verify_report,
     format_consistency_report,
     format_episode_overview_report,
     format_verification_report,
     save_verify_report,
 )
-from ai_anime.verification.schemas import (
+from ai_anime.modules.verification.schemas import (
     ColorVerifyRequest,
     CompareRequest,
     ConsistencyVerifyRequest,
@@ -41,16 +41,16 @@ from ai_anime.verification.schemas import (
     SketchSelectRequest,
     VerifyRequest,
 )
-from ai_anime.verification.similarity_detector import detect_similarity
-from ai_anime.verification.sketch_color_verifier import verify_episode_sketch_colors
-from ai_anime.verification.sketch_comparer import SketchComparer
-from ai_anime.verification.sketch_edit_execute import resolve_labels_jsonl
-from ai_anime.verification.sketch_edit_label_validation import (
+from ai_anime.modules.verification.similarity_detector import detect_similarity
+from ai_anime.modules.verification.sketch_color_verifier import verify_episode_sketch_colors
+from ai_anime.modules.verification.sketch_comparer import SketchComparer
+from ai_anime.modules.verification.sketch_edit_execute import resolve_labels_jsonl
+from ai_anime.modules.verification.sketch_edit_label_validation import (
     LabelsValidationError,
     validate_labels_jsonl,
 )
-from ai_anime.verification.sketch_scorer import SketchScorer
-from ai_anime.verification.utils import (
+from ai_anime.modules.verification.sketch_scorer import SketchScorer
+from ai_anime.modules.verification.utils import (
     find_frame_for_beat,
     find_sketch_for_beat,
     load_all_beats,

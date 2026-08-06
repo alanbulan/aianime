@@ -3272,7 +3272,7 @@ class NanoBananaGridGenerator:
                     project_dir=str(project_dir) if project_dir else "",
                     image_model=self.model,
                 )
-                from ai_anime.verification.failure_registry import (
+                from ai_anime.modules.verification.failure_registry import (
                     load_negative_clause_for_project,
                 )
 
@@ -4118,7 +4118,7 @@ class NanoBananaGridGenerator:
                 project_dir=str(project_dir) if project_dir else "",
                 image_model=self.model,
             )
-            from ai_anime.verification.failure_registry import (
+            from ai_anime.modules.verification.failure_registry import (
                 load_negative_clause_for_project,
             )
 

@@ -9,7 +9,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import raise_if_envelope_cancel_requested
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.task_state import get_task_manager
-from ai_anime.verification.sketch_edit_execute import (
+from ai_anime.modules.verification.public import (
     execute_sketch_edit_batches,
     resolve_labels_jsonl,
 )
