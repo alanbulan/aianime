@@ -66,13 +66,16 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
 
     store = object.__new__(CogneeStore)
     store.dataset_name = "test_ds"
+    store.text_model = "test-text-model"
+    store.embedding_model = "test-embedding-model"
+    store.embedding_dimensions = 1024
     saved: dict[str, str] = {}
     monkeypatch.setattr(
         store, "save_novel_content", lambda content: saved.__setitem__("content", content)
     )
     monkeypatch.setattr(store, "load_novel_content", lambda: saved.get("content"))
     monkeypatch.setattr(store, "_set_cognee_context", lambda *a, **k: None)
-    monkeypatch.setattr("ai_anime.modules.knowledge_graph.config.init_cognee", lambda *a, **k: None)
+    monkeypatch.setattr(store_module, "init_cognee", lambda *a, **k: None)
     monkeypatch.setenv("LLM_API_KEY", "test-key")
 
     async def fake_add(*a, **k):
@@ -103,13 +106,16 @@ async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
 
     store = object.__new__(CogneeStore)
     store.dataset_name = "test_ds"
+    store.text_model = "test-text-model"
+    store.embedding_model = "test-embedding-model"
+    store.embedding_dimensions = 1024
     saved: dict[str, str] = {}
     monkeypatch.setattr(
         store, "save_novel_content", lambda content: saved.__setitem__("content", content)
     )
     monkeypatch.setattr(store, "load_novel_content", lambda: saved.get("content"))
     monkeypatch.setattr(store, "_set_cognee_context", lambda *a, **k: None)
-    monkeypatch.setattr("ai_anime.modules.knowledge_graph.config.init_cognee", lambda *a, **k: None)
+    monkeypatch.setattr(store_module, "init_cognee", lambda *a, **k: None)
     monkeypatch.setenv("LLM_API_KEY", "test-key")
 
     async def fake_add(*a, **k):
