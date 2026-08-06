@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSaveStatusStore } from "@/stores/save-status-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useSaveStatusStore } from "@/shared/stores/save-status-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 import type { TaskState } from "@/modules/task_execution/public";
 

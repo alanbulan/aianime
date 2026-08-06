@@ -4,7 +4,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 
 import { projectSectionFromPath } from "@/modules/project_workspace/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 
 const APP_HEADER_HEIGHT = 48;
 const WORKSPACE_SUBNAV_ROW_HEIGHT = 42;

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
+import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
 
 import {
   isRememberedSection,

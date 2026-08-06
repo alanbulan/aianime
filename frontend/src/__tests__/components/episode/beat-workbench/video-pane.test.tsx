@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { toast } from "sonner";
 
-import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
+import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { VideoPane } from "@/modules/production/video-pane-composition";
 import type { Seedance2AssetItem } from "@/modules/production/public";
@@ -472,7 +472,7 @@ vi.mock("@/modules/production/composition", async () => {
     "@/modules/production/application/use-seedance2-mention-controller"
   );
   const { useProjectAspectRatio } = await import(
-    "@/stores/aspect-ratio-store"
+    "@/shared/stores/aspect-ratio-store"
   );
   const useLegacyVideoPromptController =
     createUseLegacyVideoPromptController(

@@ -10,7 +10,7 @@ import {
 } from "@/lib/reset-region-state";
 import { configureApiRuntime } from "@/shared/api/transport";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 export function installApiRuntime(queryClient: QueryClient): void {
   configureApiRuntime({

@@ -5,7 +5,7 @@ import { Loader2, Scissors, X } from "lucide-react";
 import {
   cropBoxPercentStyle,
   type CropBox,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

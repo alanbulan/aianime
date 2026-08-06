@@ -8,7 +8,7 @@ import {
   orientationForAspectRatio,
   orientationForSpineTemplate,
   zoomCropBox,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 
 describe("aspect ratio helpers", () => {
   it("maps project_config aspect_ratio to UI orientation", () => {

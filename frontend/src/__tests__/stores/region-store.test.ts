@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-vi.mock("@/lib/cluster-config", () => ({
+vi.mock("@/shared/platform/cluster-config", () => ({
   clusterConfig: {
     mode: "multi-region",
     regions: [
@@ -18,14 +18,14 @@ describe("region-store", () => {
   });
 
   it("initializes with no selected region", async () => {
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     expect(useRegionStore.getState().selectedRegionId).toBeNull();
     expect(useRegionStore.getState().isSwitching).toBe(false);
     expect(useRegionStore.getState().isLocked).toBe(false);
   });
 
   it("setRegion + clearRegion update state", async () => {
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     useRegionStore.getState().setRegion("cn-1");
     expect(useRegionStore.getState().selectedRegionId).toBe("cn-1");
     useRegionStore.getState().clearRegion();
@@ -37,7 +37,7 @@ describe("region-store", () => {
       "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "gone-1" }, version: 1 }),
     );
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     expect(useRegionStore.getState().selectedRegionId).toBe("gone-1");
   });
 
@@ -46,7 +46,7 @@ describe("region-store", () => {
       "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "gone-1" }, version: 1 }),
     );
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     useRegionStore.getState().sanitizeAgainstConfig();
     expect(useRegionStore.getState().selectedRegionId).toBeNull();
   });
@@ -56,13 +56,13 @@ describe("region-store", () => {
       "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "cn-1" }, version: 1 }),
     );
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     useRegionStore.getState().sanitizeAgainstConfig();
     expect(useRegionStore.getState().selectedRegionId).toBe("cn-1");
   });
 
   it("setSwitching / setLocked toggle transient flags", async () => {
-    const { useRegionStore } = await import("@/stores/region-store");
+    const { useRegionStore } = await import("@/shared/stores/region-store");
     useRegionStore.getState().setSwitching(true);
     expect(useRegionStore.getState().isSwitching).toBe(true);
     useRegionStore.getState().setLocked(true);

@@ -92,7 +92,7 @@ vi.mock("@/modules/narrative_planning/composition", async () => {
     "@/modules/narrative_planning/application/use-text-pane-controller"
   );
   const { saveScopes, trackSave } = await import(
-    "@/stores/save-status-store"
+    "@/shared/stores/save-status-store"
   );
 
   const useTextPaneController = createUseTextPaneController(

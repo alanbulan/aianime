@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { useSettingsStore } from "@/stores/settingsStore";
+import { useSettingsStore } from "@/modules/creative_canvas/public";
 
 describe("settings store", () => {
   it("drops retired user-managed media storage credentials during migration", async () => {

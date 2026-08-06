@@ -3,13 +3,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent, { PointerEventsCheckLevel } from "@testing-library/user-event";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 import { getRegionCookie, clearRegionCookie } from "@/lib/region-cookie";
 
 const runtimeState = vi.hoisted(() => ({ authRequired: true }));
 const navigateMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/cluster-config", () => ({
+vi.mock("@/shared/platform/cluster-config", () => ({
   clusterConfig: {
     mode: "multi-region",
     regions: [
@@ -78,12 +78,12 @@ describe("RegionSelector — single-region auto-select", () => {
   });
 
   it("auto-selects the only region and renders read-only", async () => {
-    vi.doMock("@/lib/cluster-config", () => ({
+    vi.doMock("@/shared/platform/cluster-config", () => ({
       clusterConfig: { mode: "multi-region", regions: [{ id: "only-1", displayName: "唯一区" }] },
     }));
     // Reload the store fresh so the component and this assertion read the
     // same module instance after vi.resetModules().
-    const { useRegionStore: freshStore } = await import("@/stores/region-store");
+    const { useRegionStore: freshStore } = await import("@/shared/stores/region-store");
     freshStore.setState({ selectedRegionId: null });
     const { RegionSelector } = await import("@/components/login/region-selector");
     render(<RegionSelector />);
@@ -99,7 +99,7 @@ describe("RegionSelector — mode:none", () => {
   });
 
   it("renders nothing in mode:none", async () => {
-    vi.doMock("@/lib/cluster-config", () => ({
+    vi.doMock("@/shared/platform/cluster-config", () => ({
       clusterConfig: { mode: "none", regions: [] },
     }));
     const { RegionSelector } = await import("@/components/login/region-selector");
@@ -113,7 +113,7 @@ describe("RegionSelector — empty regions in multi-region", () => {
     vi.resetModules();
   });
   it("renders a retry affordance when regions is empty", async () => {
-    vi.doMock("@/lib/cluster-config", () => ({
+    vi.doMock("@/shared/platform/cluster-config", () => ({
       clusterConfig: { mode: "multi-region", regions: [] },
     }));
     const { RegionSelector } = await import("@/components/login/region-selector");

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TaskList } from "./task-list";

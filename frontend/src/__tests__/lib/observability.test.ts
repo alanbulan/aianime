@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
 import { initObservability, getObservabilityTags } from "@/lib/observability";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 describe("observability", () => {
   beforeEach(() => {

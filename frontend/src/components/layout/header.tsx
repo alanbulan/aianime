@@ -35,7 +35,7 @@ import {
   useAuthStore,
   useCommercialAuthStore,
 } from "@/modules/identity_access/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/modules/model_usage/public";

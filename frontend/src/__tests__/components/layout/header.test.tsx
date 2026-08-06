@@ -73,7 +73,7 @@ vi.mock("@/modules/identity_access/public", () => ({
   ) => selector(commercialState),
 }));
 
-vi.mock("@/stores/app-store", () => ({
+vi.mock("@/modules/project_workspace/presentation/appStore", () => ({
   useAppStore: () => vi.fn(),
 }));
 

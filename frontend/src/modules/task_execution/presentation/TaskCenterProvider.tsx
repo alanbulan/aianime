@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { TaskQueryGateway } from "@/modules/task_execution/application/taskQueryPorts";
 import type {

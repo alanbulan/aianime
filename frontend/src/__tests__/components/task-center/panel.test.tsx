@@ -11,7 +11,7 @@ import {
   createMemoryHistory,
 } from "@tanstack/react-router";
 import { TaskPanel } from "@/components/task-center/panel";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 
 const i18n = i18next.createInstance();

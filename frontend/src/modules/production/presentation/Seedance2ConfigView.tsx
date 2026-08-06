@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ratioToCss } from "@/lib/aspect-ratio";
+import { ratioToCss } from "@/shared/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type { BeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";

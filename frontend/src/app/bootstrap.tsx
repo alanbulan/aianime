@@ -6,7 +6,7 @@ import { installApiRuntime } from "@/app/api-runtime";
 import { queryClient } from "@/app/query-client";
 import { router } from "@/app/router";
 import { setAppRouter } from "@/lib/app-router";
-import { loadClusterConfig } from "@/lib/cluster-config";
+import { loadClusterConfig } from "@/shared/platform/cluster-config";
 import { initDevBackendWatch } from "@/lib/dev-backend-watch";
 import { installDomReconciliationGuard } from "@/lib/dom-reconciliation-guard";
 import { getOrCreateReactRoot } from "@/lib/react-root";

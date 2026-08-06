@@ -7,7 +7,7 @@ import {
   DEFAULT_ACTION_PANEL_SECTIONS,
   episodeWorkbenchScopeKey,
   useEpisodeWorkbenchStore,
-} from "@/stores/episode-workbench-store";
+} from "@/shared/stores/episode-workbench-store";
 
 export function useEpisodeWorkbenchSectionState(
   project: string,

@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { RenderSection } from "@/modules/production/render-section-composition";
-import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
+import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { PoolImage } from "@/modules/production/public";
 
@@ -198,7 +198,7 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   openPresetProjectionInMyCanvas: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/stores/seen-pool-store", () => ({
+vi.mock("@/shared/stores/seen-pool-store", () => ({
   useSeenPoolStore: (
     selector: (state: {
       markSeen: typeof markSeenMock;

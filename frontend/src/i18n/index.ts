@@ -2,7 +2,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import HttpBackend from "i18next-http-backend";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { BUILD_ID } from "@/lib/app-version";
 
 const SUPPORTED = ["zh", "en"] as const;

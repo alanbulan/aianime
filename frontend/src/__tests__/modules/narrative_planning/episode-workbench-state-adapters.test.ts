@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { useBeatSelection } from "@/modules/narrative_planning/infrastructure/use-beat-selection";
 import { useBeatsViewToggles } from "@/modules/narrative_planning/infrastructure/use-beats-view-toggles";
-import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
+import { useEpisodeWorkbenchStore } from "@/shared/stores/episode-workbench-store";
 
 describe("useBeatSelection", () => {
   beforeEach(() => {

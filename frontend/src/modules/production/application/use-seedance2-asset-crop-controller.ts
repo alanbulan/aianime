@@ -6,7 +6,7 @@ import {
   clampCropBox,
   zoomCropBox,
   type CropBox,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   cropAspectRatioValue,

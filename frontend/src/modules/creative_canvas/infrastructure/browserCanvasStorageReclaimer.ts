@@ -3,7 +3,7 @@ import {
   isStaleByTtl,
   pruneLocalStorageByPrefix,
   registerStorageReclaimer,
-} from "@/lib/localStorageQuota";
+} from "@/shared/storage/localStorageQuota";
 
 import {
   CANVAS_CONFLICT_PREFIX,

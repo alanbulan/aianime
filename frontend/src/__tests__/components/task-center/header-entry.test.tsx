@@ -5,7 +5,7 @@ import { I18nextProvider } from "react-i18next";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { HeaderEntry } from "@/components/task-center/header-entry";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 

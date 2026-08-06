@@ -6,7 +6,7 @@ import { regionAbortController, resetRegionAbortController } from "@/lib/region-
 import { resetRegionState } from "@/lib/reset-region-state";
 import { setRegionCookie } from "@/lib/region-cookie";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 const LOGOUT_TIMEOUT_MS = 2000;
 

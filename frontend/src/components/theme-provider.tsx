@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { createContext, useContext, useEffect, useState } from "react";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 
 type ResolvedTheme = "light" | "dark";
 

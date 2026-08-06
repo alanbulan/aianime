@@ -7,7 +7,7 @@ import {
   centerCropBoxForRatio,
   clampCropBox,
   zoomCropBox,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 import type {
   ProductionDataResponse,
   ProductionErrorResponse,

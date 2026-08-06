@@ -21,7 +21,7 @@ describe("cluster-config", () => {
   it("mode defaults to 'none' with empty regions when env is unset", async () => {
     delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE;
     delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL;
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.mode).toBe("none");
     expect(clusterConfig.regions).toEqual([]);
@@ -29,13 +29,13 @@ describe("cluster-config", () => {
 
   it("rejects unknown mode values at module import", async () => {
     (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "bogus";
-    await expect(import("@/lib/cluster-config")).rejects.toThrow();
+    await expect(import("@/shared/platform/cluster-config")).rejects.toThrow();
   });
 
   it("graceful-degrades when VITE_CLUSTER_REGIONS_URL is missing in multi-region", async () => {
     (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
     delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL;
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig(); // must NOT throw
     expect(clusterConfig.regions).toEqual([]);
   });
@@ -52,7 +52,7 @@ describe("cluster-config", () => {
         ),
       ),
     );
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.mode).toBe("multi-region");
     expect(clusterConfig.regions).toEqual([{ id: "cn-1", displayName: "华东一区" }]);
@@ -72,7 +72,7 @@ describe("cluster-config", () => {
       }),
     );
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.regions).toEqual([{ id: "cn-1", displayName: "华东一区(cached)" }]);
   });
@@ -81,7 +81,7 @@ describe("cluster-config", () => {
     (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
     (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.mode).toBe("multi-region");
     expect(clusterConfig.regions).toEqual([]);
@@ -104,7 +104,7 @@ describe("cluster-config", () => {
         ),
       ),
     );
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.regions).toEqual([]);
   });
@@ -116,7 +116,7 @@ describe("cluster-config", () => {
       "fetch",
       vi.fn().mockResolvedValue(new Response("not found", { status: 404 })),
     );
-    const { clusterConfig, loadClusterConfig } = await import("@/lib/cluster-config");
+    const { clusterConfig, loadClusterConfig } = await import("@/shared/platform/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.regions).toEqual([]);
   });

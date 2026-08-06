@@ -4,7 +4,7 @@ import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { SaveStatus } from "@/components/save-status";
-import { useSaveStatusStore } from "@/stores/save-status-store";
+import { useSaveStatusStore } from "@/shared/stores/save-status-store";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

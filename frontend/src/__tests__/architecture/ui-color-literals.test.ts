@@ -60,7 +60,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/creative_canvas/presentation/CompareDialog.tsx": 1,
   "modules/creative_canvas/presentation/useMaskEditorController.ts": 4,
   "features/canvas/canvasStore.ts": 2,
-  "stores/settingsStore.ts": 2,
+  "modules/creative_canvas/presentation/settingsStore.ts": 2,
 };
 
 const DOMAIN_COLOR_DATA = new Set([
@@ -77,7 +77,7 @@ const DOMAIN_COLOR_DATA = new Set([
   "lib/project-cover.ts",
   "lib/sketch-colors.ts",
   "modules/creative_canvas/infrastructure/freezoneVideoComposeGateway.ts",
-  "stores/settingsStore.ts",
+  "modules/creative_canvas/presentation/settingsStore.ts",
 ]);
 
 const DOMAIN_VISUALIZATIONS = new Set([

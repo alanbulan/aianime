@@ -10,7 +10,7 @@ import {
   episodeWorkbenchScopeKey,
   useEpisodeWorkbenchStore,
   type PersistedBeatSelection,
-} from "@/stores/episode-workbench-store";
+} from "@/shared/stores/episode-workbench-store";
 
 function toSelectionState(selection: PersistedBeatSelection): SelectionState {
   if (selection.mode === "single") {

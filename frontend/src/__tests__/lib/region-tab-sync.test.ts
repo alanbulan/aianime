@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { initRegionTabSync, broadcastSwitching } from "@/lib/region-tab-sync";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 describe("region-tab-sync", () => {
   beforeEach(() => {

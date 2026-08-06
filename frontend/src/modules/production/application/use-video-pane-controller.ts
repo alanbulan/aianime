@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 
-import type { AspectSpec } from "@/lib/aspect-ratio";
+import type { AspectSpec } from "@/shared/aspect-ratio";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { Seedance2BeatStatusResponse } from "@/modules/production/application/ports";
 import type {

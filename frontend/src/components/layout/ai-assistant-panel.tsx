@@ -16,7 +16,7 @@ import {
   AI_ASSISTANT_WIDTH_MAX,
   AI_ASSISTANT_WIDTH_MIN,
   useAppStore,
-} from "@/stores/app-store";
+} from "@/modules/project_workspace/public";
 import { SuperChatPanel } from "@/modules/ai_assistant/public";
 
 export function AiAssistantPanel() {

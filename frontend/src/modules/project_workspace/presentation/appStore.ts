@@ -10,11 +10,11 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
+import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
 import type {
   ProjectDashboardViewMode,
   ProjectStatus,
-} from "@/modules/project_workspace/public";
+} from "../domain/project";
 
 export const TASK_PANEL_HEIGHT_MIN = 200;
 export const TASK_PANEL_HEIGHT_DEFAULT = 400;

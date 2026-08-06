@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import type { CropBox } from "@/lib/aspect-ratio";
+import type { CropBox } from "@/shared/aspect-ratio";
 import { isProductionErrorResponse } from "@/modules/production/application/ports";
 import type { Seedance2CropIntent } from "@/modules/production/domain/seedance2-crop";
 import type {

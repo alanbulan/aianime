@@ -163,7 +163,7 @@ import {
 } from '@/modules/asset_world/public';
 
 
-import { useSettingsStore } from '@/stores/settingsStore';
+import { useSettingsStore } from './presentation/settingsStore';
 
 
 

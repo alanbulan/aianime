@@ -34,8 +34,8 @@ import type { PoolImage } from "@/modules/production/domain/image-pool";
 import { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
 import { SketchPoseEditorDialogView } from "@/modules/production/presentation/SketchPoseEditorDialogView";
 import { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
-import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
 
 interface SketchEditDialogProps {
   beatNum: number;

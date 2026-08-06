@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { Activity } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { useTaskCenterStore, selectRunningTasks } from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

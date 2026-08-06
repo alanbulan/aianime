@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 
 describe("app-store: dashboardTab", () => {
   beforeEach(() => {

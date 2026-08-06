@@ -14,7 +14,7 @@ import type {
 import {
   backendErrorToastMessage,
 } from "@/shared/api/errors";
-import { saveScopes, trackSave } from "@/stores/save-status-store";
+import { saveScopes, trackSave } from "@/shared/stores/save-status-store";
 
 interface CreditCostQuery {
   data?: unknown;

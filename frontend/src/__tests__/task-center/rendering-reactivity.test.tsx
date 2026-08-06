@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
 import { HeaderEntry } from "@/components/task-center/header-entry";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 /**

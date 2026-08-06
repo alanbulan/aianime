@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 import { activeTurnIsPending } from "@/modules/ai_assistant/domain/activeTurn";
-import { safeLocalStorageSet } from "@/lib/localStorageQuota";
+import { safeLocalStorageSet } from "@/shared/storage/localStorageQuota";
 
 const ACTIVE_TURN_PREFIX = "superchat:active-turn:";
 const ACTIVE_TURN_TTL_MS = 60 * 60 * 1000;

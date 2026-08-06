@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clusterConfig } from "@/lib/cluster-config";
+import { clusterConfig } from "@/shared/platform/cluster-config";
 import { setRegionCookie } from "@/lib/region-cookie";
 import { authRequired } from "@/lib/runtime-config";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 export function RegionSelector() {
   const { t } = useTranslation();

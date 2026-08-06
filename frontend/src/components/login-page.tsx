@@ -7,12 +7,12 @@ import { RegionSelector } from "@/components/login/region-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
-import { clusterConfig } from "@/lib/cluster-config";
+import { clusterConfig } from "@/shared/platform/cluster-config";
 import {
   useAuthStore,
   useCommercialAuthStore,
 } from "@/modules/identity_access/public";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 type AuthView = "login" | "authorize";
 

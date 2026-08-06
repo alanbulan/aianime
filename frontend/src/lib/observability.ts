@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 // Today's minimal implementation: a module-level tag object updated by a
 // store subscription. When Sentry/Datadog lands, swap the body of `apply()`

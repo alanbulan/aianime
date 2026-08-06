@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 import { getRegionCookie, setRegionCookie, clearRegionCookie } from "@/lib/region-cookie";
 
 describe("switchRegion orchestrator", () => {

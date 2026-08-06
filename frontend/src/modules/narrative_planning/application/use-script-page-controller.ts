@@ -19,7 +19,7 @@ import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
-import { saveScopes, trackSave } from "@/stores/save-status-store";
+import { saveScopes, trackSave } from "@/shared/stores/save-status-store";
 import type { Character } from "@/modules/asset_world/public";
 
 export type ScriptAssetPlanningCategory =

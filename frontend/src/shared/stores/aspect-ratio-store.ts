@@ -2,14 +2,14 @@
 import { useCallback } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
+import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
 
 import {
   aspectSpec,
   DEFAULT_ORIENTATION,
   type AspectSpec,
   type Orientation,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 
 /**
  * Per-project画幅 (aspect ratio) orientation — the single global source of

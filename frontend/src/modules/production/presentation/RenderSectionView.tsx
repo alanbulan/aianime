@@ -49,7 +49,7 @@ import {
   clampCropBox,
   cropBoxPercentStyle,
   zoomCropBox,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type {

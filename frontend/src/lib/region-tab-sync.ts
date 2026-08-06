@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 const CHANNEL_NAME = "region-switch";
 const PERSIST_KEY = "ai-anime-region";

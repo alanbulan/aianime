@@ -10,7 +10,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cropBoxPercentStyle } from "@/lib/aspect-ratio";
+import { cropBoxPercentStyle } from "@/shared/aspect-ratio";
 import type {
   SketchCropDialogController,
 } from "@/modules/production/application/use-sketch-crop-dialog-controller";

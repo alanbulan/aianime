@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { gridAspectCss } from "@/lib/aspect-ratio";
+import { gridAspectCss } from "@/shared/aspect-ratio";
 import { cn } from "@/lib/utils";
 import type {
   SketchGridCardController,

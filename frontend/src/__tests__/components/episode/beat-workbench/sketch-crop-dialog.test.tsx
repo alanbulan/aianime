@@ -13,7 +13,7 @@ import { SketchCropDialogView } from "@/modules/production/presentation/SketchCr
 import {
   useAspectRatioStore,
   useProjectAspectRatio,
-} from "@/stores/aspect-ratio-store";
+} from "@/shared/stores/aspect-ratio-store";
 
 const poseEditorQueryMock = vi.hoisted(() => vi.fn());
 const cropSketchMock = vi.hoisted(() => vi.fn());

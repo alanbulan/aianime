@@ -44,7 +44,7 @@ import {
   saveScopes,
   trackSave,
   useSaveState,
-} from "@/stores/save-status-store";
+} from "@/shared/stores/save-status-store";
 
 export const useInsertManualShotDialogController =
   createUseInsertManualShotDialogController({

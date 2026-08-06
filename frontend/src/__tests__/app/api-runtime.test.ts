@@ -6,7 +6,7 @@ import { installApiRuntime } from "@/app/api-runtime";
 import { api } from "@/shared/api/transport";
 import { setRegionCookie, getRegionCookie } from "@/lib/region-cookie";
 import { server } from "@/__mocks__/msw/server";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 let queryClient: QueryClient;
 

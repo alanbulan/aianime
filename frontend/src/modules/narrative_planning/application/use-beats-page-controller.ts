@@ -8,7 +8,7 @@ import { useTaskController } from "@/modules/task_execution/public";
 import {
   aspectRatioForOrientation,
   orientationForAspectRatio,
-} from "@/lib/aspect-ratio";
+} from "@/shared/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
 import {
@@ -32,7 +32,7 @@ import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
-import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
+import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
 
 export type BeatsTargetSection = "sketch" | "render" | "audio" | "video";
 

@@ -6,7 +6,7 @@ import {
   DEFAULT_VIEW_TOGGLES,
   episodeWorkbenchScopeKey,
   useEpisodeWorkbenchStore,
-} from "@/stores/episode-workbench-store";
+} from "@/shared/stores/episode-workbench-store";
 
 export function useBeatsViewToggles(project: string, episode: number) {
   const scope = useMemo(() => ({ project, episode }), [episode, project]);

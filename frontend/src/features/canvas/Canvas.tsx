@@ -27,7 +27,7 @@ import {
   type NodeSelectionMenuNodeDefinition,
   type CanvasCommandHistoryPort,
 } from '@/modules/creative_canvas/public';
-import { useAppStore } from '@/stores/app-store';
+import { useAppStore } from '@/modules/project_workspace/public';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from '@/modules/creative_canvas/canvasComposition';
 import { useCanvasMediaSurfaceController } from '@/modules/creative_canvas/canvasComposition';

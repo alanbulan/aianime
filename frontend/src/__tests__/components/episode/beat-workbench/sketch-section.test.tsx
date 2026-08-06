@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SketchSection } from "@/modules/production/sketch-section-composition";
-import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
+import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 
 const markSeenMock = vi.fn();
@@ -160,7 +160,7 @@ vi.mock("@/features/viewer-kit/three-d/ThreeDDirectorDialog", () => ({
     open ? <div data-testid="three-d-director-dialog" /> : null,
 }));
 
-vi.mock("@/stores/seen-pool-store", () => ({
+vi.mock("@/shared/stores/seen-pool-store", () => ({
   useSeenPoolStore: (selector: (state: { markSeen: typeof markSeenMock; seen: Record<string, string[]> }) => unknown) =>
     selector({ markSeen: markSeenMock, seen: {} }),
 }));

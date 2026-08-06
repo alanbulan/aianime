@@ -12,9 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { clusterConfig } from "@/lib/cluster-config";
+import { clusterConfig } from "@/shared/platform/cluster-config";
 import { switchRegion } from "@/lib/region-switch";
-import { useRegionStore } from "@/stores/region-store";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 export function RegionBadge() {
   // `clusterConfig.mode` is read from a module-level object that is frozen

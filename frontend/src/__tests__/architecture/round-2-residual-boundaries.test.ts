@@ -2979,7 +2979,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("does not persist the removed renderer Provider API-key map", () => {
     const settings = readFileSync(
-      resolve(SRC_ROOT, "stores/settingsStore.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/settingsStore.ts"),
       "utf8",
     );
 

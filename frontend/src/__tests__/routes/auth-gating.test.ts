@@ -51,16 +51,17 @@ vi.mock("@/components/commercial-license-page", () => ({
 
 vi.mock("@/components/layout/header", () => ({ Header: () => null }));
 vi.mock("@/shared/hooks/use-reduced-motion", () => ({ useReducedMotion: () => true }));
-vi.mock("@/stores/app-store", () => ({
+vi.mock("@/modules/project_workspace/public", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/modules/project_workspace/public")
+  >()),
   useAppStore: {
     getState: () => ({ clampDimensionsToViewport: vi.fn() }),
   },
-}));
-vi.mock("@/modules/project_workspace/public", () => ({
   useAllProjectSummaries: () => ({ data: [], isLoading: false }),
   canonicalProjectRouteParam: (project: string) => project,
 }));
-vi.mock("@/stores/region-store", () => ({
+vi.mock("@/shared/stores/region-store", () => ({
   useRegionStore: {
     getState: () => ({ sanitizeAgainstConfig: vi.fn() }),
   },
@@ -79,7 +80,7 @@ vi.mock("framer-motion", () => ({
   },
 }));
 
-vi.mock("@/lib/cluster-config", () => ({
+vi.mock("@/shared/platform/cluster-config", () => ({
   clusterConfig: clusterState,
 }));
 

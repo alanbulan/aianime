@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { normalizeLastEpisodeLocation, useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
+import { normalizeLastEpisodeLocation, useEpisodeWorkbenchStore } from "@/shared/stores/episode-workbench-store";
 import {
   isRememberedSection,
   PROJECT_SECTION_ROUTES,

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeLastEpisodeLocation,
   normalizeSelection,
-} from "@/stores/episode-workbench-store";
+} from "@/shared/stores/episode-workbench-store";
 
 describe("episode workbench store", () => {
   it("drops malformed persisted multi selections instead of throwing", () => {

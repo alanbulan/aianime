@@ -13,11 +13,11 @@ import { useProjectNavigationStore } from "@/modules/project_workspace/infrastru
 import { httpProjectWorkspaceGateway } from "@/modules/project_workspace/infrastructure/http-project-workspace-gateway";
 import { recentProjectPreference } from "@/modules/project_workspace/infrastructure/recent-project-preference";
 import { ProjectDashboardView } from "@/modules/project_workspace/presentation/ProjectDashboard";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "./presentation/appStore";
 import {
   normalizeLastEpisodeLocation,
   useEpisodeWorkbenchStore,
-} from "@/stores/episode-workbench-store";
+} from "@/shared/stores/episode-workbench-store";
 
 export const projectWorkspaceQueries = createProjectWorkspaceQueryHooks(
   httpProjectWorkspaceGateway,

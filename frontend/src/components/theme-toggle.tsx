@@ -2,7 +2,7 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { useAppStore, type Theme } from "@/stores/app-store";
+import { useAppStore, type Theme } from "@/modules/project_workspace/public";
 import { cn } from "@/lib/utils";
 
 const THEME_ORDER: Theme[] = ["system", "light", "dark"];

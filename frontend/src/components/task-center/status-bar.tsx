@@ -8,7 +8,7 @@ import {
   selectLeadingRunning,
   selectLastCompletion,
 } from "@/modules/task_execution/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import {
   displayLabel,
   type StreamHealth,

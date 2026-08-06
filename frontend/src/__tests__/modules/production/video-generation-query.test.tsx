@@ -23,7 +23,7 @@ import {
   BillingRuleNotConfiguredError,
   ProjectQueueLimitError,
 } from "@/shared/api/errors";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 
 afterEach(() => {
   useAppStore.setState({ language: "zh" });

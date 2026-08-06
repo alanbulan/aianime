@@ -7,7 +7,7 @@ import {
   trackSave,
   useSaveStatusStore,
   writeSaveStatus,
-} from "@/stores/save-status-store";
+} from "@/shared/stores/save-status-store";
 
 beforeEach(() => {
   useSaveStatusStore.setState({ scopes: {} });

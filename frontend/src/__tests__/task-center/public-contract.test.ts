@@ -35,7 +35,7 @@ describe("Task Center public contract", () => {
   });
 
   it("keeps task panel state in the app store", async () => {
-    const { useAppStore } = await import("@/stores/app-store");
+    const { useAppStore } = await import("@/modules/project_workspace/public");
     const state = useAppStore.getState();
 
     expect(typeof state.language).toBe("string");

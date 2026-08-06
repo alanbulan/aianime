@@ -6,9 +6,9 @@ import {
   resetUserSessionState,
 } from "@/lib/reset-region-state";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { useSaveStatusStore } from "@/stores/save-status-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
-import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
+import { useSaveStatusStore } from "@/shared/stores/save-status-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
+import { useEpisodeWorkbenchStore } from "@/shared/stores/episode-workbench-store";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 
 const clearCommercialModelCatalogCache = vi.hoisted(() => vi.fn());

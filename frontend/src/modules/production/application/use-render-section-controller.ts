@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { useTaskController } from "@/modules/task_execution/public";
-import { ratioToCss } from "@/lib/aspect-ratio";
+import { ratioToCss } from "@/shared/aspect-ratio";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { queryKeys } from "@/lib/query-keys";

@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
 import type { QueryClient } from "@tanstack/react-query";
-import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
+import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { clearCommercialModelCatalogCache } from "@/modules/model_usage/public";
-import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
-import { useSaveStatusStore } from "@/stores/save-status-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useEpisodeWorkbenchStore } from "@/shared/stores/episode-workbench-store";
+import { useSaveStatusStore } from "@/shared/stores/save-status-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 
 // UX chrome keys that must survive a region switch.

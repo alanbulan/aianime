@@ -19,7 +19,7 @@ import {
   SketchGridCardView,
   SketchGridGalleryView,
 } from "@/modules/production/presentation/SketchGridGalleryView";
-import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
+import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
 
 export interface RenderGridGalleryProps {
   beats?: Beat[];

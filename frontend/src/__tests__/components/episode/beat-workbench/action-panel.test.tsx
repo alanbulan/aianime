@@ -5,7 +5,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ActionPanel } from "@/modules/narrative_planning/action-panel-composition";
-import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
+import { useEpisodeWorkbenchStore } from "@/shared/stores/episode-workbench-store";
 import type { BeatStates } from "@/modules/production/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 

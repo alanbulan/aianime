@@ -6,7 +6,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
-import { clusterConfig } from "@/lib/cluster-config";
+import { clusterConfig } from "@/shared/platform/cluster-config";
 import { initObservability } from "@/lib/observability";
 import { initRegionTabSync } from "@/lib/region-tab-sync";
 import { authRequired } from "@/lib/runtime-config";
@@ -15,8 +15,8 @@ import {
   canonicalProjectRouteParam,
   useAllProjectSummaries,
 } from "@/modules/project_workspace/public";
-import { useAppStore } from "@/stores/app-store";
-import { useRegionStore } from "@/stores/region-store";
+import { useAppStore } from "@/modules/project_workspace/public";
+import { useRegionStore } from "@/shared/stores/region-store";
 
 export function useAppLayoutController() {
   const navigate = useNavigate();

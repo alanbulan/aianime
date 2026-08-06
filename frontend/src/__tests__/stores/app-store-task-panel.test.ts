@@ -5,7 +5,7 @@ import {
   TASK_PANEL_HEIGHT_MIN,
   TASK_PANEL_HEIGHT_MAX_VH,
   TASK_PANEL_HEIGHT_DEFAULT,
-} from "@/stores/app-store";
+} from "@/modules/project_workspace/public";
 
 beforeEach(() => {
   useAppStore.persist.clearStorage();

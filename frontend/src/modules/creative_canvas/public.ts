@@ -3684,3 +3684,8 @@ export type { ReferenceDetachButtonProps } from "@/modules/creative_canvas/prese
 export { ReferenceTextChip } from "@/modules/creative_canvas/presentation/ReferenceTextChip";
 export type { ReferenceTextChipProps } from "@/modules/creative_canvas/presentation/ReferenceTextChip";
 export { DirectorControlBundleBadge } from "@/modules/creative_canvas/presentation/DirectorControlBundleBadge";
+export { useSettingsStore } from "@/modules/creative_canvas/presentation/settingsStore";
+export type {
+  ThemeTonePreset,
+  UiRadiusPreset,
+} from "@/modules/creative_canvas/presentation/settingsStore";

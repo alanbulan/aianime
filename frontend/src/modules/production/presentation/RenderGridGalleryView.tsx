@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { gridAspectCss } from "@/lib/aspect-ratio";
+import { gridAspectCss } from "@/shared/aspect-ratio";
 import type {
   RenderGridCardController,
   RenderGridGalleryController,

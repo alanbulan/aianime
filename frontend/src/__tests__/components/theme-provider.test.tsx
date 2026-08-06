@@ -3,7 +3,7 @@ import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ThemeProvider } from "@/components/theme-provider";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 
 describe("ThemeProvider", () => {
   let systemTheme: ReturnType<typeof installMatchMedia>;

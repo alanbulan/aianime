@@ -7,7 +7,7 @@ import type {
   TaskControllerHandle,
   UseTaskControllerOptions,
 } from "@/modules/task_execution/public";
-import { orientationForAspectRatio } from "@/lib/aspect-ratio";
+import { orientationForAspectRatio } from "@/shared/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat, DataResponse, Episode } from "@/modules/narrative_planning/public";
 import type { ProjectConfig } from "@/modules/project_workspace/public";

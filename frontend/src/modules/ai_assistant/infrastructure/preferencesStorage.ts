@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { SuperChatSettings } from "@/modules/ai_assistant/domain/contracts";
-import { safeLocalStorageSet } from "@/lib/localStorageQuota";
+import { safeLocalStorageSet } from "@/shared/storage/localStorageQuota";
 
 const SETTINGS_KEY = "superchat:settings";
 const MESSAGE_SET_PREFIX = "superchat:";

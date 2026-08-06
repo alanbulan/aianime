@@ -5,7 +5,7 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format-relative-time";
-import { useSaveState } from "@/stores/save-status-store";
+import { useSaveState } from "@/shared/stores/save-status-store";
 
 type Variant = "header" | "inline";
 

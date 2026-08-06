@@ -3590,7 +3590,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@/api/") ||
             specifier.startsWith("@/shared/api/") ||
             specifier.startsWith("@/lib/queries/") ||
-            specifier.startsWith("@/stores/"))
+            specifier.startsWith("@/shared/stores/"))
         ) {
           failures.push(`${relativePath}: domain imports runtime adapter ${specifier}`);
         }
@@ -5358,7 +5358,10 @@ describe("frontend architecture boundaries", () => {
 
   it("installs Freezone storage recovery from the application bootstrap", () => {
     const bootstrapPath = resolve(SRC_ROOT, "app/bootstrap.tsx");
-    const settingsPath = resolve(SRC_ROOT, "stores/settingsStore.ts");
+    const settingsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/settingsStore.ts",
+    );
     const legacyDraftStoragePath = resolve(
       SRC_ROOT,
       "features/freezone/canvasDraftStorage.ts",
@@ -5389,9 +5392,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(bootstrap).toContain("installFreezoneCanvasStorageReclaimer();");
-    expect(importSpecifiers(settingsPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(importSpecifiers(settingsPath)).toContain("../domain/modelPricing");
     expect(settings).not.toContain("@/features/canvas/public");
     expect(settings).not.toContain("@/features/freezone/canvasDraftStorage");
     expect(settings).not.toContain("@/features/canvas/pricing/types");
@@ -5421,7 +5422,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const legacyImports = sourceFiles(SRC_ROOT)
       .filter((path) =>
-        importSpecifiers(path).includes("@/stores/canvasStore"),
+        importSpecifiers(path).includes("@/shared/stores/canvasStore"),
       )
       .map(relativeSource)
       .sort();
@@ -5461,7 +5462,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyImports = sourceFiles(SRC_ROOT)
       .filter((path) =>
-        importSpecifiers(path).includes("@/stores/assetDropStore"),
+        importSpecifiers(path).includes("@/shared/stores/assetDropStore"),
       )
       .map(relativeSource)
       .sort();
@@ -7845,7 +7846,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenHistoryImports = importSpecifiers(historyPath).filter(
       (specifier) =>
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+(?:application|infrastructure)(?:\/|$)/.test(specifier),
@@ -7858,7 +7859,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -7995,7 +7996,7 @@ describe("frontend architecture boundaries", () => {
             specifier === "react" ||
             specifier.startsWith("react/") ||
             specifier === "@xyflow/react" ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/") ||
             specifier === "@/modules/creative_canvas/public",
         )
@@ -8147,7 +8148,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
     );
@@ -8295,7 +8296,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenMutationImports = importSpecifiers(mutationPath).filter(
       (specifier) =>
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const mutationContractDeclaration = [
@@ -8394,7 +8395,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenGeometryImports = importSpecifiers(geometryPath).filter(
       (specifier) =>
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
@@ -8539,7 +8540,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const ruleDeclaration = [
@@ -8604,7 +8605,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
@@ -8669,7 +8670,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
     );
@@ -8737,7 +8738,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -8776,7 +8777,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
 
@@ -8849,7 +8850,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -8950,7 +8951,7 @@ describe("frontend architecture boundaries", () => {
         .filter(
           (specifier) =>
             specifier.startsWith("@/features/") ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/api/"),
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
@@ -9028,7 +9029,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -9100,7 +9101,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier.startsWith("@/features/"),
       ),
     );
@@ -9161,7 +9162,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
@@ -9259,7 +9260,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const declaration = [
@@ -9330,7 +9331,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
@@ -9381,7 +9382,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -9445,7 +9446,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/api/"),
@@ -9459,7 +9460,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/features/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/"),
     );
     const declaration = [
@@ -9558,7 +9559,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
@@ -9570,7 +9571,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
@@ -9649,7 +9650,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const declaration = [
@@ -9720,7 +9721,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -9773,7 +9774,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -9793,7 +9794,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
 
@@ -9850,7 +9851,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -9910,7 +9911,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -9977,7 +9978,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -10098,7 +10099,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -10138,7 +10139,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -10243,7 +10244,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
@@ -10254,7 +10255,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -10363,7 +10364,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
@@ -10374,7 +10375,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
@@ -10456,7 +10457,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/features/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -10519,7 +10520,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
@@ -10583,7 +10584,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
@@ -10649,7 +10650,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/application/") ||
@@ -10716,7 +10717,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -10795,7 +10796,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -10885,7 +10886,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/"),
     );
@@ -10895,7 +10896,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/"),
     );
     const controllerForbiddenImports = importSpecifiers(controllerPath).filter(
@@ -10904,7 +10905,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/"),
     );
@@ -10989,7 +10990,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -11056,7 +11057,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -11072,7 +11073,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -11163,7 +11164,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
@@ -11219,7 +11220,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -11302,7 +11303,7 @@ describe("frontend architecture boundaries", () => {
       importSpecifiers(path).filter(
         (specifier) =>
           specifier.startsWith("@/features/canvas/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier.startsWith("@/api/"),
       ),
     );
@@ -11372,7 +11373,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -11428,7 +11429,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -11496,7 +11497,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -11568,7 +11569,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -11663,7 +11664,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -11778,7 +11779,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -11786,7 +11787,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -11920,7 +11921,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("zustand/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
-        specifier.startsWith("@/stores/"),
+        specifier.startsWith("@/shared/stores/"),
     );
     const declaration = [
       "export function",
@@ -11981,7 +11982,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -12044,7 +12045,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -12068,7 +12069,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "@xyflow/react" ||
         specifier.startsWith("@xyflow/react/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -14175,7 +14176,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier.startsWith("../infrastructure/") ||
         specifier.startsWith("@/features/freezone/infrastructure/") ||
-        specifier === "@/lib/localStorageQuota",
+        specifier === "@/shared/storage/localStorageQuota",
     );
     const gatewayDeclaration = [
       "export interface",
@@ -14206,7 +14207,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
-        "@/lib/localStorageQuota",
+        "@/shared/storage/localStorageQuota",
         "../application/canvasSyncStorage",
       ]),
     );
@@ -14829,7 +14830,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
-        "@/lib/localStorageQuota",
+        "@/shared/storage/localStorageQuota",
         "../application/canvasDraft",
       ]),
     );
@@ -14934,7 +14935,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/"),
     );
@@ -14946,7 +14947,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/"),
     );
@@ -15054,7 +15055,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/commands/") ||
         specifier.startsWith("@/features/canvas/infrastructure/")
@@ -15172,7 +15173,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const hookDeclaration = [
@@ -15250,7 +15251,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
     );
@@ -15307,7 +15308,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenImports = importSpecifiers(normalizationPath).filter(
       (specifier) =>
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
@@ -15363,7 +15364,7 @@ describe("frontend architecture boundaries", () => {
         .filter(
           (specifier) =>
             specifier === "zustand" ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
             specifier === "@/modules/creative_canvas/canvasComposition",
         )
@@ -15471,7 +15472,7 @@ describe("frontend architecture boundaries", () => {
           (specifier) =>
             specifier === "react" ||
             specifier === "zustand" ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/"),
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
@@ -15624,7 +15625,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@xyflow/react/") ||
             specifier === "zustand" ||
             specifier.startsWith("zustand/") ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             (!applicationPaths.has(path) &&
               (specifier.startsWith("@/features/canvas/application/") ||
                 /^(?:\.\.\/)+application(?:\/|$)/.test(specifier))) ||
@@ -15778,7 +15779,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@xyflow/react/") ||
             specifier === "zustand" ||
             specifier.startsWith("zustand/") ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/canvas/application/") ||
             /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -15894,7 +15895,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
@@ -15974,7 +15975,7 @@ describe("frontend architecture boundaries", () => {
             specifier.startsWith("@xyflow/react/") ||
             specifier === "zustand" ||
             specifier.startsWith("zustand/") ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/canvas/application/") ||
             /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -16060,7 +16061,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
@@ -16122,7 +16123,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
     );
@@ -16232,7 +16233,7 @@ describe("frontend architecture boundaries", () => {
             specifier === "@xyflow/react" ||
             specifier.startsWith("@xyflow/react/") ||
             specifier === "zustand" ||
-            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/shared/stores/") ||
             specifier.startsWith("@/features/canvas/application/") ||
             specifier.startsWith("@/features/canvas/infrastructure/"),
         )
@@ -16371,7 +16372,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenLayoutImports = importSpecifiers(layoutPath).filter(
       (specifier) =>
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -16465,7 +16466,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
@@ -16526,7 +16527,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/"),
     );
     const declarations = [
@@ -16590,7 +16591,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
@@ -16668,7 +16669,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -16733,7 +16734,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
     );
@@ -16779,7 +16780,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
@@ -16831,7 +16832,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
         specifier === "@/modules/creative_canvas/public",
@@ -16892,7 +16893,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("react/") ||
         specifier === "@xyflow/react" ||
         specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition",
     );
@@ -16985,7 +16986,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
@@ -17126,7 +17127,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
@@ -17217,7 +17218,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
@@ -17296,7 +17297,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
@@ -17360,7 +17361,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/modules/creative_canvas/canvasComposition" ||
@@ -17433,7 +17434,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
@@ -17511,7 +17512,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
@@ -17534,7 +17535,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier.startsWith("@/features/canvas/application/") ||
@@ -17644,7 +17645,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -17711,7 +17712,7 @@ describe("frontend architecture boundaries", () => {
       "@/lib/",
       "@/modules/",
       "@/routes/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/task-center/",
     ];
     const failures = sourceFiles(resolve(SRC_ROOT, "shared")).flatMap((path) =>
@@ -18355,7 +18356,7 @@ describe("frontend architecture boundaries", () => {
       "dependencies.useViewToggles",
     );
     expect(beatsPageControllerSource).not.toContain(
-      "@/stores/episode-workbench-store",
+      "@/shared/stores/episode-workbench-store",
     );
     expect(beatSelectionSource).toContain("useEpisodeWorkbenchStore");
     expect(viewToggleStateSource).toContain("useEpisodeWorkbenchStore");
@@ -19679,7 +19680,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(renderSectionControllerSource).toContain("handleOpenFreezone");
     expect(renderSectionControllerSource).not.toContain("@/features/");
-    expect(renderSectionControllerSource).not.toContain("@/stores/");
+    expect(renderSectionControllerSource).not.toContain("@/shared/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
     expect(renderSectionCompositionSource).toContain(
       "createUseRenderSectionController",
@@ -20971,7 +20972,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasAudio(",
     );
@@ -21268,7 +21269,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).not.toContain("@/features/");
     expect(applicationSource).not.toContain(
       "export function classifyCanvasStoryScriptReference(",
@@ -21413,7 +21414,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasReversePrompt(",
     );
@@ -22414,7 +22415,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain("dependencies.sourceGateway.prepare(");
     expect(applicationSource).toContain("dependencies.taskGateway.awaitCompletion(");
     expect(applicationSource).toContain("sourceFromImageTo3gsResult(");
@@ -22565,7 +22566,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain("dependencies.sourceGateway.prepareAll(");
     expect(applicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
@@ -22850,7 +22851,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).not.toContain("@/features/");
     expect(applicationSource).toContain(
       "dependencies.taskGateway.awaitCompletion(",
@@ -22982,7 +22983,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "dependencies.taskGateway.awaitCompletion(",
     );
@@ -23085,7 +23086,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasScene360(",
     );
@@ -23229,7 +23230,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasMultiAngle(",
     );
@@ -23350,7 +23351,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasRelight(",
     );
@@ -23473,7 +23474,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("readUrl");
     expect(applicationSource).not.toContain("useCanvasStore");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(applicationSource).not.toContain("@/features/canvas/");
     expect(applicationSource).not.toContain("@/modules/creative_canvas/public");
@@ -23696,7 +23697,7 @@ describe("frontend architecture boundaries", () => {
       "useTranslation",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(applicationSource).not.toContain(forbiddenDependency);
@@ -23836,7 +23837,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "className=",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
     ]) {
@@ -23981,7 +23982,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/hooks/useNodeOutputToolbarController",
       "@/features/canvas/ui/NodeToolbarIconChip",
       "@/lib/browserDownload",
-      "@/stores/settingsStore",
+      "@/modules/creative_canvas/presentation/settingsStore",
     ]) {
       expect(importSpecifiers(toolbarPath)).not.toContain(
         forbiddenParentDependency,
@@ -24094,7 +24095,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasStore",
       "canvasEventBus",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
       "@/features/freezone",
@@ -24269,7 +24270,7 @@ describe("frontend architecture boundaries", () => {
       "readUrl",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
@@ -24425,7 +24426,7 @@ describe("frontend architecture boundaries", () => {
       "fetch(",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/lib/",
       "@/modules/creative_canvas/canvasComposition",
     ]) {
@@ -24805,7 +24806,7 @@ describe("frontend architecture boundaries", () => {
       "useTranslation",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
@@ -24988,7 +24989,7 @@ describe("frontend architecture boundaries", () => {
       "useTranslation",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
     ]) {
       expect(modelSource).not.toContain(forbiddenDependency);
@@ -25182,7 +25183,7 @@ describe("frontend architecture boundaries", () => {
       "Date.now",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
     ]) {
@@ -25372,7 +25373,7 @@ describe("frontend architecture boundaries", () => {
       "useTranslation",
       "useCanvasStore",
       "@/api/",
-      "@/stores/",
+      "@/shared/stores/",
       "@/modules/creative_canvas/canvasComposition",
       "@/features/canvas/infrastructure",
       "@/features/canvas/tools",
@@ -25751,7 +25752,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasGridAction(",
     );
@@ -25872,7 +25873,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasUpscale(",
     );
@@ -25995,7 +25996,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasVideoUpscale(",
     );
@@ -26107,7 +26108,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasOutpaint(",
     );
@@ -26238,7 +26239,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "export async function generateCanvasRedraw(",
     );
@@ -26802,7 +26803,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -26818,7 +26819,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -26928,7 +26929,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -27015,7 +27016,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27091,7 +27092,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27103,7 +27104,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -27213,7 +27214,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27223,7 +27224,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27319,7 +27320,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27392,7 +27393,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/"),
     );
@@ -27472,7 +27473,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -27483,7 +27484,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -27608,7 +27609,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -28516,7 +28517,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -28606,7 +28607,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -28665,7 +28666,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -28774,7 +28775,7 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window");
     expect(domainSource).not.toContain("@/api/");
-    expect(domainSource).not.toContain("@/stores/");
+    expect(domainSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
         "modules/creative_canvas/domain/videoReferenceLimits.ts",
@@ -28835,7 +28836,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier.startsWith("@/api/") ||
           specifier.startsWith("@/features/canvas/") ||
           specifier === "@/modules/creative_canvas/public" ||
@@ -28925,7 +28926,7 @@ describe("frontend architecture boundaries", () => {
     const forbiddenImports = importSpecifiers(railPath).filter(
       (specifier) =>
         specifier.startsWith("@/features/canvas/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier === "@/modules/creative_canvas/public",
     );
@@ -29024,7 +29025,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29096,7 +29097,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("window");
     expect(applicationSource).not.toContain("document");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/domain/videoMetadataPatch.ts",
     ]);
@@ -29150,7 +29151,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29211,7 +29212,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29265,7 +29266,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29324,7 +29325,7 @@ describe("frontend architecture boundaries", () => {
           specifier.startsWith("@xyflow/react/") ||
           specifier === "zustand" ||
           specifier.startsWith("zustand/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier.startsWith("@/api/") ||
           specifier.startsWith("@/features/canvas/") ||
           specifier === "@/modules/creative_canvas/public",
@@ -29412,7 +29413,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29457,7 +29458,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29496,7 +29497,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29575,7 +29576,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas"),
     );
@@ -29640,7 +29641,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -29721,7 +29722,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(domainPath)).toEqual(["./videoGenerationMode"]);
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("@/api/");
-    expect(domainSource).not.toContain("@/stores/");
+    expect(domainSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
         "modules/creative_canvas/domain/videoGenerationModel.ts",
@@ -29786,7 +29787,7 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("document");
     expect(domainSource).not.toContain("@/api/");
-    expect(domainSource).not.toContain("@/stores/");
+    expect(domainSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
         "modules/creative_canvas/domain/videoClipRange.ts",
@@ -30091,7 +30092,7 @@ describe("frontend architecture boundaries", () => {
     expect(editsSource).not.toContain("Date.now(");
     expect(editsSource).not.toContain("Math.random(");
     expect(editsSource).not.toContain("@/api/");
-    expect(editsSource).not.toContain("@/stores/");
+    expect(editsSource).not.toContain("@/shared/stores/");
     expect(editsSource).not.toContain("className=");
     expect(importSpecifiers(editorControllerPath)).toContain(
       "../domain/videoComposeTimelineEdits",
@@ -30240,7 +30241,7 @@ describe("frontend architecture boundaries", () => {
     expect(gesturesSource).not.toContain("Date.now(");
     expect(gesturesSource).not.toContain("Math.random(");
     expect(gesturesSource).not.toContain("@/api/");
-    expect(gesturesSource).not.toContain("@/stores/");
+    expect(gesturesSource).not.toContain("@/shared/stores/");
     expect(gesturesSource).not.toContain("className=");
     expect(importSpecifiers(pointerControllerPath)).toContain(
       "../domain/videoComposeTimelineGestures",
@@ -30495,7 +30496,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("coverEditor: ReactNode");
     expect(viewSource).not.toContain("useCanvasStore");
     expect(viewSource).not.toContain("@/api/");
-    expect(viewSource).not.toContain("@/stores/");
+    expect(viewSource).not.toContain("@/shared/stores/");
     expect(viewSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(viewSource).not.toContain("compose/CoverEditor");
     expect(declarationOwners).toEqual([
@@ -30685,7 +30686,7 @@ describe("frontend architecture boundaries", () => {
     expect(previewSource).not.toContain("document.");
     expect(previewSource).not.toContain("HTMLVideoElement");
     expect(previewSource).not.toContain("@/api/");
-    expect(previewSource).not.toContain("@/stores/");
+    expect(previewSource).not.toContain("@/shared/stores/");
     expect(importSpecifiers(clockPath)).toEqual(["react"]);
     expect(clockSource).not.toContain("document.");
     expect(clockSource).not.toContain("HTMLVideoElement");
@@ -30962,7 +30963,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/composeVideoClip.ts",
     ]);
@@ -30977,7 +30978,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(adapterSource).not.toContain("react");
-    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).not.toContain("@/shared/stores/");
     expect(adapterSource).toContain('method: "POST"');
     expect(adapterSource).toContain("canvas_id: request.canvasId ?? \"\"");
     expect(endpointOwners).toEqual([
@@ -31079,7 +31080,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
     );
@@ -31196,7 +31197,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/eraseVideoSubtitles.ts",
     ]);
@@ -31210,7 +31211,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(adapterSource).not.toContain("react");
-    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).not.toContain("@/shared/stores/");
     expect(adapterSource).toContain('method: "POST"');
     expect(adapterSource).toContain("source_url: submission.sourceUrl");
     expect(endpointOwners).toEqual([
@@ -31318,7 +31319,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationOwners).toEqual([
       "modules/creative_canvas/application/translateCanvasText.ts",
     ]);
@@ -31330,7 +31331,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(adapterSource).not.toContain("react");
-    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).not.toContain("@/shared/stores/");
     expect(adapterSource).toContain('method: "POST"');
     expect(endpointOwners).toEqual(
       endpointFragments.map(() => [
@@ -31502,7 +31503,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain("qualityToResolution(params.quality)");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/submitVideoGeneration.ts",
@@ -31514,7 +31515,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(adapterSource).not.toContain("react");
-    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).not.toContain("@/shared/stores/");
     expect(compositionSource).toContain(
       "submissionGateway: freezoneVideoGenerationSubmissionGateway",
     );
@@ -31611,7 +31612,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
       'resolveGenerationOutputUrl(completion.result, "video")',
     );
@@ -31709,7 +31710,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(applicationPath)).toEqual(["./uploadToolOutput"]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/uploadCanvasAsset.ts",
     ]);
@@ -32190,7 +32191,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain("const FALLBACK_CONCURRENCY = 6");
     expect(applicationSource).toContain("if (aggregate !== null)");
     expect(implementationOwners).toEqual([
@@ -32315,7 +32316,7 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain("react");
     expect(domainSource).not.toContain("window");
     expect(domainSource).not.toContain("@/api/");
-    expect(domainSource).not.toContain("@/stores/");
+    expect(domainSource).not.toContain("@/shared/stores/");
     expect(domainSource).not.toContain("@/features/");
     expect(implementationOwners).toEqual(
       declarations.map(() => [
@@ -32359,7 +32360,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/videoFileTypes",
     ]);
     expect(applicationSource).not.toContain("react");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).not.toContain("@/api/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/infrastructure/browserDroppedVideoFile.ts",
@@ -32488,7 +32489,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/infrastructure/browserVideoFrameCapture.ts",
     ]);
     expect(infrastructureSource).not.toContain("react");
-    expect(infrastructureSource).not.toContain("@/stores/");
+    expect(infrastructureSource).not.toContain("@/shared/stores/");
     expect(infrastructureSource).not.toContain("@/api/");
     expect(infrastructureSource).toContain('document.createElement("video")');
     expect(infrastructureSource).toContain('document.createElement("canvas")');
@@ -32584,7 +32585,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/infrastructure/browserVideoFrameStrip.ts",
     ]);
     expect(infrastructureSource).not.toContain("react");
-    expect(infrastructureSource).not.toContain("@/stores/");
+    expect(infrastructureSource).not.toContain("@/shared/stores/");
     expect(infrastructureSource).not.toContain("@/api/");
     expect(infrastructureSource).toContain('document.createElement("video")');
     expect(infrastructureSource).toContain('document.createElement("canvas")');
@@ -32675,7 +32676,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("window");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/generationOutputUrl.ts",
     ]);
@@ -32730,7 +32731,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("window");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/shared/stores/");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/audioReferenceDisplayName.ts",
     ]);
@@ -32761,7 +32762,7 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@xyflow/react/") ||
         specifier === "zustand" ||
         specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/shared/stores/") ||
         specifier.startsWith("@/api/") ||
         specifier.startsWith("@/features/canvas/") ||
         specifier === "@/modules/creative_canvas/public" ||
@@ -33050,7 +33051,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     for (const source of [operationPanelSource, fpsMeterSource]) {
       expect(source).not.toContain("@/features/canvas/");
-      expect(source).not.toContain("@/stores/");
+      expect(source).not.toContain("@/shared/stores/");
       expect(source).not.toContain("@/api/");
       expect(source).not.toContain("@/modules/creative_canvas/public");
     }
@@ -33183,7 +33184,7 @@ describe("frontend architecture boundaries", () => {
       const forbiddenImports = importSpecifiers(viewPath).filter(
         (specifier) =>
           specifier.startsWith("@/features/canvas/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier.startsWith("@/api/") ||
           specifier === "@/modules/creative_canvas/public",
       );
@@ -33227,7 +33228,7 @@ describe("frontend architecture boundaries", () => {
     const consumers = [
       "modules/creative_canvas/presentation/useImageEditNodeController.ts",
       "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts",
-      "stores/settingsStore.ts",
+      "modules/creative_canvas/presentation/settingsStore.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const controlsPath = resolve(
       moduleRoot,
@@ -33287,6 +33288,14 @@ describe("frontend architecture boundaries", () => {
         expect(importSpecifiers(path)).toContain(
           "../application/imageModelCatalogProjection",
         );
+      } else if (
+        relativeSource(path) ===
+        "modules/creative_canvas/presentation/settingsStore.ts"
+      ) {
+        expect(importSpecifiers(path)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+        expect(importSpecifiers(path)).toContain("../domain/modelPricing");
       } else {
         expect(importSpecifiers(path)).toContain(
           "@/modules/creative_canvas/public",
@@ -33331,7 +33340,7 @@ describe("frontend architecture boundaries", () => {
       importSpecifiers(viewPath).filter(
         (specifier) =>
           specifier.startsWith("@/features/canvas/") ||
-          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/shared/stores/") ||
           specifier === "@/modules/creative_canvas/public",
       ),
     ).toEqual([]);

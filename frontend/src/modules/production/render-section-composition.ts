@@ -25,8 +25,8 @@ import {
 } from "@/modules/production/composition";
 import type { PoolImage } from "@/modules/production/domain/image-pool";
 import { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
-import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
 
 const useRenderSectionController = createUseRenderSectionController(
   {

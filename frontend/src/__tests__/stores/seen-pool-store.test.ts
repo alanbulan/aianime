@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useSeenPoolStore } from "@/shared/stores/seen-pool-store";
 
 describe("useSeenPoolStore markSeen cap", () => {
   beforeEach(() => {

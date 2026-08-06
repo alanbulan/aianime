@@ -23,7 +23,7 @@ import {
   useTaskCenterStore,
   useTaskSubscribe,
 } from "@/modules/task_execution/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { TaskState } from "@/modules/task_execution/public";

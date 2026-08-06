@@ -1,13 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { quotaSafeStateStorage } from '@/lib/localStorageQuota';
+import { quotaSafeStateStorage } from '@/shared/storage/localStorageQuota';
 import {
   DEFAULT_GRSAI_CREDIT_TIER_ID,
   PRICE_DISPLAY_CURRENCY_MODES,
   type GrsaiCreditTierId,
   type PriceDisplayCurrencyMode,
-} from '@/modules/creative_canvas/public';
+} from '../domain/modelPricing';
 
 export type UiRadiusPreset = 'compact' | 'default' | 'large';
 export type ThemeTonePreset = 'neutral' | 'warm' | 'cool';

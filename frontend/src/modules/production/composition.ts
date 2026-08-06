@@ -22,8 +22,8 @@ import {
   useProject,
   useUpdateProject,
 } from "@/modules/project_workspace/public";
-import { useAppStore } from "@/stores/app-store";
-import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
+import { useAppStore } from "@/modules/project_workspace/public";
+import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createAuthorizedProductionImageGateway } from "@/modules/production/application/authorized-image-generation-gateway";
 import { createUseAudioModels } from "@/modules/production/application/audio-model-query-hooks";

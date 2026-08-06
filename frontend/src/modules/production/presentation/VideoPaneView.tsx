@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ratioToCss } from "@/lib/aspect-ratio";
+import { ratioToCss } from "@/shared/aspect-ratio";
 import { cn } from "@/lib/utils";
 import type { VideoPaneController } from "@/modules/production/application/use-video-pane-controller";
 import {

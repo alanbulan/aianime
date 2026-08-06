@@ -24,7 +24,7 @@ import {
   useTaskCenterStore,
   useTasks,
 } from "@/modules/task_execution/public";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/modules/project_workspace/public";
 import { useAuthStore } from "@/modules/identity_access/public";
 
 // MockEventSource copy (keeps test file self-contained — upstream stream-client test uses same pattern)
