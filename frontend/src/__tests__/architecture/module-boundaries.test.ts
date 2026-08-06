@@ -1981,19 +1981,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/usePano360ViewerNodeController.ts",
+      "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/usePano360ViewerNodeController.test.tsx",
+      "modules/creative_canvas/presentation/usePano360ViewerNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/Pano360ViewerNodeView.tsx",
+      "modules/creative_canvas/presentation/Pano360ViewerNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/Pano360ViewerNodeView.test.tsx",
+      "modules/creative_canvas/presentation/Pano360ViewerNodeView.test.tsx",
     );
     const registryPath = resolve(
       SRC_ROOT,
@@ -2015,7 +2015,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "Pano360ViewerNode", "=", "memo("].join(" "),
       ["export function", "resolvePanoViewerNodeSize("].join(" "),
-      ["export function", "usePano360ViewerNodeController("].join(" "),
+      ["export function", "createUsePano360ViewerNodeController("].join(" "),
       ["export function", "Pano360ViewerNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -2029,16 +2029,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/usePano360ViewerNodeController",
-        "./Pano360ViewerNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/Pano360ViewerNode.tsx"],
       ["modules/creative_canvas/application/pano360ViewerNodeModel.ts"],
-      ["features/canvas/hooks/usePano360ViewerNodeController.ts"],
-      ["features/canvas/nodes/Pano360ViewerNodeView.tsx"],
+      ["modules/creative_canvas/presentation/usePano360ViewerNodeController.ts"],
+      ["modules/creative_canvas/presentation/Pano360ViewerNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -2049,13 +2048,13 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(modelPath)).toContain(
       "@/features/viewer-kit/public",
     );
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/pano360ViewerNodeModel",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
@@ -2082,7 +2081,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("new Viewer({");
     expect(controllerSource).toContain("getFreezoneCanvasMetadata(");
     expect(controllerSource).toContain(
@@ -2119,6 +2118,14 @@ describe("frontend architecture boundaries", () => {
     expect(viewTestSource).toContain(
       "from './Pano360ViewerNodeView'",
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/usePano360ViewerNodeController.ts",
+      "features/canvas/hooks/usePano360ViewerNodeController.test.tsx",
+      "features/canvas/nodes/Pano360ViewerNodeView.tsx",
+      "features/canvas/nodes/Pano360ViewerNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas storyboard model, export use case, runtime, controller, and view", () => {
@@ -5091,7 +5098,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
       "features/canvas/hooks/useBeatContextNodeController.ts",
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/usePano360ViewerNodeController.ts",
+      "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const [gatewayPath, ...publicReaderPaths] = readerPaths;
     const getterDeclaration = [
@@ -5116,8 +5123,17 @@ describe("frontend architecture boundaries", () => {
       "readonly getCanvasMetadata:",
     );
     for (const readerPath of publicReaderPaths) {
+      const readerSource = readFileSync(readerPath, "utf8");
       const imports = importSpecifiers(readerPath);
-      expect(imports).toContain("@/modules/creative_canvas/public");
+      if (
+        relativeSource(readerPath) ===
+        "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts"
+      ) {
+        expect(readerSource).toContain("getFreezoneCanvasMetadata(");
+        expect(imports).toContain("../application/canvasMetadataState");
+      } else {
+        expect(imports).toContain("@/modules/creative_canvas/public");
+      }
       expect(imports).not.toContain(
         "@/features/freezone/canvasMetadataContext",
       );

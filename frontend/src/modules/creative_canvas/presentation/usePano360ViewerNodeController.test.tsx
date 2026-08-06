@@ -2,13 +2,16 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
+import type { Pano360ViewerNodeData } from '../domain/canvasNodeData';
+import {
+  createUsePano360ViewerNodeController,
+  type Pano360ViewerNodeCanvasNode,
+  type Pano360ViewerNodeStore,
+  type Pano360ViewerNodeStoreHook,
+} from './usePano360ViewerNodeController';
 
-import { usePano360ViewerNodeController } from './usePano360ViewerNodeController';
-
-import { CANVAS_NODE_TYPES, type CanvasNode, type Pano360ViewerNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
-  upstreamNodes: [] as CanvasNode[],
+  upstreamNodes: [] as Pano360ViewerNodeCanvasNode[],
   selectedNodeId: null as string | null,
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -40,34 +43,26 @@ vi.mock('@photo-sphere-viewer/core', () => ({
   },
 }));
 
+vi.mock('../application/canvasMetadataState', () => ({
+  getFreezoneCanvasMetadata: () => mocks.getCanvasMetadata(),
+}));
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
+const useStore = ((selector: (state: Pano360ViewerNodeStore) => unknown) =>
+  selector({
+    selectedNodeId: mocks.selectedNodeId,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
+  })) as unknown as Pano360ViewerNodeStoreHook;
+
+const usePano360ViewerNodeController = createUsePano360ViewerNodeController({
+  useStore,
+  useUpstreamNodes: () => mocks.upstreamNodes,
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImageToBackend(...args),
   uploadAndAutoCommitSelectedBackgroundCandidate: (...args: unknown[]) =>
     mocks.commitBackground(...args),
-  useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (
-    selector: (state: {
-      selectedNodeId: string | null;
-      setSelectedNode: typeof mocks.setSelectedNode;
-      updateNodeData: typeof mocks.updateNodeData;
-      addPanoCaptureGroup: typeof mocks.addPanoCaptureGroup;
-    }) => unknown,
-  ) =>
-    selector({
-      selectedNodeId: mocks.selectedNodeId,
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-      addPanoCaptureGroup: mocks.addPanoCaptureGroup,
-    }),
-  getFreezoneCanvasMetadata: () => mocks.getCanvasMetadata(),
-  resolveImageDisplayUrl: (url: string) => url,
-}));
+});
 
 function data(
   patch: Partial<Pano360ViewerNodeData> = {},
@@ -90,13 +85,13 @@ function upstreamNode({
   id: string;
   y: number;
   imageUrl: string;
-}): CanvasNode {
+}): Pano360ViewerNodeCanvasNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    type: 'uploadNode',
     position: { x: 0, y },
     data: { imageUrl },
-  } as CanvasNode;
+  };
 }
 
 function createViewerRuntime() {

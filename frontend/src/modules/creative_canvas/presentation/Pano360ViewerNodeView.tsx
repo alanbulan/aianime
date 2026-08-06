@@ -27,18 +27,15 @@ import {
 } from 'lucide-react';
 import '@photo-sphere-viewer/core/index.css';
 
-import type { Pano360ViewerNodeController } from '@/features/canvas/hooks/usePano360ViewerNodeController';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-  PANO_VIEWER_SIZE_LIMITS,
-} from '@/modules/creative_canvas/public';
+import type { Pano360ViewerNodeController } from './usePano360ViewerNodeController';
 import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  NODE_INLINE_ERROR_MESSAGE_CLASS,
-  NodeResizeHandle,
   canvasNodeFrameClass,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
+import { NODE_INLINE_ERROR_MESSAGE_CLASS } from './canvasNodeControlStyles';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { PANO_VIEWER_SIZE_LIMITS } from '../application/pano360ViewerNodeModel';
 import {
   PANO_FOV_MAX,
   PANO_FOV_MIN,

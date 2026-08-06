@@ -30,6 +30,7 @@ import {
   createUseThreeDWorldNodeController,
   type ThreeDWorldNodeCanvasNode,
 } from './presentation/useThreeDWorldNodeController';
+import { createUsePano360ViewerNodeController } from './presentation/usePano360ViewerNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -381,6 +382,13 @@ export const useThreeDWorldNodeController = createUseThreeDWorldNodeController({
       | ThreeDWorldNodeCanvasNode
       | undefined,
 });
+export const usePano360ViewerNodeController =
+  createUsePano360ViewerNodeController({
+    useStore: useCanvasStore,
+    useUpstreamNodes,
+    uploadLocalImageToBackend,
+    uploadAndAutoCommitSelectedBackgroundCandidate,
+  });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

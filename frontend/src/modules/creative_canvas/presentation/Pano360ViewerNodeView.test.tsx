@@ -3,7 +3,7 @@ import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Pano360ViewerNodeController } from '@/features/canvas/hooks/usePano360ViewerNodeController';
+import type { Pano360ViewerNodeController } from './usePano360ViewerNodeController';
 
 import { Pano360ViewerNodeView } from './Pano360ViewerNodeView';
 
@@ -19,8 +19,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Top: 'top', Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -35,6 +34,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}:{metaText}
     </button>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,

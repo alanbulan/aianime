@@ -15,10 +15,10 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/pano360ViewerNodeModel.ts",
     );
     const controller = read(
-      "src/features/canvas/hooks/usePano360ViewerNodeController.ts",
+      "src/modules/creative_canvas/presentation/usePano360ViewerNodeController.ts",
     );
     const view = read(
-      "src/features/canvas/nodes/Pano360ViewerNodeView.tsx",
+      "src/modules/creative_canvas/presentation/Pano360ViewerNodeView.tsx",
     );
     const canvasNodeData = read(
       "src/modules/creative_canvas/domain/canvasNodeData.ts",
