@@ -9,16 +9,24 @@ import { useAssetLibraryCatalogController } from "./assetLibraryCatalogCompositi
 const listFreezoneBeatContext = vi.fn();
 const listFreezoneProjectAssets = vi.fn();
 
-vi.mock("./contextQueryComposition", async () => {
+vi.mock("./contextQueryComposition", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("./contextQueryComposition")
+  >();
   const { createFreezoneContextQueryHooks } = await import(
     "./presentation/contextQueryHooks"
   );
-  return createFreezoneContextQueryHooks({
-    listBeatContext: (projectId, options) =>
+  return {
+    ...actual,
+    listFreezoneBeatContext: (projectId: string, options?: unknown) =>
       listFreezoneBeatContext(projectId, options),
-    listProjectAssets: (projectId, options) =>
-      listFreezoneProjectAssets(projectId, options),
-  });
+    ...createFreezoneContextQueryHooks({
+      listBeatContext: (projectId, options) =>
+        listFreezoneBeatContext(projectId, options),
+      listProjectAssets: (projectId, options) =>
+        listFreezoneProjectAssets(projectId, options),
+    }),
+  };
 });
 
 function makeWrapper() {

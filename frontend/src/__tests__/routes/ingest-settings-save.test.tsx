@@ -323,6 +323,7 @@ vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
 }));
 
 vi.mock("@/modules/task_execution/public", () => ({
+  awaitTaskCompletion: vi.fn(),
   useCancelTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTasks: () => ({
     data: { ok: true, data: mocks.ingestTasks },
