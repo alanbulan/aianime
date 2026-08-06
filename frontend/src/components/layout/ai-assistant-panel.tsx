@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useMediaQuery } from "@/shared/hooks/use-media-query";
 import {
   AI_ASSISTANT_WIDTH_DEFAULT,
   AI_ASSISTANT_WIDTH_MAX,

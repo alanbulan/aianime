@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
 
 interface StageProgressPanelProps {
   title: string;

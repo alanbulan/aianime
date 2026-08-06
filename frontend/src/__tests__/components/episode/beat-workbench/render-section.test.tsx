@@ -189,7 +189,7 @@ vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(awai
   }),
 }));
 
-vi.mock("@/hooks/use-now", () => ({
+vi.mock("@/shared/hooks/use-now", () => ({
   useNow: () => 1_747_392_000_000,
 }));
 

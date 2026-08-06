@@ -6792,7 +6792,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
-      new Set(["react", "@/hooks/use-media-query"]),
+      new Set(["react", "@/shared/hooks/use-media-query"]),
     );
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([

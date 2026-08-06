@@ -109,7 +109,7 @@ vi.mock("@/modules/production/public", () => ({
   VideoPane: () => <div>VideoPane</div>,
 }));
 
-vi.mock("@/hooks/use-escape-to-close", () => ({
+vi.mock("@/shared/hooks/use-escape-to-close", () => ({
   useEscapeToClose: vi.fn(),
 }));
 

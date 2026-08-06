@@ -2,7 +2,7 @@
 import { Download, X } from "lucide-react";
 import { useState } from "react";
 
-import { useEscapeToClose } from "@/hooks/use-escape-to-close";
+import { useEscapeToClose } from "@/shared/hooks/use-escape-to-close";
 import { cn } from "@/lib/utils";
 
 export function LightboxImage({

@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
 import { clusterConfig } from "@/lib/cluster-config";
 import { initObservability } from "@/lib/observability";
 import { initRegionTabSync } from "@/lib/region-tab-sync";

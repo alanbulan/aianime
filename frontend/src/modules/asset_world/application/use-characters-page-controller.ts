@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { useAssetsDeepLink } from "./useAssetsDeepLink";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useMediaQuery } from "@/shared/hooks/use-media-query";
 import { useTaskStream } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";

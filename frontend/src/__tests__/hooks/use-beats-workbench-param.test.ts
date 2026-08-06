@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseBeatParam,
   parseBeatsSubParam,
-} from "@/hooks/use-beats-workbench-param";
+} from "@/modules/narrative_planning/public";
 
 describe("beats workbench URL params", () => {
   it("parses a positive integer beat param", () => {

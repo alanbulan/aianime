@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   isDesktop: true,
 }));
 
-vi.mock("@/hooks/use-media-query", () => ({
+vi.mock("@/shared/hooks/use-media-query", () => ({
   useMediaQuery: () => mocks.isDesktop,
 }));
 

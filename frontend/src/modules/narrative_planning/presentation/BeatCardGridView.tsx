@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useResponsiveColumns } from "@/hooks/use-responsive-columns";
+import { useResponsiveColumns } from "@/shared/hooks/use-responsive-columns";
 import type { BeatCardGridController } from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
 import type { Beat } from "@/modules/narrative_planning/domain/types";
 

@@ -50,7 +50,7 @@ vi.mock("@/components/commercial-license-page", () => ({
 }));
 
 vi.mock("@/components/layout/header", () => ({ Header: () => null }));
-vi.mock("@/hooks/use-reduced-motion", () => ({ useReducedMotion: () => true }));
+vi.mock("@/shared/hooks/use-reduced-motion", () => ({ useReducedMotion: () => true }));
 vi.mock("@/stores/app-store", () => ({
   useAppStore: {
     getState: () => ({ clampDimensionsToViewport: vi.fn() }),

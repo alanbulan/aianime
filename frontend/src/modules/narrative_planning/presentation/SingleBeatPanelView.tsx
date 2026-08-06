@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEscapeToClose } from "@/hooks/use-escape-to-close";
+import { useEscapeToClose } from "@/shared/hooks/use-escape-to-close";
 import { cn } from "@/lib/utils";
 import {
   WORKBENCH_SELECT_CONTENT_CLASS,

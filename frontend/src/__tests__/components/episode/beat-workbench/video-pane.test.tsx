@@ -742,7 +742,7 @@ vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(awai
   }),
 }));
 
-vi.mock("@/hooks/use-now", () => ({
+vi.mock("@/shared/hooks/use-now", () => ({
   useNow: () => new Date("2026-05-16T10:30:00Z"),
 }));
 

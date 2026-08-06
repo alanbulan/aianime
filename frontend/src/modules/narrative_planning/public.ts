@@ -66,4 +66,10 @@ export type {
   Script,
 } from "@/modules/narrative_planning/domain/types";
 export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
+export {
+  parseBeatParam,
+  parseBeatsSubParam,
+  useBeatsWorkbenchParam,
+} from "@/modules/narrative_planning/application/useBeatsWorkbenchParam";
+export type { BeatsSubParam } from "@/modules/narrative_planning/application/useBeatsWorkbenchParam";
 export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";

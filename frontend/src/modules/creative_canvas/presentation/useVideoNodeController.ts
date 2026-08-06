@@ -125,7 +125,7 @@ import type { VideoGenCount } from '../domain/videoGenerationModel';
 import type { VideoReferenceCapEntry } from '../domain/videoReferenceLimits';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";
-import { useTransientConfirmation } from "@/hooks/use-transient-confirmation";
+import { useTransientConfirmation } from "@/shared/hooks/use-transient-confirmation";
 import { cn } from "@/lib/utils";
 
 type HeaderRefreshButtonProps = Omit<

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { useBeatsWorkbenchParam } from "@/hooks/use-beats-workbench-param";
+import { useBeatsWorkbenchParam } from "@/modules/narrative_planning/public";
 import { BeatsPageContent } from "@/app/workspace-composition";
 
 function BeatsRouteAdapter() {

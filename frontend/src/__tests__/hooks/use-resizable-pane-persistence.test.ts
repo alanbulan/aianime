@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useResizablePanePersistence } from "@/hooks/use-resizable-pane-persistence";
+import { useResizablePanePersistence } from "@/shared/hooks/use-resizable-pane-persistence";
 
 describe("useResizablePanePersistence", () => {
   beforeEach(() => {

@@ -6,7 +6,7 @@ import { gsap } from "gsap";
 import { RegionSelector } from "@/components/login/region-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
 import { clusterConfig } from "@/lib/cluster-config";
 import {
   useAuthStore,

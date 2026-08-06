@@ -6,7 +6,7 @@ import { withImageCacheBust } from "@/shared/media/image-cache";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/public";
 import { useNavigateToAsset } from "@/modules/asset_world/public";
-import { useNow } from "@/hooks/use-now";
+import { useNow } from "@/shared/hooks/use-now";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   useBeatBackgroundAnchors,

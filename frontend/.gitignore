@@ -34,3 +34,6 @@ graphify-out/
 # Local docs editor state
 docs/.obsidian/
 /acceptance-logs
+
+# 误删修复遗留的旧 node_modules 副本（待人工清理）
+node_modules.broken-*/
