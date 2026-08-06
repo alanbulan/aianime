@@ -929,10 +929,10 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
         REPO_ROOT
         / "frontend"
         / "src"
-        / "features"
-        / "canvas"
+        / "modules"
+        / "creative_canvas"
         / "domain"
-        / "nodeRegistry.ts"
+        / "canvasNodeRegistry.ts"
     ).read_text(encoding="utf-8")
 
     assert "VIDEO_MODEL_IDS" not in backend_config
