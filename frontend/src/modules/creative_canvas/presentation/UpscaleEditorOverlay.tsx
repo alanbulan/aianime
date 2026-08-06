@@ -4,13 +4,54 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-;
-import { CANVAS_NODE_TOOLBAR_CARD_CLASS, CANVAS_UPSCALE_IMAGE_SIZES, CANVAS_UPSCALE_SCALE_FACTORS, NODE_CREDIT_PILL_FLAT_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ProviderModelPicker, ZoomScaledToolbar, generateCanvasUpscale, generationTaskDescriptor, resolveCanvasUpscaleImageSize, resolveCanvasUpscaleScaleFactor, useCanvasImageModels, type CanvasUpscaleImageSize, type CanvasUpscaleScaleFactor, type CanvasNode } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from './canvasNodeFrameStyles';
+import {
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+} from './canvasNodeControlStyles';
+import { NODE_TOOLBAR_CLASS } from './canvasNodeToolbarConfig';
+import { ProviderModelPicker } from './ProviderModelPicker';
+import { ZoomScaledToolbar } from './ZoomScaledToolbar';
+import {
+  CANVAS_UPSCALE_IMAGE_SIZES,
+  CANVAS_UPSCALE_SCALE_FACTORS,
+  resolveCanvasUpscaleImageSize,
+  resolveCanvasUpscaleScaleFactor,
+  type CanvasUpscaleImageSize,
+  type CanvasUpscaleScaleFactor,
+} from '../domain/upscale';
+import { generationTaskDescriptor } from '../application/resumeGeneration';
+import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import type {
+  GenerateCanvasUpscaleParams,
+  GenerateCanvasUpscaleResult,
+} from '../application/generateCanvasUpscale';
+import type { CanvasCatalogModelOption } from '../application/generationCatalog';
+import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export interface UpscaleEditorOverlayStore {
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  deleteNode: (nodeId: string) => void;
+  setSelectedNode: (id: string | null) => void;
+}
+
+export type UpscaleEditorOverlayStoreHook = <TSelected>(
+  selector: (state: UpscaleEditorOverlayStore) => TSelected,
+) => TSelected;
+
+export type UpscaleEditorOverlayUseImageModels = (
+  projectId: string,
+  purpose: 'edit',
+) => { models: CanvasCatalogModelOption[] };
+
+export type UpscaleEditorOverlayGenerateUpscale = (
+  params: GenerateCanvasUpscaleParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) => Promise<GenerateCanvasUpscaleResult>;
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;
   const normalized = apiModel.toLowerCase();
@@ -39,14 +80,20 @@ interface UpscaleEditorOverlayProps {
   node: CanvasNode;
 }
 
-export const UpscaleEditorOverlay = memo(({
-  projectId,
-  node,
-}: UpscaleEditorOverlayProps) => {
+export function createUpscaleEditorOverlay({
+  useStore,
+  useCanvasImageModels,
+  generateCanvasUpscale,
+}: {
+  useStore: UpscaleEditorOverlayStoreHook;
+  useCanvasImageModels: UpscaleEditorOverlayUseImageModels;
+  generateCanvasUpscale: UpscaleEditorOverlayGenerateUpscale;
+}) {
+  return memo(({ projectId, node }: UpscaleEditorOverlayProps) => {
   const { t } = useTranslation();
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const deleteNode = useCanvasStore((state) => state.deleteNode);
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const deleteNode = useStore((state) => state.deleteNode);
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
 
   const persisted = node.data as UpscalePersistedFields;
   const sourceUrl = persisted.upscaleSourceUrl ?? '';
@@ -225,9 +272,12 @@ export const UpscaleEditorOverlay = memo(({
       </ZoomScaledToolbar>
     </ReactFlowNodeToolbar>
   );
-});
+  });
+}
 
-UpscaleEditorOverlay.displayName = 'UpscaleEditorOverlay';
+export type UpscaleEditorOverlay = ReturnType<
+  typeof createUpscaleEditorOverlay
+>;
 
 function PanelRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (

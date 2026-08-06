@@ -39,6 +39,7 @@ import { createUseImageGenNodeController } from './presentation/useImageGenNodeC
 import { createUseVideoNodeController } from './presentation/useVideoNodeController';
 import { createNodeContextPromptPaletteButton } from './presentation/NodeContextPromptPaletteButton';
 import { createRotateEditorOverlay } from './presentation/RotateEditorOverlay';
+import { createUpscaleEditorOverlay } from './presentation/UpscaleEditorOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -56,6 +57,7 @@ import {
   generateCanvasReversePrompt,
   generateCanvasImageTo3d,
   generateCanvasImage,
+  generateCanvasUpscale,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import {
@@ -550,6 +552,11 @@ export const NodeContextPromptPaletteButton =
 export const RotateEditorOverlay = createRotateEditorOverlay({
   useStore: useCanvasStore,
   uploadCanvasAsset,
+});
+export const UpscaleEditorOverlay = createUpscaleEditorOverlay({
+  useStore: useCanvasStore,
+  useCanvasImageModels,
+  generateCanvasUpscale,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
