@@ -4588,7 +4588,7 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
         "count_image_scope_attempts",
         "get_prompt_export_password",
         "ai_anime.image_request_usage",
-        "ai_anime.security.operator_auth",
+        "ai_anime.modules.production.infrastructure.operator_auth",
     ):
         assert implementation_detail not in route_source
 

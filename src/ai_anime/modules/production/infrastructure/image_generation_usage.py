@@ -8,7 +8,7 @@ from ai_anime.image_request_usage import (
     count_image_scope_attempts,
     get_image_usage_summary,
 )
-from ai_anime.security.operator_auth import get_prompt_export_password
+from ai_anime.modules.production.infrastructure.operator_auth import get_prompt_export_password
 
 
 class SqliteProductionImageUsage:

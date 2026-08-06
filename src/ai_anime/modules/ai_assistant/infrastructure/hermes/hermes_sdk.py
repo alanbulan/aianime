@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator, Literal
 
-from ai_anime.security import SandboxSpec, wrap_command
+from ai_anime.modules.ai_assistant.infrastructure.sandbox_wrap import SandboxSpec, wrap_command
 
 
 @dataclass(slots=True)

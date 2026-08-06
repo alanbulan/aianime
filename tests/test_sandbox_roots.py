@@ -2,7 +2,7 @@
 
 import json
 
-from ai_anime.security.sandbox_wrap import (
+from ai_anime.modules.ai_assistant.infrastructure.sandbox_wrap import (
     AI_ANIME_ROOT,
     SandboxSpec,
     _data_dir,
@@ -50,7 +50,7 @@ def test_linux_wrapper_uses_current_codex_sandbox_cli(monkeypatch, tmp_path):
     hermes_home = tmp_path / "state" / "alice" / ".hermes"
     hermes_home.mkdir(parents=True)
     monkeypatch.setattr(
-        "ai_anime.security.sandbox_wrap.shutil.which",
+        "ai_anime.modules.ai_assistant.infrastructure.sandbox_wrap.shutil.which",
         lambda _name: str(sandbox_binary),
     )
 
