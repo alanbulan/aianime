@@ -587,8 +587,8 @@ async def test_cli_project_id_scene_migration_ignores_legacy_project_json(
     )
 
     import ai_anime.config as config
-    import ai_anime.ports as ports
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports as ports
+    import ai_anime.shared.ports.registry as registry
 
     monkeypatch.setattr(config, "OUTPUT_DIR", str(output), raising=False)
     monkeypatch.setattr(config, "STATE_DIR", str(state), raising=False)
@@ -620,8 +620,8 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
     runtime = tmp_path / "runtime"
     project_id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-    import ai_anime.ports as ports
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports as ports
+    import ai_anime.shared.ports.registry as registry
     from ai_anime.modules.project_workspace.public import ProjectRecord
 
     registry = importlib.reload(registry)

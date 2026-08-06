@@ -28,7 +28,7 @@ def test_ce_agent_key_routes_are_not_mounted(monkeypatch) -> None:
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api.routes import chat_http as chat_http_routes
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     class NoOpChatWorkerLifecycle:
         async def cancel(self, _username) -> bool:
@@ -66,7 +66,7 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api import chat_session
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     class NoOpPrewarmer:
         async def prewarm(self, *_args, **_kwargs) -> None:
@@ -92,7 +92,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api import auth as api_auth
     from ai_anime.api import chat_session
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     async def _reject_browser_session(_raw_cookie: str | None) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session")
@@ -126,8 +126,8 @@ async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -
         update_agent_session_scope,
         verify_agent_session,
     )
-    from ai_anime.ports import registry
-    from ai_anime.ports.local import register_local_ports
+    from ai_anime.shared.ports import registry
+    from ai_anime.shared.ports.local import register_local_ports
 
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)

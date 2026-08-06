@@ -4,7 +4,7 @@ import pytest
 
 
 def _registry():
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports.registry as registry
 
     return importlib.reload(registry)
 

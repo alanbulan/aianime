@@ -15,7 +15,7 @@ from ai_anime.modules.project_workspace.application.project_scope import (
     is_record_home_node,
 )
 from ai_anime.modules.project_workspace.domain import ProjectRecord
-from ai_anime.ports.audit import AuditSink
+from ai_anime.shared.ports.audit import AuditSink
 from ai_anime.project_config import (
     load_project_config_file_from_state_dir,
     load_project_config_from_state_dir,

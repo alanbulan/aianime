@@ -72,7 +72,7 @@ async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeyp
         )
 
     monkeypatch.setattr(routes, "resolve_project_scope", fake_resolve_project_scope, raising=False)
-    import ai_anime.ports as runtime_ports
+    import ai_anime.shared.ports as runtime_ports
 
     monkeypatch.setattr(
         runtime_ports,

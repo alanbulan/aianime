@@ -593,11 +593,13 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
                 )
     assert violations == []
 
-    ports_source = (PACKAGE_ROOT / "ports" / "__init__.py").read_text(
+    ports_source = (
+        PACKAGE_ROOT / "shared" / "ports" / "__init__.py"
+    ).read_text(
         encoding="utf-8"
     )
     local_ports_source = (
-        PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     ).read_text(encoding="utf-8")
     assert "get_cloud_adapter" not in ports_source
     assert 'register_port("cloud_adapter"' not in local_ports_source

@@ -60,13 +60,13 @@ def _task_manager() -> Any:
 
 
 def _task_backend() -> Any:
-    from ai_anime.ports import get_task_backend
+    from ai_anime.shared.ports import get_task_backend
 
     return get_task_backend()
 
 
 def _cancellation_store() -> Any:
-    from ai_anime.ports import get_cancellation_store
+    from ai_anime.shared.ports import get_cancellation_store
 
     return get_cancellation_store()
 

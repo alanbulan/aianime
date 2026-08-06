@@ -11,9 +11,9 @@ from ai_anime.modules.model_usage.public import (
     UsageMeter,
 )
 from ai_anime.modules.project_workspace.public import ProjectAccess, ProjectRegistry
-from ai_anime.ports.audit import AuditSink
-from ai_anime.ports.lifecycle import LifecyclePort
-from ai_anime.ports.registry import ensure_bootstrap, get_port
+from ai_anime.shared.ports.audit import AuditSink
+from ai_anime.shared.ports.lifecycle import LifecyclePort
+from ai_anime.shared.ports.registry import ensure_bootstrap, get_port
 from ai_anime.modules.task_execution.public import CancellationStore, TaskBackend
 
 

@@ -16,9 +16,9 @@ from ai_anime.modules.task_execution.public import (
     build_inline_task_backend,
     build_mock_cloud_task_backend,
 )
-from ai_anime.ports.local.audit import NoOpAuditSink
-from ai_anime.ports.local.lifecycle import NoOpLifecycle
-from ai_anime.ports.registry import register_port
+from ai_anime.shared.ports.local.audit import NoOpAuditSink
+from ai_anime.shared.ports.local.lifecycle import NoOpLifecycle
+from ai_anime.shared.ports.registry import register_port
 
 
 def register_local_ports() -> None:

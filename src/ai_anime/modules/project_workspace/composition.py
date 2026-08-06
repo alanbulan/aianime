@@ -17,8 +17,8 @@ from ai_anime.modules.project_workspace.infrastructure.workspace_storage import 
     LocalProjectWorkspaceStorage,
     PortProjectAudit,
 )
-from ai_anime.ports.audit import AuditSink
-from ai_anime.ports.registry import PortNotRegistered, get_port
+from ai_anime.shared.ports.audit import AuditSink
+from ai_anime.shared.ports.registry import PortNotRegistered, get_port
 from ai_anime.shared.node_identity import resolve_worker_id
 
 

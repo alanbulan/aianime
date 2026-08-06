@@ -10,7 +10,7 @@ from ai_anime.modules.platform_release.infrastructure import (
     LocalProjectFileGateway,
     ProcessRuntimeConfigEnvironment,
 )
-from ai_anime.ports.registry import get_port
+from ai_anime.shared.ports.registry import get_port
 
 _runtime_config_environment = ProcessRuntimeConfigEnvironment()
 _project_file_gateway = LocalProjectFileGateway()

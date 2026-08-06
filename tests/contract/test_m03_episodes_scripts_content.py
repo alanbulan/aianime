@@ -13,9 +13,9 @@ pytestmark = pytest.mark.m03
 
 
 def _reset_port_modules():
-    import ai_anime.ports as ports
-    import ai_anime.ports.local as local_ports
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports as ports
+    import ai_anime.shared.ports.local as local_ports
+    import ai_anime.shared.ports.registry as registry
 
     registry = importlib.reload(registry)
     ports = importlib.reload(ports)
@@ -232,7 +232,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(module, "make_cognee_store_for_context", make_store_for_context)
         monkeypatch.setattr(module, "make_sqlite_store", make_store)
         monkeypatch.setattr(module, "make_cognee_store", make_store)
-    import ai_anime.ports as runtime_ports
+    import ai_anime.shared.ports as runtime_ports
 
     monkeypatch.setattr(
         runtime_ports,

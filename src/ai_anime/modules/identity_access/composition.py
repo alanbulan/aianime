@@ -7,7 +7,7 @@ from ai_anime.modules.identity_access.application.sessions import (
     AgentSessions,
     BrowserSessions,
 )
-from ai_anime.ports.registry import PortNotRegistered, get_port
+from ai_anime.shared.ports.registry import PortNotRegistered, get_port
 
 
 def browser_sessions() -> BrowserSessions:

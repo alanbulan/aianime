@@ -9,8 +9,8 @@ from starlette.requests import Request
 
 
 def _reset_modules():
-    import ai_anime.ports as ports
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports as ports
+    import ai_anime.shared.ports.registry as registry
 
     registry._PORTS.clear()
     registry._BOOTSTRAPPED = False

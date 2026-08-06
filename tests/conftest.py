@@ -7,7 +7,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def restore_ports_registry_globals():
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     ports_snapshot = dict(registry._PORTS)
     bootstrapped_snapshot = registry._BOOTSTRAPPED

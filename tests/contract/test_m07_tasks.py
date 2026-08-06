@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.ports import registry
+from ai_anime.shared.ports import registry
 from ai_anime.modules.task_execution.public import (
     build_in_memory_cancellation_store,
     build_inline_task_backend,
@@ -108,7 +108,7 @@ def _task_ports(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path):
-    from ai_anime import ports
+    from ai_anime.shared import ports
     from ai_anime.api.routes import episodes
     from ai_anime.api.episodes_schemas import EpisodePlanRequest
 
@@ -552,7 +552,7 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
 
     monkeypatch.setattr(tasks, "resolve_project_context", fake_resolve_project_context)
     monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
-    monkeypatch.setattr("ai_anime.ports.get_task_backend", lambda: FakeBackend())
+    monkeypatch.setattr("ai_anime.shared.ports.get_task_backend", lambda: FakeBackend())
 
     async def count_eligible_users(_ctx):
         return 1
@@ -656,7 +656,7 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
         ctx = _ctx(tmp_path / backend)
         fake_backend = _FakeTaskBackend(backend)
         await _install_project_context(monkeypatch, ctx)
-        monkeypatch.setattr("ai_anime.ports.get_task_backend", lambda: fake_backend)
+        monkeypatch.setattr("ai_anime.shared.ports.get_task_backend", lambda: fake_backend)
         task = get_task_manager().create_task_for_project(
             ctx,
             "m07_shape",

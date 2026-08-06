@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.ports import registry
+from ai_anime.shared.ports import registry
 from ai_anime.modules.project_workspace.infrastructure.local_registry import (
     AllowAllProjectAccess,
 )

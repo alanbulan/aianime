@@ -52,7 +52,7 @@ async def _resolve_scene_migration_dirs(
 ) -> tuple[Path, Path, str]:
     if project_id:
         from ai_anime.modules.project_workspace.public import find_project_record
-        from ai_anime.ports.registry import ensure_bootstrap
+        from ai_anime.shared.ports.registry import ensure_bootstrap
 
         ensure_bootstrap()
         record = await find_project_record(project_id)

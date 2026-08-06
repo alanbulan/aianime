@@ -245,7 +245,7 @@ class _FakeTaskManager:
 
 @pytest.fixture()
 def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from ai_anime import ports
+    from ai_anime.shared import ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import ingest

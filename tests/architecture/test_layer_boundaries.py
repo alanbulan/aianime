@@ -522,7 +522,7 @@ def test_lifespan_uses_the_application_container() -> None:
     lifespan_source = (PACKAGE_ROOT / "api" / "lifespan.py").read_text(encoding="utf-8")
 
     assert "ai_anime.bootstrap" in lifespan_source
-    assert "ai_anime.ports.registry" not in lifespan_source
+    assert "ai_anime.shared.ports.registry" not in lifespan_source
 
 
 def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
@@ -2302,7 +2302,9 @@ def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
         / "infrastructure"
         / "registered_credit_quote.py"
     )
-    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    local_ports = (
+        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
+    )
     container = PACKAGE_ROOT / "bootstrap" / "container.py"
     route_source = route.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -2354,8 +2356,10 @@ def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
         / "registered_usage.py"
     )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    legacy_ports = PACKAGE_ROOT / "ports" / "__init__.py"
-    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    legacy_ports = PACKAGE_ROOT / "shared" / "ports" / "__init__.py"
+    local_ports = (
+        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
+    )
     container = PACKAGE_ROOT / "bootstrap" / "container.py"
 
     assert not (PACKAGE_ROOT / "ports" / "usage.py").exists()
@@ -2418,7 +2422,9 @@ def test_model_usage_owns_runtime_provider_instrumentation() -> None:
 
 def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
     composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
-    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    local_ports = (
+        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
+    )
     composition_source = composition.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "ports" / "release_feed.py").exists()
@@ -5723,7 +5729,7 @@ def test_asset_world_style_route_remains_an_http_adapter() -> None:
         for imported in imported_modules
         if imported.startswith("ai_anime.generators")
         or imported == "ai_anime.models"
-        or imported == "ai_anime.ports"
+        or imported == "ai_anime.shared.ports"
     }
     assert "StyleService" not in source
     assert "generate_character_reference_unified" not in source
@@ -6341,7 +6347,7 @@ def test_narrative_script_route_remains_an_http_adapter() -> None:
     forbidden_imports = {
         imported
         for imported in imported_modules
-        if imported == "ai_anime.ports"
+        if imported == "ai_anime.shared.ports"
         or imported == "ai_anime.task_identity"
         or imported.startswith("ai_anime.seedance2_i2v")
     }

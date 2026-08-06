@@ -93,7 +93,7 @@ def _patch_audio_celery(
 
 
 def _patch_audio_task_backend(monkeypatch, backend) -> None:
-    from ai_anime import ports
+    from ai_anime.shared import ports
 
     def provider():
         return backend

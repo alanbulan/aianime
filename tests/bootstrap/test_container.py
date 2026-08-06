@@ -4,7 +4,7 @@ import importlib
 
 
 def test_container_captures_required_ce_ports(monkeypatch) -> None:
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports.registry as registry
 
     registry = importlib.reload(registry)
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
@@ -30,7 +30,7 @@ def test_container_captures_required_ce_ports(monkeypatch) -> None:
 
 
 def test_container_uses_registered_test_adapter(monkeypatch) -> None:
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports.registry as registry
 
     registry = importlib.reload(registry)
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)

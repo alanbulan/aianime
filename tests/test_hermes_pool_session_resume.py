@@ -54,7 +54,7 @@ def _patch_fake_hermes_pool(
     monkeypatch: pytest.MonkeyPatch,
 ):
     from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     calls: list[tuple[str, str | None]] = []
     started_count = 0

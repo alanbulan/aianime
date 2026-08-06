@@ -212,7 +212,7 @@ def _patch_celery_episode_asset_planner(
     async def fail_if_sync_store_is_used(*args, **kwargs):
         raise AssertionError("episode asset planning must enqueue a Celery task")
     monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
-    import ai_anime.ports as runtime_ports
+    import ai_anime.shared.ports as runtime_ports
 
     monkeypatch.setattr(
         runtime_ports,
@@ -404,7 +404,7 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
     async def fail_if_sync_store_is_used(*args, **kwargs):
         raise AssertionError("identity planning API must enqueue a Celery task")
     monkeypatch.setattr(episodes, "resolve_project_scope", resolve_project_scope)
-    import ai_anime.ports as runtime_ports
+    import ai_anime.shared.ports as runtime_ports
 
     monkeypatch.setattr(
         runtime_ports,

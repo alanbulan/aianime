@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import ai_anime.ports.registry as port_registry
+import ai_anime.shared.ports.registry as port_registry
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.routes import release_notifications
 from ai_anime.modules.platform_release.domain import (

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_anime.ports.registry import get_port
+from ai_anime.shared.ports.registry import get_port
 
 
 def get_task_backend():

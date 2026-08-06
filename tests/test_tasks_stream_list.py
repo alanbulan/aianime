@@ -156,7 +156,7 @@ async def test_project_stream_emits_heartbeat_immediately(tmp_path, monkeypatch)
 @pytest.mark.asyncio
 async def test_project_stream_rejects_missing_auth():
     from ai_anime.api.v1.router import create_api_router
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
 
     old_ports = dict(registry._PORTS)
     old_bootstrapped = registry._BOOTSTRAPPED

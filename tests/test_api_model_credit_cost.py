@@ -13,7 +13,7 @@ def _reset_model_access() -> None:
 
 def patch_quote(*, expected_model: str, cost: int) -> None:
     from ai_anime.modules.model_usage.public import CreditQuote
-    from ai_anime.ports.registry import register_port
+    from ai_anime.shared.ports.registry import register_port
 
     class FakeCreditQuotePort:
         async def generation_credit_quote(
@@ -40,7 +40,7 @@ def patch_quote_expect(
     cost: int,
 ) -> None:
     from ai_anime.modules.model_usage.public import CreditQuote
-    from ai_anime.ports.registry import register_port
+    from ai_anime.shared.ports.registry import register_port
 
     class FakeCreditQuotePort:
         async def generation_credit_quote(
@@ -62,7 +62,7 @@ def patch_quote_expect(
 
 def patch_quote_display_mismatch(cost: int, display: str) -> None:
     from ai_anime.modules.model_usage.public import CreditQuote
-    from ai_anime.ports.registry import register_port
+    from ai_anime.shared.ports.registry import register_port
 
     class FakeCreditQuotePort:
         async def generation_credit_quote(
@@ -97,7 +97,7 @@ async def test_generation_credit_cost_route_keeps_local_display_helper():
 async def test_generation_credit_cost_route_uses_ce_zero_quote_port():
     from ai_anime.api.routes import model_credits
     from ai_anime.modules.model_usage.public import build_local_credit_quote
-    from ai_anime.ports.registry import register_port
+    from ai_anime.shared.ports.registry import register_port
 
     register_port("credit_quote", build_local_credit_quote())
 

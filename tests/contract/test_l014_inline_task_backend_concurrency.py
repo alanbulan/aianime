@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.ports import registry
+from ai_anime.shared.ports import registry
 from ai_anime.modules.task_execution.public import (
     build_in_memory_cancellation_store,
     build_inline_task_backend,

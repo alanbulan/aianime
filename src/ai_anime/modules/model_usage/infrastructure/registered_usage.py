@@ -1,7 +1,7 @@
 """Usage meter resolver backed by the process port registry."""
 
 from ai_anime.modules.model_usage.application import UsageMeter
-from ai_anime.ports import registry
+from ai_anime.shared.ports import registry
 
 
 def resolve_registered_usage_meter() -> UsageMeter:

@@ -65,7 +65,7 @@ def ensure_bootstrap() -> None:
         _BOOTSTRAPPED = True
         return
     if edition == "ce":
-        from ai_anime.ports.local import register_local_ports
+        from ai_anime.shared.ports.local import register_local_ports
 
         register_local_ports()
         _BOOTSTRAPPED = True

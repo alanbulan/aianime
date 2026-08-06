@@ -13,9 +13,9 @@ pytestmark = pytest.mark.m03
 
 
 def _reset_port_modules():
-    import ai_anime.ports as ports
-    import ai_anime.ports.local as local_ports
-    import ai_anime.ports.registry as registry
+    import ai_anime.shared.ports as ports
+    import ai_anime.shared.ports.local as local_ports
+    import ai_anime.shared.ports.registry as registry
 
     registry = importlib.reload(registry)
     ports = importlib.reload(ports)
@@ -48,7 +48,7 @@ def _completion_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
 
-    from ai_anime.ports import registry
+    from ai_anime.shared.ports import registry
     from ai_anime.modules.project_workspace.public import ProjectContext
 
     registry.ensure_bootstrap()

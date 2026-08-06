@@ -1626,7 +1626,7 @@ async def test_delete_scene_allows_leaf_scene_plate(tmp_path, monkeypatch):
 async def test_build_scenes_allows_supplement_when_derived_scenes_exist(
     tmp_path, monkeypatch
 ):
-    from ai_anime import ports as ai_anime_ports
+    from ai_anime.shared import ports as ai_anime_ports
     from ai_anime.api.routes import scenes
 
     store = _SceneStore(

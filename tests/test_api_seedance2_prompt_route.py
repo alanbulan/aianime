@@ -452,7 +452,7 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 ):
     from types import SimpleNamespace
 
-    from ai_anime import ports
+    from ai_anime.shared import ports
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import scripts
 

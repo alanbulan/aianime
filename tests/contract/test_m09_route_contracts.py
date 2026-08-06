@@ -181,7 +181,7 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from ai_anime import ports as runtime_ports
+    from ai_anime.shared import ports as runtime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api import project_file_delivery
     from ai_anime.api.deps import ProjectResolution
