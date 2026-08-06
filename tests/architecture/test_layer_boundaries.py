@@ -2404,7 +2404,7 @@ def test_model_usage_owns_runtime_provider_instrumentation() -> None:
         PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "local_usage.py"
     )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    cognee_config = PACKAGE_ROOT / "cognee" / "config.py"
+    cognee_config = PACKAGE_ROOT / "modules" / "knowledge_graph" / "config.py"
     provider_source = provider.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -4852,10 +4852,18 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
         / "episode_planning_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
-    cognee_store = PACKAGE_ROOT / "cognee" / "store.py"
-    event_extractor = PACKAGE_ROOT / "cognee" / "event_extractor.py"
-    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_store = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py"
+    )
+    event_extractor = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "event_extractor.py"
+    )
+    cognee_pipeline = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
+    )
+    cognee_package = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
+    )
 
     assert "class NovelEvent(" not in _removed_models_source(legacy_models)
     assert "class NovelEvent(BaseModel):" in event_models.read_text(encoding="utf-8")
@@ -4876,12 +4884,16 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         / "episode_planning_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
-    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_pipeline = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
+    )
+    cognee_package = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
+    )
     callers = (
         PACKAGE_ROOT / "agents" / "episode_planner.py",
         PACKAGE_ROOT / "agents" / "identity_planner.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
         cognee_pipeline,
     )
@@ -4914,7 +4926,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
     public_source = public.read_text(encoding="utf-8")
     callers = (
         PACKAGE_ROOT / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "director_world" / "sync_global_props.py",
         PACKAGE_ROOT
         / "modules"
@@ -4948,7 +4960,7 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "beat_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     internal_callers = tuple(
         PACKAGE_ROOT / "modules" / "narrative_planning" / "application" / name
         for name in (
@@ -4964,8 +4976,8 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         PACKAGE_ROOT / "api" / "episodes_schemas.py",
         PACKAGE_ROOT / "api" / "scripts_schemas.py",
         PACKAGE_ROOT / "api" / "routes" / "assets.py",
-        PACKAGE_ROOT / "cognee" / "pipeline.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
         PACKAGE_ROOT / "generators" / "prompt_builder.py",
         PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
@@ -5043,12 +5055,12 @@ def test_asset_world_character_models_have_one_owner() -> None:
         / "character_identity.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
-    cognee_pipeline = PACKAGE_ROOT / "cognee" / "pipeline.py"
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
+    cognee_pipeline = PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
     external_callers = (
         PACKAGE_ROOT / "agents" / "identity_planner.py",
         cognee_pipeline,
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
     )
@@ -5090,11 +5102,11 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
         PACKAGE_ROOT / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "cognee" / "pipeline.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
     )
@@ -5123,11 +5135,11 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "asset_world" / "application" / "scene_viewer.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
-    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
         PACKAGE_ROOT / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "cognee" / "pipeline.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -5187,7 +5199,7 @@ def test_production_detected_refs_have_one_owner() -> None:
     )
     external_callers = (
         PACKAGE_ROOT / "api" / "routes" / "assets.py",
-        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "modules" / "asset_world" / "application" / "scene_viewer.py",
         PACKAGE_ROOT

@@ -485,11 +485,13 @@ def test_project_task_runtimes_use_the_shared_cognee_store_factory() -> None:
         TASK_RUNNERS_ROOT,
         PACKAGE_ROOT / "modules",
     )
+    owner_root = str(PACKAGE_ROOT / "modules" / "knowledge_graph")
     violations = [
         str(path.relative_to(REPO_ROOT))
         for root in roots
         for path in _python_files(root)
-        if "CogneeStore(" in path.read_text(encoding="utf-8")
+        if not str(path).startswith(owner_root)
+        and "CogneeStore(" in path.read_text(encoding="utf-8")
     ]
     assert violations == []
 
@@ -1007,7 +1009,9 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
 
 
 def test_cognee_litellm_transport_owns_operation_idempotency() -> None:
-    source = (PACKAGE_ROOT / "cognee" / "config.py").read_text(encoding="utf-8")
+    source = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "config.py"
+    ).read_text(encoding="utf-8")
     assert "_install_litellm_operation_idempotency()" in source
     assert 'for operation_name in ("acompletion", "aembedding")' in source
     assert 'extra_headers["Idempotency-Key"] = str(uuid.uuid4())' in source

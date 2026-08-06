@@ -3,7 +3,7 @@
 核心理念：所有实体直接存入 Cognee 图谱，不需要额外的 JSON 存储。
 
 使用方式：
-    from ai_anime.cognee import CogneeStore
+    from ai_anime.modules.knowledge_graph import CogneeStore
 
     store = await create_cognee_store("hongloumeng")
 

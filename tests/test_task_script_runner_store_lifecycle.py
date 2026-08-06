@@ -89,7 +89,7 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
 
 @pytest.mark.asyncio
 async def test_script_writer_runner_closes_cognee_store(monkeypatch, tmp_path):
-    import ai_anime.cognee as cognee
+    import ai_anime.modules.knowledge_graph as cognee
     from ai_anime import project_config
     from ai_anime.modules.task_execution.infrastructure.runners import script as runner
 

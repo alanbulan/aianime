@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_character_extraction_keeps_single_narrator_main(monkeypatch):
     from cognee.infrastructure.llm.LLMGateway import LLMGateway
-    from ai_anime.cognee import pipeline
+    from ai_anime.modules.knowledge_graph import pipeline
     from ai_anime.modules.asset_world.public import NovelCharacter
 
     class _Result:

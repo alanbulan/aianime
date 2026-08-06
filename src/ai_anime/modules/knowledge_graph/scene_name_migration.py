@@ -9,7 +9,7 @@ from typing import Any, Iterable
 import aiosqlite
 from pydantic import BaseModel, Field
 
-from ai_anime.cognee.screenplay_normalizer import clean_scene_name_and_time
+from ai_anime.modules.knowledge_graph.screenplay_normalizer import clean_scene_name_and_time
 
 
 class SceneNameMigrationReport(BaseModel):

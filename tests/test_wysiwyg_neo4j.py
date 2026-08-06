@@ -79,7 +79,7 @@ def discover_projects() -> List[Tuple[str, Path]]:
 
 async def _load_project_data_async(project_name: str, project_dir: Path):
     """Load characters, beats, sketch_colors from Neo4j via CogneeStore."""
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     store = CogneeStore(project_name, output_dir=str(project_dir))
     try:

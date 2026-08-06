@@ -25,7 +25,7 @@ from ai_anime.shared.project_media import (
 )
 
 if TYPE_CHECKING:
-    from ai_anime.cognee import CogneeStore
+    from ai_anime.modules.knowledge_graph import CogneeStore
     from ai_anime.sqlite_store import SQLiteStore
 
 

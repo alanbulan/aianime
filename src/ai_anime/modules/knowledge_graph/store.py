@@ -896,7 +896,7 @@ class CogneeStore:
         on_log: Optional[Callable[[str], None]] = None,
     ) -> List[NovelEpisode]:
         """从小说章节结构创建剧集（章节映射模式）。"""
-        from ai_anime.cognee.chapter_detector import ChapterDetector
+        from ai_anime.modules.knowledge_graph.chapter_detector import ChapterDetector
 
         def report(progress: float, task: str):
             if on_progress:
@@ -1014,8 +1014,8 @@ class CogneeStore:
         on_log: Optional[Callable[[str], None]] = None,
     ) -> List[NovelEpisode]:
         """基于事件的剧集规划（支持章节拆分）。"""
-        from ai_anime.cognee.chapter_detector import ChapterDetector
-        from ai_anime.cognee.event_extractor import EventExtractor
+        from ai_anime.modules.knowledge_graph.chapter_detector import ChapterDetector
+        from ai_anime.modules.knowledge_graph.event_extractor import EventExtractor
 
         def report(progress: float, task: str):
             if on_progress:

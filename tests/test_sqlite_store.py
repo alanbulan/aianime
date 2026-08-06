@@ -21,7 +21,7 @@ from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 # ── 1. 导入不报错 ──────────────────────────────────────────
 def test_import():
-    from ai_anime.cognee.store import CogneeStore  # noqa: F401
+    from ai_anime.modules.knowledge_graph.store import CogneeStore  # noqa: F401
     from ai_anime.modules.narrative_planning.public import NovelEvent  # noqa: F401
 
     # 确认不再依赖 DataPoint
@@ -38,7 +38,7 @@ def test_import():
 @pytest.fixture
 async def tmp_project(tmp_path):
     """创建临时项目目录和 CogneeStore（跳过 Cognee 初始化）。"""
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     project_dir = tmp_path / "testuser" / "testproject"
     project_dir.mkdir(parents=True)
@@ -61,7 +61,7 @@ async def tmp_project(tmp_path):
 
 @pytest.mark.asyncio
 async def test_build_characters_from_graph_only_adds_missing_characters(tmp_project, monkeypatch):
-    from ai_anime.cognee import pipeline
+    from ai_anime.modules.knowledge_graph import pipeline
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
     existing = NovelCharacter(
@@ -163,7 +163,7 @@ async def test_ingest_novel_reuses_graph_based_build_steps(tmp_project, tmp_path
 
 @pytest.mark.asyncio
 async def test_build_scenes_from_graph_only_adds_missing_base_scenes(tmp_project, monkeypatch):
-    from ai_anime.cognee import pipeline
+    from ai_anime.modules.knowledge_graph import pipeline
     from ai_anime.modules.asset_world.public import NovelScene
 
     await tmp_project.sqlite_store.add_scene(
@@ -676,7 +676,7 @@ async def test_beat_update(tmp_project):
 
 
 def test_stringify_search_fragment_handles_nested_lists():
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     payload = [
         "第一行",

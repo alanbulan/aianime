@@ -26,12 +26,12 @@ from pydantic_ai import Agent
 from pydantic import BaseModel, Field
 
 from ai_anime.config import get_pydantic_model
-from ai_anime.cognee.tools import create_episode_planner_tools
+from ai_anime.modules.knowledge_graph.tools import create_episode_planner_tools
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.utils.logging import log_agent_start, log_agent_end
 
 if TYPE_CHECKING:
-    from ai_anime.cognee import CogneeStore
+    from ai_anime.modules.knowledge_graph import CogneeStore
     from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 
@@ -397,7 +397,7 @@ class EpisodePlannerAgent:
         Returns:
             规划的剧集列表
         """
-        from ai_anime.cognee.pipeline import extract_episodes_with_characters
+        from ai_anime.modules.knowledge_graph.pipeline import extract_episodes_with_characters
 
         def log(message: str):
             if on_log:

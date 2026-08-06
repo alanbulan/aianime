@@ -71,7 +71,7 @@ def _context(tmp_path: Path):
 
 
 def _patch_runtime(monkeypatch: pytest.MonkeyPatch, manager: _TaskManager) -> None:
-    import ai_anime.cognee as cognee
+    import ai_anime.modules.knowledge_graph as cognee
     import ai_anime.project_config as project_config
 
     _Store.instances.clear()

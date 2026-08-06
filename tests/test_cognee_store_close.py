@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 @pytest.mark.asyncio
 async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     graph_config_module = import_module("cognee.infrastructure.databases.graph.config")
     graph_engine_module = import_module("cognee.infrastructure.databases.graph.get_graph_engine")
@@ -66,7 +66,7 @@ async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_graph_snapshot_is_bounded_ranked_and_json_safe():
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     async def fake_get_dataset_graph_data():
         return (
@@ -94,7 +94,7 @@ async def test_graph_snapshot_is_bounded_ranked_and_json_safe():
 
 @pytest.mark.asyncio
 async def test_graph_snapshot_reads_the_project_dataset_database(monkeypatch):
-    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.store import CogneeStore
 
     context_module = import_module("cognee.context_global_variables")
     graph_module = import_module("cognee.infrastructure.databases.graph")

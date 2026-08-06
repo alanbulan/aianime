@@ -74,7 +74,7 @@ class LocalStoryDocumentGateway:
         return count_billable_novel_chars(text)
 
     def build_chapter_preview(self, text: str) -> dict[str, Any]:
-        from ai_anime.cognee.chapter_detector import ChapterDetector
+        from ai_anime.modules.knowledge_graph.public import ChapterDetector
 
         chapters = ChapterDetector().detect(text)
         payload = []

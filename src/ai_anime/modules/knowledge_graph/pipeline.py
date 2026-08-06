@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.config import ensure_project_dirs, get_newapi_reasoning_kwargs
-from ai_anime.cognee.screenplay_normalizer import (
+from ai_anime.modules.knowledge_graph.screenplay_normalizer import (
     NormalizedSceneBlock,
     clean_scene_name_and_time,
     normalize_time_of_day,

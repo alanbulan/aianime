@@ -12,7 +12,7 @@ Agent 在任务运行器中运行，工具直接使用 async def，复用当前 
 import json
 from typing import Callable, List
 
-from ai_anime.cognee import CogneeStore
+from ai_anime.modules.knowledge_graph import CogneeStore
 from ai_anime.utils.logging import tool_logger
 
 

@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ai_anime.backup.cli import backup_app
-from ai_anime.cognee import CogneeStore
+from ai_anime.modules.knowledge_graph import CogneeStore
 from ai_anime.config import ensure_project_dirs
 from ai_anime.modules.narrative_planning.public import (
     create_script_writing_workflow,
@@ -501,7 +501,7 @@ def migrate_scene_names_cmd(
     ),
 ):
     """迁移旧项目中混入时间词的场景名。默认 dry-run，不写入。"""
-    from ai_anime.cognee.scene_name_migration import migrate_scene_names
+    from ai_anime.modules.knowledge_graph.scene_name_migration import migrate_scene_names
 
     async def do_migrate():
         db_dir, asset_dir, label = await _resolve_scene_migration_dirs(

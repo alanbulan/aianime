@@ -32,7 +32,7 @@ def _clear_agent_singletons() -> list[str]:
 
 
 def _cognee_runtime_status() -> str:
-    module = sys.modules.get("ai_anime.cognee.config")
+    module = sys.modules.get("ai_anime.modules.knowledge_graph.config")
     if module is None:
         return "not_loaded"
     restart_required = getattr(module, "cognee_gateway_restart_required", None)
