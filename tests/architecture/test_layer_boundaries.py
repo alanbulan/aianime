@@ -1071,7 +1071,7 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
     public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
     turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     hermes_replies = (
         PACKAGE_ROOT
         / "modules"
@@ -1107,7 +1107,7 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         if imported == "fastapi"
         or imported.startswith("fastapi.")
         or imported == "sqlite3"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "ai_anime.modules.ai_assistant.public" in _imports(turn_adapter)
     assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
@@ -1161,7 +1161,7 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     adapter = module / "infrastructure" / "json_render_errors.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1180,7 +1180,7 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
         if imported == "os"
         or imported == "sqlite3"
         or imported == "fastapi"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "JsonRenderErrors" in ports_source
     assert "JsonRenderErrors" in application_source
@@ -1245,7 +1245,7 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     domain = module / "domain" / "tool_errors.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
@@ -1259,7 +1259,7 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
         if imported == "os"
         or imported == "sqlite3"
         or imported == "fastapi"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "def tool_chat_error(" in domain_source
     assert "redact_secrets" in domain_source
@@ -1282,7 +1282,7 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
     fallback_application = module / "application" / "display_fallback.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     fallback_application_source = fallback_application.read_text(encoding="utf-8")
@@ -1297,7 +1297,7 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
         if imported == "os"
         or imported == "sqlite3"
         or imported == "fastapi"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     for operation in (
         "display_tool_call_key",
@@ -1332,7 +1332,7 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
     adapter = module / "infrastructure" / "display_fallback_gateway.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1350,7 +1350,7 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
         if imported == "os"
         or imported == "sqlite3"
         or imported == "fastapi"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "class DisplayFallbackGateway(Protocol)" in ports_source
     assert "class DisplayFallbacks" in application_source
@@ -1405,7 +1405,7 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     adapter = module / "infrastructure" / "project_media_files.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1424,7 +1424,7 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
         if imported == "os"
         or imported == "sqlite3"
         or imported == "fastapi"
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "class ProjectMediaFiles(Protocol)" in ports_source
     assert "class ProjectMedia" in application_source
@@ -1485,7 +1485,7 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     scope_source = scope_adapter.read_text(encoding="utf-8")
 
     assert not legacy_store.exists()
-    assert "ai_anime.chat.store" not in _imports(scope_adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.store" not in _imports(scope_adapter)
     assert "ai_anime.modules.ai_assistant.public" in _imports(scope_adapter)
     assert not {
         imported
@@ -1508,7 +1508,7 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
     history_source = (module / "infrastructure" / "sqlite_chat_history.py").read_text(
         encoding="utf-8"
     )
-    service_source = (PACKAGE_ROOT / "chat" / "service.py").read_text(encoding="utf-8")
+    service_source = (PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py").read_text(encoding="utf-8")
 
     for operation in (
         "append_project_message",
@@ -1543,7 +1543,7 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     application_source = application.read_text(encoding="utf-8")
@@ -1673,7 +1673,7 @@ def test_ai_assistant_has_only_bundled_hermes_agent_runtime() -> None:
 
 
 def test_chat_service_has_no_unreachable_assistant_entrypoints() -> None:
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     service_source = service.read_text(encoding="utf-8")
 
     assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
@@ -1705,7 +1705,7 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     local_state = module / "infrastructure" / "local_state.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     lifecycle_source = lifecycle.read_text(encoding="utf-8")
@@ -1760,7 +1760,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     adapter = module / "infrastructure" / "hermes_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
     ports_source = ports.read_text(encoding="utf-8")
     prewarmer_source = prewarmer.read_text(encoding="utf-8")
@@ -1775,7 +1775,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert "class HermesThread(Protocol):" in ports_source
     assert "class HermesRuntime(Protocol):" in ports_source
     assert "class LocalHermesRuntime:" in adapter_source
-    assert "ai_anime.chat.hermes_pool" in _imports(adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" in _imports(adapter)
     assert "_hermes_runtime = LocalHermesRuntime()" in composition_source
     assert "def get_hermes_runtime(" not in composition_source
     assert "def get_hermes_runtime(" not in public_source
@@ -1783,13 +1783,13 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert '"HermesRuntime",' not in public_source
     assert "LocalHermesRuntime" not in public_source
     for caller in (service, session_adapter):
-        assert "ai_anime.chat.hermes_pool" not in _imports(caller)
+        assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" not in _imports(caller)
     assert "hermes_runtime.get_for_user(" not in service_source
     assert home_replies_source.count("self._runtime.get_for_user(") == 1
     assert project_replies_source.count("self._runtime.get_for_user(") == 1
     assert "hermes_runtime.prewarm(" not in service_source
     assert prewarmer_source.count("self._runtime.prewarm(") == 1
-    assert "ai_anime.chat.hermes_pool" not in _imports(session_adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" not in _imports(session_adapter)
     assert lifecycle_source.count("self._runtime.set_scope_for_user(") == 1
     assert lifecycle_source.count("self._runtime.close_user(") == 1
 
@@ -1816,7 +1816,7 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class ChatWorkerLifecycle:" in application_source
@@ -1860,7 +1860,7 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class HermesHomeReplies:" in application_source
@@ -1900,7 +1900,7 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
     ports = module / "application" / "ports.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     chat_events_source = chat_events.read_text(encoding="utf-8")
@@ -1914,7 +1914,7 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "ChatEventSink =" in ports_source
@@ -1950,7 +1950,7 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
     dispatcher = module / "application" / "project_assistant_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -1962,7 +1962,7 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class DeterministicProjectReplies:" in application_source
@@ -1986,7 +1986,7 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_tests = (
         REPO_ROOT
@@ -2008,7 +2008,7 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class ProjectAssistantReplies:" in application_source
@@ -2054,7 +2054,7 @@ def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class ProjectChatTurns:" in application_source
@@ -2085,7 +2085,7 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     application = module / "application" / "hermes_runtime_prewarm.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
@@ -2100,7 +2100,7 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
         for imported in _imports(application)
         if imported == "fastapi"
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
     }
     assert "class HermesRuntimePrewarmer:" in application_source
@@ -2114,8 +2114,8 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     assert "hermes_runtime_prewarmer" not in route_source
     assert session_source.count("hermes_runtime_prewarmer.prewarm(") == 2
     assert "def prewarm_chat_backend(" not in service_source
-    assert "ai_anime.chat" not in _imports(session_adapter)
-    assert "ai_anime.chat" not in _imports(route)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(session_adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(route)
     assert application_source.count("self._runtime.prewarm(") == 1
 
 
@@ -2125,7 +2125,7 @@ def test_ai_assistant_owns_page_agent_session_issuance() -> None:
     hermes_replies = module / "application" / "hermes_project_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -2168,7 +2168,7 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     adapter = module / "infrastructure" / "user_preferences.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
@@ -2183,7 +2183,7 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
         for imported in _imports(domain)
         if imported in {"os", "pathlib", "fastapi"}
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "class UserPreferences(Protocol):" in ports_source
     assert "class AgentPromptContext:" in application_source
@@ -2220,7 +2220,7 @@ def test_ai_assistant_owns_turn_guidance_rules() -> None:
     domain = module / "domain" / "turn_guidance.py"
     application = module / "application" / "project_assistant_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "chat" / "service.py"
+    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2231,7 +2231,7 @@ def test_ai_assistant_owns_turn_guidance_rules() -> None:
         for imported in _imports(domain)
         if imported in {"os", "pathlib", "fastapi"}
         or imported.startswith("fastapi.")
-        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "def reingest_confirmation_reply(" in domain_source
     assert "def script_creation_guidance_prompt(" in domain_source

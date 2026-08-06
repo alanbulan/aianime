@@ -25,13 +25,13 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ai_anime.chat.hermes_sdk import HermesSdkClient, HermesSdkThread
-from ai_anime.chat.hermes_workspace import (
+from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_sdk import HermesSdkClient, HermesSdkThread
+from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_workspace import (
     effective_gateway_credentials,
     effective_gateway_fingerprint,
     ensure_user_hermes_workspace,
 )
-from ai_anime.chat.runtime_config import load_api_url
+from ai_anime.modules.ai_assistant.infrastructure.hermes.runtime_config import load_api_url
 from ai_anime.modules.identity_access.public import (
     AgentSessionToken,
     create_agent_session,

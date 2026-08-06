@@ -2,7 +2,7 @@
 
 This plugin intentionally avoids terminal/shell/subprocess access. It uses
 Python's stdlib HTTP client and the AI anime agent environment injected by
-``ai_anime.chat.hermes_pool``.
+``ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool``.
 """
 
 from __future__ import annotations

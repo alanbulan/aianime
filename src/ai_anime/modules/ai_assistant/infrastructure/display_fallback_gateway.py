@@ -6,7 +6,7 @@ import json
 from typing import Any
 from urllib.request import Request, urlopen
 
-from ai_anime.chat.runtime_config import load_api_url
+from ai_anime.modules.ai_assistant.infrastructure.hermes.runtime_config import load_api_url
 
 
 class HttpDisplayFallbackGateway:

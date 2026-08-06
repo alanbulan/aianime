@@ -10,7 +10,7 @@ from ai_anime.modules.ai_assistant.application.ports import HermesThread
 class LocalHermesRuntime:
     def __init__(self, pool: Any | None = None) -> None:
         if pool is None:
-            from ai_anime.chat.hermes_pool import pool as process_pool
+            from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool import pool as process_pool
 
             pool = process_pool
         self._pool = pool

@@ -485,8 +485,6 @@ class HermesSdkThread:
                             text=CONTENT_FILTER_MESSAGE,
                         )
                         return
-                    result = msg.get("result") or {}
-                    stop = result.get("stopReason", "end_turn")
                     err = msg.get("error")
                     if err:
                         yield ChatBackendEvent(

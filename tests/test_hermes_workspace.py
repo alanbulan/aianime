@@ -1,4 +1,4 @@
-"""Unit tests for ai_anime.chat.hermes_workspace."""
+"""Unit tests for ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_workspace."""
 
 from __future__ import annotations
 
@@ -8,8 +8,10 @@ import pytest
 import yaml
 
 from ai_anime import config as app_config
-from ai_anime.chat import hermes_sdk
-from ai_anime.chat import hermes_workspace as hw
+from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_sdk
+from ai_anime.modules.ai_assistant.infrastructure.hermes import (
+    hermes_workspace as hw,
+)
 from ai_anime.model_access_policy import configure_model_access
 from ai_anime.model_gateway_settings import MODE_BYOK, MODE_CLOUD
 

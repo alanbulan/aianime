@@ -923,8 +923,14 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
     backend_config = (PACKAGE_ROOT / "config.py").read_text(encoding="utf-8")
     project_config = (PACKAGE_ROOT / "project_config.py").read_text(encoding="utf-8")
     frontend_settings = (
-        REPO_ROOT / "frontend" / "src" / "stores" / "settingsStore.ts"
-    ).read_text(encoding="utf-8")
+            REPO_ROOT
+            / "frontend"
+            / "src"
+            / "modules"
+            / "creative_canvas"
+            / "presentation"
+            / "settingsStore.ts"
+        ).read_text(encoding="utf-8")
     canvas_registry = (
         REPO_ROOT
         / "frontend"
@@ -951,7 +957,7 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
 def test_direct_text_transports_resolve_the_selected_access_model() -> None:
     direct_transports = (
         PACKAGE_ROOT / "config.py",
-        PACKAGE_ROOT / "chat" / "hermes_workspace.py",
+        PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "hermes_workspace.py",
         PACKAGE_ROOT / "director_world" / "block_world_builder.py",
         PACKAGE_ROOT / "director_world" / "scene_overlap_analyzer.py",
         PACKAGE_ROOT / "director_world" / "scene_spatial_contract.py",
@@ -983,7 +989,7 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
     assert raw_chat_transports == {"model_text_transport.py"}
 
     internal_defaults = (
-        PACKAGE_ROOT / "chat" / "hermes_workspace.py",
+        PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "hermes_workspace.py",
         PACKAGE_ROOT
         / "modules"
         / "model_usage"

@@ -53,7 +53,7 @@ def _patch_fake_hermes_pool(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    from ai_anime.chat import hermes_pool
+    from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
     from ai_anime.ports import registry
 
     calls: list[tuple[str, str | None]] = []
@@ -101,7 +101,7 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.chat import hermes_pool
+    from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
 
     monkeypatch.delenv("NEWAPI_API_KEY", raising=False)
     monkeypatch.setattr(
@@ -141,7 +141,7 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
 def test_hermes_runtime_does_not_fall_back_to_a_system_install(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.chat import hermes_pool
+    from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
 
     monkeypatch.delenv("HERMES_CLI_PATH", raising=False)
 
@@ -152,7 +152,7 @@ def test_hermes_runtime_does_not_fall_back_to_a_system_install(
 async def test_hermes_pool_requires_the_desktop_bundled_runtime(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.chat import hermes_pool
+    from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
 
     monkeypatch.delenv("HERMES_CLI_PATH", raising=False)
     pool = hermes_pool.HermesPool(max_workers=1)
