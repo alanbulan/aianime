@@ -2,11 +2,15 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
 import type { ThreeDDirectorCaptureMeta, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
-import { useThreeDWorldNodeController } from './useThreeDWorldNodeController';
+import type { ThreeDWorldNodeData } from '../domain/canvasNodeData';
+import {
+  createUseThreeDWorldNodeController,
+  type ThreeDWorldNodeCanvasNode,
+  type ThreeDWorldNodeStore,
+  type ThreeDWorldNodeStoreHook,
+} from './useThreeDWorldNodeController';
 
-import { CANVAS_NODE_TYPES, type CanvasNode, type ThreeDWorldNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   updateNodeInternals: vi.fn(),
   setSelectedNode: vi.fn(),
@@ -23,18 +27,8 @@ const mocks = vi.hoisted(() => ({
   registerSaveHandler: vi.fn(),
   blobToDataUrl: vi.fn(),
   readImageSize: vi.fn(),
-  storeNodes: [] as Array<{
-    id: string;
-    type: string;
-    position: { x: number; y: number };
-    data: unknown;
-  }>,
-  upstreamNodes: [] as Array<{
-    id: string;
-    type: string;
-    position: { x: number; y: number };
-    data: unknown;
-  }>,
+  storeNodes: [] as ThreeDWorldNodeCanvasNode[],
+  upstreamNodes: [] as ThreeDWorldNodeCanvasNode[],
   historyRecords: [] as Array<Record<string, unknown>>,
   isGenerating: false,
 }));
@@ -60,8 +54,38 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
+vi.mock('./useNodeGenerationHistory', () => ({
+  useNodeGenerationHistory: () => ({
+    records: mocks.historyRecords,
+    isLoading: false,
+    refresh: mocks.refreshHistory,
+  }),
+}));
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
+vi.mock('./useNodeGenerationTaskState', () => ({
+  useNodeGenerationTaskState: () => ({
+    isGenerating: mocks.isGenerating,
+  }),
+}));
+
+vi.mock('../application/directorWorldSceneSaveRegistry', () => ({
+  setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
+    mocks.registerSaveHandler(...args),
+}));
+
+const useStore = ((selector: (state: ThreeDWorldNodeStore) => unknown) =>
+  selector({
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
+  })) as unknown as ThreeDWorldNodeStoreHook;
+
+const useThreeDWorldNodeController = createUseThreeDWorldNodeController({
+  useStore,
+  useUpstreamNodes: () => mocks.upstreamNodes,
+  useDetachUpstream: () => mocks.detachUpstream,
+  generateCanvasImageTo3d: (...args: unknown[]) =>
+    mocks.generateImageTo3d(...args),
   getCanvasBeatDirectorManifest: (...args: unknown[]) =>
     mocks.getBeatManifest(...args),
   getCanvasDirectorStagePalette: (...args: unknown[]) =>
@@ -71,55 +95,25 @@ vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   uploadCanvasAsset: (...args: unknown[]) => mocks.uploadAsset(...args),
   uploadLocalImageToBackend: (...args: unknown[]) =>
     mocks.uploadLocalImage(...args),
-  useDetachUpstream: () => mocks.detachUpstream,
-  useUpstreamNodes: () => mocks.upstreamNodes,
-}));
-
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-  const state = () => ({
-    nodes: mocks.storeNodes,
-    setSelectedNode: mocks.setSelectedNode,
-    updateNodeData: mocks.updateNodeData,
-    addPanoCaptureGroup: mocks.addPanoCaptureGroup,
-  });
-  const useCanvasStore = (
-    selector: (value: ReturnType<typeof state>) => unknown,
-  ) => selector(state());
-  useCanvasStore.getState = state;
-  
-  return useCanvasStore;
-})(),
-  useNodeGenerationHistory: () => ({
-    records: mocks.historyRecords,
-    isLoading: false,
-    refresh: mocks.refreshHistory,
-  }),
-  useNodeGenerationTaskState: () => ({
-    isGenerating: mocks.isGenerating,
-  }),
-  generateCanvasImageTo3d: (...args: unknown[]) =>
-    mocks.generateImageTo3d(...args),
   directorCaptureBlobToDataUrl: (...args: unknown[]) =>
     mocks.blobToDataUrl(...args),
   readDirectorCaptureImageSize: (...args: unknown[]) =>
     mocks.readImageSize(...args),
-  setDirectorWorldSceneSaveHandler: (...args: unknown[]) =>
-    mocks.registerSaveHandler(...args),
-}));
+  readNode: (nodeId: string) =>
+    mocks.storeNodes.find((node) => node.id === nodeId),
+});
 
 function uploadNode(
   id: string,
   y: number,
   data: Record<string, unknown>,
-): CanvasNode {
+): ThreeDWorldNodeCanvasNode {
   return {
     id,
-    type: CANVAS_NODE_TYPES.upload,
+    type: 'uploadNode',
     position: { x: 0, y },
     data,
-  } as CanvasNode;
+  };
 }
 
 describe('useThreeDWorldNodeController', () => {
@@ -243,7 +237,7 @@ describe('useThreeDWorldNodeController', () => {
     const data: ThreeDWorldNodeData = { sourceNodeId: 'image-a' };
     mocks.storeNodes.push({
       id: 'world-a',
-      type: CANVAS_NODE_TYPES.threeDWorld,
+      type: 'threeDWorld',
       position: { x: 0, y: 0 },
       data,
     });

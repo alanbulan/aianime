@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
+import type { ThreeDWorldNodeController } from './useThreeDWorldNodeController';
 import { ThreeDWorldNodeView } from './ThreeDWorldNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -17,8 +17,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
@@ -31,13 +30,25 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
       title:{titleText}
     </button>
   ),
+}));
+
+vi.mock('./NodeGenerationOverlay', () => ({
   NodeGenerationOverlay: () => <div>generation-overlay</div>,
+}));
+
+vi.mock('./ReferenceDetachButton', () => ({
   ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
     <span>detach:{nodeId}</span>
   ),
+}));
+
+vi.mock('./ReferenceTextChip', () => ({
   ReferenceTextChip: ({ sourceLabel }: { sourceLabel: string }) => (
     <div>text-ref:{sourceLabel}</div>
   ),
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -49,6 +60,9 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
     maxWidth: number;
     maxHeight: number;
   }) => <div>resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}</div>,
+}));
+
+vi.mock('./NodeGenerationHistory', () => ({
   NodeGenerationHistory: ({
     records,
     onRestore,
@@ -69,7 +83,11 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ),
 }));
 
-vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({
+vi.mock('./NodeContextBadges', () => ({
+  NodeContextBadges: () => <div>context-badges</div>,
+}));
+
+vi.mock('@/features/viewer-kit/public', () => ({
   ThreeDDirectorDialog: ({
     viewerPurpose,
     onOpenChange,

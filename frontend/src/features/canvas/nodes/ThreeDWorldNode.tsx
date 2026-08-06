@@ -2,12 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
+import { useThreeDWorldNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  ThreeDWorldNodeView,
+  type ThreeDWorldNodeData,
+} from '@/modules/creative_canvas/public';
 
-import { ThreeDWorldNodeView } from './ThreeDWorldNodeView';
-
-import type { ThreeDWorldNodeData } from "@/modules/creative_canvas/public";
 type ThreeDWorldNodeProps = NodeProps & {
   id: string;
   data: ThreeDWorldNodeData;

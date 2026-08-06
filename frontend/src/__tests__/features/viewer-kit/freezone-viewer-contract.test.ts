@@ -78,9 +78,9 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
-      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "src/modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
-    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const view = read("src/modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx");
     const implementation = `${model}\n${controller}\n${view}`;
 
     expect(view).toContain("ThreeDDirectorDialog");
@@ -159,9 +159,9 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
-      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "src/modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
-    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const view = read("src/modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx");
     const implementation = `${model}\n${controller}\n${view}`;
 
     expect(model).toContain("source_type: 'sog' as const");
@@ -225,7 +225,7 @@ describe("freezone viewer contracts", () => {
     const dialog = read("src/features/viewer-kit/three-d/ThreeDDirectorDialog.tsx");
     const manifest = read("src/features/viewer-kit/three-d/directorManifest.ts");
     const worldController = read(
-      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "src/modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
     const canvasComposition = read(
       "src/modules/creative_canvas/canvasComposition.ts",
@@ -441,9 +441,9 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const controller = read(
-      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "src/modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
-    const view = read("src/features/canvas/nodes/ThreeDWorldNodeView.tsx");
+    const view = read("src/modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx");
     const implementation = `${model}\n${controller}\n${view}`;
 
     expect(canvasNodeData).toContain("panoUrl?: string | null");
@@ -514,10 +514,10 @@ describe("freezone viewer contracts", () => {
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
     const worldController = read(
-      "src/features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "src/modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
     const worldView = read(
-      "src/features/canvas/nodes/ThreeDWorldNodeView.tsx",
+      "src/modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx",
     );
     const worldImplementation = `${worldModel}\n${worldController}\n${worldView}`;
     const sourceKindDomain = read(

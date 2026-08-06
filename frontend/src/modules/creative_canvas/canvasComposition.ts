@@ -26,6 +26,10 @@ import { useCanvasGraphEditingSurfaceController } from './presentation/useCanvas
 import { useCanvasNodeCreationSurfaceController } from './presentation/useCanvasNodeCreationSurfaceController';
 import { createUseVideoNodeToolbarController } from './presentation/useVideoNodeToolbarController';
 import { createUseUploadNodeController } from './presentation/useUploadNodeController';
+import {
+  createUseThreeDWorldNodeController,
+  type ThreeDWorldNodeCanvasNode,
+} from './presentation/useThreeDWorldNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -41,6 +45,7 @@ import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerati
 import {
   generateCanvasRedraw,
   generateCanvasReversePrompt,
+  generateCanvasImageTo3d,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import { submitVideoGeneration } from './videoGenerationComposition';
@@ -356,6 +361,25 @@ export const useUploadNodeController = createUseUploadNodeController({
   getCanvasBeatDirectorManifest,
   directorCaptureBlobToDataUrl,
   readDirectorCaptureImageSize,
+});
+export const useThreeDWorldNodeController = createUseThreeDWorldNodeController({
+  useStore: useCanvasStore,
+  useUpstreamNodes,
+  useDetachUpstream,
+  generateCanvasImageTo3d,
+  getCanvasBeatDirectorManifest,
+  getCanvasDirectorStagePalette,
+  uploadAndAutoCommitSelectedBackgroundCandidate,
+  uploadCanvasAsset,
+  uploadLocalImageToBackend,
+  directorCaptureBlobToDataUrl,
+  readDirectorCaptureImageSize,
+  readNode: (nodeId) =>
+    useCanvasStore
+      .getState()
+      .nodes.find((node) => node.id === nodeId) as
+      | ThreeDWorldNodeCanvasNode
+      | undefined,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

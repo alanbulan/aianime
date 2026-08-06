@@ -2859,23 +2859,23 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useThreeDWorldNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldNodeView.tsx",
+      "modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldNodeView.test.tsx",
+      "modules/creative_canvas/presentation/ThreeDWorldNodeView.test.tsx",
     );
     const thumbPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx",
+      "modules/creative_canvas/presentation/ThreeDWorldReferenceImageThumb.tsx",
     );
     const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -2894,7 +2894,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "directorSourcesForNode("].join(" "),
       ["export async function", "uploadDirectorCaptureBundle<"].join(" "),
       ["export function", "directorCaptureBlobToDataUrl("].join(" "),
-      ["export function", "useThreeDWorldNodeController("].join(" "),
+      ["export function", "createUseThreeDWorldNodeController("].join(" "),
       ["export function", "ThreeDWorldNodeView("].join(" "),
       ["export function", "ThreeDWorldReferenceImageThumb("].join(" "),
     ];
@@ -2909,9 +2909,8 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useThreeDWorldNodeController",
-        "./ThreeDWorldNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
@@ -2919,9 +2918,9 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/application/threeDWorldNodeModel.ts"],
       ["modules/creative_canvas/application/directorCaptureBundle.ts"],
       ["modules/creative_canvas/infrastructure/browserDirectorCaptureRuntime.ts"],
-      ["features/canvas/hooks/useThreeDWorldNodeController.ts"],
-      ["features/canvas/nodes/ThreeDWorldNodeView.tsx"],
-      ["features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx"],
+      ["modules/creative_canvas/presentation/useThreeDWorldNodeController.ts"],
+      ["modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx"],
+      ["modules/creative_canvas/presentation/ThreeDWorldReferenceImageThumb.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -2953,12 +2952,10 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("generateCanvasImageTo3d(");
     expect(controllerSource).toContain("uploadDirectorCaptureBundle(");
-    expect(importSpecifiers(controllerPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
+    expect(controllerSource).not.toContain("@/modules/creative_canvas/public");
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/directorCaptureBundle",
     );
@@ -2967,9 +2964,6 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/threeDWorldNodeModel",
-    );
-    expect(importSpecifiers(viewPath)).toContain(
-      "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
       "@/features/canvas/application/threeDWorldNodeModel",
@@ -3000,6 +2994,15 @@ describe("frontend architecture boundaries", () => {
       "from './useThreeDWorldNodeController'",
     );
     expect(viewTestSource).toContain("from './ThreeDWorldNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "features/canvas/hooks/useThreeDWorldNodeController.test.tsx",
+      "features/canvas/nodes/ThreeDWorldNodeView.tsx",
+      "features/canvas/nodes/ThreeDWorldNodeView.test.tsx",
+      "features/canvas/nodes/ThreeDWorldReferenceImageThumb.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas image-generation model, controller, controls, and view", () => {
@@ -21640,7 +21643,7 @@ describe("frontend architecture boundaries", () => {
     const nodePaths = [
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
     const assetGatewaySource = readFileSync(assetGatewayPath, "utf8");
@@ -21715,7 +21718,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
     const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
     const legacyApplicationPath = resolve(
@@ -21769,15 +21772,14 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "getCanvasDirectorStagePaletteUseCase(",
     );
-    expect(importSpecifiers(nodePath)).toContain(
-      "@/modules/creative_canvas/canvasComposition",
-    );
     expect(importSpecifiers(nodePath)).not.toContain(
       "@/api/viewerManifests",
     );
     expect(nodeSource).toContain(
       "getCanvasDirectorStagePalette({ projectId })",
     );
+    expect(nodeSource).toContain("getCanvasDirectorStagePalette:");
+    expect(compositionSource).toContain("getCanvasDirectorStagePalette,");
   });
 
   it("does not retain unused viewer manifest API exports", () => {
@@ -22230,7 +22232,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyPaths = [
@@ -22317,7 +22319,7 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       "@/modules/creative_canvas/domain/imageTo3d",
     );
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(nodePath)).not.toContain(
@@ -22326,6 +22328,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(nodePath)).not.toContain("@/api/ops");
     expect(importSpecifiers(nodePath)).not.toContain("@/api/tasks");
     expect(nodeSource).toContain("await generateCanvasImageTo3d(");
+    expect(nodeSource).toContain("generateCanvasImageTo3d:");
     expect(nodeSource).not.toContain("submitFreezoneImageTo3GS");
     expect(nodeSource).not.toContain("awaitTaskCompletion");
     expect(endpointOwners).toEqual([
@@ -22335,6 +22338,7 @@ describe("frontend architecture boundaries", () => {
     expect(legacyCompositionSource).not.toContain(
       "freezoneImageTo3dGenerationGateway",
     );
+    expect(legacyCompositionSource).toContain("generateCanvasImageTo3d,");
     expect(legacyCompositionSource).not.toContain(
       "generateCanvasImageTo3dUseCase",
     );
@@ -31496,7 +31500,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/nodes/GroupNode.tsx",
       "features/canvas/hooks/useImageGenNodeController.ts",
       "features/canvas/hooks/useSkillNodeController.ts",
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
       "modules/creative_canvas/presentation/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
@@ -31573,7 +31577,7 @@ describe("frontend architecture boundaries", () => {
     ).toHaveLength(4);
     expect(consumerSources[4]).toContain("uploadDirectorCaptureBundle");
     expect(consumerSources[5]).toContain("uploadDirectorCaptureBundle");
-    expect(importSpecifiers(consumerPaths[4])).toContain(
+    expect(importSpecifiers(consumerPaths[4])).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(consumerPaths[5])).not.toContain(
@@ -31965,9 +31969,9 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerPaths = [
       resolve(SRC_ROOT, "features/canvas/hooks/useImageGenNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/hooks/useThreeDWorldNodeController.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
-      resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNodeView.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx"),
     ];
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -32061,9 +32065,7 @@ describe("frontend architecture boundaries", () => {
     for (const consumerPath of consumerPaths) {
       const consumerSource = readFileSync(consumerPath, "utf8");
       expect(
-        importSpecifiers(consumerPath).includes(
-          "@/modules/creative_canvas/public",
-        ),
+        /useNodeGenerationHistory|NodeGenerationHistory/.test(consumerSource),
         relativeSource(consumerPath),
       ).toBe(true);
       expect(consumerSource).not.toContain(
@@ -32739,7 +32741,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const consumerPaths = [
       "features/canvas/hooks/useImageEditNodeController.ts",
-      "features/canvas/hooks/useThreeDWorldNodeController.ts",
+      "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     ];
 
     expect(implementationOwners).toEqual([
@@ -32778,14 +32780,12 @@ describe("frontend architecture boundaries", () => {
     for (const consumerPath of consumerPaths) {
       const path = resolve(SRC_ROOT, consumerPath);
       const source = readFileSync(path, "utf8");
-      expect(importSpecifiers(path)).toContain(
-        "@/modules/creative_canvas/canvasComposition",
-      );
       expect(source).toContain("useDetachUpstream");
       expect(source).not.toContain(
         "@/features/canvas/hooks/useDetachUpstream",
       );
     }
+    expect(compositionSource).toContain("useDetachUpstream,");
   });
 
   it("keeps shared operation panel and FPS presentation in Creative Canvas", () => {

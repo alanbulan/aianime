@@ -8,26 +8,23 @@ import {
   THREE_D_WORLD_NODE_SIZE_LIMITS,
   type ThreeDWorldReferenceImage,
   type ThreeDWorldReferenceText,
-} from '@/modules/creative_canvas/public';
+} from '../application/threeDWorldNodeModel';
+import type { CanvasGenerationHistoryRecord } from '../domain/generationHistoryRecord';
+import type { CanvasImageTo3dVisibleSourceKind } from '../domain/imageTo3d';
+import { resolveImageDisplayUrl } from '../domain/imageData';
 import {
   CANVAS_NODE_OPS_PANEL_CLASS,
-  NODE_INLINE_ERROR_MESSAGE_CLASS,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
-  type CanvasGenerationHistoryRecord,
-  type CanvasImageTo3dVisibleSourceKind,
-  NodeContextBadges,
-  NodeGenerationHistory,
   canvasNodeFrameClass,
-  ReferenceTextChip,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
-import type { ThreeDWorldNodeController } from '@/features/canvas/hooks/useThreeDWorldNodeController';
-import { ThreeDWorldReferenceImageThumb } from '@/features/canvas/nodes/ThreeDWorldReferenceImageThumb';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeFrameStyles';
+import { NODE_INLINE_ERROR_MESSAGE_CLASS } from './canvasNodeControlStyles';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { NodeContextBadges } from './NodeContextBadges';
+import { NodeGenerationHistory } from './NodeGenerationHistory';
+import { ReferenceTextChip } from './ReferenceTextChip';
+import type { ThreeDWorldNodeController } from './useThreeDWorldNodeController';
+import { ThreeDWorldReferenceImageThumb } from './ThreeDWorldReferenceImageThumb';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 const PANEL_GAP_PX = 12;
