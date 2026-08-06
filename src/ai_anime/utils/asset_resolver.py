@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from ai_anime.director_world.paths import safe_name
+from ai_anime.modules.director_world.paths import safe_name
 from ai_anime.modules.production.public import (
     extract_prop_ids_from_markers,
     real_detected_props,

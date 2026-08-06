@@ -533,7 +533,7 @@ async def _run_mainline_director_control_sketch_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.shared.project_media import make_static_url_for_context
-    from ai_anime.director_world.control_frame_to_sketch import (
+    from ai_anime.modules.director_world.public import (
         convert_control_frame_to_sketch,
     )
     from ai_anime.modules.creative_canvas.public import (

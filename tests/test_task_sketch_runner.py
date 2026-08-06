@@ -29,7 +29,7 @@ async def test_director_control_to_sketch_runner_logs_to_sketch_generation_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.director_world import control_frame_to_sketch
+    from ai_anime.modules.director_world import control_frame_to_sketch
     from ai_anime.modules.task_execution.infrastructure.runners import sketch as sketch_runner
 
     ctx = _ctx(tmp_path)

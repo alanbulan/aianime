@@ -11,7 +11,7 @@ from typing import Any, BinaryIO
 
 from PIL import Image
 
-from ai_anime.director_world import stage_manifest
+from ai_anime.modules.director_world.public import stage_manifest
 from ai_anime.modules.asset_world.application.errors import InvalidSceneMediaInput
 from ai_anime.utils.path_resolver import (
     canonical_scene_master_path,

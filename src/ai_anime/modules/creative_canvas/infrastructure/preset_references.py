@@ -371,7 +371,7 @@ def _add_scene_refs(
     director_ply_paths: list[tuple[Path, str, str, str]] = []
     if include_derived_assets:
         try:
-            from ai_anime.director_world import stage_manifest
+            from ai_anime.modules.director_world.public import stage_manifest
 
             director_pano_path = stage_manifest.resolve_pano_path(
                 project_dir,

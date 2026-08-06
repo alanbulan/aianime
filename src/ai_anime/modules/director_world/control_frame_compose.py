@@ -30,7 +30,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from ai_anime.director_world.control_frame_layers import create_control_frame_layers
+from ai_anime.modules.director_world.control_frame_layers import create_control_frame_layers
 
 
 def beat_dir(control_frames_dir: Path, episode: int, beat: int) -> Path:

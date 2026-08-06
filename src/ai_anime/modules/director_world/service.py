@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
 from ai_anime.utils.path_resolver import PathResolver
-from ai_anime.director_world.paths import fs_url
+from ai_anime.modules.director_world.paths import fs_url
 
 from .paths import (
     actor_state_registry_path,

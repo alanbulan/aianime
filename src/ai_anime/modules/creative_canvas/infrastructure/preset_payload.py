@@ -110,7 +110,7 @@ def _beat_scene_source_urls(context: dict[str, Any]) -> dict[str, Any]:
             canonical_scene_reverse_master_path(project_dir, scene_id)
         )
         try:
-            from ai_anime.director_world import stage_manifest
+            from ai_anime.modules.director_world.public import stage_manifest
 
             direct_pano_url = url_for_path(
                 stage_manifest.resolve_pano_path(project_dir, scene_id)

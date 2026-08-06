@@ -11,7 +11,7 @@ from ai_anime.generators.prompt_builder import (
     SketchModeStrategy,
     StyleConfig,
 )
-from ai_anime.director_world.control_frame_to_sketch import _director_augmented_beat
+from ai_anime.modules.director_world.control_frame_to_sketch import _director_augmented_beat
 from ai_anime.utils.asset_resolver import ResolvedAssetRef
 
 

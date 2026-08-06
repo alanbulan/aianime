@@ -4927,7 +4927,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
     callers = (
         PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "director_world" / "sync_global_props.py",
+        PACKAGE_ROOT / "modules" / "director_world" / "sync_global_props.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -5868,7 +5868,10 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
         / "infrastructure"
         / "generation_context.py",
         PACKAGE_ROOT / "modules" / "agents" / "global_video_optimizer.py",
-        PACKAGE_ROOT / "director_world" / "control_frame_to_sketch.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "director_world"
+        / "control_frame_to_sketch.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -6112,8 +6115,8 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
         "_director_overlay_status_payload",
         "_decode_png_data_url",
         "_director_control_frame_export_payload",
-        "ai_anime.director_world.store",
-        "ai_anime.director_world.paths",
+        "ai_anime.modules.director_world.store",
+        "ai_anime.modules.director_world.paths",
     ):
         assert legacy_implementation not in source
     assert "def _beat_scene_name(" not in source

@@ -170,7 +170,7 @@ def build_lanzhou_noodle_shop() -> dict:
         "schema_version": "minecraft_scene_spec_v0",
         "scene_id": "lanzhou_noodle_shop",
         "display_name": "兰州拉面馆 - 手写测试场景",
-        "generator": "ai_anime.director_world.ai_anime_lanzhou_demo",
+        "generator": "ai_anime.modules.director_world.ai_anime_lanzhou_demo",
         "grid": {
             "block_size_m": 0.45,
             "axes": "x_right_y_up_z_forward",

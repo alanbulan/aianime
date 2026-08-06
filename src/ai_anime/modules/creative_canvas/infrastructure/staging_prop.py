@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
+from ai_anime.modules.director_world.public import generate_ai_staging_prop
 
 
 class DirectorWorldCreativeCanvasStagingPropGenerator:

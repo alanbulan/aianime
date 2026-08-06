@@ -25,8 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from ai_anime.director_world import block_world_builder, pano_sharp, stage_manifest
-from ai_anime.director_world.paths import safe_name, world_path
+from ai_anime.modules.director_world import block_world_builder, pano_sharp, stage_manifest
+from ai_anime.modules.director_world.paths import safe_name, world_path
 from ai_anime.model_access_policy import model_access_configured
 from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.official_defaults import DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
@@ -677,7 +677,7 @@ def run_pano_sharp(
     cmd = [
         sys.executable,
         "-m",
-        "ai_anime.director_world.pano_sharp",
+        "ai_anime.modules.director_world.pano_sharp",
         "--pano",
         str(pano_path),
         "--output-dir",
@@ -792,7 +792,7 @@ def run_pano_sharp(
             pano_depth_ply_path=(dest_sog.name if geometry_mode == "pano-depth" else None),
             source=manifest_source,
             pano_sharp_args={
-                "script": "ai_anime.director_world.pano_sharp",
+                "script": "ai_anime.modules.director_world.pano_sharp",
                 "geometry_mode": geometry_mode,
                 "depth_source": depth_source,
                 "depth_device": depth_device,
@@ -907,7 +907,7 @@ def run_single_face_sharp(
     cmd = [
         sys.executable,
         "-m",
-        "ai_anime.director_world.pano_sharp",
+        "ai_anime.modules.director_world.pano_sharp",
         "--image",
         str(image_path),
         "--output-dir",
@@ -976,7 +976,7 @@ def run_single_face_sharp(
     args_field = "reverse_sharp_args" if source_kind == "reverse" else "master_sharp_args"
     manifest_source = "single_face_reverse" if source_kind == "reverse" else "single_face_master"
     args_payload = {
-        "script": "ai_anime.director_world.pano_sharp",
+        "script": "ai_anime.modules.director_world.pano_sharp",
         "source_kind": source_kind,
         "image_path": str(image_path),
         "face_name": str(face_name or "front"),
@@ -1136,7 +1136,7 @@ def run_scene_360(
     cmd = [
         sys.executable,
         "-m",
-        "ai_anime.director_world.scene_360_builder",
+        "ai_anime.modules.director_world.scene_360_builder",
         "--scene-name",
         scene_id,
         "--output-dir",
@@ -1206,7 +1206,7 @@ def run_scene_360(
                     analyzer_cmd = [
                         sys.executable,
                         "-m",
-                        "ai_anime.director_world.scene_overlap_analyzer",
+                        "ai_anime.modules.director_world.scene_overlap_analyzer",
                         "--scene-name",
                         scene_id,
                         "--master",
@@ -1259,7 +1259,7 @@ def run_scene_360(
                     contract_cmd = [
                         sys.executable,
                         "-m",
-                        "ai_anime.director_world.scene_spatial_contract",
+                        "ai_anime.modules.director_world.scene_spatial_contract",
                         "--scene-name",
                         scene_id,
                         "--master",
@@ -1473,7 +1473,7 @@ def run_voxel_world_from_360(
     cmd = [
         sys.executable,
         "-m",
-        "ai_anime.director_world.block_world_builder",
+        "ai_anime.modules.director_world.block_world_builder",
         "--description",
         full_description,
         "--output",

@@ -556,7 +556,7 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
         assert context.project_id == "proj_demo"
         return store
 
-    from ai_anime.director_world import stage_manifest
+    from ai_anime.modules.director_world import stage_manifest
     from ai_anime.modules.asset_world.infrastructure import beat_viewer
 
     monkeypatch.setattr(
@@ -706,7 +706,7 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.director_world.store import save_beat_blocking
+    from ai_anime.modules.director_world.store import save_beat_blocking
     from ai_anime.shared.infrastructure import project_stores
 
     monkeypatch.setattr(

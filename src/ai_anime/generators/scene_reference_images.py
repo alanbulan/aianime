@@ -9,7 +9,7 @@ from typing import Literal
 from ai_anime.generators.nanobanana_grid import (
     _call_newapi_image_api,
 )
-from ai_anime.director_world.paths import safe_name
+from ai_anime.modules.director_world.paths import safe_name
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 
 SceneReferenceKind = Literal["master", "spatial_layout", "reverse_master"]

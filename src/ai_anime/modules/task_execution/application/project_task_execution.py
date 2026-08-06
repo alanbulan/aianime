@@ -220,7 +220,7 @@ def project_task_failure_for_exception(
         return INSUFFICIENT_CREDITS_MESSAGE, insufficient_credits_payload(exc), True
 
     try:
-        from ai_anime.director_world.pano_sharp import Sharp3DUnavailable
+        from ai_anime.modules.director_world.public import Sharp3DUnavailable
 
         if isinstance(exc, Sharp3DUnavailable):
             return str(exc), {"error_code": exc.error_code}, True
@@ -228,7 +228,7 @@ def project_task_failure_for_exception(
         pass
 
     try:
-        from ai_anime.director_world.block_world_builder import BlockWorldUnavailable
+        from ai_anime.modules.director_world.public import BlockWorldUnavailable
 
         if isinstance(exc, BlockWorldUnavailable):
             return str(exc), {"error_code": exc.error_code}, True

@@ -300,7 +300,7 @@ def _db_beat_payload(
     episode: int,
     sketch_colors: dict,
 ) -> dict:
-    from ai_anime.director_world.paths import beat_blocking_path
+    from ai_anime.modules.director_world.paths import beat_blocking_path
 
     beat_num = _beat_number(row.get("beat_number"))
     shot_order = _beat_number(row.get("shot_order")) or beat_num * 10
@@ -578,8 +578,8 @@ def cmd_list_scene_beats(args: argparse.Namespace) -> None:
 
 
 def cmd_commit_beat_overlay(args: argparse.Namespace) -> None:
-    from ai_anime.director_world.paths import director_blocking_ref_path
-    from ai_anime.director_world.store import load_beat_blocking, save_beat_blocking
+    from ai_anime.modules.director_world.paths import director_blocking_ref_path
+    from ai_anime.modules.director_world.store import load_beat_blocking, save_beat_blocking
 
     blockings_dir = _local_path(args.blockings_dir)
     if not blockings_dir.exists():
@@ -686,7 +686,7 @@ def cmd_place_actors_from_beat(args: argparse.Namespace) -> None:
 
     Replaces the error-prone "AI hand-crafts payload from visual_description".
     """
-    from ai_anime.director_world.store import load_beat_blocking
+    from ai_anime.modules.director_world.store import load_beat_blocking
 
     blockings_dir = _local_path(args.blockings_dir)
     project_dir = _project_dir_from_blockings_dir(blockings_dir)

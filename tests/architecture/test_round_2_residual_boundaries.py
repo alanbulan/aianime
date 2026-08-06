@@ -962,9 +962,15 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
     direct_transports = (
         PACKAGE_ROOT / "config.py",
         PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "hermes_workspace.py",
-        PACKAGE_ROOT / "director_world" / "block_world_builder.py",
-        PACKAGE_ROOT / "director_world" / "scene_overlap_analyzer.py",
-        PACKAGE_ROOT / "director_world" / "scene_spatial_contract.py",
+        PACKAGE_ROOT / "modules" / "director_world" / "block_world_builder.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "director_world"
+        / "scene_overlap_analyzer.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "director_world"
+        / "scene_spatial_contract.py",
         PACKAGE_ROOT / "modules" / "verification" / "sketch_visual_gate.py",
         PACKAGE_ROOT
         / "modules"

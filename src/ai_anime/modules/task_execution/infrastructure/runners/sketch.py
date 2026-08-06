@@ -624,7 +624,7 @@ async def _run_control_frame_to_sketch_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.director_world.control_frame_to_sketch import convert_control_frame_to_sketch
+    from ai_anime.modules.director_world.public import convert_control_frame_to_sketch
     from ai_anime.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}

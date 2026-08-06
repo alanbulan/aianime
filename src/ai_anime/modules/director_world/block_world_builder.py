@@ -773,7 +773,7 @@ def world_to_scene_spec(
         "schema_version": "minecraft_scene_spec_v0",
         "scene_id": scene_id,
         "display_name": display_name,
-        "generator": "ai_anime.director_world.block_world_builder",
+        "generator": "ai_anime.modules.director_world.block_world_builder",
         "grid": {
             "block_size_m": 0.45,
             "axes": "x_right_y_up_z_forward",

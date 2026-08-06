@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ai_anime.director_world import stage_manifest
+from ai_anime.modules.director_world.public import stage_manifest
 from ai_anime.modules.asset_world.application.dto import CreateSceneCommand
 from ai_anime.modules.asset_world.application.scene_models import (
     NovelScene,
