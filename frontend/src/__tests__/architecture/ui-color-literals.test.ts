@@ -48,7 +48,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/creative_canvas/presentation/VideoComposeTrackRow.tsx": 5,
   "features/canvas/ui/OutpaintEditorOverlay.tsx": 1,
   "modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx": 14,
-  "features/canvas/ui/RedrawOverlay.tsx": 9,
+  "modules/creative_canvas/presentation/RedrawOverlay.tsx": 9,
   "modules/creative_canvas/presentation/AnnotateToolEditor.tsx": 4,
   "modules/creative_canvas/presentation/SplitStoryboardToolEditor.tsx": 4,
   "modules/creative_canvas/presentation/VideoViewerModal.tsx": 4,

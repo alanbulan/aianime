@@ -41,6 +41,7 @@ import { createNodeContextPromptPaletteButton } from './presentation/NodeContext
 import { createRotateEditorOverlay } from './presentation/RotateEditorOverlay';
 import { createUpscaleEditorOverlay } from './presentation/UpscaleEditorOverlay';
 import { createScene360Overlay } from './presentation/Scene360Overlay';
+import { createRedrawOverlay } from './presentation/RedrawOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -564,6 +565,12 @@ export const Scene360Overlay = createScene360Overlay({
   useStore: useCanvasStore,
   useCanvasImageModels,
   generateCanvasScene360,
+});
+export const RedrawOverlay = createRedrawOverlay({
+  useStore: useCanvasStore,
+  useCanvasImageModels,
+  generateCanvasRedraw,
+  uploadCanvasAsset,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

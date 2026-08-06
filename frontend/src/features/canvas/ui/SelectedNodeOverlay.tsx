@@ -19,7 +19,7 @@ import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
 import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';
 import { LightEditorOverlay } from './LightEditorOverlay';
-import { RedrawOverlay } from './RedrawOverlay';
+import { RedrawOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { EraseOverlay } from './EraseOverlay';
 import { Scene360Overlay } from '@/modules/creative_canvas/canvasComposition';
 import { UpscaleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';

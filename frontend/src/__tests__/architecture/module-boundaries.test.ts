@@ -26165,7 +26165,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/RedrawOverlay.tsx",
+      "modules/creative_canvas/presentation/RedrawOverlay.tsx",
     );
     const retryPath = resolve(
       SRC_ROOT,
@@ -26258,7 +26258,7 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       "@/modules/creative_canvas/application/generateCanvasRedraw",
     );
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
@@ -31661,7 +31661,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useUploadNodeController.ts",
       "modules/creative_canvas/presentation/useVideoNodeController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
-      "features/canvas/ui/RedrawOverlay.tsx",
+      "modules/creative_canvas/presentation/RedrawOverlay.tsx",
       "modules/creative_canvas/presentation/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerSources = consumerPaths.map((path) =>
