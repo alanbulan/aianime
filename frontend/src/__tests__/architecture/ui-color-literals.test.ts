@@ -46,7 +46,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/creative_canvas/presentation/multi-angle-sphere.css": 17,
   "modules/creative_canvas/presentation/NodeHeader.tsx": 4,
   "modules/creative_canvas/presentation/VideoComposeTrackRow.tsx": 5,
-  "features/canvas/ui/OutpaintEditorOverlay.tsx": 1,
+  "modules/creative_canvas/presentation/OutpaintEditorOverlay.tsx": 1,
   "modules/creative_canvas/presentation/CanvasPanShortcutIcons.tsx": 14,
   "modules/creative_canvas/presentation/RedrawOverlay.tsx": 9,
   "modules/creative_canvas/presentation/AnnotateToolEditor.tsx": 4,

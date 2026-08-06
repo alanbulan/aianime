@@ -26065,7 +26065,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/OutpaintEditorOverlay.tsx",
+      "modules/creative_canvas/presentation/OutpaintEditorOverlay.tsx",
     );
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -26121,7 +26121,7 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "submissionGateway: freezoneOutpaintGenerationGateway",
     );
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
