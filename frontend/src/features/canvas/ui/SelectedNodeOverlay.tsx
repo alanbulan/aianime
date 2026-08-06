@@ -23,7 +23,7 @@ import { RedrawOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { EraseOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { Scene360Overlay } from '@/modules/creative_canvas/canvasComposition';
 import { UpscaleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
-import { VideoUpscaleEditorOverlay } from './VideoUpscaleEditorOverlay';
+import { VideoUpscaleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { OutpaintEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { RotateEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { GridActionConfirmOverlay } from './GridActionConfirmOverlay';

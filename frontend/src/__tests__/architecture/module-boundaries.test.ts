@@ -25928,7 +25928,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoUpscaleEditorOverlay.tsx",
+      "modules/creative_canvas/presentation/VideoUpscaleEditorOverlay.tsx",
     );
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyPaths = [
@@ -26013,7 +26013,7 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       "@/modules/creative_canvas/domain/videoUpscale",
     );
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(overlayPath)).not.toContain(

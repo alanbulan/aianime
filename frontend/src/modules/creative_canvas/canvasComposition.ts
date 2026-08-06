@@ -46,6 +46,7 @@ import { createOutpaintEditorOverlay } from './presentation/OutpaintEditorOverla
 import { createEraseOverlay } from './presentation/EraseOverlay';
 import { createLightEditorOverlay } from './presentation/LightEditorOverlay';
 import { createMultiAngleEditorOverlay } from './presentation/MultiAngleEditorOverlay';
+import { createVideoUpscaleEditorOverlay } from './presentation/VideoUpscaleEditorOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -68,6 +69,7 @@ import {
   generateCanvasOutpaint,
   generateCanvasRelight,
   generateCanvasMultiAngle,
+  generateCanvasVideoUpscale,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import {
@@ -597,6 +599,10 @@ export const LightEditorOverlay = createLightEditorOverlay({
 export const MultiAngleEditorOverlay = createMultiAngleEditorOverlay({
   useStore: useCanvasStore,
   generateCanvasMultiAngle,
+});
+export const VideoUpscaleEditorOverlay = createVideoUpscaleEditorOverlay({
+  useStore: useCanvasStore,
+  generateCanvasVideoUpscale,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
