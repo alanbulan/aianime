@@ -31,7 +31,7 @@ describe("ImageGenNode context palette", () => {
     const wrapperSource = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/canvas/nodes/ContextPromptPaletteButton.tsx",
+        "src/modules/creative_canvas/presentation/NodeContextPromptPaletteButton.tsx",
       ),
       "utf8",
     );

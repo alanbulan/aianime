@@ -188,6 +188,10 @@ vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
   VideoViewerModal: () => null,
 }));
 
+vi.mock("@/modules/creative_canvas/skillCatalogComposition", () => ({
+  loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
+}));
+
 vi.mock("@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({
   CanvasMinimapBookmarksOverlayAdapter: () => null,
 }));

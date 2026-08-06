@@ -61,6 +61,63 @@ vi.mock("@/modules/creative_canvas/public", async () => {
   };
 });
 
+vi.mock("@/modules/creative_canvas/presentation/NodeHeader", () => ({
+  NODE_HEADER_FLOATING_POSITION_CLASS: "",
+  NodeHeader: ({ titleText }: { titleText: string }) => <div>{titleText}</div>,
+}));
+
+vi.mock("@/modules/creative_canvas/presentation/NodeContextBadges", () => ({
+  NodeContextBadges: () => null,
+}));
+
+vi.mock("@/modules/creative_canvas/presentation/NodeResizeHandle", () => ({
+  NodeResizeHandle: () => <div data-testid="resize-handle" />,
+}));
+
+vi.mock("@/modules/creative_canvas/canvasStorageComposition", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/creative_canvas/canvasStorageComposition")
+  >();
+  return {
+    ...actual,
+    createCanvasFromPreset: (...args: unknown[]) =>
+      createCanvasFromPreset(...args),
+    getFreezoneCanvas: (...args: unknown[]) => getFreezoneCanvas(...args),
+  };
+});
+
+vi.mock("@/modules/creative_canvas/contextQueryComposition", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/creative_canvas/contextQueryComposition")
+  >();
+  return {
+    ...actual,
+    listFreezoneBeatContext: (...args: unknown[]) =>
+      listFreezoneBeatContext(...args),
+  };
+});
+
+vi.mock("@/modules/creative_canvas/presetProjectionComposition", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/creative_canvas/presetProjectionComposition")
+  >();
+  return {
+    ...actual,
+    openPresetProjectionInMyCanvas: vi.fn(),
+  };
+});
+
+vi.mock("@/modules/creative_canvas/application/canvasRuntimeState", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/creative_canvas/application/canvasRuntimeState")
+  >();
+  return {
+    ...actual,
+    applyRemoteFreezoneCanvas: () => false,
+    flushFreezoneCanvasRuntime: async () => true,
+  };
+});
+
 vi.mock("@/modules/narrative_planning/public", () => ({
   updateBeat: (...args: unknown[]) => updateBeat(...args),
   useEpisodeDetail: () => ({

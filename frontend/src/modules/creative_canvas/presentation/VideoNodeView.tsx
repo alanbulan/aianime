@@ -53,7 +53,7 @@ import { OperationPanelShell } from './OperationPanelShell';
 import { PromptMentionEditor } from './PromptMentionEditor';
 import { ProviderModelPicker } from './ProviderModelPicker';
 import { VideoUploadActionRail } from './VideoUploadActionRail';
-import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
+import { NodeContextPromptPaletteButton } from '@/modules/creative_canvas/canvasComposition';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import {

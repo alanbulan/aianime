@@ -76,7 +76,7 @@ import {
   CountSelect,
   StyleChip,
 } from './ImageGenNodeControls';
-import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
+import { NodeContextPromptPaletteButton } from '@/modules/creative_canvas/canvasComposition';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import {
   CreditCostPill,

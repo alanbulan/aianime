@@ -37,6 +37,7 @@ import { createUseStoryboardGenNodeController } from './presentation/useStoryboa
 import { createUseImageEditNodeController } from './presentation/useImageEditNodeController';
 import { createUseImageGenNodeController } from './presentation/useImageGenNodeController';
 import { createUseVideoNodeController } from './presentation/useVideoNodeController';
+import { createNodeContextPromptPaletteButton } from './presentation/NodeContextPromptPaletteButton';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -543,6 +544,8 @@ export const useVideoNodeController = createUseVideoNodeController({
   canvasEventBus,
   rememberLastVideoModel,
 });
+export const NodeContextPromptPaletteButton =
+  createNodeContextPromptPaletteButton(useCanvasStore);
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(
