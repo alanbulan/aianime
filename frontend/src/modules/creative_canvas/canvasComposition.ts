@@ -40,6 +40,7 @@ import { createUseVideoNodeController } from './presentation/useVideoNodeControl
 import { createNodeContextPromptPaletteButton } from './presentation/NodeContextPromptPaletteButton';
 import { createRotateEditorOverlay } from './presentation/RotateEditorOverlay';
 import { createUpscaleEditorOverlay } from './presentation/UpscaleEditorOverlay';
+import { createScene360Overlay } from './presentation/Scene360Overlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -58,6 +59,7 @@ import {
   generateCanvasImageTo3d,
   generateCanvasImage,
   generateCanvasUpscale,
+  generateCanvasScene360,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import {
@@ -557,6 +559,11 @@ export const UpscaleEditorOverlay = createUpscaleEditorOverlay({
   useStore: useCanvasStore,
   useCanvasImageModels,
   generateCanvasUpscale,
+});
+export const Scene360Overlay = createScene360Overlay({
+  useStore: useCanvasStore,
+  useCanvasImageModels,
+  generateCanvasScene360,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

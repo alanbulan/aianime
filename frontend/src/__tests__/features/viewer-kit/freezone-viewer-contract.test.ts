@@ -422,7 +422,9 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps generated scene 360 panoramas on the legacy pano viewer path", () => {
-    const overlay = read("src/features/canvas/ui/Scene360Overlay.tsx");
+    const overlay = read(
+      "src/modules/creative_canvas/presentation/Scene360Overlay.tsx",
+    );
 
     expect(overlay).toContain("CANVAS_NODE_TYPES.pano360Viewer");
     expect(overlay).not.toContain("CANVAS_NODE_TYPES.threeDWorld");

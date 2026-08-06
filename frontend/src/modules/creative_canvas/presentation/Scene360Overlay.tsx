@@ -4,16 +4,68 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, ChevronDown, Globe2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-;
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS, CANVAS_SCENE_360_ASPECT_RATIOS, DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO, EXPORT_RESULT_NODE_DEFAULT_WIDTH, EXPORT_RESULT_NODE_LAYOUT_HEIGHT, NODE_FLOATING_PANEL_SURFACE_CLASS, NODE_GENERATE_BUTTON_BASE_CLASS, NODE_GENERATE_BUTTON_ENABLED_CLASS, NODE_TOOLBAR_CLASS, ZoomScaledToolbar, generationTaskDescriptor, generateCanvasScene360, useCanvasImageModels, type CanvasScene360AspectRatio, type CanvasNode } from '@/modules/creative_canvas/public';
-import { CreditCostInline } from '@/components/credit-cost-inline';
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './canvasNodeFrameStyles';
+import {
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+} from './canvasNodeControlStyles';
+import { NODE_TOOLBAR_CLASS } from './canvasNodeToolbarConfig';
+import { ZoomScaledToolbar } from './ZoomScaledToolbar';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import {
+  CANVAS_SCENE_360_ASPECT_RATIOS,
+  DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  type CanvasScene360AspectRatio,
+} from '../domain/scene360';
+import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
+import {
+  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
+  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
+} from '../domain/imageNodeLayout';
+import { generationTaskDescriptor } from '../application/resumeGeneration';
+import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import type {
+  GenerateCanvasScene360Params,
+  GenerateCanvasScene360Result,
+} from '../application/generateCanvasScene360';
+import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
+import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
 const PANO_VIEWER_LAYOUT_WIDTH = 720;
 const PANO_VIEWER_LAYOUT_HEIGHT = 420;
+
+export interface Scene360OverlayStore {
+  addNode: (
+    type: string,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  addEdge: (sourceId: string, targetId: string) => void;
+  setSelectedNode: (id: string | null) => void;
+  findNodePosition: (
+    nodeId: string,
+    width: number,
+    height: number,
+  ) => { x: number; y: number };
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+}
+
+export type Scene360OverlayStoreHook = <TSelected>(
+  selector: (state: Scene360OverlayStore) => TSelected,
+) => TSelected;
+
+export type Scene360OverlayUseImageModels = (
+  projectId: string,
+  purpose: 'edit',
+) => { models: CanvasCatalogModelOption[] };
+
+export type Scene360OverlayGenerateScene360 = (
+  params: GenerateCanvasScene360Params,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) => Promise<GenerateCanvasScene360Result>;
 
 interface Scene360OverlayProps {
   projectId: string;
@@ -22,14 +74,22 @@ interface Scene360OverlayProps {
   onClose: () => void;
 }
 
-export const Scene360Overlay = memo(
-  ({ projectId, node, imageSource, onClose }: Scene360OverlayProps) => {
+export function createScene360Overlay({
+  useStore,
+  useCanvasImageModels,
+  generateCanvasScene360,
+}: {
+  useStore: Scene360OverlayStoreHook;
+  useCanvasImageModels: Scene360OverlayUseImageModels;
+  generateCanvasScene360: Scene360OverlayGenerateScene360;
+}) {
+  return memo(({ projectId, node, imageSource, onClose }: Scene360OverlayProps) => {
     const { t } = useTranslation();
-    const addNode = useCanvasStore((state) => state.addNode);
-    const addEdge = useCanvasStore((state) => state.addEdge);
-    const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-    const findNodePosition = useCanvasStore((state) => state.findNodePosition);
-    const updateNodeData = useCanvasStore((state) => state.updateNodeData);
+    const addNode = useStore((state) => state.addNode);
+    const addEdge = useStore((state) => state.addEdge);
+    const setSelectedNode = useStore((state) => state.setSelectedNode);
+    const findNodePosition = useStore((state) => state.findNodePosition);
+    const updateNodeData = useStore((state) => state.updateNodeData);
     const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
     const panoCost = useGenerationCreditCost(
@@ -177,10 +237,10 @@ export const Scene360Overlay = memo(
         </ZoomScaledToolbar>
       </ReactFlowNodeToolbar>
     );
-  },
-);
+  });
+}
 
-Scene360Overlay.displayName = 'Scene360Overlay';
+export type Scene360Overlay = ReturnType<typeof createScene360Overlay>;
 
 interface AspectRatioDropdownProps {
   value: CanvasScene360AspectRatio;

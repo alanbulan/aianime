@@ -21,7 +21,7 @@ import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';
 import { LightEditorOverlay } from './LightEditorOverlay';
 import { RedrawOverlay } from './RedrawOverlay';
 import { EraseOverlay } from './EraseOverlay';
-import { Scene360Overlay } from './Scene360Overlay';
+import { Scene360Overlay } from '@/modules/creative_canvas/canvasComposition';
 import { UpscaleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { VideoUpscaleEditorOverlay } from './VideoUpscaleEditorOverlay';
 import { OutpaintEditorOverlay } from './OutpaintEditorOverlay';

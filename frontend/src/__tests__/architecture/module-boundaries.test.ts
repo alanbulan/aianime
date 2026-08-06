@@ -23045,7 +23045,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/Scene360Overlay.tsx",
+      "modules/creative_canvas/presentation/Scene360Overlay.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -23103,11 +23103,11 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneScene360GenerationGateway",
     );
     expect(compositionSource).toContain("sourceGateway: imageSourceGateway");
-    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
-    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
     expect(overlaySource).toContain("await generateCanvasScene360(");
     expect(overlaySource).not.toContain("submitFreezoneScene360");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
