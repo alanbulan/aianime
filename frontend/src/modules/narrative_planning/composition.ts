@@ -6,7 +6,7 @@ import {
   useScenePlatePreview,
   useScenes,
 } from "@/modules/asset_world/public";
-import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
+import { useNavigateToAsset } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useTasks } from "@/modules/task_execution/public";
 import { TASK_TYPES, isActiveStatus } from "@/modules/task_execution/public";

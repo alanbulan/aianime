@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useAssetFocus } from "@/hooks/use-asset-focus";
-import { useAssetsDeepLink } from "@/hooks/use-assets-deep-link";
+import { useAssetFocus } from "./useAssetFocus";
+import { useAssetsDeepLink } from "./useAssetsDeepLink";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import type {
   AssetReferenceIndex,

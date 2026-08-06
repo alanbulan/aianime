@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useAssetsDeepLink } from "@/hooks/use-assets-deep-link";
+import { useAssetsDeepLink } from "./useAssetsDeepLink";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { queryKeys } from "@/lib/query-keys";

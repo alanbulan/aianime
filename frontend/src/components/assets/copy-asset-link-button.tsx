@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { buildAssetShareUrl } from "@/hooks/use-assets-deep-link";
+import { buildAssetShareUrl } from "@/modules/asset_world/public";
 import type { AssetRefType } from "@/modules/asset_world/public";
 
 /**

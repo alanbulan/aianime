@@ -115,6 +115,14 @@ export {
   sortAssets,
 } from "@/modules/asset_world/domain/asset-collection";
 export { directorSourceIdentityUrl } from "@/modules/asset_world/domain/director-world-source";
+export {
+  buildAssetShareUrl,
+  parseAssetType,
+  useAssetsDeepLink,
+  useNavigateToAsset,
+} from "@/modules/asset_world/application/useAssetsDeepLink";
+export { useAssetFocus } from "@/modules/asset_world/application/useAssetFocus";
+export type { AssetsDeepLink } from "@/modules/asset_world/application/useAssetsDeepLink";
 export type {
   DirectorWorldSourceDescriptor,
   DirectorWorldSourceKind,

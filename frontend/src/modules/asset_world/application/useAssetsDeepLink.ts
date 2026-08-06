@@ -2,7 +2,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback } from "react";
 
-import type { AssetRefType } from "@/modules/asset_world/public";
+import type { AssetRefType } from "../domain/character";
 
 /**
  * URL-backed asset selection for the Assets page (`/projects/$project/characters`).
