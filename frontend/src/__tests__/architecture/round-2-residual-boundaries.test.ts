@@ -3010,4 +3010,22 @@ describe("round 2 residual architecture boundaries", () => {
       expect(exposedObject, forbidden).not.toContain(forbidden);
     }
   });
+
+  it("keeps modules independent from legacy frontend worlds", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules");
+    const failures = sourceFiles(moduleRoot)
+      .filter((path) => !path.includes(".test."))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/hooks/") ||
+              specifier.startsWith("@/stores/") ||
+              (specifier.startsWith("@/features/") &&
+                specifier !== "@/features/viewer-kit/public"),
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+    expect(failures).toEqual([]);
+  });
 });
