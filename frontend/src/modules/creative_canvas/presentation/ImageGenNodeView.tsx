@@ -15,14 +15,15 @@ import {
   X,
 } from 'lucide-react';
 
+import { AssetLibraryModal } from './AssetLibraryModal';
+import { BackgroundCropperDialog } from './BackgroundCropperDialog';
+import { CanvasNodeImage } from './CanvasNodeImage';
+import { CandidateBindingBadges } from './NodeContextBadges';
 import {
-  AssetLibraryModal,
-  BackgroundCropperDialog,
-  CanvasNodeImage,
-  CandidateBindingBadges,
   hasCompletedHistoryRecords,
-  hasImageGenPromptOverride,
   historyRecordOutputUrl,
+} from '../domain/generationHistoryRecord';
+import {
   IMAGE_GEN_NODE_MAX_HEIGHT,
   IMAGE_GEN_NODE_MAX_WIDTH,
   IMAGE_GEN_NODE_MIN_HEIGHT,
@@ -31,48 +32,52 @@ import {
   IMAGE_GEN_OPERATIONS_PANEL_EXPANDED_MIN_WIDTH,
   IMAGE_GEN_OPERATIONS_PANEL_GAP,
   IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
+} from '../domain/imageGenNodeModel';
+import { hasImageGenPromptOverride } from '../domain/imageGenPrompt';
+import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_OPS_PANEL_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  NODE_OPS_PANEL_ENTER_CLASS,
+} from './canvasNodeFrameStyles';
+import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NODE_OPS_PANEL_ENTER_CLASS,
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
-  NODE_SIDE_ACTION_BUTTON_CLASS,
-  NODE_SIDE_ACTION_ICON_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
-  NodeGenerationHistory,
-  NodeGenerationOverlay,
-  NodeResizeHandle,
+} from './canvasNodeControlStyles';
+import {
+  NODE_SIDE_ACTION_BUTTON_CLASS,
+  NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
-  OperationPanelShell,
-  PanelExpandButton,
-  PromptMentionEditor,
-  ProviderModelPicker,
-  RegenerateButton,
-  ReferenceTextChip,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
-import type { ImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
+} from './NodeSideActionRail';
+import { NodeGenerationHistory } from './NodeGenerationHistory';
+import { NodeGenerationOverlay } from './NodeGenerationOverlay';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { OperationPanelShell } from './OperationPanelShell';
+import { PanelExpandButton } from './PanelExpandButton';
+import { PromptMentionEditor } from './PromptMentionEditor';
+import { ProviderModelPicker } from './ProviderModelPicker';
+import { RegenerateButton } from './RegenerateButton';
+import { ReferenceTextChip } from './ReferenceTextChip';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type { ImageGenNodeController } from './useImageGenNodeController';
 import {
   AspectSizeChip,
   CameraChip,
   CountSelect,
   StyleChip,
-} from '@/features/canvas/nodes/ImageGenNodeControls';
+} from './ImageGenNodeControls';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
-import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import {
   CreditCostPill,
 } from '@/components/credits/credit-visual';

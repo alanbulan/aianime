@@ -35,6 +35,7 @@ import { createUseBeatContextNodeController } from './presentation/useBeatContex
 import { createUseSkillNodeController } from './presentation/useSkillNodeController';
 import { createUseStoryboardGenNodeController } from './presentation/useStoryboardGenNodeController';
 import { createUseImageEditNodeController } from './presentation/useImageEditNodeController';
+import { createUseImageGenNodeController } from './presentation/useImageGenNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -51,11 +52,14 @@ import {
   generateCanvasRedraw,
   generateCanvasReversePrompt,
   generateCanvasImageTo3d,
+  generateCanvasImage,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import { submitVideoGeneration } from './videoGenerationComposition';
 import {
+  useCanvasCameraOptions,
   useCanvasImageModels,
+  useCanvasStyleTemplates,
   useCanvasVideoModels,
 } from './generationCatalogComposition';
 import { loadCanvasSkillRegistry } from './skillCatalogComposition';
@@ -475,6 +479,30 @@ export const useImageEditNodeController = createUseImageEditNodeController({
   useUpstreamContents,
   useUpstreamImages,
   useCanvasImageModels,
+});
+export const useImageGenNodeController = createUseImageGenNodeController({
+  useStore: useCanvasStore,
+  readGraph: () =>
+    useCanvasStore.getState() as unknown as {
+      nodes: CanvasNode[];
+      edges: CanvasEdge[];
+    },
+  readNode: (nodeId) =>
+    useCanvasStore
+      .getState()
+      .nodes.find((node) => node.id === nodeId) as CanvasNode | undefined,
+  readActiveOverlayNodeId: () =>
+    useCanvasStore.getState().activeOverlayNodeId,
+  useIsBoxSelecting,
+  useUpstreamContents,
+  useCanvasImageModels,
+  useCanvasCameraOptions,
+  useCanvasStyleTemplates,
+  uploadCanvasAsset,
+  translateCanvasText,
+  getCanvasBeatDirectorManifest,
+  uploadAndAutoCommitSelectedBackgroundCandidate,
+  generateCanvasImage,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

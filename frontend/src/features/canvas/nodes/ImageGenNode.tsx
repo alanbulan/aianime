@@ -2,12 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useImageGenNodeController } from '@/features/canvas/hooks/useImageGenNodeController';
+import { useImageGenNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  ImageGenNodeView,
+  type ImageGenNodeData,
+} from '@/modules/creative_canvas/public';
 
-import { ImageGenNodeView } from './ImageGenNodeView';
-
-import type { ImageGenNodeData } from "@/modules/creative_canvas/public";
 type ImageGenNodeProps = NodeProps & {
   id: string;
   data: ImageGenNodeData;

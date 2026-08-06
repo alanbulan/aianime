@@ -12,16 +12,108 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 
-;
-import { aspectRatioFromImageDimensions, buildImageGenerationSuccessPatch, collectCandidateBindingsForNode, filterCanvasImageModels, generationTaskDescriptor, hasEffectiveImageGenPrompt, hasImageGenCameraSelection, imageGenAlbumUrls, type ImageGenCount, type ImageGenCameraSelectionData, type ImageQuality, IMAGE_GEN_DEFAULT_QUALITY, IMAGE_GEN_NODE_DEFAULT_HEIGHT, IMAGE_GEN_NODE_DEFAULT_WIDTH, IMAGE_GEN_NODE_MIN_HEIGHT, IMAGE_GEN_NODE_MIN_WIDTH, IMAGE_GEN_OPERATIONS_PANEL_HEIGHT, IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH, isImage2Model, joinUpstreamText, extractRequestId, generateCanvasImage, getFreezoneCanvasMetadata, historyRecordOutputUrl, isSystemManagedNodeData, isStaleGenerationTask, mainlineNodeVisualState, nodeMainlineFlags, publishCanvasAssetsUpdated, publishCanvasCommitRequested, resolveMinEdgeFittedSize, resolveImageGenEffectivePrompt, resolveImageGenModel, resolveImageGenNaturalSize, resolveImageGenNodeDimensions, resolveImageGenPreviewUrl, resolveImageGenReferencePreviewPosition, snapImageGenAspectRatio, shouldForceNaturalImageSize, shouldWriteGenerationError, translateCanvasText, describeCameraSelection, describeStyleSelection, type ImageSize, useCanvasCameraOptions, useCanvasImageModels, useNodeGenerationHistory, useNodeGenerationTaskState, useCanvasStyleTemplates, canvasNodeFrameClass, contextPromptPaletteInsertionText, orderedReferenceUrlsWithOwnFirst, type CanvasAssetLibrarySelection, type ContextPromptPaletteEntry, type CanvasGenerationHistoryRecord, type CanvasImageMode, type MentionCandidate, type PromptMentionEditorHandle, resolveImageDisplayUrl, resolveNodeDisplayName, setAlbumPendingTotal, useReferenceMentionSync, useAlbumPendingTotal, type ImageGenNodeData } from '@/modules/creative_canvas/public';
-import { withImageCacheBust } from '@/shared/media/image-cache';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  ImageGenNodeData,
+} from '../domain/canvasNodeData';
+import type { ImageSize } from '../domain/imageNodeSizing';
 import {
-  getCanvasBeatDirectorManifest,
-  uploadAndAutoCommitSelectedBackgroundCandidate,
-  uploadCanvasAsset,
-  useIsBoxSelecting,
-  useUpstreamContents,
-} from "@/modules/creative_canvas/canvasComposition";
+  aspectRatioFromImageDimensions,
+  resolveMinEdgeFittedSize,
+  shouldForceNaturalImageSize,
+} from '../domain/imageNodeSizing';
+import {
+  hasEffectiveImageGenPrompt,
+  hasImageGenCameraSelection,
+  imageGenAlbumUrls,
+  IMAGE_GEN_DEFAULT_QUALITY,
+  IMAGE_GEN_NODE_DEFAULT_HEIGHT,
+  IMAGE_GEN_NODE_DEFAULT_WIDTH,
+  IMAGE_GEN_NODE_MIN_HEIGHT,
+  IMAGE_GEN_NODE_MIN_WIDTH,
+  IMAGE_GEN_OPERATIONS_PANEL_HEIGHT,
+  IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH,
+  isImage2Model,
+  resolveImageGenEffectivePrompt,
+  resolveImageGenModel,
+  resolveImageGenNaturalSize,
+  resolveImageGenNodeDimensions,
+  resolveImageGenPreviewUrl,
+  resolveImageGenReferencePreviewPosition,
+  snapImageGenAspectRatio,
+  type ImageGenCameraSelectionData,
+  type ImageGenCount,
+  type ImageQuality,
+} from '../domain/imageGenNodeModel';
+import { collectCandidateBindingsForNode } from '../domain/mainlineContext';
+import {
+  filterCanvasImageModels,
+  type CanvasImageMode,
+} from '../domain/imageModelCapability';
+import {
+  joinUpstreamText,
+  type UpstreamContent,
+} from '../application/graphContentResolver';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import {
+  buildImageGenerationSuccessPatch,
+  isStaleGenerationTask,
+  shouldWriteGenerationError,
+} from '../application/generationTaskArbitration';
+import { generationTaskDescriptor } from '../application/resumeGeneration';
+import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import type {
+  GenerateCanvasImageParams,
+  GenerateCanvasImageResult,
+} from '../application/generateCanvasImage';
+import type {
+  TranslateCanvasTextParams,
+  TranslateCanvasTextResult,
+} from '../application/translateCanvasText';
+import { extractRequestId } from '../application/generationErrorReport';
+import {
+  historyRecordOutputUrl,
+  type CanvasGenerationHistoryRecord,
+} from '../domain/generationHistoryRecord';
+import {
+  isSystemManagedNodeData,
+  mainlineNodeVisualState,
+  nodeMainlineFlags,
+} from '../domain/mainlineNodeFlags';
+import {
+  publishCanvasAssetsUpdated,
+  publishCanvasCommitRequested,
+} from '../application/canvasCommitEvents';
+import { getFreezoneCanvasMetadata } from '../application/canvasMetadataState';
+import {
+  contextPromptPaletteInsertionText,
+  type ContextPromptPaletteEntry,
+} from '../domain/contextPromptPalette';
+import { orderedReferenceUrlsWithOwnFirst } from '../domain/referenceOrdering';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import { resolveNodeDisplayName } from '../domain/nodeDisplay';
+import type { CanvasAssetLibrarySelection } from '../domain/assetLibrary';
+import { describeCameraSelection } from './CameraPickerPopover';
+import { describeStyleSelection } from './StylePickerPopover';
+import { canvasNodeFrameClass } from './canvasNodeFrameStyles';
+import {
+  setAlbumPendingTotal,
+  useAlbumPendingTotal,
+} from './albumPendingTotals';
+import { useNodeGenerationHistory } from './useNodeGenerationHistory';
+import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
+import { useReferenceMentionSync } from './useReferenceMentionSync';
+import type {
+  MentionCandidate,
+  PromptMentionEditorHandle,
+} from './PromptMentionEditor';
+import type { UseCanvasImageModelsResult } from './useCanvasImageModels';
+import type { UseCanvasCameraOptionsResult } from './useCanvasCameraOptions';
+import type { UseCanvasStyleTemplatesResult } from './useCanvasStyleTemplates';
+import { withImageCacheBust } from '@/shared/media/image-cache';
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
@@ -31,8 +123,106 @@ import { formatCreditCost } from '@/components/credits/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export interface ImageGenNodeStore {
+  setSelectedNode: (id: string | null) => void;
+  activeOverlayNodeId: string | null;
+  hoveredNodeId: string | null;
+  setActiveOverlayNodeId: (id: string | null) => void;
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  updateNodeSize: (
+    id: string,
+    size: { width: number; height: number },
+    options?: {
+      lockManualSize?: boolean;
+      data?: Partial<CanvasNodeData>;
+    },
+  ) => void;
+  deleteEdge: (edgeId: string) => void;
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  addEdge: (source: string, target: string) => void;
+  autoGroupSpawn: (
+    sourceNodeId: string,
+    nodeIds: string[],
+    options?: { label?: string },
+  ) => void;
+  onNodesChange: (
+    changes: Array<{
+      id: string;
+      type: string;
+      selected: boolean;
+    }>,
+  ) => void;
+  edges: CanvasEdge[];
+}
+
+export type ImageGenNodeStoreHook = <TSelected>(
+  selector: (state: ImageGenNodeStore) => TSelected,
+) => TSelected;
+
+export type ImageGenNodeReadGraph = () => {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+};
+
+export type ImageGenNodeReadNode = (nodeId: string) => CanvasNode | undefined;
+
+export type ImageGenNodeReadActiveOverlayNodeId = () => string | null;
+
+export type ImageGenNodeIsBoxSelecting = () => boolean;
+
+export type ImageGenNodeUseUpstreamContents = (
+  nodeId: string,
+) => UpstreamContent[];
+
+export type ImageGenNodeUseImageModels = (
+  projectId: string,
+) => UseCanvasImageModelsResult;
+
+export type ImageGenNodeUseCameraOptions = (
+  projectId: string,
+) => UseCanvasCameraOptionsResult;
+
+export type ImageGenNodeUseStyleTemplates = (
+  projectId: string,
+) => UseCanvasStyleTemplatesResult;
+
+export type ImageGenNodeUploadCanvasAsset = (
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+  options?: { disableTimeout?: boolean },
+) => Promise<{ filename: string; url: string }>;
+
+export type ImageGenNodeTranslateCanvasText = (
+  params: Omit<TranslateCanvasTextParams, 'model'> & { model?: string },
+) => Promise<TranslateCanvasTextResult>;
+
+export type ImageGenNodeGetBeatManifest = (params: {
+  projectId: string;
+  episode: number;
+  beat: number;
+}) => Promise<DirectorStageManifest>;
+
+export type ImageGenNodeCommitBackground = (
+  projectId: string,
+  target: { episode: number; beat: number },
+  blob: Blob,
+  filename: string,
+  options: {
+    sourceNodeId: string;
+    label: string;
+    successMessage: string;
+  },
+) => Promise<unknown>;
+
+export type ImageGenNodeGenerateCanvasImage = (
+  params: GenerateCanvasImageParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) => Promise<GenerateCanvasImageResult>;
 export interface ImageGenNodeControllerOptions {
   id: string;
   data: ImageGenNodeData;
@@ -48,32 +238,65 @@ interface ImageGenDirectorCaptureMeta {
   controlFrameBundle?: DirectorControlFrameBundle;
 }
 
-export function useImageGenNodeController({
-  id,
-  data,
-  selected,
-  width,
-  height,
-  projectId,
-  canvasId,
-}: ImageGenNodeControllerOptions) {
+export function createUseImageGenNodeController({
+  useStore,
+  readGraph,
+  readNode,
+  readActiveOverlayNodeId,
+  useIsBoxSelecting,
+  useUpstreamContents,
+  useCanvasImageModels,
+  useCanvasCameraOptions,
+  useCanvasStyleTemplates,
+  uploadCanvasAsset,
+  translateCanvasText,
+  getCanvasBeatDirectorManifest,
+  uploadAndAutoCommitSelectedBackgroundCandidate,
+  generateCanvasImage,
+}: {
+  useStore: ImageGenNodeStoreHook;
+  readGraph: ImageGenNodeReadGraph;
+  readNode: ImageGenNodeReadNode;
+  readActiveOverlayNodeId: ImageGenNodeReadActiveOverlayNodeId;
+  useIsBoxSelecting: ImageGenNodeIsBoxSelecting;
+  useUpstreamContents: ImageGenNodeUseUpstreamContents;
+  useCanvasImageModels: ImageGenNodeUseImageModels;
+  useCanvasCameraOptions: ImageGenNodeUseCameraOptions;
+  useCanvasStyleTemplates: ImageGenNodeUseStyleTemplates;
+  uploadCanvasAsset: ImageGenNodeUploadCanvasAsset;
+  translateCanvasText: ImageGenNodeTranslateCanvasText;
+  getCanvasBeatDirectorManifest: ImageGenNodeGetBeatManifest;
+  uploadAndAutoCommitSelectedBackgroundCandidate: ImageGenNodeCommitBackground;
+  generateCanvasImage: ImageGenNodeGenerateCanvasImage;
+}) {
+  return function useImageGenNodeController({
+    id,
+    data,
+    selected,
+    width,
+    height,
+    projectId,
+    canvasId,
+  }: ImageGenNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
   const isBoxSelecting = useIsBoxSelecting();
   // 顶部工具栏打开了二级功能浮层（全景 / 多角度 / 打光 等）时，浮层会在节点下方
   // 展开自己的操作区。此时隐藏本节点底部的生成/历史面板，让位给浮层，避免两块
   // 操作区重叠。
-  const hasActiveOverlay = useCanvasStore((state) => state.activeOverlayNodeId === id);
-  const setActiveOverlayNodeId = useCanvasStore((state) => state.setActiveOverlayNodeId);
-  const uploadRailNodeHovered = useCanvasStore(
+  const hasActiveOverlay = useStore((state) => state.activeOverlayNodeId === id);
+  const setActiveOverlayNodeId = useStore((state) => state.setActiveOverlayNodeId);
+  const uploadRailNodeHovered = useStore(
     (state) => state.hoveredNodeId === id,
   );
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const updateNodeSize = useCanvasStore((state) => state.updateNodeSize);
-  const deleteEdge = useCanvasStore((state) => state.deleteEdge);
-  const addNodeAction = useCanvasStore((state) => state.addNode);
-  const addEdgeAction = useCanvasStore((state) => state.addEdge);
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const updateNodeSize = useStore((state) => state.updateNodeSize);
+  const deleteEdge = useStore((state) => state.deleteEdge);
+  const addNodeAction = useStore((state) => state.addNode);
+  const addEdgeAction = useStore((state) => state.addEdge);
+  const autoGroupSpawn = useStore((state) => state.autoGroupSpawn);
+  const onNodesChange = useStore((state) => state.onNodesChange);
 
   // Local prompt buffer keeps the textarea's React `value` in lockstep with
   // user input even during IME composition (中文输入法). Committing to the
@@ -277,7 +500,7 @@ export function useImageGenNodeController({
   }, [imageCreditCost.data?.data.cost]);
   // collectCandidateBindingsForNode 只关心连到 this node 的边。用 useShallow 只订阅
   // 本节点相连的边(逐元素比较),拖动无关节点时边引用稳定,本节点不再重渲染。
-  const connectedEdges = useCanvasStore(
+  const connectedEdges = useStore(
     useShallow((state) => state.edges.filter((edge) => edge.source === id || edge.target === id)),
   );
   const candidateBindingRoles = useMemo(
@@ -340,8 +563,7 @@ export function useImageGenNodeController({
   // 直接相连的上游节点，可精确定位到要删的边。
   const handleDetachUpstream = useCallback(
     (sourceNodeId: string) => {
-      useCanvasStore
-        .getState()
+      readGraph()
         .edges.filter((edge) => edge.source === sourceNodeId && edge.target === id)
         .forEach((edge) => deleteEdge(edge.id));
     },
@@ -358,7 +580,7 @@ export function useImageGenNodeController({
     (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
       const imageSelections = selections.filter((sel) => sel.media === 'image');
       if (imageSelections.length === 0) return;
-      const state = useCanvasStore.getState();
+      const state = readGraph();
       const self = state.nodes.find((n) => n.id === id);
       if (!self) return;
       const UPLOAD_WIDTH = 320;
@@ -385,9 +607,9 @@ export function useImageGenNodeController({
         addEdgeAction(newId, id);
         newIds.push(newId);
       });
-      state.autoGroupSpawn(id, newIds, { label: '资产参考组' });
+      autoGroupSpawn(id, newIds, { label: '资产参考组' });
     },
-    [addEdgeAction, addNodeAction, id],
+    [addEdgeAction, addNodeAction, autoGroupSpawn, id],
   );
 
   // Hover preview state for the upstream image thumbnails in the OpsPanel
@@ -465,7 +687,7 @@ export function useImageGenNodeController({
     setActiveOverlayNodeId(id);
     return () => {
       // 只清自己注册的，避免误清其它浮层（多角度/打光等）的注册。
-      if (useCanvasStore.getState().activeOverlayNodeId === id) {
+      if (readActiveOverlayNodeId() === id) {
         setActiveOverlayNodeId(null);
       }
     };
@@ -505,12 +727,12 @@ export function useImageGenNodeController({
   // 副作用入内会把 onNodesChange 派发两遍）。
   const handleToggleAlbumExpanded = useCallback(() => {
     if (!albumExpanded) {
-      const store = useCanvasStore.getState();
-      const selectionChanges = store.nodes
+      const graph = readGraph();
+      const selectionChanges = graph.nodes
         .filter((node) => node.selected)
         .map((node) => ({ id: node.id, type: 'select' as const, selected: false }));
       if (selectionChanges.length > 0) {
-        store.onNodesChange(selectionChanges);
+        onNodesChange(selectionChanges);
       }
       setSelectedNode(null);
       // 每次展开重置「应用到画布」的落点游标。
@@ -525,7 +747,7 @@ export function useImageGenNodeController({
   const albumAppliedCountRef = useRef(0);
   const handleApplyAlbumImageToCanvas = useCallback(
     (url: string) => {
-      const self = useCanvasStore.getState().nodes.find((n) => n.id === id);
+      const self = readNode(id);
       if (!self) return;
       const applyIndex = albumAppliedCountRef.current;
       albumAppliedCountRef.current += 1;
@@ -583,7 +805,7 @@ export function useImageGenNodeController({
   }, [id, updateNodeData]);
 
   const handleSpawnUpstreamImage = useCallback(() => {
-    const self = useCanvasStore.getState().nodes.find((n) => n.id === id);
+    const self = readNode(id);
     if (!self) return;
     // 上游图片节点本身也是 imageGen —— 用户可以直接在它里面写 prompt /
     // 选模型 / 生成图，下游再拿它的结果当参考图。与 upload 相比好处是
@@ -767,10 +989,7 @@ export function useImageGenNodeController({
         // run 0 的任务句柄，其余 run 的 taskKey 必然对不上，套用仲裁会把
         // 它们的失败全部误判为「过期任务」而静默吞掉。
         if (runIndex === 0) {
-          const latestNodeData = (useCanvasStore
-            .getState()
-            .nodes
-            .find((node) => node.id === id)?.data ?? {}) as Record<string, unknown>;
+          const latestNodeData = (readNode(id)?.data ?? {}) as Record<string, unknown>;
           if (
             taskKey
             && isStaleGenerationTask({ nodeData: latestNodeData, taskKey })
@@ -1165,8 +1384,9 @@ export function useImageGenNodeController({
     showImageOpsPanel,
     projectId,
   };
+  };
 }
 
 export type ImageGenNodeController = ReturnType<
-  typeof useImageGenNodeController
+  ReturnType<typeof createUseImageGenNodeController>
 >;

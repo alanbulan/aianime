@@ -9,12 +9,12 @@ describe("ImageGenNode context palette", () => {
     const controllerSource = readFileSync(
       resolve(
         process.cwd(),
-        "src/features/canvas/hooks/useImageGenNodeController.ts",
+        "src/modules/creative_canvas/presentation/useImageGenNodeController.ts",
       ),
       "utf8",
     );
     const viewSource = readFileSync(
-      resolve(process.cwd(), "src/features/canvas/nodes/ImageGenNodeView.tsx"),
+      resolve(process.cwd(), "src/modules/creative_canvas/presentation/ImageGenNodeView.tsx"),
       "utf8",
     );
 

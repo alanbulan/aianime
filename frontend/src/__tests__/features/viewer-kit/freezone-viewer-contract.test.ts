@@ -562,7 +562,7 @@ describe("freezone viewer contracts", () => {
 
   it("auto-commits present image generation nodes when requested by the preset", () => {
     const imageGenController = read(
-      "src/features/canvas/hooks/useImageGenNodeController.ts",
+      "src/modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
 
     expect(imageGenController).toContain("autoCommitOnGenerate");

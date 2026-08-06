@@ -3050,15 +3050,15 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
     const controlsPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNodeControls.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeControls.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
     );
     const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -3075,7 +3075,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "ImageGenNode", "=", "memo("].join(" "),
       ["export function", "isImage2Model("].join(" "),
-      ["export function", "useImageGenNodeController("].join(" "),
+      ["export function", "createUseImageGenNodeController("].join(" "),
       ["export function", "AspectSizeChip("].join(" "),
       ["export function", "ImageGenNodeView("].join(" "),
     ];
@@ -3090,17 +3090,16 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useImageGenNodeController",
-        "./ImageGenNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageGenNode.tsx"],
       ["modules/creative_canvas/domain/imageGenNodeModel.ts"],
-      ["features/canvas/hooks/useImageGenNodeController.ts"],
-      ["features/canvas/nodes/ImageGenNodeControls.tsx"],
-      ["features/canvas/nodes/ImageGenNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useImageGenNodeController.ts"],
+      ["modules/creative_canvas/presentation/ImageGenNodeControls.tsx"],
+      ["modules/creative_canvas/presentation/ImageGenNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -3120,7 +3119,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(legacyModelPaths.every((path) => !existsSync(path))).toBe(true);
     for (const consumerPath of [controllerPath, controlsPath, viewPath]) {
-      expect(importSpecifiers(consumerPath)).toContain(
+      expect(importSpecifiers(consumerPath)).not.toContain(
         "@/modules/creative_canvas/public",
       );
       expect(importSpecifiers(consumerPath)).not.toContain(
@@ -3141,7 +3140,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("await generateCanvasImage(");
     expect(controllerSource).toContain("translateCanvasText({");
     expect(controllerSource).toContain("getCanvasBeatDirectorManifest({");
@@ -3167,6 +3166,13 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("generateCanvasImage(");
     expect(viewSource).not.toContain("translateCanvasText(");
     expect(viewSource).not.toContain("uploadCanvasAsset(");
+    for (const retiredPath of [
+      "features/canvas/hooks/useImageGenNodeController.ts",
+      "features/canvas/nodes/ImageGenNodeControls.tsx",
+      "features/canvas/nodes/ImageGenNodeView.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("separates the Canvas video node model, controller, and view", () => {
@@ -5131,7 +5137,7 @@ describe("frontend architecture boundaries", () => {
     const readerPaths = [
       "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
       "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "modules/creative_canvas/presentation/usePano360ViewerNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const [gatewayPath, ...publicReaderPaths] = readerPaths;
@@ -8153,7 +8159,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
     const nodeImageConsumers = [
       "modules/creative_canvas/presentation/ImageEditNodeView.tsx",
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
       "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 
@@ -21743,7 +21749,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/beatDirectorManifest.ts",
     );
     const nodePaths = [
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "modules/creative_canvas/presentation/useSkillNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -22483,7 +22489,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyPaths = [
@@ -22628,8 +22634,14 @@ describe("frontend architecture boundaries", () => {
     expect(legacyCompositionSource).not.toContain(
       "export function generateCanvasImage(",
     );
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "../application/generateCanvasImage",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "../application/completeCanvasMediaGenerationTask",
     );
     expect(importSpecifiers(nodePath)).not.toContain("@/api/ops");
     expect(importSpecifiers(nodePath)).not.toContain("@/api/tasks");
@@ -25520,7 +25532,7 @@ describe("frontend architecture boundaries", () => {
     );
     const imageNodeViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
     );
     const skillNodeViewPath = resolve(
       SRC_ROOT,
@@ -26592,7 +26604,7 @@ describe("frontend architecture boundaries", () => {
     );
     const imageViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
     );
     const videoHistoryPanelPath = resolve(
       moduleRoot,
@@ -26707,8 +26719,11 @@ describe("frontend architecture boundaries", () => {
     expect(historyAssetsControllerSource).not.toContain(
       "export function recordsToAssetBuckets",
     );
-    expect(imageViewSource).toContain(
+    expect(imageViewSource).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(imageViewSource).toContain(
+      "../domain/generationHistoryRecord",
     );
     expect(videoHistoryPanelSource).not.toContain(
       "@/modules/creative_canvas/public",
@@ -28885,7 +28900,7 @@ describe("frontend architecture boundaries", () => {
     const consumerSources = new Map(
       [
         "features/canvas/nodes/VideoNodeView.tsx",
-        "features/canvas/nodes/ImageGenNodeView.tsx",
+        "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
         "features/canvas/ui/AssetCommitHandle.tsx",
       ].map((relativePath) => [
         relativePath,
@@ -28925,7 +28940,15 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/VideoUploadActionRail",
     );
     for (const source of consumerSources.values()) {
-      expect(source).toContain("@/modules/creative_canvas/public");
+      if (
+        source === consumerSources.get(
+          "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
+        )
+      ) {
+        expect(source).toContain("./NodeSideActionRail");
+      } else {
+        expect(source).toContain("@/modules/creative_canvas/public");
+      }
       expect(source).not.toContain("@/features/canvas/ui/NodeSideActionRail");
       expect(source).not.toContain(
         "@/features/canvas/nodes/VideoUploadActionRail",
@@ -28938,10 +28961,14 @@ describe("frontend architecture boundaries", () => {
       consumerSources.get("features/canvas/nodes/VideoNodeView.tsx"),
     ).toContain("nodeHovered={uploadRailNodeHovered}");
     expect(
-      consumerSources.get("features/canvas/nodes/ImageGenNodeView.tsx"),
+      consumerSources.get(
+        "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
+      ),
     ).toContain("<NodeSideActionRail");
     expect(
-      consumerSources.get("features/canvas/nodes/ImageGenNodeView.tsx"),
+      consumerSources.get(
+        "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
+      ),
     ).toContain("nodeHovered={uploadRailNodeHovered}");
     expect(
       consumerSources.get("features/canvas/ui/AssetCommitHandle.tsx"),
@@ -31241,7 +31268,7 @@ describe("frontend architecture boundaries", () => {
     );
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const applicationOwners = sourceFiles(SRC_ROOT)
@@ -31346,9 +31373,21 @@ describe("frontend architecture boundaries", () => {
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     for (const consumerPath of consumerPaths) {
       const consumerSource = readFileSync(consumerPath, "utf8");
-      expect(importSpecifiers(consumerPath)).toContain(
-        "@/modules/creative_canvas/public",
-      );
+      if (
+        relativeSource(consumerPath) ===
+        "modules/creative_canvas/presentation/useImageGenNodeController.ts"
+      ) {
+        expect(importSpecifiers(consumerPath)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+        expect(importSpecifiers(consumerPath)).toContain(
+          "../application/translateCanvasText",
+        );
+      } else {
+        expect(importSpecifiers(consumerPath)).toContain(
+          "@/modules/creative_canvas/public",
+        );
+      }
       expect(consumerSource).toContain("translateCanvasText({");
       expect(consumerSource).not.toContain("submitFreezoneTextTranslate");
       expect(consumerSource).not.toContain(
@@ -31600,7 +31639,7 @@ describe("frontend architecture boundaries", () => {
     const consumerPaths = [
       "modules/creative_canvas/presentation/useAudioNodeController.ts",
       "features/canvas/nodes/GroupNode.tsx",
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "modules/creative_canvas/presentation/useSkillNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
       "modules/creative_canvas/presentation/useUploadNodeController.ts",
@@ -31785,11 +31824,11 @@ describe("frontend architecture boundaries", () => {
     );
     const imageGenControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
     const imageGenViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
     );
     const videoNodeControllerPath = resolve(
       SRC_ROOT,
@@ -32017,15 +32056,19 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(imageEditViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
-    expect(importSpecifiers(imageGenControllerPath)).toContain(
+    expect(importSpecifiers(imageGenControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(imageGenControllerPath)).toContain(
+      "../domain/assetLibrary",
     );
     expect(importSpecifiers(imageGenControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",
     );
-    expect(importSpecifiers(imageGenViewPath)).toContain(
+    expect(importSpecifiers(imageGenViewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(importSpecifiers(imageGenViewPath)).toContain("./AssetLibraryModal");
     expect(importSpecifiers(imageGenViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
@@ -32074,7 +32117,7 @@ describe("frontend architecture boundaries", () => {
       "__tests__/features/canvas/use-node-generation-history.test.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerPaths = [
-      resolve(SRC_ROOT, "features/canvas/hooks/useImageGenNodeController.ts"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/useImageGenNodeController.ts"),
       resolve(SRC_ROOT, "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts"),
       resolve(SRC_ROOT, "features/canvas/hooks/useVideoNodeController.ts"),
       resolve(SRC_ROOT, "modules/creative_canvas/presentation/ThreeDWorldNodeView.tsx"),
@@ -32585,7 +32628,7 @@ describe("frontend architecture boundaries", () => {
     const imageGenNode = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/hooks/useImageGenNodeController.ts",
+        "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       ),
       "utf8",
     );
@@ -32769,7 +32812,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const consumerPaths = [
-      "features/canvas/hooks/useImageGenNodeController.ts",
+      "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",
     ];
 
@@ -32808,9 +32851,19 @@ describe("frontend architecture boundaries", () => {
     for (const consumerPath of consumerPaths) {
       const path = resolve(SRC_ROOT, consumerPath);
       const source = readFileSync(path, "utf8");
-      expect(importSpecifiers(path)).toContain(
-        "@/modules/creative_canvas/canvasComposition",
-      );
+      if (
+        relativeSource(path) ===
+        "modules/creative_canvas/presentation/useImageGenNodeController.ts"
+      ) {
+        expect(importSpecifiers(path)).not.toContain(
+          "@/modules/creative_canvas/canvasComposition",
+        );
+        expect(source).toContain("useIsBoxSelecting");
+      } else {
+        expect(importSpecifiers(path)).toContain(
+          "@/modules/creative_canvas/canvasComposition",
+        );
+      }
       expect(source).toContain("useIsBoxSelecting");
       expect(source).not.toContain(
         "@/features/canvas/hooks/useIsBoxSelecting",
@@ -32920,7 +32973,7 @@ describe("frontend architecture boundaries", () => {
         .sort(),
     );
     const operationPanelConsumers = [
-      "features/canvas/nodes/ImageGenNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
       "features/canvas/nodes/VideoNodeView.tsx",
     ];
     const fpsMeterConsumers = ["features/canvas/ui/CanvasStageView.tsx"];
@@ -32978,9 +33031,19 @@ describe("frontend architecture boundaries", () => {
     for (const relativePath of operationPanelConsumers) {
       const path = resolve(SRC_ROOT, relativePath);
       const source = readFileSync(path, "utf8");
-      expect(importSpecifiers(path)).toContain(
-        "@/modules/creative_canvas/public",
-      );
+      if (
+        relativePath ===
+        "modules/creative_canvas/presentation/ImageGenNodeView.tsx"
+      ) {
+        expect(importSpecifiers(path)).not.toContain(
+          "@/modules/creative_canvas/public",
+        );
+        expect(importSpecifiers(path)).toContain("./OperationPanelShell");
+      } else {
+        expect(importSpecifiers(path)).toContain(
+          "@/modules/creative_canvas/public",
+        );
+      }
       expect(source).toContain("<OperationPanelShell");
       expect(source).not.toContain("@/features/canvas/ui/OperationPanelShell");
     }

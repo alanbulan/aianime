@@ -10,7 +10,7 @@ function read(relativePath: string): string {
 describe("ImageGenNode error notification contract", () => {
   it("stores the raw error separately from the displayed provider message", () => {
     const source = read(
-      "src/features/canvas/hooks/useImageGenNodeController.ts",
+      "src/modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
 
     expect(source).toContain("generationError: displayErrorMessage");
@@ -37,7 +37,7 @@ describe("ImageGenNode error notification contract", () => {
 
   it("copies the complete error from the request-id row instead of only the id", () => {
     const source = read(
-      "src/features/canvas/hooks/useImageGenNodeController.ts",
+      "src/modules/creative_canvas/presentation/useImageGenNodeController.ts",
     );
 
     expect(source).toContain(

@@ -3,14 +3,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, ChevronDown, Palette } from 'lucide-react';
 
-import { IMAGE_GEN_ASPECT_OPTIONS, IMAGE_GEN_COUNT_OPTIONS, IMAGE_GEN_QUALITY_OPTIONS, IMAGE_GEN_SIZE_OPTIONS, NODE_COUNT_POPOVER_CLASS, NODE_FLOATING_PANEL_SURFACE_CLASS, NODE_TEXT_CONTROL_ICON_CLASS, NODE_TEXT_CONTROL_TRIGGER_CLASS, CAMERA_PICKER_POPOVER_WIDTH, CameraPickerPopover, StylePickerPopover, resolveNearestImageGenAspectOption, type ImageGenNodeData } from '@/modules/creative_canvas/public';
-;
-import type {
-  ImageGenCount,
-  ImageGenCameraSelectionData,
-  ImageQuality,
-  ImageSize,
-} from '@/modules/creative_canvas/public';
+import {
+  IMAGE_GEN_ASPECT_OPTIONS,
+  IMAGE_GEN_COUNT_OPTIONS,
+  IMAGE_GEN_QUALITY_OPTIONS,
+  IMAGE_GEN_SIZE_OPTIONS,
+  resolveNearestImageGenAspectOption,
+  type ImageGenCameraSelectionData,
+  type ImageGenCount,
+  type ImageQuality,
+} from '../domain/imageGenNodeModel';
+import type { ImageGenNodeData } from '../domain/canvasNodeData';
+import type { ImageSize } from '../domain/imageNodeSizing';
+import {
+  NODE_COUNT_POPOVER_CLASS,
+  NODE_FLOATING_PANEL_SURFACE_CLASS,
+  NODE_TEXT_CONTROL_ICON_CLASS,
+  NODE_TEXT_CONTROL_TRIGGER_CLASS,
+} from './canvasNodeControlStyles';
+import {
+  CAMERA_PICKER_POPOVER_WIDTH,
+  CameraPickerPopover,
+} from './CameraPickerPopover';
+import { StylePickerPopover } from './StylePickerPopover';
 
 const IMAGE_PARAM_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;

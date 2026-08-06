@@ -3544,6 +3544,8 @@ export { StoryboardGenNodeView } from "@/modules/creative_canvas/presentation/St
 export type { StoryboardGenNodeController } from "@/modules/creative_canvas/presentation/useStoryboardGenNodeController";
 export { ImageEditNodeView } from "@/modules/creative_canvas/presentation/ImageEditNodeView";
 export type { ImageEditNodeController } from "@/modules/creative_canvas/presentation/useImageEditNodeController";
+export { ImageGenNodeView } from "@/modules/creative_canvas/presentation/ImageGenNodeView";
+export type { ImageGenNodeController } from "@/modules/creative_canvas/presentation/useImageGenNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";
