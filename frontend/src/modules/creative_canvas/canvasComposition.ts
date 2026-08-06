@@ -48,6 +48,7 @@ import { createLightEditorOverlay } from './presentation/LightEditorOverlay';
 import { createMultiAngleEditorOverlay } from './presentation/MultiAngleEditorOverlay';
 import { createVideoUpscaleEditorOverlay } from './presentation/VideoUpscaleEditorOverlay';
 import { createNodeToolDialog } from './presentation/NodeToolDialog';
+import { createNodeSpawnPlusOverlay } from './presentation/NodeSpawnPlusOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -617,6 +618,9 @@ export const NodeToolDialog = createNodeToolDialog({
   prepareNodeImage,
   uploadLocalImageToBackend,
   readStoryboardImageMetadata,
+});
+export const NodeSpawnPlusOverlay = createNodeSpawnPlusOverlay({
+  useCanvasStore,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

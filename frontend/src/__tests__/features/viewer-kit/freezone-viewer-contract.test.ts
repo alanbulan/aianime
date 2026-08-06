@@ -31,7 +31,9 @@ describe("freezone viewer contracts", () => {
     const nodeSelectionMenuModel = read(
       "src/modules/creative_canvas/domain/nodeSelectionMenuModel.ts",
     );
-    const spawnOverlay = read("src/features/canvas/ui/NodeSpawnPlusOverlay.tsx");
+    const spawnOverlay = read(
+      "src/modules/creative_canvas/presentation/NodeSpawnPlusOverlay.tsx",
+    );
     const nodesIndex = read("src/features/canvas/nodes/index.ts");
 
     expect(entry).toContain("usePano360ViewerNodeController(props)");
