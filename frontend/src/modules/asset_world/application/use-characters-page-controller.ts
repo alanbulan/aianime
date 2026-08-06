@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useAssetsDeepLink } from "./useAssetsDeepLink";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useTaskStream } from "@/hooks/use-task-stream";
+import { useTaskStream } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import type { ImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";

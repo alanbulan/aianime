@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import type { TaskState } from "@/modules/task_execution/public";
 
@@ -12,7 +11,7 @@ const state = vi.hoisted(() => ({
   tasks: [] as TaskState[],
 }));
 
-vi.mock("@/hooks/use-task-stream", () => ({
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
   useTaskStream: () => ({
     status: "idle" as const,
     progress: 0,
@@ -32,7 +31,8 @@ vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
   }),
 }));
 
-import { useTaskController } from "@/hooks/use-task-controller";
+import { TaskControllerProvider } from "@/modules/task_execution/presentation/task-controller-provider";
+import { useTaskController } from "@/modules/task_execution/presentation/useTaskController";
 
 function wrap(children: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

@@ -12,9 +12,9 @@ import {
   useTaskRegistry,
   type TaskKey,
   type TaskStreamState,
-} from "@/components/episode/task-controller-provider";
-import { useTaskStream } from "@/hooks/use-task-stream";
-import { useCancelTask, useTasks } from "@/modules/task_execution/public";
+} from "./task-controller-provider";
+import { useTaskStream } from "./useTaskStream";
+import { useCancelTask, useTasks } from "../public";
 import { mergeTaskLogs } from "@/lib/script-feedback";
 
 /**

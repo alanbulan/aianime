@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useEpisodeImageTaskInvalidation } from "@/modules/task_execution/public";
+import { useTaskController } from "@/modules/task_execution/public";
 import {
   aspectRatioForOrientation,
   orientationForAspectRatio,

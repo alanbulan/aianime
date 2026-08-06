@@ -26,7 +26,7 @@ import {
   useEpisodeActionsSlotActive,
   useEpisodeActionsSlotSetter,
 } from "@/components/episode/episode-actions-slot";
-import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 import {
   CollapsibleHeaderRegion,
   HeaderCollapseProvider,

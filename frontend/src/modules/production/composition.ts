@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 import { useNow } from "@/hooks/use-now";
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useCommercialModelCatalog,

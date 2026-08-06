@@ -20,7 +20,7 @@ const hookMocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-task-controller", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: (options: {
     key: { taskType: string };
     onError?: (error: string) => void;

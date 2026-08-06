@@ -8,7 +8,7 @@ import type {
   PanoCaptureResult,
   ThreeDSceneSnapshot,
 } from "@/features/viewer-kit/public";
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import {
   sceneReferenceAssetScope,

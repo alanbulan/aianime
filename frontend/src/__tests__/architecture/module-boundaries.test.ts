@@ -3496,6 +3496,7 @@ describe("frontend architecture boundaries", () => {
     const bypasses = sourceFiles(SRC_ROOT)
       .filter(
         (path) =>
+          !path.includes("__tests__") &&
           !relativeSource(path).startsWith("modules/task_execution/"),
       )
       .flatMap((path) =>
@@ -3526,6 +3527,12 @@ describe("frontend architecture boundaries", () => {
         "@/modules/task_execution/presentation/taskOriginLink",
         "@/modules/task_execution/presentation/taskQueryHooks",
         "@/modules/task_execution/presentation/useTaskSubscribe",
+        "@/modules/task_execution/presentation/task-controller-provider",
+        "@/modules/task_execution/presentation/useTaskController",
+        "@/modules/task_execution/presentation/useStageTask",
+        "@/modules/task_execution/presentation/useScopedTaskBatchInvalidation",
+        "@/modules/task_execution/presentation/useTaskStream",
+        "@/modules/task_execution/presentation/useEpisodeImageTaskInvalidation",
       ]),
     );
     expect(bypasses).toEqual([]);

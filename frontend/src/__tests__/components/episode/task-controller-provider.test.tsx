@@ -14,8 +14,8 @@ import {
   type TaskControllerSnapshot,
   type TaskKey,
   type TaskRegistryEntry,
-} from "@/components/episode/task-controller-provider";
-import { useTaskController } from "@/hooks/use-task-controller";
+} from "@/modules/task_execution/presentation/task-controller-provider";
+import { useTaskController } from "@/modules/task_execution/presentation/useTaskController";
 
 // ─── Module mocks ───────────────────────────────────────────────────────────
 //
@@ -37,7 +37,7 @@ const taskQueryMockState = vi.hoisted(() => ({
   data: undefined as { data: Array<Record<string, unknown>> } | undefined,
 }));
 
-vi.mock("@/hooks/use-task-stream", () => ({
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
   useTaskStream: (opts: { enabled?: boolean; taskType: string }) =>
     useTaskStreamMock(opts),
 }));

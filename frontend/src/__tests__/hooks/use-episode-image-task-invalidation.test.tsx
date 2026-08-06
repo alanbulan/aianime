@@ -10,7 +10,7 @@ import {
   createTaskEventBus,
   TaskEventBusContext,
 } from "@/modules/task_execution/public";
-import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
+import { useEpisodeImageTaskInvalidation } from "@/modules/task_execution/public";
 
 function wrap() {
   const bus = createTaskEventBus();

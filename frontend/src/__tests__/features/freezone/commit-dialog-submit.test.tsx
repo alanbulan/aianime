@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  useNavigateToAsset: () => vi.fn(),
   clearSceneDirectorWorld: vi.fn(),
   directorSourceIdentityUrl: (url: string) => url,
   loadSceneDirectorStageManifest: vi.fn(),

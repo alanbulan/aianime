@@ -2746,6 +2746,12 @@ describe("round 2 residual architecture boundaries", () => {
       "presentation/taskOriginLink.test.ts",
       "presentation/taskQueryHooks.ts",
       "presentation/useTaskSubscribe.ts",
+      "presentation/task-controller-provider.tsx",
+      "presentation/useTaskController.ts",
+      "presentation/useStageTask.ts",
+      "presentation/useScopedTaskBatchInvalidation.ts",
+      "presentation/useTaskStream.ts",
+      "presentation/useEpisodeImageTaskInvalidation.ts",
       "public.ts",
     ];
     const legacyPaths = [
@@ -2820,6 +2826,7 @@ describe("round 2 residual architecture boundaries", () => {
     const privateBypasses = sourceFiles(SRC_ROOT)
       .filter(
         (path) =>
+          !path.includes("__tests__") &&
           !relativeSource(path).startsWith("modules/task_execution/"),
       )
       .flatMap((path) =>

@@ -19,7 +19,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@/hooks/use-task-controller", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: () => ({
     start: taskStart,
     started: false,

@@ -17,14 +17,14 @@ const hookMocks = vi.hoisted(() => ({
   toastWarning: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-task-controller", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: () => ({
     start: hookMocks.audioStart,
     started: false,
   }),
 }));
 
-vi.mock("@/hooks/use-scoped-task-batch-invalidation", () => ({
+vi.mock("@/modules/task_execution/presentation/useScopedTaskBatchInvalidation", () => ({
   useScopedTaskBatchInvalidation: ({ taskType }: { taskType: string }) => ({
     track:
       taskType === "selected_regen"

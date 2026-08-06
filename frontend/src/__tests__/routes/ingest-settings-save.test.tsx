@@ -322,7 +322,8 @@ vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
   useCharacters: () => ({ data: { ok: true, data: [] } }),
 }));
 
-vi.mock("@/modules/task_execution/public", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   awaitTaskCompletion: vi.fn(),
   useCancelTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTasks: () => ({
@@ -331,7 +332,7 @@ vi.mock("@/modules/task_execution/public", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-task-stream", () => ({
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
   useTaskStream: (options: { onComplete?: () => void | Promise<void> }) => {
     mocks.taskStreamOnComplete = options.onComplete ?? null;
     return {

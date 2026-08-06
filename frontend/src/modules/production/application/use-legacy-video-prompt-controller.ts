@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";

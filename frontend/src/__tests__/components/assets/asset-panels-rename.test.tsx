@@ -17,7 +17,7 @@ vi.mock("@/shared/api/transport", () => ({
 
 const taskControllerMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/hooks/use-task-controller", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: (opts: unknown) => taskControllerMock(opts),
 }));
 

@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useScopedTaskBatchInvalidation } from "@/modules/task_execution/public";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES, isActiveStatus } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";

@@ -25,7 +25,7 @@ describe("Task Center public contract", () => {
   });
 
   it("keeps the active task stream adapter available", async () => {
-    const taskStream = await import("@/hooks/use-task-stream");
+    const taskStream = await import("@/modules/task_execution/public");
     expect(typeof taskStream.useTaskStream).toBe("function");
   });
 

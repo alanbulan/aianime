@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import {
   getScriptReviewFeedback,

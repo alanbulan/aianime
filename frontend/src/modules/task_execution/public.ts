@@ -38,6 +38,30 @@ export type {
   TaskOriginLink,
 } from "@/modules/task_execution/presentation/taskOriginLink";
 export {
+  TaskControllerProvider,
+  claimOwnership,
+  releaseOwnership,
+  serializeKey,
+  useEntrySnapshot,
+  useInstanceId,
+  useTaskRegistry,
+} from "@/modules/task_execution/presentation/task-controller-provider";
+export type {
+  TaskControllerSnapshot,
+  TaskKey,
+  TaskRegistryEntry,
+  TaskStreamState,
+} from "@/modules/task_execution/presentation/task-controller-provider";
+export { useTaskController } from "@/modules/task_execution/presentation/useTaskController";
+export type {
+  TaskControllerHandle,
+  UseTaskControllerOptions,
+} from "@/modules/task_execution/presentation/useTaskController";
+export { useStageTask } from "@/modules/task_execution/presentation/useStageTask";
+export { useScopedTaskBatchInvalidation } from "@/modules/task_execution/presentation/useScopedTaskBatchInvalidation";
+export { useTaskStream } from "@/modules/task_execution/presentation/useTaskStream";
+export { useEpisodeImageTaskInvalidation } from "@/modules/task_execution/presentation/useEpisodeImageTaskInvalidation";
+export {
   TaskCompletionError,
   awaitTaskCompletion,
   listTasks,

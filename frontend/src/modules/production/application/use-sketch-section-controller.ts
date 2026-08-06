@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { isNoReferenceMarker } from "@/lib/beat-markers";
 import { formatRelativeTime } from "@/lib/format-relative-time";

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useStageTask } from "@/hooks/use-stage-task";
+import { useStageTask } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
 import {

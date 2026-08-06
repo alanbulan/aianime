@@ -69,7 +69,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type { TaskStatus } from "@/modules/task_execution/public";
+import type { TaskStatus } from "../domain/contracts";
 
 // ─── Public types ───────────────────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ export function serializeKey(k: TaskKey): string {
   return `${k.taskType}|${k.project}|${k.episode}|${k.beatNum ?? ""}|${k.scope ?? ""}`;
 }
 
-export { isActiveStatus } from "@/modules/task_execution/public";
+export { isActiveStatus } from "../domain/taskTypes";
 
 const INITIAL_STREAM_STATE: TaskStreamState = {
   status: "idle",

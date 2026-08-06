@@ -10,7 +10,8 @@ import {
   humanizeTaskError,
 } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
-import type { TaskStatus, TaskStreamEvent } from "@/modules/task_execution/public";
+import type { TaskStreamEvent } from "../public";
+import type { TaskStreamState } from "./task-controller-provider";
 
 interface UseTaskStreamOptions {
   taskType: string;
@@ -24,15 +25,6 @@ interface UseTaskStreamOptions {
   onError?: (error: string) => void;
   invalidateKeys?: QueryKey[];
   showCompleteToast?: boolean;
-}
-
-interface TaskStreamState {
-  status: "idle" | TaskStatus;
-  progress: number;
-  currentTask: string;
-  result: unknown | null;
-  error: string | null;
-  logs: string[];
 }
 
 export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {

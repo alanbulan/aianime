@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
-import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";

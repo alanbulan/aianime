@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type {
   TaskControllerHandle,
   UseTaskControllerOptions,
-} from "@/hooks/use-task-controller";
+} from "@/modules/task_execution/public";
 import { orientationForAspectRatio } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat, DataResponse, Episode } from "@/modules/narrative_planning/public";

@@ -107,6 +107,7 @@ vi.mock("@/modules/model_usage/public", () => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  useNavigateToAsset: () => vi.fn(),
   clearSceneDirectorWorld: vi.fn(),
   loadSceneDirectorStageManifest: vi.fn(),
   saveSceneDirectorWorld: vi.fn(),
@@ -137,7 +138,7 @@ vi.mock("@/modules/asset_world/public", () => ({
   useScenePlatePreview: () => ({ data: undefined }),
 }));
 
-vi.mock("@/hooks/use-task-controller", () => ({
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: () => ({ start: taskStartMock }),
 }));
 

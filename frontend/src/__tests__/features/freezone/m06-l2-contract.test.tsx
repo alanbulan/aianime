@@ -17,7 +17,7 @@ import {
   putFreezoneCanvas,
   submitCanvasImageGeneration,
 } from "@/modules/creative_canvas/public";
-import { useTaskStream } from "@/hooks/use-task-stream";
+import { useTaskStream } from "@/modules/task_execution/public";
 import { useStartIngest } from "@/modules/story_intake/public";
 import { useAuthStore } from "@/modules/identity_access/public";
 

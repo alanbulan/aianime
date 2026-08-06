@@ -2,8 +2,8 @@
 import { useCallback, useRef } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 
-import { useTaskSubscribe } from "@/modules/task_execution/public";
-import type { TaskState } from "@/modules/task_execution/public";
+import { useTaskSubscribe } from "../public";
+import type { TaskState } from "../public";
 
 type MatchBy = "scope" | "task_id";
 

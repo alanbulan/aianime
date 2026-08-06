@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { isOkDataResponse } from "@/modules/asset_world/application/response";

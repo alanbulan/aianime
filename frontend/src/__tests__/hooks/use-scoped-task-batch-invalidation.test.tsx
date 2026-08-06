@@ -10,7 +10,7 @@ import {
   TaskEventBusContext,
   type TaskEventBus,
 } from "@/modules/task_execution/public";
-import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
+import { useScopedTaskBatchInvalidation } from "@/modules/task_execution/public";
 
 function wrap(bus: TaskEventBus, qc: QueryClient) {
   const Wrapper = ({ children }: { children: ReactNode }) => (

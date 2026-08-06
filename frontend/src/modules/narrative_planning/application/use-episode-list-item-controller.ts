@@ -2,8 +2,8 @@
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useStageTask } from "@/hooks/use-stage-task";
-import { useTaskController } from "@/hooks/use-task-controller";
+import { useStageTask } from "@/modules/task_execution/public";
+import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/modules/task_execution/public";
 import {

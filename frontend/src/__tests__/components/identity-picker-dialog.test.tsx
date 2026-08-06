@@ -43,6 +43,7 @@ const identitiesByCharacter = vi.hoisted(
 );
 
 vi.mock("@/modules/asset_world/public", () => ({
+  useNavigateToAsset: () => vi.fn(),
   useCharacterIdentities: (_project: string, character: string) => ({
     data: { ok: true, data: identitiesByCharacter.data[character] ?? [] },
   }),
