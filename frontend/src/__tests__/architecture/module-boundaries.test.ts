@@ -2581,19 +2581,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useImageEditNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageEditNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageEditNodeView.test.tsx",
+      "modules/creative_canvas/presentation/ImageEditNodeView.test.tsx",
     );
     const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -2610,7 +2610,7 @@ describe("frontend architecture boundaries", () => {
       ["export const", "ImageEditNode", "=", "memo("].join(" "),
       ["export function", "resolveImageEditNodeSize("].join(" "),
       ["export function", "resolveImageEditPickerAnchor("].join(" "),
-      ["export function", "useImageEditNodeController("].join(" "),
+      ["export function", "createUseImageEditNodeController("].join(" "),
       ["export function", "ImageEditNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -2624,17 +2624,16 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useImageEditNodeController",
-        "./ImageEditNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/ImageEditNode.tsx"],
       ["modules/creative_canvas/domain/imageEditNodeModel.ts"],
       ["modules/creative_canvas/infrastructure/browserImageEditRuntime.ts"],
-      ["features/canvas/hooks/useImageEditNodeController.ts"],
-      ["features/canvas/nodes/ImageEditNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useImageEditNodeController.ts"],
+      ["modules/creative_canvas/presentation/ImageEditNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -2669,7 +2668,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("useSettingsStore(");
     expect(controllerSource).toContain(
       "canvasAiGateway.submitGenerateImageJob(",
@@ -2677,7 +2676,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "useCanvasImageModels(projectId, 'edit')",
     );
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
@@ -2702,6 +2701,14 @@ describe("frontend architecture boundaries", () => {
       "from './useImageEditNodeController'",
     );
     expect(viewTestSource).toContain("from './ImageEditNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useImageEditNodeController.ts",
+      "features/canvas/hooks/useImageEditNodeController.test.tsx",
+      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "features/canvas/nodes/ImageEditNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/browserImageEditRuntime.ts",
@@ -5209,8 +5216,8 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/domain/imageEditNodeModel.ts",
     );
     const modulePublicConsumerPaths = [
-      "features/canvas/hooks/useImageEditNodeController.ts",
-      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/ImageEditNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
 
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
@@ -5243,7 +5250,21 @@ describe("frontend architecture boundaries", () => {
     );
     for (const consumerPath of modulePublicConsumerPaths) {
       const imports = importSpecifiers(consumerPath);
-      expect(imports).toContain("@/modules/creative_canvas/public");
+      if (
+        relativeSource(consumerPath) ===
+        "modules/creative_canvas/presentation/useImageEditNodeController.ts"
+      ) {
+        expect(imports).not.toContain("@/modules/creative_canvas/public");
+        expect(imports).toContain("../domain/capabilities/registry");
+      } else if (
+        relativeSource(consumerPath) ===
+        "modules/creative_canvas/presentation/ImageEditNodeView.tsx"
+      ) {
+        expect(imports).not.toContain("@/modules/creative_canvas/public");
+        expect(imports).toContain("../domain/capabilities/contracts");
+      } else {
+        expect(imports).toContain("@/modules/creative_canvas/public");
+      }
       expect(
         imports.some((specifier) =>
           specifier.startsWith("@/features/freezone/capabilities/"),
@@ -7569,7 +7590,7 @@ describe("frontend architecture boundaries", () => {
     const internalDomainConsumerPath =
       "modules/creative_canvas/domain/imageEditNodeModel.ts";
     const domainConsumerPaths = [
-      "features/canvas/hooks/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
     ];
     const applicationPublicConsumerPath =
       "modules/asset_world/infrastructure/http-prop-gateway.ts";
@@ -7632,7 +7653,8 @@ describe("frontend architecture boundaries", () => {
     }
     for (const consumerPath of domainConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
-      expect(imports).toContain("@/modules/creative_canvas/public");
+      expect(imports).not.toContain("@/modules/creative_canvas/public");
+      expect(imports).toContain("../domain/pushTarget");
       expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/push");
     }
@@ -8130,7 +8152,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const nodeImageConsumers = [
-      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageEditNodeView.tsx",
       "features/canvas/nodes/ImageGenNodeView.tsx",
       "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -8166,8 +8188,9 @@ describe("frontend architecture boundaries", () => {
     );
     for (const consumerPath of nodeImageConsumers) {
       if (
-        relativeSource(consumerPath) ===
-        "modules/creative_canvas/presentation/StoryboardGenNodeView.tsx"
+        relativeSource(consumerPath).startsWith(
+          "modules/creative_canvas/presentation/",
+        )
       ) {
         expect(importSpecifiers(consumerPath)).not.toContain(
           "@/modules/creative_canvas/public",
@@ -31754,11 +31777,11 @@ describe("frontend architecture boundaries", () => {
     );
     const imageEditControllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
     );
     const imageEditViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageEditNodeView.tsx",
+      "modules/creative_canvas/presentation/ImageEditNodeView.tsx",
     );
     const imageGenControllerPath = resolve(
       SRC_ROOT,
@@ -31978,15 +32001,19 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(imageEditModelPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(importSpecifiers(imageEditControllerPath)).toContain(
+    expect(importSpecifiers(imageEditControllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(imageEditControllerPath)).toContain(
+      "../domain/assetLibrary",
     );
     expect(importSpecifiers(imageEditControllerPath)).not.toContain(
       "@/features/canvas/ui/AssetLibraryModal",
     );
-    expect(importSpecifiers(imageEditViewPath)).toContain(
+    expect(importSpecifiers(imageEditViewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(importSpecifiers(imageEditViewPath)).toContain("./AssetLibraryModal");
     expect(importSpecifiers(imageEditViewPath)).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
@@ -32819,7 +32846,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const consumerPaths = [
-      "features/canvas/hooks/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     ];
 
@@ -33101,7 +33128,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/public.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const consumers = [
-      "features/canvas/hooks/useImageEditNodeController.ts",
+      "modules/creative_canvas/presentation/useImageEditNodeController.ts",
       "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts",
       "stores/settingsStore.ts",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -33153,7 +33180,9 @@ describe("frontend architecture boundaries", () => {
     for (const path of consumers) {
       if (
         relativeSource(path) ===
-        "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts"
+          "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts" ||
+        relativeSource(path) ===
+          "modules/creative_canvas/presentation/useImageEditNodeController.ts"
       ) {
         expect(importSpecifiers(path)).not.toContain(
           "@/modules/creative_canvas/public",

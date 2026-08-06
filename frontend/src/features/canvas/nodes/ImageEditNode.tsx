@@ -2,12 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
+import { useImageEditNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  ImageEditNodeView,
+  type ImageEditNodeData,
+} from '@/modules/creative_canvas/public';
 
-import { ImageEditNodeView } from './ImageEditNodeView';
-
-import type { ImageEditNodeData } from "@/modules/creative_canvas/public";
 type ImageEditNodeProps = NodeProps & {
   projectId: string;
   canvasId: string;

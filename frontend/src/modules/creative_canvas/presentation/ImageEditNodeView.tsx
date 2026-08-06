@@ -2,31 +2,38 @@
 import { Handle, Position } from '@xyflow/react';
 import { ImageIcon, Maximize2, Sparkles, UploadCloud } from 'lucide-react';
 
-import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
-import { ModelParamsControls, NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/modules/creative_canvas/public';
+import type { ImageEditNodeController } from './useImageEditNodeController';
+import { ModelParamsControls } from './ModelParamsControls';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { AssetLibraryModal } from './AssetLibraryModal';
+import { CanvasNodeImage } from './CanvasNodeImage';
 import {
-  AssetLibraryModal,
-  CanvasNodeImage,
   CANVAS_NODE_INPUT_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
-  IMAGE_EDIT_NODE_SIZE_LIMITS,
+  canvasNodeFrameClass,
+} from './canvasNodeFrameStyles';
+import {
   NODE_CONTROL_CHIP_CLASS,
   NODE_CONTROL_ICON_CLASS,
   NODE_CONTROL_MODEL_CHIP_CLASS,
   NODE_CONTROL_PARAMS_CHIP_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
-  NodePriceBadge,
-  NodeResizeHandle,
-  canvasNodeFrameClass,
+} from './canvasNodeControlStyles';
+import { NodePriceBadge } from './NodePriceBadge';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import {
+  IMAGE_EDIT_NODE_SIZE_LIMITS,
   projectImageEditPromptSegments,
+} from '../domain/imageEditNodeModel';
+import {
   stringifyParamValue,
   type CapabilityParamDefinition,
-  ReferenceDetachButton,
-  ReferenceTextChip,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
+} from '../domain/capabilities/contracts';
+import { ReferenceDetachButton } from './ReferenceDetachButton';
+import { ReferenceTextChip } from './ReferenceTextChip';
+import { resolveImageDisplayUrl } from '../domain/imageData';
 import { UiButton } from '@/components/ui';
 
 function PromptWithHighlights({

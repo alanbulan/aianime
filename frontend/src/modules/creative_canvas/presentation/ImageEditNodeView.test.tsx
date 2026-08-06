@@ -3,7 +3,7 @@ import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ImageEditNodeController } from '@/features/canvas/hooks/useImageEditNodeController';
+import type { ImageEditNodeController } from './useImageEditNodeController';
 import { ImageEditNodeView } from './ImageEditNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -11,8 +11,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }));
 
-vi.mock('@/modules/creative_canvas/public', () => ({
-  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
+vi.mock('./ModelParamsControls', () => ({
   ModelParamsControls: ({
     onModelChange,
     onResolutionChange,
@@ -42,6 +41,10 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock('./NodeHeader', () => ({
+  NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({
     titleText,
     onTitleChange,
@@ -58,6 +61,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
       {rightSlot}
     </div>
   ),
+}));
+
+vi.mock('./CanvasNodeImage', () => ({
   CanvasNodeImage: ({
     src,
     alt,
@@ -67,27 +73,59 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   }) => (
     <img src={src} alt={alt} />
   ),
+}));
+
+vi.mock('./ReferenceDetachButton', () => ({
   ReferenceDetachButton: ({ nodeId }: { nodeId: string }) => (
     <span>detach:{nodeId}</span>
   ),
+}));
+
+vi.mock('./ReferenceTextChip', () => ({
   ReferenceTextChip: ({ text }: { text: string }) => <span>text:{text}</span>,
+}));
+
+vi.mock('./canvasNodeFrameStyles', () => ({
   CANVAS_NODE_INPUT_FRAME_CLASS: 'input-frame',
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS: 'input-placeholder',
   CANVAS_NODE_INPUT_SURFACE_CLASS: 'input-surface',
   CANVAS_NODE_PANEL_SURFACE_CLASS: 'panel-surface',
+  canvasNodeFrameClass: () => 'frame-class',
+}));
+
+vi.mock('./canvasNodeControlStyles', () => ({
   NODE_CONTROL_CHIP_CLASS: 'chip',
   NODE_CONTROL_ICON_CLASS: 'icon',
   NODE_CONTROL_MODEL_CHIP_CLASS: 'model-chip',
   NODE_CONTROL_PARAMS_CHIP_CLASS: 'params-chip',
   NODE_CONTROL_PRIMARY_BUTTON_CLASS: 'primary-button',
+}));
+
+vi.mock('../domain/imageEditNodeModel', () => ({
   IMAGE_EDIT_NODE_SIZE_LIMITS: {
     minWidth: 240,
     minHeight: 180,
     maxWidth: 1400,
     maxHeight: 1400,
   },
-  canvasNodeFrameClass: () => 'frame-class',
+  projectImageEditPromptSegments: (prompt: string) => [
+    { kind: 'text', text: prompt, start: 0 },
+  ],
+}));
+
+vi.mock('../domain/capabilities/contracts', () => ({
+  stringifyParamValue: (value: unknown) => String(value),
+}));
+
+vi.mock('../domain/imageData', () => ({
+  resolveImageDisplayUrl: (url: string) => url,
+}));
+
+vi.mock('./NodePriceBadge', () => ({
   NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
+}));
+
+vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
     minHeight,
@@ -101,11 +139,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   }) => (
     <div>resize:{minWidth}:{minHeight}:{maxWidth}:{maxHeight}</div>
   ),
-  projectImageEditPromptSegments: (prompt: string) => [
-    { kind: 'text', text: prompt, start: 0 },
-  ],
-  stringifyParamValue: (value: unknown) => String(value),
-  resolveImageDisplayUrl: (url: string) => url,
+}));
+
+vi.mock('./AssetLibraryModal', () => ({
   AssetLibraryModal: ({
     open,
     onClose,

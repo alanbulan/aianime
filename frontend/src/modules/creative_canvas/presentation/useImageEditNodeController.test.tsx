@@ -2,10 +2,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import { useImageEditNodeController } from './useImageEditNodeController';
-
-import type { ImageEditNodeData } from "@/modules/creative_canvas/public";
+import type { ImageEditNodeData } from '../domain/canvasNodeData';
+import {
+  createUseImageEditNodeController,
+  type ImageEditNodeSettingsStore,
+  type ImageEditNodeSettingsStoreHook,
+  type ImageEditNodeStore,
+  type ImageEditNodeStoreHook,
+} from './useImageEditNodeController';
 const mocks = vi.hoisted(() => ({
   upstreamImages: [] as string[],
   upstreamContents: [] as Array<{
@@ -98,74 +102,94 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: (
-    selector: (value: typeof mocks.settings) => unknown,
-  ) => selector(mocks.settings),
+vi.mock('../infrastructure/browserImageEditRuntime', () => ({
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
+  resolveImageEditPickerAnchor: (...args: unknown[]) =>
+    mocks.resolvePickerAnchor(...args),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-  const state = () => ({
-    nodes: mocks.storeNodes,
-    edges: mocks.storeEdges,
+vi.mock('../application/generationErrorReport', () => ({
+  buildGenerationErrorReport: () => '错误报告',
+  createReferenceImagePlaceholders: (count: number) =>
+    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
+  resolveGenerationErrorDiagnostics: () => ({
+    details: '诊断详情',
+    requestId: 'request-a',
+  }),
+}));
+
+vi.mock('../application/graphContentResolver', () => ({
+  collectUpstreamReferenceUrls: () => mocks.upstreamReferenceUrls,
+  joinUpstreamText: () => mocks.upstreamText,
+}));
+
+vi.mock('../domain/pushTarget', () => ({
+  coercePushTarget: (value: unknown) =>
+    value && typeof value === 'object' && 'kind' in value ? value : null,
+}));
+
+vi.mock('../domain/capabilities/registry', () => ({
+  defaultCapabilityParams: () => ({ strength: 50 }),
+  getCapability: (id: string | undefined) =>
+    id === mocks.capability.id ? mocks.capability : null,
+  listCapabilities: () => [mocks.capability],
+}));
+
+vi.mock('../application/imageModelCatalogProjection', () => ({
+  imageModelDefinitions: () => [mocks.imageModel],
+  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
+  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
+  selectImageModel: () => mocks.imageModel,
+}));
+
+vi.mock('../application/modelPriceDisplay', () => ({
+  resolveModelPriceDisplay: () => null,
+}));
+
+vi.mock('../application/errorDialog', () => ({
+  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
+}));
+
+vi.mock('./useReferenceMentionSync', () => ({
+  useReferenceMentionSync: () => undefined,
+}));
+
+const useStore = ((selector: (state: ImageEditNodeStore) => unknown) =>
+  selector({
     setSelectedNode: mocks.setSelectedNode,
     updateNodeData: mocks.updateNodeData,
     addNode: mocks.addNode,
     addEdge: mocks.addEdge,
     findNodePosition: mocks.findNodePosition,
     autoGroupSpawn: mocks.autoGroupSpawn,
-  });
-  const useCanvasStore = (
-    selector: (value: ReturnType<typeof state>) => unknown,
-  ) => selector(state());
-  useCanvasStore.getState = state;
+  })) as unknown as ImageEditNodeStoreHook;
 
-  return useCanvasStore;
-})(),
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  buildGenerationErrorReport: () => '错误报告',
-  collectUpstreamReferenceUrls: () => mocks.upstreamReferenceUrls,
-  coercePushTarget: (value: unknown) =>
-    value && typeof value === 'object' && 'kind' in value ? value : null,
-  createReferenceImagePlaceholders: (count: number) =>
-    Array.from({ length: count }, (_, index) => `image-${index + 1}`),
-  defaultCapabilityParams: () => ({ strength: 50 }),
-  getCapability: (id: string | undefined) =>
-    id === mocks.capability.id ? mocks.capability : null,
-  imageModelDefinitions: () => [mocks.imageModel],
-  joinUpstreamText: () => mocks.upstreamText,
-  listCapabilities: () => [mocks.capability],
-  resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
-  resolveImageModelResolutions: () => mocks.imageModel.resolutions,
-  resolveModelPriceDisplay: () => null,
-  selectImageModel: () => mocks.imageModel,
-  resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
-  resolveGenerationErrorDiagnostics: () => ({
-    details: '诊断详情',
-    requestId: 'request-a',
+const useSettingsStore = ((selector: (state: ImageEditNodeSettingsStore) => unknown) =>
+  selector(mocks.settings as unknown as ImageEditNodeSettingsStore)) as unknown as ImageEditNodeSettingsStoreHook;
+
+const useImageEditNodeController = createUseImageEditNodeController({
+  useStore,
+  useSettingsStore,
+  readGraph: () => ({
+    nodes: mocks.storeNodes as never,
+    edges: mocks.storeEdges as never,
   }),
-  resolveImageEditPickerAnchor: (...args: unknown[]) =>
-    mocks.resolvePickerAnchor(...args),
   useCanvasImageModels: (...args: unknown[]) =>
     mocks.useCanvasImageModels(...args),
-  useReferenceMentionSync: () => undefined,
-}));
-
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
   CURRENT_RUNTIME_SESSION_ID: 'session-a',
   canvasAiGateway: {
     submitGenerateImageJob: (...args: unknown[]) =>
       mocks.submitGenerateImageJob(...args),
-  },
+  } as unknown as Parameters<
+    typeof createUseImageEditNodeController
+  >[0]['canvasAiGateway'],
   detectAspectRatio: (...args: unknown[]) => mocks.detectAspectRatio(...args),
   getRuntimeDiagnostics: () => mocks.getRuntimeDiagnostics(),
   showErrorDialog: (...args: unknown[]) => mocks.showErrorDialog(...args),
   useDetachUpstream: () => mocks.detachUpstream,
   useUpstreamContents: () => mocks.upstreamContents,
   useUpstreamImages: () => mocks.upstreamImages,
-}));
+});
 
 vi.mock('@/shared/api/errors', () => ({
   backendErrorToastMessage: (...args: unknown[]) =>

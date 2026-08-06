@@ -11,71 +11,160 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 
-;
-import { resolveNodeDisplayName, type ImageSize, type ImageEditNodeData } from '@/modules/creative_canvas/public';
-
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  ImageEditNodeData,
+} from '../domain/canvasNodeData';
+import type { ImageSize } from '../domain/imageNodeSizing';
+import { resolveNodeDisplayName } from '../domain/nodeDisplay';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import { AUTO_REQUEST_ASPECT_RATIO, parseAspectRatio } from '../domain/aspectRatio';
 import {
-  CURRENT_RUNTIME_SESSION_ID,
-  canvasAiGateway,
-  detectAspectRatio,
-  getRuntimeDiagnostics,
-  showErrorDialog,
-  useDetachUpstream,
-  useUpstreamContents,
-  useUpstreamImages,
-} from "@/modules/creative_canvas/canvasComposition";
-import {
-  AUTO_REQUEST_ASPECT_RATIO,
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
-  buildGenerationErrorReport,
+} from '../domain/imageNodeLayout';
+import {
   buildImageEditGenerationPrompt,
   buildImageEditResultNodeTitle,
-  collectUpstreamReferenceUrls,
   collectImageEditInputSlotTarget,
   collectImageEditInputSourceMeta,
-  coercePushTarget,
-  createReferenceImagePlaceholders,
-  defaultCapabilityParams,
-  findReferenceTokenAtSelection,
-  getCapability,
-  imageModelDefinitions,
-  insertReferenceToken,
-  joinUpstreamText,
-  listCapabilities,
   mergeImageEditCandidateSourceMeta,
   mergeImageEditReferenceUrls,
-  parseAspectRatio,
   planImageEditAssetReferences,
-  removeTextRange,
-  replaceReferenceToken,
   projectImageEditGenerationModeChoices,
   resolveImageEditGenerationMode,
   resolveImageEditNodeSize,
-  resolveImageEditPickerAnchor,
-  resolveErrorContent,
-  resolveGenerationErrorDiagnostics,
+  type ImageEditAspectRatioChoice,
+} from '../domain/imageEditNodeModel';
+import {
+  collectUpstreamReferenceUrls,
+  joinUpstreamText,
+  type UpstreamContent,
+} from '../application/graphContentResolver';
+import { coercePushTarget } from '../domain/pushTarget';
+import {
+  findReferenceTokenAtSelection,
+  insertReferenceToken,
+  removeTextRange,
+  replaceReferenceToken,
+  resolveReferenceAwareDeleteRange,
+} from '../domain/referenceTokenEditing';
+import {
+  defaultCapabilityParams,
+  getCapability,
+  listCapabilities,
+} from '../domain/capabilities/registry';
+import type { GenerationCapability } from '../domain/capabilities/contracts';
+import type { CanvasAssetLibrarySelection } from '../domain/assetLibrary';
+import {
+  imageModelDefinitions,
   resolveImageModelResolution,
   resolveImageModelResolutions,
-  resolveModelPriceDisplay,
-  resolveReferenceAwareDeleteRange,
   selectImageModel,
-  useCanvasImageModels,
-  useReferenceMentionSync,
-  type CanvasAssetLibrarySelection,
-  type GenerationCapability,
+} from '../application/imageModelCatalogProjection';
+import { resolveModelPriceDisplay } from '../application/modelPriceDisplay';
+import {
+  buildGenerationErrorReport,
+  createReferenceImagePlaceholders,
+  resolveGenerationErrorDiagnostics,
   type GenerationDebugContext,
-  type ImageEditAspectRatioChoice,
+} from '../application/generationErrorReport';
+import { resolveErrorContent } from '../application/errorDialog';
+import type { CanvasImageJobGateway } from '../application/canvasImageJob';
+import {
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+  resolveImageEditPickerAnchor,
   type ImageEditPickerAnchor,
+} from '../infrastructure/browserImageEditRuntime';
+import {
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
+} from '../domain/imageData';
+import { useReferenceMentionSync } from './useReferenceMentionSync';
 import { backendErrorToastMessage } from '@/shared/api/errors';
-import { useSettingsStore } from '@/stores/settingsStore';
+import type {
+  GrsaiCreditTierId,
+  PriceDisplayCurrencyMode,
+} from '../domain/modelPricing';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export interface ImageEditNodeStore {
+  setSelectedNode: (id: string | null) => void;
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  findNodePosition: (
+    sourceNodeId: string,
+    width: number,
+    height: number,
+  ) => { x: number; y: number };
+  addEdge: (source: string, target: string) => void;
+  autoGroupSpawn: (
+    sourceNodeId: string,
+    nodeIds: string[],
+    options?: { label?: string },
+  ) => void;
+}
+
+export type ImageEditNodeStoreHook = <TSelected>(
+  selector: (state: ImageEditNodeStore) => TSelected,
+) => TSelected;
+
+export interface ImageEditNodeSettingsStore {
+  showNodePrice: boolean;
+  priceDisplayCurrencyMode: PriceDisplayCurrencyMode;
+  usdToCnyRate: number;
+  preferDiscountedPrice: boolean;
+  grsaiCreditTierId: GrsaiCreditTierId;
+}
+
+export type ImageEditNodeSettingsStoreHook = <TSelected>(
+  selector: (state: ImageEditNodeSettingsStore) => TSelected,
+) => TSelected;
+
+export type ImageEditNodeReadGraph = () => {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+};
+
+export type ImageEditCanvasAiGateway = CanvasImageJobGateway;
+
+export type ImageEditDetectAspectRatio = (
+  imageUrl: string,
+) => Promise<string>;
+
+export type ImageEditRuntimeDiagnostics = {
+  appVersion?: string;
+  osName?: string;
+  osVersion?: string;
+  osBuild?: string;
+  userAgent?: string;
+};
+
+export type ImageEditGetRuntimeDiagnostics = () => Promise<ImageEditRuntimeDiagnostics>;
+
+export type ImageEditShowErrorDialog = (
+  text: string,
+  title: string,
+  details?: string,
+  copyText?: string,
+) => Promise<void>;
+
+export type ImageEditUseUpstreamImages = (nodeId: string) => string[];
+
+export type ImageEditUseUpstreamContents = (
+  nodeId: string,
+) => UpstreamContent[];
+
+export type ImageEditUseImageModels = (
+  projectId: string,
+  purpose: 'edit',
+) => { models: Array<{ id: string; apiModel: string; label: string }> };
 export interface ImageEditNodeControllerOptions {
   projectId: string;
   canvasId: string;
@@ -86,22 +175,50 @@ export interface ImageEditNodeControllerOptions {
   height?: number;
 }
 
-export function useImageEditNodeController({
-  projectId,
-  canvasId,
-  id,
-  data,
-  selected,
-  width,
-  height,
-}: ImageEditNodeControllerOptions) {
+export function createUseImageEditNodeController({
+  useStore,
+  useSettingsStore,
+  readGraph,
+  canvasAiGateway,
+  CURRENT_RUNTIME_SESSION_ID,
+  detectAspectRatio,
+  getRuntimeDiagnostics,
+  showErrorDialog,
+  useDetachUpstream,
+  useUpstreamContents,
+  useUpstreamImages,
+  useCanvasImageModels,
+}: {
+  useStore: ImageEditNodeStoreHook;
+  useSettingsStore: ImageEditNodeSettingsStoreHook;
+  readGraph: ImageEditNodeReadGraph;
+  canvasAiGateway: ImageEditCanvasAiGateway;
+  CURRENT_RUNTIME_SESSION_ID: string;
+  detectAspectRatio: ImageEditDetectAspectRatio;
+  getRuntimeDiagnostics: ImageEditGetRuntimeDiagnostics;
+  showErrorDialog: ImageEditShowErrorDialog;
+  useDetachUpstream: (nodeId: string) => (sourceNodeId: string) => void;
+  useUpstreamContents: ImageEditUseUpstreamContents;
+  useUpstreamImages: ImageEditUseUpstreamImages;
+  useCanvasImageModels: ImageEditUseImageModels;
+}) {
+  return function useImageEditNodeController({
+    projectId,
+    canvasId,
+    id,
+    data,
+    selected,
+    width,
+    height,
+  }: ImageEditNodeControllerOptions) {
   const { t, i18n } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const addNode = useCanvasStore((state) => state.addNode);
-  const findNodePosition = useCanvasStore((state) => state.findNodePosition);
-  const addEdge = useCanvasStore((state) => state.addEdge);
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const addNode = useStore((state) => state.addNode);
+  const findNodePosition = useStore((state) => state.findNodePosition);
+  const addEdge = useStore((state) => state.addEdge);
+  const autoGroupSpawn = useStore((state) => state.autoGroupSpawn);
   const showNodePrice = useSettingsStore((state) => state.showNodePrice);
   const priceDisplayCurrencyMode = useSettingsStore(
     (state) => state.priceDisplayCurrencyMode,
@@ -420,7 +537,7 @@ export function useImageEditNodeController({
         );
     const runtimeDiagnostics = await getRuntimeDiagnostics();
     const { nodes: currentNodes, edges: currentEdges } =
-      useCanvasStore.getState();
+      readGraph();
     const originSource = collectImageEditInputSourceMeta(
       id,
       currentNodes,
@@ -700,8 +817,8 @@ export function useImageEditNodeController({
 
   const confirmAssetLibrarySelections = useCallback(
     (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
-      const state = useCanvasStore.getState();
-      const self = state.nodes.find((node) => node.id === id);
+      const graph = readGraph();
+      const self = graph.nodes.find((node) => node.id === id);
       if (!self) return;
       const plans = planImageEditAssetReferences({
         selections,
@@ -718,9 +835,9 @@ export function useImageEditNodeController({
         addEdge(newId, id);
         return newId;
       });
-      state.autoGroupSpawn(id, newIds, { label: '资产参考组' });
+      autoGroupSpawn(id, newIds, { label: '资产参考组' });
     },
-    [addEdge, addNode, id],
+    [addEdge, addNode, autoGroupSpawn, id],
   );
 
   const handlePromptKeyDown = useCallback(
@@ -954,8 +1071,9 @@ export function useImageEditNodeController({
       }),
     generate,
   };
+  };
 }
 
 export type ImageEditNodeController = ReturnType<
-  typeof useImageEditNodeController
+  ReturnType<typeof createUseImageEditNodeController>
 >;
