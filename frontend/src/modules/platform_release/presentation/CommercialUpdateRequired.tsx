@@ -1,12 +1,37 @@
+import { useCallback, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
-import { useCommercialRelease } from "@/modules/platform_release/composition";
+import {
+  downloadCommercialArtifact,
+  installCommercialArtifact,
+  useCommercialRelease,
+} from "@/modules/platform_release/composition";
 
 export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation();
   const release = useCommercialRelease(enabled);
+  const [installState, setInstallState] = useState<
+    "idle" | "downloading" | "installing" | "error"
+  >("idle");
+  const artifactId = release.data?.artifactId ?? null;
+  const isInstalling =
+    installState === "downloading" || installState === "installing";
+
+  const handleInstall = useCallback(async () => {
+    if (!artifactId || isInstalling) return;
+    setInstallState("downloading");
+    try {
+      const result = await downloadCommercialArtifact(artifactId);
+      setInstallState("installing");
+      await installCommercialArtifact(result);
+      setInstallState("idle");
+      await release.refetch();
+    } catch {
+      setInstallState("error");
+    }
+  }, [artifactId, isInstalling, release]);
 
   if (!release.data?.required) return null;
 
@@ -22,26 +47,68 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {t("app.commercialUpdate.requiredDescription")}
         </p>
-        {release.isError ? (
+        {release.isError || installState === "error" ? (
           <p className="mt-3 text-sm leading-6 text-destructive">
-            {t("app.commercialUpdate.checkFailed")}
+            {t(
+              installState === "error"
+                ? "app.commercialUpdate.installFailed"
+                : "app.commercialUpdate.checkFailed",
+            )}
           </p>
         ) : null}
-        <Button
-          type="button"
-          className="mt-6 h-10 min-w-28 rounded-[8px]"
-          disabled={release.isFetching}
-          onClick={() => void release.refetch()}
-        >
-          {release.isFetching ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : null}
-          {t(
-            release.isFetching
-              ? "app.commercialUpdate.checking"
-              : "app.commercialUpdate.recheck",
-          )}
-        </Button>
+        {artifactId !== null ? (
+          <div className="mt-6 space-y-2">
+            <Button
+              type="button"
+              className="h-10 min-w-40 rounded-[8px]"
+              disabled={isInstalling}
+              onClick={() => void handleInstall()}
+            >
+              {isInstalling ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              {t(
+                isInstalling
+                  ? installState === "downloading"
+                    ? "app.commercialUpdate.downloading"
+                    : "app.commercialUpdate.installing"
+                  : "app.commercialUpdate.downloadAndInstall",
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 min-w-28 text-[13px] text-muted-foreground"
+              disabled={isInstalling || release.isFetching}
+              onClick={() => void release.refetch()}
+            >
+              {release.isFetching ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              {t(
+                release.isFetching
+                  ? "app.commercialUpdate.checking"
+                  : "app.commercialUpdate.recheck",
+              )}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            className="mt-6 h-10 min-w-28 rounded-[8px]"
+            disabled={release.isFetching}
+            onClick={() => void release.refetch()}
+          >
+            {release.isFetching ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : null}
+            {t(
+              release.isFetching
+                ? "app.commercialUpdate.checking"
+                : "app.commercialUpdate.recheck",
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

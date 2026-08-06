@@ -2,6 +2,7 @@ export interface CommercialReleaseStatus {
   available: boolean;
   required: boolean;
   reason: string | null;
+  artifactId: string | number | null;
 }
 
 export function parseCommercialBootstrapRelease(
@@ -31,6 +32,13 @@ export function parseCommercialReleaseStatus(
       typeof release.reason === "string" && release.reason.trim()
         ? release.reason.trim()
         : null,
+    artifactId:
+      typeof release.artifactId === "string" && release.artifactId.trim()
+        ? release.artifactId.trim()
+        : typeof release.artifactId === "number" &&
+            Number.isSafeInteger(release.artifactId)
+          ? release.artifactId
+          : null,
   };
 }
 

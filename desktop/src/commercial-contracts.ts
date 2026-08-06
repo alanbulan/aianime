@@ -346,6 +346,41 @@ export function projectReleaseArtifactDownload(
   };
 }
 
+/**
+ * Selects the artifact matching the running platform/arch from a release-check
+ * response and attaches its id, so the renderer can download the correct
+ * installer without seeing the full release payload.
+ */
+export function selectReleaseArtifactId(
+  value: unknown,
+  target: string,
+  arch: string,
+): unknown {
+  const release = requiredRecord(value, "release check");
+  const version = nullableRecord(release.version);
+  if (!version) return release;
+  const artifacts = Array.isArray(version.artifacts) ? version.artifacts : [];
+  let artifactId: Identifier | null = null;
+  for (const raw of artifacts) {
+    const artifact = optionalRecord(raw);
+    const artifactTarget =
+      optionalText(artifact.target) ??
+      optionalText(artifact.platform) ??
+      optionalText(artifact.os);
+    const artifactArch =
+      optionalText(artifact.arch) ?? optionalText(artifact.architecture);
+    if (
+      artifactTarget === target &&
+      artifactArch === arch &&
+      artifact.id !== undefined
+    ) {
+      artifactId = identifier(artifact.id, "artifact.id");
+      break;
+    }
+  }
+  return { ...release, artifactId };
+}
+
 function requiredRecord(
   value: unknown,
   name: string,
@@ -359,6 +394,12 @@ function requiredRecord(
 function nullableRecord(value: unknown): Record<string, unknown> | null {
   if (value === undefined || value === null) return null;
   return requiredRecord(value, "authorization field");
+}
+
+function optionalRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function requiredText(value: unknown, name: string): string {

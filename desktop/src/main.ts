@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 
-import { join } from "node:path";
-import { hostname } from "node:os";
+import { join, resolve, sep } from "node:path";
+import { hostname, tmpdir } from "node:os";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import {
   app,
   BrowserWindow,
@@ -234,6 +237,27 @@ function registerCommercialGatewayIpc(
         verifyAuthenticode: (filePath) =>
           verifyWindowsAuthenticodeSignature(filePath),
       }),
+    installArtifact: async ({ filePath, sha256 }) => {
+      const resolved = resolve(filePath);
+      const artifactRoot = resolve(tmpdir(), "ai-anime-artifact-");
+      if (!resolved.startsWith(`${artifactRoot}${sep}`)) {
+        throw new ArtifactVerificationError(
+          "安装程序路径不在制品下载目录内",
+        );
+      }
+      const bytes = await readFile(resolved);
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      if (digest !== sha256) {
+        throw new ArtifactVerificationError(
+          "安装程序 SHA-256 与下载结果不一致",
+        );
+      }
+      const child = spawn(resolved, [], {
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+    },
   });
 }
 

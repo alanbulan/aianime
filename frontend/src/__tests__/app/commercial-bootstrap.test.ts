@@ -108,7 +108,12 @@ describe("commercial application bootstrap", () => {
       queryClient.getQueryData<CommercialReleaseStatus>(
         queryKeys.commercialRelease(),
       ),
-    ).toEqual({ available: true, required: false, reason: "new-version" });
+    ).toEqual({
+      available: true,
+      required: false,
+      reason: "new-version",
+      artifactId: null,
+    });
 
     await expect(loadCommercialModelCatalog("TEXT")).resolves.toMatchObject({
       items: [{ code: "cloud/text-standard" }],

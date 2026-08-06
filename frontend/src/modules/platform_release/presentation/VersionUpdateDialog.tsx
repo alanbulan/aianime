@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
+  downloadCommercialArtifact,
   ensureReleaseNotifications,
+  installCommercialArtifact,
   markCurrentReleaseSeen,
   shouldAutoShowCurrentRelease,
   subscribeOpenVersionUpdateDialog,
@@ -32,8 +34,28 @@ export function VersionUpdateDialog() {
     commercialRelease.data?.available && !commercialRelease.data.required,
   );
   const [open, setOpen] = useState(false);
+  const [installState, setInstallState] = useState<
+    "idle" | "downloading" | "installing" | "error"
+  >("idle");
   const autoOpenedTagRef = useRef<string | null>(null);
   const autoOpenedCommercialRef = useRef(false);
+  const artifactId = commercialRelease.data?.artifactId ?? null;
+  const isInstalling =
+    installState === "downloading" || installState === "installing";
+
+  const handleInstall = useCallback(async () => {
+    if (!artifactId || isInstalling) return;
+    setInstallState("downloading");
+    try {
+      const result = await downloadCommercialArtifact(artifactId);
+      setInstallState("installing");
+      await installCommercialArtifact(result);
+      setInstallState("idle");
+      setOpen(false);
+    } catch {
+      setInstallState("error");
+    }
+  }, [artifactId, isInstalling]);
 
   useEffect(() => {
     const tag = feed?.current_tag ?? null;
@@ -117,17 +139,46 @@ export function VersionUpdateDialog() {
               <p className="m-0">{t("app.versionUpdate.empty")}</p>
             ) : null}
           </div>
-          <Button
-            type="button"
-            className="mt-7 h-10 w-full rounded-[8px] bg-primary text-[14px] font-medium text-primary-foreground shadow-none hover:bg-primary/90"
-            onClick={() => setOpen(false)}
-          >
-            {t(
-              commercialUpdateAvailable
-                ? "app.commercialUpdate.acknowledge"
-                : "app.versionUpdate.confirm",
-            )}
-          </Button>
+          {commercialUpdateAvailable && artifactId !== null ? (
+            <div className="mt-7 space-y-2">
+              {installState === "error" ? (
+                <p className="text-center text-[12.5px] leading-5 text-destructive">
+                  {t("app.commercialUpdate.installFailed")}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                className="h-10 w-full rounded-[8px] bg-primary text-[14px] font-medium text-primary-foreground shadow-none hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isInstalling}
+                onClick={() => void handleInstall()}
+              >
+                {isInstalling
+                  ? t(
+                      installState === "downloading"
+                        ? "app.commercialUpdate.downloading"
+                        : "app.commercialUpdate.installing",
+                    )
+                  : t("app.commercialUpdate.downloadAndInstall")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 w-full text-[13px] text-muted-foreground"
+                disabled={isInstalling}
+                onClick={() => setOpen(false)}
+              >
+                {t("app.commercialUpdate.acknowledge")}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              className="mt-7 h-10 w-full rounded-[8px] bg-primary text-[14px] font-medium text-primary-foreground shadow-none hover:bg-primary/90"
+              onClick={() => setOpen(false)}
+            >
+              {t("app.versionUpdate.confirm")}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

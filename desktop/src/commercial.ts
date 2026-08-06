@@ -19,6 +19,7 @@ import {
   projectCommercialModelCatalog,
   projectCommercialQuota,
   projectReleaseArtifactDownload,
+  selectReleaseArtifactId,
   type CommercialArtifactDownloadSnapshot,
   type CommercialAuthorizationSnapshot,
 } from "./commercial-contracts.js";
@@ -109,6 +110,11 @@ export interface CommercialInvocationQuery {
 
 export interface CommercialFileUploadResult {
   fileId: Identifier;
+}
+
+export interface CommercialInstallArtifactInput {
+  filePath: string;
+  sha256: string;
 }
 
 export interface CommercialLicenseActivationInput {
@@ -893,6 +899,7 @@ export const COMMERCIAL_CHANNELS = {
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
   downloadArtifact: "desktop:commercial:download-artifact",
+  installArtifact: "desktop:commercial:install-artifact",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
   refreshLicenseLease: "desktop:commercial:refresh-license-lease",
@@ -927,6 +934,9 @@ interface RegisterCommercialIpcOptions {
     sizeBytes: number;
     sha256: string;
   }>;
+  installArtifact?: (
+    input: CommercialInstallArtifactInput,
+  ) => Promise<void>;
 }
 
 export function registerCommercialIpc(
@@ -1147,12 +1157,16 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.announcements, (input) =>
     requireClient().announcements(input === undefined ? 20 : requiredInteger(input, "limit")),
   );
-  handle(COMMERCIAL_CHANNELS.checkRelease, () =>
-    requireClient().checkRelease({
-      currentVersion: options.clientVersion,
-      target: options.platform,
-      arch: options.arch,
-    }),
+  handle(COMMERCIAL_CHANNELS.checkRelease, async () =>
+    selectReleaseArtifactId(
+      await requireClient().checkRelease({
+        currentVersion: options.clientVersion,
+        target: options.platform,
+        arch: options.arch,
+      }),
+      options.platform,
+      options.arch,
+    ),
   );
   handle(COMMERCIAL_CHANNELS.downloadArtifact, async (input) => {
     const artifactId = requiredIdentifier(input, "artifactId");
@@ -1161,6 +1175,18 @@ export function registerCommercialIpc(
       throw new CommercialApiError("客户端尚未配置制品下载与校验器");
     }
     return options.releaseArtifactDownloader(metadata);
+  });
+  handle(COMMERCIAL_CHANNELS.installArtifact, async (input) => {
+    const value = requiredRecord(input, "install artifact");
+    const filePath = requiredText(value.filePath, "filePath");
+    const sha256 = requiredText(value.sha256, "sha256");
+    if (!/^[0-9a-f]{64}$/.test(sha256)) {
+      throw new CommercialApiError("安装程序 SHA-256 摘要无效");
+    }
+    if (!options.installArtifact) {
+      throw new CommercialApiError("客户端尚未配置安装器");
+    }
+    await options.installArtifact({ filePath, sha256 });
   });
 
   return client;
