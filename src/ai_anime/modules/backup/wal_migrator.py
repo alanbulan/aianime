@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
-logger = logging.getLogger("ai_anime.backup.wal_migrator")
+logger = logging.getLogger("ai_anime.modules.backup.wal_migrator")
 
 _SQLITE_MAGIC = b"SQLite format 3\x00"
 _SIDECAR_SUFFIXES = ("-wal", "-shm", "-journal", ".snapshot", ".snapshot.tmp")

@@ -7,7 +7,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from ai_anime.backup.wal_migrator import iter_sqlite_files
+from .wal_migrator import iter_sqlite_files
 
 SNAPSHOT_SUFFIX = ".snapshot"
 

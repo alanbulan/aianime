@@ -10,7 +10,7 @@ def test_container_captures_required_ce_ports(monkeypatch) -> None:
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
 
-    from ai_anime.bootstrap.container import build_application_container
+    from ai_anime.modules.bootstrap.public import build_application_container
 
     container = build_application_container()
 
@@ -39,6 +39,6 @@ def test_container_uses_registered_test_adapter(monkeypatch) -> None:
     lifecycle = object()
     registry.register_port("lifecycle", lifecycle)
 
-    from ai_anime.bootstrap.container import build_application_container
+    from ai_anime.modules.bootstrap.public import build_application_container
 
     assert build_application_container().lifecycle is lifecycle

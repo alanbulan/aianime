@@ -9,7 +9,7 @@ from pathlib import Path
 
 import typer
 
-from ai_anime.backup.files_sync import RCLONE_FILTER, build_rclone_env
+from .files_sync import RCLONE_FILTER, build_rclone_env
 
 backup_app = typer.Typer(name="backup", help="OSS backup/restore")
 

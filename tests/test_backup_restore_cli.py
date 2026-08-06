@@ -1,6 +1,10 @@
 """restore-cell pure command construction tests."""
 
-from ai_anime.backup.cli import build_rclone_files_cmd, build_restore_config, derive_region
+from ai_anime.modules.backup.public import (
+    build_rclone_files_cmd,
+    build_restore_config,
+    derive_region,
+)
 
 
 def test_derive_region():

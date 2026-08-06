@@ -11,7 +11,10 @@ from typing import cast
 
 from fastapi import FastAPI
 
-from ai_anime.bootstrap import ApplicationContainer, build_application_container
+from ai_anime.modules.bootstrap.public import (
+    ApplicationContainer,
+    build_application_container,
+)
 
 logger = logging.getLogger("ai_anime.api.app")
 
@@ -34,7 +37,7 @@ async def startup_application(application: FastAPI) -> None:
         from ai_anime.sqlite_pragmas import litestream_enabled
 
         if litestream_enabled():
-            from ai_anime.backup.wal_migrator import migrate_state_tree
+            from ai_anime.modules.backup.public import migrate_state_tree
             from ai_anime.config import STATE_DIR
 
             try:

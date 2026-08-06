@@ -1,6 +1,10 @@
 """files_sync rclone filter and command construction tests."""
 
-from ai_anime.backup.files_sync import RCLONE_FILTER, build_rclone_env, build_sync_cmd
+from ai_anime.modules.backup.public import (
+    RCLONE_FILTER,
+    build_rclone_env,
+    build_sync_cmd,
+)
 
 
 def test_filter_excludes_all_sqlite_and_litestream_state():
@@ -56,7 +60,7 @@ def test_build_rclone_env(monkeypatch):
 
 
 def test_snapshot_copyto_natural_name(tmp_path):
-    from ai_anime.backup.files_sync import build_snapshot_copyto_cmd
+    from ai_anime.modules.backup.public import build_snapshot_copyto_cmd
 
     cmd = build_snapshot_copyto_cmd(
         src=tmp_path / "cognee_db.snapshot",

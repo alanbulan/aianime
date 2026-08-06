@@ -1,6 +1,6 @@
-"""Application composition root."""
+"""应用组合根的公共出口。"""
 
-from ai_anime.bootstrap.container import (
+from ai_anime.modules.bootstrap.container import (
     ApplicationContainer,
     build_application_container,
 )

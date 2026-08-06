@@ -811,9 +811,42 @@ def test_production_submits_tasks_only_through_task_execution() -> None:
 
 
 def test_removed_legacy_package_shells_do_not_return() -> None:
-    removed = ("export", "render_plan", "workflows", "prompts", "ui")
+    removed = (
+        "export",
+        "render_plan",
+        "workflows",
+        "prompts",
+        "ui",
+        "backup",
+        "bootstrap",
+        "skills",
+        "services",
+        "assets",
+    )
     assert [name for name in removed if (PACKAGE_ROOT / name).exists()] == []
     assert (PACKAGE_ROOT / "styles" / "presets").is_dir()
+
+
+def test_modules_do_not_import_legacy_top_level_packages() -> None:
+    legacy_prefixes = (
+        "ai_anime.audio",
+        "ai_anime.storage",
+        "ai_anime.backup",
+        "ai_anime.bootstrap",
+        "ai_anime.skills",
+        "ai_anime.services",
+        "ai_anime.assets",
+    )
+    violations = [
+        f"{path.relative_to(REPO_ROOT)} imports {imported}"
+        for path in _python_files(PACKAGE_ROOT / "modules")
+        for imported in _imports(path)
+        if any(
+            imported == prefix or imported.startswith(f"{prefix}.")
+            for prefix in legacy_prefixes
+        )
+    ]
+    assert violations == []
 
 
 def test_commercial_gateway_has_one_fixed_production_origin() -> None:

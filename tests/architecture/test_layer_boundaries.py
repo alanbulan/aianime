@@ -521,7 +521,7 @@ def test_api_package_does_not_eagerly_assemble_routes() -> None:
 def test_lifespan_uses_the_application_container() -> None:
     lifespan_source = (PACKAGE_ROOT / "api" / "lifespan.py").read_text(encoding="utf-8")
 
-    assert "ai_anime.bootstrap" in lifespan_source
+    assert "ai_anime.modules.bootstrap.public" in lifespan_source
     assert "ai_anime.shared.ports.registry" not in lifespan_source
 
 
@@ -688,6 +688,42 @@ def test_ai_assistant_callers_use_the_public_api() -> None:
             if not imported.startswith("ai_anime.modules.ai_assistant."):
                 continue
             if imported == "ai_anime.modules.ai_assistant.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_backup_callers_use_the_public_api() -> None:
+    backup_module = PACKAGE_ROOT / "modules" / "backup"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(backup_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.backup."):
+                continue
+            if imported == "ai_anime.modules.backup.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_bootstrap_callers_use_the_public_api() -> None:
+    bootstrap_module = PACKAGE_ROOT / "modules" / "bootstrap"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(bootstrap_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.bootstrap."):
+                continue
+            if imported == "ai_anime.modules.bootstrap.public":
                 continue
             failures.append(f"{relative}: {imported}")
 
@@ -2305,7 +2341,7 @@ def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
     local_ports = (
         PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     )
-    container = PACKAGE_ROOT / "bootstrap" / "container.py"
+    container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
     route_source = route.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     registered_quote_source = registered_quote.read_text(encoding="utf-8")
@@ -2360,7 +2396,7 @@ def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
     local_ports = (
         PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     )
-    container = PACKAGE_ROOT / "bootstrap" / "container.py"
+    container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
 
     assert not (PACKAGE_ROOT / "ports" / "usage.py").exists()
     assert not (PACKAGE_ROOT / "ports" / "local" / "usage.py").exists()

@@ -10,7 +10,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ai_anime.backup.cli import backup_app
+from ai_anime.modules.backup.public import backup_app
 from ai_anime.modules.knowledge_graph import CogneeStore
 from ai_anime.config import ensure_project_dirs
 from ai_anime.modules.narrative_planning.public import (

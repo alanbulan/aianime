@@ -2,7 +2,7 @@
 
 import sqlite3
 
-from ai_anime.backup.wal_migrator import iter_sqlite_files, migrate_state_tree
+from ai_anime.modules.backup.public import iter_sqlite_files, migrate_state_tree
 
 
 def _make_db(path, journal_mode=None):

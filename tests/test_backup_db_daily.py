@@ -2,7 +2,7 @@
 
 import sqlite3
 
-from ai_anime.backup.db_daily import snapshot_state_tree
+from ai_anime.modules.backup.public import snapshot_state_tree
 
 
 def _make_db(path, rows=1):
@@ -73,14 +73,14 @@ def test_main_empty_tree_is_success(tmp_path, monkeypatch):
     state = tmp_path / "state"
     state.mkdir()
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state))
-    from ai_anime.backup.db_daily import main
+    from ai_anime.modules.backup.public import main
 
     assert main() == 0
 
 
 def test_main_missing_state_dir_fails(tmp_path, monkeypatch):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "missing"))
-    from ai_anime.backup.db_daily import main
+    from ai_anime.modules.backup.public import main
 
     assert main() == 1
 
