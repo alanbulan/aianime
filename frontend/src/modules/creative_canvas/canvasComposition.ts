@@ -24,6 +24,7 @@ import { createUseCanvasMediaSurfaceController } from './presentation/useCanvasM
 import { createUseCanvasViewportSurfaceController } from './presentation/useCanvasViewportSurfaceController';
 import { useCanvasGraphEditingSurfaceController } from './presentation/useCanvasGraphEditingSurfaceController';
 import { useCanvasNodeCreationSurfaceController } from './presentation/useCanvasNodeCreationSurfaceController';
+import { createUseVideoNodeToolbarController } from './presentation/useVideoNodeToolbarController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -44,6 +45,8 @@ import {
 import { submitVideoGeneration } from './videoGenerationComposition';
 import { useCanvasVideoModels } from './generationCatalogComposition';
 import { openPresetProjectionInMyCanvas } from './presetProjectionComposition';
+import { analyzeCanvasVideoStory } from './videoStoryAnalysisComposition';
+import { separateCanvasAudioVideo } from './audioSeparationComposition';
 import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, type CanvasBeatDirectorManifestGateway, type GetCanvasBeatDirectorManifestParams } from './application/beatDirectorManifest';
 import { getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase, type GetCanvasDirectorStagePaletteParams } from './application/directorStagePalette';
 import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
@@ -332,6 +335,12 @@ export const useCanvasViewportSurfaceController =
   });
 export { useCanvasGraphEditingSurfaceController };
 export { useCanvasNodeCreationSurfaceController };
+export const useVideoNodeToolbarController = createUseVideoNodeToolbarController({
+  useStore: useCanvasStore,
+  eventPort: canvasEventBus,
+  analyzeCanvasVideoStory,
+  separateCanvasAudioVideo,
+});
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
     useCanvasStore.getState().addNode(

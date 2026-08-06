@@ -2,11 +2,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-;
+import type { VideoNodeData } from '../domain/canvasNodeData';
+import {
+  createUseVideoNodeToolbarController,
+  type VideoNodeToolbarStore,
+  type VideoNodeToolbarStoreHook,
+} from "./useVideoNodeToolbarController";
 
-import { useVideoNodeToolbarController } from "./useVideoNodeToolbarController";
-
-import type { VideoNodeData } from "@/modules/creative_canvas/public";
 const mocks = vi.hoisted(() => ({
   addNode: vi.fn(),
   addEdge: vi.fn(),
@@ -26,29 +28,34 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mocks.t }),
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/creative_canvas/public")>()),
-  useCanvasStore: (
-    selector: (state: Record<string, unknown>) => unknown,
-  ) =>
-    selector({
-      addNode: mocks.addNode,
-      addEdge: mocks.addEdge,
-      findNodePosition: mocks.findNodePosition,
-      onNodesChange: mocks.onNodesChange,
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData: mocks.updateNodeData,
-    }),
-  analyzeCanvasVideoStory: (...args: unknown[]) => mocks.analyze(...args),
-  canvasEventBus: { publish: (...args: unknown[]) => mocks.publish(...args) },
+vi.mock("../domain/imageData", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../domain/imageData")>()),
   resolveImageDisplayUrl: (...args: unknown[]) => mocks.resolveUrl(...args),
-  separateCanvasAudioVideo: (...args: unknown[]) => mocks.separate(...args),
 }));
 
 vi.mock("@/lib/browserDownload", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/browserDownload")>()),
   downloadUrlAsFile: (...args: unknown[]) => mocks.download(...args),
 }));
+
+const useStore = ((
+  selector: (state: VideoNodeToolbarStore) => unknown,
+) =>
+  selector({
+    addNode: mocks.addNode,
+    addEdge: mocks.addEdge,
+    findNodePosition: mocks.findNodePosition,
+    onNodesChange: mocks.onNodesChange,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: mocks.updateNodeData,
+  })) as unknown as VideoNodeToolbarStoreHook;
+
+const useVideoNodeToolbarController = createUseVideoNodeToolbarController({
+  useStore,
+  eventPort: { publish: mocks.publish },
+  analyzeCanvasVideoStory: mocks.analyze,
+  separateCanvasAudioVideo: mocks.separate,
+});
 
 function data(patch: Partial<VideoNodeData> = {}): VideoNodeData {
   return {

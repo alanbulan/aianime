@@ -22658,7 +22658,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useVideoNodeToolbarController.ts",
     );
     const canvasNodesPath = resolve(
       SRC_ROOT,
@@ -22765,7 +22765,7 @@ describe("frontend architecture boundaries", () => {
     expect(legacyCompositionSource).not.toContain(
       "export function analyzeCanvasVideoStory(",
     );
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(controllerPath)).not.toContain(
@@ -22806,7 +22806,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useVideoNodeToolbarController.ts",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const resultSource = readFileSync(resultPath, "utf8");
@@ -22887,7 +22887,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/tasks");
-    expect(importSpecifiers(controllerPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(controllerSource).toContain("await separateCanvasAudioVideo({");
@@ -24080,11 +24080,11 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoNodeToolbarController.ts",
+      "modules/creative_canvas/presentation/useVideoNodeToolbarController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useVideoNodeToolbarController.test.tsx",
+      "modules/creative_canvas/presentation/useVideoNodeToolbarController.test.tsx",
     );
     const componentPath = resolve(
       SRC_ROOT,
@@ -24112,7 +24112,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "buildVideoAnalysisStoryNodeData("].join(" "),
       ["export function", "buildVideoUpscaleNodeData("].join(" "),
       ["export function", "buildSeparatedVideoNodeData("].join(" "),
-      ["export function", "useVideoNodeToolbarController("].join(" "),
+      ["export function", "createUseVideoNodeToolbarController("].join(" "),
       ["export function", "VideoNodeToolbarActionsView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -24140,10 +24140,12 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/modules/creative_canvas/public",
-        "@/modules/creative_canvas/public",
+        "../domain/canvasConnection",
+        "../domain/canvasNodeData",
+        "../domain/imageData",
+        "../domain/videoNodeToolbarModel",
+        "../domain/videoSubtitleErase",
         "@/lib/browserDownload",
-        "@/modules/creative_canvas/public",
       ]),
     );
     expect(controllerSource).not.toContain("readUrl");
@@ -24197,7 +24199,7 @@ describe("frontend architecture boundaries", () => {
       ...declarations.slice(0, 4).map(() => [
         "modules/creative_canvas/domain/videoNodeToolbarModel.ts",
       ]),
-      ["features/canvas/hooks/useVideoNodeToolbarController.ts"],
+      ["modules/creative_canvas/presentation/useVideoNodeToolbarController.ts"],
       ["modules/creative_canvas/presentation/VideoNodeToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
@@ -24206,6 +24208,12 @@ describe("frontend architecture boundaries", () => {
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
       'from "./useVideoNodeToolbarController"',
     );
+    for (const retiredPath of [
+      "features/canvas/hooks/useVideoNodeToolbarController.ts",
+      "features/canvas/hooks/useVideoNodeToolbarController.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/videoNodeToolbarModel.ts",

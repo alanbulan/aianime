@@ -3529,6 +3529,7 @@ export type { CanvasMediaSurfaceController } from "@/modules/creative_canvas/pre
 export type { CanvasViewportSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasViewportSurfaceController";
 export type { CanvasGraphEditingSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasGraphEditingSurfaceController";
 export type { CanvasNodeCreationSurfaceController } from "@/modules/creative_canvas/presentation/useCanvasNodeCreationSurfaceController";
+export type { VideoNodeToolbarController } from "@/modules/creative_canvas/presentation/useVideoNodeToolbarController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";
