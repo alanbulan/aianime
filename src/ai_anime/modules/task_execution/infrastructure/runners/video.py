@@ -151,8 +151,10 @@ async def _run_single_video_async(
 
     seedance2_references = []
     if uses_seedance2:
-        from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-        from ai_anime.seedance2_i2v.pipeline import prepare_seedance2_generation_inputs
+        from ai_anime.modules.seedance2_i2v.public import (
+            Seedance2I2VMode,
+            prepare_seedance2_generation_inputs,
+        )
 
         prepared = await prepare_seedance2_generation_inputs(
             project_output=output_dir,
@@ -399,7 +401,7 @@ async def _run_video_generation_async(
             else "VIDEO_IMAGE_TO_VIDEO"
         )
         if is_seedance2_model(video_model) and model_role != "VIDEO_FIRST_LAST_FRAME":
-            from ai_anime.seedance2_i2v.models import (
+            from ai_anime.modules.seedance2_i2v.public import (
                 Seedance2I2VMode,
                 parse_seedance2_config,
             )

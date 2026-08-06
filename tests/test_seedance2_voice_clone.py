@@ -55,7 +55,7 @@ def _characters():
 
 
 def test_dialogue_text_extracts_spoken_quote_from_attribution():
-    from ai_anime.seedance2_i2v.voice_clone import dialogue_text
+    from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_text
 
     assert (
         dialogue_text({"narration_segment": "李婶哭着喊：“陆老板，您是救命恩人！”"})
@@ -64,13 +64,13 @@ def test_dialogue_text_extracts_spoken_quote_from_attribution():
 
 
 def test_dialogue_text_keeps_plain_dialogue_without_quotes():
-    from ai_anime.seedance2_i2v.voice_clone import dialogue_text
+    from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_text
 
     assert dialogue_text({"narration_segment": "你终于来了。"}) == "你终于来了。"
 
 
 def test_dialogue_emotion_prompt_extracts_attribution_outside_quote():
-    from ai_anime.seedance2_i2v.voice_clone import dialogue_emotion_prompt
+    from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_emotion_prompt
 
     assert (
         dialogue_emotion_prompt(
@@ -81,7 +81,7 @@ def test_dialogue_emotion_prompt_extracts_attribution_outside_quote():
 
 
 def test_dialogue_emotion_prompt_extracts_trailing_attribution():
-    from ai_anime.seedance2_i2v.voice_clone import dialogue_emotion_prompt
+    from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_emotion_prompt
 
     assert (
         dialogue_emotion_prompt({"narration_segment": "“别走！”她哽咽着说。"})
@@ -90,26 +90,26 @@ def test_dialogue_emotion_prompt_extracts_trailing_attribution():
 
 
 def test_dialogue_emotion_prompt_ignores_plain_dialogue_without_quotes():
-    from ai_anime.seedance2_i2v.voice_clone import dialogue_emotion_prompt
+    from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_emotion_prompt
 
     assert dialogue_emotion_prompt({"narration_segment": "你终于来了。"}) == ""
 
 
 def test_seedance2_audio_type_normalizes_legacy_action_to_silence():
-    from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
+    from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 
     assert normalize_seedance2_audio_type({"audio_type": "action", "speaker": ""}) == "silence"
 
 
 def test_seedance2_audio_type_preserves_silence():
-    from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
+    from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 
     assert normalize_seedance2_audio_type({"audio_type": "silence", "speaker": ""}) == "silence"
 
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_uses_identity_reference_before_character(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -150,7 +150,7 @@ async def test_seedance2_voice_clone_uses_identity_reference_before_character(tm
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_sends_only_spoken_text_to_fal(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -186,7 +186,7 @@ async def test_seedance2_voice_clone_sends_only_spoken_text_to_fal(tmp_path):
 async def test_seedance2_voice_clone_falls_back_to_character_default(tmp_path):
     """L3: 当变体没有覆盖、没有匹配的时期预设时，应使用角色默认声线。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     character_reference = project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
@@ -225,7 +225,7 @@ async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path
     tmp_path,
 ):
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -266,7 +266,7 @@ async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path
 async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
     """L2: 当变体有 age_group 且角色有对应时期声线时，应使用该声线（非角色默认）。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     default_audio = project_dir / "audio" / "default.wav"
@@ -311,7 +311,7 @@ async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
 async def test_seedance2_voice_clone_styling_variant_uses_character_default(tmp_path):
     """无 age_group 的造型变体（总裁/家居）应共用角色默认声线。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     project_dir = tmp_path / "project"
     default_audio = project_dir / "audio" / "default.wav"
@@ -348,7 +348,7 @@ async def test_seedance2_voice_clone_styling_variant_uses_character_default(tmp_
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_returns_none_for_narration_beat(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
+    from ai_anime.modules.seedance2_i2v.voice_clone import generate_seedance2_dialogue_audio
 
     result = await generate_seedance2_dialogue_audio(
         beat={"audio_type": "narration", "speaker": "", "narration_segment": "旁白"},
@@ -363,7 +363,7 @@ async def test_seedance2_voice_clone_returns_none_for_narration_beat(tmp_path):
 
 
 def test_seedance2_same_voice_beats_group_by_identity_speaker():
-    from ai_anime.seedance2_i2v.voice_clone import same_voice_dialogue_beats
+    from ai_anime.modules.seedance2_i2v.voice_clone import same_voice_dialogue_beats
 
     beats = [
         {
@@ -399,7 +399,7 @@ def test_seedance2_same_voice_beats_group_by_identity_speaker():
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_batch_generates_only_missing_same_identity_beats(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import (
+    from ai_anime.modules.seedance2_i2v.voice_clone import (
         beat_audio_path,
         generate_seedance2_dialogue_audio_for_voice,
     )
@@ -479,7 +479,7 @@ def _protagonist_characters(project_dir: Path, *, with_identity_audio: bool = Tr
 
 
 def test_resolve_narrator_source_first_person_uses_narrator_main_identity(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
+    from ai_anime.modules.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -501,7 +501,7 @@ def test_resolve_narrator_source_first_person_uses_narrator_main_identity(tmp_pa
 
 
 def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
+    from ai_anime.modules.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -524,7 +524,7 @@ def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_pa
 def test_resolve_narrator_source_first_person_falls_back_to_character_default(tmp_path):
     """L3 fallback: identity has no voice but the character-level default is set."""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
+    from ai_anime.modules.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -564,7 +564,7 @@ def test_resolve_narrator_source_first_person_falls_back_to_character_default(tm
 
 def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
     from ai_anime.modules.asset_world.public import NovelCharacter
-    from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
+    from ai_anime.modules.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -581,7 +581,7 @@ def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
 
 
 def test_resolve_narrator_source_third_person_uses_project_narrator(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import resolve_narrator_source
+    from ai_anime.modules.seedance2_i2v.voice_clone import resolve_narrator_source
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()

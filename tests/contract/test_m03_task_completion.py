@@ -189,7 +189,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
 
     async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.seedance2_i2v.models import dump_seedance2_config
+        from ai_anime.modules.seedance2_i2v.models import dump_seedance2_config
 
         return dump_seedance2_config(
             {
@@ -205,7 +205,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(scripts, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(tasks, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(
-        "ai_anime.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 

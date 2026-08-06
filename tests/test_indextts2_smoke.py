@@ -20,7 +20,7 @@ def test_indextts2_client_module_loads():
 
 
 def test_voice_audio_records_module_loads():
-    mod = importlib.import_module("ai_anime.seedance2_i2v.voice_audio_records")
+    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.voice_audio_records")
     assert hasattr(mod, "classify_seedance2_voice_audio")
     assert hasattr(mod, "upsert_seedance2_voice_audio_record")
 
@@ -34,7 +34,7 @@ def test_character_voice_storage_module_loads():
 
 
 def test_voice_clone_module_loads_without_oss_client():
-    mod = importlib.import_module("ai_anime.seedance2_i2v.voice_clone")
+    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.voice_clone")
     assert hasattr(mod, "build_reference_audio_url")
     assert hasattr(mod, "MAX_REFERENCE_AUDIO_BYTES")
 
@@ -45,7 +45,7 @@ def test_audio_request_usage_module_loads():
 
 
 def test_seedance2_i2v_init_exports_stage_a_only():
-    pkg = importlib.import_module("ai_anime.seedance2_i2v")
+    pkg = importlib.import_module("ai_anime.modules.seedance2_i2v")
     assert "classify_seedance2_voice_audio" in pkg.__all__
     assert "Seedance2VoiceAudioRecord" in pkg.__all__
 
@@ -96,7 +96,7 @@ def test_indextts2_client_rejects_empty_prompt(tmp_path):
 
 
 def test_build_reference_audio_url_size_guard(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import (
+    from ai_anime.modules.seedance2_i2v.voice_clone import (
         MAX_REFERENCE_AUDIO_BYTES,
         build_reference_audio_url,
     )
@@ -108,7 +108,7 @@ def test_build_reference_audio_url_size_guard(tmp_path):
 
 
 def test_build_reference_audio_url_returns_data_url(tmp_path):
-    from ai_anime.seedance2_i2v.voice_clone import build_reference_audio_url
+    from ai_anime.modules.seedance2_i2v.voice_clone import build_reference_audio_url
 
     small = tmp_path / "small.mp3"
     small.write_bytes(b"ID3\x03\x00\x00\x00fake-mp3-bytes")

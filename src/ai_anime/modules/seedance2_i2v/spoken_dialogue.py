@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from ai_anime.seedance2_i2v.voice_clone import dialogue_text, normalize_seedance2_audio_type
+from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_text, normalize_seedance2_audio_type
 
 
 _SPEAKER_PREFIX_RE = re.compile(

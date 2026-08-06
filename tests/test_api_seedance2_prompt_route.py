@@ -162,7 +162,7 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 
 
 def test_generate_seedance2_prompt_updates_config_json(monkeypatch, tmp_path):
-    from ai_anime.seedance2_i2v import panel_service
+    from ai_anime.modules.seedance2_i2v import panel_service
 
     saved_json = json.dumps(
         {
@@ -243,7 +243,7 @@ def test_generate_seedance2_prompt_reserves_feature_credit_and_confirms(
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.seedance2_i2v import panel_service
+    from ai_anime.modules.seedance2_i2v import panel_service
 
     saved_json = json.dumps(
         {
@@ -319,7 +319,7 @@ def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.seedance2_i2v import panel_service
+    from ai_anime.modules.seedance2_i2v import panel_service
 
     async def _generate_seedance2_prompt_for_panel(**kwargs):
         raise ValueError("seedance2 prompt invalid")

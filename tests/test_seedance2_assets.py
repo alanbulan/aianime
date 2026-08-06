@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
 
 
 pytestmark = pytest.mark.m09
@@ -19,7 +19,7 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
 
 def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatch):
     from ai_anime import project_config as pc
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -66,7 +66,7 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
 
 
 def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -98,7 +98,7 @@ def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_pat
 
 
 def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -131,7 +131,7 @@ def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
 
 
 def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -168,7 +168,7 @@ def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
 def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_missing(
     tmp_path,
 ):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -202,8 +202,8 @@ def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_mis
 
 
 async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp_path):
-    from ai_anime.seedance2_i2v.models import dump_seedance2_config
-    from ai_anime.seedance2_i2v.pipeline import prepare_seedance2_generation_inputs
+    from ai_anime.modules.seedance2_i2v.models import dump_seedance2_config
+    from ai_anime.modules.seedance2_i2v.pipeline import prepare_seedance2_generation_inputs
 
     project_dir = tmp_path / "output" / "alice" / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
@@ -234,7 +234,7 @@ async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp
 
 
 def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_path):
-    from ai_anime.seedance2_i2v.assets import build_seedance2_project_assets
+    from ai_anime.modules.seedance2_i2v.assets import build_seedance2_project_assets
 
     project_dir = tmp_path / "project"
     assets = build_seedance2_project_assets(
@@ -256,7 +256,7 @@ def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_pat
 
 
 def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -310,7 +310,7 @@ def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio
 
 
 def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -361,7 +361,7 @@ def test_multimodal_narration_assets_use_project_narrator_voice_not_beat_audio(
     tmp_path, monkeypatch
 ):
     from ai_anime import project_config as pc
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -407,8 +407,8 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
     tmp_path, monkeypatch
 ):
     from ai_anime import project_config as pc
-    from ai_anime.seedance2_i2v import assets as asset_mod
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v import assets as asset_mod
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -448,7 +448,7 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
 
 
 def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         apply_prompt_audio_selection,
         append_seedance2_user_reference_assets,
         build_seedance2_project_assets,
@@ -490,7 +490,7 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
 
 def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, monkeypatch):
     from ai_anime import project_config as pc
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -554,7 +554,7 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
 
 
 def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -587,7 +587,7 @@ def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
 
 
 def test_multimodal_assets_skip_auto_audio_for_legacy_action_beat(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -610,7 +610,7 @@ def test_multimodal_assets_skip_auto_audio_for_legacy_action_beat(tmp_path):
 
 
 def test_first_frame_mode_only_sends_current_frame(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -649,7 +649,7 @@ def test_first_frame_for_video_uses_matching_video_input_override(tmp_path):
 
 
 def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -676,7 +676,7 @@ def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
 
 
 def test_first_last_frame_mode_sends_both_frame_slots(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -700,7 +700,7 @@ def test_first_last_frame_mode_sends_both_frame_slots(tmp_path):
 
 
 def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
-    from ai_anime.seedance2_i2v.assets import (
+    from ai_anime.modules.seedance2_i2v.assets import (
         build_seedance2_project_assets,
         selected_reference_paths,
     )
@@ -738,7 +738,7 @@ async def test_crop_seedance2_asset_to_first_frame_writes_video_input_override(
     tmp_path,
     monkeypatch,
 ):
-    from ai_anime.seedance2_i2v import panel_service
+    from ai_anime.modules.seedance2_i2v import panel_service
     from ai_anime.utils.path_resolver import PathResolver
 
     project_dir = tmp_path / "project"

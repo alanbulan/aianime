@@ -20,7 +20,7 @@ from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.public import (
     build_reference_audio_url,
     file_sha256,
     narration_style_prompt,

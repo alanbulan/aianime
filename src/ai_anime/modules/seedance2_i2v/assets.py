@@ -27,12 +27,12 @@ from ai_anime.modules.asset_world.public import (
     resolve_scene_plate,
 )
 from ai_anime.modules.narrative_planning.public import beat_scene_ref
-from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-from ai_anime.seedance2_i2v.spoken_dialogue import (
+from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+from ai_anime.modules.seedance2_i2v.spoken_dialogue import (
     speaker_display_name,
     unique_seedance2_dialogue_speakers,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.voice_clone import (
     DEFAULT_NARRATION_STYLE,
     find_identity_reference_audio,
     NARRATOR_SPEAKER,

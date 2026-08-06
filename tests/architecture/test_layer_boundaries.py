@@ -4980,8 +4980,8 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
         PACKAGE_ROOT / "generators" / "prompt_builder.py",
-        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
-        PACKAGE_ROOT / "seedance2_i2v" / "prompt.py",
+        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "prompt.py",
         PACKAGE_ROOT / "sqlite_store.py",
     )
     legacy_source = _removed_models_source(legacy_models)
@@ -5062,7 +5062,7 @@ def test_asset_world_character_models_have_one_owner() -> None:
         cognee_pipeline,
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
-        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
     )
     owner_source = character_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -5108,7 +5108,7 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
-        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
     )
 
     assert "class NovelProp(" not in _removed_models_source(legacy_models)
@@ -5260,7 +5260,9 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
-    seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
+    seedance_pipeline = (
+        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "pipeline.py"
+    )
     source = route.read_text(encoding="utf-8")
 
     assert "video_backend" not in source
@@ -6364,7 +6366,7 @@ def test_narrative_script_route_remains_an_http_adapter() -> None:
         for imported in imported_modules
         if imported == "ai_anime.shared.ports"
         or imported == "ai_anime.task_identity"
-        or imported.startswith("ai_anime.seedance2_i2v")
+        or imported.startswith("ai_anime.modules.seedance2_i2v")
     }
     source = route.read_text(encoding="utf-8")
     forbidden_calls = {

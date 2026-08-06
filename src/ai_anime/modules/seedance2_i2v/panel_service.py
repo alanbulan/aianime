@@ -11,7 +11,7 @@ from typing import Any
 
 from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.project_config import load_project_config_file, set_narrator_reference_audio
-from ai_anime.seedance2_i2v.assets import (
+from ai_anime.modules.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,
     apply_prompt_audio_selection,
     build_seedance2_project_assets,
@@ -23,17 +23,17 @@ from ai_anime.modules.asset_world.public import (
     trim_voice_sample_content,
     voice_content_sha256,
 )
-from ai_anime.seedance2_i2v.models import (
+from ai_anime.modules.seedance2_i2v.models import (
     Seedance2I2VMode,
     dump_seedance2_config,
     parse_seedance2_config,
 )
-from ai_anime.seedance2_i2v.prompt import (
+from ai_anime.modules.seedance2_i2v.prompt import (
     build_seedance2_prompt_draft,
     compute_seedance2_prompt_inputs_hash,
     generate_seedance2_prompt,
 )
-from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
+from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 from ai_anime.utils.media_io import crop_image_to_path, get_audio_duration
 from ai_anime.utils.path_resolver import PathResolver
 

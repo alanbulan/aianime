@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ai_anime.config import INDEXTTS2_RECORD_PROVIDER
-from ai_anime.seedance2_i2v.voice_audio_records import (
+from ai_anime.modules.seedance2_i2v.voice_audio_records import (
     upsert_seedance2_voice_audio_record,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.voice_clone import (
     beat_audio_path,
     file_sha256,
     find_identity_reference_audio,

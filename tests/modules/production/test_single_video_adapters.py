@@ -17,7 +17,7 @@ from ai_anime.modules.production.infrastructure.single_video import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
-from ai_anime.seedance2_i2v.models import (
+from ai_anime.modules.seedance2_i2v.models import (
     Seedance2I2VMode,
     parse_seedance2_config,
 )

@@ -50,7 +50,7 @@ from ai_anime.modules.asset_world.public import (
     voice_content_sha256,
     voice_sample_extension,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.voice_clone import (
     DEFAULT_NARRATION_STYLE,
     NARRATION_STYLES,
     resolve_narrator_source,

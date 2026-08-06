@@ -179,7 +179,7 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from ai_anime.project_config import set_narrator_reference_audio, update_project_config_file
-    from ai_anime.seedance2_i2v.voice_clone import file_sha256
+    from ai_anime.modules.seedance2_i2v.voice_clone import file_sha256
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     narrator = project_dir / "assets" / "narrator" / "voice.wav"

@@ -244,7 +244,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return "改写第一行\n改写第二行"
 
     async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.seedance2_i2v.models import dump_seedance2_config
+        from ai_anime.modules.seedance2_i2v.models import dump_seedance2_config
 
         return dump_seedance2_config(
             {
@@ -258,7 +258,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(
-        "ai_anime.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 

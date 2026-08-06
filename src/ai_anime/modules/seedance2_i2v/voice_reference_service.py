@@ -12,11 +12,11 @@ from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.seedance2_i2v.spoken_dialogue import (
+from ai_anime.modules.seedance2_i2v.spoken_dialogue import (
     speaker_display_name,
     unique_seedance2_dialogue_speakers,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.voice_clone import (
     DEFAULT_NARRATION_STYLE,
     NarratorResolution,
     file_sha256,

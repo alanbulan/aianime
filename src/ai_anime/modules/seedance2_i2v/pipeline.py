@@ -9,20 +9,20 @@ from typing import Any
 
 from ai_anime.generators.video_generator import ShotReference
 from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
-from ai_anime.seedance2_i2v.assets import (
+from ai_anime.modules.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,
     apply_prompt_audio_selection,
     append_seedance2_user_reference_assets,
     build_seedance2_project_assets,
     selected_reference_paths,
 )
-from ai_anime.seedance2_i2v.models import (
+from ai_anime.modules.seedance2_i2v.models import (
     Seedance2I2VMode,
     dump_seedance2_config,
     parse_seedance2_config,
 )
-from ai_anime.seedance2_i2v.spoken_dialogue import parse_seedance2_spoken_lines
-from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
+from ai_anime.modules.seedance2_i2v.spoken_dialogue import parse_seedance2_spoken_lines
+from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 
 MAX_SEEDANCE2_REFERENCE_AUDIOS = 3
 MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS = 15.0

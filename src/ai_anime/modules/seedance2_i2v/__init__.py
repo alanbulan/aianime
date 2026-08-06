@@ -1,18 +1,18 @@
 """Seedance 2.0 image-to-video integration helpers."""
 
-from ai_anime.seedance2_i2v.assets import (
+from ai_anime.modules.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,
     build_seedance2_project_assets,
     selected_reference_paths,
 )
-from ai_anime.seedance2_i2v.models import Seedance2I2VMode, Seedance2VideoConfig
-from ai_anime.seedance2_i2v.prompt import (
+from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode, Seedance2VideoConfig
+from ai_anime.modules.seedance2_i2v.prompt import (
     build_seedance2_asset_manifest,
     build_seedance2_prompt_draft,
     compute_seedance2_prompt_inputs_hash,
     generate_seedance2_prompt,
 )
-from ai_anime.seedance2_i2v.voice_audio_records import (
+from ai_anime.modules.seedance2_i2v.voice_audio_records import (
     Seedance2VoiceAudioRecord,
     Seedance2VoiceAudioState,
     classify_seedance2_voice_audio,

@@ -495,7 +495,7 @@ def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypat
 
 def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
     import ai_anime.config as config
-    import ai_anime.seedance2_i2v.prompt as seedance2_prompt
+    import ai_anime.modules.seedance2_i2v.prompt as seedance2_prompt
 
     model_calls = []
     settings_calls = []

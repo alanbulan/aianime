@@ -560,7 +560,7 @@ async def test_indextts2_sync_changed_skips_current_existing_audio(tmp_path, mon
     from ai_anime.audio.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
-    from ai_anime.seedance2_i2v.voice_audio_records import (
+    from ai_anime.modules.seedance2_i2v.voice_audio_records import (
         upsert_seedance2_voice_audio_record,
     )
 
@@ -608,10 +608,10 @@ async def test_indextts2_runner_logs_skipped_breakdown(tmp_path, monkeypatch):
     from ai_anime.audio.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
-    from ai_anime.seedance2_i2v.voice_audio_records import (
+    from ai_anime.modules.seedance2_i2v.voice_audio_records import (
         upsert_seedance2_voice_audio_record,
     )
-    from ai_anime.seedance2_i2v.voice_clone import NARRATOR_SPEAKER, file_sha256
+    from ai_anime.modules.seedance2_i2v.voice_clone import NARRATOR_SPEAKER, file_sha256
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     state_dir = tmp_path / "state" / "alice" / "demo"
@@ -665,7 +665,7 @@ async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(tmp_pat
     from ai_anime.audio.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
-    from ai_anime.seedance2_i2v.voice_audio_records import (
+    from ai_anime.modules.seedance2_i2v.voice_audio_records import (
         get_seedance2_voice_audio_record,
         upsert_seedance2_voice_audio_record,
     )

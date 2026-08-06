@@ -9,10 +9,10 @@ from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.seedance2_i2v.voice_audio_records import (
+from ai_anime.modules.seedance2_i2v.voice_audio_records import (
     upsert_seedance2_voice_audio_record,
 )
-from ai_anime.seedance2_i2v.voice_clone import (
+from ai_anime.modules.seedance2_i2v.voice_clone import (
     DEFAULT_NARRATION_STYLE,
     NARRATOR_SPEAKER,
     NarratorResolution,

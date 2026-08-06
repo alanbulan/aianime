@@ -20,11 +20,11 @@ from ai_anime.modules.production.application.seedance2_panel import (
     UploadSeedance2AssetCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.seedance2_i2v import panel_service
-from ai_anime.seedance2_i2v.models import parse_seedance2_config
-from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
-from ai_anime.seedance2_i2v.voice_reference_service import (
+from ai_anime.modules.seedance2_i2v.public import (
     dialogue_voice_reference_rows,
+    normalize_seedance2_audio_type,
+    panel_service,
+    parse_seedance2_config,
     resolve_narrator_reference_status,
 )
 from ai_anime.shared import project_media

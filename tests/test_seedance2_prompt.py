@@ -7,9 +7,9 @@ pytestmark = pytest.mark.m09
 
 
 def test_seedance2_prompt_draft_keeps_request_params_out_of_prompt():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -67,8 +67,8 @@ def test_seedance2_prompt_draft_keeps_request_params_out_of_prompt():
 
 
 def test_seedance2_prompt_draft_includes_dialogue_text():
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -87,9 +87,9 @@ def test_seedance2_prompt_draft_includes_dialogue_text():
 
 
 def test_seedance2_prompt_draft_keeps_desired_scene_state_when_asset_falls_back_to_base():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -119,9 +119,9 @@ def test_seedance2_prompt_draft_keeps_desired_scene_state_when_asset_falls_back_
 
 
 def test_seedance2_prompt_draft_keeps_desired_scene_time_when_asset_falls_back_to_base():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -153,9 +153,9 @@ def test_seedance2_prompt_draft_keeps_desired_scene_time_when_asset_falls_back_t
 
 
 def test_seedance2_prompt_draft_binds_multi_speaker_dialogue_to_audio_labels():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -208,9 +208,9 @@ def test_seedance2_prompt_draft_binds_multi_speaker_dialogue_to_audio_labels():
 
 
 def test_seedance2_prompt_draft_can_use_narration_voice_reference():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -243,8 +243,8 @@ def test_seedance2_prompt_draft_can_use_narration_voice_reference():
 
 
 def test_seedance2_asset_manifest_exposes_unreferenced_audio_to_ai():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_asset_manifest
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_asset_manifest
 
     manifest = build_seedance2_asset_manifest(
         [
@@ -279,9 +279,9 @@ def test_seedance2_asset_manifest_exposes_unreferenced_audio_to_ai():
 
 
 def test_seedance2_prompt_uses_identity_text_when_reference_image_is_missing():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     assets = [
         Seedance2ResolvedAsset(
@@ -326,9 +326,9 @@ def test_seedance2_prompt_uses_identity_text_when_reference_image_is_missing():
 
 
 def test_seedance2_prompt_binds_prop_marker_to_reference_image():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -371,9 +371,9 @@ def test_seedance2_prompt_binds_prop_marker_to_reference_image():
 
 
 def test_seedance2_prompt_uses_prop_fallback_when_reference_image_is_missing():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_draft
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_draft
 
     prompt = build_seedance2_prompt_draft(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -405,9 +405,9 @@ def test_seedance2_prompt_uses_prop_fallback_when_reference_image_is_missing():
 
 
 def test_seedance2_prompt_composer_task_exposes_prop_assets_and_fallbacks():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_composer_task
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_composer_task
 
     task = build_seedance2_prompt_composer_task(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -456,9 +456,9 @@ def test_seedance2_prompt_composer_task_exposes_prop_assets_and_fallbacks():
 
 
 def test_seedance2_prompt_hash_changes_when_prop_fallback_changes():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import compute_seedance2_prompt_inputs_hash
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import compute_seedance2_prompt_inputs_hash
 
     beat = {"visual_description": "桌面上放着[[易拉罐]]。", "detected_props": ["易拉罐"]}
 
@@ -487,8 +487,8 @@ def test_seedance2_prompt_hash_changes_when_prop_fallback_changes():
 
 
 def test_seedance2_prompt_composer_task_includes_scene_ref_and_dialogue_text():
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import build_seedance2_prompt_composer_task
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import build_seedance2_prompt_composer_task
 
     task = build_seedance2_prompt_composer_task(
         mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
@@ -512,9 +512,9 @@ def test_seedance2_prompt_composer_task_includes_scene_ref_and_dialogue_text():
 
 
 def test_seedance2_prompt_hash_ignores_request_only_video_params():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import compute_seedance2_prompt_inputs_hash
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import compute_seedance2_prompt_inputs_hash
 
     asset = Seedance2ResolvedAsset(
         key="first_frame",
@@ -560,9 +560,9 @@ def test_seedance2_prompt_hash_ignores_request_only_video_params():
 
 
 async def test_generate_seedance2_prompt_uses_ai_composer_before_fallback():
-    from ai_anime.seedance2_i2v.assets import Seedance2ResolvedAsset
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
-    from ai_anime.seedance2_i2v.prompt import generate_seedance2_prompt
+    from ai_anime.modules.seedance2_i2v.assets import Seedance2ResolvedAsset
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.prompt import generate_seedance2_prompt
 
     async def fake_composer(**kwargs):
         assert "duration" not in kwargs["draft_prompt"]

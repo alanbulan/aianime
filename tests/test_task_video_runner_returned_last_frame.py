@@ -112,7 +112,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
     monkeypatch,
 ):
     from ai_anime.generators.video_generator import VideoGenStatus
-    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
     from ai_anime.modules.task_execution.infrastructure.runners import video as video_runner
 
     prepare_calls = []
@@ -155,7 +155,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
         lambda **_kwargs: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "ai_anime.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
+        "ai_anime.modules.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
         fake_prepare,
     )
     _patch_video_pool(monkeypatch, video_runner)
