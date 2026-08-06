@@ -1,1 +1,0 @@
-{"root":["./src/backend.ts","./src/commercial-contracts.ts","./src/commercial-device.ts","./src/commercial-model-access.ts","./src/commercial-model-proxy.ts","./src/commercial.ts","./src/hermes-runtime.ts","./src/main.ts","./src/secure-file-store.ts","./src/preload.cts"],"version":"5.8.3"}
