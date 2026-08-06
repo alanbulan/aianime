@@ -584,7 +584,6 @@ class CogneeStore:
             log("清除 cognee 图谱数据...")
             await self._prune_cognee_only()
 
-        from .config import init_cognee
 
         self._init_cognee()
 
