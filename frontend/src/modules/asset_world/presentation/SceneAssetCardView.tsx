@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { PanoCaptureDialog } from "@/features/viewer-kit/pano/PanoCaptureDialog";
-import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
+import {
+  PanoCaptureDialog,
+  ThreeDDirectorDialog,
+} from "@/features/viewer-kit/public";
 import { Button } from "@/components/ui/button";
 import {
   Card,

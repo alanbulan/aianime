@@ -21783,7 +21783,7 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(new Set(importSpecifiers(assetApplicationPath))).toEqual(
       new Set([
-        "@/features/viewer-kit/three-d/directorManifest",
+        "@/features/viewer-kit/public",
         "@/modules/asset_world/application/beat-viewer-gateway",
       ]),
     );
@@ -22051,7 +22051,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "@/features/viewer-kit/three-d/directorManifest",
+        "@/features/viewer-kit/public",
         "@/modules/asset_world/application/ports",
         "@/modules/asset_world/application/scene-gateway",
       ]),

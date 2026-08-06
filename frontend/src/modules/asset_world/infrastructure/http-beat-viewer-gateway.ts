@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
+import type { DirectorStageManifest } from "@/features/viewer-kit/public";
 import type { BeatViewerGateway } from "@/modules/asset_world/application/beat-viewer-gateway";
 import type {
   AssetErrorResponse,

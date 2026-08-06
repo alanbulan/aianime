@@ -4,8 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import type { PanoCaptureResult } from "@/features/viewer-kit/pano/panoManifest";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
+import type {
+  PanoCaptureResult,
+  ThreeDSceneSnapshot,
+} from "@/features/viewer-kit/public";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import {

@@ -1,7 +1,9 @@
 // Copyright (c) 2026 AI anime
-import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
+import type {
+  DirectorStageManifest,
+  PanoViewerManifest,
+  ThreeDSceneSnapshot,
+} from "@/features/viewer-kit/public";
 import type {
   AssetDataResponse,
   AssetErrorResponse,

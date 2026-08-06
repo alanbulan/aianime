@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { withImageCacheBust } from "@/shared/media/image-cache";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
-import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
+import { ThreeDDirectorDialog } from "@/features/viewer-kit/public";
 import { useNavigateToAsset } from "@/modules/asset_world/public";
 import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";

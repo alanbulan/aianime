@@ -33,4 +33,9 @@ export type {
 export { ThreeDDirectorDialog } from "./three-d/ThreeDDirectorDialog";
 export type { ThreeDDirectorCaptureMeta } from "./three-d/ThreeDDirectorDialog";
 export type { ThreeDSceneSnapshot } from "./three-d/engine/viewerApp";
+export { PanoCaptureDialog } from "./pano/PanoCaptureDialog";
+export type {
+  PanoCaptureResult,
+  PanoViewerManifest,
+} from "./pano/panoManifest";
 export { isImmersiveViewerActive, useViewerImmersiveBody } from "./useViewerImmersiveBody";

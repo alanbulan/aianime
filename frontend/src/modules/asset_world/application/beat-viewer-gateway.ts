@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
+import type { DirectorStageManifest } from "@/features/viewer-kit/public";
 import type { AssetResponse } from "@/modules/asset_world/application/ports";
 import type {
   BeatBackgroundAnchorCropCommand,

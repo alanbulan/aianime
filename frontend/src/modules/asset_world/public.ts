@@ -87,7 +87,7 @@ export {
   useUploadStylePreview,
 } from "@/modules/asset_world/composition";
 export type { BeatViewerGateway } from "@/modules/asset_world/application/beat-viewer-gateway";
-export type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
+export type { DirectorStageManifest } from "@/features/viewer-kit/public";
 export type {
   AssetDataResponse,
   AssetErrorResponse,

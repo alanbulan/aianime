@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
+import type { PanoViewerManifest } from "@/features/viewer-kit/public";
 import { queryKeys } from "@/lib/query-keys";
 import type {
   AssetErrorResponse,
