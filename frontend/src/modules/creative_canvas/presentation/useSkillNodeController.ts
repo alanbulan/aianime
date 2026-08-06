@@ -9,48 +9,85 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { createSkillRunNonce, directorControlBundleFromMeta, directorControlBundleImageUrl, directorManifestWithScenePanoSource, mergeSkillManifestWithBeatContext, numericSkillField, projectSkillInputHandleIds, projectSkillOutputHandleIds, projectSkillOutputPositions, projectSkillReferenceInputHandles, resolveSkillBeatTarget, resolveSkillNodeWidth, sceneAssetsFromSkillData, selectedBackgroundTarget, skillBeatContextReferences, skillInputRoleFromEdge, skillInputSignature, skillNodeErrorMessage, skillOutputRoleFromEdge, skillRecordValue, skillRunIdempotencyKey, skillTaskStatusLabelKey, SKILL_TASK_RECORD_GRACE_MS, type SkillCropSource, type SkillDirectorWorldDestination, type CanvasNode, type CanvasNodeData, type SkillNodeData } from '@/modules/creative_canvas/public';
 import {
-  awaitCanvasGenerationTaskCompletion,
-  awaitCanvasSkillRunResult,
-  getCanvasBeatDirectorManifest,
-  getCanvasSceneAssetsForBeat,
-  stageSelectedBackgroundOutputForSkill,
-  startCanvasSkillRun,
-  uploadCanvasAsset,
-} from "@/modules/creative_canvas/canvasComposition";
-;
-
+  createSkillRunNonce,
+  directorControlBundleFromMeta,
+  directorControlBundleImageUrl,
+  directorManifestWithScenePanoSource,
+  mergeSkillManifestWithBeatContext,
+  numericSkillField,
+  projectSkillInputHandleIds,
+  projectSkillOutputHandleIds,
+  projectSkillOutputPositions,
+  projectSkillReferenceInputHandles,
+  resolveSkillBeatTarget,
+  resolveSkillNodeWidth,
+  sceneAssetsFromSkillData,
+  selectedBackgroundTarget,
+  skillBeatContextReferences,
+  skillInputRoleFromEdge,
+  skillInputSignature,
+  skillNodeErrorMessage,
+  skillOutputRoleFromEdge,
+  skillRecordValue,
+  skillRunIdempotencyKey,
+  skillTaskStatusLabelKey,
+  SKILL_TASK_RECORD_GRACE_MS,
+  type SkillCropSource,
+  type SkillDirectorWorldDestination,
+} from '../application/skillNodeModel';
 import {
   isSkillRunFailureStatus,
+  skillRunErrorMessage,
+  type SkillRunOutput,
+  type SkillRunResponse,
+  type SkillRunResult,
+} from '../domain/skillExecution';
+import {
   isSkillReadyToSubmit,
-  isSystemManagedNodeData,
-  loadCanvasSkillRegistry,
+  resolveInputsForSkill,
+} from '../domain/skillInputResolution';
+import {
   normalizedSkillParameters,
+  skillParameterEntries,
+} from '../domain/skillNodeParameters';
+import { isSystemManagedNodeData } from '../domain/mainlineNodeFlags';
+import {
   nodeDataForOutput,
   nodeTypeForOutput,
   outputLabel,
   outputText,
-  publishCanvasCommitRequested,
-  resolveInputsForSkill,
-  skillParameterEntries,
-  skillRunErrorMessage,
-  translateSkillDescription,
-  translateSkillName,
-  useCanvasSkillRegistry,
-  useCanvasImageModels,
-  type MainlineContext,
-  type SceneAssetsForBeat,
-  type SkillRunOutput,
-} from '@/modules/creative_canvas/public';
+} from '../application/skillOutputProjection';
+import { publishCanvasCommitRequested } from '../application/canvasCommitEvents';
+import type {
+  SelectedBackgroundTarget,
+  StageSelectedBackgroundOptions,
+} from '../application/selectedBackgroundSlot';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  SkillNodeData,
+} from '../domain/canvasNodeData';
+import type { MainlineContext } from '../domain/mainlineContext';
+import type { SceneAssetsForBeat } from '../domain/sceneAssets';
+import type {
+  AwaitCanvasSkillRunResultParams,
+  StartCanvasSkillRunParams,
+} from '../application/skillExecution';
+import type { GetCanvasSceneAssetsForBeatParams } from '../application/sceneAssets';
+import type { CanvasCatalogModelOption } from '../application/generationCatalog';
+import type { SkillDefinition } from '../domain/skillContract';
+import { translateSkillDescription, translateSkillName } from './skillI18n';
+import { useCanvasSkillRegistry } from './useCanvasSkillRegistry';
+
 import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
 } from '@/features/viewer-kit/public';
 import { isActive as isActiveTask } from '@/modules/task_execution/public';
 import { useTaskCenterStore } from '@/modules/task_execution/public';
-
-import { useCanvasStore } from "@/modules/creative_canvas/public";
 export interface SkillNodeControllerOptions {
   id: string;
   data: SkillNodeData;
@@ -59,6 +96,83 @@ export interface SkillNodeControllerOptions {
   selected?: boolean;
   width?: number;
 }
+
+export interface SkillNodeStore {
+  setSelectedNode: (id: string | null) => void;
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  addEdgeWithData: (
+    sourceNodeId: string,
+    targetNodeId: string,
+    data: Record<string, unknown>,
+    edgeOptions?: {
+      id?: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    },
+  ) => string | null;
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  deleteNode: (nodeId: string) => void;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+}
+
+export type SkillNodeStoreHook = <TSelected>(
+  selector: (state: SkillNodeStore) => TSelected,
+) => TSelected;
+
+export type SkillNodeReadGraph = () => {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+};
+
+export type SkillNodeReadNode = (nodeId: string) => CanvasNode | undefined;
+
+export type SkillNodeAwaitTaskCompletion = (
+  taskKey: string,
+  projectId: string,
+) => Promise<unknown>;
+
+export type SkillNodeAwaitRunResult = (
+  params: AwaitCanvasSkillRunResultParams,
+) => Promise<SkillRunResult>;
+
+export type SkillNodeGetBeatManifest = (params: {
+  projectId: string;
+  episode: number;
+  beat: number;
+}) => Promise<DirectorStageManifest>;
+
+export type SkillNodeGetSceneAssets = (
+  params: GetCanvasSceneAssetsForBeatParams,
+) => Promise<SceneAssetsForBeat>;
+
+export type SkillNodeStartRun = (
+  params: StartCanvasSkillRunParams,
+) => Promise<SkillRunResponse>;
+
+export type SkillNodeUploadAsset = (
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+  options?: { disableTimeout?: boolean },
+) => Promise<{ url: string }>;
+
+export type SkillNodeStageSelectedBackground = (
+  target: SelectedBackgroundTarget,
+  imageUrl: string,
+  options: StageSelectedBackgroundOptions,
+) => string | null;
+
+export type SkillNodeLoadRegistry = () => Promise<SkillDefinition[]>;
+
+export type SkillNodeUseImageModels = (
+  projectId: string,
+  purpose: 'edit',
+) => { models: CanvasCatalogModelOption[] };
 
 interface SkillNodeRouteContext {
   projectId: string;
@@ -71,55 +185,80 @@ interface SkillDirectorCaptureMeta {
   controlFrameBundle?: DirectorControlFrameBundle;
 }
 
-function assertCurrentRunContext(
-  currentContext: SkillNodeRouteContext,
-  projectId: string,
-  canvasId: string,
-  skillNodeId: string,
-  runId: string | null,
-  startedAt: number | null,
-): void {
-  if (
-    !currentContext.active ||
-    currentContext.projectId !== projectId ||
-    currentContext.canvasId !== canvasId
-  ) {
-    throw new Error(
-      'Skill run completed after switching canvas; output was not materialized',
-    );
-  }
+export function createUseSkillNodeController({
+  useStore,
+  readGraph,
+  readNode,
+  awaitCanvasGenerationTaskCompletion,
+  awaitCanvasSkillRunResult,
+  getCanvasBeatDirectorManifest,
+  getCanvasSceneAssetsForBeat,
+  startCanvasSkillRun,
+  uploadCanvasAsset,
+  stageSelectedBackgroundOutputForSkill,
+  loadCanvasSkillRegistry,
+  useCanvasImageModels,
+}: {
+  useStore: SkillNodeStoreHook;
+  readGraph: SkillNodeReadGraph;
+  readNode: SkillNodeReadNode;
+  awaitCanvasGenerationTaskCompletion: SkillNodeAwaitTaskCompletion;
+  awaitCanvasSkillRunResult: SkillNodeAwaitRunResult;
+  getCanvasBeatDirectorManifest: SkillNodeGetBeatManifest;
+  getCanvasSceneAssetsForBeat: SkillNodeGetSceneAssets;
+  startCanvasSkillRun: SkillNodeStartRun;
+  uploadCanvasAsset: SkillNodeUploadAsset;
+  stageSelectedBackgroundOutputForSkill: SkillNodeStageSelectedBackground;
+  loadCanvasSkillRegistry: SkillNodeLoadRegistry;
+  useCanvasImageModels: SkillNodeUseImageModels;
+}) {
+  function assertCurrentRunContext(
+    currentContext: SkillNodeRouteContext,
+    projectId: string,
+    canvasId: string,
+    skillNodeId: string,
+    runId: string | null,
+    startedAt: number | null,
+  ): void {
+    if (
+      !currentContext.active ||
+      currentContext.projectId !== projectId ||
+      currentContext.canvasId !== canvasId
+    ) {
+      throw new Error(
+        'Skill run completed after switching canvas; output was not materialized',
+      );
+    }
 
-  const currentNode = useCanvasStore
-    .getState()
-    .nodes.find((node) => node.id === skillNodeId);
-  if (!currentNode) {
-    throw new Error('Skill node was deleted before the run completed');
-  }
-  const currentData = currentNode.data as {
-    generationStartedAt?: unknown;
-    skillRunId?: unknown;
-  };
-  const currentRunId =
-    typeof currentData.skillRunId === 'string' ? currentData.skillRunId : '';
-  if (runId && currentRunId && currentRunId !== runId) {
-    throw new Error('A newer skill run replaced this completion');
-  }
-  if (!runId || !currentRunId) {
-    const currentStartedAt = currentData.generationStartedAt;
-    if (startedAt !== null && currentStartedAt !== startedAt) {
+    const currentNode = readNode(skillNodeId);
+    if (!currentNode) {
+      throw new Error('Skill node was deleted before the run completed');
+    }
+    const currentData = currentNode.data as {
+      generationStartedAt?: unknown;
+      skillRunId?: unknown;
+    };
+    const currentRunId =
+      typeof currentData.skillRunId === 'string' ? currentData.skillRunId : '';
+    if (runId && currentRunId && currentRunId !== runId) {
       throw new Error('A newer skill run replaced this completion');
     }
+    if (!runId || !currentRunId) {
+      const currentStartedAt = currentData.generationStartedAt;
+      if (startedAt !== null && currentStartedAt !== startedAt) {
+        throw new Error('A newer skill run replaced this completion');
+      }
+    }
   }
-}
 
-export function useSkillNodeController({
-  id,
-  data,
-  projectId,
-  canvasId,
-  selected,
-  width,
-}: SkillNodeControllerOptions) {
+  return function useSkillNodeController({
+    id,
+    data,
+    projectId,
+    canvasId,
+    selected,
+    width,
+  }: SkillNodeControllerOptions) {
   const { t } = useTranslation();
   const resumeRunRef = useRef<string | null>(null);
   const submitInFlightRef = useRef(false);
@@ -131,21 +270,22 @@ export function useSkillNodeController({
   currentRouteContextRef.current.projectId = projectId;
   currentRouteContextRef.current.canvasId = canvasId;
   const updateNodeInternals = useUpdateNodeInternals();
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
-  const addNode = useCanvasStore((state) => state.addNode);
-  const addEdgeWithData = useCanvasStore((state) => state.addEdgeWithData);
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const incomingEdges = useCanvasStore(
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
+  const addNode = useStore((state) => state.addNode);
+  const addEdgeWithData = useStore((state) => state.addEdgeWithData);
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const deleteNode = useStore((state) => state.deleteNode);
+  const incomingEdges = useStore(
     useShallow((state) =>
       state.edges.filter((edge) => edge.target === id),
     ),
   );
-  const outgoingEdges = useCanvasStore(
+  const outgoingEdges = useStore(
     useShallow((state) =>
       state.edges.filter((edge) => edge.source === id),
     ),
   );
-  const sourceNodes = useCanvasStore(
+  const sourceNodes = useStore(
     useShallow((state) => {
       const sourceIds = new Set(
         state.edges
@@ -422,8 +562,7 @@ export function useSkillNodeController({
       runId,
       startedAt,
     );
-    const state = useCanvasStore.getState();
-    const sourceNode = state.nodes.find((node) => node.id === id);
+    const sourceNode = readNode(id);
     if (!sourceNode) {
       throw new Error('Skill node no longer exists');
     }
@@ -433,7 +572,7 @@ export function useSkillNodeController({
     );
 
     outputs.forEach((output, index) => {
-      const latestState = useCanvasStore.getState();
+      const latestState = readGraph();
       const boundOutputNodes = latestState.edges
         .filter(
           (edge) =>
@@ -520,7 +659,7 @@ export function useSkillNodeController({
         },
       );
       if (!edgeId) {
-        useCanvasStore.getState().deleteNode(targetId);
+        deleteNode(targetId);
         throw new Error(`Failed to connect skill output ${output.role}`);
       }
     });
@@ -581,8 +720,7 @@ export function useSkillNodeController({
         : {}),
     };
     materializeOutputs([output], projectId, canvasId, null, null);
-    const outputNodeId = useCanvasStore
-      .getState()
+    const outputNodeId = readGraph()
       .edges.find(
         (edge) =>
           edge.source === id &&
@@ -835,7 +973,7 @@ export function useSkillNodeController({
     let startedAt = 0;
     let activeRunKey: string | null = null;
     try {
-      const state = useCanvasStore.getState();
+      const state = readGraph();
       const latestNodeById = new Map(
         state.nodes.map((node) => [node.id, node] as const),
       );
@@ -952,9 +1090,7 @@ export function useSkillNodeController({
       if (activeRunKey && resumeRunRef.current === activeRunKey) {
         resumeRunRef.current = null;
       }
-      const currentNode = useCanvasStore
-        .getState()
-        .nodes.find((node) => node.id === id);
+      const currentNode = readNode(id);
       const currentStartedAt = (
         currentNode?.data as { generationStartedAt?: unknown } | undefined
       )?.generationStartedAt;
@@ -1015,6 +1151,9 @@ export function useSkillNodeController({
     changeDirectorWorldOpen: handleDirectorWorldOpenChange,
     captureDirectorWorld: handleDirectorWorldCaptureSuccess,
   };
+  };
 }
 
-export type SkillNodeController = ReturnType<typeof useSkillNodeController>;
+export type SkillNodeController = ReturnType<
+  ReturnType<typeof createUseSkillNodeController>
+>;

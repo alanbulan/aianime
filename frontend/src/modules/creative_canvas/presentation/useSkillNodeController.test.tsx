@@ -2,9 +2,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-;
-import type { SkillDefinition, CanvasEdge, CanvasNode, SkillNodeData } from '@/modules/creative_canvas/public';
-import { useSkillNodeController } from './useSkillNodeController';
+import type {
+  CanvasEdge,
+  CanvasNode,
+  SkillNodeData,
+} from '../domain/canvasNodeData';
+import type { SkillDefinition } from '../domain/skillContract';
+import {
+  createUseSkillNodeController,
+  type SkillNodeStore,
+  type SkillNodeStoreHook,
+} from './useSkillNodeController';
 
 const mocks = vi.hoisted(() => ({
   updateNodeInternals: vi.fn(),
@@ -49,20 +57,6 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/modules/creative_canvas/canvasComposition', () => ({
-  startCanvasSkillRun: (...args: unknown[]) => mocks.startRun(...args),
-  awaitCanvasSkillRunResult: (...args: unknown[]) => mocks.awaitRun(...args),
-  awaitCanvasGenerationTaskCompletion: (...args: unknown[]) =>
-    mocks.awaitTask(...args),
-  getCanvasSceneAssetsForBeat: (...args: unknown[]) =>
-    mocks.getSceneAssets(...args),
-  getCanvasBeatDirectorManifest: (...args: unknown[]) =>
-    mocks.getBeatManifest(...args),
-  uploadCanvasAsset: (...args: unknown[]) => mocks.uploadAsset(...args),
-  stageSelectedBackgroundOutputForSkill: (...args: unknown[]) =>
-    mocks.stageSelectedBackground(...args),
-}));
-
 vi.mock('@/modules/task_execution/public', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/task_execution/public')>()),
   useTaskCenterStore: (
@@ -71,40 +65,54 @@ vi.mock('@/modules/task_execution/public', async (importOriginal) => ({
   ) => selector({ tasks: mocks.tasks, isHydrated: true }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
-  useCanvasStore: (() => {
-    const updateNodeData = (id: string, patch: Record<string, unknown>) => {
-      mocks.updateNodeData(id, patch);
-      const node = mocks.nodes.find((item) => item.id === id);
-      if (node) {
-        node.data = { ...node.data, ...patch } as never;
-      }
-    };
-    const state = () => ({
-      nodes: mocks.nodes,
-      edges: mocks.edges,
-      setSelectedNode: mocks.setSelectedNode,
-      updateNodeData,
-      addNode: mocks.addNode,
-      addEdgeWithData: mocks.addEdgeWithData,
-      deleteNode: mocks.deleteNode,
-    });
-    const useCanvasStore = (
-      selector: (value: ReturnType<typeof state>) => unknown,
-    ) => selector(state());
-    useCanvasStore.getState = state;
-
-    return useCanvasStore;
-  })(),
-  loadCanvasSkillRegistry: vi.fn(),
+vi.mock('../application/canvasCommitEvents', () => ({
   publishCanvasCommitRequested: (...args: unknown[]) => mocks.publish(...args),
+}));
+
+vi.mock('./useCanvasSkillRegistry', () => ({
   useCanvasSkillRegistry: () => ({
     skills: mocks.skills,
     isLoading: false,
     loadError: null,
   }),
 }));
+
+const useStore = ((selector: (state: SkillNodeStore) => unknown) =>
+  selector({
+    nodes: mocks.nodes,
+    edges: mocks.edges,
+    setSelectedNode: mocks.setSelectedNode,
+    updateNodeData: (id: string, patch: Record<string, unknown>) => {
+      mocks.updateNodeData(id, patch);
+      const node = mocks.nodes.find((item) => item.id === id);
+      if (node) {
+        node.data = { ...node.data, ...patch } as never;
+      }
+    },
+    addNode: mocks.addNode,
+    addEdgeWithData: mocks.addEdgeWithData,
+    deleteNode: mocks.deleteNode,
+  })) as unknown as SkillNodeStoreHook;
+
+const useSkillNodeController = createUseSkillNodeController({
+  useStore,
+  readGraph: () => ({ nodes: mocks.nodes, edges: mocks.edges }),
+  readNode: (nodeId: string) =>
+    mocks.nodes.find((node) => node.id === nodeId),
+  awaitCanvasGenerationTaskCompletion: (...args: unknown[]) =>
+    mocks.awaitTask(...args),
+  awaitCanvasSkillRunResult: (...args: unknown[]) => mocks.awaitRun(...args),
+  getCanvasBeatDirectorManifest: (...args: unknown[]) =>
+    mocks.getBeatManifest(...args),
+  getCanvasSceneAssetsForBeat: (...args: unknown[]) =>
+    mocks.getSceneAssets(...args),
+  startCanvasSkillRun: (...args: unknown[]) => mocks.startRun(...args),
+  uploadCanvasAsset: (...args: unknown[]) => mocks.uploadAsset(...args),
+  stageSelectedBackgroundOutputForSkill: (...args: unknown[]) =>
+    mocks.stageSelectedBackground(...args),
+  loadCanvasSkillRegistry: vi.fn(),
+  useCanvasImageModels: () => ({ models: [] }),
+});
 
 function skill(
   patch: Partial<SkillDefinition> = {},

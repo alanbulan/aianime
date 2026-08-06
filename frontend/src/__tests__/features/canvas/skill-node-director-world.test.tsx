@@ -13,11 +13,11 @@ const modelSource = readFileSync(
   "utf8",
 );
 const controllerSource = readFileSync(
-  resolve(process.cwd(), "src/features/canvas/hooks/useSkillNodeController.ts"),
+  resolve(process.cwd(), "src/modules/creative_canvas/presentation/useSkillNodeController.ts"),
   "utf8",
 );
 const viewSource = readFileSync(
-  resolve(process.cwd(), "src/features/canvas/nodes/SkillNodeView.tsx"),
+  resolve(process.cwd(), "src/modules/creative_canvas/presentation/SkillNodeView.tsx"),
   "utf8",
 );
 const mainlineFlagsSource = readFileSync(

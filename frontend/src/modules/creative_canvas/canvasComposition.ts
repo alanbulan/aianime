@@ -32,6 +32,7 @@ import {
 } from './presentation/useThreeDWorldNodeController';
 import { createUsePano360ViewerNodeController } from './presentation/usePano360ViewerNodeController';
 import { createUseBeatContextNodeController } from './presentation/useBeatContextNodeController';
+import { createUseSkillNodeController } from './presentation/useSkillNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -51,7 +52,11 @@ import {
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import { submitVideoGeneration } from './videoGenerationComposition';
-import { useCanvasVideoModels } from './generationCatalogComposition';
+import {
+  useCanvasImageModels,
+  useCanvasVideoModels,
+} from './generationCatalogComposition';
+import { loadCanvasSkillRegistry } from './skillCatalogComposition';
 import { openPresetProjectionInMyCanvas } from './presetProjectionComposition';
 import {
   createCanvasFromPreset,
@@ -416,6 +421,27 @@ export const useBeatContextNodeController = createUseBeatContextNodeController({
       .getState()
       .nodes.find((node) => node.id === nodeId)
       ?.data as BeatContextNodeData | undefined,
+});
+export const useSkillNodeController = createUseSkillNodeController({
+  useStore: useCanvasStore,
+  readGraph: () =>
+    useCanvasStore.getState() as unknown as {
+      nodes: CanvasNode[];
+      edges: CanvasEdge[];
+    },
+  readNode: (nodeId) =>
+    useCanvasStore
+      .getState()
+      .nodes.find((node) => node.id === nodeId) as CanvasNode | undefined,
+  awaitCanvasGenerationTaskCompletion,
+  awaitCanvasSkillRunResult,
+  getCanvasBeatDirectorManifest,
+  getCanvasSceneAssetsForBeat,
+  startCanvasSkillRun,
+  uploadCanvasAsset,
+  stageSelectedBackgroundOutputForSkill,
+  loadCanvasSkillRegistry,
+  useCanvasImageModels,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

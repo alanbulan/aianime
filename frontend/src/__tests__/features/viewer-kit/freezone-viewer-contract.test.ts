@@ -232,8 +232,8 @@ describe("freezone viewer contracts", () => {
     );
     const skillNode = [
       read("src/modules/creative_canvas/application/skillNodeModel.ts"),
-      read("src/features/canvas/hooks/useSkillNodeController.ts"),
-      read("src/features/canvas/nodes/SkillNodeView.tsx"),
+      read("src/modules/creative_canvas/presentation/useSkillNodeController.ts"),
+      read("src/modules/creative_canvas/presentation/SkillNodeView.tsx"),
     ].join("\n");
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");

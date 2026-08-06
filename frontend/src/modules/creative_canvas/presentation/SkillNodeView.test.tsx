@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
+import type { SkillNodeController } from './useSkillNodeController';
 import { SkillNodeView } from './SkillNodeView';
 
 vi.mock('@xyflow/react', () => ({
@@ -17,12 +17,14 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/modules/creative_canvas/public')>()),
+vi.mock('./NodeHeader', () => ({
   NODE_HEADER_FLOATING_POSITION_CLASS: 'floating',
   NodeHeader: ({ titleText }: { titleText: string }) => (
     <div>title:{titleText}</div>
   ),
+}));
+
+vi.mock('./BackgroundCropperDialog', () => ({
   BackgroundCropperDialog: ({
     sourceLabel,
     onClose,
@@ -53,7 +55,11 @@ vi.mock('@/modules/creative_canvas/public', async (importOriginal) => ({
   ),
 }));
 
-vi.mock('@/features/viewer-kit/three-d/ThreeDDirectorDialog', () => ({
+vi.mock('./ProviderModelPicker', () => ({
+  ProviderModelPicker: () => <div>model-picker</div>,
+}));
+
+vi.mock('@/features/viewer-kit/public', () => ({
   ThreeDDirectorDialog: ({
     autoCommitDirectorCombined,
     onOpenChange,

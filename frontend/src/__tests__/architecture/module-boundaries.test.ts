@@ -3285,19 +3285,19 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
     );
     const controllerTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useSkillNodeController.test.tsx",
+      "modules/creative_canvas/presentation/useSkillNodeController.test.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNodeView.tsx",
+      "modules/creative_canvas/presentation/SkillNodeView.tsx",
     );
     const viewTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNodeView.test.tsx",
+      "modules/creative_canvas/presentation/SkillNodeView.test.tsx",
     );
     const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
@@ -3311,7 +3311,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       ["export const", "SkillNode", "=", "memo("].join(" "),
       ["export function", "skillInputSignature("].join(" "),
-      ["export function", "useSkillNodeController("].join(" "),
+      ["export function", "createUseSkillNodeController("].join(" "),
       ["export function", "SkillNodeView("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
@@ -3325,16 +3325,15 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "@xyflow/react",
+        "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/hooks/useSkillNodeController",
-        "./SkillNodeView",
       ]),
     );
     expect(declarationOwners).toEqual([
       ["features/canvas/nodes/SkillNode.tsx"],
       ["modules/creative_canvas/application/skillNodeModel.ts"],
-      ["features/canvas/hooks/useSkillNodeController.ts"],
-      ["features/canvas/nodes/SkillNodeView.tsx"],
+      ["modules/creative_canvas/presentation/useSkillNodeController.ts"],
+      ["modules/creative_canvas/presentation/SkillNodeView.tsx"],
     ]);
     expect(modelSource).not.toContain("react");
     expect(modelSource).not.toContain("useCanvasStore");
@@ -3343,13 +3342,13 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).not.toContain("className=");
     expect(modelSource).not.toContain("@/features/canvas/");
     expect(modelSource).not.toContain("@/modules/creative_canvas/public");
-    expect(importSpecifiers(controllerPath)).toContain(
-      "@/modules/creative_canvas/public",
-    );
     expect(importSpecifiers(controllerPath)).not.toContain(
       "@/features/canvas/application/skillNodeModel",
     );
-    expect(importSpecifiers(viewPath)).toContain(
+    expect(importSpecifiers(controllerPath)).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+    expect(importSpecifiers(viewPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(viewPath)).not.toContain(
@@ -3366,7 +3365,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useState(");
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
-    expect(controllerSource).toContain("useCanvasStore(");
+    expect(controllerSource).toContain("useStore((state)");
     expect(controllerSource).toContain("startCanvasSkillRun({");
     expect(controllerSource).toContain("awaitCanvasSkillRunResult({");
     expect(controllerSource).toContain("getCanvasSceneAssetsForBeat({");
@@ -3387,6 +3386,14 @@ describe("frontend architecture boundaries", () => {
     expect(modelTestSource).toContain("from './skillNodeModel'");
     expect(controllerTestSource).toContain("from './useSkillNodeController'");
     expect(viewTestSource).toContain("from './SkillNodeView'");
+    for (const retiredPath of [
+      "features/canvas/hooks/useSkillNodeController.ts",
+      "features/canvas/hooks/useSkillNodeController.test.tsx",
+      "features/canvas/nodes/SkillNodeView.tsx",
+      "features/canvas/nodes/SkillNodeView.test.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps the Beat state read model in Production", () => {
@@ -11687,7 +11694,7 @@ describe("frontend architecture boundaries", () => {
     );
     const skillNodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
     );
     const legacyApiPath = resolve(SRC_ROOT, "api/skills.ts");
     const domainModel = readFileSync(domainPath, "utf8");
@@ -11797,7 +11804,8 @@ describe("frontend architecture boundaries", () => {
     expect(skillNodeModel).toContain(
       "useCanvasSkillRegistry(\n    loadCanvasSkillRegistry,",
     );
-    expect(skillNodeModel).toContain("@/modules/creative_canvas/public");
+    expect(skillNodeModel).not.toContain("@/modules/creative_canvas/public");
+    expect(skillNodeModel).toContain("from './useCanvasSkillRegistry'");
     expect(skillNodeModel).not.toContain("getSkillRegistry");
     expect(existsSync(legacyApiPath)).toBe(false);
     expect(canvasView).toContain(
@@ -21454,7 +21462,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
     );
     const outputProjectionPath = resolve(
       SRC_ROOT,
@@ -21505,7 +21513,8 @@ describe("frontend architecture boundaries", () => {
     expect(endpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneSkillExecutionGateway.ts",
     ]);
-    expect(imports).toContain("@/modules/creative_canvas/canvasComposition");
+    expect(imports).not.toContain("@/modules/creative_canvas/canvasComposition");
+    expect(imports).toContain("../application/skillExecution");
     expect(imports).not.toContain("@/api/skills");
     expect(imports).not.toContain("@/api/tasks");
     expect(
@@ -21531,9 +21540,10 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas",
     );
     expect(existsSync(legacyOutputProjectionPath)).toBe(false);
-    expect(imports).toContain(
+    expect(imports).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(imports).toContain("../application/skillOutputProjection");
     expect(imports).not.toContain(
       "@/features/canvas/application/skillOutputProjection",
     );
@@ -21562,7 +21572,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
     );
     const publicPath = resolve(
       SRC_ROOT,
@@ -21639,15 +21649,16 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       'from "@/modules/creative_canvas/application/sceneAssets"',
     );
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(nodePath)).not.toContain(
       "@/features/freezone/public",
     );
-    expect(importSpecifiers(nodePath)).toContain(
+    expect(importSpecifiers(nodePath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
+    expect(importSpecifiers(nodePath)).toContain("../application/sceneAssets");
     expect(importSpecifiers(nodePath)).not.toContain("@/api/sceneAssets");
     expect(
       nodeSource.match(/getCanvasSceneAssetsForBeat\(\{/g),
@@ -21693,7 +21704,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodePaths = [
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
@@ -25473,7 +25484,7 @@ describe("frontend architecture boundaries", () => {
     );
     const skillNodeViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNodeView.tsx",
+      "modules/creative_canvas/presentation/SkillNodeView.tsx",
     );
     const cropperSource = readFileSync(cropperPath, "utf8");
     const cropperTestSource = readFileSync(cropperTestPath, "utf8");
@@ -31550,7 +31561,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useAudioNodeController.ts",
       "features/canvas/nodes/GroupNode.tsx",
       "features/canvas/hooks/useImageGenNodeController.ts",
-      "features/canvas/hooks/useSkillNodeController.ts",
+      "modules/creative_canvas/presentation/useSkillNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
       "modules/creative_canvas/presentation/useUploadNodeController.ts",
       "features/canvas/hooks/useVideoNodeController.ts",

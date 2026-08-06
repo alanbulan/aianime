@@ -4,25 +4,31 @@ import { Handle, Position } from '@xyflow/react';
 import { Boxes, Camera, Crop, FileText, Loader2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { findSkillBoundEdges, isNoSkillReferenceEdge, isSkillReferenceInputRole, labelFromSkillReferenceHandle, nonEmptySkillHandleId, resolveSkillInputPreviewUrl, resolveSkillInputSourceLabel, SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS, type CanvasEdge } from '@/modules/creative_canvas/public';
-;
-import type { SkillNodeController } from '@/features/canvas/hooks/useSkillNodeController';
 import {
-  BackgroundCropperDialog,
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-  ProviderModelPicker,
-} from '@/modules/creative_canvas/public';
+  findSkillBoundEdges,
+  isNoSkillReferenceEdge,
+  isSkillReferenceInputRole,
+  labelFromSkillReferenceHandle,
+  nonEmptySkillHandleId,
+  resolveSkillInputPreviewUrl,
+  resolveSkillInputSourceLabel,
+  SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS,
+} from '../application/skillNodeModel';
+import type { CanvasEdge } from '../domain/canvasNodeData';
+import type { SkillNodeController } from './useSkillNodeController';
+import { BackgroundCropperDialog } from './BackgroundCropperDialog';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { ProviderModelPicker } from './ProviderModelPicker';
+import { NODE_INLINE_ERROR_MESSAGE_CLASS } from './canvasNodeControlStyles';
 import {
-  NODE_INLINE_ERROR_MESSAGE_CLASS,
   translateSkillCardinality,
   translateSkillInputLabel,
   translateSkillOutputLabel,
   translateSkillParameterLabel,
   translateSkillParameterOption,
   translateSkillRequirement,
-  type SkillProvider,
-} from '@/modules/creative_canvas/public';
+} from './skillI18n';
+import type { SkillProvider } from '../domain/skillContract';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 const PROVIDER_LABELS: Record<SkillProvider, string> = {
