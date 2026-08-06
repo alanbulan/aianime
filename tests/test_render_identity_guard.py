@@ -1,10 +1,10 @@
 import pytest
 
-from ai_anime.generators.nanobanana_grid import (
+from ai_anime.modules.generators.nanobanana_grid import (
     NanoBananaGridGenerator,
     filter_character_map_by_precomputed,
 )
-from ai_anime.generators.render_identity_guard import render_ai_detection_error
+from ai_anime.modules.generators.render_identity_guard import render_ai_detection_error
 from ai_anime.modules.production.public import NO_CHARACTER_MARKER
 
 

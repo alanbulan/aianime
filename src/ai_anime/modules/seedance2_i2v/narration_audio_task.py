@@ -99,7 +99,7 @@ async def run_seedance2_narration_audio_generation(
     if not model_name:
         raise ValueError("audio model is required")
     if generator is None:
-        from ai_anime.generators.indextts2 import IndexTTS2Client
+        from ai_anime.modules.generators.public import IndexTTS2Client
 
         generator = IndexTTS2Client(model=model_name)
 

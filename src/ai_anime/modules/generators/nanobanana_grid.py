@@ -40,14 +40,14 @@ from ai_anime.modules.model_usage.public import (
     get_usage_meter,
     is_insufficient_credits_error,
 )
-from ai_anime.generators.prompt_builder import (
+from ai_anime.modules.generators.prompt_builder import (
     PromptComponents,
     PromptContext,
     PromptMode,
     UnifiedPromptBuilder,
     create_prompt_context,
 )
-from ai_anime.generators.render_identity_guard import render_ai_detection_error
+from ai_anime.modules.generators.render_identity_guard import render_ai_detection_error
 from ai_anime.modules.narrative_planning.public import (
     beat_order_value,
     beat_scene_id,
@@ -1560,7 +1560,7 @@ def detect_panel_characters(
     Returns:
         {panel_index(0-based): set of detected color_map keys}
     """
-    from ai_anime.generators.sketch_color_detector import detect_sketch_colors_per_panel
+    from ai_anime.modules.generators.sketch_color_detector import detect_sketch_colors_per_panel
 
     color_map = build_color_map_from_character_map(character_map, sketch_colors)
     if not color_map:
@@ -1582,7 +1582,7 @@ def filter_character_map_by_sketch(
     Returns:
         过滤后的 character_map（新 dict）
     """
-    from ai_anime.generators.sketch_color_detector import detect_sketch_colors
+    from ai_anime.modules.generators.sketch_color_detector import detect_sketch_colors
 
     color_map = build_color_map_from_character_map(character_map, sketch_colors)
     if not color_map:
@@ -1726,7 +1726,7 @@ def crop_sketch_panels(
         保存后的图片路径
     """
     from PIL import Image
-    from ai_anime.generators.grid_splitter import _trim_outer_border
+    from ai_anime.modules.generators.grid_splitter import _trim_outer_border
     import numpy as np
 
     sketch_dir = str(Path(sketch_path).parent) if Path(sketch_path).is_file() else sketch_path
@@ -3646,7 +3646,7 @@ class NanoBananaGridGenerator:
 
                 # 5.1 后处理：移除面板间缝隙并覆盖
                 try:
-                    from ai_anime.generators.grid_splitter import remove_grid_gaps
+                    from ai_anime.modules.generators.grid_splitter import remove_grid_gaps
                     from PIL import Image as PILImage
 
                     grid_img = PILImage.open(output_path)
@@ -3810,7 +3810,7 @@ class NanoBananaGridGenerator:
 
                 # Gap removal 后处理
                 try:
-                    from ai_anime.generators.grid_splitter import remove_grid_gaps
+                    from ai_anime.modules.generators.grid_splitter import remove_grid_gaps
                     from PIL import Image as PILImage
 
                     grid_img = PILImage.open(output_path)
@@ -4315,7 +4315,7 @@ class NanoBananaGridGenerator:
                     output.parent.mkdir(parents=True, exist_ok=True)
                     output.write_bytes(image_bytes)
                     try:
-                        from ai_anime.generators.grid_splitter import remove_grid_gaps
+                        from ai_anime.modules.generators.grid_splitter import remove_grid_gaps
                         from PIL import Image as PILImage
 
                         grid_img = PILImage.open(output_path)
@@ -5611,7 +5611,7 @@ async def regenerate_selected_beats(
         # 从图片池构建 per-beat 草图路径
         grid_beat_sketch_paths = None
         if episode_grids_dir and not is_sketch:
-            from ai_anime.generators.pool_indexer import build_beat_sketch_paths
+            from ai_anime.modules.generators.pool_indexer import build_beat_sketch_paths
 
             grid_beat_sketch_paths = build_beat_sketch_paths(episode_grids_dir, beat_numbers)
         if beat_sketch_paths_override and not is_sketch:

@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import Any
 
-from ai_anime.generators.video_generator import ShotReference
+from ai_anime.modules.generators.public import ShotReference
 from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
 from ai_anime.modules.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,

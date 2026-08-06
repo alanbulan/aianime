@@ -62,7 +62,7 @@ async def test_character_portrait_uses_canonical_path_and_preserves_old_content(
         captured.update(kwargs)
         return [str(generated)]
 
-    from ai_anime.generators import image_generator
+    from ai_anime.modules.generators import image_generator
 
     monkeypatch.setattr(
         image_generator,
@@ -119,7 +119,7 @@ async def test_identity_portrait_uses_canonical_path_and_removes_temp_directory(
         generated.write_bytes(b"new-portrait")
         return [str(generated)]
 
-    import ai_anime.generators as generators
+    import ai_anime.modules.generators as generators
 
     monkeypatch.setattr(
         generators,
@@ -158,7 +158,7 @@ async def test_identity_portrait_removes_temp_directory_when_generator_fails(
         temp_dir = Path(kwargs["output_dir"])
         raise RuntimeError("provider failed")
 
-    import ai_anime.generators as generators
+    import ai_anime.modules.generators as generators
 
     monkeypatch.setattr(
         generators,
@@ -235,7 +235,7 @@ async def test_identity_image_prepares_canonical_output_and_passes_generator_con
         Path(kwargs["output_path"]).write_bytes(b"new-identity")
         return {"success": True}
 
-    from ai_anime.generators import image_generator
+    from ai_anime.modules.generators import image_generator
 
     monkeypatch.setattr(
         image_generator,

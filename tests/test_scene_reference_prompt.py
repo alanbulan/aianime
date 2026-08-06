@@ -1,4 +1,4 @@
-from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
+from ai_anime.modules.generators.scene_reference_images import build_scene_reference_prompt
 from ai_anime.modules.asset_world.public import NovelScene
 
 
@@ -58,7 +58,7 @@ def test_scene_reference_prompt_keeps_variant_delta_out_of_scene_description():
 
 
 async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch, tmp_path):
-    from ai_anime.generators import scene_reference_images
+    from ai_anime.modules.generators import scene_reference_images
 
     captured: dict[str, object] = {}
 

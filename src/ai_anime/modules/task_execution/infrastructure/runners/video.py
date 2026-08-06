@@ -99,7 +99,7 @@ async def _run_single_video_async(
     manager = get_task_manager()
     _log(manager, ctx, envelope, f"开始生成 Beat {beat_num} 视频")
 
-    from ai_anime.generators.video_generator import (
+    from ai_anime.modules.generators.public import (
         ShotReference,
         create_video_generator,
     )

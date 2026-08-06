@@ -31,7 +31,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def _seed_pool(grids_dir):
-    from ai_anime.generators.pool_indexer import save_pool_index
+    from ai_anime.modules.generators.pool_indexer import save_pool_index
     from ai_anime.modules.production.public import (
         GridEntry,
         PoolImage,
@@ -421,7 +421,7 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
 
 
 def test_upload_grid_replaces_pool_grid_path(monkeypatch, tmp_path):
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.pool_indexer import load_pool_index
 
     grids_dir = tmp_path / "grids" / "ep001"
     (grids_dir / "custom").mkdir(parents=True)
@@ -551,7 +551,7 @@ def test_export_grid_prompt_preserves_validation_and_missing_pool_errors(
 
 
 def test_cut_grid_can_use_pool_grid_entry(monkeypatch, tmp_path):
-    from ai_anime.generators import pool_indexer
+    from ai_anime.modules.generators import pool_indexer
 
     grids_dir = tmp_path / "grids" / "ep001"
     (grids_dir / "custom").mkdir(parents=True)

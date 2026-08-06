@@ -30,7 +30,7 @@ async def _run_scene_reference_asset(
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
     from ai_anime.config import IMAGE_DEFAULT_STYLE, get_style_preset
-    from ai_anime.generators.scene_reference_images import generate_scene_reference_image
+    from ai_anime.modules.generators.public import generate_scene_reference_image
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )

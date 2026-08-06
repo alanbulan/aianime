@@ -1411,7 +1411,7 @@ def test_image_generation_guard_password_verification_matches_nicegui(
 
 
 def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp_path):
-    from ai_anime.generators import nanobanana_grid, pool_indexer
+    from ai_anime.modules.generators import nanobanana_grid, pool_indexer
 
     client, _saved = _client(monkeypatch, tmp_path)
     calls: dict[str, object] = {}
@@ -1460,7 +1460,7 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
 def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
     monkeypatch, tmp_path
 ):
-    from ai_anime.generators import nanobanana_grid, pool_indexer
+    from ai_anime.modules.generators import nanobanana_grid, pool_indexer
 
     client, _saved = _client(monkeypatch, tmp_path)
     ep_grids_dir = tmp_path / "grids" / "ep001"

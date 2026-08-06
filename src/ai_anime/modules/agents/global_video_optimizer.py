@@ -626,7 +626,7 @@ def prepare_global_optimizer_input(
 def _try_combine_frames_to_grid(resolver, beats, output_dir, episode) -> list[str]:
     """尝试将单帧拼接为网格。优先从 sketches/ 读取当前选中的草图。"""
     try:
-        from ai_anime.generators.grid_splitter import combine_to_grid
+        from ai_anime.modules.generators.public import combine_to_grid
 
         sketches_dir = resolver.sketches_dir()  # sketches/ep001/ — 当前选中的草图
         sketch_pool_dir = resolver.sketch_dir()  # grids/ep001/sketch/ — 输出目录

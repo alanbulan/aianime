@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from ai_anime.generators.tts_generator import TTSResult
+from ai_anime.modules.generators.tts_generator import TTSResult
 from ai_anime.model_audio_transport import (
     ModelAudioTransportError,
     write_model_audio_speech,

@@ -50,7 +50,7 @@ REQUIRED SCRIPT STRUCTURE
 
     Built from master + reverse reference images at 3cm/voxel.
     \"\"\"
-    from ai_anime.generators.scene_voxel.primitives import VoxelScene, make_rng
+    from ai_anime.modules.generators.scene_voxel.primitives import VoxelScene, make_rng
 
 
     def build(output_vox_path):
@@ -302,7 +302,7 @@ async def generate_build_script(
     """Run the codegen agent and return Python source code for a build script.
 
     The returned string is the complete content of a build_script.py that:
-        - imports from ai_anime.generators.scene_voxel.primitives
+        - imports from ai_anime.modules.generators.scene_voxel.primitives
         - defines build(output_vox_path)
         - has an __main__ block calling build(sys.argv[1])
     """

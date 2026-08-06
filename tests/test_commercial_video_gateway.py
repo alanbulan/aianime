@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import aiohttp
 import pytest
 
-from ai_anime.generators import video_generator as video_module
-from ai_anime.generators.video_generator import (
+from ai_anime.modules.generators import video_generator as video_module
+from ai_anime.modules.generators.video_generator import (
     CommercialVideoError,
     CommercialVideoGenerator,
     ShotReference,

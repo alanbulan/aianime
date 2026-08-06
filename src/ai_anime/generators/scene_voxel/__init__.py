@@ -29,9 +29,9 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
-from ai_anime.generators.scene_voxel.codegen_agent import generate_build_script
-from ai_anime.generators.scene_voxel.palette import extract_palette
-from ai_anime.generators.scene_voxel.voxconvert import is_available, vox_to_glb
+from ai_anime.modules.generators.scene_voxel.codegen_agent import generate_build_script
+from ai_anime.modules.generators.scene_voxel.palette import extract_palette
+from ai_anime.modules.generators.scene_voxel.voxconvert import is_available, vox_to_glb
 
 
 __all__ = [

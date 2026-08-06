@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
-    from ai_anime.generators.prompt_builder import default_ethnicity_instruction
+    from ai_anime.modules.generators.prompt_builder import default_ethnicity_instruction
 
     instruction = default_ethnicity_instruction("Chinese")
 
@@ -17,7 +17,7 @@ def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
 
 
 def test_character_default_ethnicity_instruction_allows_explicit_foreign_descriptions():
-    from ai_anime.generators.nanobanana_character import _default_ethnicity_instruction
+    from ai_anime.modules.generators.nanobanana_character import _default_ethnicity_instruction
 
     instruction = _default_ethnicity_instruction("Chinese")
 

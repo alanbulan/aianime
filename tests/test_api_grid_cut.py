@@ -41,7 +41,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def test_cut_grid_can_register_render_cells(monkeypatch, tmp_path):
-    from ai_anime.generators import pool_indexer
+    from ai_anime.modules.generators import pool_indexer
 
     grids_dir = tmp_path / "grids" / "ep001"
     grids_dir.mkdir(parents=True)

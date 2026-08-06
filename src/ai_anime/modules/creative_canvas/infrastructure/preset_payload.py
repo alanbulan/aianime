@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
+from ai_anime.modules.generators.public import build_scene_reference_prompt
 from ai_anime.modules.asset_world.public import NovelScene
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SKILL_SCHEMA_VERSION,
@@ -1582,7 +1582,7 @@ def _identity_marker_context(
         ", ".join(part for part in [gender, body_type] if part) or "character figure"
     )
     try:
-        from ai_anime.generators.prompt_builder import PromptComponents
+        from ai_anime.modules.generators.public import PromptComponents
 
         tag = PromptComponents.compute_char_tag(character, identity_id=identity_id)
     except Exception:
@@ -1613,7 +1613,7 @@ def _prop_marker_context(
         (item for item in prop_menu if str(item.get("prop_id") or "") == prop_id), {}
     )
     try:
-        from ai_anime.generators.prompt_builder import PromptComponents
+        from ai_anime.modules.generators.public import PromptComponents
 
         tag = PromptComponents.compute_prop_tag(prop_id)
     except Exception:
@@ -1817,12 +1817,12 @@ def _beat_sketch_prompt(context: dict[str, Any], marker_context: dict[str, Any])
 
 
 def _beat_render_prompt(context: dict[str, Any]) -> str:
-    from ai_anime.generators.nanobanana_grid import (
+    from ai_anime.modules.generators.public import (
         _resolve_scene_prop_asset_refs,
         filter_character_map_by_precomputed,
         load_precomputed_panel_detected,
     )
-    from ai_anime.generators.prompt_builder import (
+    from ai_anime.modules.generators.public import (
         PromptMode,
         UnifiedPromptBuilder,
         create_prompt_context,
@@ -1898,7 +1898,7 @@ def _beat_render_prompt(context: dict[str, Any]) -> str:
     ordered_chars = list(getattr(ctx, "resolved_render_chars", []) or [])
     plan_paths: list[str] = []
     try:
-        from ai_anime.generators.prompt_builder import PromptComponents
+        from ai_anime.modules.generators.public import PromptComponents
 
         for entry in PromptComponents.build_reference_image_plan(ctx, ordered_chars):
             kind = str(entry.get("kind") or "")

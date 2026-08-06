@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Literal
 
-from ai_anime.generators.tts_generator import TTSResult
+from ai_anime.modules.generators.public import TTSResult
 
 AudioUrlBuilder = Callable[[Path], str]
 IDENTITY_VOICE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm")
@@ -361,7 +361,7 @@ async def generate_seedance2_narration_audio(
         )
 
     if generator is None:
-        from ai_anime.generators.indextts2 import IndexTTS2Client
+        from ai_anime.modules.generators.public import IndexTTS2Client
 
         generator = IndexTTS2Client(model=str(model or "").strip())
 
@@ -547,7 +547,7 @@ async def generate_seedance2_dialogue_audio(
         return TTSResult(success=False, error=f"Reference audio not found: {reference_path}")
 
     if generator is None:
-        from ai_anime.generators.indextts2 import IndexTTS2Client
+        from ai_anime.modules.generators.public import IndexTTS2Client
 
         generator = IndexTTS2Client(model=str(model or "").strip())
 
@@ -585,7 +585,7 @@ async def generate_seedance2_dialogue_audio_for_voice(
         return result
 
     if generator is None:
-        from ai_anime.generators.indextts2 import IndexTTS2Client
+        from ai_anime.modules.generators.public import IndexTTS2Client
 
         generator = IndexTTS2Client(model=str(model or "").strip())
 

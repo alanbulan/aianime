@@ -22,7 +22,7 @@ from ai_anime.config import (
     IMAGE_DEFAULT_STYLE,
 )
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
-from ai_anime.generators.nanobanana_grid import (
+from ai_anime.modules.generators.nanobanana_grid import (
     _call_newapi_image_api,
     normalize_image_size,
     normalize_image_quality,

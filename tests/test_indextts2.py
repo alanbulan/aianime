@@ -54,7 +54,7 @@ class _FakeAsyncClient:
 
 @pytest.mark.asyncio
 async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
     calls: list[dict] = []
 
@@ -83,9 +83,9 @@ async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
 @pytest.mark.asyncio
 async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_path):
     import httpx
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
     _FakeAsyncClient.calls = []
     reserved: list[dict] = []
@@ -167,9 +167,9 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
 @pytest.mark.asyncio
 async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypatch, tmp_path):
     import httpx
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
     _FakeAsyncClient.calls = []
     refunded: list[dict] = []
@@ -222,9 +222,9 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
 
 @pytest.mark.asyncio
 async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
     async def fake_reserve(model, *, source):
         raise InsufficientCreditsError(user_id="usr_1", cost=3, balance=0)
@@ -247,9 +247,9 @@ async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
 @pytest.mark.asyncio
 async def test_indextts2_supports_keyless_byok(monkeypatch, tmp_path):
     import httpx
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
     from ai_anime.model_access_policy import configure_model_access
 
     async def fake_reserve(model, *, source):

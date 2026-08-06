@@ -29,7 +29,7 @@ async def _run_prop_reference_asset(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.generators.nanobanana_prop import generate_prop_reference
+    from ai_anime.modules.generators.public import generate_prop_reference
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
@@ -84,7 +84,7 @@ def run_batch_prop_ref(envelope: dict[str, Any], ctx: ProjectContext) -> dict[st
 
 
 async def _run_batch_prop_ref(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.generators.nanobanana_prop import generate_prop_reference
+    from ai_anime.modules.generators.public import generate_prop_reference
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )

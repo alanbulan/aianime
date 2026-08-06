@@ -369,7 +369,7 @@ async def run_indextts2_beat_audio_generation(
     if not model_name:
         raise ValueError("audio model is required")
     if generator is None:
-        from ai_anime.generators.indextts2 import IndexTTS2Client
+        from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
         generator = IndexTTS2Client(model=model_name)
 

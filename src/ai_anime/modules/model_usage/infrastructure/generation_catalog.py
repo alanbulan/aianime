@@ -26,7 +26,7 @@ def _image_selection_billing_params(
 ) -> dict:
     params: dict[str, str] = {}
     if mode_key:
-        from ai_anime.generators.nanobanana_grid import (
+        from ai_anime.modules.generators.public import (
             REGEN_MODE_CONFIGS,
             normalize_image_size,
         )
@@ -59,8 +59,8 @@ def _image_selection_billing_params(
             ),
         )
     elif clean_role == "prop_reference":
-        from ai_anime.generators.nanobanana_grid import normalize_image_size
-        from ai_anime.generators.nanobanana_prop import PROP_REF_IMAGE_SIZE
+        from ai_anime.modules.generators.public import normalize_image_size
+        from ai_anime.modules.generators.public import PROP_REF_IMAGE_SIZE
 
         params = merge_billing_params(
             params,

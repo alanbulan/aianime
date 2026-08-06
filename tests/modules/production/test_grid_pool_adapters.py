@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from ai_anime.generators import pool_indexer
+from ai_anime.modules.generators import pool_indexer
 from ai_anime.modules.production.application.grid_pool import (
     BuildGridSketchPreviewCommand,
     GridPoolCutRejected,

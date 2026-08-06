@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.config import IMAGE_DEFAULT_STYLE as PROP_REF_DEFAULT_STYLE
-from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
+from ai_anime.modules.generators.public import build_prop_reference_prompt
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.creative_canvas.domain import (
@@ -543,7 +543,7 @@ async def build_asset_preset_context(
         char_age_group = str(getattr(char, "age_group", "") or "youth")
         try:
             from ai_anime.config import IMAGE_DEFAULT_STYLE, get_style_preset
-            from ai_anime.generators.nanobanana_character import (
+            from ai_anime.modules.generators.public import (
                 NanoBananaCharacterGenerator,
             )
             from ai_anime.project_config import load_project_config

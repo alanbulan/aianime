@@ -15,10 +15,10 @@ from ai_anime.modules.task_execution.public import (
     build_inline_task_backend,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.generators import tts_generator, video_composer, video_generator
-from ai_anime.generators.tts_generator import CommercialTTSGenerator, MockTTSGenerator
-from ai_anime.generators.video_composer import SceneAsset, VideoComposer
-from ai_anime.generators.video_generator import MockVideoGenerator
+from ai_anime.modules.generators import tts_generator, video_composer, video_generator
+from ai_anime.modules.generators.tts_generator import CommercialTTSGenerator, MockTTSGenerator
+from ai_anime.modules.generators.video_composer import SceneAsset, VideoComposer
+from ai_anime.modules.generators.video_generator import MockVideoGenerator
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
 from ai_anime.modules.task_execution.public import global_lane_concurrency
 from ai_anime.modules.task_execution.public import register_project_task_runner

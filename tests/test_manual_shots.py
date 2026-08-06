@@ -92,7 +92,7 @@ def test_storyboard_manual_sketch_beats_exclude_manual_space_maps():
 
 
 def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
-    from ai_anime.generators.nanobanana_grid import sketch_scene_grid_split as sketch_location_grid_split
+    from ai_anime.modules.generators.nanobanana_grid import sketch_scene_grid_split as sketch_location_grid_split
     from ai_anime.modules.narrative_planning.public import choose_manual_sketch_mode_key
 
     for count in range(1, 9):
@@ -614,7 +614,7 @@ async def test_delete_manual_shot_rejects_normal_beat(tmp_path):
 
 @pytest.mark.skip(reason="v2.0: SketchModeStrategy 提示词模板已重写，feature 分支断言不再适用")
 def test_sketch_prompt_treats_manual_panels_as_normal_visual_descriptions():
-    from ai_anime.generators.prompt_builder import (
+    from ai_anime.modules.generators.prompt_builder import (
         GridConfig,
         PromptComponents,
         PromptContext,

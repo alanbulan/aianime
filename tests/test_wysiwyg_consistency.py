@@ -22,7 +22,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Imports from project
 # ---------------------------------------------------------------------------
-from ai_anime.generators.prompt_builder import (
+from ai_anime.modules.generators.prompt_builder import (
     CharacterConfig,
     GridConfig,
     PromptComponents,
@@ -32,7 +32,7 @@ from ai_anime.generators.prompt_builder import (
     UnifiedPromptBuilder,
     create_prompt_context,
 )
-from ai_anime.generators.nanobanana_grid import resolve_render_reference_order
+from ai_anime.modules.generators.nanobanana_grid import resolve_render_reference_order
 from ai_anime.modules.asset_world.public import build_character_map_for_grid
 
 

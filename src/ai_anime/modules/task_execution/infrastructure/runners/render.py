@@ -215,8 +215,8 @@ async def _run_batch_render_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.config import get_render_generation_config
-    from ai_anime.generators.nanobanana_grid import NanoBananaGridGenerator, scene_grid_split
-    from ai_anime.generators.pool_indexer import (
+    from ai_anime.modules.generators.public import NanoBananaGridGenerator, scene_grid_split
+    from ai_anime.modules.generators.public import (
         build_beat_sketch_paths,
         load_pool_index,
         rebuild_pool_index,
@@ -422,8 +422,8 @@ async def _run_selected_regen_async(
     *,
     is_sketch: bool,
 ) -> dict[str, Any]:
-    from ai_anime.generators.nanobanana_grid import regenerate_selected_beats
-    from ai_anime.generators.pool_indexer import save_grid_and_split
+    from ai_anime.modules.generators.public import regenerate_selected_beats
+    from ai_anime.modules.generators.public import save_grid_and_split
     from ai_anime.modules.narrative_planning.public import beat_scene_id
     from ai_anime.modules.task_execution.public import selection_scope
     from ai_anime.utils.path_resolver import PathResolver
@@ -733,8 +733,8 @@ async def _run_grid_regenerate_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.config import MODE_CONFIG, get_render_generation_config
-    from ai_anime.generators import create_grid_generator
-    from ai_anime.generators.pool_indexer import build_beat_sketch_paths, save_grid_and_split
+    from ai_anime.modules.generators.public import create_grid_generator
+    from ai_anime.modules.generators.public import build_beat_sketch_paths, save_grid_and_split
     from ai_anime.modules.task_execution.public import selection_scope
     from ai_anime.utils.path_resolver import PathResolver
 
@@ -787,7 +787,7 @@ async def _run_grid_regenerate_async(
     scene_grid_plan = None
 
     if config_beat_numbers:
-        from ai_anime.generators.nanobanana_grid import REGEN_MODE_CONFIGS
+        from ai_anime.modules.generators.public import REGEN_MODE_CONFIGS
 
         cfg = REGEN_MODE_CONFIGS.get(grid_mode, {})
         rows_cfg = int(cfg.get("rows") or 1)
@@ -809,12 +809,12 @@ async def _run_grid_regenerate_async(
         grid_dir = episode_grids_dir / grid_mode
     else:
         if character_grouping:
-            from ai_anime.generators.nanobanana_grid import character_grid_split
+            from ai_anime.modules.generators.public import character_grid_split
 
             scene_grid_plan = character_grid_split(beats_data, character_map)
             scene_grouping = False
         elif scene_grouping:
-            from ai_anime.generators.nanobanana_grid import scene_grid_split
+            from ai_anime.modules.generators.public import scene_grid_split
 
             scene_grid_plan = scene_grid_split(beats_data, character_map=character_map)
 

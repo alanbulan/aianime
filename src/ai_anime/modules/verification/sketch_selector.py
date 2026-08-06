@@ -7,7 +7,7 @@
 import logging
 from pathlib import Path
 
-from ai_anime.generators.pool_indexer import compute_beat_content_hash, is_pool_image_stale
+from ai_anime.modules.generators.public import compute_beat_content_hash, is_pool_image_stale
 
 from .image_verifier import ImageVerifier, resolve_verification_scene_context
 from .models import ObjectiveScore
@@ -74,7 +74,7 @@ async def run_sketch_select(
     """
     import re
     from ai_anime.modules.production.public import extract_char_identities_from_markers
-    from ai_anime.generators.sketch_color_detector import detect_sketch_colors as detect_colors
+    from ai_anime.modules.generators.public import detect_sketch_colors as detect_colors
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
     scorer = SketchScorer()

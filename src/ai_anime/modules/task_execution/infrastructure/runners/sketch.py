@@ -279,7 +279,7 @@ async def _run_sketch_generation_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.config import get_sketch_generation_config
-    from ai_anime.generators.nanobanana_grid import (
+    from ai_anime.modules.generators.public import (
         NanoBananaGridGenerator,
         REGEN_MODE_CONFIGS,
         SKETCH_DEFAULT_MODE_KEY,
@@ -287,7 +287,7 @@ async def _run_sketch_generation_async(
         sketch_pass1_mode_key,
         sketch_scene_grid_split,
     )
-    from ai_anime.generators.pool_indexer import save_grid_and_split
+    from ai_anime.modules.generators.public import save_grid_and_split
     from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
     payload = envelope.get("payload") or {}

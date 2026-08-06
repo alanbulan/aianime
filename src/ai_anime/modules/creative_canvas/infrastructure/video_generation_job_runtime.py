@@ -29,7 +29,7 @@ class CommercialCreativeCanvasVideoGenerationJobRuntime:
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        from ai_anime.generators.video_generator import (
+        from ai_anime.modules.generators.public import (
             ShotReference,
             create_video_generator,
         )

@@ -172,7 +172,7 @@ async def _generate_character_portrait(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.generators import generate_character_reference_unified
+    from ai_anime.modules.generators.public import generate_character_reference_unified
 
     face_prompt = str(character.face_prompt or "").strip()
     if not face_prompt:
@@ -218,7 +218,7 @@ async def _generate_identity_portrait(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.generators import generate_character_reference_unified
+    from ai_anime.modules.generators.public import generate_character_reference_unified
 
     identity = _find_identity(character, identity_id, identity_name)
     if identity is None:
@@ -274,7 +274,7 @@ async def _generate_identity_image(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.generators import generate_identity_image_unified
+    from ai_anime.modules.generators.public import generate_identity_image_unified
     from ai_anime.utils.path_resolver import (
         compute_identity_costume_path,
         compute_identity_portrait_path,

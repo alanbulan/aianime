@@ -15,7 +15,7 @@ import pytest
 
 
 def test_indextts2_client_module_loads():
-    mod = importlib.import_module("ai_anime.generators.indextts2")
+    mod = importlib.import_module("ai_anime.modules.generators.indextts2")
     assert hasattr(mod, "IndexTTS2Client")
 
 
@@ -52,9 +52,9 @@ def test_seedance2_i2v_init_exports_stage_a_only():
 
 def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
     import ai_anime.config as config
-    import ai_anime.generators.indextts2 as indextts2
+    import ai_anime.modules.generators.indextts2 as indextts2
 
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
     async def fake_reserve(model, *, source):
         return "reservation_1"
@@ -81,7 +81,7 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
 
 
 def test_indextts2_client_rejects_empty_prompt(tmp_path):
-    from ai_anime.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
 
     client = IndexTTS2Client(model="audio-speech-test")
     result = asyncio.run(

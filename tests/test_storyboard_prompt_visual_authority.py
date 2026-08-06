@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from ai_anime.generators.prompt_builder import (
+from ai_anime.modules.generators.prompt_builder import (
     GridConfig,
     PromptComponents,
     PromptContext,
@@ -497,7 +497,7 @@ def test_batch_scene_refs_are_deduped_across_panels():
 async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
     from PIL import Image
 
-    from ai_anime.generators.nanobanana_grid import NanoBananaGridGenerator
+    from ai_anime.modules.generators.nanobanana_grid import NanoBananaGridGenerator
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     scene_dir = project_dir / "assets" / "scenes" / "兰州拉面馆"

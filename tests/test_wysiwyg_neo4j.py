@@ -26,7 +26,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Imports from project
 # ---------------------------------------------------------------------------
-from ai_anime.generators.prompt_builder import (
+from ai_anime.modules.generators.prompt_builder import (
     CharacterConfig,
     PromptComponents,
     PromptContext,

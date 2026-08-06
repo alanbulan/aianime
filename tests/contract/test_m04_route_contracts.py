@@ -335,8 +335,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         Path(kwargs["output_path"]).write_bytes(_png_bytes())
         return {"success": True}
 
-    import ai_anime.generators as generators_pkg
-    from ai_anime.generators import image_generator
+    import ai_anime.modules.generators as generators_pkg
+    from ai_anime.modules.generators import image_generator
+    from ai_anime.modules.generators import public as generators_public
 
     monkeypatch.setattr(
         image_generator,
@@ -347,7 +348,15 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         generators_pkg, "generate_character_reference_unified", fake_character_reference
     )
     monkeypatch.setattr(
+        generators_public,
+        "generate_character_reference_unified",
+        fake_character_reference,
+    )
+    monkeypatch.setattr(
         image_generator, "generate_identity_image_unified", fake_identity_image
+    )
+    monkeypatch.setattr(
+        generators_public, "generate_identity_image_unified", fake_identity_image
     )
 
     custom_style = StyleConfig(
@@ -366,13 +375,14 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(StyleService, "save_custom_style", lambda *_, **__: True)
     monkeypatch.setattr(StyleService, "delete_custom_style", lambda *_, **__: True)
 
-    from ai_anime.generators import style_analyzer
+    from ai_anime.modules.generators import style_analyzer
 
     class FakeStyleAnalyzer:
         async def analyze(self, content: bytes, *, mime_type: str):
             return {"style": "cinematic", "bytes": len(content), "mime_type": mime_type}
 
     monkeypatch.setattr(style_analyzer, "StyleAnalyzer", FakeStyleAnalyzer)
+    monkeypatch.setattr(generators_public, "StyleAnalyzer", FakeStyleAnalyzer)
 
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)

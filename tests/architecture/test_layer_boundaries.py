@@ -4783,7 +4783,7 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
         / "infrastructure"
         / "grid_pool_models.py"
     )
-    pool_indexer = PACKAGE_ROOT / "generators" / "pool_indexer.py"
+    pool_indexer = PACKAGE_ROOT / "modules" / "generators" / "pool_indexer.py"
     legacy_source = _removed_models_source(legacy_models)
     pool_source = pool_models.read_text(encoding="utf-8")
 
@@ -4933,7 +4933,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         / "creative_canvas"
         / "infrastructure"
         / "preset_contexts.py",
-        PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
+        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py",
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py",
         PACKAGE_ROOT / "utils" / "asset_resolver.py",
     )
@@ -4978,8 +4978,8 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         PACKAGE_ROOT / "api" / "routes" / "assets.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "generators" / "nanobanana_grid.py",
-        PACKAGE_ROOT / "generators" / "prompt_builder.py",
+        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py",
+        PACKAGE_ROOT / "modules" / "generators" / "prompt_builder.py",
         PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
         PACKAGE_ROOT / "modules" / "seedance2_i2v" / "prompt.py",
         PACKAGE_ROOT / "sqlite_store.py",
@@ -5150,7 +5150,10 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         / "creative_canvas"
         / "infrastructure"
         / "preset_payload.py",
-        PACKAGE_ROOT / "generators" / "scene_reference_images.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "generators"
+        / "scene_reference_images.py",
         PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "utils" / "asset_resolver.py",
     )
@@ -5207,7 +5210,7 @@ def test_production_detected_refs_have_one_owner() -> None:
         / "narrative_planning"
         / "application"
         / "literal_script_writing.py",
-        PACKAGE_ROOT / "generators" / "prompt_builder.py",
+        PACKAGE_ROOT / "modules" / "generators" / "prompt_builder.py",
     )
     constants = ("NO_CHARACTER_MARKER", "NO_PROP_MARKER")
     functions = (
@@ -5614,7 +5617,9 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
 
 
 def test_production_sketch_color_rules_have_one_owner() -> None:
-    nanobanana = PACKAGE_ROOT / "generators" / "nanobanana_grid.py"
+    nanobanana = (
+        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py"
+    )
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     callers = {
         nanobanana: "global_prop_marker_colors",
@@ -5642,7 +5647,7 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         source = path.read_text(encoding="utf-8")
         assert public_name in source
         assert "ai_anime.modules.production.public" in _imports(path)
-        assert "ai_anime.generators.episode_optimizer" not in _imports(path)
+        assert "ai_anime.modules.generators.episode_optimizer" not in _imports(path)
 
 
 def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
@@ -5741,7 +5746,7 @@ def test_asset_world_style_route_remains_an_http_adapter() -> None:
     assert not {
         imported
         for imported in imported_modules
-        if imported.startswith("ai_anime.generators")
+        if imported.startswith("ai_anime.modules.generators")
         or imported == "ai_anime.models"
         or imported == "ai_anime.shared.ports"
     }

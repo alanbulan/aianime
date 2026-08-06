@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.generators.indextts2 import IndexTTS2Client
+from ai_anime.modules.generators.public import IndexTTS2Client
 from ai_anime.model_audio_transport import write_model_audio_speech
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasGeneratedAudio,

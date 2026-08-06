@@ -32,7 +32,7 @@ class FakeTTSGenerator:
         self.model = model
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
-        from ai_anime.generators.tts_generator import TTSResult
+        from ai_anime.modules.generators.tts_generator import TTSResult
 
         self.__class__.calls.append(
             {

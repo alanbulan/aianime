@@ -22,7 +22,7 @@ from ai_anime.config import (
     OUTPUT_DIR,
     get_style_preset,
 )
-from ai_anime.generators.nanobanana_grid import _call_newapi_image_api
+from ai_anime.modules.generators.public import _call_newapi_image_api
 from ai_anime.model_access_policy import load_model_access_from_stdin
 
 # Demo defaults for standalone/manual runs. In production stage_asset_tasks

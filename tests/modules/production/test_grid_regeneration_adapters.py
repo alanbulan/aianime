@@ -113,7 +113,7 @@ def _build(monkeypatch, store: _Store, planner: _Planner):
 
 
 def test_planner_uses_character_grouping_before_scene_grouping(monkeypatch) -> None:
-    from ai_anime.generators import nanobanana_grid
+    from ai_anime.modules.generators import nanobanana_grid
 
     beats = [{"beat_number": 1}, {"beat_number": 2}]
     monkeypatch.setattr(
@@ -156,7 +156,7 @@ def test_planner_uses_character_grouping_before_scene_grouping(monkeypatch) -> N
 
 
 def test_planner_selects_scene_group_and_reports_its_range(monkeypatch) -> None:
-    from ai_anime.generators import nanobanana_grid
+    from ai_anime.modules.generators import nanobanana_grid
 
     beats = [{"beat_number": 1}, {"beat_number": 2}]
     monkeypatch.setattr(
@@ -194,7 +194,7 @@ def test_planner_selects_scene_group_and_reports_its_range(monkeypatch) -> None:
 
 
 def test_planner_selects_sequential_grid_beats(monkeypatch) -> None:
-    from ai_anime.generators import nanobanana_grid
+    from ai_anime.modules.generators import nanobanana_grid
 
     beats = [
         {"beat_number": 10},

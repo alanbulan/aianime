@@ -10,13 +10,13 @@ from json import JSONDecodeError
 from pathlib import Path, PurePath
 from typing import Any
 
-from ai_anime.generators.grid_splitter import combine_to_grid
-from ai_anime.generators.nanobanana_grid import (
+from ai_anime.modules.generators.public import combine_to_grid
+from ai_anime.modules.generators.public import (
     REGEN_MODE_CONFIGS,
     generate_reference_edit_image,
     get_sketch_nxn_modes,
 )
-from ai_anime.generators.pool_indexer import save_grid_and_split
+from ai_anime.modules.generators.public import save_grid_and_split
 from ai_anime.config import get_grid_generation_config
 from ai_anime.modules.verification.sketch_edit_label_validation import (
     LabelsValidationError,

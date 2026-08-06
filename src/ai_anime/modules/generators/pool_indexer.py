@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Union
 
 from PIL import Image
 
-from ai_anime.generators.grid_splitter import remove_grid_gaps
+from ai_anime.modules.generators.grid_splitter import remove_grid_gaps
 from ai_anime.utils.state_index_files import (
     ensure_state_index_from_legacy,
     index_file_lock,
@@ -649,7 +649,7 @@ def save_grid_and_split(
         {"grid_path": str, "cell_paths": [Path], "added": int, "skipped": int}
     """
     import shutil
-    from ai_anime.generators.grid_splitter import split_grid
+    from ai_anime.modules.generators.grid_splitter import split_grid
 
     grids_dir = Path(episode_grids_dir)
     src_path = Path(grid_image_path)

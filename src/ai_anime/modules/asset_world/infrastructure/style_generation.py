@@ -15,7 +15,7 @@ class UnifiedStylePreviewGenerator:
         style_id: str,
         model: str,
     ) -> Sequence[str | Path]:
-        from ai_anime.generators.image_generator import (
+        from ai_anime.modules.generators.public import (
             generate_character_reference_unified,
         )
 
@@ -38,6 +38,6 @@ class PydanticStyleImageAnalyzer:
         *,
         mime_type: str,
     ) -> Mapping[str, Any]:
-        from ai_anime.generators.style_analyzer import StyleAnalyzer
+        from ai_anime.modules.generators.public import StyleAnalyzer
 
         return await StyleAnalyzer().analyze(content, mime_type=mime_type)

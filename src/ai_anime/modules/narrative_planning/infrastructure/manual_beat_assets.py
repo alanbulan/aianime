@@ -81,7 +81,7 @@ class LocalManualSketchCatalog:
 
 
 def choose_manual_sketch_mode_key(count: int) -> str:
-    from ai_anime.generators.nanobanana_grid import sketch_scene_grid_split
+    from ai_anime.modules.generators.public import sketch_scene_grid_split
 
     beats = [{"beat_number": index} for index in range(1, max(1, count) + 1)]
     return str(sketch_scene_grid_split(beats)[0]["mode_key"])

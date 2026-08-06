@@ -16,13 +16,13 @@ from ai_anime.config import ensure_project_dirs
 from ai_anime.modules.narrative_planning.public import (
     create_script_writing_workflow,
 )
-from ai_anime.generators import (
+from ai_anime.modules.generators import (
     SceneAsset,
     create_image_generator,
     create_tts_generator,
     create_video_composer,
 )
-from ai_anime.generators.video_composer import normalize_video_title
+from ai_anime.modules.generators.video_composer import normalize_video_title
 
 app = typer.Typer(name="ai_anime", help="小说解说视频自动生成系统（Cognee 版）")
 app.add_typer(backup_app, name="backup")

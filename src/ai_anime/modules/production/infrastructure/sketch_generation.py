@@ -46,7 +46,7 @@ class NanoBananaSketchGridPlanner:
         scene_grouping: bool,
         aspect_ratio: str,
     ) -> tuple[GridShape, ...]:
-        from ai_anime.generators.nanobanana_grid import (
+        from ai_anime.modules.generators.public import (
             sketch_grid_split,
             sketch_scene_grid_split,
         )

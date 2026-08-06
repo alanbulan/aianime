@@ -3865,7 +3865,7 @@ def create_prompt_context(
         PromptContext 实例
     """
     # 自动推断 aspect_ratio 和 is_portrait_panel
-    from ai_anime.generators.nanobanana_grid import REGEN_MODE_CONFIGS, SKETCH_GRID_CONFIG
+    from ai_anime.modules.generators.nanobanana_grid import REGEN_MODE_CONFIGS, SKETCH_GRID_CONFIG
 
     # Sketch 模式：使用独立配置
     if mode == PromptMode.SKETCH:

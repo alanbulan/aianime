@@ -221,7 +221,7 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
         aspect_ratio: str,
         model: str,
     ) -> str:
-        from ai_anime.generators.prompt_builder import (
+        from ai_anime.modules.generators.public import (
             PromptMode,
             UnifiedPromptBuilder,
             create_prompt_context,

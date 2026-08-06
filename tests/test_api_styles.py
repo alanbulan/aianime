@@ -238,7 +238,7 @@ def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp
 
 
 def test_style_preview_post_route_still_exists(monkeypatch, tmp_path):
-    from ai_anime.generators import image_generator
+    from ai_anime.modules.generators import image_generator
 
     preview_path = tmp_path / "preview.png"
     preview_path.write_bytes(b"\x89PNG\r\n\x1a\n")

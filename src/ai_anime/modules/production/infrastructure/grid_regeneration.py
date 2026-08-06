@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ai_anime.generators.render_identity_guard import render_ai_detection_error
+from ai_anime.modules.generators.public import render_ai_detection_error
 from ai_anime.modules.narrative_planning.public import pick_beats_by_number
 from ai_anime.modules.production.application.generation_context import (
     ProductionGenerationContextUseCases,
@@ -41,7 +41,7 @@ class NanoBananaGridRegenerationPlanner:
         scene_grouping: bool,
         character_grouping: bool,
     ) -> tuple[int, ...]:
-        from ai_anime.generators.nanobanana_grid import (
+        from ai_anime.modules.generators.public import (
             REGEN_MODE_CONFIGS,
             character_grid_split,
             perfect_grid_split,

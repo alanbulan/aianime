@@ -377,7 +377,7 @@ async def score_beat(
 
     # 找到草图（支持指定 pool_id）
     if body.pool_id:
-        from ai_anime.generators.pool_indexer import load_pool_index
+        from ai_anime.modules.generators.pool_indexer import load_pool_index
 
         grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
         pool = load_pool_index(grids_dir)
@@ -452,7 +452,7 @@ async def score_batch(
     except Exception:
         pass
 
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.pool_indexer import load_pool_index
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
     pool = load_pool_index(grids_dir)
@@ -529,7 +529,7 @@ async def compare_beat(
     except (FileNotFoundError, IndexError) as e:
         return {"ok": False, "error": str(e)}
 
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.pool_indexer import load_pool_index
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
     pool = load_pool_index(grids_dir)
@@ -676,7 +676,7 @@ async def sketch_select(
         return {"ok": False, "error": str(e)}
 
     # 加载 pool index
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.pool_indexer import load_pool_index
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
     pool = load_pool_index(grids_dir)

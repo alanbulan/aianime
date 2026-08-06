@@ -17,7 +17,7 @@ def _configure_roots(monkeypatch, tmp_path):
 
 def test_save_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from ai_anime.generators.pool_indexer import save_pool_index
+    from ai_anime.modules.generators.pool_indexer import save_pool_index
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     grids_dir.mkdir(parents=True)
@@ -35,7 +35,7 @@ def test_save_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
 
 def test_load_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.pool_indexer import load_pool_index
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     grids_dir.mkdir(parents=True)

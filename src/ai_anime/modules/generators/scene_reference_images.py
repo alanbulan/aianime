@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from ai_anime.generators.nanobanana_grid import (
+from ai_anime.modules.generators.nanobanana_grid import (
     _call_newapi_image_api,
 )
 from ai_anime.modules.director_world.paths import safe_name

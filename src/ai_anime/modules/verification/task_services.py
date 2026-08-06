@@ -100,7 +100,7 @@ async def run_sketch_select_episode(
     beats = await load_all_beats(project_dir, episode_num, sqlite_store=store)
 
     _notify(progress_callback, 0.18, "加载候选池")
-    from ai_anime.generators.pool_indexer import load_pool_index
+    from ai_anime.modules.generators.public import load_pool_index
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
     pool = load_pool_index(grids_dir)

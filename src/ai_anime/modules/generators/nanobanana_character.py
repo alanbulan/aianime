@@ -33,7 +33,7 @@ from ai_anime.image_request_usage import (
     update_image_request_status,
 )
 from ai_anime.modules.asset_world.public import StyleService
-from ai_anime.generators.nanobanana_grid import (
+from ai_anime.modules.generators.nanobanana_grid import (
     _call_newapi_image_api,
     normalize_image_quality,
 )

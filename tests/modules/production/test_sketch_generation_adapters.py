@@ -288,7 +288,7 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
 def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
     monkeypatch,
 ) -> None:
-    from ai_anime.generators import nanobanana_grid
+    from ai_anime.modules.generators import nanobanana_grid
 
     scene_calls = []
 

@@ -30,7 +30,7 @@ class CommercialCreativeCanvasImageJobRuntime:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         from ai_anime.config import get_grid_generation_config
-        from ai_anime.generators.nanobanana_grid import (
+        from ai_anime.modules.generators.public import (
             generate_reference_edit_image,
             generate_text_to_image,
         )
@@ -72,7 +72,7 @@ class CommercialCreativeCanvasImageJobRuntime:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         from ai_anime.config import get_grid_generation_config
-        from ai_anime.generators.nanobanana_grid import generate_reference_edit_image
+        from ai_anime.modules.generators.public import generate_reference_edit_image
 
         references = [command.base_path, *command.extra_reference_paths]
         config = get_grid_generation_config(
@@ -109,7 +109,7 @@ class CommercialCreativeCanvasImageJobRuntime:
             raise FileNotFoundError(f"mask not found: {mask_path}")
 
         from ai_anime.config import get_grid_generation_config
-        from ai_anime.generators.nanobanana_grid import generate_reference_edit_image
+        from ai_anime.modules.generators.public import generate_reference_edit_image
         from ai_anime.utils.error_redaction import redact_secrets
 
         config = get_grid_generation_config(

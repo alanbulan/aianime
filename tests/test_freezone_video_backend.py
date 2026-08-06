@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.generators.video_generator import (
+from ai_anime.modules.generators.video_generator import (
     CommercialVideoGenerator,
     VideoGenResult,
     VideoGenStatus,
@@ -174,7 +174,7 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
         return FakeVideoGenerator()
 
     monkeypatch.setattr(
-        "ai_anime.generators.video_generator.create_video_generator",
+        "ai_anime.modules.generators.video_generator.create_video_generator",
         fake_create_video_generator,
     )
 

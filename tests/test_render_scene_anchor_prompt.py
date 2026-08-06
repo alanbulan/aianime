@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.generators.prompt_builder import (
+from ai_anime.modules.generators.prompt_builder import (
     GridConfig,
     PromptComponents,
     PromptContext,

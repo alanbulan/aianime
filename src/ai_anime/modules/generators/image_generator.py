@@ -55,7 +55,7 @@ async def _generate_commercial_image(
     reference_images: list[tuple[bytes, str]] | None,
     aspect_ratio: str,
 ) -> tuple[bytes | None, str]:
-    from ai_anime.generators.nanobanana_grid import _call_newapi_image_api
+    from ai_anime.modules.generators.nanobanana_grid import _call_newapi_image_api
 
     image_bytes, _text, error = await _call_newapi_image_api(
         model=model,
@@ -250,7 +250,7 @@ async def generate_character_reference_unified(
         return []
 
     try:
-        from ai_anime.generators.nanobanana_character import (
+        from ai_anime.modules.generators.nanobanana_character import (
             NanoBananaCharacterGenerator,
         )
 
@@ -307,7 +307,7 @@ async def generate_identity_image_unified(
             raise RuntimeError("identity image model is required")
         return False
     try:
-        from ai_anime.generators.nanobanana_character import (
+        from ai_anime.modules.generators.nanobanana_character import (
             NanoBananaCharacterGenerator,
         )
 
