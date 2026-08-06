@@ -18,6 +18,8 @@ import {
   projectCommercialBootstrap,
   projectCommercialModelCatalog,
   projectCommercialQuota,
+  projectReleaseArtifactDownload,
+  type CommercialArtifactDownloadSnapshot,
   type CommercialAuthorizationSnapshot,
 } from "./commercial-contracts.js";
 import {
@@ -90,6 +92,23 @@ export interface CommercialReleaseQuery {
   currentVersion: string;
   target: string;
   arch: string;
+}
+
+export interface CommercialFileUploadInput {
+  fileName: string;
+  contentType: string;
+  size: number;
+}
+
+export interface CommercialInvocationQuery {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  operation?: string;
+}
+
+export interface CommercialFileUploadResult {
+  fileId: Identifier;
 }
 
 export interface CommercialLicenseActivationInput {
@@ -167,6 +186,8 @@ interface RefreshResponse {
 interface RequestOptions {
   query?: Record<string, QueryValue>;
   body?: unknown;
+  rawBody?: Uint8Array;
+  contentType?: string;
   token?: string;
   accept?: string;
 }
@@ -522,41 +543,156 @@ export class CommercialApiClient {
     });
   }
 
+  async releaseArtifactDownload(
+    artifactId: Identifier,
+  ): Promise<CommercialArtifactDownloadSnapshot> {
+    return projectReleaseArtifactDownload(
+      await this.authenticatedJson(
+        "GET",
+        `/api/v1/client/releases/artifacts/${encodeURIComponent(String(requiredIdentifier(artifactId, "artifactId")))}/download`,
+      ),
+    );
+  }
+
+  listInvocations(
+    query: CommercialInvocationQuery = {},
+  ): Promise<unknown> {
+    const page = query.page;
+    const pageSize = query.pageSize;
+    if (page !== undefined && (!Number.isInteger(page) || page < 1)) {
+      throw new CommercialApiError("page 必须是大于等于 1 的整数");
+    }
+    if (
+      pageSize !== undefined &&
+      (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
+    ) {
+      throw new CommercialApiError("pageSize 必须是 1 到 100 之间的整数");
+    }
+    return this.authenticatedJson("GET", "/api/v1/client/relay/invocations", {
+      query: compactObject({
+        page: page === undefined ? undefined : page,
+        pageSize: pageSize === undefined ? undefined : pageSize,
+        status: optionalText(query.status),
+        operation: optionalText(query.operation),
+      }),
+    });
+  }
+
+  async invocationResult(id: Identifier): Promise<Buffer> {
+    return this.authenticatedBinary(
+      "GET",
+      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/result`,
+    );
+  }
+
+  async createFileUpload(
+    input: CommercialFileUploadInput,
+  ): Promise<CommercialFileUploadResult> {
+    const fileName = requiredText(input.fileName, "fileName");
+    if (Buffer.byteLength(fileName, "utf8") > 255) {
+      throw new CommercialApiError("fileName 长度不能超过 255 字节");
+    }
+    const contentType = requiredText(input.contentType, "contentType");
+    if (!/^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/.test(contentType)) {
+      throw new CommercialApiError("contentType 格式无效");
+    }
+    const size = input.size;
+    if (typeof size !== "number" || !Number.isSafeInteger(size) || size <= 0) {
+      throw new CommercialApiError("size 必须是正整数");
+    }
+    const value = requiredRecord(
+      await this.authenticatedJson("POST", "/api/v1/files/uploads", {
+        body: { fileName, contentType, size },
+      }),
+      "file upload response",
+    );
+    return { fileId: requiredIdentifier(value.fileId, "fileId") };
+  }
+
+  async uploadFileContent(
+    fileId: Identifier,
+    contentType: string,
+    bytes: Uint8Array,
+  ): Promise<void> {
+    if (!bytes || bytes.byteLength === 0) {
+      throw new CommercialApiError("文件内容不能为空");
+    }
+    const response = await this.authenticatedResponse(
+      "PUT",
+      `/api/v1/files/${encodeURIComponent(String(requiredIdentifier(fileId, "fileId")))}/content`,
+      {
+        rawBody: bytes,
+        contentType: requiredText(contentType, "contentType"),
+        accept: "application/json",
+      },
+    );
+    await assertSuccessfulResponse(response);
+  }
+
+  async downloadFileBytes(fileId: Identifier): Promise<Buffer> {
+    return this.authenticatedBinary(
+      "GET",
+      `/api/v1/files/${encodeURIComponent(String(requiredIdentifier(fileId, "fileId")))}/content`,
+    );
+  }
+
   private async authenticatedJson(
     method: string,
     path: string,
     options: Omit<RequestOptions, "token"> = {},
   ): Promise<unknown> {
+    const response = await this.authenticatedResponse(method, path, options);
+    await assertSuccessfulResponse(response);
+    if (response.status === 204) return undefined;
+    const text = await response.text();
+    if (!text.trim()) return undefined;
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      throw new CommercialApiError("Gateway 返回了无效 JSON", {
+        status: response.status,
+      });
+    }
+  }
+
+  private async authenticatedBinary(
+    method: string,
+    path: string,
+    options: Omit<RequestOptions, "token"> = {},
+  ): Promise<Buffer> {
+    const response = await this.authenticatedResponse(method, path, options);
+    await assertSuccessfulResponse(response);
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  private async authenticatedResponse(
+    method: string,
+    path: string,
+    options: Omit<RequestOptions, "token"> = {},
+  ): Promise<Response> {
     let session = await this.requireSession();
     if (session.expiresAtEpochMs <= this.now() + REFRESH_SKEW_MS) {
       session = await this.refreshSession(session);
     }
 
-    try {
-      return await this.requestJson(method, path, {
+    const execute = (token: string) =>
+      this.requestResponse(method, path, {
         ...options,
-        token: session.accessToken,
+        token,
       });
-    } catch (error) {
-      if (!(error instanceof CommercialApiError) || error.status !== 401) throw error;
-      const latest = await this.loadSession();
-      if (latest && latest.accessToken !== session.accessToken) {
-        session = latest;
-      } else {
-        session = await this.refreshSession(session);
-      }
-      try {
-        return await this.requestJson(method, path, {
-          ...options,
-          token: session.accessToken,
-        });
-      } catch (retryError) {
-        if (retryError instanceof CommercialApiError && retryError.status === 401) {
-          await this.clearSession();
-        }
-        throw retryError;
-      }
+    let response = await execute(session.accessToken);
+    if (response.status !== 401) return response;
+
+    const latest = await this.loadSession();
+    session =
+      latest && latest.accessToken !== session.accessToken
+        ? latest
+        : await this.refreshSession(session);
+    response = await execute(session.accessToken);
+    if (response.status === 401) {
+      await this.clearSession();
     }
+    return response;
   }
 
   private async requireFreshSession(): Promise<StoredCommercialSession> {
@@ -717,8 +853,14 @@ export class CommercialApiClient {
     }
     const headers = new Headers({ Accept: options.accept ?? "application/json" });
     if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
-    let body: string | undefined;
-    if (options.body !== undefined) {
+    let body: string | Uint8Array | undefined;
+    if (options.rawBody !== undefined) {
+      headers.set(
+        "Content-Type",
+        options.contentType ?? "application/octet-stream",
+      );
+      body = options.rawBody;
+    } else if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);
     }
@@ -750,6 +892,7 @@ export const COMMERCIAL_CHANNELS = {
   modelCatalog: "desktop:commercial:model-catalog",
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
+  downloadArtifact: "desktop:commercial:download-artifact",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
   refreshLicenseLease: "desktop:commercial:refresh-license-lease",
@@ -776,6 +919,14 @@ interface RegisterCommercialIpcOptions {
     cloudModelAssignments: readonly ByokModelAssignment[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
+  releaseArtifactDownloader?: (
+    metadata: CommercialArtifactDownloadSnapshot,
+  ) => Promise<{
+    filePath: string;
+    fileName: string;
+    sizeBytes: number;
+    sha256: string;
+  }>;
 }
 
 export function registerCommercialIpc(
@@ -1003,6 +1154,14 @@ export function registerCommercialIpc(
       arch: options.arch,
     }),
   );
+  handle(COMMERCIAL_CHANNELS.downloadArtifact, async (input) => {
+    const artifactId = requiredIdentifier(input, "artifactId");
+    const metadata = await requireClient().releaseArtifactDownload(artifactId);
+    if (!options.releaseArtifactDownloader) {
+      throw new CommercialApiError("客户端尚未配置制品下载与校验器");
+    }
+    return options.releaseArtifactDownloader(metadata);
+  });
 
   return client;
 

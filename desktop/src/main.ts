@@ -23,6 +23,11 @@ import {
   resolveCommercialGatewayUrl,
   type CommercialSessionSummary,
 } from "./commercial.js";
+import {
+  ArtifactVerificationError,
+  downloadAndVerifyReleaseArtifact,
+  verifyWindowsAuthenticodeSignature,
+} from "./commercial-artifact.js";
 
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
@@ -219,6 +224,16 @@ function registerCommercialGatewayIpc(
         localBackend.baseUrl,
         AUTH_COOKIE_NAME,
       ),
+    releaseArtifactDownloader: async (metadata) =>
+      downloadAndVerifyReleaseArtifact(metadata, {
+        verifySignature: () => {
+          throw new ArtifactVerificationError(
+            "未配置制品签名公钥，拒绝安装",
+          );
+        },
+        verifyAuthenticode: (filePath) =>
+          verifyWindowsAuthenticodeSignature(filePath),
+      }),
   });
 }
 

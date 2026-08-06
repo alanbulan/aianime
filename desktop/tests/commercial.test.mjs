@@ -150,6 +150,221 @@ test("logout clears the local secret when remote revocation is offline", async (
   assert.equal(store.value, null);
 });
 
+function authenticatedClient(fetchImpl, options = {}) {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+  };
+  return new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl,
+    ...options,
+  });
+}
+
+test("release artifact download projects and validates the gateway contract", async () => {
+  const artifact = {
+    url: "https://files.gateway.test/shared/token",
+    fileName: "toonflow-1.1.0-x64.exe",
+    contentType: "application/octet-stream",
+    sha256: "a".repeat(64),
+    sizeBytes: 98234123,
+    signature: "artifact-signature",
+    expiresAt: "2026-07-23T10:15:00Z",
+  };
+  const calls = [];
+  const client = authenticatedClient(async (url, init) => {
+    calls.push({ url: String(url), init });
+    return Response.json(artifact);
+  });
+
+  const result = await client.releaseArtifactDownload(1201);
+
+  assert.deepEqual(result, artifact);
+  assert.equal(
+    calls[0].url,
+    "https://gateway.test/api/v1/client/releases/artifacts/1201/download",
+  );
+  assert.equal(
+    new Headers(calls[0].init.headers).get("Authorization"),
+    "Bearer client-jwt",
+  );
+});
+
+test("release artifact download rejects invalid sha256", async () => {
+  const client = authenticatedClient(async () =>
+    Response.json({
+      url: "https://files.gateway.test/shared/token",
+      fileName: "installer.exe",
+      contentType: "application/octet-stream",
+      sha256: "not-hex",
+      sizeBytes: 100,
+      signature: "sig",
+    }),
+  );
+  await assert.rejects(
+    () => client.releaseArtifactDownload(1),
+    /sha256/,
+  );
+});
+
+test("invocation list sends paged query and validates page bounds", async () => {
+  const calls = [];
+  const client = authenticatedClient(async (url, init) => {
+    calls.push(String(url));
+    return Response.json({ items: [] });
+  });
+
+  await client.listInvocations({
+    page: 2,
+    pageSize: 50,
+    status: "RUNNING",
+    operation: "VIDEO",
+  });
+  assert.equal(
+    calls[0],
+    "https://gateway.test/api/v1/client/relay/invocations?page=2&pageSize=50&status=RUNNING&operation=VIDEO",
+  );
+  await assert.rejects(
+    async () => {
+      await client.listInvocations({ page: 0 });
+    },
+    /page/,
+  );
+  await assert.rejects(
+    async () => {
+      await client.listInvocations({ pageSize: 101 });
+    },
+    /pageSize/,
+  );
+});
+
+test("invocation result downloads raw bytes and refreshes once on 401", async () => {
+  const calls = [];
+  const clientStore = new MemorySessionStore();
+  clientStore.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "old-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+  };
+  const refreshed = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: clientStore,
+    now: () => 1_000,
+    fetchImpl: async (url, init) => {
+      const href = String(url);
+      calls.push(href);
+      if (href.endsWith("/api/v1/client/auth/refresh")) {
+        return Response.json({ accessToken: "new-jwt", expiresIn: 3600 });
+      }
+      if (new Headers(init.headers).get("Authorization") === "Bearer old-jwt") {
+        return new Response(null, { status: 401 });
+      }
+      return new Response(Uint8Array.from([1, 2, 3, 4]));
+    },
+  });
+
+  const bytes = await refreshed.invocationResult("inv-7");
+  assert.deepEqual([...bytes], [1, 2, 3, 4]);
+  assert.equal(
+    calls.filter((url) => url.endsWith("/invocations/inv-7/result")).length,
+    2,
+  );
+  assert.equal(clientStore.value.accessToken, "new-jwt");
+});
+
+test("file object upload flow follows the documented gateway contract", async () => {
+  const calls = [];
+  const client = authenticatedClient(async (url, init) => {
+    const href = String(url);
+    calls.push({ url: href, init });
+    if (href.endsWith("/api/v1/files/uploads")) {
+      return Response.json({ fileId: 1201 });
+    }
+    if (href.endsWith("/api/v1/files/1201/content")) {
+      return init.method === "PUT"
+        ? new Response(null, { status: 204 })
+        : new Response(Uint8Array.from([9, 8, 7]));
+    }
+    return Response.json({});
+  });
+
+  const { fileId } = await client.createFileUpload({
+    fileName: "reference.png",
+    contentType: "image/png",
+    size: 245812,
+  });
+  assert.equal(fileId, 1201);
+
+  await client.uploadFileContent(fileId, "image/png", Uint8Array.from([9, 8, 7]));
+  const uploadCall = calls.find((call) =>
+    call.url.endsWith("/api/v1/files/1201/content"),
+  );
+  assert.equal(uploadCall.init.method, "PUT");
+  assert.equal(
+    new Headers(uploadCall.init.headers).get("Content-Type"),
+    "image/png",
+  );
+  assert.deepEqual([...uploadCall.init.body], [9, 8, 7]);
+
+  const bytes = await client.downloadFileBytes(1201);
+  assert.deepEqual([...bytes], [9, 8, 7]);
+  assert.equal(
+    calls.find((call) => call.url.endsWith("/content") && call.init.method === "GET").url,
+    "https://gateway.test/api/v1/files/1201/content",
+  );
+});
+
+test("file object upload validates metadata and byte payload", async () => {
+  const client = authenticatedClient(async () => Response.json({ fileId: 1 }));
+  await assert.rejects(
+    async () => {
+      await client.createFileUpload({
+        fileName: "",
+        contentType: "image/png",
+        size: 1,
+      });
+    },
+    /fileName/,
+  );
+  await assert.rejects(
+    async () => {
+      await client.createFileUpload({
+        fileName: "x",
+        contentType: "image",
+        size: 1,
+      });
+    },
+    /contentType/,
+  );
+  await assert.rejects(
+    async () => {
+      await client.createFileUpload({
+        fileName: "x",
+        contentType: "image/png",
+        size: 0,
+      });
+    },
+    /size/,
+  );
+  await assert.rejects(
+    async () => {
+      await client.uploadFileContent(1, "image/png", new Uint8Array(0));
+    },
+    /文件内容/,
+  );
+});
+
 test("public Logo is bounded and returned as a renderer-safe data URL", async () => {
   const client = new CommercialApiClient({
     baseUrl: "http://127.0.0.1:8889",
